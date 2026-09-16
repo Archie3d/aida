@@ -1,3 +1,4 @@
+#include "Cache.h"
 #include "Toolchain.h"
 
 #include <cstdio>
@@ -23,6 +24,8 @@ void printUsage()
               << "usage: ada [options] <source> [<source>...]\n"
               << "\n"
               << "  -o <file>     name of the produced file\n"
+              << "  -D <dir>      where the per unit objects are kept\n"
+              << "  --clean       remove that directory and stop\n"
               << "  --emit-ir     stop after generating QBE intermediate language\n"
               << "  -S            stop after generating assembly\n"
               << "  -k            keep the intermediate files\n"
@@ -53,25 +56,18 @@ std::vector<std::string> readManifest(const std::string& directory)
     return units;
 }
 
-void discard(const std::string& directory, bool keep)
-{
-    if (keep) {
-        return;
-    }
-    std::error_code ignored;
-    std::filesystem::remove_all(directory, ignored);
-}
-
 }
 
 int main(int argc, char** argv)
 {
     std::vector<std::string> sources;
     std::string output;
+    std::string objectDirectory;
     Stage stage = Stage::Executable;
     bool keepIntermediates = false;
     bool verbose = false;
     bool useLibrary = true;
+    bool clean = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string argument = argv[i];
@@ -81,6 +77,14 @@ int main(int argc, char** argv)
                 return 2;
             }
             output = argv[++i];
+        } else if (argument == "-D") {
+            if (i + 1 >= argc) {
+                std::cerr << "ada: error: missing directory after '-D'\n";
+                return 2;
+            }
+            objectDirectory = argv[++i];
+        } else if (argument == "--clean") {
+            clean = true;
         } else if (argument == "--emit-ir") {
             stage = Stage::IntermediateLanguage;
         } else if (argument == "-S") {
@@ -115,6 +119,14 @@ int main(int argc, char** argv)
     std::string stem = output.empty() ? baseName(sources.back()) : output;
     std::string irFile = stem + ".ssa";
     std::string assemblyFile = stem + ".s";
+    if (objectDirectory.empty()) {
+        objectDirectory = stem + ".adaobj";
+    }
+    if (clean) {
+        std::error_code ignored;
+        std::filesystem::remove_all(objectDirectory, ignored);
+        return 0;
+    }
     if (!output.empty()) {
         if (stage == Stage::IntermediateLanguage) {
             irFile = output;
@@ -134,7 +146,6 @@ int main(int argc, char** argv)
     // keeps the object it already had.  Asking for the intermediate language or
     // the assembly instead asks for the whole program in one file, which is
     // what there is to look at.
-    std::string objectDirectory = stem + ".adaobj";
     bool perUnit = stage == Stage::Executable;
     if (perUnit) {
         command.push_back("-D");
@@ -182,9 +193,19 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    Cache cache(objectDirectory, toolDigest({ toolchain.qbe(), toolchain.compiler() }));
+
     std::vector<std::string> link = { toolchain.compiler(), "-o", stem };
     for (const std::string& unit : units) {
         std::string base = objectDirectory + "/" + unit;
+        if (cache.isCurrent(unit)) {
+            if (verbose) {
+                std::cerr << "ada: " << unit << " is up to date\n";
+            }
+            link.push_back(base + ".o");
+            continue;
+        }
+
         std::vector<std::string> qbeCommand = { toolchain.qbe() };
 #ifdef _WIN32
         // qbe's own default target is the ELF sysv ABI even when built on Windows.
@@ -195,21 +216,17 @@ int main(int argc, char** argv)
         qbeCommand.push_back(base + ".s");
         qbeCommand.push_back(base + ".ssa");
         if (toolchain.run(qbeCommand) != 0) {
-            discard(objectDirectory, keepIntermediates);
             return 1;
         }
         if (toolchain.run({ toolchain.compiler(), "-c", "-o", base + ".o", base + ".s" }) != 0) {
-            discard(objectDirectory, keepIntermediates);
             return 1;
         }
+        cache.record(unit);
         link.push_back(base + ".o");
     }
 
     for (const std::string& file : toolchain.runtime()) {
         link.push_back(file);
     }
-    int status = toolchain.run(link);
-
-    discard(objectDirectory, keepIntermediates);
-    return status == 0 ? 0 : 1;
+    return toolchain.run(link) == 0 ? 0 : 1;
 }

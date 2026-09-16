@@ -132,6 +132,24 @@ add_ada_error_test(varianterrors SOURCES varianterrors.adb)
 
 add_ada_ir_test(hello SOURCES hello.adb)
 
+# Builds a program twice over to check that a unit nobody touched keeps the
+# object it already had, and that a changed body rebuilds that unit alone.
+add_test(NAME ada.incremental
+    COMMAND ${CMAKE_COMMAND}
+        -DNAME=incremental
+        -DADA=$<TARGET_FILE:ada>
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}/ada/incremental.adb|${CMAKE_CURRENT_SOURCE_DIR}/ada/incrhelper.ads|${CMAKE_CURRENT_SOURCE_DIR}/ada/incrhelper.adb
+        -DMAIN=incremental.adb
+        -DMODIFY=incrhelper.adb
+        -DMODIFY_UNIT=incrhelper
+        "-DFROM=return 1"
+        "-DTO=return 2"
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/incremental.expected
+        -DREBUILT=${CMAKE_CURRENT_SOURCE_DIR}/ada/incremental.rebuilt.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckIncremental.cmake
+)
+
 add_ada_test(overflow32 SOURCES overflow32.adb)
 
 add_ada_test(overflow64 SOURCES overflow64.adb)

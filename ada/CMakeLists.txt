@@ -7,6 +7,7 @@ add_executable(${TARGET})
 target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Toolchain.cpp
 )
 
