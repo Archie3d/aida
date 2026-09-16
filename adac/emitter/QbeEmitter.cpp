@@ -42,6 +42,18 @@ std::string encodeString(const std::string& text)
     return result;
 }
 
+// A unit key spells a file name, where QBE wants an identifier.  The dot keeps
+// the result out of the way of both mangled Ada names and run time symbols.
+std::string unitTag(const std::string& key)
+{
+    std::string tag;
+    for (char c : key) {
+        bool usable = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+        tag.push_back(usable ? c : '_');
+    }
+    return tag;
+}
+
 }
 
 QbeEmitter::QbeEmitter(Sema& sema, Diagnostics& diagnostics)
@@ -50,29 +62,57 @@ QbeEmitter::QbeEmitter(Sema& sema, Diagnostics& diagnostics)
 {
 }
 
-void QbeEmitter::emit(const std::vector<CompilationUnit*>& units, std::ostream& out)
+std::string QbeEmitter::elaborationName(const std::string& key)
 {
-    // The run time library reports failures through these, so they have to be
-    // visible to the linker and not just to the generated code.
-    m_data << "export data $__ada_exception = align 4 { z 4 }\n";
-    m_data << "export data $__ada_exception_name = align 8 { z 8 }\n";
+    return "ada_elab." + unitTag(key);
+}
 
-    for (CompilationUnit* unit : units) {
-        collectGlobals(unit->units);
-    }
+// Each unit is emitted on its own, so nothing survives from the one before it.
+void QbeEmitter::beginUnit(const std::string& key)
+{
+    m_data.str(std::string());
+    m_data.clear();
+    m_functions.clear();
+    m_stringPool.clear();
+    m_enumTables.clear();
+    m_pendingSubprograms.clear();
+    m_unitTag = unitTag(key);
+    m_tempCounter = 0;
+    m_labelCounter = 0;
+    m_dataCounter = 0;
+}
 
-    emitElaboration(units);
-
-    for (CompilationUnit* unit : units) {
-        emitSubprogramsIn(unit->units);
-    }
-
-    emitMain();
-
+void QbeEmitter::writeUnit(std::ostream& out)
+{
     out << m_data.str() << "\n";
     for (const std::string& function : m_functions) {
         out << function << "\n";
     }
+}
+
+void QbeEmitter::emitUnit(const LibraryUnit& unit, std::ostream& out)
+{
+    beginUnit(unit.key);
+
+    for (CompilationUnit* part : unit.parts) {
+        collectGlobals(part->units);
+    }
+
+    emitElaboration(unit);
+
+    for (CompilationUnit* part : unit.parts) {
+        emitSubprogramsIn(part->units);
+    }
+
+    writeUnit(out);
+}
+
+void QbeEmitter::emitAll(const std::vector<LibraryUnit>& units, std::ostream& out)
+{
+    for (const LibraryUnit& unit : units) {
+        emitUnit(unit, out);
+    }
+    emitBinder(units, out);
 }
 
 std::string QbeEmitter::newTemp()
@@ -123,7 +163,7 @@ std::string QbeEmitter::stringData(const std::string& text)
     if (it != m_stringPool.end()) {
         return it->second;
     }
-    std::string name = "$.str." + std::to_string(m_dataCounter++);
+    std::string name = "$." + m_unitTag + ".str." + std::to_string(m_dataCounter++);
     m_data << "data " << name << " = { b " << encodeString(text) << " }\n";
     m_stringPool.emplace(text, name);
     return name;
@@ -143,7 +183,7 @@ std::string QbeEmitter::enumTableFor(const Type* type)
         return it->second;
     }
 
-    std::string table = "$.enum." + std::to_string(m_dataCounter++);
+    std::string table = "$." + m_unitTag + ".enum." + std::to_string(m_dataCounter++);
     std::vector<std::string> names;
     for (std::size_t i = 0; i < base->literals.size(); ++i) {
         std::string name = table + "." + std::to_string(i);

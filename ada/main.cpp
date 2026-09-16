@@ -1,6 +1,8 @@
 #include "Toolchain.h"
 
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -34,6 +36,30 @@ std::string baseName(const std::string& path)
     std::string name = slash == std::string::npos ? path : path.substr(slash + 1);
     std::size_t dot = name.find_last_of('.');
     return dot == std::string::npos ? name : name.substr(0, dot);
+}
+
+// The front end lists what it produced, so that a unit which has dropped out of
+// the program stops being linked into it.
+std::vector<std::string> readManifest(const std::string& directory)
+{
+    std::vector<std::string> units;
+    std::ifstream manifest(directory + "/units.manifest");
+    std::string line;
+    while (std::getline(manifest, line)) {
+        if (line.size() > 4 && line.compare(line.size() - 4, 4, ".ssa") == 0) {
+            units.push_back(line.substr(0, line.size() - 4));
+        }
+    }
+    return units;
+}
+
+void discard(const std::string& directory, bool keep)
+{
+    if (keep) {
+        return;
+    }
+    std::error_code ignored;
+    std::filesystem::remove_all(directory, ignored);
 }
 
 }
@@ -102,7 +128,21 @@ int main(int argc, char** argv)
     // unit search path alone: the run time is still linked, since a program
     // raising Constraint_Error calls into it whether or not it names a
     // predefined unit.
-    std::vector<std::string> command = { toolchain.adac(), "-o", irFile };
+    std::vector<std::string> command = { toolchain.adac() };
+
+    // A program is built one library unit at a time, so that a unit left alone
+    // keeps the object it already had.  Asking for the intermediate language or
+    // the assembly instead asks for the whole program in one file, which is
+    // what there is to look at.
+    std::string objectDirectory = stem + ".adaobj";
+    bool perUnit = stage == Stage::Executable;
+    if (perUnit) {
+        command.push_back("-D");
+        command.push_back(objectDirectory);
+    } else {
+        command.push_back("-o");
+        command.push_back(irFile);
+    }
     if (useLibrary) {
         command.push_back("--stdlib");
         command.push_back(toolchain.library());
@@ -119,37 +159,57 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    std::vector<std::string> qbeCommand = { toolchain.qbe() };
+    if (!perUnit) {
+        std::vector<std::string> qbeCommand = { toolchain.qbe() };
 #ifdef _WIN32
-    // qbe's own default target is the ELF sysv ABI even when built on Windows.
-    qbeCommand.push_back("-t");
-    qbeCommand.push_back("amd64_win");
+        // qbe's own default target is the ELF sysv ABI even when built on Windows.
+        qbeCommand.push_back("-t");
+        qbeCommand.push_back("amd64_win");
 #endif
-    qbeCommand.push_back("-o");
-    qbeCommand.push_back(assemblyFile);
-    qbeCommand.push_back(irFile);
-    if (toolchain.run(qbeCommand) != 0) {
+        qbeCommand.push_back("-o");
+        qbeCommand.push_back(assemblyFile);
+        qbeCommand.push_back(irFile);
+        int result = toolchain.run(qbeCommand);
         if (!keepIntermediates) {
             std::remove(irFile.c_str());
         }
-        return 1;
-    }
-    if (stage == Stage::Assembly) {
-        if (!keepIntermediates) {
-            std::remove(irFile.c_str());
-        }
-        return 0;
+        return result == 0 ? 0 : 1;
     }
 
-    std::vector<std::string> link = { toolchain.compiler(), "-o", stem, assemblyFile };
+    std::vector<std::string> units = readManifest(objectDirectory);
+    if (units.empty()) {
+        std::cerr << "ada: error: no compiled units in '" << objectDirectory << "'\n";
+        return 1;
+    }
+
+    std::vector<std::string> link = { toolchain.compiler(), "-o", stem };
+    for (const std::string& unit : units) {
+        std::string base = objectDirectory + "/" + unit;
+        std::vector<std::string> qbeCommand = { toolchain.qbe() };
+#ifdef _WIN32
+        // qbe's own default target is the ELF sysv ABI even when built on Windows.
+        qbeCommand.push_back("-t");
+        qbeCommand.push_back("amd64_win");
+#endif
+        qbeCommand.push_back("-o");
+        qbeCommand.push_back(base + ".s");
+        qbeCommand.push_back(base + ".ssa");
+        if (toolchain.run(qbeCommand) != 0) {
+            discard(objectDirectory, keepIntermediates);
+            return 1;
+        }
+        if (toolchain.run({ toolchain.compiler(), "-c", "-o", base + ".o", base + ".s" }) != 0) {
+            discard(objectDirectory, keepIntermediates);
+            return 1;
+        }
+        link.push_back(base + ".o");
+    }
+
     for (const std::string& file : toolchain.runtime()) {
         link.push_back(file);
     }
     int status = toolchain.run(link);
 
-    if (!keepIntermediates) {
-        std::remove(irFile.c_str());
-        std::remove(assemblyFile.c_str());
-    }
+    discard(objectDirectory, keepIntermediates);
     return status == 0 ? 0 : 1;
 }

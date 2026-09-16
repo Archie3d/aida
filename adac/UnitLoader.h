@@ -31,6 +31,12 @@ public:
     // comes before it, and the library comes before the program.
     std::vector<CompilationUnit*> units() const;
 
+    // The same files grouped into library units, in the order they have to be
+    // elaborated.  A unit takes the place of its last file, so that a body
+    // reaching for something read after the specification still finds it
+    // elaborated.
+    std::vector<LibraryUnit> libraryUnits() const;
+
 private:
     enum class State
     {
@@ -40,7 +46,7 @@ private:
 
     bool readFile(const std::string& path, std::string& contents) const;
     std::string findUnit(const std::string& key, const char* extension) const;
-    bool parseInto(const std::string& path, const std::string& contents);
+    bool parseInto(const std::string& path, const std::string& contents, const std::string& key, bool isSpec);
 
     Diagnostics& m_diagnostics;
     std::vector<std::string> m_searchPaths;

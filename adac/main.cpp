@@ -34,9 +34,28 @@ void printUsage()
               << "usage: adac [options] <source> [<source>...]\n"
               << "\n"
               << "  -o <file>       name of the produced file, '-' for standard output\n"
+              << "  -D <dir>        write one file per library unit into this directory\n"
               << "  -I <dir>        another directory to look for units in\n"
               << "  --stdlib <dir>  where the predefined environment lives\n"
               << "  --no-stdlib     leave the predefined environment out altogether\n";
+}
+
+// The name a unit's intermediate language is filed under, which is also what
+// the object built from it is named after.
+const char* const manifestName = "units.manifest";
+const char* const binderName = "__ada_binder";
+
+bool ensureDirectory(const std::string& path)
+{
+    struct stat information;
+    if (stat(path.c_str(), &information) == 0) {
+        return S_ISDIR(information.st_mode);
+    }
+#ifdef _WIN32
+    return _mkdir(path.c_str()) == 0;
+#else
+    return mkdir(path.c_str(), 0777) == 0;
+#endif
 }
 
 std::string defaultOutputName(const std::string& path)
@@ -149,6 +168,7 @@ int main(int argc, char** argv)
     std::vector<std::string> inputs;
     std::vector<std::string> includes;
     std::string output;
+    std::string artifacts;
     std::string library = ADA_LIBRARY_DEFAULT_PATH;
     bool librarySelected = false;
 
@@ -160,6 +180,12 @@ int main(int argc, char** argv)
                 return 2;
             }
             output = argv[++i];
+        } else if (argument == "-D") {
+            if (i + 1 >= argc) {
+                std::cerr << "adac: error: missing directory after '-D'\n";
+                return 2;
+            }
+            artifacts = argv[++i];
         } else if (argument == "-I") {
             if (i + 1 >= argc) {
                 std::cerr << "adac: error: missing directory after '-I'\n";
@@ -193,7 +219,7 @@ int main(int argc, char** argv)
         printUsage();
         return 2;
     }
-    if (output.empty()) {
+    if (output.empty() && artifacts.empty()) {
         output = defaultOutputName(inputs.back());
     }
 
@@ -246,16 +272,55 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::vector<LibraryUnit> libraryUnits = loader.libraryUnits();
     QbeEmitter emitter(sema, diagnostics);
-    if (output == "-") {
-        emitter.emit(units, std::cout);
+
+    if (!artifacts.empty()) {
+        if (!ensureDirectory(artifacts)) {
+            std::cerr << "adac: error: cannot use '" << artifacts << "' as an output directory\n";
+            return 2;
+        }
+
+        std::vector<std::string> written;
+        for (const LibraryUnit& unit : libraryUnits) {
+            std::string path = artifacts + "/" + unit.key + ".ssa";
+            std::ofstream stream(path);
+            if (!stream) {
+                std::cerr << "adac: error: cannot write '" << path << "'\n";
+                return 2;
+            }
+            emitter.emitUnit(unit, stream);
+            written.push_back(unit.key + ".ssa");
+        }
+
+        std::string binderPath = artifacts + "/" + binderName + ".ssa";
+        std::ofstream binder(binderPath);
+        if (!binder) {
+            std::cerr << "adac: error: cannot write '" << binderPath << "'\n";
+            return 2;
+        }
+        emitter.emitBinder(libraryUnits, binder);
+        written.push_back(std::string(binderName) + ".ssa");
+
+        // The driver reads this rather than guessing what was produced, so a
+        // unit that stops being part of the program stops being linked too.
+        std::ofstream manifest(artifacts + "/" + manifestName);
+        if (!manifest) {
+            std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
+            return 2;
+        }
+        for (const std::string& name : written) {
+            manifest << name << "\n";
+        }
+    } else if (output == "-") {
+        emitter.emitAll(libraryUnits, std::cout);
     } else {
         std::ofstream stream(output);
         if (!stream) {
             std::cerr << "adac: error: cannot write '" << output << "'\n";
             return 2;
         }
-        emitter.emit(units, stream);
+        emitter.emitAll(libraryUnits, stream);
     }
 
     return diagnostics.hasErrors() ? 1 : 0;

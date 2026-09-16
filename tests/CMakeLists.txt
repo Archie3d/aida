@@ -65,7 +65,7 @@ endfunction()
 
 # add_ada_ir_test(<name> SOURCES <file>...)
 #
-# Compares the generated QBE IL against golden/<name>.ssa.
+# Compares the generated QBE IL against the units recorded in golden/<name>/.
 function(add_ada_ir_test name)
     cmake_parse_arguments(ADA_IR "" "" "SOURCES" ${ARGN})
 
@@ -83,7 +83,7 @@ function(add_ada_ir_test name)
             -DNAME=${name}
             -DADAC=$<TARGET_FILE:adac>
             -DSOURCES=${sources}
-            -DGOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/golden/${name}.ssa
+            -DGOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/golden/${name}
             -DWORKDIR=${ADA_TEST_WORK_DIR}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckAdaIr.cmake
     )

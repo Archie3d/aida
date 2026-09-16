@@ -32,7 +32,21 @@ class QbeEmitter
 public:
     QbeEmitter(Sema& sema, Diagnostics& diagnostics);
 
-    void emit(const std::vector<CompilationUnit*>& units, std::ostream& out);
+    // The intermediate language for one library unit, which is what a single
+    // object file is built from.
+    void emitUnit(const LibraryUnit& unit, std::ostream& out);
+
+    // The entry point: elaborates every unit in turn and then calls the main
+    // subprogram.  It is emitted on its own, since it belongs to no unit.
+    void emitBinder(const std::vector<LibraryUnit>& units, std::ostream& out);
+
+    // Every unit and the binder in one stream, for looking at a whole program
+    // at once.
+    void emitAll(const std::vector<LibraryUnit>& units, std::ostream& out);
+
+    // The symbol elaborating a unit, named so that a key with dashes in it
+    // still spells a QBE identifier.
+    static std::string elaborationName(const std::string& key);
 
 private:
     struct ArrayAggregatePlan
@@ -82,10 +96,9 @@ private:
     void emitLocalDeclarations(DeclList& declarations);
 
     // Functions (QbeFunctions.cpp).
-    void emitElaboration(const std::vector<CompilationUnit*>& units);
+    void emitElaboration(const LibraryUnit& unit);
     void emitSubprogramsIn(DeclList& declarations);
     void emitSubprogram(SubprogramBody* body);
-    void emitMain();
     void finishFunction(const std::string& signature);
 
     // Statements (QbeStatements.cpp).
@@ -175,7 +188,14 @@ private:
     std::unordered_map<std::string, std::string> m_stringPool;
     std::unordered_map<const Type*, std::string> m_enumTables;
     FunctionContext* m_context = nullptr;
+
+    // Strings and tables are private to the object they end up in, so their
+    // names carry the unit they were emitted for and no two units collide.
+    std::string m_unitTag;
     int m_tempCounter = 0;
     int m_labelCounter = 0;
     int m_dataCounter = 0;
+
+    void beginUnit(const std::string& key);
+    void writeUnit(std::ostream& out);
 };

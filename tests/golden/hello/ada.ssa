@@ -1,0 +1,6 @@
+
+export function $ada_elab.ada() {
+@start
+    ret
+}
+

@@ -3,6 +3,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -86,13 +87,15 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
     return std::string();
 }
 
-bool UnitLoader::parseInto(const std::string& path, const std::string& contents)
+bool UnitLoader::parseInto(const std::string& path, const std::string& contents, const std::string& key, bool isSpec)
 {
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
     Parser parser(lexer.tokenize(), m_diagnostics);
     CompilationUnitPtr unit = parser.parseCompilation();
     unit->fileName = path;
+    unit->unitKey = key;
+    unit->isSpec = isSpec;
 
     // Whatever this unit draws on is read first, so that it lands ahead of the
     // unit naming it and Sema meets a declaration before any use of it.
@@ -122,8 +125,9 @@ bool UnitLoader::loadSource(const std::string& path)
                                        ? 0
                                        : directoryOf(path).size() + 1);
     std::size_t dot = base.find_last_of('.');
+    std::string key = toLower(dot == std::string::npos ? base : base.substr(0, dot));
     if (dot != std::string::npos) {
-        m_states.emplace(toLower(base.substr(0, dot)), State::Loaded);
+        m_states.emplace(key, State::Loaded);
     }
 
     std::string contents;
@@ -132,7 +136,8 @@ bool UnitLoader::loadSource(const std::string& path)
         return false;
     }
 
-    return parseInto(path, contents);
+    bool isSpec = dot != std::string::npos && toLower(base.substr(dot)) == ".ads";
+    return parseInto(path, contents, key, isSpec);
 }
 
 bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
@@ -172,7 +177,7 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
             m_diagnostics.error(from, "cannot read '" + specPath + "'");
             return false;
         }
-        parseInto(specPath, contents);
+        parseInto(specPath, contents, key, true);
     }
 
     // The specification is in place, so a body that draws on something naming
@@ -185,10 +190,44 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
             m_diagnostics.error(from, "cannot read '" + bodyPath + "'");
             return false;
         }
-        parseInto(bodyPath, contents);
+        parseInto(bodyPath, contents, key, false);
     }
 
     return true;
+}
+
+std::vector<LibraryUnit> UnitLoader::libraryUnits() const
+{
+    std::vector<LibraryUnit> groups;
+    std::vector<std::size_t> lastFile;
+    std::unordered_map<std::string, std::size_t> index;
+
+    for (std::size_t i = 0; i < m_units.size(); ++i) {
+        CompilationUnit* unit = m_units[i].get();
+        auto found = index.find(unit->unitKey);
+        if (found == index.end()) {
+            index.emplace(unit->unitKey, groups.size());
+            groups.push_back(LibraryUnit { unit->unitKey, { unit } });
+            lastFile.push_back(i);
+        } else {
+            groups[found->second].parts.push_back(unit);
+            lastFile[found->second] = i;
+        }
+    }
+
+    std::vector<std::size_t> order(groups.size());
+    for (std::size_t i = 0; i < order.size(); ++i) {
+        order[i] = i;
+    }
+    std::stable_sort(order.begin(), order.end(),
+                     [&](std::size_t left, std::size_t right) { return lastFile[left] < lastFile[right]; });
+
+    std::vector<LibraryUnit> result;
+    result.reserve(groups.size());
+    for (std::size_t position : order) {
+        result.push_back(std::move(groups[position]));
+    }
+    return result;
 }
 
 std::vector<CompilationUnit*> UnitLoader::units() const

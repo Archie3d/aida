@@ -943,6 +943,19 @@ struct CompilationUnit
     std::vector<UseDecl> useClauses;
     DeclList units;
     std::string fileName;
+
+    // The library unit this file belongs to, named the way the loader names it:
+    // lower cased with each dot written as a dash.
+    std::string unitKey;
+    bool isSpec = false;
 };
 
 using CompilationUnitPtr = std::unique_ptr<CompilationUnit>;
+
+// A specification and the body completing it make one library unit, which is
+// what a single object file is generated from.
+struct LibraryUnit
+{
+    std::string key;
+    std::vector<CompilationUnit*> parts;   // The specification first, then the body.
+};

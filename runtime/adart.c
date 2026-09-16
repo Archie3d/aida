@@ -21,6 +21,11 @@ static const char* const exceptionNames[] = {
     "DEVICE_ERROR",  "END_ERROR",        "DATA_ERROR",    "LAYOUT_ERROR"
 };
 
+/* Every object file compiled from Ada refers to these, so the run time is the
+   one place that defines them. */
+int __ada_exception = 0;
+const char* __ada_exception_name = NULL;
+
 void __ada_raise(int id)
 {
     int count = (int)(sizeof exceptionNames / sizeof exceptionNames[0]);

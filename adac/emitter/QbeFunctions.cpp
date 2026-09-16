@@ -5,7 +5,7 @@
 
 using QbeSupport::isUnconstrainedArray;
 
-void QbeEmitter::emitElaboration(const std::vector<CompilationUnit*>& units)
+void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {
     FunctionContext context;
     context.propagateLabel = newLabel("propagate");
@@ -14,10 +14,10 @@ void QbeEmitter::emitElaboration(const std::vector<CompilationUnit*>& units)
 
     // Storage collection is separate from execution: each initializer runs
     // where its declaration occurs, after preceding package bodies finish.
-    for (CompilationUnit* unit : units) {
-        emitElaborationDeclarations(unit->units);
+    for (CompilationUnit* part : unit.parts) {
+        emitElaborationDeclarations(part->units);
     }
-    finishFunction("function $__ada_elaborate()");
+    finishFunction("export function $" + elaborationName(unit.key) + "()");
     m_context = saved;
 }
 
@@ -63,7 +63,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     FunctionContext* saved = m_context;
     m_context = &context;
 
-    std::string signature = "function ";
+    // A subprogram nested in another one is reached through its static link
+    // and never by name, so only library level ones leave the object file.
+    std::string signature = symbol->level == 0 ? "export function " : "function ";
     if (symbol->returnType != nullptr && !isComposite(symbol->returnType)) {
         signature += std::string(1, qbeClass(symbol->returnType)) + " ";
     }
@@ -180,8 +182,10 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     }
 }
 
-void QbeEmitter::emitMain()
+void QbeEmitter::emitBinder(const std::vector<LibraryUnit>& units, std::ostream& out)
 {
+    beginUnit("binder");
+
     Symbol* main = m_sema.mainSubprogram();
 
     FunctionContext context;
@@ -190,12 +194,18 @@ void QbeEmitter::emitMain()
     m_context = &context;
 
     std::string unhandled = newLabel("unhandled");
-    std::string elaborated = newLabel("elaborated");
-    line("call $__ada_elaborate()");
-    std::string elaborationStatus = newTemp();
-    line(elaborationStatus + " =w loadsw $__ada_exception");
-    branch(Value { elaborationStatus, 'w' }, unhandled, elaborated);
-    label(elaborated);
+
+    // A unit whose elaboration failed leaves the ones after it unelaborated,
+    // so the program stops at the first failure rather than running on.
+    for (const LibraryUnit& unit : units) {
+        std::string elaborated = newLabel("elaborated");
+        line("call $" + elaborationName(unit.key) + "()");
+        std::string pending = newTemp();
+        line(pending + " =w loadsw $__ada_exception");
+        branch(Value { pending, 'w' }, unhandled, elaborated);
+        label(elaborated);
+    }
+
     if (main != nullptr) {
         line("call " + main->qbeName + "()");
     }
@@ -218,6 +228,8 @@ void QbeEmitter::emitMain()
 
     finishFunction("export function w $main()");
     m_context = saved;
+
+    writeUnit(out);
 }
 
 void QbeEmitter::finishFunction(const std::string& signature)

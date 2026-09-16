@@ -19,8 +19,8 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                 }
                 long long size = typeSize(symbol->type);
                 long long alignment = typeAlignment(symbol->type);
-                m_data << "data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment) << " { z "
-                       << (size < 1 ? 1 : size) << " }\n";
+                m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
+                       << " { z " << (size < 1 ? 1 : size) << " }\n";
             }
             break;
         }

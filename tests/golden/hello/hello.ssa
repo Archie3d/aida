@@ -1,0 +1,18 @@
+data $.hello.str.0 = { b "Hello, world!" 0 }
+
+export function $ada_elab.hello() {
+@start
+    ret
+}
+
+export function $hello() {
+@start
+    call $__ada_put_line(l $.hello.str.0, w 13)
+    %.t5 =w loadsw $__ada_exception
+    jnz %.t5, @propagate.1, @nothrow.2
+@nothrow.2
+    ret
+@propagate.1
+    ret
+}
+

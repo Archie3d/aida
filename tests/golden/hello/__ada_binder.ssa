@@ -1,0 +1,30 @@
+
+export function w $main() {
+@start
+    call $ada_elab.ada()
+    %.t0 =w loadsw $__ada_exception
+    jnz %.t0, @unhandled.1, @elaborated.2
+@elaborated.2
+    call $ada_elab.ada_io_exceptions()
+    %.t1 =w loadsw $__ada_exception
+    jnz %.t1, @unhandled.1, @elaborated.3
+@elaborated.3
+    call $ada_elab.ada_text_io()
+    %.t2 =w loadsw $__ada_exception
+    jnz %.t2, @unhandled.1, @elaborated.4
+@elaborated.4
+    call $ada_elab.hello()
+    %.t3 =w loadsw $__ada_exception
+    jnz %.t3, @unhandled.1, @elaborated.5
+@elaborated.5
+    call $hello()
+    %.t4 =w loadsw $__ada_exception
+    jnz %.t4, @unhandled.1, @done.6
+@unhandled.1
+    %.t5 =l loadl $__ada_exception_name
+    call $__ada_unhandled(l %.t5)
+    ret 1
+@done.6
+    ret 0
+}
+
