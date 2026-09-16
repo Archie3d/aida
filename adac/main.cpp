@@ -287,23 +287,44 @@ int main(int argc, char** argv)
         }
     }
 
+    std::string executable = argv[0];
+    if (executable.find_first_of("/\\") == std::string::npos) {
+        executable = alongPath(executable);
+    }
+    const std::string compilerDigest = digestOfFile(resolvedPath(executable));
+
     if (bindOnly) {
         if (artifacts.empty()) {
             std::cerr << "adac: error: '--bind' needs the directory named by '-D'\n";
             return 2;
         }
         std::vector<UnitRecord> units;
-        if (!readManifest(artifacts + "/" + manifestName, units)) {
+        std::vector<std::string> keys;
+        if (!readManifest(artifacts + "/" + manifestName, units, &keys) || units.empty() || keys.empty()) {
             std::cerr << "adac: error: cannot read '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
 
         UnitRecordFile record;
-        readUnitRecord(artifacts + "/" + bindMainUnit + ".ali", record);
-
-        std::vector<std::string> keys;
+        bool foundMain = false;
         for (const UnitRecord& unit : units) {
-            keys.push_back(unit.key);
+            UnitRecordFile compiled;
+            if (!readUnitRecord(artifacts + "/" + unit.key + ".ali", compiled)
+                || compiled.compilerDigest != compilerDigest
+                || !unitRecordMatches(compiled, unit, units)
+                || compiled.irDigest.empty()
+                || compiled.irDigest != digestOfFile(artifacts + "/" + unit.key + ".ssa")) {
+                std::cerr << "adac: error: missing or stale compiled unit '" << unit.key << "'\n";
+                return 1;
+            }
+            if (unit.key == bindMainUnit) {
+                record = compiled;
+                foundMain = true;
+            }
+        }
+        if (!foundMain || record.mainName.empty()) {
+            std::cerr << "adac: error: no main subprogram in unit '" << bindMainUnit << "'\n";
+            return 1;
         }
 
         std::string path = artifacts + "/" + binderName + ".ssa";
@@ -340,6 +361,13 @@ int main(int argc, char** argv)
     // A unit is looked for beside the source that asked for it first, then
     // where the command line says, then the environment, then in the library
     // that came with the compiler.
+    // The driver supplies the scan's ordered search roots through -I when
+    // compiling one unit; keep those ahead of the target's own directory.
+    if (singleUnit) {
+        for (const std::string& directory : includes) {
+            loader.addSearchPath(directory);
+        }
+    }
     for (const std::string& path : inputs) {
         std::size_t slash = path.find_last_of("/\\");
         loader.addSearchPath(slash == std::string::npos ? "." : path.substr(0, slash));
@@ -385,6 +413,10 @@ int main(int argc, char** argv)
     }
 
     std::vector<LibraryUnit> libraryUnits = loader.libraryUnits();
+    std::vector<std::string> elaborations;
+    for (CompilationUnit* part : loader.units()) {
+        elaborations.push_back(part->unitKey + (part->isSpec ? ".spec" : ".body"));
+    }
 
     if (scanOnly) {
         if (artifacts.empty() || !ensureDirectory(artifacts)) {
@@ -395,7 +427,7 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) {
             records.push_back(describe(unit));
         }
-        if (!writeManifest(artifacts + "/" + manifestName, records)) {
+        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
@@ -441,15 +473,37 @@ int main(int argc, char** argv)
         emitter.emitUnit(*target, stream);
 
         UnitRecordFile record;
+        stream.close();
+        if (!stream || diagnostics.hasErrors()) {
+            std::cerr << "adac: error: could not compile unit '" << target->key << "'\n";
+            return 1;
+        }
+        record.compilerDigest = compilerDigest;
+        record.irDigest = digestOfFile(path);
         record.digest = describe(*target).digest;
         for (const LibraryUnit& unit : libraryUnits) {
             if (unit.key != target->key) {
-                record.dependencies.emplace_back(unit.key, describe(unit).specDigest);
+                bool readsBody = false;
+                for (CompilationUnit* part : unit.parts) {
+                    readsBody = readsBody || !part->isSpec;
+                }
+                if (readsBody) {
+                    record.bodyDependencies.emplace_back(unit.key, describe(unit).digest);
+                } else {
+                    record.dependencies.emplace_back(unit.key, describe(unit).specDigest);
+                }
             }
         }
-        Symbol* main = sema.mainSubprogram();
-        if (main != nullptr) {
-            record.mainName = main->qbeName;
+        // Only a main declared by this unit belongs in its record.
+        for (CompilationUnit* part : target->parts) {
+            for (const DeclPtr& declaration : part->units) {
+                if (declaration->kind == DeclKind::SubprogramBody) {
+                    auto* body = static_cast<SubprogramBody*>(declaration.get());
+                    if (body->symbol != nullptr && !body->spec.isFunction && body->spec.parameters.empty()) {
+                        record.mainName = body->symbol->qbeName;
+                    }
+                }
+            }
         }
         if (!writeUnitRecord(artifacts + "/" + target->key + ".ali", record)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << target->key << ".ali'\n";
@@ -476,11 +530,6 @@ int main(int argc, char** argv)
             records.push_back(describe(unit));
         }
 
-        std::vector<std::string> keys;
-        for (const UnitRecord& record : records) {
-            keys.push_back(record.key);
-        }
-
         std::string binderPath = artifacts + "/" + binderName + ".ssa";
         std::ofstream binder(binderPath);
         if (!binder) {
@@ -488,11 +537,11 @@ int main(int argc, char** argv)
             return 2;
         }
         Symbol* main = sema.mainSubprogram();
-        emitBinder(keys, main == nullptr ? std::string() : main->qbeName, binder);
+        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder);
 
         // The driver reads this rather than guessing what was produced, so a
         // unit that stops being part of the program stops being linked too.
-        if (!writeManifest(artifacts + "/" + manifestName, records)) {
+        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
@@ -510,12 +559,8 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) {
             emitter.emitUnit(unit, *stream);
         }
-        std::vector<std::string> keys;
-        for (const LibraryUnit& unit : libraryUnits) {
-            keys.push_back(unit.key);
-        }
         Symbol* main = sema.mainSubprogram();
-        emitBinder(keys, main == nullptr ? std::string() : main->qbeName, *stream);
+        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream);
     }
 
     return diagnostics.hasErrors() ? 1 : 0;

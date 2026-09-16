@@ -1,5 +1,5 @@
 
-export function $ada_elab.ada() {
+export function $ada_elab.ada_spec() {
 @start
     ret
 }

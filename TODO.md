@@ -45,8 +45,8 @@ Primary code: `adac/sema/SemaCalls.cpp`, `adac/sema/SemaNames.cpp`,
   captured environments, subtype checks, and exception propagation. Covered by
   `defaultcalls.adb` and `defaulterrors.adb`; composite-valued defaults are also
   covered by `compositereturns.adb`.
-- [ ] Add user-defined operator declarations and calls, including operator symbols
-  such as `function "+" (...) return T`.
+- [ ] Generalize user-defined operator declarations and calls beyond the supported
+  `"**"` designator used by numerics, including `function "+" (...) return T`.
 - [ ] **Audit** visibility, `use` clauses, homographs, duplicate declarations, and
   specification/body conformance. Validate parameter modes, names, defaults, and
   return profiles where applicable; do not defer missing bodies to linker errors.
@@ -57,7 +57,7 @@ operator overloads; nested hiding and invalid specification/body pairs.
 
 ### Composite values and returns
 
-Primary code: `adac/QbeEmitter.cpp`, `adac/Type.cpp`,
+Primary code: `adac/emitter/QbeEmitter.cpp`, `adac/Type.cpp`,
 `adac/sema/SemaTypes.cpp`, `adac/sema/SemaAggregates.cpp`.
 
 - [x] Give array/record results caller-owned storage. Fixed-size results use a
@@ -94,8 +94,11 @@ Primary code: `adac/QbeEmitter.cpp`, `adac/Type.cpp`,
   index conversions, bound sliding, view conversions, and runtime checks.
   The current supported cross-type conversion requires identical component
   subtype objects and compatible index types (or two integer index types).
-- [ ] **Audit** aggregate completeness, duplicate choices, record defaults, array
-  sliding, overlapping slice assignments, and component subtype checks.
+- [x] Preserve overlapping string slice assignments using `memmove`, with length
+  checks before copying. Covered by `sliceassignment.adb`: left/right overlap,
+  runtime bounds, self-assignment, and failed assignment preserving the target.
+- [ ] **Audit** remaining aggregate completeness, duplicate choices, record defaults,
+  array sliding, and component subtype checks beyond the existing regression cases.
 - [x] Preserve constraints and defaults for every name in a grouped component
   declaration, including variant alternatives. Each field owns its complete
   subtype/default syntax, and each object evaluates defaults separately for
@@ -145,7 +148,9 @@ Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
 - [x] Preserve declaration/body execution order within the loader's unit order,
   including public/private parts, nested packages, component defaults, and
   library generic instances. Covered by `elaborationorder.adb` and
-  `genericelaborationorder.adb`. Dependency ordering remains a separate audit.
+  `genericelaborationorder.adb`. Separate specification/body elaboration across
+  units is covered by `separate.order`; general elaboration-before-use and
+  dependency-cycle handling remain audits.
 - [x] Stop before calling the main procedure when library elaboration fails;
   report the exception and exit with status 1. Covered by `elaborationfailure.adb`
   and `elaborationbodyfailure.adb` (stdout, stderr, and exit status).
@@ -368,13 +373,54 @@ These are later projects with substantial runtime requirements.
 - [ ] Complete streaming by type/components, including bounds and discriminants,
   user-defined stream operations, and a real stream abstraction. Current stream
   support largely transfers object bytes rather than implementing all type semantics.
-- [ ] Extend numeric text input (`'Value` and `Integer_IO`) with based literals,
-  underscores, exponents, and malformed-input checks; add floating `'Value`.
+- [x] Integer `'Value` accepts based literals, underscores and nonnegative
+  exponents, with malformed-input, overflow and range checks. `Integer_IO.Get`
+  uses this parser. Covered by `valuebased.adb`, `valueparsing.adb`, and
+  `longintegerio.adb` for 64-bit I/O.
+- [ ] Add floating-point `'Value` and audit remaining numeric input grammar/I/O cases.
+- [x] Add `Ada.Numerics`, generic elementary functions, and predefined `Float` and
+  `Long_Float` instances, with domain checks and precision-specific C helpers.
+  Covered by the numerics, precision, base-power, and imported-float ABI tests.
+  This is a supported subset, not full Numerics Annex conformance.
 - [ ] Fill remaining I/O API gaps and add library packages incrementally, for
-  example `Ada.Exceptions`, string handling, numerics, and calendar/time support.
+  example `Ada.Exceptions`, string handling, and calendar/time support.
 - [ ] Wide characters, wide strings, and a documented source-encoding policy.
 
-## 7. Development and validation infrastructure
+## 7. Separate compilation and binding
+
+Primary code: `ada/main.cpp`, `ada/Cache.cpp`, `adac/main.cpp`,
+`adac/UnitLoader.cpp`, `adac/UnitManifest.cpp`, and `adac/Binder.cpp`.
+
+- [x] Emit one IR/object per library unit, with exported cross-unit symbols and
+  address-based exception identity. The driver invokes `adac -c` for changed
+  units, reading dependency specifications and bodies needed for instantiation.
+- [x] Scan the source closure into `units.manifest`; record each compiled unit's
+  source/dependency digests, front-end digest, IR digest and main symbol in `.ali`.
+  Ordinary dependency bodies do not invalidate clients; generic bodies read by
+  clients do. Missing/modified IR and changed front-end binaries invalidate records.
+- [x] Cache object files by IR content and backend/C-compiler stamps. Unchanged
+  builds reuse objects; removed units are omitted from the next link. The driver
+  still scans and binds on each executable build and invokes the linker each time.
+- [x] Generate `__ada_binder.ssa` through `adac --bind <unit> -D <dir>`, validating
+  compiled records against the manifest and rejecting missing/stale units or a
+  missing main procedure. Binding uses the manifest's order; it does not rescan
+  source files or independently determine an elaboration order.
+- [x] Emit specification/body elaboration entry points separately, allowing
+  A's spec → B's spec → A's body while A still occupies one object file.
+- [x] Preserve the scan's source search directories in per-unit invocations.
+  Regression coverage includes distinct directories and paths containing spaces.
+- [x] Cover whole-program/per-unit determinism, ordinary-body incremental builds,
+  generic-body invalidation, compiler-record invalidation, elaboration order,
+  source paths, and bind failures (`determinism.*`, `ada.incremental`, `separate.*`).
+- [ ] Serialized semantic interfaces or another mechanism for compiling clients
+  without dependency sources. Current `.ali` files only contain build metadata.
+- [ ] Complete the loading/visibility/cycle and elaboration-before-use audits
+  listed under Calls, exceptions, and elaboration. Separate subunits remain a
+  distinct unimplemented language feature (section 3).
+- [ ] Harden artifact publication and concurrent builds, and add focused coverage
+  for interrupted writes, dependency changes/removal, and search-path shadowing.
+
+## 8. Development and validation infrastructure
 
 - [ ] Choose and document the intended language-version baseline and optional
   later-version features. Keep a support matrix that distinguishes parsed,
@@ -394,12 +440,10 @@ These are later projects with substantial runtime requirements.
 - [ ] Optimize checked arithmetic only after preserving its failure behavior in
   tests; the current runtime helpers provide a correctness baseline.
 
-Scalar `out`/`in out` copy-in/copy-out and runtime discrete subtype bounds are
-now implemented, along with array type identity checks and grouped record
-component constraints/defaults. Suggested next step: audit overlapping slice
-assignments and array sliding with focused reproductions (listed under Composite
-values and returns). Library-level dynamic
-arrays, runtime-constrained components, and wider descriptor indices/lengths
-remain later array follow-ups.
-Modular types can be developed as a separate bounded extension after the numeric
-follow-up checks.
+Separate compilation, incremental artifacts, and explicit binding now have a
+working implementation and focused regressions, alongside scalar copy-in/copy-out,
+runtime local subtype bounds, array identity and grouped field defaults. Remaining
+near-term audits include unit loading/elaboration-before-use, artifact robustness,
+and aggregate/array semantics beyond existing overlap and sliding tests.
+Library-level dynamic arrays, runtime-constrained components, wider descriptor
+indices/lengths, and modular types remain later extensions.

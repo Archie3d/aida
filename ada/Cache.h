@@ -27,3 +27,6 @@ private:
 // Identifies the programs that turn intermediate language into objects, so
 // that replacing one of them is not mistaken for nothing having happened.
 std::string toolDigest(const std::vector<std::string>& programs);
+
+// Hash an executable, resolving bare command names through PATH.
+std::string programDigest(const std::string& program);

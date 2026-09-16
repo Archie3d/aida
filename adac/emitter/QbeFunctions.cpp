@@ -9,18 +9,15 @@ using QbeSupport::isUnconstrainedArray;
 
 void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {
-    FunctionContext context;
-    context.propagateLabel = newLabel("propagate");
-    FunctionContext* saved = m_context;
-    m_context = &context;
-
-    // Storage collection is separate from execution: each initializer runs
-    // where its declaration occurs, after preceding package bodies finish.
     for (CompilationUnit* part : unit.parts) {
+        FunctionContext context;
+        context.propagateLabel = newLabel("propagate");
+        FunctionContext* saved = m_context;
+        m_context = &context;
         emitElaborationDeclarations(part->units);
+        finishFunction("export function $" + elaborationName(unit.key + (part->isSpec ? ".spec" : ".body")) + "()");
+        m_context = saved;
     }
-    finishFunction("export function $" + elaborationName(unit.key) + "()");
-    m_context = saved;
 }
 
 void QbeEmitter::emitSubprogramsIn(DeclList& declarations)

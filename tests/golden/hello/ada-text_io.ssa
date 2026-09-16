@@ -1,5 +1,5 @@
 
-export function $ada_elab.ada_text_io() {
+export function $ada_elab.ada_text_io_spec() {
 @start
     ret
 }

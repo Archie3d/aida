@@ -11,20 +11,25 @@ struct UnitRecord
 {
     std::string key;
     std::string digest;       // Over every source of the unit.
-    std::string specDigest;   // Over the specification alone, empty when there is none.
+    std::string specDigest;   // Over the specification, or the whole unit if no spec exists.
     std::vector<std::string> sources;
     std::vector<std::string> withKeys;
 };
 
-// One line per unit, in elaboration order.
-bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units);
-bool readManifest(const std::string& path, std::vector<UnitRecord>& units);
+// Unit metadata plus the independent specification/body elaboration sequence.
+bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations);
+bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr);
 
 struct UnitRecordFile
 {
     std::string digest;
+    std::string compilerDigest;
+    std::string irDigest;
 
-    // The specification digest of every unit this one was compiled against,
+    // Full-unit digests for dependencies whose bodies were read (e.g. generics).
+    std::vector<std::pair<std::string, std::string>> bodyDependencies;
+
+    // Specification digests for dependencies whose bodies were not read,
     // the whole closure and not just what it names, so that a change reaching
     // it through another unit is noticed too.
     std::vector<std::pair<std::string, std::string>> dependencies;
@@ -35,3 +40,6 @@ struct UnitRecordFile
 
 bool writeUnitRecord(const std::string& path, const UnitRecordFile& record);
 bool readUnitRecord(const std::string& path, UnitRecordFile& record);
+
+// Validate all recorded semantic inputs against a fresh scan.
+bool unitRecordMatches(const UnitRecordFile& record, const UnitRecord& unit, const std::vector<UnitRecord>& scanned);

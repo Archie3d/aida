@@ -1,6 +1,6 @@
 data $.hello.str.0 = { b "Hello, world!" 0 }
 
-export function $ada_elab.hello() {
+export function $ada_elab.hello_body() {
 @start
     ret
 }

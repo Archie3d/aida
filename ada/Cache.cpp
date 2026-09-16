@@ -1,9 +1,28 @@
 #include "Cache.h"
 
 #include <filesystem>
+#include <cstdlib>
+#include <unistd.h>
 #include <fstream>
 #include <sstream>
 #include <utility>
+
+std::string programDigest(const std::string& program)
+{
+    if (program.find_first_of("/\\") != std::string::npos) {
+        return digestOfFile(program);
+    }
+    const char* environment = std::getenv("PATH");
+    std::istringstream paths(environment == nullptr ? "" : environment);
+    std::string directory;
+    while (std::getline(paths, directory, ':')) {
+        std::string candidate = (directory.empty() ? "." : directory) + "/" + program;
+        if (access(candidate.c_str(), X_OK) == 0) {
+            return digestOfFile(candidate);
+        }
+    }
+    return {};
+}
 
 std::string toolDigest(const std::vector<std::string>& programs)
 {

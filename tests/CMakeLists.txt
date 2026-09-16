@@ -302,3 +302,15 @@ add_ada_error_test(runtimescalarlibraryerrors SOURCES runtimescalarlibraryerrors
 
 add_ada_test(handlerchoices SOURCES handlerchoices.adb)
 add_ada_test(reverseloops SOURCES reverseloops.adb)
+
+foreach(case generic order compiler paths binding)
+    add_test(NAME separate.${case}
+        COMMAND ${CMAKE_COMMAND}
+            -DCASE=${case}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada/separate
+            -DWORKDIR=${ADA_TEST_WORK_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSeparateCompilation.cmake
+    )
+endforeach()

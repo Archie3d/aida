@@ -18,11 +18,15 @@ bool split(const std::string& line, std::string& keyword, std::string& rest)
 
 }
 
-bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units)
+bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations)
 {
     std::ofstream out(path);
     if (!out) {
         return false;
+    }
+    out << "format 2\n";
+    for (const std::string& elaboration : elaborations) {
+        out << "elaborate " << elaboration << "\n";
     }
     for (const UnitRecord& unit : units) {
         out << "unit " << unit.key << "\n";
@@ -41,20 +45,27 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     return true;
 }
 
-bool readManifest(const std::string& path, std::vector<UnitRecord>& units)
+bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations)
 {
     std::ifstream in(path);
     if (!in) {
         return false;
     }
     std::string line;
+    if (!std::getline(in, line) || line != "format 2") {
+        return false;
+    }
     while (std::getline(in, line)) {
         std::string keyword;
         std::string rest;
         if (!split(line, keyword, rest)) {
             continue;
         }
-        if (keyword == "unit") {
+        if (keyword == "elaborate") {
+            if (elaborations != nullptr) {
+                elaborations->push_back(rest);
+            }
+        } else if (keyword == "unit") {
             units.push_back(UnitRecord {});
             units.back().key = rest;
         } else if (units.empty()) {
@@ -78,14 +89,21 @@ bool writeUnitRecord(const std::string& path, const UnitRecordFile& record)
     if (!out) {
         return false;
     }
+    out << "format 2\n";
+    out << "compiler " << record.compilerDigest << "\n";
+    out << "ir " << record.irDigest << "\n";
     out << "digest " << record.digest << "\n";
+    for (const auto& dependency : record.bodyDependencies) {
+        out << "bodydep " << dependency.first << " " << dependency.second << "\n";
+    }
     for (const auto& dependency : record.dependencies) {
         out << "dep " << dependency.first << " " << dependency.second << "\n";
     }
     if (!record.mainName.empty()) {
         out << "main " << record.mainName << "\n";
     }
-    return true;
+    out << "end\n";
+    return static_cast<bool>(out);
 }
 
 bool readUnitRecord(const std::string& path, UnitRecordFile& record)
@@ -95,22 +113,55 @@ bool readUnitRecord(const std::string& path, UnitRecordFile& record)
         return false;
     }
     std::string line;
+    if (!std::getline(in, line) || line != "format 2") {
+        return false;
+    }
     while (std::getline(in, line)) {
         std::string keyword;
         std::string rest;
         if (!split(line, keyword, rest)) {
             continue;
         }
-        if (keyword == "digest") {
+        if (keyword == "end") {
+            return !record.digest.empty() && !record.compilerDigest.empty() && !record.irDigest.empty();
+        } else if (keyword == "compiler") {
+            record.compilerDigest = rest;
+        } else if (keyword == "ir") {
+            record.irDigest = rest;
+        } else if (keyword == "digest") {
             record.digest = rest;
         } else if (keyword == "main") {
             record.mainName = rest;
-        } else if (keyword == "dep") {
+        } else if (keyword == "dep" || keyword == "bodydep") {
             std::size_t space = rest.find(' ');
             if (space != std::string::npos) {
-                record.dependencies.emplace_back(rest.substr(0, space), rest.substr(space + 1));
+                auto& dependencies = keyword == "dep" ? record.dependencies : record.bodyDependencies;
+                dependencies.emplace_back(rest.substr(0, space), rest.substr(space + 1));
             }
         }
     }
-    return true;
+    return false;
+}
+
+bool unitRecordMatches(const UnitRecordFile& record, const UnitRecord& unit, const std::vector<UnitRecord>& scanned)
+{
+    if (record.digest.empty() || record.digest != unit.digest) {
+        return false;
+    }
+    auto matches = [&](const auto& dependencies, bool body) {
+        for (const auto& dependency : dependencies) {
+            bool found = false;
+            for (const UnitRecord& other : scanned) {
+                if (other.key == dependency.first) {
+                    found = dependency.second == (body ? other.digest : other.specDigest);
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        return true;
+    };
+    return matches(record.dependencies, false) && matches(record.bodyDependencies, true);
 }

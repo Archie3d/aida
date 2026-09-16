@@ -8,7 +8,7 @@ This project implements an Ada 83/95 subset compiler in C++. It uses [QBE](https
 The compilation is performed in three stages:
 - Ada to QBE compiler frontend, which translates Ada source code to QBE intermediate language (IR).
 - QBE backend, which compiles IR to the target's assembly.
-- Target's assemly and linker combines the QBE's output with the language runtime to produce an executable.
+- Target's assembler and linker combines the QBE's output with the language runtime to produce an executable.
 
 A compiler driver is provided. This executes all the steps of the compilation to go from Ada source code to an executable.
 
@@ -56,7 +56,8 @@ tree can be moved after installing, and nothing has to be pointed at by hand.
 
 `ada` is the driver. It runs `adac` to produce QBE IL, `qbe` to translate that
 IL into assembly and `cc` to assemble and link the program with the run time
-library, removing the intermediate files afterwards.
+library. Executable builds retain per-unit IR, assembly, objects and dependency
+records in `<program>.adaobj`, or the directory selected with `-D`.
 
 ```
 ada [-o <program>] <source> [<source>...]
@@ -65,11 +66,27 @@ ada [-o <program>] <source> [<source>...]
 | Option | Effect |
 | --- | --- |
 | `-o <file>` | Name of the produced file |
+| `-D <dir>` | Directory for cached per-unit build artifacts |
+| `--clean` | Remove the selected artifact directory and stop |
 | `--emit-ir` | Stop after generating QBE IL |
 | `-S` | Stop after generating assembly |
-| `-k` | Keep the intermediate files |
+| `-k`, `--keep` | Keep the IR file when using `-S`; executable builds always retain their cache |
 | `--no-stdlib` | Leave the predefined environment out of the unit search path |
 | `-v` | Print each command before running it |
+| `-h`, `--help` | Print available options |
+
+Unchanged units reuse their compiled artifacts. Changes to a specification
+invalidate its clients; changes to an ordinary body rebuild that unit only.
+Generic bodies also invalidate units that read them for instantiation. A changed
+front-end executable invalidates its compilation records automatically, as do
+missing or modified IR files. Older record formats are rebuilt automatically.
+
+Specifications and bodies have separate elaboration entry points, so another
+unit can elaborate between them while their code still shares one object file.
+The binder uses the elaboration order recorded by the loader in the scan
+manifest; it does not independently solve elaboration constraints. It checks
+compiled records against that manifest and rejects missing or stale units and a main unit without a main procedure. When invoking the front
+end manually, run `--scan` again after source changes before binding.
 
 The driver tells `adac` where the predefined environment is, so nothing needs
 naming on the command line. `--no-stdlib` withholds it, and a program that
@@ -91,24 +108,70 @@ adac [options] <source> [<source>...]
 | Option | Effect |
 | --- | --- |
 | `-o <file>` | Name of the produced file, `-` for standard output |
-| `-I <dir>` | Another directory to look for units in |
+| `-D <dir>` | Directory for per-unit output and metadata |
+| `-c` | Compile the last named unit against its dependencies; requires `-D` |
+| `--scan` | Write the dependency and elaboration manifest; requires `-D` |
+| `--bind <unit>` | Validate compiled units and generate the entry point; requires `-D` |
+| `-I <dir>` | Another directory to look for units in; takes priority in `-c` mode |
 | `--stdlib <dir>` | Where the predefined environment lives |
 | `--no-stdlib` | Leave the predefined environment out altogether |
+| `-h`, `--help` | Print available options |
 
 Only the main procedure needs to be named. Every unit a `with` clause mentions
 is looked for on the library path and compiled along with it, so a package
 specification and its body are found by their file names rather than listed.
-Several sources may still be given at once.
+Several sources may still be given at once. For executable builds, the last
+source names the unit containing the parameterless main procedure.
+
+### Separate compilation and binding
+
+Binding is automatic for `ada` executable builds; there is no separate `ada`
+bind option. With the installed compiler on `PATH` and a main procedure in
+`hello.adb`, this builds the program and prints the scan, compile, bind, and
+link commands:
+
+```shell
+ada -v -D hello.adaobj -o hello hello.adb
+```
+
+The front end's explicit bind command can then be run against those artifacts:
+
+```shell
+adac --bind hello -D hello.adaobj
+```
+
+`hello` is the unit key without its source extension. Binding reads
+`units.manifest` and the units' `.ali` records, validates compiler/source/IR
+consistency against the manifest, and writes `__ada_binder.ssa`. That generated
+native `main` calls each specification/body elaboration routine in order, then
+the Ada main procedure. An unhandled exception stops execution with status 1.
+Binding alone does not run QBE, assemble, or link.
+
+For manual builds, use `adac --scan -D <dir> <main.adb>`, compile each unit in
+that manifest using `adac -c -D <dir> <unit-source>`, then bind. Supply the same
+search paths for each invocation. Scanning still parses the source closure;
+compilation reads dependency specifications and any bodies needed for generic
+instantiation. `.ali` files are dependency records, not serialized interfaces,
+so dependency sources are still required. Ada `separate` subunits remain
+unimplemented.
+
+`ada --emit-ir` and `ada -S` use whole-program output, including the generated
+entry point, rather than the per-unit cache. Use `adac --help` and `ada --help`
+to inspect the installed compiler's options. To remove the program's cached
+artifacts, use `ada --clean -D hello.adaobj hello.adb`; the driver currently
+requires a source argument even with `--clean`.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `adac/` | The compiler: lexer, parser, semantic analysis and QBE code generation |
-| `ada/` | The driver that chains `adac`, `qbe` and `cc` |
+| `ada/` | The driver, dependency checks and object cache that coordinate `adac`, `qbe` and `cc` |
+| `common/` | Shared content-digest support |
 | `runtime/ada/` | The predefined environment, written in Ada |
 | `runtime/adart.c` | Run time support (`'Image`, `'Value`, real number formatting, array comparison, raising and reporting exceptions) |
-| `runtime/adaio.c` | The file layer behind `Text_IO`, `Sequential_IO`, `Direct_IO` and `Stream_IO`; the two C files build into `libadart.a` |
+| `runtime/adaio.c` | The file layer behind `Text_IO`, `Sequential_IO`, `Direct_IO` and `Stream_IO`; compiled into `libadart.a` |
+| `runtime/adanumerics.c` | Floating-point numerics helpers, also compiled into `libadart.a` |
 | `tests/ada/` | Ada test programs with their expected output |
 | `tests/golden/` | Recorded QBE IL used to notice code generation changes |
 | `qbe/` | The QBE backend, as a submodule |
@@ -117,8 +180,8 @@ Several sources may still be given at once.
 
 Objects, constants and named numbers; integer, floating point, Boolean,
 character, enumeration, array, record, access and private types; discriminants
-and variant records; subtypes with range and discriminant constraints; the full
-expression syntax including `mod`, `rem`, `**`, `&` and
+and variant records; subtypes with range and discriminant constraints;
+expressions including `mod`, `rem`, `**`, `&` and
 short circuit operators; `if`, `case`, `while`, `for`, plain loops with `exit`,
 blocks; procedures and functions with `in`, `out` and `in out` parameters,
 recursion and nested subprograms with up level references; package
@@ -200,8 +263,10 @@ and handlers execute at that point, including when the enclosing routine is
 called during library startup. Existing generic formal-parameter restrictions
 still apply.
 
-Dependency ordering and declarations inside library-level statement blocks
-remain future work.
+Specification/body elaboration can be interleaved across units, using the
+loader's dependency order. General elaboration-before-use checks, remaining
+visibility/cycle cases, and declarations inside library-level statement blocks
+still need work.
 
 Statically constrained multidimensional arrays support nested aggregates,
 checked indexing on every axis, assignment, equality, and subprogram parameters
@@ -363,8 +428,10 @@ than fifteen digits is rejected. A range is checked at the same places as an
 integer one. Following Ada, the two families of numbers stay apart: a whole
 number literal is not a real value, so `C : Coefficient := 1;` is an error
 while `C : Coefficient := 1.0;` is not, `mod` and `rem` need integer operands,
-the exponent of `**` is always an integer, and converting a real value to an
-integer rounds rather than truncates.
+predefined `**` takes an integer exponent, and converting a real value to an
+integer rounds rather than truncates. The numerics generics also provide an
+overloaded `"**"` accepting a real exponent (see Numerics below). Other operator
+designators in declarations are not yet supported.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at
@@ -567,7 +634,9 @@ Small   : constant Real    := 16#1.0#E-2;
 
 `Integer_IO.Put` takes a `Base` alongside `Width` and writes the value back in
 the same notation, so `Put (255, 0, 16)` prints `16#FF#`. `'Image` stays
-decimal.
+decimal. Integer `'Value` and `Integer_IO.Get` also accept based numerals,
+underscore separators, and nonnegative exponents, with syntax, overflow and
+subtype checks. Floating-point `'Value` is not implemented.
 
 ### Numerics
 
@@ -641,13 +710,22 @@ own may write.
 | `Ada.Streams` | `ada-streams.ads` |
 | `Ada.Streams.Stream_IO` | `ada-streams-stream_io.ads` |
 | `Ada.Unchecked_Deallocation` | `ada-unchecked_deallocation.ads`, `.adb` |
+| `Ada.Numerics` | `ada-numerics.ads` |
+| `Ada.Numerics.Generic_Elementary_Functions` | `ada-numerics-generic_elementary_functions.ads`, `.adb` |
+| `Ada.Numerics.Elementary_Functions` | `ada-numerics-elementary_functions.ads` |
+| `Ada.Numerics.Long_Elementary_Functions` | `ada-numerics-long_elementary_functions.ads` |
+| `Ada.Text_IO.Scanning` | `ada-text_io-scanning.ads` (internal input helper) |
 
 A unit lives in the file its name gives, lowered with each dot turned into a
 hyphen, so `Ada.Text_IO.Integer_IO` is `ada-text_io-integer_io`. The
-specification is `.ads` and the body `.adb`. A unit is looked for beside the
-source that asked for it, then in each `-I` directory, then along
-`ADA_INCLUDE_PATH`, and last in the library that came with the compiler, which
-is `runtime/ada` in the build tree and `lib/ada/adainclude` once installed.
+specification is `.ads` and the body `.adb`. In a normal front-end invocation,
+search roots are the command-line source directories in order, followed by
+`-I` directories, `ADA_INCLUDE_PATH`, and the bundled library. In `adac -c`
+mode, explicit `-I` directories come first so the driver can preserve the scan's
+search order. `ada` preserves the command-line source directories automatically;
+use `ADA_INCLUDE_PATH` for additional directories when invoking the driver.
+The bundled library is `runtime/ada` in the build tree and
+`lib/ada/adainclude` once installed.
 
 What these units cannot say in Ada they say with `pragma Import`, which ties a
 declaration to an entry point in the C run time:
@@ -730,7 +808,9 @@ package Slot_IO is new Ada.Direct_IO (Slot);
 
 `Ada.Streams.Stream_IO` opens a file as a stream. `Stream (File)` yields a
 `Stream_Access`, and the `'Write`, `'Read`, `'Output` and `'Input` attributes
-move a value of any type across it. `'Output` and `'Input` additionally carry
+move values of the supported types across it. Streaming currently relies largely
+on object representation; runtime-constrained subtypes and unconstrained
+multidimensional arrays are not supported. `'Output` and `'Input` additionally carry
 the bounds of an array whose type does not fix them, which is what makes
 `String'Input` give back the string that `String'Output` wrote. `Read`, `Write`,
 `Index`, `Set_Index` and `Size` work on the file directly in terms of
@@ -763,9 +843,11 @@ package Number_Stack is new Stacks (Integer);
 package Letter_Stack is new Stacks (Element => Character, Capacity => 2);
 ```
 
-Each instance has state and code of its own. An instance may stand at library
-level or inside a subprogram; either way its state is elaborated once, with the
-library.
+Each instance has state and code of its own. A library-level instance elaborates
+during program startup. An instance declared inside a subprogram or block
+elaborates whenever execution reaches its declaration, with fresh state for each
+activation. Generic formal objects currently require static actual values;
+formal subprograms and formal packages remain unsupported.
 
 The input and output generics are instantiated the same way as any other, since
 they are written in Ada like the rest of the predefined environment.

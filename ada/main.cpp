@@ -43,33 +43,17 @@ std::string baseName(const std::string& path)
     return dot == std::string::npos ? name : name.substr(0, dot);
 }
 
-// A unit is still good when its own text is the one it was compiled from, and
-// every specification it was compiled against still says the same thing.
-bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::vector<UnitRecord>& scanned)
+// Reuse a unit only when its compiler, semantic inputs and emitted IR match.
+bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::vector<UnitRecord>& scanned, const std::string& compilerDigest)
 {
     UnitRecordFile record;
     if (!readUnitRecord(directory + "/" + unit.key + ".ali", record)) {
         return false;
     }
-    if (record.digest != unit.digest) {
-        return false;
-    }
-    for (const auto& dependency : record.dependencies) {
-        bool found = false;
-        for (const UnitRecord& other : scanned) {
-            if (other.key != dependency.first) {
-                continue;
-            }
-            found = true;
-            if (other.specDigest != dependency.second) {
-                return false;
-            }
-        }
-        if (!found) {
-            return false;
-        }
-    }
-    return true;
+    return !compilerDigest.empty() && record.compilerDigest == compilerDigest
+        && unitRecordMatches(record, unit, scanned)
+        && !record.irDigest.empty()
+        && record.irDigest == digestOfFile(directory + "/" + unit.key + ".ssa");
 }
 
 }
@@ -221,11 +205,11 @@ int main(int argc, char** argv)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
 
-    // A unit is compiled again when its own text changed, or when a
-    // specification it was compiled against did.  Bodies it never read cannot
-    // reach it.
+    // Track specifications and any bodies read for instantiation separately:
+    // changes to an ordinary dependency body do not invalidate its clients.
+    const std::string compilerDigest = programDigest(toolchain.adac());
     for (const UnitRecord& unit : scanned) {
-        if (isCurrent(objectDirectory, unit, scanned)) {
+        if (isCurrent(objectDirectory, unit, scanned, compilerDigest)) {
             if (verbose) {
                 std::cerr << "ada: " << unit.key << " needs no compiling\n";
             }
@@ -234,6 +218,11 @@ int main(int argc, char** argv)
         std::vector<std::string> compile = { toolchain.adac(), "-c", "-D", objectDirectory };
         for (const std::string& option : libraryOption) {
             compile.push_back(option);
+        }
+        for (const std::string& source : sources) {
+            compile.push_back("-I");
+            auto directory = std::filesystem::path(source).parent_path();
+            compile.push_back(directory.empty() ? "." : directory.string());
         }
         compile.push_back(unit.sources.back());
         if (toolchain.run(compile) != 0) {

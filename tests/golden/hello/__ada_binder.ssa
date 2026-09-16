@@ -1,22 +1,22 @@
 
 export function w $main() {
 @start
-    call $ada_elab.ada()
+    call $ada_elab.ada_spec()
     %.t0 =l loadl $__ada_exception
     %.t1 =w cnel %.t0, 0
     jnz %.t1, @unhandled, @elaborated.0
 @elaborated.0
-    call $ada_elab.ada_io_exceptions()
+    call $ada_elab.ada_io_exceptions_spec()
     %.t2 =l loadl $__ada_exception
     %.t3 =w cnel %.t2, 0
     jnz %.t3, @unhandled, @elaborated.1
 @elaborated.1
-    call $ada_elab.ada_text_io()
+    call $ada_elab.ada_text_io_spec()
     %.t4 =l loadl $__ada_exception
     %.t5 =w cnel %.t4, 0
     jnz %.t5, @unhandled, @elaborated.2
 @elaborated.2
-    call $ada_elab.hello()
+    call $ada_elab.hello_body()
     %.t6 =l loadl $__ada_exception
     %.t7 =w cnel %.t6, 0
     jnz %.t7, @unhandled, @elaborated.3

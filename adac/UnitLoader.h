@@ -41,10 +41,9 @@ public:
     // comes before it, and the library comes before the program.
     std::vector<CompilationUnit*> units() const;
 
-    // The same files grouped into library units, in the order they have to be
-    // elaborated.  A unit takes the place of its last file, so that a body
-    // reaching for something read after the specification still finds it
-    // elaborated.
+    // The same files grouped into object-producing library units. Elaboration
+    // follows units() instead: specification and body may need other units
+    // elaborated between them.
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
