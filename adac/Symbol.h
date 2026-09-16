@@ -82,8 +82,10 @@ struct Symbol
     // Enumeration literals.
     long long enumerationValue = 0;
 
-    // Exceptions.
-    int exceptionId = 0;
+    // Exceptions.  Identity is the address of the object named here, which the
+    // run time owns for the predefined exceptions and the declaring unit emits
+    // for every other one.
+    std::string exceptionObject;
 
     // Nesting: subprograms know their static level, objects know the subprogram
     // that owns them.  Objects referenced from a nested subprogram live in the

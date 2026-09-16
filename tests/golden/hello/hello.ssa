@@ -8,8 +8,9 @@ export function $ada_elab.hello() {
 export function $hello() {
 @start
     call $__ada_put_line(l $.hello.str.0, w 13)
-    %.t5 =w loadsw $__ada_exception
-    jnz %.t5, @propagate.1, @nothrow.2
+    %.t5 =l loadl $__ada_exception
+    %.t6 =w cnel %.t5, 0
+    jnz %.t6, @propagate.1, @nothrow.2
 @nothrow.2
     ret
 @propagate.1

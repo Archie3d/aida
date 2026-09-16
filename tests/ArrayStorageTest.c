@@ -38,8 +38,6 @@ static void testFree(void* pointer)
 #undef malloc
 #undef calloc
 #undef free
-int __ada_exception;
-const char* __ada_exception_name;
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "line %d\n", __LINE__); return 1; } } while (0)
 int main(void)
 {

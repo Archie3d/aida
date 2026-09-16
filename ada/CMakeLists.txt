@@ -9,11 +9,14 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Toolchain.cpp
+        ${CMAKE_SOURCE_DIR}/adac/UnitManifest.cpp
 )
 
 target_include_directories(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/adac
+        ${CMAKE_SOURCE_DIR}/common
 )
 
 # The driver needs to find its companions.  The build tree locations are

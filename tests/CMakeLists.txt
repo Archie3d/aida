@@ -132,6 +132,26 @@ add_ada_error_test(varianterrors SOURCES varianterrors.adb)
 
 add_ada_ir_test(hello SOURCES hello.adb)
 
+# add_determinism_test(<name> SOURCE <file>)
+#
+# Checks that a unit compiled on its own comes out the same as when the whole
+# program was compiled at once.
+function(add_determinism_test name)
+    cmake_parse_arguments(DETERMINISM "" "SOURCE" "" ${ARGN})
+    add_test(NAME determinism.${name}
+        COMMAND ${CMAKE_COMMAND}
+            -DNAME=${name}
+            -DADAC=$<TARGET_FILE:adac>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${DETERMINISM_SOURCE}
+            -DWORKDIR=${ADA_TEST_WORK_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckDeterminism.cmake
+    )
+endfunction()
+
+add_determinism_test(private SOURCE private.adb)
+add_determinism_test(generics SOURCE generics.adb)
+add_determinism_test(packages SOURCE packages.adb)
+
 # Builds a program twice over to check that a unit nobody touched keeps the
 # object it already had, and that a changed body rebuilds that unit alone.
 add_test(NAME ada.incremental

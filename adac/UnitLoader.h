@@ -19,6 +19,16 @@ class UnitLoader
 public:
     explicit UnitLoader(Diagnostics& diagnostics);
 
+    // Reads only the specification of a unit reached through a with clause.
+    // The body still comes in when the specification declares a generic, since
+    // an instantiation parses the whole of it again.  Compiling one unit at a
+    // time needs no more of its dependencies than this.
+    void setSpecificationsOnly(bool specificationsOnly) { m_specificationsOnly = specificationsOnly; }
+
+    // The unit being compiled, which is read whole whatever the setting above
+    // says, since its body is what there is to generate code from.
+    void setTargetUnit(const std::string& key) { m_targetKey = key; }
+
     void addSearchPath(const std::string& directory);
 
     // Reads a file named on the command line along with everything it withs.
@@ -52,4 +62,6 @@ private:
     std::vector<std::string> m_searchPaths;
     std::vector<CompilationUnitPtr> m_units;
     std::unordered_map<std::string, State> m_states;
+    bool m_specificationsOnly = false;
+    std::string m_targetKey;
 };

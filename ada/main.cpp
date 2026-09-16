@@ -1,6 +1,8 @@
 #include "Cache.h"
 #include "Toolchain.h"
+#include "UnitManifest.h"
 
+#include <cctype>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -41,19 +43,33 @@ std::string baseName(const std::string& path)
     return dot == std::string::npos ? name : name.substr(0, dot);
 }
 
-// The front end lists what it produced, so that a unit which has dropped out of
-// the program stops being linked into it.
-std::vector<std::string> readManifest(const std::string& directory)
+// A unit is still good when its own text is the one it was compiled from, and
+// every specification it was compiled against still says the same thing.
+bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::vector<UnitRecord>& scanned)
 {
-    std::vector<std::string> units;
-    std::ifstream manifest(directory + "/units.manifest");
-    std::string line;
-    while (std::getline(manifest, line)) {
-        if (line.size() > 4 && line.compare(line.size() - 4, 4, ".ssa") == 0) {
-            units.push_back(line.substr(0, line.size() - 4));
+    UnitRecordFile record;
+    if (!readUnitRecord(directory + "/" + unit.key + ".ali", record)) {
+        return false;
+    }
+    if (record.digest != unit.digest) {
+        return false;
+    }
+    for (const auto& dependency : record.dependencies) {
+        bool found = false;
+        for (const UnitRecord& other : scanned) {
+            if (other.key != dependency.first) {
+                continue;
+            }
+            found = true;
+            if (other.specDigest != dependency.second) {
+                return false;
+            }
+        }
+        if (!found) {
+            return false;
         }
     }
-    return units;
+    return true;
 }
 
 }
@@ -148,17 +164,22 @@ int main(int argc, char** argv)
     // what there is to look at.
     bool perUnit = stage == Stage::Executable;
     if (perUnit) {
+        command.push_back("--scan");
         command.push_back("-D");
         command.push_back(objectDirectory);
     } else {
         command.push_back("-o");
         command.push_back(irFile);
     }
+    std::vector<std::string> libraryOption;
     if (useLibrary) {
-        command.push_back("--stdlib");
-        command.push_back(toolchain.library());
+        libraryOption.push_back("--stdlib");
+        libraryOption.push_back(toolchain.library());
     } else {
-        command.push_back("--no-stdlib");
+        libraryOption.push_back("--no-stdlib");
+    }
+    for (const std::string& option : libraryOption) {
+        command.push_back(option);
     }
     for (const std::string& source : sources) {
         command.push_back(source);
@@ -166,11 +187,11 @@ int main(int argc, char** argv)
     if (toolchain.run(command) != 0) {
         return 1;
     }
-    if (stage == Stage::IntermediateLanguage) {
-        return 0;
-    }
 
     if (!perUnit) {
+        if (stage == Stage::IntermediateLanguage) {
+            return 0;
+        }
         std::vector<std::string> qbeCommand = { toolchain.qbe() };
 #ifdef _WIN32
         // qbe's own default target is the ELF sysv ABI even when built on Windows.
@@ -187,11 +208,53 @@ int main(int argc, char** argv)
         return result == 0 ? 0 : 1;
     }
 
-    std::vector<std::string> units = readManifest(objectDirectory);
-    if (units.empty()) {
-        std::cerr << "ada: error: no compiled units in '" << objectDirectory << "'\n";
+    std::vector<UnitRecord> scanned;
+    if (!readManifest(objectDirectory + "/units.manifest", scanned) || scanned.empty()) {
+        std::cerr << "ada: error: nothing was scanned into '" << objectDirectory << "'\n";
         return 1;
     }
+
+    // The unit named last on the command line is the one whose main subprogram
+    // the program runs.
+    std::string mainUnit = baseName(sources.back());
+    for (char& c : mainUnit) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+
+    // A unit is compiled again when its own text changed, or when a
+    // specification it was compiled against did.  Bodies it never read cannot
+    // reach it.
+    for (const UnitRecord& unit : scanned) {
+        if (isCurrent(objectDirectory, unit, scanned)) {
+            if (verbose) {
+                std::cerr << "ada: " << unit.key << " needs no compiling\n";
+            }
+            continue;
+        }
+        std::vector<std::string> compile = { toolchain.adac(), "-c", "-D", objectDirectory };
+        for (const std::string& option : libraryOption) {
+            compile.push_back(option);
+        }
+        compile.push_back(unit.sources.back());
+        if (toolchain.run(compile) != 0) {
+            return 1;
+        }
+    }
+
+    std::vector<std::string> bind = { toolchain.adac(), "--bind", mainUnit, "-D", objectDirectory };
+    if (toolchain.run(bind) != 0) {
+        return 1;
+    }
+
+    if (stage == Stage::IntermediateLanguage) {
+        return 0;
+    }
+
+    std::vector<std::string> units;
+    for (const UnitRecord& unit : scanned) {
+        units.push_back(unit.key);
+    }
+    units.push_back("__ada_binder");
 
     Cache cache(objectDirectory, toolDigest({ toolchain.qbe(), toolchain.compiler() }));
 

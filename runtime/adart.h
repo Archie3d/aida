@@ -6,34 +6,50 @@
 
 #include <stdint.h>
 
-/* Exception identifiers.  Sema registers the predefined exceptions in this
-   order, so the run time can raise one of them by number and the handlers the
-   compiler emitted will recognise it. */
-enum AdaExceptionId
+/* An exception is identified by the address of its object, so that units
+   compiled apart still agree on what a handler catches.  The run time owns the
+   predefined ones; any other exception has an object emitted by the unit that
+   declares it. */
+typedef struct AdaException
 {
-    ADA_CONSTRAINT_ERROR = 1,
-    ADA_PROGRAM_ERROR = 2,
-    ADA_STORAGE_ERROR = 3,
-    ADA_NUMERIC_ERROR = 4,
-    ADA_TASKING_ERROR = 5,
-    ADA_STATUS_ERROR = 6,
-    ADA_MODE_ERROR = 7,
-    ADA_NAME_ERROR = 8,
-    ADA_USE_ERROR = 9,
-    ADA_DEVICE_ERROR = 10,
-    ADA_END_ERROR = 11,
-    ADA_DATA_ERROR = 12,
-    ADA_LAYOUT_ERROR = 13
-};
+    const char* name;
+} AdaException;
 
-/* Defined by the generated code.  Writing them is how the run time hands a
-   failure back to the Ada program. */
-extern int __ada_exception;
-extern const char* __ada_exception_name;
+extern const AdaException __ada_exc_constraint_error;
+extern const AdaException __ada_exc_program_error;
+extern const AdaException __ada_exc_storage_error;
+extern const AdaException __ada_exc_numeric_error;
+extern const AdaException __ada_exc_tasking_error;
+extern const AdaException __ada_exc_status_error;
+extern const AdaException __ada_exc_mode_error;
+extern const AdaException __ada_exc_name_error;
+extern const AdaException __ada_exc_use_error;
+extern const AdaException __ada_exc_device_error;
+extern const AdaException __ada_exc_end_error;
+extern const AdaException __ada_exc_data_error;
+extern const AdaException __ada_exc_layout_error;
 
-/* Marks an exception as pending.  The generated code inspects the globals
-   after every call and jumps to the applicable handler. */
-void __ada_raise(int id);
+#define ADA_CONSTRAINT_ERROR (&__ada_exc_constraint_error)
+#define ADA_PROGRAM_ERROR (&__ada_exc_program_error)
+#define ADA_STORAGE_ERROR (&__ada_exc_storage_error)
+#define ADA_NUMERIC_ERROR (&__ada_exc_numeric_error)
+#define ADA_TASKING_ERROR (&__ada_exc_tasking_error)
+#define ADA_STATUS_ERROR (&__ada_exc_status_error)
+#define ADA_MODE_ERROR (&__ada_exc_mode_error)
+#define ADA_NAME_ERROR (&__ada_exc_name_error)
+#define ADA_USE_ERROR (&__ada_exc_use_error)
+#define ADA_DEVICE_ERROR (&__ada_exc_device_error)
+#define ADA_END_ERROR (&__ada_exc_end_error)
+#define ADA_DATA_ERROR (&__ada_exc_data_error)
+#define ADA_LAYOUT_ERROR (&__ada_exc_layout_error)
+
+/* The pending exception, null when there is none.  Generated code reads it
+   after every call, and writes it to raise one of its own. */
+extern const AdaException* __ada_exception;
+
+/* Marks an exception as pending.  The generated code inspects the global after
+   every call and jumps to the applicable handler. */
+void __ada_raise(const AdaException* exception);
 
 /* The storage an allocator takes from and Ada.Unchecked_Deallocation gives
    back.  Every allocation comes out cleared, so that an access component of

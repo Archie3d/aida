@@ -2,29 +2,34 @@
 export function w $main() {
 @start
     call $ada_elab.ada()
-    %.t0 =w loadsw $__ada_exception
-    jnz %.t0, @unhandled.1, @elaborated.2
-@elaborated.2
+    %.t0 =l loadl $__ada_exception
+    %.t1 =w cnel %.t0, 0
+    jnz %.t1, @unhandled, @elaborated.0
+@elaborated.0
     call $ada_elab.ada_io_exceptions()
-    %.t1 =w loadsw $__ada_exception
-    jnz %.t1, @unhandled.1, @elaborated.3
-@elaborated.3
+    %.t2 =l loadl $__ada_exception
+    %.t3 =w cnel %.t2, 0
+    jnz %.t3, @unhandled, @elaborated.1
+@elaborated.1
     call $ada_elab.ada_text_io()
-    %.t2 =w loadsw $__ada_exception
-    jnz %.t2, @unhandled.1, @elaborated.4
-@elaborated.4
+    %.t4 =l loadl $__ada_exception
+    %.t5 =w cnel %.t4, 0
+    jnz %.t5, @unhandled, @elaborated.2
+@elaborated.2
     call $ada_elab.hello()
-    %.t3 =w loadsw $__ada_exception
-    jnz %.t3, @unhandled.1, @elaborated.5
-@elaborated.5
+    %.t6 =l loadl $__ada_exception
+    %.t7 =w cnel %.t6, 0
+    jnz %.t7, @unhandled, @elaborated.3
+@elaborated.3
     call $hello()
-    %.t4 =w loadsw $__ada_exception
-    jnz %.t4, @unhandled.1, @done.6
-@unhandled.1
-    %.t5 =l loadl $__ada_exception_name
-    call $__ada_unhandled(l %.t5)
+    %.t8 =l loadl $__ada_exception
+    %.t9 =w cnel %.t8, 0
+    jnz %.t9, @unhandled, @done
+@unhandled
+    %.t10 =l loadl $__ada_exception
+    call $__ada_unhandled(l %.t10)
     ret 1
-@done.6
+@done
     ret 0
 }
 

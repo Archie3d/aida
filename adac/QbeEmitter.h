@@ -36,18 +36,6 @@ public:
     // object file is built from.
     void emitUnit(const LibraryUnit& unit, std::ostream& out);
 
-    // The entry point: elaborates every unit in turn and then calls the main
-    // subprogram.  It is emitted on its own, since it belongs to no unit.
-    void emitBinder(const std::vector<LibraryUnit>& units, std::ostream& out);
-
-    // Every unit and the binder in one stream, for looking at a whole program
-    // at once.
-    void emitAll(const std::vector<LibraryUnit>& units, std::ostream& out);
-
-    // The symbol elaborating a unit, named so that a key with dashes in it
-    // still spells a QBE identifier.
-    static std::string elaborationName(const std::string& key);
-
 private:
     struct ArrayAggregatePlan
     {
@@ -73,7 +61,7 @@ private:
         std::unordered_map<Symbol*, Value> bounds;
         std::vector<std::string> handlerLabels;
         std::unordered_map<std::string, std::pair<std::string, std::string>> handlerStorage;
-        std::vector<std::pair<std::string, std::string>> activeExceptions;
+        std::vector<std::string> activeExceptions;
         std::unordered_map<const LoopStmt*, std::string> loopExits;
         std::string propagateLabel;
         bool usesPropagate = false;
@@ -106,6 +94,7 @@ private:
     void emitStatement(Stmt* statement);
 
     // Exceptions and checks (QbeExceptions.cpp).
+    void emitExceptionObjects(const std::vector<Symbol*>& exceptions);
     void emitRaise(Symbol* exception, const SourceLocation& location);
     void emitExceptionCheck();
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,

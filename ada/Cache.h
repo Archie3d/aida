@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Digest.h"
+
 #include <string>
 #include <vector>
 
@@ -21,11 +23,6 @@ private:
     std::string m_directory;
     std::string m_stamp;
 };
-
-// A 64 bit FNV-1a digest written as hexadecimal.  Content decides what is out
-// of date, since a rewritten file with the same text is no change at all.
-std::string digestOf(const std::string& text);
-std::string digestOfFile(const std::string& path);
 
 // Identifies the programs that turn intermediate language into objects, so
 // that replacing one of them is not mistaken for nothing having happened.

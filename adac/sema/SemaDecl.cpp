@@ -335,19 +335,30 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
 {
     // A renaming has to name the very same exception, identity being what a
     // handler matches on.
-    int renamed = 0;
+    std::string renamed;
     if (!decl->renamesLower.empty()) {
         Symbol* target = lookupName(decl->renamesLower, scope);
         if (target == nullptr || target->kind != SymbolKind::Exception) {
             m_diagnostics.error(decl->location, "'" + decl->renames + "' is not an exception");
             return;
         }
-        renamed = target->exceptionId;
+        renamed = target->exceptionObject;
     }
+
+    // The run time raises the input output exceptions itself, so those stand
+    // for objects it owns rather than ones emitted from this declaration.
+    bool predefined = m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "io_exceptions";
 
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, decl->namesLower[i], decl->names[i]);
-        symbol->exceptionId = renamed != 0 ? renamed : m_exceptionCounter++;
+        if (!renamed.empty()) {
+            symbol->exceptionObject = renamed;
+        } else if (predefined) {
+            symbol->exceptionObject = "$__ada_exc_" + decl->namesLower[i];
+        } else {
+            symbol->exceptionObject = "$ada_exc." + mangle(decl->namesLower[i]);
+            m_unitExceptions[m_currentUnit].push_back(symbol);
+        }
         symbol->location = decl->location;
         scope->add(symbol);
         decl->symbols.push_back(symbol);

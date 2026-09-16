@@ -13,28 +13,27 @@
 #define IMAGE_BUFFERS 8
 #define IMAGE_BUFFER_SIZE 64
 
-/* Indexed by AdaExceptionId; the compiler writes the same spellings when it
-   raises an exception itself. */
-static const char* const exceptionNames[] = {
-    "EXCEPTION",     "CONSTRAINT_ERROR", "PROGRAM_ERROR", "STORAGE_ERROR", "NUMERIC_ERROR",
-    "TASKING_ERROR", "STATUS_ERROR",     "MODE_ERROR",    "NAME_ERROR",    "USE_ERROR",
-    "DEVICE_ERROR",  "END_ERROR",        "DATA_ERROR",    "LAYOUT_ERROR"
-};
+const AdaException __ada_exc_constraint_error = { "CONSTRAINT_ERROR" };
+const AdaException __ada_exc_program_error = { "PROGRAM_ERROR" };
+const AdaException __ada_exc_storage_error = { "STORAGE_ERROR" };
+const AdaException __ada_exc_numeric_error = { "NUMERIC_ERROR" };
+const AdaException __ada_exc_tasking_error = { "TASKING_ERROR" };
+const AdaException __ada_exc_status_error = { "STATUS_ERROR" };
+const AdaException __ada_exc_mode_error = { "MODE_ERROR" };
+const AdaException __ada_exc_name_error = { "NAME_ERROR" };
+const AdaException __ada_exc_use_error = { "USE_ERROR" };
+const AdaException __ada_exc_device_error = { "DEVICE_ERROR" };
+const AdaException __ada_exc_end_error = { "END_ERROR" };
+const AdaException __ada_exc_data_error = { "DATA_ERROR" };
+const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
 
-/* Every object file compiled from Ada refers to these, so the run time is the
-   one place that defines them. */
-int __ada_exception = 0;
-const char* __ada_exception_name = NULL;
+/* Every object file compiled from Ada refers to this, so the run time is the
+   one place that defines it. */
+const AdaException* __ada_exception = NULL;
 
-void __ada_raise(int id)
+void __ada_raise(const AdaException* exception)
 {
-    int count = (int)(sizeof exceptionNames / sizeof exceptionNames[0]);
-
-    if (id < 1 || id >= count) {
-        id = ADA_PROGRAM_ERROR;
-    }
-    __ada_exception = id;
-    __ada_exception_name = exceptionNames[id];
+    __ada_exception = exception == NULL ? ADA_PROGRAM_ERROR : exception;
 }
 
 void* __ada_allocate(long size)
@@ -476,10 +475,10 @@ long long __ada_round_to_integer(double value)
     return result;
 }
 
-void __ada_unhandled(const char* name)
+void __ada_unhandled(const AdaException* exception)
 {
     fflush(stdout);
-    fprintf(stderr, "\nraised %s\n", name == 0 ? "EXCEPTION" : name);
+    fprintf(stderr, "\nraised %s\n", exception == NULL ? "EXCEPTION" : exception->name);
 }
 
 /* Internal Ada ABI: an unconstrained result carries a transfer buffer, its

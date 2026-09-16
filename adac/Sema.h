@@ -19,6 +19,10 @@ public:
     TypeTable& typeTable() { return m_types; }
     Symbol* mainSubprogram() const { return m_main; }
 
+    // The exceptions declared in one file, whose objects that file's unit is
+    // the one to emit.
+    const std::vector<Symbol*>& exceptionsIn(const CompilationUnit* unit) const;
+
 private:
     // Sema.cpp
     void setupStandardScope();
@@ -127,7 +131,11 @@ private:
     SymbolTable m_symbolTable;
     Scope* m_standardScope = nullptr;
     Scope* m_globalScope = nullptr;
-    std::vector<Symbol*> m_ioExceptions;
+
+    // The exceptions each file declared, since the object standing for one
+    // belongs to the unit it was written in and to no other.
+    const CompilationUnit* m_currentUnit = nullptr;
+    std::unordered_map<const CompilationUnit*, std::vector<Symbol*>> m_unitExceptions;
 
     // The packages being analysed, innermost last.  A private type is only
     // transparent while one of them declared it.
@@ -148,6 +156,5 @@ private:
     std::vector<std::string> m_namePrefix;
     std::unordered_map<std::string, std::size_t> m_subprogramNames;
     int m_anonymousCounter = 0;
-    int m_exceptionCounter = 1;
     int m_instantiationDepth = 0;
 };

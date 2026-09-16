@@ -5,43 +5,6 @@
 #include <sstream>
 #include <utility>
 
-namespace
-{
-
-std::string hexadecimal(unsigned long long value)
-{
-    static const char digits[] = "0123456789abcdef";
-    std::string text(16, '0');
-    for (int i = 15; i >= 0; --i) {
-        text[i] = digits[value & 0xf];
-        value >>= 4;
-    }
-    return text;
-}
-
-}
-
-std::string digestOf(const std::string& text)
-{
-    unsigned long long hash = 14695981039346656037ull;
-    for (unsigned char c : text) {
-        hash ^= c;
-        hash *= 1099511628211ull;
-    }
-    return hexadecimal(hash);
-}
-
-std::string digestOfFile(const std::string& path)
-{
-    std::ifstream input(path, std::ios::binary);
-    if (!input) {
-        return std::string();
-    }
-    std::ostringstream buffer;
-    buffer << input.rdbuf();
-    return digestOf(buffer.str());
-}
-
 std::string toolDigest(const std::vector<std::string>& programs)
 {
     std::string description;

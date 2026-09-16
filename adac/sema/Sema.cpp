@@ -79,9 +79,16 @@ void Sema::setupStandardScope()
 Symbol* Sema::addException(Scope* scope, const std::string& displayName)
 {
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, toLower(displayName), displayName);
-    symbol->exceptionId = m_exceptionCounter++;
+    symbol->exceptionObject = "$__ada_exc_" + symbol->name;
     scope->add(symbol);
     return symbol;
+}
+
+const std::vector<Symbol*>& Sema::exceptionsIn(const CompilationUnit* unit) const
+{
+    static const std::vector<Symbol*> none;
+    auto found = m_unitExceptions.find(unit);
+    return found == m_unitExceptions.end() ? none : found->second;
 }
 
 Symbol* Sema::addTypeTo(Scope* scope, Type* type)
@@ -92,26 +99,12 @@ Symbol* Sema::addTypeTo(Scope* scope, Type* type)
     return symbol;
 }
 
-// Two units of the predefined environment hold things the compiler itself has
-// to lay hands on: the exceptions the run time raises by number, and the types
-// the Text_IO generics are written in terms of.  Both are picked up as the Ada
-// source declaring them is analysed.
+// One unit of the predefined environment holds something the compiler itself
+// has to lay hands on: the types the Text_IO generics are written in terms of.
+// They are picked up as the Ada source declaring them is analysed.
 void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 {
     if (m_namePrefix.size() != 2 || m_namePrefix[0] != "ada" || package->scope == nullptr) {
-        return;
-    }
-
-    if (m_namePrefix[1] == "io_exceptions") {
-        // The run time raises these by number, so the order they were declared
-        // in is the order they are kept in.
-        for (const DeclPtr& item : decl->publicPart) {
-            if (item->kind == DeclKind::Exception) {
-                for (Symbol* exception : static_cast<ExceptionDecl*>(item.get())->symbols) {
-                    m_ioExceptions.push_back(exception);
-                }
-            }
-        }
         return;
     }
 
@@ -125,6 +118,8 @@ void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 
 void Sema::analyze(CompilationUnit& unit)
 {
+    m_currentUnit = &unit;
+
     // The loader has already read whatever it could find, so a name still
     // standing for nothing is one no unit answers to.
     for (const WithClause& clause : unit.withClauses) {

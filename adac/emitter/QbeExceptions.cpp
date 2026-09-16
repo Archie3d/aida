@@ -21,6 +21,16 @@ std::string upperCase(const std::string& text)
 
 }
 
+// The unit declaring an exception is the one holding the object that stands
+// for it, so a handler anywhere in the program compares against one address.
+void QbeEmitter::emitExceptionObjects(const std::vector<Symbol*>& exceptions)
+{
+    for (Symbol* exception : exceptions) {
+        std::string name = stringData(upperCase(exception->displayName));
+        m_data << "export data " << exception->exceptionObject << " = align 8 { l " << name << " }\n";
+    }
+}
+
 void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location)
 {
     if (exception == nullptr) {
@@ -28,12 +38,9 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location)
             m_diagnostics.error(location, "internal error: bare raise without an active handler");
             return;
         }
-        const auto& occurrence = m_context->activeExceptions.back();
-        line("storew " + occurrence.first + ", $__ada_exception");
-        line("storel " + occurrence.second + ", $__ada_exception_name");
+        line("storel " + m_context->activeExceptions.back() + ", $__ada_exception");
     } else {
-        line("storew " + std::to_string(exception->exceptionId) + ", $__ada_exception");
-        line("storel " + stringData(upperCase(exception->displayName)) + ", $__ada_exception_name");
+        line("storel " + exception->exceptionObject + ", $__ada_exception");
     }
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
@@ -45,14 +52,16 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location)
 
 void QbeEmitter::emitExceptionCheck()
 {
-    std::string status = newTemp();
+    std::string pending = newTemp();
+    std::string raised = newTemp();
     std::string next = newLabel("nothrow");
-    line(status + " =w loadsw $__ada_exception");
+    line(pending + " =l loadl $__ada_exception");
+    line(raised + " =w cnel " + pending + ", 0");
     if (!m_context->handlerLabels.empty()) {
-        branch(Value { status, 'w' }, m_context->handlerLabels.back(), next);
+        branch(Value { raised, 'w' }, m_context->handlerLabels.back(), next);
     } else {
         m_context->usesPropagate = true;
-        branch(Value { status, 'w' }, m_context->propagateLabel, next);
+        branch(Value { raised, 'w' }, m_context->propagateLabel, next);
     }
     label(next);
 }
@@ -62,13 +71,11 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 {
     label(dispatchLabel);
     rewindStorage(m_context->handlerStorage.at(dispatchLabel));
-    std::string status = newTemp();
-    line(status + " =w loadsw $__ada_exception");
 
     // Save the occurrence before clearing the pending status. Nested handlers
-    // and calls may replace both globals while this handler remains active.
-    std::string name = newTemp();
-    line(name + " =l loadl $__ada_exception_name");
+    // and calls may replace the global while this handler remains active.
+    std::string pending = newTemp();
+    line(pending + " =l loadl $__ada_exception");
     std::vector<std::string> bodyLabels;
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         bodyLabels.push_back(newLabel("handle"));
@@ -81,9 +88,9 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
             break;
         }
         std::string match;
-        for (std::size_t k = 0; k < handler.identifiers.size(); ++k) {
+        for (Symbol* caught : handler.exceptions) {
             std::string test = newTemp();
-            line(test + " =w ceqw " + status + ", " + std::to_string(handler.identifiers[k]));
+            line(test + " =w ceql " + pending + ", " + caught->exceptionObject);
             if (match.empty()) {
                 match = test;
             } else {
@@ -112,8 +119,8 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         label(bodyLabels[i]);
-        line("storew 0, $__ada_exception");
-        m_context->activeExceptions.emplace_back(status, name);
+        line("storel 0, $__ada_exception");
+        m_context->activeExceptions.push_back(pending);
         emitStatements(handlers[i].body);
         m_context->activeExceptions.pop_back();
         jump(afterLabel);
@@ -269,8 +276,7 @@ void QbeEmitter::checkNotNull(const Value& pointer)
 
 void QbeEmitter::raiseConstraintError()
 {
-    line("storew 1, $__ada_exception");
-    line("storel " + stringData("CONSTRAINT_ERROR") + ", $__ada_exception_name");
+    line("storel $__ada_exc_constraint_error, $__ada_exception");
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
     } else {

@@ -6,6 +6,8 @@ target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Ast.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Binder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/UnitManifest.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Diagnostics.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Token.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Lexer.cpp
@@ -54,6 +56,7 @@ target_sources(${TARGET}
 target_include_directories(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/common
 )
 
 # Where the predefined environment lives when nothing on the command line and

@@ -1,5 +1,7 @@
 #include "QbeEmitter.h"
 
+#include "Binder.h"
+
 namespace
 {
 
@@ -42,29 +44,12 @@ std::string encodeString(const std::string& text)
     return result;
 }
 
-// A unit key spells a file name, where QBE wants an identifier.  The dot keeps
-// the result out of the way of both mangled Ada names and run time symbols.
-std::string unitTag(const std::string& key)
-{
-    std::string tag;
-    for (char c : key) {
-        bool usable = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
-        tag.push_back(usable ? c : '_');
-    }
-    return tag;
-}
-
 }
 
 QbeEmitter::QbeEmitter(Sema& sema, Diagnostics& diagnostics)
     : m_sema(sema)
     , m_diagnostics(diagnostics)
 {
-}
-
-std::string QbeEmitter::elaborationName(const std::string& key)
-{
-    return "ada_elab." + unitTag(key);
 }
 
 // Each unit is emitted on its own, so nothing survives from the one before it.
@@ -96,6 +81,7 @@ void QbeEmitter::emitUnit(const LibraryUnit& unit, std::ostream& out)
 
     for (CompilationUnit* part : unit.parts) {
         collectGlobals(part->units);
+        emitExceptionObjects(m_sema.exceptionsIn(part));
     }
 
     emitElaboration(unit);
@@ -105,14 +91,6 @@ void QbeEmitter::emitUnit(const LibraryUnit& unit, std::ostream& out)
     }
 
     writeUnit(out);
-}
-
-void QbeEmitter::emitAll(const std::vector<LibraryUnit>& units, std::ostream& out)
-{
-    for (const LibraryUnit& unit : units) {
-        emitUnit(unit, out);
-    }
-    emitBinder(units, out);
 }
 
 std::string QbeEmitter::newTemp()

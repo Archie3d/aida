@@ -1,6 +1,8 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+#include "Binder.h"
+
 #include <cctype>
 
 using QbeSupport::isUnconstrainedArray;
@@ -182,56 +184,6 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     }
 }
 
-void QbeEmitter::emitBinder(const std::vector<LibraryUnit>& units, std::ostream& out)
-{
-    beginUnit("binder");
-
-    Symbol* main = m_sema.mainSubprogram();
-
-    FunctionContext context;
-    context.propagateLabel = newLabel("propagate");
-    FunctionContext* saved = m_context;
-    m_context = &context;
-
-    std::string unhandled = newLabel("unhandled");
-
-    // A unit whose elaboration failed leaves the ones after it unelaborated,
-    // so the program stops at the first failure rather than running on.
-    for (const LibraryUnit& unit : units) {
-        std::string elaborated = newLabel("elaborated");
-        line("call $" + elaborationName(unit.key) + "()");
-        std::string pending = newTemp();
-        line(pending + " =w loadsw $__ada_exception");
-        branch(Value { pending, 'w' }, unhandled, elaborated);
-        label(elaborated);
-    }
-
-    if (main != nullptr) {
-        line("call " + main->qbeName + "()");
-    }
-
-    std::string done = newLabel("done");
-    std::string status = newTemp();
-    line(status + " =w loadsw $__ada_exception");
-    branch(Value { status, 'w' }, unhandled, done);
-
-    label(unhandled);
-    std::string name = newTemp();
-    line(name + " =l loadl $__ada_exception_name");
-    line("call $__ada_unhandled(l " + name + ")");
-    line("ret 1");
-    m_context->terminated = true;
-
-    label(done);
-    line("ret 0");
-    m_context->terminated = true;
-
-    finishFunction("export function w $main()");
-    m_context = saved;
-
-    writeUnit(out);
-}
-
 void QbeEmitter::finishFunction(const std::string& signature)
 {
     FunctionContext& context = *m_context;
@@ -239,7 +191,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     if (!context.terminated) {
         if (context.symbol != nullptr && context.symbol->returnType != nullptr) {
             // A missing result is a failure for every result representation.
-            line("call $__ada_raise(w 2)");
+            line("call $__ada_raise(l $__ada_exc_program_error)");
             char type = qbeClass(context.symbol->returnType);
             if (isComposite(context.symbol->returnType)) {
                 line("ret");

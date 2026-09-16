@@ -1,7 +1,12 @@
+#include "Binder.h"
 #include "Diagnostics.h"
+#include "Lexer.h"
 #include "QbeEmitter.h"
 #include "Sema.h"
 #include "UnitLoader.h"
+#include "UnitManifest.h"
+
+#include "Digest.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -35,6 +40,11 @@ void printUsage()
               << "\n"
               << "  -o <file>       name of the produced file, '-' for standard output\n"
               << "  -D <dir>        write one file per library unit into this directory\n"
+              << "  -c              compile the named source alone, against the\n"
+              << "                  specifications of what it draws on\n"
+              << "  --scan          only work out which units the program is made of\n"
+              << "  --bind <unit>   only write the entry point, for the program whose\n"
+              << "                  main subprogram that unit holds\n"
               << "  -I <dir>        another directory to look for units in\n"
               << "  --stdlib <dir>  where the predefined environment lives\n"
               << "  --no-stdlib     leave the predefined environment out altogether\n";
@@ -66,6 +76,53 @@ std::string defaultOutputName(const std::string& path)
         return path.substr(0, dot) + ".ssa";
     }
     return path + ".ssa";
+}
+
+// The loader names a unit after its file, so a source on the command line says
+// which unit it belongs to without anything having been read.
+std::string unitKeyOf(const std::string& path)
+{
+    std::size_t slash = path.find_last_of("/\\");
+    std::string base = slash == std::string::npos ? path : path.substr(slash + 1);
+    std::size_t dot = base.find_last_of('.');
+    return toLower(dot == std::string::npos ? base : base.substr(0, dot));
+}
+
+// What the driver has to know about a unit to tell whether anything has
+// reached it: its own text, and the declarations another unit compiles against.
+UnitRecord describe(const LibraryUnit& unit)
+{
+    UnitRecord record;
+    record.key = unit.key;
+
+    std::string text;
+    for (CompilationUnit* part : unit.parts) {
+        record.sources.push_back(part->fileName);
+        std::string contents = digestOfFile(part->fileName);
+        text += contents;
+        if (part->isSpec) {
+            record.specDigest = contents;
+        }
+        for (const WithClause& clause : part->withClauses) {
+            for (const std::string& name : clause.names) {
+                std::string key = toLower(name);
+                for (char& c : key) {
+                    if (c == '.') {
+                        c = '-';
+                    }
+                }
+                record.withKeys.push_back(key);
+            }
+        }
+    }
+    record.digest = digestOf(text);
+
+    // A unit with no specification is compiled against its body, so that is
+    // what a change to it has to be measured against.
+    if (record.specDigest.empty()) {
+        record.specDigest = record.digest;
+    }
+    return record;
 }
 
 // Several directories travel in one string, separated the way a search path is.
@@ -169,8 +226,12 @@ int main(int argc, char** argv)
     std::vector<std::string> includes;
     std::string output;
     std::string artifacts;
+    std::string bindMainUnit;
     std::string library = ADA_LIBRARY_DEFAULT_PATH;
     bool librarySelected = false;
+    bool singleUnit = false;
+    bool scanOnly = false;
+    bool bindOnly = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string argument = argv[i];
@@ -186,6 +247,17 @@ int main(int argc, char** argv)
                 return 2;
             }
             artifacts = argv[++i];
+        } else if (argument == "-c") {
+            singleUnit = true;
+        } else if (argument == "--scan") {
+            scanOnly = true;
+        } else if (argument == "--bind") {
+            if (i + 1 >= argc) {
+                std::cerr << "adac: error: missing unit after '--bind'\n";
+                return 2;
+            }
+            bindMainUnit = argv[++i];
+            bindOnly = true;
         } else if (argument == "-I") {
             if (i + 1 >= argc) {
                 std::cerr << "adac: error: missing directory after '-I'\n";
@@ -213,6 +285,35 @@ int main(int argc, char** argv)
         } else {
             inputs.push_back(argument);
         }
+    }
+
+    if (bindOnly) {
+        if (artifacts.empty()) {
+            std::cerr << "adac: error: '--bind' needs the directory named by '-D'\n";
+            return 2;
+        }
+        std::vector<UnitRecord> units;
+        if (!readManifest(artifacts + "/" + manifestName, units)) {
+            std::cerr << "adac: error: cannot read '" << artifacts << "/" << manifestName << "'\n";
+            return 2;
+        }
+
+        UnitRecordFile record;
+        readUnitRecord(artifacts + "/" + bindMainUnit + ".ali", record);
+
+        std::vector<std::string> keys;
+        for (const UnitRecord& unit : units) {
+            keys.push_back(unit.key);
+        }
+
+        std::string path = artifacts + "/" + binderName + ".ssa";
+        std::ofstream binder(path);
+        if (!binder) {
+            std::cerr << "adac: error: cannot write '" << path << "'\n";
+            return 2;
+        }
+        emitBinder(keys, record.mainName, binder);
+        return 0;
     }
 
     if (inputs.empty()) {
@@ -249,17 +350,56 @@ int main(int argc, char** argv)
     addSeparatedPaths(loader, std::getenv("ADA_INCLUDE_PATH"));
     addSeparatedPaths(loader, library.c_str());
 
+    // Compiling one unit needs no more of what it draws on than the
+    // declarations, so the bodies of its dependencies stay unread.
+    loader.setSpecificationsOnly(singleUnit);
+
     // The run time raises its exceptions by number, so the package declaring
     // them is part of every program whether or not it was asked for.
     loader.loadUnit("Ada.IO_Exceptions", SourceLocation {});
 
-    for (const std::string& path : inputs) {
-        if (!loader.loadSource(path)) {
+    if (singleUnit) {
+        // The unit is read by name rather than by file, so that a body arrives
+        // together with the specification it completes.
+        std::string key = unitKeyOf(inputs.back());
+        std::string name = key;
+        for (char& c : name) {
+            if (c == '-') {
+                c = '.';
+            }
+        }
+        loader.setTargetUnit(key);
+        if (!loader.loadUnit(name, SourceLocation {})) {
+            std::cerr << "adac: error: cannot find the unit '" << inputs.back() << "'\n";
             return 2;
+        }
+    } else {
+        for (const std::string& path : inputs) {
+            if (!loader.loadSource(path)) {
+                return 2;
+            }
         }
     }
     if (diagnostics.hasErrors()) {
         return 1;
+    }
+
+    std::vector<LibraryUnit> libraryUnits = loader.libraryUnits();
+
+    if (scanOnly) {
+        if (artifacts.empty() || !ensureDirectory(artifacts)) {
+            std::cerr << "adac: error: '--scan' needs the directory named by '-D'\n";
+            return 2;
+        }
+        std::vector<UnitRecord> records;
+        for (const LibraryUnit& unit : libraryUnits) {
+            records.push_back(describe(unit));
+        }
+        if (!writeManifest(artifacts + "/" + manifestName, records)) {
+            std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
+            return 2;
+        }
+        return 0;
     }
 
     std::vector<CompilationUnit*> units = loader.units();
@@ -272,8 +412,51 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::vector<LibraryUnit> libraryUnits = loader.libraryUnits();
     QbeEmitter emitter(sema, diagnostics);
+
+    // Compiling one unit emits that unit and nothing else: whatever it draws on
+    // was read to make sense of it, and is emitted when its own turn comes.
+    if (singleUnit) {
+        const LibraryUnit* target = nullptr;
+        for (const LibraryUnit& unit : libraryUnits) {
+            if (unit.key == unitKeyOf(inputs.back())) {
+                target = &unit;
+            }
+        }
+        if (target == nullptr) {
+            std::cerr << "adac: error: '" << inputs.back() << "' is not a library unit\n";
+            return 2;
+        }
+        if (artifacts.empty() || !ensureDirectory(artifacts)) {
+            std::cerr << "adac: error: '-c' needs the directory named by '-D'\n";
+            return 2;
+        }
+
+        std::string path = artifacts + "/" + target->key + ".ssa";
+        std::ofstream stream(path);
+        if (!stream) {
+            std::cerr << "adac: error: cannot write '" << path << "'\n";
+            return 2;
+        }
+        emitter.emitUnit(*target, stream);
+
+        UnitRecordFile record;
+        record.digest = describe(*target).digest;
+        for (const LibraryUnit& unit : libraryUnits) {
+            if (unit.key != target->key) {
+                record.dependencies.emplace_back(unit.key, describe(unit).specDigest);
+            }
+        }
+        Symbol* main = sema.mainSubprogram();
+        if (main != nullptr) {
+            record.mainName = main->qbeName;
+        }
+        if (!writeUnitRecord(artifacts + "/" + target->key + ".ali", record)) {
+            std::cerr << "adac: error: cannot write '" << artifacts << "/" << target->key << ".ali'\n";
+            return 2;
+        }
+        return diagnostics.hasErrors() ? 1 : 0;
+    }
 
     if (!artifacts.empty()) {
         if (!ensureDirectory(artifacts)) {
@@ -281,7 +464,7 @@ int main(int argc, char** argv)
             return 2;
         }
 
-        std::vector<std::string> written;
+        std::vector<UnitRecord> records;
         for (const LibraryUnit& unit : libraryUnits) {
             std::string path = artifacts + "/" + unit.key + ".ssa";
             std::ofstream stream(path);
@@ -290,7 +473,12 @@ int main(int argc, char** argv)
                 return 2;
             }
             emitter.emitUnit(unit, stream);
-            written.push_back(unit.key + ".ssa");
+            records.push_back(describe(unit));
+        }
+
+        std::vector<std::string> keys;
+        for (const UnitRecord& record : records) {
+            keys.push_back(record.key);
         }
 
         std::string binderPath = artifacts + "/" + binderName + ".ssa";
@@ -299,28 +487,35 @@ int main(int argc, char** argv)
             std::cerr << "adac: error: cannot write '" << binderPath << "'\n";
             return 2;
         }
-        emitter.emitBinder(libraryUnits, binder);
-        written.push_back(std::string(binderName) + ".ssa");
+        Symbol* main = sema.mainSubprogram();
+        emitBinder(keys, main == nullptr ? std::string() : main->qbeName, binder);
 
         // The driver reads this rather than guessing what was produced, so a
         // unit that stops being part of the program stops being linked too.
-        std::ofstream manifest(artifacts + "/" + manifestName);
-        if (!manifest) {
+        if (!writeManifest(artifacts + "/" + manifestName, records)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
-        for (const std::string& name : written) {
-            manifest << name << "\n";
-        }
-    } else if (output == "-") {
-        emitter.emitAll(libraryUnits, std::cout);
     } else {
-        std::ofstream stream(output);
-        if (!stream) {
-            std::cerr << "adac: error: cannot write '" << output << "'\n";
-            return 2;
+        std::ostream* stream = &std::cout;
+        std::ofstream file;
+        if (output != "-") {
+            file.open(output);
+            if (!file) {
+                std::cerr << "adac: error: cannot write '" << output << "'\n";
+                return 2;
+            }
+            stream = &file;
         }
-        emitter.emitAll(libraryUnits, stream);
+        for (const LibraryUnit& unit : libraryUnits) {
+            emitter.emitUnit(unit, *stream);
+        }
+        std::vector<std::string> keys;
+        for (const LibraryUnit& unit : libraryUnits) {
+            keys.push_back(unit.key);
+        }
+        Symbol* main = sema.mainSubprogram();
+        emitBinder(keys, main == nullptr ? std::string() : main->qbeName, *stream);
     }
 
     return diagnostics.hasErrors() ? 1 : 0;

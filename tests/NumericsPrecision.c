@@ -5,11 +5,15 @@
 #include <float.h>
 #include <math.h>
 
-static int pendingException;
+static const AdaException* pendingException;
 
-void __ada_raise(int id)
+// The numerics sources are built without the rest of the run time, so the one
+// exception they raise is defined here.
+const AdaException __ada_exc_constraint_error = { "CONSTRAINT_ERROR" };
+
+void __ada_raise(const AdaException* exception)
 {
-    pendingException = id;
+    pendingException = exception;
 }
 
 static void expectFloatPole(float (*function)(float), float argument)

@@ -22,7 +22,7 @@ void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope
                 m_diagnostics.error(handler.location, "unknown exception '" + handler.names[i] + "'");
                 continue;
             }
-            handler.identifiers.push_back(symbol->exceptionId);
+            handler.exceptions.push_back(symbol);
         }
         ++m_handlerDepth;
         analyzeStatements(handler.body, scope);

@@ -43,6 +43,22 @@ std::string parentOf(const std::string& unitName)
     return unitName.substr(0, dot);
 }
 
+bool declaresGeneric(const DeclList& declarations)
+{
+    for (const DeclPtr& decl : declarations) {
+        if (decl->kind == DeclKind::GenericDeclaration) {
+            return true;
+        }
+        if (decl->kind == DeclKind::PackageSpecification) {
+            auto* package = static_cast<PackageSpecDecl*>(decl.get());
+            if (declaresGeneric(package->publicPart) || declaresGeneric(package->privatePart)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 }
 
 UnitLoader::UnitLoader(Diagnostics& diagnostics)
@@ -184,7 +200,13 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
     // this unit back is no longer a circle.
     m_states[key] = State::Loaded;
 
-    if (!bodyPath.empty()) {
+    // A generic is kept as the tokens it was written with, and an instantiation
+    // parses them again, so a specification declaring one is not complete
+    // without its body.
+    bool bodyWanted = !m_specificationsOnly || key == m_targetKey || specPath.empty() || m_units.empty()
+        || declaresGeneric(m_units.back()->units);
+
+    if (!bodyPath.empty() && bodyWanted) {
         m_states.emplace(bodyPath, State::Loaded);
         if (!readFile(bodyPath, contents)) {
             m_diagnostics.error(from, "cannot read '" + bodyPath + "'");

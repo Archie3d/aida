@@ -449,7 +449,7 @@ struct ExceptionHandler
 {
     std::vector<std::string> names;
     std::vector<std::string> namesLower;
-    std::vector<int> identifiers;   // Exception identifiers filled in by analysis.
+    std::vector<Symbol*> exceptions;   // What this handler catches, filled in by analysis.
     bool isOthers = false;
     StmtList body;
     SourceLocation location;
