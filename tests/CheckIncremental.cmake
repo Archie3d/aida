@@ -1,3 +1,6 @@
+# Script-mode invocations do not inherit the project's CMake policy settings.
+cmake_minimum_required(VERSION 3.20)
+
 # Builds a program made of several library units, then builds it again to check
 # that a unit nobody touched keeps the object it already had, and that editing
 # one unit rebuilds that unit alone.
