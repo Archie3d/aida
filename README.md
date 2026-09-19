@@ -244,6 +244,12 @@ bounds from the surrounding context.
 The new internal return convention requires rebuilding Ada code and using the
 matching runtime; imported C calls retain their existing convention.
 
+Handler choice parameters (`when E : ...`) are local constants of the limited
+private type `Ada.Exceptions.Exception_Occurrence`. Each binding retains the
+caught identity through nested handlers and calls, and can be captured by a
+nested procedure or passed to an `in` parameter. The initial `Ada.Exceptions`
+package provides this type only; inspection operations and messages are pending.
+
 Within block, subprogram, and package-body handlers, bare `raise;` re-raises the original
 exception, even after a nested handler or called routine handles a different
 exception. Bare raises outside handlers or inside an enclosed body are rejected,
@@ -699,6 +705,7 @@ own may write.
 | --- | --- |
 | `Ada` | `ada.ads` |
 | `Ada.IO_Exceptions` | `ada-io_exceptions.ads` |
+| `Ada.Exceptions` (occurrence type only) | `ada-exceptions.ads` |
 | `Ada.Text_IO` | `ada-text_io.ads` |
 | `Ada.Text_IO.Integer_IO` | `ada-text_io-integer_io.ads`, `.adb` |
 | `Ada.Text_IO.Float_IO` | `ada-text_io-float_io.ads`, `.adb` |

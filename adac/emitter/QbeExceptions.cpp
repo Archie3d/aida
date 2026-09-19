@@ -119,6 +119,17 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         label(bodyLabels[i]);
+        if (Symbol* choice = handlers[i].choiceSymbol) {
+            if (choice->isUplevel) {
+                m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
+                choice->frameOffset = m_context->frameSize;
+                m_context->frameSize += typeSize(choice->type);
+            } else {
+                m_context->locals[choice] = allocScratch(typeSize(choice->type));
+            }
+            Value occurrence = addressOf(choice);
+            line("storel " + pending + ", " + occurrence.name);
+        }
         line("storel 0, $__ada_exception");
         m_context->activeExceptions.push_back(pending);
         emitStatements(handlers[i].body);

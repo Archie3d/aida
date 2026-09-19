@@ -41,6 +41,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     // outlives the completion, since that is the whole point of it.
     auto makeType = [&](TypeKind kind) {
         if (completing == nullptr) {
+            if (decl->lower == "exception_occurrence" && m_namePrefix.size() == 2
+                && m_namePrefix[0] == "ada" && m_namePrefix[1] == "exceptions") {
+                return m_exceptionOccurrenceType;
+            }
             return m_types.create(kind, decl->name);
         }
         std::string name = completing->name;

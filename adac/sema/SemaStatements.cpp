@@ -24,8 +24,19 @@ void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope
             }
             handler.exceptions.push_back(symbol);
         }
+        Scope* inner = m_symbolTable.createScope(scope);
+        if (!handler.choiceName.empty()) {
+            Symbol* choice = m_symbolTable.createSymbol(SymbolKind::Object, handler.choiceLower, handler.choiceName);
+            choice->type = m_exceptionOccurrenceType;
+            choice->isConstant = true;
+            choice->location = handler.choiceLocation;
+            choice->owner = m_currentSubprogram;
+            choice->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
+            inner->add(choice);
+            handler.choiceSymbol = choice;
+        }
         ++m_handlerDepth;
-        analyzeStatements(handler.body, scope);
+        analyzeStatements(handler.body, inner);
         --m_handlerDepth;
     }
 }

@@ -136,8 +136,15 @@ Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
   calls. Reject bare raises outside handlers or inside bodies enclosed by a
   handler. Covered by `reraise.adb`, `unhandledreraise.adb`, and
   `exceptionusageerrors.adb`.
-- [ ] Retain exception occurrence bindings (`when E : ...`) instead of discarding
-  them, then add occurrence information and messages.
+- [x] Retain exception occurrence bindings (`when E : ...`) as handler-local
+  constants of the limited private `Ada.Exceptions.Exception_Occurrence` type.
+  Snapshot exception identity on handler entry, including captured bindings.
+  Covered by `occurrencebindings.adb`, `occurrencenowith.adb`, and
+  `occurrencebindingerrors.adb`: scope, shadowing, nested handlers, recursion,
+  typed parameters, re-raising, and rejected assignment/equality.
+- [ ] Add exception occurrence inspection operations, information, and messages.
+  The initial `Ada.Exceptions` package currently supplies only the occurrence
+  type; its payload retains identity, not messages or traceback information.
 - [ ] **Audit** handler choice legality and propagation from declarations, package
   bodies, called routines, and handlers themselves. Subprogram declaration and
   handler propagation have regression coverage in `reraise.adb`.

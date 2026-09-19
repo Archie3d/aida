@@ -63,6 +63,14 @@ void Sema::setupStandardScope()
     m_addressType = m_types.create(TypeKind::Access, "Address");
     addTypeTo(system->scope, m_addressType);
 
+    // Handler bindings exist even without a with clause for Ada.Exceptions.
+    // Its source declaration later completes this same canonical type.
+    m_exceptionOccurrenceType = m_types.create(TypeKind::Record, "Exception_Occurrence");
+    m_exceptionOccurrenceType->byteSize = 8;
+    m_exceptionOccurrenceType->isLimited = true;
+    m_exceptionOccurrenceType->privateTo =
+        m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");
+
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
     storageUnit->type = m_types.integerType();
     storageUnit->hasStaticValue = true;

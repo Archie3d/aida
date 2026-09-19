@@ -447,6 +447,10 @@ using DeclList = std::vector<DeclPtr>;
 
 struct ExceptionHandler
 {
+    std::string choiceName;
+    std::string choiceLower;
+    SourceLocation choiceLocation;
+    Symbol* choiceSymbol = nullptr;
     std::vector<std::string> names;
     std::vector<std::string> namesLower;
     std::vector<Symbol*> exceptions;   // What this handler catches, filled in by analysis.

@@ -33,6 +33,9 @@ std::vector<ExceptionHandler> Parser::parseExceptionHandlers()
         handler.location = current().location;
         advance();
         if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Colon) {
+            handler.choiceName = current().text;
+            handler.choiceLower = current().lower;
+            handler.choiceLocation = current().location;
             advance();
             advance();
         }

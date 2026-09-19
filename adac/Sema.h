@@ -149,6 +149,7 @@ private:
     Type* m_numberBaseType = nullptr;
     Type* m_typeSetType = nullptr;
     Type* m_addressType = nullptr;
+    Type* m_exceptionOccurrenceType = nullptr;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
     int m_handlerDepth = 0;
