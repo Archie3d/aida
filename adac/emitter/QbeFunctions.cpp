@@ -236,8 +236,11 @@ void QbeEmitter::finishFunction(const std::string& signature)
     }
     text += context.prologue.str();
     text += "    %.trace =l alloc8 24\n";
-    text += "    call $__ada_trace_enter(l %.trace, l " + stringData(context.traceName)
-        + ", l " + sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {}) + ")\n";
+    // Intern in a fixed order: string concatenation does not sequence its
+    // operands, and both helpers assign IDs in the shared string pool.
+    std::string traceName = stringData(context.traceName);
+    std::string traceLocation = sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {});
+    text += "    call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
     // Allocations may occur in a branch emitted after an early return. Once
     // the whole body is known, release the activation's list at every exit.
     std::istringstream bodyLines(context.body.str());
