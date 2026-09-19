@@ -26,6 +26,7 @@ package Ada.Exceptions is
 private
     type Exception_Id is access Integer;
     Null_Id : constant Exception_Id := null;
+    type Trace_Addresses is array (1 .. 64) of System.Address;
     type Exception_Occurrence is record
         Identity : Exception_Id := Null_Id;
         Message_Data : System.Address := null;
@@ -33,7 +34,10 @@ private
         -- The procedure preserves up to 200 bytes without allocating; the
         -- function preserves the full message in its returned allocation.
         Saved_Message : String (1 .. 200) := (others => Character'Val (0));
+        Origin : System.Address := null;
+        Trace_Count : Integer := 0;
+        Trace_Data : Trace_Addresses := (others => null);
     end record;
     Null_Occurrence : constant Exception_Occurrence :=
-        (Null_Id, null, 0, (others => Character'Val (0)));
+        (Null_Id, null, 0, (others => Character'Val (0)), null, 0, (others => null));
 end Ada.Exceptions;

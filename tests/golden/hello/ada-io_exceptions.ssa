@@ -1,6 +1,11 @@
+data $.ada_io_exceptions.str.0 = { b "ada-io_exceptions (spec elaboration)" 0 }
+data $.ada_io_exceptions.str.1 = { b "<unknown>" 0 }
 
 export function $ada_elab.ada_io_exceptions_spec() {
 @start
+    %.trace =l alloc8 24
+    call $__ada_trace_enter(l %.trace, l $.ada_io_exceptions.str.0, l $.ada_io_exceptions.str.1)
+    call $__ada_trace_leave(l %.trace)
     ret
 }
 

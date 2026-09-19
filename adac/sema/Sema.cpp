@@ -69,7 +69,9 @@ void Sema::setupStandardScope()
     // Runtime ABI: identity pointer, message pointer, signed 32-bit length,
     // 200 inline saved-message bytes, padded to pointer alignment. Keep
     // Ada.Exceptions and adart.h in sync.
-    m_exceptionOccurrenceType->byteSize = 224;
+    // The saved-message area is followed by the origin, trace count, and
+    // 32 pairs of static routine/location pointers (752 bytes in total).
+    m_exceptionOccurrenceType->byteSize = 752;
     m_exceptionOccurrenceType->isLimited = true;
     m_exceptionOccurrenceType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");
@@ -92,7 +94,7 @@ void Sema::setupStandardScope()
 Symbol* Sema::addException(Scope* scope, const std::string& displayName)
 {
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, toLower(displayName), displayName);
-    symbol->exceptionObject = "$__ada_exc_" + symbol->name;
+    symbol->exceptionObject = "$__ada_exc_" + (symbol->name == "numeric_error" ? "constraint_error" : symbol->name);
     scope->add(symbol);
     return symbol;
 }

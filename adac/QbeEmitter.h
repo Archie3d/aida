@@ -66,12 +66,15 @@ private:
         std::string propagateLabel;
         bool usesPropagate = false;
         std::vector<SubprogramBody*> nested;
+        SourceLocation sourceLocation;
+        std::string traceName;
     };
 
     // Output and data (QbeEmitter.cpp).
     std::string newTemp();
     std::string newLabel(const char* prefix);
     void line(const std::string& text);
+    std::string sourceLocationData(const SourceLocation& location);
     void label(const std::string& name);
     void jump(const std::string& target);
     void branch(const Value& condition, const std::string& ifTrue, const std::string& ifFalse);
@@ -134,6 +137,7 @@ private:
 
     // Expressions and initialization (QbeExpr.cpp).
     Value emitExpr(Expr* expr);
+    Value emitExprValue(Expr* expr);
     Value emitAddress(Expr* expr);
     Value emitAllocator(AllocatorExpr* expr);
     bool hasComponentDefaults(Type* type);

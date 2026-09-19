@@ -1,0 +1,5 @@
+handlerchoiceerrors.adb:9:9: error: exception 'Alias_E' is already covered by an earlier handler
+handlerchoiceerrors.adb:14:9: error: others must appear in the last handler
+handlerchoiceerrors.adb:20:9: error: others must be the only choice of a handler
+handlerchoiceerrors.adb:25:9: error: others must be the only choice of a handler
+handlerchoiceerrors.adb:31:9: error: exception 'Numeric_Error' is already covered by an earlier handler

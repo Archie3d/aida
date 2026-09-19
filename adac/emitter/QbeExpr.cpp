@@ -8,6 +8,17 @@ using QbeSupport::comparisonInstruction;
 
 Value QbeEmitter::emitExpr(Expr* expr)
 {
+    SourceLocation saved = m_context->sourceLocation;
+    if (expr != nullptr) {
+        m_context->sourceLocation = expr->location;
+    }
+    Value result = emitExprValue(expr);
+    m_context->sourceLocation = saved;
+    return result;
+}
+
+Value QbeEmitter::emitExprValue(Expr* expr)
+{
     if (expr == nullptr) {
         return Value { "0", 'w' };
     }

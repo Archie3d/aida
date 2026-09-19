@@ -32,7 +32,7 @@ extern const AdaException __ada_exc_layout_error;
 #define ADA_CONSTRAINT_ERROR (&__ada_exc_constraint_error)
 #define ADA_PROGRAM_ERROR (&__ada_exc_program_error)
 #define ADA_STORAGE_ERROR (&__ada_exc_storage_error)
-#define ADA_NUMERIC_ERROR (&__ada_exc_numeric_error)
+#define ADA_NUMERIC_ERROR ADA_CONSTRAINT_ERROR
 #define ADA_TASKING_ERROR (&__ada_exc_tasking_error)
 #define ADA_STATUS_ERROR (&__ada_exc_status_error)
 #define ADA_MODE_ERROR (&__ada_exc_mode_error)
@@ -55,12 +55,33 @@ void __ada_raise(const AdaException* exception);
    activation's allocation list. Procedure saves use inline storage; function
    saves put the full message after the occurrence in one allocation. */
 #define ADA_SAVED_MESSAGE_CAPACITY 200
+#define ADA_TRACE_CAPACITY 32
+typedef struct AdaTraceEntry
+{
+    const char* routine;
+    const char* location;
+} AdaTraceEntry;
+
+typedef struct AdaTraceFrame
+{
+    struct AdaTraceFrame* previous;
+    const char* routine;
+    const char* location;
+} AdaTraceFrame;
+
+void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location);
+void __ada_trace_location(const char* location);
+void __ada_trace_leave(AdaTraceFrame* frame);
+
 typedef struct AdaExceptionOccurrence
 {
     const AdaException* identity;
     const char* message;
     int32_t length;
     char savedMessage[ADA_SAVED_MESSAGE_CAPACITY];
+    const char* origin;
+    int32_t traceCount;
+    AdaTraceEntry trace[ADA_TRACE_CAPACITY];
 } AdaExceptionOccurrence;
 
 void __ada_raise_message(const AdaException* exception, const char* message, int length);
@@ -72,6 +93,8 @@ int __ada_exception_message_length(const AdaExceptionOccurrence* occurrence);
 void __ada_exception_message_copy(const AdaExceptionOccurrence* occurrence, char* target, int length);
 void __ada_save_occurrence(AdaExceptionOccurrence* target, const AdaExceptionOccurrence* source);
 AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* source);
+int __ada_exception_information_length(const AdaExceptionOccurrence* occurrence);
+void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, char* target, int length);
 
 /* The storage an allocator takes from and Ada.Unchecked_Deallocation gives
    back.  Every allocation comes out cleared, so that an access component of

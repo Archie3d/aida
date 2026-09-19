@@ -2,6 +2,7 @@
    frees, including ownership transfer failure, without a production debug API. */
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 static int liveAllocations;
 static int failNext;
 static void* testMalloc(size_t size)
@@ -72,7 +73,10 @@ int main(void)
 
     /* The occurrence ABI and both message owners must agree with generated
        code, including allocation failure while entering or leaving a handler. */
-    CHECK(sizeof(AdaExceptionOccurrence) == 224);
+    CHECK(sizeof(AdaExceptionOccurrence) == 752);
+    CHECK(sizeof(AdaTraceFrame) == 24);
+    CHECK(offsetof(AdaExceptionOccurrence, origin) == 224);
+    CHECK(offsetof(AdaExceptionOccurrence, trace) == 240);
     AdaExceptionOccurrence occurrence;
     char message[] = { 'a', '\0', 'b' };
     __ada_raise_message(ADA_PROGRAM_ERROR, message, sizeof message);
@@ -127,5 +131,44 @@ int main(void)
     AdaExceptionOccurrence empty = { 0 };
     __ada_save_occurrence(&saved, &empty);
     CHECK(saved.identity == NULL && saved.message == NULL && saved.length == 0);
+    AdaTraceFrame caller, callee;
+    __ada_trace_enter(&caller, "Caller", "caller.adb:3:1");
+    __ada_trace_enter(&callee, "Callee", "callee.adb:5:2");
+    __ada_trace_location("callee.adb:8:4");
+    __ada_raise_message(ADA_PROGRAM_ERROR, "a\0b", 3);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.traceCount == 2 && strcmp(occurrence.origin, "callee.adb:8:4") == 0);
+    CHECK(strcmp(occurrence.trace[1].routine, "Caller") == 0);
+    __ada_save_occurrence(&saved, &occurrence);
+    __ada_trace_leave(&callee);
+    __ada_trace_leave(&caller);
+    CHECK(currentTrace == NULL);
+    __ada_array_release(&owner);
+    __ada_reraise(&saved);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.traceCount == 2 && occurrence.origin == saved.origin);
+    char information[1024];
+    int informationLength = __ada_exception_information_length(&occurrence);
+    CHECK(informationLength > 0 && informationLength < (int)sizeof information);
+    __ada_exception_information_copy(&occurrence, information, informationLength);
+    const char expectedInformation[] = "PROGRAM_ERROR: a\0b\nraised at callee.adb:8:4\nAda traceback:"
+        "\n  Callee at callee.adb:8:4\n  Caller at caller.adb:3:1";
+    CHECK(informationLength == (int)sizeof expectedInformation - 1);
+    CHECK(memcmp(information, expectedInformation, sizeof expectedInformation - 1) == 0);
+    heap = __ada_save_occurrence_new(&occurrence);
+    CHECK(heap != NULL && heap->traceCount == 2 && heap->origin == occurrence.origin);
+    __ada_deallocate(heap);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0);
+    __ada_trace_enter(&caller, "New_Caller", "new.adb:1:1");
+    saved.identity = ADA_STORAGE_ERROR;
+    failNext = 1;
+    __ada_reraise(&saved);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.identity == ADA_STORAGE_ERROR && occurrence.traceCount == 1);
+    CHECK(strcmp(occurrence.origin, "new.adb:1:1") == 0);
+    __ada_trace_leave(&caller);
+    __ada_save_occurrence(&saved, &empty);
+    CHECK(saved.origin == NULL && saved.traceCount == 0 && liveAllocations == 0);
     return 0;
 }

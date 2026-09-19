@@ -7,11 +7,14 @@ using QbeSupport::comparisonInstruction;
 void QbeEmitter::emitStatements(StmtList& statements)
 {
     for (const StmtPtr& statement : statements) {
+        SourceLocation saved = m_context->sourceLocation;
+        m_context->sourceLocation = statement->location;
         auto checkpoint = storageCheckpoint();
         emitStatement(statement.get());
         if (!m_context->terminated) {
             rewindStorage(checkpoint);
         }
+        m_context->sourceLocation = saved;
     }
 }
 

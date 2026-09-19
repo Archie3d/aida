@@ -32,6 +32,37 @@ const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
 const AdaException* __ada_exception = NULL;
 static char* pendingMessage;
 static int pendingMessageLength;
+static AdaTraceFrame* currentTrace;
+static const char* pendingOrigin;
+static int pendingTraceCount;
+static AdaTraceEntry pendingTrace[ADA_TRACE_CAPACITY];
+
+void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
+{
+    frame->previous = currentTrace;
+    frame->routine = routine;
+    frame->location = location;
+    currentTrace = frame;
+}
+
+void __ada_trace_location(const char* location)
+{
+    if (currentTrace != NULL) {
+        currentTrace->location = location;
+    }
+}
+
+void __ada_trace_leave(AdaTraceFrame* frame)
+{
+    currentTrace = frame->previous;
+}
+
+static void copyTrace(AdaExceptionOccurrence* target, const AdaExceptionOccurrence* source)
+{
+    target->origin = source->identity == NULL ? NULL : source->origin;
+    target->traceCount = source->identity == NULL ? 0 : source->traceCount;
+    memcpy(target->trace, source->trace, (size_t)target->traceCount * sizeof *target->trace);
+}
 
 void __ada_raise(const AdaException* exception)
 {
@@ -39,6 +70,12 @@ void __ada_raise(const AdaException* exception)
     pendingMessage = NULL;
     pendingMessageLength = 0;
     __ada_exception = exception == NULL ? ADA_PROGRAM_ERROR : exception;
+    pendingOrigin = currentTrace == NULL ? NULL : currentTrace->location;
+    pendingTraceCount = 0;
+    for (AdaTraceFrame* frame = currentTrace; frame != NULL && pendingTraceCount < ADA_TRACE_CAPACITY;
+         frame = frame->previous) {
+        pendingTrace[pendingTraceCount++] = (AdaTraceEntry) { frame->routine, frame->location };
+    }
 }
 
 void __ada_raise_message(const AdaException* exception, const char* message, int length)
@@ -76,6 +113,9 @@ void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner)
     target->identity = identity;
     target->message = copy;
     target->length = length;
+    target->origin = pendingOrigin;
+    target->traceCount = pendingTraceCount;
+    memcpy(target->trace, pendingTrace, (size_t)pendingTraceCount * sizeof *pendingTrace);
     free(pendingMessage);
     pendingMessage = NULL;
     pendingMessageLength = 0;
@@ -86,6 +126,13 @@ void __ada_reraise(const AdaExceptionOccurrence* occurrence)
 {
     if (occurrence->identity != NULL) {
         __ada_raise_message(occurrence->identity, occurrence->message, occurrence->length);
+        // A failure while copying the message is a fresh Storage_Error. Only
+        // a successful re-raise restores the original diagnostic snapshot.
+        if (__ada_exception == occurrence->identity && pendingMessageLength == occurrence->length) {
+            pendingOrigin = occurrence->origin;
+            pendingTraceCount = occurrence->traceCount;
+            memcpy(pendingTrace, occurrence->trace, (size_t)pendingTraceCount * sizeof *pendingTrace);
+        }
     }
 }
 
@@ -138,6 +185,7 @@ void __ada_save_occurrence(AdaExceptionOccurrence* target, const AdaExceptionOcc
     target->identity = source->identity;
     target->length = length;
     target->message = length == 0 ? NULL : target->savedMessage;
+    copyTrace(target, source);
 }
 
 AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* source)
@@ -151,12 +199,74 @@ AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* 
     }
     result->identity = source->identity;
     result->length = length;
+    copyTrace(result, source);
     if (length != 0) {
         char* message = (char*)(result + 1);
         memcpy(message, source->message, (size_t)length);
         result->message = message;
     }
     return result;
+}
+
+static void informationAppend(char* target, size_t* position, const char* source, size_t length)
+{
+    if (target != NULL && length != 0) {
+        memcpy(target + *position, source, length);
+    }
+    *position += length;
+}
+
+static size_t renderInformation(const AdaExceptionOccurrence* occurrence, char* target)
+{
+    size_t position = 0;
+    const char* name = occurrence->identity->name;
+    informationAppend(target, &position, name, strlen(name));
+    if (occurrence->length != 0) {
+        informationAppend(target, &position, ": ", 2);
+        informationAppend(target, &position, occurrence->message, (size_t)occurrence->length);
+    }
+    if (occurrence->origin != NULL) {
+        informationAppend(target, &position, "\nraised at ", 11);
+        informationAppend(target, &position, occurrence->origin, strlen(occurrence->origin));
+    }
+    if (occurrence->traceCount != 0) {
+        informationAppend(target, &position, "\nAda traceback:", 15);
+        for (int i = 0; i < occurrence->traceCount; ++i) {
+            const AdaTraceEntry* frame = &occurrence->trace[i];
+            informationAppend(target, &position, "\n  ", 3);
+            informationAppend(target, &position, frame->routine, strlen(frame->routine));
+            informationAppend(target, &position, " at ", 4);
+            informationAppend(target, &position, frame->location, strlen(frame->location));
+        }
+        if (occurrence->traceCount == ADA_TRACE_CAPACITY) {
+            const char* limit = "\n  (trace limited to 32 frames)";
+            informationAppend(target, &position, limit, strlen(limit));
+        }
+    }
+    return position;
+}
+
+int __ada_exception_information_length(const AdaExceptionOccurrence* occurrence)
+{
+    if (occurrence->identity == NULL) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    size_t length = renderInformation(occurrence, NULL);
+    if (length > INT_MAX) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    return (int)length;
+}
+
+void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, char* target, int length)
+{
+    if (occurrence->identity == NULL || length < 0 || renderInformation(occurrence, NULL) != (size_t)length) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    renderInformation(occurrence, target);
 }
 
 void* __ada_allocate(long size)

@@ -1,6 +1,11 @@
+data $.ada_text_io.str.0 = { b "ada-text_io (spec elaboration)" 0 }
+data $.ada_text_io.str.1 = { b "<unknown>" 0 }
 
 export function $ada_elab.ada_text_io_spec() {
 @start
+    %.trace =l alloc8 24
+    call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.0, l $.ada_text_io.str.1)
+    call $__ada_trace_leave(l %.trace)
     ret
 }
 

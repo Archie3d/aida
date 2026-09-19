@@ -11,6 +11,7 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {
     for (CompilationUnit* part : unit.parts) {
         FunctionContext context;
+        context.traceName = unit.key + (part->isSpec ? " (spec elaboration)" : " (body elaboration)");
         context.propagateLabel = newLabel("propagate");
         FunctionContext* saved = m_context;
         m_context = &context;
@@ -56,6 +57,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     FunctionContext context;
     context.symbol = symbol;
+    context.traceName = symbol->displayName;
+    context.sourceLocation = symbol->location;
     context.hasFrame = symbol->needsFrame;
     context.frameTemp = "%.frame";
     context.propagateLabel = newLabel("propagate");
@@ -188,6 +191,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     if (!context.terminated) {
         if (context.symbol != nullptr && context.symbol->returnType != nullptr) {
             // A missing result is a failure for every result representation.
+            context.sourceLocation = context.symbol->location;
             line("call $__ada_raise(l $__ada_exc_program_error)");
             char type = qbeClass(context.symbol->returnType);
             if (isComposite(context.symbol->returnType)) {
@@ -231,6 +235,9 @@ void QbeEmitter::finishFunction(const std::string& signature)
         }
     }
     text += context.prologue.str();
+    text += "    %.trace =l alloc8 24\n";
+    text += "    call $__ada_trace_enter(l %.trace, l " + stringData(context.traceName)
+        + ", l " + sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {}) + ")\n";
     // Allocations may occur in a branch emitted after an early return. Once
     // the whole body is known, release the activation's list at every exit.
     std::istringstream bodyLines(context.body.str());
@@ -241,6 +248,9 @@ void QbeEmitter::finishFunction(const std::string& signature)
         }
         if (!context.temporaryArena.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
+        }
+        if (bodyLine.compare(0, 7, "    ret") == 0) {
+            text += "    call $__ada_trace_leave(l %.trace)\n";
         }
         text += bodyLine + "\n";
     }

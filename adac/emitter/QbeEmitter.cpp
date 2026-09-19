@@ -109,7 +109,29 @@ void QbeEmitter::line(const std::string& text)
         m_context->body << newLabel("unreachable") << "\n";
         m_context->terminated = false;
     }
+    // All potentially raising calls use the active AST location. Centralizing
+    // this also covers imported routines and compiler-generated check helpers.
+    bool call = text.starts_with("call ") || text.find(" call ") != std::string::npos;
+    bool cleanup = text.find("$__ada_array_rewind(") != std::string::npos
+        || text.find("$__ada_array_release(") != std::string::npos;
+    if (call && !cleanup && m_context->sourceLocation.line > 0) {
+        m_context->body << "    call $__ada_trace_location(l "
+                        << sourceLocationData(m_context->sourceLocation) << ")\n";
+    }
     m_context->body << "    " << text << "\n";
+}
+
+std::string QbeEmitter::sourceLocationData(const SourceLocation& location)
+{
+    if (location.line <= 0) {
+        return stringData("<unknown>");
+    }
+    std::string file = m_diagnostics.fileName(location.file);
+    std::size_t slash = file.find_last_of("/\\");
+    if (slash != std::string::npos) {
+        file.erase(0, slash + 1);
+    }
+    return stringData(file + ":" + std::to_string(location.line) + ":" + std::to_string(location.column));
 }
 
 void QbeEmitter::label(const std::string& name)

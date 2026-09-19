@@ -1,0 +1,1 @@
+handleremptyerrors.adb:5:5: error: an exception handler requires at least one statement

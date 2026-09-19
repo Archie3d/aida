@@ -1,19 +1,32 @@
-data $.hello.str.0 = { b "Hello, world!" 0 }
+data $.hello.str.0 = { b "hello (body elaboration)" 0 }
+data $.hello.str.1 = { b "<unknown>" 0 }
+data $.hello.str.2 = { b "Hello, world!" 0 }
+data $.hello.str.3 = { b "hello.adb:6:14" 0 }
+data $.hello.str.4 = { b "Hello" 0 }
+data $.hello.str.5 = { b "hello.adb:4:1" 0 }
 
 export function $ada_elab.hello_body() {
 @start
+    %.trace =l alloc8 24
+    call $__ada_trace_enter(l %.trace, l $.hello.str.0, l $.hello.str.1)
+    call $__ada_trace_leave(l %.trace)
     ret
 }
 
 export function $hello() {
 @start
-    call $__ada_put_line(l $.hello.str.0, w 13)
+    %.trace =l alloc8 24
+    call $__ada_trace_enter(l %.trace, l $.hello.str.4, l $.hello.str.5)
+    call $__ada_trace_location(l $.hello.str.3)
+    call $__ada_put_line(l $.hello.str.2, w 13)
     %.t5 =l loadl $__ada_exception
     %.t6 =w cnel %.t5, 0
     jnz %.t6, @propagate.1, @nothrow.2
 @nothrow.2
+    call $__ada_trace_leave(l %.trace)
     ret
 @propagate.1
+    call $__ada_trace_leave(l %.trace)
     ret
 }
 

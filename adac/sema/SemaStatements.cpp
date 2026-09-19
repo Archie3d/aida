@@ -15,7 +15,14 @@ void Sema::analyzeStatements(StmtList& statements, Scope* scope)
 
 void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope)
 {
+    std::unordered_map<std::string, ExceptionHandler*> covered;
     for (ExceptionHandler& handler : handlers) {
+        if (handler.isOthers && &handler != &handlers.back()) {
+            m_diagnostics.error(handler.location, "others must appear in the last handler");
+        }
+        if (handler.isOthers && !handler.names.empty()) {
+            m_diagnostics.error(handler.location, "others must be the only choice of a handler");
+        }
         for (std::size_t i = 0; i < handler.namesLower.size(); ++i) {
             Symbol* symbol = lookupName(handler.namesLower[i], scope);
             if (symbol == nullptr || symbol->kind != SymbolKind::Exception) {
@@ -23,6 +30,11 @@ void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope
                 continue;
             }
             handler.exceptions.push_back(symbol);
+            auto [previous, inserted] = covered.emplace(symbol->exceptionObject, &handler);
+            if (!inserted && previous->second != &handler) {
+                m_diagnostics.error(handler.location, "exception '" + handler.names[i]
+                    + "' is already covered by an earlier handler");
+            }
         }
         Scope* inner = m_symbolTable.createScope(scope);
         if (!handler.choiceName.empty()) {

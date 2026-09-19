@@ -28,7 +28,7 @@ procedure Exceptionmessages is
         when E : Original =>
             Check (Exception_Identity (E) = Original'Identity);
             Check (Exception_Name (E) = "ORIGINAL");
-            Check (Exception_Information (E) = "ORIGINAL: owned message");
+            Check (Exception_Information (E) (1 .. 23) = "ORIGINAL: owned message");
             declare
                 procedure Captured is
                 begin
@@ -109,7 +109,7 @@ begin
     exception
         when E : Original =>
             Check (Exception_Message (E) = "");
-            Check (Exception_Information (E) = "ORIGINAL");
+            Check (Exception_Information (E) (1 .. 8) = "ORIGINAL");
     end;
     begin
         raise Original;

@@ -162,11 +162,24 @@ Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
   The occurrence access type currently uses the supported pool-specific access
   subset; general access/accessibility rules remain in section 3.
   Occurrence-valued function results remain diagnosed.
-  Names currently use uppercase defining identifiers; information consists of
-  the name and optional message, without source locations or tracebacks.
-- [ ] **Audit** handler choice legality and propagation from declarations, package
-  bodies, called routines, and handlers themselves. Subprogram declaration and
-  handler propagation have regression coverage in `reraise.adb`.
+  Names currently use uppercase defining identifiers rather than expanded names.
+- [x] Include the original source location and a portable Ada call traceback
+  in `Exception_Information`. Snapshot up to 32 compiled Ada frames, including
+  package elaboration; source locations use file basenames, lines, and columns.
+  Saves and re-raises preserve the snapshot. Message-copy allocation failure
+  instead records the new `Storage_Error` site. Trace frames are removed on every
+  return and propagation exit. Covered by `exceptiondiagnostics.adb`, library
+  handler coverage, and instrumented runtime tests. Native/foreign frames are
+  outside this supported trace format.
+- [x] Audit supported handler choices and propagation from declarations, package
+  bodies, called routines, and handlers themselves. Reject duplicate coverage
+  across handlers, including aliases; permit repeated choices within one handler.
+  Require `others` to be the sole choice of the final handler and reject empty
+  exception parts/handlers. `Numeric_Error` shares `Constraint_Error`'s identity.
+  Covered by `handlerchoiceerrors.adb`, `handleremptyerrors.adb`,
+  `handlerparterrors.adb`, `handlerothererrors.adb`, `exceptiondiagnostics.adb`,
+  and the existing re-raise/package/declaration-failure regressions. Generic
+  formal-package exception rules await formal-package support (section 4).
 - [x] Emit library/nested package-body handlers, including recovery and re-raise.
   Declaration failures bypass that package's handlers; failures within a handler
   propagate outward. Covered by `packagehandlers.adb`,

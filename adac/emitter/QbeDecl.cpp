@@ -47,6 +47,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
 void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        m_context->sourceLocation = decl->location;
         if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -96,6 +97,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     std::string temporaryMark = newTemp();
     line(temporaryMark + " =l loadl " + storageArena(true));
     for (const DeclPtr& decl : declarations) {
+        m_context->sourceLocation = decl->location;
         switch (decl->kind) {
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());

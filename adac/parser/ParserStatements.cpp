@@ -27,6 +27,9 @@ std::vector<ExceptionHandler> Parser::parseExceptionHandlers()
 {
     std::vector<ExceptionHandler> handlers;
     expect(TokenKind::KwException, "in exception part");
+    if (!check(TokenKind::KwWhen)) {
+        fail("an exception part requires at least one handler");
+    }
 
     while (check(TokenKind::KwWhen)) {
         ExceptionHandler handler;
@@ -39,21 +42,27 @@ std::vector<ExceptionHandler> Parser::parseExceptionHandlers()
             advance();
             advance();
         }
-        if (match(TokenKind::KwOthers)) {
-            handler.isOthers = true;
-        } else {
-            while (true) {
+        while (true) {
+            if (match(TokenKind::KwOthers)) {
+                if (handler.isOthers) {
+                    m_diagnostics.error(handler.location, "others must be the only choice of a handler");
+                }
+                handler.isOthers = true;
+            } else {
                 std::string lowered;
                 std::string name = parseCompoundName(lowered);
                 handler.names.push_back(name);
                 handler.namesLower.push_back(lowered);
-                if (!match(TokenKind::Bar)) {
-                    break;
-                }
+            }
+            if (!match(TokenKind::Bar)) {
+                break;
             }
         }
         expect(TokenKind::Arrow, "in exception handler");
         handler.body = parseSequenceOfStatements();
+        if (handler.body.empty()) {
+            m_diagnostics.error(handler.location, "an exception handler requires at least one statement");
+        }
         handlers.push_back(std::move(handler));
     }
 

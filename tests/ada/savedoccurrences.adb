@@ -83,10 +83,10 @@ begin
     exception
         when E : Other => Save_Occurrence (Saved, E);
     end;
-    Check (Exception_Information (Saved) = "OTHER: replacement");
+    Check (Exception_Information (Saved) (1 .. 18) = "OTHER: replacement");
     Save_Occurrence (Box.Item, Saved);
     Save_Occurrence (Saved, Null_Occurrence);
-    Check (Exception_Information (Box.Item) = "OTHER: replacement");
+    Check (Exception_Information (Box.Item) (1 .. 18) = "OTHER: replacement");
     Save_Occurrence (Saved, Box.Item);
     Heap := Save_Occurrence (Saved);
     Save_Occurrence (Saved, Null_Occurrence);

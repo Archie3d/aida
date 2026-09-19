@@ -256,11 +256,17 @@ by a nested procedure or passed to an `in` parameter. `Ada.Exceptions` provides
 `raise E with Message;` evaluates a `String` message before raising. Messages
 retain all bytes, including embedded NULs, through handler entry and re-raising.
 Inspection returns strings with lower bound 1. Names currently contain the
-uppercase defining identifier; information is the name followed by `: ` and the
-message when nonempty. Source locations and tracebacks are not yet recorded.
+uppercase defining identifier. `Exception_Information` starts with the name and
+optional `: ` plus message, followed by the original raise location and an Ada
+call traceback. Locations use source-file basenames, line numbers, and columns;
+traces contain up to 32 compiled Ada subprogram/elaboration frames, innermost
+first. Foreign/native frames are not recorded. Saves and re-raises preserve the
+original diagnostic snapshot. An allocation failure while copying a message
+instead reports a new `Storage_Error` at the failing call.
 Null-occurrence inspection and null-ID raises follow the
 [Ada.Exceptions rules](https://ada-rapporteur-group.github.io/ARM/Ada_2012/RM-11-4-1.html).
-Unhandled reports include the message. `Save_Occurrence (Target, Source)` retains
+Unhandled reports include the message; `Exception_Information` supplies the
+additional location and traceback. `Save_Occurrence (Target, Source)` retains
 up to the first 200 message bytes in the target, using Ada's permitted truncation;
 it requires no allocation. `Save_Occurrence (Source)` returns an
 `Exception_Occurrence_Access` preserving the full message in one allocation.
@@ -276,6 +282,10 @@ Within block, subprogram, and package-body handlers, bare `raise;` re-raises the
 exception, even after a nested handler or called routine handles a different
 exception. Bare raises outside handlers or inside an enclosed body are rejected,
 following the [Ada raise-statement rules](https://docs.adacore.com/live/wave/arm22/html/arm22/RM-11-3.html).
+Separate handlers cannot cover the same exception, including through renaming;
+repeated choices within one handler are allowed. `others` must stand alone in
+the final handler, and exception parts and handlers cannot be empty.
+`Numeric_Error` is an alias of `Constraint_Error`.
 An unhandled exception during library elaboration is reported with exit status 1
 before the main procedure is called. Library package declarations and body
 statements execute in declaration order within the loader's unit order, including
