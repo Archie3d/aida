@@ -18,6 +18,10 @@ static void* testMalloc(size_t size)
 }
 static void* testCalloc(size_t count, size_t size)
 {
+    if (failNext) {
+        failNext = 0;
+        return NULL;
+    }
     void* result = calloc(count, size);
     if (result != NULL) {
         ++liveAllocations;
@@ -68,7 +72,7 @@ int main(void)
 
     /* The occurrence ABI and both message owners must agree with generated
        code, including allocation failure while entering or leaving a handler. */
-    CHECK(sizeof(AdaExceptionOccurrence) == 24);
+    CHECK(sizeof(AdaExceptionOccurrence) == 224);
     AdaExceptionOccurrence occurrence;
     char message[] = { 'a', '\0', 'b' };
     __ada_raise_message(ADA_PROGRAM_ERROR, message, sizeof message);
@@ -97,5 +101,31 @@ int main(void)
     __ada_exception_capture(&occurrence, &owner);
     CHECK(occurrence.identity == ADA_STORAGE_ERROR && occurrence.length == 0);
     CHECK(__ada_exception == NULL && liveAllocations == 0);
+    char longMessage[5000];
+    memset(longMessage, 'x', sizeof longMessage);
+    longMessage[10] = '\0';
+    __ada_raise_message(ADA_PROGRAM_ERROR, longMessage, sizeof longMessage);
+    __ada_exception_capture(&occurrence, &owner);
+    AdaExceptionOccurrence saved = { 0 };
+    __ada_save_occurrence(&saved, &occurrence);
+    CHECK(saved.length == 200 && saved.message == saved.savedMessage);
+    CHECK(memcmp(saved.message, longMessage, 200) == 0 && liveAllocations == 2);
+    AdaExceptionOccurrence* heap = __ada_save_occurrence_new(&occurrence);
+    CHECK(heap != NULL && heap->length == 5000 && liveAllocations == 3);
+    __ada_save_occurrence(heap, heap);
+    CHECK(heap->length == 5000);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 1 && memcmp(heap->message, longMessage, 5000) == 0);
+    __ada_save_occurrence(heap, &saved);
+    CHECK(heap->length == 200 && heap->message == heap->savedMessage);
+    __ada_deallocate(heap);
+    CHECK(liveAllocations == 0 && saved.identity == ADA_PROGRAM_ERROR);
+    failNext = 1;
+    heap = __ada_save_occurrence_new(&saved);
+    CHECK(heap == NULL && __ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
+    CHECK(saved.length == 200 && memcmp(saved.message, longMessage, 200) == 0);
+    AdaExceptionOccurrence empty = { 0 };
+    __ada_save_occurrence(&saved, &empty);
+    CHECK(saved.identity == NULL && saved.message == NULL && saved.length == 0);
     return 0;
 }

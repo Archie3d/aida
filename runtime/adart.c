@@ -123,6 +123,42 @@ void __ada_exception_message_copy(const AdaExceptionOccurrence* occurrence, char
     }
 }
 
+void __ada_save_occurrence(AdaExceptionOccurrence* target, const AdaExceptionOccurrence* source)
+{
+    if (target == source) {
+        return;
+    }
+    int length = source->identity == NULL ? 0 : source->length;
+    if (length > ADA_SAVED_MESSAGE_CAPACITY) {
+        length = ADA_SAVED_MESSAGE_CAPACITY;
+    }
+    if (length != 0) {
+        memmove(target->savedMessage, source->message, (size_t)length);
+    }
+    target->identity = source->identity;
+    target->length = length;
+    target->message = length == 0 ? NULL : target->savedMessage;
+}
+
+AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* source)
+{
+    int length = source->identity == NULL ? 0 : source->length;
+    // A single allocation lets ordinary Unchecked_Deallocation release both
+    // the occurrence and its message without adding general finalization.
+    AdaExceptionOccurrence* result = __ada_allocate((long)sizeof *result + length);
+    if (result == NULL) {
+        return NULL;
+    }
+    result->identity = source->identity;
+    result->length = length;
+    if (length != 0) {
+        char* message = (char*)(result + 1);
+        memcpy(message, source->message, (size_t)length);
+        result->message = message;
+    }
+    return result;
+}
+
 void* __ada_allocate(long size)
 {
     void* address;

@@ -67,8 +67,9 @@ void Sema::setupStandardScope()
     // Its source declaration later completes this same canonical type.
     m_exceptionOccurrenceType = m_types.create(TypeKind::Record, "Exception_Occurrence");
     // Runtime ABI: identity pointer, message pointer, signed 32-bit length,
-    // padded to pointer alignment. Keep Ada.Exceptions and adart.h in sync.
-    m_exceptionOccurrenceType->byteSize = 24;
+    // 200 inline saved-message bytes, padded to pointer alignment. Keep
+    // Ada.Exceptions and adart.h in sync.
+    m_exceptionOccurrenceType->byteSize = 224;
     m_exceptionOccurrenceType->isLimited = true;
     m_exceptionOccurrenceType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");

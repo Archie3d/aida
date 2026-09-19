@@ -77,7 +77,7 @@ private:
     // SemaStatements.cpp
     void analyzeStatements(StmtList& statements, Scope* scope);
     void analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope);
-    void checkAssignable(Expr* target, Scope* scope);
+    void checkAssignable(Expr* target, Scope* scope, bool allowLimited = false);
     void analyzeStatement(Stmt* statement, Scope* scope);
     void analyzeCaseStatement(CaseStmt* statement, Scope* scope);
 

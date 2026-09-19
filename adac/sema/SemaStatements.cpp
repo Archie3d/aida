@@ -41,14 +41,15 @@ void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope
     }
 }
 
-void Sema::checkAssignable(Expr* target, Scope* scope)
+void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
 {
     (void)scope;
 
     // A limited private type is not copied outside the package that declared
     // it; whatever it takes to make one is that package's to offer.
     Type* type = baseType(target->type);
-    if (type != nullptr && type->isLimited && type->privateTo != nullptr && !withinPackage(type->privateTo)) {
+    if (!allowLimited && type != nullptr && type->isLimited && type->privateTo != nullptr
+        && !withinPackage(type->privateTo)) {
         m_diagnostics.error(target->location, "'" + type->name + "' is limited private, so a value of it cannot "
                                                   + "be assigned outside '" + type->privateTo->displayName + "'");
         return;
@@ -58,6 +59,10 @@ void Sema::checkAssignable(Expr* target, Scope* scope)
     // since the components the value has were settled by it.
     if (target->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(target);
+        if (selected->symbol != nullptr && selected->symbol->isConstant) {
+            m_diagnostics.error(target->location, "'" + selected->symbol->displayName + "' cannot be assigned to");
+            return;
+        }
         Type* record = baseType(selected->prefix->type);
         if (record != nullptr && record->kind == TypeKind::Access) {
             record = baseType(record->target);
@@ -83,7 +88,14 @@ void Sema::checkAssignable(Expr* target, Scope* scope)
         }
         return;
     }
-    case ExprKind::Selected:
+    case ExprKind::Selected: {
+        auto* selected = static_cast<SelectedExpr*>(target);
+        Type* prefix = baseType(selected->prefix->type);
+        if (selected->symbol == nullptr && prefix != nullptr && prefix->kind != TypeKind::Access) {
+            checkAssignable(selected->prefix.get(), scope, true);
+        }
+        return;
+    }
     case ExprKind::Call:
         return;
     default:

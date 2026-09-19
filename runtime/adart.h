@@ -51,13 +51,16 @@ extern const AdaException* __ada_exception;
    every call and jumps to the applicable handler. */
 void __ada_raise(const AdaException* exception);
 
-/* Ada.Exceptions' private layout. A captured message belongs to the enclosing
-   activation's local allocation list; the pending message is owned separately. */
+/* Ada.Exceptions' private layout. Captured messages belong to the enclosing
+   activation's allocation list. Procedure saves use inline storage; function
+   saves put the full message after the occurrence in one allocation. */
+#define ADA_SAVED_MESSAGE_CAPACITY 200
 typedef struct AdaExceptionOccurrence
 {
     const AdaException* identity;
     const char* message;
     int32_t length;
+    char savedMessage[ADA_SAVED_MESSAGE_CAPACITY];
 } AdaExceptionOccurrence;
 
 void __ada_raise_message(const AdaException* exception, const char* message, int length);
@@ -67,6 +70,8 @@ const AdaException* __ada_exception_identity(const AdaExceptionOccurrence* occur
 const char* __ada_exception_name(const AdaException* exception);
 int __ada_exception_message_length(const AdaExceptionOccurrence* occurrence);
 void __ada_exception_message_copy(const AdaExceptionOccurrence* occurrence, char* target, int length);
+void __ada_save_occurrence(AdaExceptionOccurrence* target, const AdaExceptionOccurrence* source);
+AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* source);
 
 /* The storage an allocator takes from and Ada.Unchecked_Deallocation gives
    back.  Every allocation comes out cleared, so that an access component of

@@ -1,7 +1,7 @@
-# Ada compiler
+# AIDA Ada compiler
 ![build](https://github.com/Archie3d/aida/actions/workflows/build-and-test.yml/badge.svg)
 
-This project implements an Ada 83/95 subset compiler in C++. It uses [QBE](https://c9x.me/compile/) as a backend.
+This project implements Ada compiler in C++. It uses [QBE](https://c9x.me/compile/) as a backend.
 
 > This is an experimental project built with a help of AI.
 
@@ -250,7 +250,8 @@ caught identity and message through nested handlers and calls, and can be captur
 by a nested procedure or passed to an `in` parameter. `Ada.Exceptions` provides
 `Exception_Identity`, both `Exception_Name` overloads, `Exception_Message`,
 `Exception_Information`, `Null_Id`, `Null_Occurrence`, `Raise_Exception`, and
-`Reraise_Occurrence`. Exception names support `'Identity`.
+`Reraise_Occurrence`, and both `Save_Occurrence` overloads. Exception names support
+`'Identity`.
 
 `raise E with Message;` evaluates a `String` message before raising. Messages
 retain all bytes, including embedded NULs, through handler entry and re-raising.
@@ -259,8 +260,15 @@ uppercase defining identifier; information is the name followed by `: ` and the
 message when nonempty. Source locations and tracebacks are not yet recorded.
 Null-occurrence inspection and null-ID raises follow the
 [Ada.Exceptions rules](https://ada-rapporteur-group.github.io/ARM/Ada_2012/RM-11-4-1.html).
-Unhandled reports include the message. `Save_Occurrence`, occurrence access/stream
-operations, and wide names remain unimplemented; occurrence-valued function
+Unhandled reports include the message. `Save_Occurrence (Target, Source)` retains
+up to the first 200 message bytes in the target, using Ada's permitted truncation;
+it requires no allocation. `Save_Occurrence (Source)` returns an
+`Exception_Occurrence_Access` preserving the full message in one allocation.
+Both copies outlive the source handler. The access result can be freed with
+`Ada.Unchecked_Deallocation`; replacing its contents through the procedure still
+leaves a single allocation to free. The access type uses the currently supported
+pool-specific subset rather than general `access all` semantics.
+Occurrence streaming and wide names remain unimplemented; occurrence-valued function
 results are diagnosed. The occurrence layout changed, so previously compiled Ada
 objects require rebuilding against the matching runtime.
 

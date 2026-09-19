@@ -324,7 +324,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 analyzeExpr(argument, scope, chosen->parameters[index]->type);
             }
             if (chosen->parameters[index]->mode != ParameterMode::In) {
-                checkAssignable(argument, scope);
+                // Passing a variable by reference does not copy a limited value.
+                checkAssignable(argument, scope, true);
             }
             expr->resolvedArguments[index] = argument;
         }

@@ -4,6 +4,7 @@ package Ada.Exceptions is
     type Exception_Id is private;
     Null_Id : constant Exception_Id;
     type Exception_Occurrence is limited private;
+    type Exception_Occurrence_Access is access Exception_Occurrence;
     Null_Occurrence : constant Exception_Occurrence;
 
     function Exception_Identity (X : Exception_Occurrence) return Exception_Id;
@@ -18,6 +19,10 @@ package Ada.Exceptions is
     pragma Import (C, Raise_Exception, "__ada_raise_message");
     procedure Reraise_Occurrence (X : Exception_Occurrence);
     pragma Import (C, Reraise_Occurrence, "__ada_reraise");
+    procedure Save_Occurrence (Target : out Exception_Occurrence; Source : Exception_Occurrence);
+    pragma Import (C, Save_Occurrence, "__ada_save_occurrence");
+    function Save_Occurrence (Source : Exception_Occurrence) return Exception_Occurrence_Access;
+    pragma Import (C, Save_Occurrence, "__ada_save_occurrence_new");
 private
     type Exception_Id is access Integer;
     Null_Id : constant Exception_Id := null;
@@ -25,6 +30,10 @@ private
         Identity : Exception_Id := Null_Id;
         Message_Data : System.Address := null;
         Message_Length : Integer := 0;
+        -- The procedure preserves up to 200 bytes without allocating; the
+        -- function preserves the full message in its returned allocation.
+        Saved_Message : String (1 .. 200) := (others => Character'Val (0));
     end record;
-    Null_Occurrence : constant Exception_Occurrence := (Null_Id, null, 0);
+    Null_Occurrence : constant Exception_Occurrence :=
+        (Null_Id, null, 0, (others => Character'Val (0)));
 end Ada.Exceptions;

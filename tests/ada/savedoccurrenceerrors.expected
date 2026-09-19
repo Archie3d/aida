@@ -1,0 +1,5 @@
+savedoccurrenceerrors.adb:5:26: error: 'Source' cannot be assigned to
+savedoccurrenceerrors.adb:12:26: error: 'Box' cannot be assigned to
+savedoccurrenceerrors.adb:15:22: error: 'Null_Occurrence' cannot be assigned to
+savedoccurrenceerrors.adb:16:36: error: 'Null_Occurrence' cannot be assigned to
+savedoccurrenceerrors.adb:20:45: error: 'E' cannot be assigned to

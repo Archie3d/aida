@@ -151,8 +151,17 @@ Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
   Covered by `exceptionmessages.adb`, `exceptionmessageerrors.adb`,
   `unhandledmessage.adb`, package-handler coverage, and instrumented allocation
   and failure checks in `runtime.array_storage`.
-- [ ] Extend `Ada.Exceptions` with `Save_Occurrence`, occurrence access/stream
-  operations, and wide names. Occurrence-valued function results remain diagnosed.
+- [x] Add both `Save_Occurrence` overloads and `Exception_Occurrence_Access`.
+  Procedure saves own up to 200 message bytes inside the target; function saves
+  preserve the full message in one allocation, released with an instance of
+  `Ada.Unchecked_Deallocation`. Saved occurrences outlive the source handler.
+  Covered by `savedoccurrences.adb`, `savedoccurrenceerrors.adb`, and instrumented
+  runtime tests: truncation boundaries, embedded NULs, replacement, self-save,
+  null occurrences, re-raising, allocation failure, and deallocation.
+- [ ] Extend `Ada.Exceptions` with occurrence stream operations and wide names.
+  The occurrence access type currently uses the supported pool-specific access
+  subset; general access/accessibility rules remain in section 3.
+  Occurrence-valued function results remain diagnosed.
   Names currently use uppercase defining identifiers; information consists of
   the name and optional message, without source locations or tracebacks.
 - [ ] **Audit** handler choice legality and propagation from declarations, package

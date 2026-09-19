@@ -1,5 +1,5 @@
 occurrencebindingerrors.adb:12:13: error: 'Exception_Occurrence' is limited private, so a value of it cannot be assigned outside 'Exceptions'
-occurrencebindingerrors.adb:13:21: error: 'Exception_Occurrence' is limited private, so a value of it cannot be assigned outside 'Exceptions'
+occurrencebindingerrors.adb:13:21: error: 'E' cannot be assigned to
 occurrencebindingerrors.adb:14:18: error: 'Exception_Occurrence' is limited private, so 'Exceptions' has to be the one to say what this operator means
 occurrencebindingerrors.adb:18:21: error: 'E' is not declared
 occurrencebindingerrors.adb:20:13: error: 'E' is not declared
