@@ -9,6 +9,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "identity") {
+        return Value { expr->exceptionSymbol->exceptionObject, 'l' };
+    }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
         return emitStreamAttribute(expr);

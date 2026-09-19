@@ -65,5 +65,37 @@ int main(void)
     CHECK(owner == NULL && liveAllocations == 0);
     __ada_array_release(&owner);
     CHECK(liveAllocations == 0);
+
+    /* The occurrence ABI and both message owners must agree with generated
+       code, including allocation failure while entering or leaving a handler. */
+    CHECK(sizeof(AdaExceptionOccurrence) == 24);
+    AdaExceptionOccurrence occurrence;
+    char message[] = { 'a', '\0', 'b' };
+    __ada_raise_message(ADA_PROGRAM_ERROR, message, sizeof message);
+    message[0] = 'x';
+    CHECK(liveAllocations == 1);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(__ada_exception == NULL && liveAllocations == 2);
+    CHECK(occurrence.identity == ADA_PROGRAM_ERROR && occurrence.length == 3);
+    CHECK(memcmp(occurrence.message, "a\0b", 3) == 0);
+    __ada_raise_message(ADA_CONSTRAINT_ERROR, "nested", 6);
+    CHECK(liveAllocations == 3);
+    __ada_reraise(&occurrence);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 1 && __ada_exception == ADA_PROGRAM_ERROR);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(memcmp(occurrence.message, "a\0b", 3) == 0);
+    failNext = 1;
+    __ada_reraise(&occurrence);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 2);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0);
+    __ada_raise_message(ADA_PROGRAM_ERROR, "lost", 4);
+    failNext = 1;
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0 && owner == NULL);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.identity == ADA_STORAGE_ERROR && occurrence.length == 0);
+    CHECK(__ada_exception == NULL && liveAllocations == 0);
     return 0;
 }

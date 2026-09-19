@@ -1,0 +1,6 @@
+exceptionmessageerrors.adb:5:36: error: an exception occurrence cannot be copied by initialization
+exceptionmessageerrors.adb:8:9: error: exception occurrence results are not yet supported
+exceptionmessageerrors.adb:11:64: error: an exception occurrence cannot be copied by an allocator
+exceptionmessageerrors.adb:13:18: error: an exception message must be of type String
+exceptionmessageerrors.adb:14:11: error: 'Identity requires an exception name and no arguments
+exceptionmessageerrors.adb:15:11: error: 'Identity requires an exception name and no arguments

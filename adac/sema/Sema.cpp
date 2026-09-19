@@ -66,10 +66,14 @@ void Sema::setupStandardScope()
     // Handler bindings exist even without a with clause for Ada.Exceptions.
     // Its source declaration later completes this same canonical type.
     m_exceptionOccurrenceType = m_types.create(TypeKind::Record, "Exception_Occurrence");
-    m_exceptionOccurrenceType->byteSize = 8;
+    // Runtime ABI: identity pointer, message pointer, signed 32-bit length,
+    // padded to pointer alignment. Keep Ada.Exceptions and adart.h in sync.
+    m_exceptionOccurrenceType->byteSize = 24;
     m_exceptionOccurrenceType->isLimited = true;
     m_exceptionOccurrenceType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");
+    m_exceptionIdType = m_types.create(TypeKind::Access, "Exception_Id");
+    m_exceptionIdType->privateTo = m_exceptionOccurrenceType->privateTo;
 
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
     storageUnit->type = m_types.integerType();

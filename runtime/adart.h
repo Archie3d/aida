@@ -51,6 +51,23 @@ extern const AdaException* __ada_exception;
    every call and jumps to the applicable handler. */
 void __ada_raise(const AdaException* exception);
 
+/* Ada.Exceptions' private layout. A captured message belongs to the enclosing
+   activation's local allocation list; the pending message is owned separately. */
+typedef struct AdaExceptionOccurrence
+{
+    const AdaException* identity;
+    const char* message;
+    int32_t length;
+} AdaExceptionOccurrence;
+
+void __ada_raise_message(const AdaException* exception, const char* message, int length);
+void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner);
+void __ada_reraise(const AdaExceptionOccurrence* occurrence);
+const AdaException* __ada_exception_identity(const AdaExceptionOccurrence* occurrence);
+const char* __ada_exception_name(const AdaException* exception);
+int __ada_exception_message_length(const AdaExceptionOccurrence* occurrence);
+void __ada_exception_message_copy(const AdaExceptionOccurrence* occurrence, char* target, int length);
+
 /* The storage an allocator takes from and Ada.Unchecked_Deallocation gives
    back.  Every allocation comes out cleared, so that an access component of
    the new object starts as null.  Storage_Error is raised when the request

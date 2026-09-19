@@ -95,7 +95,7 @@ private:
 
     // Exceptions and checks (QbeExceptions.cpp).
     void emitExceptionObjects(const std::vector<Symbol*>& exceptions);
-    void emitRaise(Symbol* exception, const SourceLocation& location);
+    void emitRaise(Symbol* exception, const SourceLocation& location, Expr* message = nullptr);
     void emitExceptionCheck();
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,
                       const std::string& dispatchLabel);

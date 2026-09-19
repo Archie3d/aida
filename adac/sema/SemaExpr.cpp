@@ -134,6 +134,9 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
 
     expr->designated = designated;
     if (expr->value != nullptr) {
+        if (baseType(designated) == m_exceptionOccurrenceType) {
+            m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
+        }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");

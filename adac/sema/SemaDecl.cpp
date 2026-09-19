@@ -84,6 +84,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (decl->initializer) {
+        if (baseType(type) == m_exceptionOccurrenceType && !withinPackage(type->privateTo)) {
+            m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
+        }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
         if (!typesCompatible(type, valueType)) {
             m_diagnostics.error(decl->initializer->location,

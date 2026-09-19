@@ -246,9 +246,23 @@ matching runtime; imported C calls retain their existing convention.
 
 Handler choice parameters (`when E : ...`) are local constants of the limited
 private type `Ada.Exceptions.Exception_Occurrence`. Each binding retains the
-caught identity through nested handlers and calls, and can be captured by a
-nested procedure or passed to an `in` parameter. The initial `Ada.Exceptions`
-package provides this type only; inspection operations and messages are pending.
+caught identity and message through nested handlers and calls, and can be captured
+by a nested procedure or passed to an `in` parameter. `Ada.Exceptions` provides
+`Exception_Identity`, both `Exception_Name` overloads, `Exception_Message`,
+`Exception_Information`, `Null_Id`, `Null_Occurrence`, `Raise_Exception`, and
+`Reraise_Occurrence`. Exception names support `'Identity`.
+
+`raise E with Message;` evaluates a `String` message before raising. Messages
+retain all bytes, including embedded NULs, through handler entry and re-raising.
+Inspection returns strings with lower bound 1. Names currently contain the
+uppercase defining identifier; information is the name followed by `: ` and the
+message when nonempty. Source locations and tracebacks are not yet recorded.
+Null-occurrence inspection and null-ID raises follow the
+[Ada.Exceptions rules](https://ada-rapporteur-group.github.io/ARM/Ada_2012/RM-11-4-1.html).
+Unhandled reports include the message. `Save_Occurrence`, occurrence access/stream
+operations, and wide names remain unimplemented; occurrence-valued function
+results are diagnosed. The occurrence layout changed, so previously compiled Ada
+objects require rebuilding against the matching runtime.
 
 Within block, subprogram, and package-body handlers, bare `raise;` re-raises the original
 exception, even after a nested handler or called routine handles a different
@@ -705,7 +719,7 @@ own may write.
 | --- | --- |
 | `Ada` | `ada.ads` |
 | `Ada.IO_Exceptions` | `ada-io_exceptions.ads` |
-| `Ada.Exceptions` (occurrence type only) | `ada-exceptions.ads` |
+| `Ada.Exceptions` (inspection and raising subset) | `ada-exceptions.ads`, `ada-exceptions.adb` |
 | `Ada.Text_IO` | `ada-text_io.ads` |
 | `Ada.Text_IO.Integer_IO` | `ada-text_io-integer_io.ads`, `.adb` |
 | `Ada.Text_IO.Float_IO` | `ada-text_io-float_io.ads`, `.adb` |

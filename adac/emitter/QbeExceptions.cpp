@@ -31,16 +31,21 @@ void QbeEmitter::emitExceptionObjects(const std::vector<Symbol*>& exceptions)
     }
 }
 
-void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location)
+void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Expr* message)
 {
     if (exception == nullptr) {
         if (m_context->activeExceptions.empty()) {
             m_diagnostics.error(location, "internal error: bare raise without an active handler");
             return;
         }
-        line("storel " + m_context->activeExceptions.back() + ", $__ada_exception");
+        line("call $__ada_reraise(l " + m_context->activeExceptions.back() + ")");
+    } else if (message != nullptr) {
+        Value text = emitExpr(message);
+        Value length = lengthOf(text, message->type);
+        line("call $__ada_raise_message(l " + exception->exceptionObject + ", l " + text.name
+             + ", w " + length.name + ")");
     } else {
-        line("storel " + exception->exceptionObject + ", $__ada_exception");
+        line("call $__ada_raise(l " + exception->exceptionObject + ")");
     }
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
@@ -119,6 +124,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         label(bodyLabels[i]);
+        std::string occurrence;
         if (Symbol* choice = handlers[i].choiceSymbol) {
             if (choice->isUplevel) {
                 m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
@@ -127,11 +133,13 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
             } else {
                 m_context->locals[choice] = allocScratch(typeSize(choice->type));
             }
-            Value occurrence = addressOf(choice);
-            line("storel " + pending + ", " + occurrence.name);
+            occurrence = addressOf(choice).name;
+        } else {
+            occurrence = allocScratch(typeSize(m_sema.exceptionOccurrenceType()));
         }
-        line("storel 0, $__ada_exception");
-        m_context->activeExceptions.push_back(pending);
+        line("call $__ada_exception_capture(l " + occurrence + ", l " + storageArena(false, true) + ")");
+        emitExceptionCheck();
+        m_context->activeExceptions.push_back(occurrence);
         emitStatements(handlers[i].body);
         m_context->activeExceptions.pop_back();
         jump(afterLabel);
@@ -287,7 +295,7 @@ void QbeEmitter::checkNotNull(const Value& pointer)
 
 void QbeEmitter::raiseConstraintError()
 {
-    line("storel $__ada_exc_constraint_error, $__ada_exception");
+    line("call $__ada_raise(l $__ada_exc_constraint_error)");
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
     } else {

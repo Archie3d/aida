@@ -235,6 +235,7 @@ struct AttributeExpr : Expr
     std::string lower;
     std::vector<ExprPtr> arguments;
     Type* prefixType = nullptr;
+    Symbol* exceptionSymbol = nullptr;
 };
 
 struct AggregateComponent
@@ -604,6 +605,7 @@ struct RaiseStmt : Stmt
     std::string name;
     std::string lower;
     Symbol* exceptionSymbol = nullptr;
+    ExprPtr message;
 };
 
 // ---------------------------------------------------------------------------

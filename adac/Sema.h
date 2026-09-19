@@ -17,6 +17,7 @@ public:
     void analyze(CompilationUnit& unit);
 
     TypeTable& typeTable() { return m_types; }
+    Type* exceptionOccurrenceType() const { return m_exceptionOccurrenceType; }
     Symbol* mainSubprogram() const { return m_main; }
 
     // The exceptions declared in one file, whose objects that file's unit is
@@ -150,6 +151,7 @@ private:
     Type* m_typeSetType = nullptr;
     Type* m_addressType = nullptr;
     Type* m_exceptionOccurrenceType = nullptr;
+    Type* m_exceptionIdType = nullptr;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
     int m_handlerDepth = 0;

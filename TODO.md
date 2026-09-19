@@ -142,9 +142,19 @@ Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
   Covered by `occurrencebindings.adb`, `occurrencenowith.adb`, and
   `occurrencebindingerrors.adb`: scope, shadowing, nested handlers, recursion,
   typed parameters, re-raising, and rejected assignment/equality.
-- [ ] Add exception occurrence inspection operations, information, and messages.
-  The initial `Ada.Exceptions` package currently supplies only the occurrence
-  type; its payload retains identity, not messages or traceback information.
+- [x] Add `Exception_Identity`, `Exception_Name`, `Exception_Message`, and
+  `Exception_Information`, exception `'Identity`, null IDs/occurrences,
+  `Raise_Exception`, `Reraise_Occurrence`, and `raise E with Message`.
+  Pending messages own their bytes; handler snapshots use managed local storage.
+  Messages survive nested handlers, calls, and re-raising without truncation,
+  including embedded NUL characters. Unhandled reports include the message.
+  Covered by `exceptionmessages.adb`, `exceptionmessageerrors.adb`,
+  `unhandledmessage.adb`, package-handler coverage, and instrumented allocation
+  and failure checks in `runtime.array_storage`.
+- [ ] Extend `Ada.Exceptions` with `Save_Occurrence`, occurrence access/stream
+  operations, and wide names. Occurrence-valued function results remain diagnosed.
+  Names currently use uppercase defining identifiers; information consists of
+  the name and optional message, without source locations or tracebacks.
 - [ ] **Audit** handler choice legality and propagation from declarations, package
   bodies, called routines, and handlers themselves. Subprogram declaration and
   handler propagation have regression coverage in `reraise.adb`.

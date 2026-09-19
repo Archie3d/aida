@@ -98,6 +98,21 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
         prefixIsType = static_cast<AttributeExpr*>(expr->prefix.get())->lower == "base";
     }
     expr->prefixType = prefixType;
+    if (expr->lower == "identity") {
+        Symbol* symbol = nullptr;
+        if (expr->prefix->kind == ExprKind::Identifier) {
+            symbol = static_cast<IdentifierExpr*>(expr->prefix.get())->symbol;
+        } else if (expr->prefix->kind == ExprKind::Selected) {
+            symbol = static_cast<SelectedExpr*>(expr->prefix.get())->symbol;
+        }
+        if (symbol == nullptr || symbol->kind != SymbolKind::Exception || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'Identity requires an exception name and no arguments");
+            return nullptr;
+        }
+        expr->exceptionSymbol = symbol;
+        expr->type = m_exceptionIdType;
+        return expr->type;
+    }
     if (expr->lower == "base") {
         if (!prefixIsType || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "'Base requires a scalar subtype mark");

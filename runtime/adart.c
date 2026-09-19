@@ -30,10 +30,97 @@ const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
 /* Every object file compiled from Ada refers to this, so the run time is the
    one place that defines it. */
 const AdaException* __ada_exception = NULL;
+static char* pendingMessage;
+static int pendingMessageLength;
 
 void __ada_raise(const AdaException* exception)
 {
+    free(pendingMessage);
+    pendingMessage = NULL;
+    pendingMessageLength = 0;
     __ada_exception = exception == NULL ? ADA_PROGRAM_ERROR : exception;
+}
+
+void __ada_raise_message(const AdaException* exception, const char* message, int length)
+{
+    char* copy = NULL;
+    if (exception == NULL || length < 0) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    if (length != 0) {
+        copy = malloc((size_t)length);
+        if (copy == NULL) {
+            __ada_raise(ADA_STORAGE_ERROR);
+            return;
+        }
+        memcpy(copy, message, (size_t)length);
+    }
+    __ada_raise(exception);
+    pendingMessage = copy;
+    pendingMessageLength = length;
+}
+
+void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner)
+{
+    const AdaException* identity = __ada_exception;
+    int length = pendingMessageLength;
+    char* copy = NULL;
+    if (length != 0) {
+        copy = __ada_array_local(owner, 1, length, 1);
+        if (copy == NULL) {
+            return; /* The allocator has replaced the pending exception. */
+        }
+        memcpy(copy, pendingMessage, (size_t)length);
+    }
+    target->identity = identity;
+    target->message = copy;
+    target->length = length;
+    free(pendingMessage);
+    pendingMessage = NULL;
+    pendingMessageLength = 0;
+    __ada_exception = NULL;
+}
+
+void __ada_reraise(const AdaExceptionOccurrence* occurrence)
+{
+    if (occurrence->identity != NULL) {
+        __ada_raise_message(occurrence->identity, occurrence->message, occurrence->length);
+    }
+}
+
+const AdaException* __ada_exception_identity(const AdaExceptionOccurrence* occurrence)
+{
+    return occurrence->identity;
+}
+
+const char* __ada_exception_name(const AdaException* exception)
+{
+    if (exception == NULL) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return "";
+    }
+    return exception->name;
+}
+
+int __ada_exception_message_length(const AdaExceptionOccurrence* occurrence)
+{
+    if (occurrence->identity == NULL) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    return occurrence->length;
+}
+
+void __ada_exception_message_copy(const AdaExceptionOccurrence* occurrence, char* target, int length)
+{
+    if (occurrence->identity == NULL || length != occurrence->length) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    if (length != 0) {
+        memcpy(target, occurrence->message, (size_t)length);
+    }
 }
 
 void* __ada_allocate(long size)
@@ -478,7 +565,15 @@ long long __ada_round_to_integer(double value)
 void __ada_unhandled(const AdaException* exception)
 {
     fflush(stdout);
-    fprintf(stderr, "\nraised %s\n", exception == NULL ? "EXCEPTION" : exception->name);
+    fprintf(stderr, "\nraised %s", exception == NULL ? "EXCEPTION" : exception->name);
+    if (pendingMessageLength != 0) {
+        fputs(" : ", stderr);
+        fwrite(pendingMessage, 1, (size_t)pendingMessageLength, stderr);
+    }
+    fputc('\n', stderr);
+    free(pendingMessage);
+    pendingMessage = NULL;
+    pendingMessageLength = 0;
 }
 
 /* Internal Ada ABI: an unconstrained result carries a transfer buffer, its

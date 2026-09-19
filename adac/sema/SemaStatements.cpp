@@ -235,6 +235,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             break;
         }
         if (returnStatement->value) {
+            if (baseType(expected) == m_exceptionOccurrenceType) {
+                m_diagnostics.error(returnStatement->location, "exception occurrence results are not yet supported");
+            }
             Type* valueType = analyzeExpr(returnStatement->value.get(), scope, expected);
             if (expected == nullptr) {
                 m_diagnostics.error(returnStatement->location, "a procedure cannot return a value");
@@ -275,6 +278,12 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             break;
         }
         raise->exceptionSymbol = symbol;
+        if (raise->message) {
+            Type* messageType = analyzeExpr(raise->message.get(), scope, m_types.stringType());
+            if (!typesCompatible(m_types.stringType(), messageType)) {
+                m_diagnostics.error(raise->message->location, "an exception message must be of type String");
+            }
+        }
         break;
     }
     }

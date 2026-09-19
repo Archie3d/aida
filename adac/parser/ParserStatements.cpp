@@ -282,6 +282,9 @@ StmtPtr Parser::parseRaiseStatement()
     expect(TokenKind::KwRaise, "in raise statement");
     if (check(TokenKind::Identifier)) {
         statement->name = parseCompoundName(statement->lower);
+        if (match(TokenKind::KwWith)) {
+            statement->message = parseExpression();
+        }
     }
     expect(TokenKind::Semicolon, "after raise statement");
     return statement;

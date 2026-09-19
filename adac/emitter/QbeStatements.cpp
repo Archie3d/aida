@@ -276,7 +276,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
 
     case StmtKind::Raise: {
         auto* raise = static_cast<RaiseStmt*>(statement);
-        emitRaise(raise->exceptionSymbol, raise->location);
+        emitRaise(raise->exceptionSymbol, raise->location, raise->message.get());
         break;
     }
     }
