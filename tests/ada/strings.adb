@@ -35,6 +35,12 @@ procedure Strings is
         Inner;
     end Outer;
 
+    procedure CheckConcatenation (Left, Right : String) is
+    begin
+        Put_Line ('[' & Left & Right & ']');
+        Put_Line ("[" & Left & "" & Right & "]");
+    end CheckConcatenation;
+
 begin
     Describe (Greeting);
     Describe ("a literal");
@@ -45,6 +51,21 @@ begin
     Put_Line (Line (1 .. 5));
     Put_Line (Greeting & ", " & "ada" & '!');
     Put_Line ("count:" & Integer'Image (Line'Length));
+
+    -- Concatenation adds no separators, but preserves spaces in its operands.
+    Put_Line ("[" & "hello" & "world" & "]");
+    Put_Line ('[' & 'a' & 'b' & ']');
+    Put_Line ("[" & "" & "" & "]");
+    Put_Line ("[" & "hello " & " world" & "]");
+    CheckConcatenation (Greeting, Line (7 .. 11));
+    CheckConcatenation ("", Greeting);
+    CheckConcatenation (Greeting, "");
+    CheckConcatenation ("", "");
+    CheckConcatenation ("hello ", " world");
+
+    -- The leading blank belongs to Integer'Image, not to the & operator.
+    Put_Line ("[" & Integer'Image (0) & "]");
+    Put_Line ("[" & Integer'Image (-1) & "]");
 
     Copy := Line (7 .. 11);
     Put_Line (Copy);
