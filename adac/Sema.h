@@ -101,6 +101,15 @@ private:
     Type* analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected);
     Type* analyzeMembership(MembershipExpr* expr, Scope* scope);
 
+    // SemaResolution.cpp: inspect interpretations without binding the AST.
+    std::vector<Symbol*> expressionNames(Expr* expr, Scope* scope);
+    std::vector<Type*> expressionTypes(Expr* expr, Scope* scope, Type* expected = nullptr);
+    std::vector<Type*> discoverExpressionTypes(Expr* expr, Scope* scope, Type* expected);
+    bool matchesExpression(Expr* expr, Scope* scope, Type* expected);
+    bool matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
+                            std::vector<std::size_t>& positions);
+    Type* commonOperandType(Expr* left, Expr* right, Scope* scope, Type* expected);
+
     // SemaCalls.cpp
     Type* analyzeCall(CallExpr* expr, Scope* scope, Type* expected);
 
@@ -126,6 +135,11 @@ private:
                          const char* what);
     Type* choiceSubtypeMark(Expr* expr, Scope* scope);
     std::string describeValue(Type* type, long long value) const;
+
+    // A discovery pass uses one scope and never changes bindings. Discard its
+    // memoized domains before the next pass, when declarations may have changed.
+    std::unordered_map<Expr*, std::unordered_map<Type*, std::vector<Type*>>> m_resolutionTypes;
+    int m_resolutionDepth = 0;
 
     Diagnostics& m_diagnostics;
     TypeTable m_types;

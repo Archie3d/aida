@@ -218,7 +218,30 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    Type* prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
+    // A component's expected type can also distinguish overloaded prefixes.
+    Type* prefixContext = nullptr;
+    bool ambiguousPrefix = false;
+    for (Type* type : expressionTypes(expr->prefix.get(), scope)) {
+        Type* designated = baseType(type);
+        if (designated->kind == TypeKind::Access) {
+            designated = baseType(designated->target);
+        } else if (expr->isDereference) {
+            continue;
+        }
+        bool matches = expr->isDereference && typesCompatible(expected, designated);
+        if (!expr->isDereference && designated != nullptr && designated->kind == TypeKind::Record) {
+            for (const FieldInfo& field : designated->fields) {
+                matches = matches || (field.name == expr->selectorLower && typesCompatible(expected, field.type));
+            }
+        }
+        if (matches) {
+            if (prefixContext != nullptr && rootType(prefixContext) != rootType(type)) {
+                ambiguousPrefix = true;
+            }
+            prefixContext = type;
+        }
+    }
+    Type* prefixType = analyzeExpr(expr->prefix.get(), scope, ambiguousPrefix ? nullptr : prefixContext);
 
     if (expr->isDereference) {
         Type* access = baseType(prefixType);

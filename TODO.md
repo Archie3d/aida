@@ -34,8 +34,13 @@ These checkmarks describe tested subsets, not completion of every related Ada ru
 Primary code: `adac/sema/SemaCalls.cpp`, `adac/sema/SemaNames.cpp`,
 `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
 
-- [ ] Resolve mutually overloaded nested expressions using candidate sets and
-  surrounding context. The current shared-formal-type heuristic is incomplete.
+- [x] Resolve nested calls using candidate type sets and surrounding context,
+  checking every actual, named association, omitted default, and result type
+  before binding arguments. Propagate operand context through arithmetic,
+  comparisons, unary operators, indexing, record selection, and supported
+  user-defined exponentiation. Covered by `nestedoverloads.adb` and
+  `nestedoverloaderrors.adb`, including same-result ambiguity, package-selected
+  names, enumeration literals, and single evaluation of actuals.
 - [x] Apply result-context selection and ambiguity checks to parameterless
   functions, package-selected names, enumeration literals, and calls using only
   defaults. Procedure statements select procedures, not functions whose values

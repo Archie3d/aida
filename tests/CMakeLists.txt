@@ -200,6 +200,8 @@ add_ada_test(integerstatic SOURCES integerstatic.adb)
 add_ada_test(longintegerio SOURCES longintegerio.adb)
 
 add_ada_test(overloads SOURCES overloads.adb)
+add_ada_test(nestedoverloads SOURCES nestedoverloads.adb)
+add_ada_error_test(nestedoverloaderrors SOURCES nestedoverloaderrors.adb)
 
 add_ada_error_test(overloaderrors SOURCES overloaderrors.adb)
 

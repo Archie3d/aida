@@ -179,6 +179,10 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
 
 Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->operatorCall != nullptr) {
+        expr->type = analyzeExpr(expr->operatorCall.get(), scope, expected);
+        return expr->type;
+    }
     switch (expr->op) {
     case BinaryOp::And:
     case BinaryOp::Or:
@@ -203,8 +207,9 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         bool contextualLeft = (expr->left->kind != ExprKind::CharacterLiteral
                                && isCharacterLiteralExpression(expr->left.get()))
             || expr->left->kind == ExprKind::Aggregate;
-        Type* right = contextualLeft ? analyzeExpr(expr->right.get(), scope, nullptr) : nullptr;
-        Type* left = analyzeExpr(expr->left.get(), scope, right);
+        Type* context = commonOperandType(expr->left.get(), expr->right.get(), scope, nullptr);
+        Type* right = contextualLeft ? analyzeExpr(expr->right.get(), scope, context) : nullptr;
+        Type* left = analyzeExpr(expr->left.get(), scope, context != nullptr ? context : right);
         if (!contextualLeft) {
             right = analyzeExpr(expr->right.get(), scope, isUniversal(left) ? nullptr : left);
         }
@@ -280,16 +285,12 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     }
 
     case BinaryOp::Power: {
-        Type* left = analyzeExpr(expr->left.get(), scope, expected);
-        std::vector<Symbol*> operators = scope->lookup("**");
-        Type* right = analyzeExpr(expr->right.get(), scope,
-                                  operators.empty() ? m_types.integerType() : nullptr);
         bool visibleOperator = false;
-        for (Symbol* candidate : operators) {
+        for (Symbol* candidate : scope->lookup("**")) {
             if (candidate->kind == SymbolKind::Subprogram && candidate->parameters.size() == 2
                 && matchesResult(candidate, expected)
-                && typesCompatible(candidate->parameters[0]->type, left)
-                && typesCompatible(candidate->parameters[1]->type, right)) {
+                && matchesExpression(expr->left.get(), scope, candidate->parameters[0]->type)
+                && matchesExpression(expr->right.get(), scope, candidate->parameters[1]->type)) {
                 visibleOperator = true;
             }
         }
@@ -312,6 +313,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             return expr->type;
         }
         // Predefined exponentiation still requires an integer exponent.
+        Type* left = analyzeExpr(expr->left.get(), scope, expected);
+        Type* right = analyzeExpr(expr->right.get(), scope, m_types.integerType());
         adaptUniversal(expr->right.get(), m_types.integerType());
         if (!isNumeric(baseType(left))) {
             m_diagnostics.error(expr->location, "arithmetic operators require numeric operands");
@@ -325,7 +328,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     }
 
     default: {
-        Type* left = analyzeExpr(expr->left.get(), scope, expected);
+        Type* context = commonOperandType(expr->left.get(), expr->right.get(), scope, expected);
+        Type* left = analyzeExpr(expr->left.get(), scope, context);
         Type* right = analyzeExpr(expr->right.get(), scope, isUniversal(left) ? expected : left);
         Type* result = left;
         if (!typesCompatible(left, right)) {
@@ -352,7 +356,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
 
 Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
 {
-    Type* operand = analyzeExpr(expr->operand.get(), scope, expected);
+    Type* operand = analyzeExpr(expr->operand.get(), scope,
+                                expr->op == UnaryOp::Not ? m_types.booleanType() : expected);
     if (expr->op == UnaryOp::Not) {
         if (!m_types.isBoolean(operand)) {
             m_diagnostics.error(expr->location, "'not' requires a Boolean operand");

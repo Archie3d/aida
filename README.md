@@ -212,10 +212,14 @@ Calls with argument lists, bare function names, and package-selected names use
 the expected result type when selecting an overload, and report ambiguity when
 several profiles remain. A bare call may omit all arguments when every formal
 has a default. Procedure call statements select procedures, and enumeration
-literals use the expected enumeration type. Shared formal types provide context
-for nested calls. Named arguments cannot be repeated or followed by positional
-arguments. Full resolution of mutually overloaded nested expressions remains
-future work.
+literals use the expected enumeration type. Nested calls retain candidate types
+until all arguments and the surrounding result context select a profile. For
+example, in `Consume (Pick, True)`, the second argument can select a `Consume`
+overload whose first formal then determines which `Pick` is called. This context
+also flows through arithmetic, comparisons, unary operators, array indexing,
+record selection, and the supported user-defined `"**"` operator. Named arguments
+cannot be repeated or followed by positional arguments. Ambiguous nested calls
+remain errors even when their possible results have the same type.
 
 Omitted default expressions are evaluated at each call, including imported
 calls, with names bound in the declaration scope. Each parameter in a grouped

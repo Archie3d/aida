@@ -7,6 +7,7 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
+    expr->resolvedArguments.clear();
     // Collect the entities the callee may denote.
     std::vector<Symbol*> candidates;
     if (expr->callee->kind == ExprKind::Identifier) {
@@ -127,55 +128,15 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     }
 
-    for (std::size_t argumentIndex = 0; argumentIndex < expr->arguments.size(); ++argumentIndex) {
-        const Association& association = expr->arguments[argumentIndex];
-        // An aggregate only means something once the parameter it fills is
-        // known, so it waits until the profile has been chosen.
-        if (association.value->kind == ExprKind::Aggregate) {
-            continue;
-        }
-        if (association.value->type == nullptr) {
-            // A shared formal type provides context to nested calls without
-            // prematurely choosing between otherwise distinct overloads.
-            Type* context = nullptr;
-            bool differs = false;
-            for (Symbol* candidate : candidates) {
-                if (candidate->kind != SymbolKind::Subprogram) {
-                    continue;
-                }
-                Symbol* parameter = nullptr;
-                if (association.nameLower.empty()) {
-                    if (argumentIndex < candidate->parameters.size()) {
-                        parameter = candidate->parameters[argumentIndex];
-                    }
-                } else {
-                    for (Symbol* formal : candidate->parameters) {
-                        if (formal->name == association.nameLower) {
-                            parameter = formal;
-                            break;
-                        }
-                    }
-                }
-                if (parameter != nullptr) {
-                    if (context != nullptr && rootType(context) != rootType(parameter->type)) {
-                        differs = true;
-                    }
-                    context = parameter->type;
-                }
-            }
-            ExprKind kind = association.value->kind;
-            bool needsContext = kind == ExprKind::Call || kind == ExprKind::Identifier
-                || kind == ExprKind::Selected || kind == ExprKind::Allocator || kind == ExprKind::Null
-                || kind == ExprKind::Binary;
-            analyzeExpr(association.value.get(), scope, differs || !needsContext ? nullptr : context);
-        }
-    }
-
     // A type mark applied to one argument is a type conversion.
     if (candidates.size() == 1 && candidates.front()->kind == SymbolKind::TypeName) {
         if (expr->arguments.size() != 1) {
             m_diagnostics.error(expr->location, "a type conversion takes exactly one operand");
             return nullptr;
+        }
+        Expr* source = expr->arguments.front().value.get();
+        if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
+            analyzeExpr(source, scope, nullptr);
         }
         expr->form = CallForm::Conversion;
         expr->type = candidates.front()->type;
@@ -231,63 +192,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     if (!subprograms.empty()) {
         Symbol* chosen = nullptr;
         for (Symbol* candidate : subprograms) {
-            if (candidate->parameters.size() < expr->arguments.size()) {
-                continue;
-            }
-            std::vector<bool> filled(candidate->parameters.size(), false);
-            bool matches = true;
-            for (std::size_t i = 0; i < expr->arguments.size(); ++i) {
-                std::size_t index = i;
-                if (!expr->arguments[i].nameLower.empty()) {
-                    matches = false;
-                    for (std::size_t p = 0; p < candidate->parameters.size(); ++p) {
-                        if (candidate->parameters[p]->name == expr->arguments[i].nameLower) {
-                            index = p;
-                            matches = true;
-                            break;
-                        }
-                    }
-                    if (!matches) {
-                        break;
-                    }
-                }
-                // An argument still without a type is an aggregate, which suits
-                // whichever composite parameter it lands on.
-                auto matchesArgument = [&](auto&& self, Expr* value, Type* formal) -> bool {
-                    if (value->kind == ExprKind::StringLiteral) {
-                        return m_types.isString(formal);
-                    }
-                    if (value->kind == ExprKind::Binary
-                        && static_cast<BinaryExpr*>(value)->op == BinaryOp::Concatenate) {
-                        if (!m_types.isString(formal)) {
-                            return false;
-                        }
-                        auto* concat = static_cast<BinaryExpr*>(value);
-                        for (Expr* part : { concat->left.get(), concat->right.get() }) {
-                            if (!m_types.isCharacter(part->type) && !self(self, part, formal)) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-                    return typesCompatible(formal, value->type);
-                };
-                if (!matchesArgument(matchesArgument, expr->arguments[i].value.get(), candidate->parameters[index]->type)) {
-                    matches = false;
-                    break;
-                }
-                if (filled[index]) {
-                    matches = false;
-                    break;
-                }
-                filled[index] = true;
-            }
-            // Whatever the caller left out has to have a default of its own.
-            for (std::size_t p = 0; matches && p < candidate->parameters.size(); ++p) {
-                if (!filled[p] && !candidate->parameters[p]->hasDefault) {
-                    matches = false;
-                }
-            }
+            std::vector<std::size_t> positions;
+            bool matches = matchCallArguments(expr, candidate, scope, positions);
             if (matches) {
                 if (chosen != nullptr) {
                     m_diagnostics.error(expr->location, "ambiguous subprogram call");
@@ -298,6 +204,19 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
 
         if (chosen == nullptr) {
+            // Prefer an undeclared-name or malformed-expression diagnostic when
+            // an actual has no interpretation even without a formal context.
+            int errors = m_diagnostics.errorCount();
+            for (const Association& association : expr->arguments) {
+                Expr* argument = association.value.get();
+                if (argument->kind != ExprKind::Aggregate && argument->kind != ExprKind::Allocator
+                    && argument->kind != ExprKind::Null && expressionTypes(argument, scope).empty()) {
+                    analyzeExpr(argument, scope, nullptr);
+                }
+            }
+            if (m_diagnostics.errorCount() != errors) {
+                return nullptr;
+            }
             m_diagnostics.error(expr->location, "no visible subprogram matches this call");
             return nullptr;
         }
@@ -316,13 +235,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 }
             }
             Expr* argument = expr->arguments[i].value.get();
+            analyzeExpr(argument, scope, chosen->parameters[index]->type);
             adaptUniversal(argument, chosen->parameters[index]->type);
-            bool concatenation = argument->kind == ExprKind::Binary
-                && static_cast<BinaryExpr*>(argument)->op == BinaryOp::Concatenate;
-            if (concatenation || argument->kind == ExprKind::Aggregate || argument->kind == ExprKind::StringLiteral
-                || argument->kind == ExprKind::Null || argument->kind == ExprKind::Allocator) {
-                analyzeExpr(argument, scope, chosen->parameters[index]->type);
-            }
             if (chosen->parameters[index]->mode != ParameterMode::In) {
                 // Passing a variable by reference does not copy a limited value.
                 checkAssignable(argument, scope, true);
