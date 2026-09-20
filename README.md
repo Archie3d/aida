@@ -217,7 +217,7 @@ until all arguments and the surrounding result context select a profile. For
 example, in `Consume (Pick, True)`, the second argument can select a `Consume`
 overload whose first formal then determines which `Pick` is called. This context
 also flows through arithmetic, comparisons, unary operators, array indexing,
-record selection, and the supported user-defined `"**"` operator. Named arguments
+record selection, and user-defined operators. Named arguments
 cannot be repeated or followed by positional arguments. Ambiguous nested calls
 remain errors even when their possible results have the same type.
 
@@ -472,8 +472,37 @@ number literal is not a real value, so `C : Coefficient := 1;` is an error
 while `C : Coefficient := 1.0;` is not, `mod` and `rem` need integer operands,
 predefined `**` takes an integer exponent, and converting a real value to an
 integer rounds rather than truncates. The numerics generics also provide an
-overloaded `"**"` accepting a real exponent (see Numerics below). Other operator
-designators in declarations are not yet supported.
+overloaded `"**"` accepting a real exponent (see Numerics below).
+
+Operator functions support `+`, `-`, `*`, `/`, `mod`, `rem`, `**`, `&`, `and`,
+`or`, `xor`, `not`, `abs`, and the six comparison symbols. For example:
+
+```ada
+function "+" (Left, Right : Vector) return Vector;
+...
+C := A + B;
+C := "+" (A, B);
+C := Vectors."+" (A, B);
+```
+
+Unary `+` and `-` take one parameter; their binary forms take two. `abs` and
+`not` take one, and other operators take two. All parameters must be `in` and
+cannot have defaults. Operator symbols containing letters are case-insensitive.
+Explicit calls to declared operators also support named arguments.
+
+Resolution considers visible user-defined and supported predefined profiles,
+using operand and result context. A user-defined homograph replaces its
+predefined operation; distinct applicable profiles remain ambiguous. A local
+operator does not hide unrelated overloads brought in by `use`. Operator calls
+use ordinary function calling conventions, including composite results and
+exception propagation, and are not folded as predefined arithmetic.
+
+A Boolean-valued `"="` implicitly declares the complementary `"/="`; explicitly
+declaring a Boolean-valued `"/="` is rejected. Comparison operators may also have
+non-Boolean result types, selected by context. `and then` and `or else` retain
+short-circuit evaluation and cannot be overloaded. General derived-type
+inheritance, `use type`, and the remaining visibility audits are still separate
+roadmap items.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

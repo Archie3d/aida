@@ -15,11 +15,11 @@ SubprogramSpec Parser::parseSubprogramSpec()
     // A library unit may be a child, as Ada.Unchecked_Deallocation is.
     if (spec.isFunction && check(TokenKind::StringLiteral)) {
         const Token& designator = advance();
-        if (designator.text != "**") {
-            fail("only the '**' operator designator is supported");
+        if (operatorSymbol(designator.text).empty()) {
+            fail("invalid operator designator");
         }
         spec.name = designator.text;
-        spec.lower = designator.text;
+        spec.lower = operatorSymbol(designator.text);
     } else {
         spec.name = parseCompoundName(spec.lower);
     }

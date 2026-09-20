@@ -7,6 +7,16 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->operatorExpression == nullptr) {
+        expr->operatorExpression = explicitOperator(expr);
+    }
+    if (expr->operatorExpression != nullptr) {
+        expr->type = analyzeExpr(expr->operatorExpression.get(), scope, expected);
+        expr->isStatic = expr->operatorExpression->isStatic;
+        expr->staticValue = expr->operatorExpression->staticValue;
+        expr->staticReal = expr->operatorExpression->staticReal;
+        return expr->type;
+    }
     expr->resolvedArguments.clear();
     // Collect the entities the callee may denote.
     std::vector<Symbol*> candidates;

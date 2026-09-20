@@ -92,12 +92,25 @@ private:
     Type* analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected);
     Type* analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected);
 
+    // SemaOperators.cpp
+    struct OperatorCandidate
+    {
+        Symbol* symbol = nullptr; // Null denotes a predefined operator.
+        std::vector<Type*> parameters;
+        Type* result = nullptr;
+    };
+    std::vector<OperatorCandidate> operatorCandidates(const std::string& name, const std::vector<Expr*>& operands,
+                                                     Scope* scope, Type* expected);
+    ExprPtr bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope* scope,
+                         const SourceLocation& location);
+    ExprPtr explicitOperator(CallExpr* call);
+
     // SemaExpr.cpp
     Type* analyzeExpr(Expr* expr, Scope* scope, Type* expected = nullptr);
     Type* analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected);
     void checkPrivateOperands(BinaryExpr* expr);
     Type* analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected);
-    Type* analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected);
+    Type* analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext = nullptr);
     Type* analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected);
     Type* analyzeMembership(MembershipExpr* expr, Scope* scope);
 

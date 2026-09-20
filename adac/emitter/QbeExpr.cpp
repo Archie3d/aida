@@ -116,6 +116,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
 
     case ExprKind::Call: {
         auto* call = static_cast<CallExpr*>(expr);
+        if (call->operatorExpression) {
+            return emitExpr(call->operatorExpression.get());
+        }
         if (call->form == CallForm::Subprogram) {
             return emitCall(call);
         }
@@ -266,6 +269,9 @@ Value QbeEmitter::emitAddress(Expr* expr)
     }
     case ExprKind::Call: {
         auto* call = static_cast<CallExpr*>(expr);
+        if (call->operatorExpression) {
+            return emitExpr(call->operatorExpression.get());
+        }
         if (call->form == CallForm::Slice) {
             return emitSlice(call);
         }

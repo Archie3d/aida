@@ -182,11 +182,11 @@ ExprPtr Parser::parsePrimary()
         return expr;
     }
     case TokenKind::StringLiteral: {
-        if (current().text == "**" && peek(1).kind == TokenKind::LeftParen) {
+        if (!operatorSymbol(current().text).empty() && peek(1).kind == TokenKind::LeftParen) {
             auto expr = std::make_unique<IdentifierExpr>();
             expr->location = location;
             expr->name = advance().text;
-            expr->lower = expr->name;
+            expr->lower = operatorSymbol(expr->name);
             return parseNameSuffixes(std::move(expr));
         }
         auto expr = std::make_unique<StringLiteralExpr>();

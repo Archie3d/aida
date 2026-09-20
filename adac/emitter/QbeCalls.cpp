@@ -11,6 +11,18 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
+    if (subprogram->m_negatedEquality != nullptr) {
+        CallExpr equality;
+        equality.location = expr->location;
+        equality.form = CallForm::Subprogram;
+        equality.subprogram = subprogram->m_negatedEquality;
+        equality.type = subprogram->returnType;
+        equality.resolvedArguments = expr->resolvedArguments;
+        Value result = emitCall(&equality);
+        std::string complement = newTemp();
+        line(complement + " =w ceqw " + result.name + ", 0");
+        return Value { complement, 'w' };
+    }
     // Bare names arrive without an explicit argument list. Complete it from
     // the resolved declaration before either Ada or imported-call marshalling.
     expr->resolvedArguments.resize(subprogram->parameters.size(), nullptr);

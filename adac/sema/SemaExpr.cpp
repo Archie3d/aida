@@ -2,6 +2,7 @@
 #include "SemaSupport.h"
 
 #include <utility>
+#include <algorithm>
 
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
@@ -16,7 +17,7 @@ bool isCharacterLiteralExpression(const Expr* expr)
     }
     if (expr->kind == ExprKind::Binary) {
         const auto* binary = static_cast<const BinaryExpr*>(expr);
-        return binary->op == BinaryOp::Concatenate
+        return binary->operatorCall == nullptr && binary->op == BinaryOp::Concatenate
             && isCharacterLiteralExpression(binary->left.get())
             && isCharacterLiteralExpression(binary->right.get());
     }
@@ -172,17 +173,46 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
 Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
 {
-    Type* result = analyzeBinaryOperation(expr, scope, expected);
+    if (expr->operatorCall != nullptr) {
+        return expr->type;
+    }
+    std::string name = operatorName(expr->op);
+    Type* operandContext = nullptr;
+    if (!name.empty()) {
+        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected);
+        if (candidates.size() > 1) {
+            m_diagnostics.error(expr->location, "ambiguous operator '" + name + "'");
+            Type* result = candidates.front().result;
+            bool sameResult = std::all_of(candidates.begin(), candidates.end(), [&](const OperatorCandidate& candidate) {
+                return rootType(candidate.result) == rootType(result);
+            });
+            expr->type = sameResult ? result : nullptr;
+            return expr->type;
+        }
+        if (candidates.size() == 1) {
+            const OperatorCandidate& chosen = candidates.front();
+            if (chosen.symbol != nullptr) {
+                std::vector<ExprPtr> operands;
+                operands.push_back(std::move(expr->left));
+                operands.push_back(std::move(expr->right));
+                expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
+                expr->type = chosen.result;
+                expr->isStatic = false;
+                return expr->type;
+            }
+            operandContext = chosen.parameters.front();
+            if (expected == nullptr) {
+                expected = chosen.result;
+            }
+        }
+    }
+    Type* result = analyzeBinaryOperation(expr, scope, expected, operandContext);
     checkPrivateOperands(expr);
     return result;
 }
 
-Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected)
+Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext)
 {
-    if (expr->operatorCall != nullptr) {
-        expr->type = analyzeExpr(expr->operatorCall.get(), scope, expected);
-        return expr->type;
-    }
     switch (expr->op) {
     case BinaryOp::And:
     case BinaryOp::Or:
@@ -207,7 +237,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         bool contextualLeft = (expr->left->kind != ExprKind::CharacterLiteral
                                && isCharacterLiteralExpression(expr->left.get()))
             || expr->left->kind == ExprKind::Aggregate;
-        Type* context = commonOperandType(expr->left.get(), expr->right.get(), scope, nullptr);
+        Type* context = operandContext != nullptr ? operandContext
+            : commonOperandType(expr->left.get(), expr->right.get(), scope, nullptr);
         Type* right = contextualLeft ? analyzeExpr(expr->right.get(), scope, context) : nullptr;
         Type* left = analyzeExpr(expr->left.get(), scope, context != nullptr ? context : right);
         if (!contextualLeft) {
@@ -285,33 +316,6 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     }
 
     case BinaryOp::Power: {
-        bool visibleOperator = false;
-        for (Symbol* candidate : scope->lookup("**")) {
-            if (candidate->kind == SymbolKind::Subprogram && candidate->parameters.size() == 2
-                && matchesResult(candidate, expected)
-                && matchesExpression(expr->left.get(), scope, candidate->parameters[0]->type)
-                && matchesExpression(expr->right.get(), scope, candidate->parameters[1]->type)) {
-                visibleOperator = true;
-            }
-        }
-        if (visibleOperator) {
-            auto call = std::make_unique<CallExpr>();
-            call->location = expr->location;
-            auto callee = std::make_unique<IdentifierExpr>();
-            callee->location = expr->location;
-            callee->name = "**";
-            callee->lower = "**";
-            call->callee = std::move(callee);
-            Association first;
-            first.value = std::move(expr->left);
-            Association second;
-            second.value = std::move(expr->right);
-            call->arguments.push_back(std::move(first));
-            call->arguments.push_back(std::move(second));
-            expr->type = analyzeCall(call.get(), scope, expected);
-            expr->operatorCall = std::move(call);
-            return expr->type;
-        }
         // Predefined exponentiation still requires an integer exponent.
         Type* left = analyzeExpr(expr->left.get(), scope, expected);
         Type* right = analyzeExpr(expr->right.get(), scope, m_types.integerType());
@@ -356,6 +360,27 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
 
 Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->operatorCall != nullptr) {
+        return expr->type;
+    }
+    std::string name = operatorName(expr->op);
+    auto candidates = operatorCandidates(name, { expr->operand.get() }, scope, expected);
+    if (candidates.size() > 1) {
+        m_diagnostics.error(expr->location, "ambiguous operator '" + name + "'");
+        return nullptr;
+    }
+    if (candidates.size() == 1) {
+        const OperatorCandidate& chosen = candidates.front();
+        if (chosen.symbol != nullptr) {
+            std::vector<ExprPtr> operands;
+            operands.push_back(std::move(expr->operand));
+            expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
+            expr->type = chosen.result;
+            expr->isStatic = false;
+            return expr->type;
+        }
+        expected = chosen.parameters.front();
+    }
     Type* operand = analyzeExpr(expr->operand.get(), scope,
                                 expr->op == UnaryOp::Not ? m_types.booleanType() : expected);
     if (expr->op == UnaryOp::Not) {

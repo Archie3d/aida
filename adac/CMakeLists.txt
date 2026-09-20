@@ -32,6 +32,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaExpr.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaCalls.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaResolution.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaOperators.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaAttributes.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaAggregates.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaStatic.cpp

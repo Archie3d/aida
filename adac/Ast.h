@@ -176,7 +176,7 @@ struct BinaryExpr : Expr
     BinaryOp op = BinaryOp::Add;
     ExprPtr left;
     ExprPtr right;
-    ExprPtr operatorCall; // Resolved user-defined exponentiation.
+    ExprPtr operatorCall; // Resolved user-defined operator.
 };
 
 struct UnaryExpr : Expr
@@ -188,6 +188,7 @@ struct UnaryExpr : Expr
 
     UnaryOp op = UnaryOp::Plus;
     ExprPtr operand;
+    ExprPtr operatorCall;
 };
 
 struct Association
@@ -218,6 +219,7 @@ struct CallExpr : Expr
 
     ExprPtr callee;
     std::vector<Association> arguments;
+    ExprPtr operatorExpression; // Explicit unqualified operator call.
     CallForm form = CallForm::Unresolved;
     Symbol* subprogram = nullptr;
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
@@ -965,3 +967,8 @@ struct LibraryUnit
     std::string key;
     std::vector<CompilationUnit*> parts;   // The specification first, then the body.
 };
+
+// Canonical operator spellings; short-circuit forms have no operator symbol.
+const char* operatorName(BinaryOp op);
+const char* operatorName(UnaryOp op);
+std::string operatorSymbol(const std::string& spelling);

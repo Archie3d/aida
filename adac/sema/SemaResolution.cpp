@@ -175,6 +175,24 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     }
     case ExprKind::Call: {
         auto* call = static_cast<CallExpr*>(expr);
+        if (call->operatorExpression != nullptr) {
+            return expressionTypes(call->operatorExpression.get(), scope, expected);
+        }
+        if (call->callee->kind == ExprKind::Identifier) {
+            std::string name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
+            bool positional = std::all_of(call->arguments.begin(), call->arguments.end(),
+                [](const Association& argument) { return argument.nameLower.empty() && argument.high == nullptr; });
+            if (!operatorSymbol(name).empty() && positional) {
+                std::vector<Expr*> operands;
+                for (const Association& argument : call->arguments) {
+                    operands.push_back(argument.value.get());
+                }
+                for (const OperatorCandidate& candidate : operatorCandidates(name, operands, scope, expected)) {
+                    add(candidate.result);
+                }
+                break;
+            }
+        }
         std::vector<Symbol*> names = expressionNames(call->callee.get(), scope);
         bool callable = false;
         if (call->callee->kind == ExprKind::Identifier) {
@@ -233,9 +251,12 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     }
     case ExprKind::Unary: {
         auto* unary = static_cast<UnaryExpr*>(expr);
-        for (Type* type : expressionTypes(unary->operand.get(), scope, expected)) {
-            if (unary->op == UnaryOp::Not ? m_types.isBoolean(type) : isNumeric(baseType(type))) {
-                add(type);
+        if (unary->operatorCall != nullptr) {
+            add(expr->type);
+        } else {
+            for (const OperatorCandidate& candidate : operatorCandidates(operatorName(unary->op),
+                    { unary->operand.get() }, scope, expected)) {
+                add(candidate.result);
             }
         }
         break;
@@ -243,72 +264,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::Binary: {
         auto* binary = static_cast<BinaryExpr*>(expr);
         if (binary->operatorCall != nullptr) {
-            return expressionTypes(binary->operatorCall.get(), scope, expected);
-        }
-        bool comparison = binary->op >= BinaryOp::Equal;
-        bool logical = binary->op >= BinaryOp::And && binary->op <= BinaryOp::OrElse;
-        if (logical) {
+            add(expr->type);
+        } else if (binary->op == BinaryOp::AndThen || binary->op == BinaryOp::OrElse) {
             if (matchesExpression(binary->left.get(), scope, m_types.booleanType())
                 && matchesExpression(binary->right.get(), scope, m_types.booleanType())) {
                 add(m_types.booleanType());
             }
-            break;
-        }
-        if (binary->op == BinaryOp::Concatenate) {
-            Type* context = m_types.isString(expected) ? expected : m_types.stringType();
-            auto matchesPart = [&](Expr* part) {
-                return matchesExpression(part, scope, context)
-                    || matchesExpression(part, scope, m_types.characterType());
-            };
-            if (matchesPart(binary->left.get()) && matchesPart(binary->right.get())) {
-                add(context);
-            }
-            break;
-        }
-        Type* context = comparison ? nullptr : expected;
-        std::vector<Type*> operands = expressionTypes(binary->left.get(), scope, context);
-        auto rightTypes = expressionTypes(binary->right.get(), scope, context);
-        if (binary->op != BinaryOp::Power) {
-            operands.insert(operands.end(), rightTypes.begin(), rightTypes.end());
-        }
-        for (Type* type : operands) {
-            if (isUniversal(type)) {
-                if (context != nullptr && !isUniversal(context)) {
-                    type = context;
-                } else {
-                    // A universal literal cannot erase a concrete operand's
-                    // identity and thereby match every numeric overload.
-                    auto universalOperand = [&](Expr* operand) {
-                        auto types = expressionTypes(operand, scope);
-                        return std::any_of(types.begin(), types.end(), [&](Type* candidate) {
-                            return isUniversal(candidate) && typesCompatible(type, candidate);
-                        });
-                    };
-                    if (!universalOperand(binary->left.get())
-                        || (binary->op != BinaryOp::Power && !universalOperand(binary->right.get()))) {
-                        continue;
-                    }
-                }
-            }
-            if (!comparison && !isNumeric(baseType(type))) {
-                continue;
-            }
-            if ((binary->op == BinaryOp::Modulo || binary->op == BinaryOp::Remainder) && isReal(type)) {
-                continue;
-            }
-            Type* rightContext = binary->op == BinaryOp::Power ? m_types.integerType() : type;
-            if (matchesExpression(binary->left.get(), scope, type)
-                && matchesExpression(binary->right.get(), scope, rightContext)) {
-                add(comparison ? m_types.booleanType() : type);
-            }
-        }
-        if (binary->op == BinaryOp::Power) {
-            for (Symbol* symbol : scope->lookup("**")) {
-                if (symbol->kind == SymbolKind::Subprogram && symbol->parameters.size() == 2
-                    && matchesExpression(binary->left.get(), scope, symbol->parameters[0]->type)
-                    && matchesExpression(binary->right.get(), scope, symbol->parameters[1]->type)) {
-                    add(symbol->returnType);
-                }
+        } else {
+            for (const OperatorCandidate& candidate : operatorCandidates(operatorName(binary->op),
+                    { binary->left.get(), binary->right.get() }, scope, expected)) {
+                add(candidate.result);
             }
         }
         break;

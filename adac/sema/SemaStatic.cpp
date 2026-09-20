@@ -22,6 +22,9 @@ bool Sema::foldStatic(Expr* expr, long long& value) const
         return true;
     case ExprKind::Unary: {
         auto* unary = static_cast<UnaryExpr*>(expr);
+        if (unary->operatorCall) {
+            return false;
+        }
         long long operand = 0;
         if (!foldStatic(unary->operand.get(), operand)) {
             return false;
@@ -122,6 +125,9 @@ bool Sema::foldStaticReal(Expr* expr, double& value) const
         return true;
     case ExprKind::Unary: {
         auto* unary = static_cast<UnaryExpr*>(expr);
+        if (unary->operatorCall) {
+            return false;
+        }
         double operand = 0.0;
         if (!foldStaticReal(unary->operand.get(), operand)) {
             return false;

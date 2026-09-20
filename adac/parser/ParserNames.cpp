@@ -86,8 +86,8 @@ std::string Parser::parseSubtypeMark(std::string& lowered)
 
 void Parser::parseClosingName(const std::string& lower, bool allowSimpleName)
 {
-    if (check(TokenKind::StringLiteral) && lower == "**") {
-        if (advance().text != lower) {
+    if (check(TokenKind::StringLiteral) && !operatorSymbol(lower).empty()) {
+        if (operatorSymbol(advance().text) != lower) {
             fail("closing operator designator does not match");
         }
         return;
@@ -109,7 +109,7 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
 {
     while (true) {
         if (check(TokenKind::Dot) && (peek(1).kind == TokenKind::Identifier || peek(1).kind == TokenKind::KwAll
-            || (peek(1).kind == TokenKind::StringLiteral && peek(1).text == "**"))) {
+            || (peek(1).kind == TokenKind::StringLiteral && !operatorSymbol(peek(1).text).empty()))) {
             SourceLocation location = current().location;
             advance();
             const Token& selector = advance();
@@ -118,6 +118,9 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
             expr->prefix = std::move(prefix);
             expr->selector = selector.text.empty() ? "all" : selector.text;
             expr->selectorLower = selector.lower.empty() ? "all" : selector.lower;
+            if (selector.kind == TokenKind::StringLiteral) {
+                expr->selectorLower = operatorSymbol(selector.text);
+            }
             expr->isDereference = selector.kind == TokenKind::KwAll;
             prefix = std::move(expr);
             continue;

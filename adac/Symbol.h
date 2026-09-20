@@ -64,6 +64,8 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    Symbol* m_negatedEquality = nullptr; // Implicit Boolean "/=" delegates to "=".
+
 
     // Run time builtins.  The symbol names the C entry point, and a call into it
     // may leave an exception pending.

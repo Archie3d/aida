@@ -201,12 +201,21 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody)
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
 
-    if (spec.lower == "**") {
-        if (!spec.isFunction || spec.parameters.size() != 2
-            || spec.parameters[0].mode != ParameterMode::In
-            || spec.parameters[1].mode != ParameterMode::In
-            || spec.parameters[0].defaultValue || spec.parameters[1].defaultValue) {
-            m_diagnostics.error(spec.location, "'**' requires two in parameters without defaults");
+    if (!operatorSymbol(spec.lower).empty()) {
+        bool unary = spec.lower == "abs" || spec.lower == "not";
+        bool either = spec.lower == "+" || spec.lower == "-";
+        bool valid = spec.isFunction && (unary ? spec.parameters.size() == 1
+            : either ? (spec.parameters.size() == 1 || spec.parameters.size() == 2)
+                     : spec.parameters.size() == 2);
+        for (const ParameterDecl& parameter : spec.parameters) {
+            valid = valid && parameter.mode == ParameterMode::In && !parameter.defaultValue;
+        }
+        if (!valid) {
+            m_diagnostics.error(spec.location, "'" + spec.lower + "' requires "
+                + (either ? "one or two" : unary ? "one" : "two") + " in parameters without defaults");
+        }
+        if (spec.lower == "/=" && m_types.isBoolean(returnType)) {
+            m_diagnostics.error(spec.location, "a Boolean '/=' is implicitly declared by '=' and cannot be declared explicitly");
         }
     }
     if (isBody) {
@@ -290,6 +299,17 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody)
     }
 
     scope->add(symbol);
+    if (spec.lower == "=" && m_types.isBoolean(returnType)) {
+        Symbol* complement = m_symbolTable.createSymbol(SymbolKind::Subprogram, "/=", "/=");
+        complement->parameters = symbol->parameters;
+        complement->returnType = returnType;
+        complement->m_negatedEquality = symbol;
+        complement->hasBody = true;
+        complement->location = symbol->location;
+        complement->owner = symbol->owner;
+        complement->level = symbol->level;
+        scope->add(complement);
+    }
     return symbol;
 }
 

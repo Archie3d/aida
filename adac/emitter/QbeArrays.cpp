@@ -345,7 +345,8 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
         Expr* current = pending.back();
         pending.pop_back();
         if (current->kind == ExprKind::Binary
-            && static_cast<BinaryExpr*>(current)->op == BinaryOp::Concatenate) {
+            && static_cast<BinaryExpr*>(current)->op == BinaryOp::Concatenate
+            && static_cast<BinaryExpr*>(current)->operatorCall == nullptr) {
             auto* binary = static_cast<BinaryExpr*>(current);
             pending.push_back(binary->right.get());
             pending.push_back(binary->left.get());

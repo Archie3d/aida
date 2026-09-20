@@ -167,11 +167,24 @@ void Sema::analyze(CompilationUnit& unit)
 
 std::string Sema::mangle(const std::string& name) const
 {
+    auto encode = [](const std::string& part) {
+        if (part == "**") {
+            return std::string("operator_power");
+        }
+        if (operatorSymbol(part).empty()) {
+            return part;
+        }
+        std::string encoded = "operator";
+        for (unsigned char c : part) {
+            encoded += "_" + std::to_string(c);
+        }
+        return encoded;
+    };
     std::string result;
     for (const std::string& part : m_namePrefix) {
-        result += part + "__";
+        result += encode(part) + "__";
     }
-    result += name == "**" ? "operator_power" : name;
+    result += encode(name);
     return result;
 }
 

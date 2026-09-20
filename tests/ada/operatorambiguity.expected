@@ -1,0 +1,2 @@
+operatorambiguity.adb:19:15: error: ambiguous operator '+'
+operatorambiguity.adb:20:14: error: ambiguous operator '+'

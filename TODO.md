@@ -50,8 +50,14 @@ Primary code: `adac/sema/SemaCalls.cpp`, `adac/sema/SemaNames.cpp`,
   captured environments, subtype checks, and exception propagation. Covered by
   `defaultcalls.adb` and `defaulterrors.adb`; composite-valued defaults are also
   covered by `compositereturns.adb`.
-- [ ] Generalize user-defined operator declarations and calls beyond the supported
-  `"**"` designator used by numerics, including `function "+" (...) return T`.
+- [x] Generalize unary/binary operator declarations, infix/prefix use, and explicit
+  calls, including package-selected and named calls to declared operators.
+  Share candidate resolution with predefined profiles; retain result context,
+  homograph replacement, ambiguity checks, and root numeric preference.
+  Boolean equality declares complementary inequality; validate operator arity,
+  modes, defaults, designators, and closing names. Covered by `operators.adb`,
+  `operatorprofiles.adb`, `operatorunits.adb`, and the operator rejection tests.
+  General derived-type inheritance and `use type` remain separate work.
 - [ ] **Audit** visibility, `use` clauses, homographs, duplicate declarations, and
   specification/body conformance. Validate parameter modes, names, defaults, and
   return profiles where applicable; do not defer missing bodies to linker errors.

@@ -62,10 +62,17 @@ std::vector<Symbol*> Scope::lookup(const std::string& name) const
 
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
         std::vector<Symbol*> level = scope->lookupLocal(name);
-        if (level.empty()) {
-            for (const Scope* used : scope->m_useScopes) {
-                std::vector<Symbol*> fromUse = used->lookupLocal(name);
-                for (Symbol* symbol : fromUse) {
+        std::size_t localCount = level.size();
+        for (const Scope* used : scope->m_useScopes) {
+            for (Symbol* symbol : used->lookupLocal(name)) {
+                bool hidden = false;
+                for (std::size_t i = 0; i < localCount; ++i) {
+                    if (!isOverloadable(level[i]) || sameProfile(level[i], symbol)) {
+                        hidden = true;
+                        break;
+                    }
+                }
+                if (!hidden) {
                     level.push_back(symbol);
                 }
             }

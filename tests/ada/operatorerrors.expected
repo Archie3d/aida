@@ -1,0 +1,9 @@
+operatorerrors.adb:2:5: error: '+' requires one or two in parameters without defaults
+operatorerrors.adb:3:5: error: '-' requires one or two in parameters without defaults
+operatorerrors.adb:4:5: error: 'abs' requires one in parameters without defaults
+operatorerrors.adb:5:5: error: 'not' requires one in parameters without defaults
+operatorerrors.adb:6:5: error: '*' requires two in parameters without defaults
+operatorerrors.adb:8:5: error: a Boolean '/=' is implicitly declared by '=' and cannot be declared explicitly
+operatorerrors.adb:31:10: error: ambiguous subprogram call
+operatorerrors.adb:32:19: error: arithmetic operators require numeric operands
+operatorerrors.adb:32:5: error: the assigned value has an incompatible type

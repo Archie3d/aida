@@ -116,6 +116,9 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
 Value QbeEmitter::emitUnary(UnaryExpr* expr)
 {
+    if (expr->operatorCall) {
+        return emitExpr(expr->operatorCall.get());
+    }
     Value operand = emitExpr(expr->operand.get());
     std::string temp = newTemp();
 
