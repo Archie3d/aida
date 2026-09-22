@@ -204,6 +204,22 @@ for machine-range overflow. Division, `rem`, and `mod` check zero divisors.
 These failures raise `Constraint_Error`, as do out-of-range numeric conversions.
 The checked operations currently call C runtime helpers, which adds call overhead.
 
+Modular integer declarations (`type Byte is mod 256;`) support static integer
+moduli from 1 through `2 ** 32`, including nonbinary moduli. Addition,
+subtraction, multiplication, negation, exponentiation, and the logical operators
+`and`, `or`, `xor`, and `not` use modular semantics. Division, `mod`, and `rem`
+check zero divisors; negative exponents raise `Constraint_Error`. Constant
+folding and runtime evaluation share the same overflow-safe arithmetic.
+`'Modulus`, scalar subtypes, comparisons, conversions, and loops are supported.
+Conversions and subtype boundaries check ranges; `'Succ` and `'Pred` do not wrap.
+
+Modular types currently use 32-bit storage when their full range fits a signed
+32-bit value, and 64-bit storage otherwise. Supported `'Size` clauses can select
+8 or 16 bits when the modulus fits; a modulus above `2 ** 31` requires 64-bit
+storage. Full unsigned 64-bit modular types, modular generic formals, and
+`Ada.Text_IO.Modular_IO` remain future work. The modular regression programs
+cover arithmetic, static values, logical operations, boundaries, and diagnostics.
+
 `Long_Integer` is supported by `'Image`, `'Value`, generic `Integer_IO`, and
 `for` loops. A loop tests its final value before incrementing or decrementing,
 so a loop ending at a machine limit does not wrap around.

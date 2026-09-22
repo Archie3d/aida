@@ -355,8 +355,12 @@ changes on an unconstrained object, and nested alternatives.
 
 ## 3. Additional types, access values, and declarations
 
-- [ ] Modular integer types: modulus, wraparound arithmetic, logical operations,
-  conversions, and boundary behavior. Keep these distinct from checked signed integers.
+- [x] Modular integer types with moduli from 1 through `2 ** 32`: wraparound
+  arithmetic, logical operations, checked conversions/subtypes, `'Modulus`, and
+  boundary behavior. Static folding and runtime evaluation share safe arithmetic.
+  Covered by `modular.adb`, `modularchecks.adb`, and `modularerrors.adb`.
+- [ ] Extend modular representations to unsigned machine-width storage and
+  `mod 2 ** 64`; add modular generic formals and `Ada.Text_IO.Modular_IO`.
 - [ ] Ordinary fixed-point types (`delta` and range), followed separately by decimal
   fixed-point types (`delta` and `digits`), with scaling, rounding, and checks.
 - [ ] Complete derived-type behavior, including inherited primitive operations and
@@ -496,4 +500,4 @@ runtime local subtype bounds, array identity and grouped field defaults. Remaini
 near-term audits include unit loading/elaboration-before-use, artifact robustness,
 and aggregate/array semantics beyond existing overlap and sliding tests.
 Library-level dynamic arrays, runtime-constrained components, wider descriptor
-indices/lengths, and modular types remain later extensions.
+indices/lengths, and full-width unsigned modular representations remain later extensions.

@@ -298,7 +298,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_addressType);
         } else if (name == "identity") {
             add(m_exceptionIdType);
-        } else if (name == "pos" || name == "length" || name == "size" || name == "width" || name == "digits") {
+        } else if (name == "pos" || name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {

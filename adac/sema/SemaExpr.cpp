@@ -99,6 +99,10 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         adaptUniversal(qualified->operand.get(), type);
         expr->type = type;
         expr->isStatic = qualified->operand->isStatic && type != nullptr && type->m_scalarBoundsSymbol == nullptr;
+        if (expr->isStatic && type->m_modulus != 0
+            && (qualified->operand->staticValue < type->low || qualified->operand->staticValue > type->high)) {
+            expr->isStatic = false;
+        }
         expr->staticValue = qualified->operand->staticValue;
         expr->staticReal = qualified->operand->staticReal;
         return type;
@@ -219,6 +223,17 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     case BinaryOp::Xor:
     case BinaryOp::AndThen:
     case BinaryOp::OrElse: {
+        if (operandContext != nullptr && operandContext->m_modulus != 0
+            && expr->op != BinaryOp::AndThen && expr->op != BinaryOp::OrElse) {
+            Type* left = analyzeExpr(expr->left.get(), scope, operandContext);
+            Type* right = analyzeExpr(expr->right.get(), scope, operandContext);
+            if (!typesCompatible(left, right)) {
+                m_diagnostics.error(expr->location, "logical operands must have the same modular type");
+            }
+            expr->type = operandContext;
+            noteStaticValue(expr);
+            return expr->type;
+        }
         Type* left = analyzeExpr(expr->left.get(), scope, m_types.booleanType());
         Type* right = analyzeExpr(expr->right.get(), scope, m_types.booleanType());
         if (!m_types.isBoolean(left) || !m_types.isBoolean(right)) {
@@ -382,7 +397,16 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         expected = chosen.parameters.front();
     }
     Type* operand = analyzeExpr(expr->operand.get(), scope,
-                                expr->op == UnaryOp::Not ? m_types.booleanType() : expected);
+                                expr->op == UnaryOp::Not && (expected == nullptr || expected->m_modulus == 0)
+                                    ? m_types.booleanType() : expected);
+    if (operand != nullptr && operand->m_modulus != 0) {
+        if (expr->op == UnaryOp::Abs) {
+            m_diagnostics.error(expr->location, "abs is not defined for modular types");
+        }
+        expr->type = operand;
+        noteStaticValue(expr);
+        return expr->type;
+    }
     if (expr->op == UnaryOp::Not) {
         if (!m_types.isBoolean(operand)) {
             m_diagnostics.error(expr->location, "'not' requires a Boolean operand");

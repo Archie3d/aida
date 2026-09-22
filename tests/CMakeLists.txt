@@ -336,3 +336,7 @@ foreach(case generic order compiler paths binding)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSeparateCompilation.cmake
     )
 endforeach()
+
+add_ada_test(modular SOURCES modular.adb)
+add_ada_test(modularchecks SOURCES modularchecks.adb)
+add_ada_error_test(modularerrors SOURCES modularerrors.adb)

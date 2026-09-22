@@ -215,6 +215,16 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
         return expr->type;
     }
 
+    if (name == "modulus") {
+        if (!prefixIsType || base == nullptr || base->m_modulus == 0 || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "Modulus requires a modular type prefix and no arguments");
+        }
+        expr->type = m_types.universalInteger();
+        expr->isStatic = true;
+        expr->staticValue = base != nullptr ? base->m_modulus : 0;
+        return expr->type;
+    }
+
     if (name == "first" || name == "last") {
         if (base != nullptr && base->kind == TypeKind::Array) {
             expr->type = base->index != nullptr ? base->index : m_types.integerType();

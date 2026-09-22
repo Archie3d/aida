@@ -87,6 +87,13 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         return definition;
     }
 
+    if (match(TokenKind::KwMod)) {
+        auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Modular);
+        definition->location = location;
+        definition->rangeHigh = parseExpression();
+        return definition;
+    }
+
     if (check(TokenKind::KwDigits)) {
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::FloatDigits);
         definition->location = location;

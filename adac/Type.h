@@ -101,6 +101,8 @@ public:
     // Discrete types (integer and enumeration).
     long long low = 0;
     long long high = 0;
+    // Zero denotes signed integers; modular types retain this across subtypes.
+    long long m_modulus = 0;
 
     // Named local scalar constraints use full-width bounds in the owning
     // activation. Aliases share the symbol; only the declaration owns expressions.

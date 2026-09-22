@@ -5,6 +5,7 @@
 #define ADART_H
 
 #include <stdint.h>
+#include "../common/Modular.h"
 
 /* An exception is identified by the address of its object, so that units
    compiled apart still agree on what a handler catches.  The run time owns the
@@ -130,6 +131,7 @@ int __ada_value_integer(const char* text, int length, int low, int high);
 long long __ada_value_long_integer(const char* text, int length, long long low, long long high);
 
 /* Checked signed arithmetic: add, subtract, multiply, divide, rem, mod, power. */
+long long __ada_modular_operation(ModularOperation operation, long long modulus, long long left, long long right);
 long long __ada_integer_operation(int operation, int bits, long long left, long long right);
 int __ada_value_enum(const char* text, int length, const char** names, int count);
 int __ada_value_character(const char* text, int length);

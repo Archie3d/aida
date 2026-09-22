@@ -496,6 +496,15 @@ const char* __ada_image_long_integer(long long value)
     return buffer;
 }
 
+long long __ada_modular_operation(ModularOperation operation, long long modulus, long long left, long long right)
+{
+    long long result = 0;
+    if (!modularOperation(operation, modulus, left, right, &result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+    return result;
+}
+
 long long __ada_integer_operation(int operation, int bits, long long left, long long right)
 {
     long long result = 0;

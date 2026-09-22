@@ -30,19 +30,25 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
     }
 
     if (!isFloatClass(type)) {
-        int operation = -1;
+        ModularOperation operation = ModularInvalid;
         switch (expr->op) {
-        case BinaryOp::Add: operation = 0; break;
-        case BinaryOp::Subtract: operation = 1; break;
-        case BinaryOp::Multiply: operation = 2; break;
-        case BinaryOp::Divide: operation = 3; break;
-        case BinaryOp::Remainder: operation = 4; break;
-        case BinaryOp::Modulo: operation = 5; break;
-        case BinaryOp::Power: operation = 6; break;
+        case BinaryOp::Add: operation = ModularAdd; break;
+        case BinaryOp::Subtract: operation = ModularSubtract; break;
+        case BinaryOp::Multiply: operation = ModularMultiply; break;
+        case BinaryOp::Divide: operation = ModularDivide; break;
+        case BinaryOp::Remainder: operation = ModularRemainder; break;
+        case BinaryOp::Modulo: operation = ModularModulo; break;
+        case BinaryOp::Power: operation = ModularPower; break;
+        case BinaryOp::And: if (expr->type->m_modulus != 0) operation = ModularAnd; break;
+        case BinaryOp::Or: if (expr->type->m_modulus != 0) operation = ModularOr; break;
+        case BinaryOp::Xor: if (expr->type->m_modulus != 0) operation = ModularXor; break;
         default: break;
         }
-        if (operation >= 0) {
-            return emitIntegerOperation(operation, left, right, left.type);
+        if (operation != ModularInvalid && expr->type->m_modulus != 0) {
+            return emitModularOperation(operation, left, right, expr->type);
+        }
+        if (operation != ModularInvalid) {
+            return emitIntegerOperation(static_cast<int>(operation), left, right, left.type);
         }
     }
 
@@ -122,6 +128,14 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
     Value operand = emitExpr(expr->operand.get());
     std::string temp = newTemp();
 
+    if (expr->type->m_modulus != 0) {
+        if (expr->op == UnaryOp::Negate) {
+            return emitModularOperation(ModularSubtract, Value { "0", operand.type }, operand, expr->type);
+        }
+        if (expr->op == UnaryOp::Not) {
+            return emitModularOperation(ModularNot, operand, Value { "0", operand.type }, expr->type);
+        }
+    }
     switch (expr->op) {
     case UnaryOp::Plus:
         return operand;
@@ -169,6 +183,30 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
     }
 
     return operand;
+}
+
+Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type)
+{
+    auto widen = [&](const Value& value) {
+        if (value.type == 'l') {
+            return value.name;
+        }
+        std::string result = newTemp();
+        line(result + " =l extsw " + value.name);
+        return result;
+    };
+    std::string leftWide = widen(left);
+    std::string rightWide = widen(right);
+    std::string result = newTemp();
+    line(result + " =l call $__ada_modular_operation(w " + std::to_string(static_cast<int>(operation))
+         + ", l " + std::to_string(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")");
+    emitExceptionCheck();
+    if (qbeClass(type) == 'w') {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + result);
+        result = narrow;
+    }
+    return Value { result, qbeClass(type) };
 }
 
 Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const Value& right, char type)

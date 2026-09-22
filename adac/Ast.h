@@ -333,6 +333,7 @@ enum class TypeDefKind
 {
     Enumeration,
     IntegerRange,
+    Modular,
     FloatDigits,
     Array,
     Record,

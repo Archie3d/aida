@@ -79,6 +79,24 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         break;
     }
+    case TypeDefKind::Modular: {
+        type = makeType(TypeKind::Integer);
+        Type* modulusType = analyzeExpr(definition->rangeHigh.get(), scope, nullptr);
+        long long modulus = 0;
+        if (modulusType == nullptr || (modulusType->kind != TypeKind::Integer
+            && modulusType->kind != TypeKind::UniversalInteger)
+            || !foldStatic(definition->rangeHigh.get(), modulus)) {
+            m_diagnostics.error(definition->location, "the modulus must be a static integer expression");
+            modulus = 1;
+        } else if (modulus < 1 || modulus > 4294967296LL) {
+            m_diagnostics.error(definition->location, "supported moduli are 1 through 2 ** 32");
+            modulus = 1;
+        }
+        type->m_modulus = modulus;
+        type->low = 0;
+        type->high = modulus - 1;
+        break;
+    }
     case TypeDefKind::IntegerRange: {
         type = makeType(TypeKind::Integer);
         analyzeExpr(definition->rangeLow.get(), scope, m_types.integerType());
@@ -488,6 +506,14 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope)
                                                 + " bits is not a whole number of storage units this machine can "
                                                   "address");
         return;
+    }
+    if (symbol->type->m_modulus != 0) {
+        long long modulus = symbol->type->m_modulus;
+        if ((bits != 8 && bits != 16 && bits != 32 && bits != 64)
+            || (bits < 64 && modulus > (1LL << (bits == 32 ? 31 : bits)))) {
+            m_diagnostics.error(decl->location, "unsupported representation size for this modular type");
+            return;
+        }
     }
     symbol->type->byteSize = static_cast<int>(bits / 8);
 }

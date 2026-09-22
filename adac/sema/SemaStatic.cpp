@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "../../common/Modular.h"
 
 #include <cstdint>
 #include <limits>
@@ -29,6 +30,15 @@ bool Sema::foldStatic(Expr* expr, long long& value) const
         if (!foldStatic(unary->operand.get(), operand)) {
             return false;
         }
+        if (expr->type != nullptr && expr->type->m_modulus != 0) {
+            long long modulus = expr->type->m_modulus;
+            if (unary->op == UnaryOp::Negate) {
+                return modularOperation(ModularSubtract, modulus, 0, operand, &value);
+            }
+            if (unary->op == UnaryOp::Not) {
+                return modularOperation(ModularNot, modulus, operand, 0, &value);
+            }
+        }
         switch (unary->op) {
         case UnaryOp::Plus:
             value = operand;
@@ -56,6 +66,25 @@ bool Sema::foldStatic(Expr* expr, long long& value) const
         long long right = 0;
         if (!foldStatic(binary->left.get(), left) || !foldStatic(binary->right.get(), right)) {
             return false;
+        }
+        if (expr->type != nullptr && expr->type->m_modulus != 0) {
+            ModularOperation operation = ModularInvalid;
+            switch (binary->op) {
+            case BinaryOp::Add: operation = ModularAdd; break;
+            case BinaryOp::Subtract: operation = ModularSubtract; break;
+            case BinaryOp::Multiply: operation = ModularMultiply; break;
+            case BinaryOp::Divide: operation = ModularDivide; break;
+            case BinaryOp::Remainder: operation = ModularRemainder; break;
+            case BinaryOp::Modulo: operation = ModularModulo; break;
+            case BinaryOp::Power: operation = ModularPower; break;
+            case BinaryOp::And: operation = ModularAnd; break;
+            case BinaryOp::Or: operation = ModularOr; break;
+            case BinaryOp::Xor: operation = ModularXor; break;
+            default: break;
+            }
+            if (operation != ModularInvalid) {
+                return modularOperation(operation, expr->type->m_modulus, left, right, &value);
+            }
         }
         switch (binary->op) {
         case BinaryOp::Add:

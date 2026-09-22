@@ -94,9 +94,14 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
     if (operands.size() == 1) {
         if (name == "not") {
             predefined({ m_types.booleanType() }, m_types.booleanType());
+            for (Type* type : types) {
+                if (type->m_modulus != 0 && representationVisible(type)) {
+                    predefined({ type }, type);
+                }
+            }
         } else if (name == "+" || name == "-" || name == "abs") {
             for (Type* type : types) {
-                if (isNumeric(type) && representationVisible(type)) {
+                if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->m_modulus != 0)) {
                     predefined({ type }, type);
                 }
             }
@@ -106,6 +111,11 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         bool ordering = name == "<" || name == "<=" || name == ">" || name == ">=";
         if (name == "and" || name == "or" || name == "xor") {
             predefined({ m_types.booleanType(), m_types.booleanType() }, m_types.booleanType());
+            for (Type* type : types) {
+                if (type->m_modulus != 0 && representationVisible(type)) {
+                    predefined({ type, type }, type);
+                }
+            }
         } else if (name == "&") {
             addType(m_types.stringType());
             for (Type* type : types) {
@@ -131,7 +141,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                     if (allowed) {
                         predefined({ type, type }, m_types.booleanType());
                     }
-                } else if (isNumeric(type) && representationVisible(type)) {
+                } else if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->m_modulus != 0)) {
                     if ((name == "mod" || name == "rem") && isReal(type)) {
                         continue;
                     }

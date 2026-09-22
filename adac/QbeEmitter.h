@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Ast.h"
+#include "../common/Modular.h"
 #include "Diagnostics.h"
 #include "Sema.h"
 
@@ -150,6 +151,7 @@ private:
     // Operators (QbeOperators.cpp).
     Value emitBinary(BinaryExpr* expr);
     Value emitUnary(UnaryExpr* expr);
+    Value emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type);
     Value emitIntegerOperation(int operation, const Value& left, const Value& right, char type);
     Value emitShortCircuit(BinaryExpr* expr);
     Value emitModulo(const Value& left, const Value& right, char type);

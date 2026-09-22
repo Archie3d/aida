@@ -24,6 +24,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     }
 
     if (expr->isStatic && isDiscrete(baseType(expr->type))) {
+        if (expr->type->m_modulus != 0
+            && (expr->staticValue < 0 || expr->staticValue >= expr->type->m_modulus)) {
+            raiseConstraintError();
+        }
         // Check before narrowing the literal to a QBE word. Subtype bounds
         // are checked at value boundaries, not on intermediate expressions.
         if (qbeClass(expr->type) == 'w'
@@ -189,7 +193,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
         Value value = emitExpr(static_cast<QualifiedExpr*>(expr)->operand.get());
-        if (expr->type->m_scalarBoundsSymbol != nullptr) {
+        if (expr->type->m_scalarBoundsSymbol != nullptr || expr->type->m_modulus != 0) {
             emitRangeCheck(value, expr->type, expr->location);
         }
         return value;

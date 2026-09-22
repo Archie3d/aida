@@ -34,7 +34,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "succ" || name == "pred") {
         Value value = emitExpr(expr->arguments.front().get());
         Value result = emitIntegerOperation(name == "succ" ? 0 : 1, value, Value { "1", value.type }, value.type);
-        if (prefixType->kind == TypeKind::Enumeration) {
+        if (prefixType->kind == TypeKind::Enumeration || prefixType->m_modulus != 0) {
             emitRangeCheck(result, baseType(prefixType), expr->location);
         }
         return result;
