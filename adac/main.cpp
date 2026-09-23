@@ -18,6 +18,7 @@
 
 #ifdef _WIN32
 #   include <cstdlib>
+#   include <direct.h>
 #else
 #   include <climits>
 #endif

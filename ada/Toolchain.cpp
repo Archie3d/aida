@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #ifdef _WIN32
+#   include <windows.h>
 #   include <process.h>
 #else
 #   include <sys/wait.h>
@@ -13,6 +14,49 @@
 
 namespace
 {
+
+#ifdef _WIN32
+
+std::string quoteWindowsArgument(const std::string& argument)
+{
+    std::string quoted = "\"";
+    std::size_t backslashes = 0;
+
+    for (char character : argument) {
+        if (character == '\\') {
+            ++backslashes;
+        } else if (character == '"') {
+            quoted.append(backslashes * 2 + 1, '\\');
+            quoted += '"';
+            backslashes = 0;
+        } else {
+            quoted.append(backslashes, '\\');
+            quoted += character;
+            backslashes = 0;
+        }
+    }
+
+    // Backslashes before the closing quote must be doubled.
+    quoted.append(backslashes * 2, '\\');
+    quoted += '"';
+    return quoted;
+}
+
+std::string makeWindowsCommandLine(const std::vector<std::string>& command)
+{
+    std::string result;
+
+    for (const std::string& argument : command) {
+        if (!result.empty()) {
+            result += ' ';
+        }
+        result += quoteWindowsArgument(argument);
+    }
+
+    return result;
+}
+
+#endif // _WIN32
 
 bool fileExists(const std::string& path)
 {
@@ -208,12 +252,41 @@ int Toolchain::run(const std::vector<std::string>& command) const
     arguments.push_back(nullptr);
 
 #ifdef _WIN32
-    intptr_t result = _spawnvp(_P_WAIT, arguments[0], arguments.data());
-    if (result == -1) {
+    std::string commandLine = makeWindowsCommandLine(command);
+    std::vector<char> mutableCommandLine(commandLine.begin(), commandLine.end());
+    mutableCommandLine.push_back('\0');
+
+    STARTUPINFOA startupInfo {};
+    startupInfo.cb = sizeof(startupInfo);
+
+    PROCESS_INFORMATION processInfo {};
+
+    BOOL started = CreateProcessA(
+        command[0].c_str(),
+        mutableCommandLine.data(),
+        nullptr,
+        nullptr,
+        FALSE,
+        0,
+        nullptr,
+        nullptr,
+        &startupInfo,
+        &processInfo);
+
+    if (!started) {
         std::cerr << "ada: error: cannot run '" << command.front() << "'\n";
         return -1;
     }
-    return static_cast<int>(result);
+
+    WaitForSingleObject(processInfo.hProcess, INFINITE);
+
+    DWORD exitCode = 1;
+    GetExitCodeProcess(processInfo.hProcess, &exitCode);
+
+    CloseHandle(processInfo.hThread);
+    CloseHandle(processInfo.hProcess);
+
+    return static_cast<int>(exitCode);
 #else
     pid_t child = fork();
     if (child < 0) {
@@ -233,5 +306,5 @@ int Toolchain::run(const std::vector<std::string>& command) const
         return WEXITSTATUS(status);
     }
     return -1;
-#endif
+#endif // _WIN32
 }
