@@ -672,7 +672,18 @@ void __ada_format_float(char* buffer, int size, double value, int fore, int aft,
         return;
     }
     power = power < 0 ? -power : power;
-    snprintf(buffer + written, size - written, "%0*d", exponent - 1, power);
+    int digitCount = snprintf(digits, sizeof digits, "%d", power);
+    int padding = exponent - 1 - digitCount;
+    /* Preserve the formatted prefix when the exponent field does not fit,
+       without asking printf to produce an arbitrarily large padded field. */
+    while (padding > 0 && written < size - 1) {
+        buffer[written++] = '0';
+        --padding;
+    }
+    for (i = 0; i < digitCount && written < size - 1; ++i) {
+        buffer[written++] = digits[i];
+    }
+    buffer[written] = '\0';
 }
 
 void __ada_put_float(double value, int fore, int aft, int exponent)
