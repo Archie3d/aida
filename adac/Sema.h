@@ -38,7 +38,7 @@ private:
     void analyzeDecl(Decl* decl, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
-    Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody);
+    Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false);
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);
@@ -57,6 +57,10 @@ private:
     void analyzeGenericDecl(GenericDecl* decl, Scope* scope);
     bool acceptsFormalType(const GenericFormal& formal, Type* actual, const std::string& genericName,
                            const SourceLocation& location);
+    bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
+                              Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault);
+    bool matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,
+                            const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);
     void analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* scope);
 

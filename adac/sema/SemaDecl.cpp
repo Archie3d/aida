@@ -193,7 +193,7 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
     }
 }
 
-Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody)
+Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal)
 {
     std::vector<Type*> parameterTypes;
     for (ParameterDecl& parameter : spec.parameters) {
@@ -214,7 +214,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody)
             m_diagnostics.error(spec.location, "'" + spec.lower + "' requires "
                 + (either ? "one or two" : unary ? "one" : "two") + " in parameters without defaults");
         }
-        if (spec.lower == "/=" && m_types.isBoolean(returnType)) {
+        if (!isFormal && spec.lower == "/=" && m_types.isBoolean(returnType)) {
             m_diagnostics.error(spec.location, "a Boolean '/=' is implicitly declared by '=' and cannot be declared explicitly");
         }
     }

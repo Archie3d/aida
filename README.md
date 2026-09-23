@@ -935,7 +935,37 @@ Each instance has state and code of its own. A library-level instance elaborates
 during program startup. An instance declared inside a subprogram or block
 elaborates whenever execution reaches its declaration, with fresh state for each
 activation. Generic formal objects currently require static actual values;
-formal subprograms and formal packages remain unsupported.
+formal packages remain unsupported.
+
+Formal functions and procedures accept named subprograms and quoted operator
+actuals, including predefined operators and package-qualified user operators.
+The actual is selected by parameter types, modes, and result type. Calls retain
+the formal's parameter names and defaults, and nested actuals retain access to
+their enclosing variables. A named default resolves at the generic declaration;
+`is <>` uses the formal's name at the instantiation site.
+
+For example, a sorting procedure can declare its comparison and array contract:
+
+```ada
+generic
+    type Element is private;
+    type Index_Type is (<>);
+    type Array_Type is array (Index_Type range <>) of Element;
+    with function "<" (Left, Right : Element) return Boolean is <>;
+procedure Sort (Items : in out Array_Type);
+
+-- After supplying the body of Sort:
+type Numbers is array (Integer range <>) of Integer;
+procedure Ascending is new Sort (Integer, Integer, Numbers);
+procedure Descending is new Sort (Integer, Integer, Numbers, "<" => ">");
+```
+
+Formal arrays check dimensionality, constrainedness, index types and subtypes,
+and component subtypes. Constrained formal array indexes must be subtype marks;
+matching runtime-dependent constraints is not yet supported. Formal abstract
+subprograms, null procedure defaults, and attribute or enumeration-literal
+subprogram actuals remain unsupported. Generic bodies are still checked after
+instantiation, rather than independently against their formal contracts.
 
 The input and output generics are instantiated the same way as any other, since
 they are written in Ada like the rest of the predefined environment.

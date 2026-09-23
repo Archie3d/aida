@@ -53,7 +53,7 @@ private:
     void parseDiscreteRange(std::string& typeName, std::string& typeLower, ExprPtr& low, ExprPtr& high);
 
     // Subprograms (ParserSubprograms.cpp).
-    SubprogramSpec parseSubprogramSpec();
+    SubprogramSpec parseSubprogramSpec(bool allowInstantiation = false);
     void parseParameterList(SubprogramSpec& spec);
     DeclPtr parseSubprogramDeclOrBody();
 

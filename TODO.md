@@ -384,9 +384,17 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
 `Sema::analyzeGenericInstantiation`.
 
 - [ ] Parse and enforce formal type categories fully: private/limited private,
-  derived, array, access, modular, and fixed-point formals as their types become
+  derived, access, modular, and fixed-point formals as their types become
   available. The current parser skips much of each formal type definition.
-- [ ] Formal subprograms, operator actuals, and default actuals (`<>`).
+- [x] Formal functions/procedures, named and operator actuals, and named/box
+  defaults (`<>`), with profile matching, instance-owned parameter defaults,
+  declaration-site named defaults and instantiation-site box defaults.
+  Covered by `generic_subprograms.adb`, `generic_defaults.adb`,
+  `generic_library.adb`, and `generic_subprogram_errors.adb`.
+- [x] Formal arrays with rank, constrainedness, index and component subtype
+  matching for static constraints.
+- [ ] Extend formal subprograms to abstract formals, null procedure defaults,
+  and attribute/enumeration-literal actuals; match dynamic array constraints.
 - [ ] Formal packages and matching of their generic contracts.
 - [ ] Nonstatic formal objects and their modes; current object actuals must fold
   to static values. Evaluate actual expressions at instantiation elaboration.
@@ -394,9 +402,8 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
   expressions that refer to earlier formals.
 - [ ] Check generic bodies against their declared contracts, not solely against
   the concrete types available after token-based instantiation.
-- [ ] Remove library-specific restrictions from general generic matching; for
-  example, discrete formal matching currently rejects `Character` with an I/O-
-  specific diagnostic.
+- [x] Keep the `Enumeration_IO` Character limitation out of general discrete
+  formal matching, so ordinary generics accept Character index types.
 
 Tests: generic sorting with a formal comparison function, a formal array type,
 a formal package, a dynamic capacity actual, and an illegal generic body that

@@ -834,7 +834,8 @@ enum class GenericFormalKind
     TypeFormal,
 
     // 'Size : Integer := 10'.  The instantiation supplies a static value.
-    ObjectFormal
+    ObjectFormal,
+    SubprogramFormal
 };
 
 // What a formal type will accept.  Ada writes this after 'is', and the
@@ -845,7 +846,8 @@ enum class FormalTypeClass
     Any,
     Discrete,
     IntegerType,
-    FloatType
+    FloatType,
+    ArrayType
 };
 
 struct GenericFormal
@@ -856,6 +858,11 @@ struct GenericFormal
     std::string lower;
     SubtypeIndicationPtr subtype;   // The type of an object formal.
     ExprPtr defaultValue;
+    TypeDefinitionPtr m_arrayDefinition;
+    std::vector<Token> m_subprogramTokens;
+    bool m_boxDefault = false;
+    std::vector<Symbol*> m_defaultCandidates;
+    bool m_defaultUsesFormal = false;
     SourceLocation location;
 };
 

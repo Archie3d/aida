@@ -1,0 +1,21 @@
+generic_subprogram_errors.adb:22:5: error: no actual supplied for generic formal 'Test'
+generic_subprogram_errors.adb:23:51: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:24:49: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:25:50: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:26:53: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:27:5: error: a generic formal cannot be supplied more than once
+generic_subprogram_errors.adb:28:5: error: a positional generic actual cannot follow a named actual
+generic_subprogram_errors.adb:29:5: error: 'Missing' is not a formal of 'Check', which takes 'Item', 'Test'
+generic_subprogram_errors.adb:42:39: error: no matching actual for generic formal 'Update'
+generic_subprogram_errors.adb:58:63: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:59:65: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:60:62: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:61:68: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:62:63: error: 'Array_Check' expects an array type, and 'Integer' is not one
+generic_subprogram_errors.adb:71:5: error: no matching actual for generic formal 'Absent'
+generic_subprogram_errors.adb:78:50: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:80:71: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:82:73: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:92:48: error: ambiguous actual for generic formal 'Test'
+generic_subprogram_errors.adb:95:63: error: no matching actual for generic formal 'Test'
+generic_subprogram_errors.adb:114:46: error: actual array does not match generic formal 'Array_Type'

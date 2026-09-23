@@ -2,7 +2,7 @@
 
 #include <utility>
 
-SubprogramSpec Parser::parseSubprogramSpec()
+SubprogramSpec Parser::parseSubprogramSpec(bool allowInstantiation)
 {
     SubprogramSpec spec;
     spec.location = current().location;
@@ -27,7 +27,7 @@ SubprogramSpec Parser::parseSubprogramSpec()
     if (check(TokenKind::LeftParen)) {
         parseParameterList(spec);
     }
-    if (spec.isFunction) {
+    if (spec.isFunction && !(allowInstantiation && check(TokenKind::KwIs) && peek(1).kind == TokenKind::KwNew)) {
         expect(TokenKind::KwReturn, "in function specification");
         spec.returnType = parseSubtypeIndication();
     }
@@ -78,7 +78,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
 {
     SourceLocation location = current().location;
     std::size_t start = m_position;
-    SubprogramSpec spec = parseSubprogramSpec();
+    SubprogramSpec spec = parseSubprogramSpec(true);
 
     if (match(TokenKind::Semicolon)) {
         auto decl = std::make_unique<SubprogramDecl>();

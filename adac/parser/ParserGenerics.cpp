@@ -29,7 +29,26 @@ DeclPtr Parser::parseGenericDeclaration()
             // What follows says which types the instantiation may supply.  Only
             // the first word of it is telling: 'range' and 'digits' each name a
             // family of their own, and '(<>)' asks for a discrete type.
-            if (check(TokenKind::KwRange)) {
+            if (check(TokenKind::KwArray)) {
+                formal.typeClass = FormalTypeClass::ArrayType;
+                std::size_t start = m_position;
+                formal.m_arrayDefinition = parseTypeDefinition();
+                std::size_t boxes = 0;
+                for (std::size_t i = start; i < m_position; ++i) {
+                    boxes += m_tokens[i].kind == TokenKind::Box ? 1 : 0;
+                }
+                if (boxes != 0 && boxes != formal.m_arrayDefinition->indexTypes.size()) {
+                    fail("formal array indexes must be all constrained or all unconstrained");
+                }
+                for (const auto& index : formal.m_arrayDefinition->indexTypes) {
+                    if (index->name.empty() || index->rangeLow || index->rangeHigh) {
+                        fail("a constrained formal array index must be a subtype mark");
+                    }
+                }
+                if (!check(TokenKind::Semicolon)) {
+                    fail("expected ';' after formal array type");
+                }
+            } else if (check(TokenKind::KwRange)) {
                 formal.typeClass = FormalTypeClass::IntegerType;
             } else if (check(TokenKind::KwDigits)) {
                 formal.typeClass = FormalTypeClass::FloatType;
@@ -39,6 +58,22 @@ DeclPtr Parser::parseGenericDeclaration()
             while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
                 advance();
             }
+        } else if (match(TokenKind::KwWith)) {
+            formal.kind = GenericFormalKind::SubprogramFormal;
+            std::size_t start = m_position;
+            SubprogramSpec spec = parseSubprogramSpec();
+            formal.name = spec.name;
+            formal.lower = spec.lower;
+            formal.m_subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+            if (match(TokenKind::KwIs)) {
+                formal.m_boxDefault = match(TokenKind::Box);
+                if (!formal.m_boxDefault) {
+                    formal.defaultValue = parseExpression();
+                }
+            }
+            formal.m_subprogramTokens.push_back(current()); // The terminating semicolon.
+            formal.m_subprogramTokens.push_back(m_tokens.back());
         } else if (check(TokenKind::Identifier)) {
             const Token& name = advance();
             formal.kind = GenericFormalKind::ObjectFormal;
@@ -118,9 +153,11 @@ DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const 
     if (match(TokenKind::LeftParen)) {
         while (true) {
             Association association;
-            if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+            if ((check(TokenKind::Identifier) || (check(TokenKind::StringLiteral)
+                    && !operatorSymbol(current().text).empty())) && peek(1).kind == TokenKind::Arrow) {
                 association.name = current().text;
-                association.nameLower = current().lower;
+                association.nameLower = current().kind == TokenKind::StringLiteral
+                    ? operatorSymbol(current().text) : current().lower;
                 advance();
                 advance();
             }
