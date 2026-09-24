@@ -12,7 +12,7 @@ procedure Generic_Subprograms is
     begin
         for I in Items'Range loop
             for J in I .. Items'Last loop
-                if J /= I and then Items (J) < Items (I) then
+                if I < J and then Items (J) < Items (I) then
                     Temp := Items (I);
                     Items (I) := Items (J);
                     Items (J) := Temp;

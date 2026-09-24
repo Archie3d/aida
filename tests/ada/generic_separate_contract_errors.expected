@@ -1,0 +1,2 @@
+contract_bad.adb:4:18: error: arithmetic operators require numeric operands
+contract_bad.adb:4:18: error: 'Item' is private, so 'Contract_Bad' has to be the one to say what this operator means

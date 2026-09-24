@@ -10,7 +10,22 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
     const std::vector<Expr*>& operands, Scope* scope, Type* expected)
 {
     std::vector<OperatorCandidate> candidates;
-    for (Symbol* symbol : scope->lookup(name)) {
+    auto symbols = scope->lookup(name);
+    bool fixed = false;
+    Symbol* fixedSymbol = nullptr;
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->m_operators.find(operatorContractKey(name, operands));
+        if (found != m_replayContract->m_operators.end()) {
+            fixed = true;
+            fixedSymbol = instanceSymbol(found->second);
+            if (found->second != nullptr && fixedSymbol == nullptr) {
+                m_diagnostics.error(operands.front()->location, "cannot map a resolved generic operator to its instance");
+                return {};
+            }
+            symbols = fixedSymbol == nullptr ? std::vector<Symbol*> {} : std::vector<Symbol*> { fixedSymbol };
+        }
+    }
+    for (Symbol* symbol : symbols) {
         if (symbol->kind != SymbolKind::Subprogram || symbol->parameters.size() != operands.size()
             || symbol->returnType == nullptr || !matchesResult(symbol, expected)) {
             continue;
@@ -28,6 +43,10 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (matches) {
             candidates.push_back(std::move(candidate));
         }
+    }
+
+    if (fixed && fixedSymbol != nullptr) {
+        return candidates;
     }
 
     auto sameProfile = [&](const OperatorCandidate& a, const OperatorCandidate& b) {

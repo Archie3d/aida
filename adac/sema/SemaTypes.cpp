@@ -73,6 +73,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             type->literals.push_back(definition->literalsLower[i]);
             Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral,
                                                          definition->literalsLower[i], definition->literals[i]);
+            literal->location = definition->location;
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
             scope->add(literal);
@@ -171,7 +172,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
                 if (!foldStatic(index->rangeLow.get(), row->indexLow)
                     || !foldStatic(index->rangeHigh.get(), row->indexHigh)) {
-                    if (m_currentSubprogram == nullptr) {
+                    if (m_currentSubprogram == nullptr && m_recordContract == nullptr) {
                         m_diagnostics.error(index->location, "runtime array type bounds are supported only inside a subprogram");
                     }
                     dynamicBounds = true;
@@ -251,6 +252,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         for (std::size_t i = 0; i < parent->literals.size(); ++i) {
             Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, parent->literals[i],
                                                          parent->literals[i]);
+            literal->location = definition->location;
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
             scope->add(literal);
@@ -295,10 +297,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         symbol->location = decl->location;
         scope->add(symbol);
     }
-    if (!type->m_boundExpressions.empty() && m_currentSubprogram != nullptr) {
+    if (!type->m_boundExpressions.empty() && (m_currentSubprogram != nullptr || m_recordContract != nullptr)) {
         type->m_boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
-        m_currentSubprogram->needsFrame = true;
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->needsFrame = true;
+        }
     }
 }
 

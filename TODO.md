@@ -400,8 +400,14 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
   to static values. Evaluate actual expressions at instantiation elaboration.
 - [ ] Qualified type actuals, duplicate/named-argument validation, and default
   expressions that refer to earlier formals.
-- [ ] Check generic bodies against their declared contracts, not solely against
-  the concrete types available after token-based instantiation.
+- [x] Check generic bodies against their declared contracts for the supported
+  private, discrete, integer, floating-point, array, and subprogram formals.
+  Preserve resolved names/operators through token-based instantiation; reject
+  invalid unused bodies, including separate bodies. Covered by
+  `generic_contracts.adb`, `generic_contract_errors.adb`, the separate
+  `contract_bad` fixture, and the shared Integer index/element sorting regression.
+- [ ] Extend contract checking alongside additional formal categories and
+  nonstatic objects; remove remaining instance-time body legality rechecks.
 - [x] Keep the `Enumeration_IO` Character limitation out of general discrete
   formal matching, so ordinary generics accept Character index types.
 

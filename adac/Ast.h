@@ -861,6 +861,7 @@ struct GenericFormal
     TypeDefinitionPtr m_arrayDefinition;
     std::vector<Token> m_subprogramTokens;
     bool m_boxDefault = false;
+    bool m_limited = false;
     std::vector<Symbol*> m_defaultCandidates;
     bool m_defaultUsesFormal = false;
     SourceLocation location;

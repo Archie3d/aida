@@ -7,7 +7,7 @@ if(NOT DEFINED NAME OR NOT DEFINED SOURCE)
     message(FATAL_ERROR "CheckDeterminism.cmake requires NAME and SOURCE")
 endif()
 
-set(work "${WORKDIR}/${NAME}")
+set(work "${WORKDIR}/determinism/${NAME}")
 file(REMOVE_RECURSE "${work}")
 file(MAKE_DIRECTORY "${work}/whole")
 file(MAKE_DIRECTORY "${work}/apart")

@@ -1,0 +1,7 @@
+generic_contract_errors.adb:7:18: error: arithmetic operators require numeric operands
+generic_contract_errors.adb:7:18: error: 'Item' is private, so 'Add' has to be the one to say what this operator means
+generic_contract_errors.adb:15:18: error: the operands of an arithmetic operator must have the same type
+generic_contract_errors.adb:15:18: error: arithmetic operators require numeric operands
+generic_contract_errors.adb:24:9: error: the assigned value has an incompatible type
+generic_contract_errors.adb:32:18: error: 'Item' is private, so 'Less' has to be the one to say what this operator means
+generic_contract_errors.adb:40:9: error: 'Item' is limited private, so a value of it cannot be assigned outside 'Copy'

@@ -352,3 +352,9 @@ endforeach()
 add_ada_test(modular SOURCES modular.adb)
 add_ada_test(modularchecks SOURCES modularchecks.adb)
 add_ada_error_test(modularerrors SOURCES modularerrors.adb)
+
+add_ada_test(generic_contracts SOURCES generic_contracts.adb)
+add_ada_error_test(generic_contract_errors SOURCES generic_contract_errors.adb)
+add_determinism_test(generic_contracts SOURCE generic_contracts.adb)
+add_ada_error_test(generic_separate_contract_errors
+    SOURCES separate/contract_bad.ads separate/contract_bad.adb)

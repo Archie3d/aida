@@ -35,6 +35,7 @@ class SymbolTable
 public:
     Symbol* createSymbol(SymbolKind kind, const std::string& lowerName, const std::string& displayName);
     Scope* createScope(Scope* parent);
+    const std::vector<std::unique_ptr<Symbol>>& symbols() const { return m_symbols; }
 
 private:
     std::vector<std::unique_ptr<Symbol>> m_symbols;

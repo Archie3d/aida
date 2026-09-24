@@ -3,6 +3,7 @@
 #include "Parser.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -112,7 +113,7 @@ Symbol* declaredSymbol(Decl* decl)
 
 void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
 {
-    // A generic unit is not analysed where it stands; only its instances are.
+    // Register the generic before checking its formal contract.
     // One with a dotted name is a child like any other, so it is declared
     // inside its parent rather than under a name with a dot in it.
     Scope* target = scope;
@@ -156,6 +157,180 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     symbol->generic = decl;
     decl->symbol = symbol;
     target->add(symbol);
+    checkGenericContract(decl, target);
+}
+
+std::string Sema::contractKey(const SourceLocation& location)
+{
+    return std::to_string(location.file) + ":" + std::to_string(location.line) + ":" + std::to_string(location.column);
+}
+
+std::string Sema::nameContractKey(Expr* expr)
+{
+    std::string name;
+    if (expr->kind == ExprKind::Identifier) {
+        name = static_cast<IdentifierExpr*>(expr)->lower;
+    } else if (expr->kind == ExprKind::Selected) {
+        name = static_cast<SelectedExpr*>(expr)->selectorLower;
+    }
+    return contractKey(expr->location) + ":" + std::to_string(static_cast<int>(expr->kind)) + ":" + name;
+}
+
+std::string Sema::operatorContractKey(const std::string& name, const std::vector<Expr*>& operands)
+{
+    std::string key = name;
+    for (Expr* operand : operands) {
+        key += ":" + contractKey(operand->location);
+    }
+    return key;
+}
+
+Symbol* Sema::instanceSymbol(Symbol* symbol)
+{
+    if (symbol == nullptr || m_replayContract == nullptr) {
+        return symbol;
+    }
+    auto copied = m_instanceCopies.find(symbol);
+    if (copied != m_instanceCopies.end()) {
+        return copied->second;
+    }
+    const auto& symbols = m_symbolTable.symbols();
+    if (!m_replayContract->m_localSymbols.contains(symbol)) {
+        return symbol;
+    }
+    for (std::size_t i = symbols.size(); i > m_instanceFirstSymbol; --i) {
+        Symbol* candidate = symbols[i - 1].get();
+        if (candidate->kind == symbol->kind
+            && (candidate->name == symbol->name || (symbol->name == m_replayContract->m_unitName
+                && (symbol->kind == SymbolKind::Subprogram || symbol->kind == SymbolKind::Package)))
+            && contractKey(candidate->location) == contractKey(symbol->location)) {
+            return candidate;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<Symbol*> Sema::contractNames(Expr* expr, std::vector<Symbol*> candidates)
+{
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->m_names.find(nameContractKey(expr));
+        if (found != m_replayContract->m_names.end()) {
+            if (Symbol* symbol = instanceSymbol(found->second)) {
+                return { symbol };
+            }
+            m_diagnostics.error(expr->location, "cannot map a resolved generic name to its instance");
+            return {};
+        }
+    }
+    return candidates;
+}
+
+void Sema::recordContractName(Expr* expr, Symbol* symbol)
+{
+    if (m_recordContract != nullptr && symbol != nullptr) {
+        m_recordContract->m_names[nameContractKey(expr)] = symbol;
+    }
+}
+
+void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
+{
+    auto& owned = m_genericContracts[decl];
+    bool continuation = owned != nullptr;
+    if (!continuation) {
+        owned = std::make_unique<GenericContract>();
+        owned->m_environment = scope;
+        owned->m_bindings = m_symbolTable.createScope(scope);
+        owned->m_unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
+        owned->m_valid = true;
+    }
+    GenericContract* contract = owned.get();
+    std::size_t firstSymbol = m_symbolTable.symbols().size();
+    Scope* bindings = contract->m_bindings;
+    auto* savedRecord = m_recordContract;
+    auto* savedReplay = m_replayContract;
+    auto savedNames = m_subprogramNames;
+    auto savedExceptions = m_unitExceptions;
+    m_recordContract = contract;
+    m_replayContract = nullptr;
+    int errors = m_diagnostics.errorCount();
+    for (GenericFormal& formal : decl->formals) {
+        if (continuation) {
+            break;
+        }
+        if (formal.kind == GenericFormalKind::SubprogramFormal) {
+            Parser parser(formal.m_subprogramTokens, m_diagnostics);
+            DeclList profile = parser.parseDeclarations();
+            if (profile.size() == 1) {
+                auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
+                declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
+                contract->m_profiles.push_back(std::move(profile.front()));
+            }
+            continue;
+        }
+        if (formal.kind == GenericFormalKind::TypeFormal) {
+            Type* type = nullptr;
+            if (formal.typeClass == FormalTypeClass::ArrayType) {
+                TypeDecl array;
+                array.name = formal.name;
+                array.lower = formal.lower;
+                array.location = formal.location;
+                array.definition = std::move(formal.m_arrayDefinition);
+                analyzeTypeDecl(&array, bindings);
+                formal.m_arrayDefinition = std::move(array.definition);
+                continue;
+            }
+            TypeKind kind = formal.typeClass == FormalTypeClass::IntegerType ? TypeKind::Integer
+                : formal.typeClass == FormalTypeClass::FloatType ? TypeKind::Float
+                : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
+            type = m_types.create(kind, formal.name);
+            type->low = std::numeric_limits<int>::min();
+            type->high = std::numeric_limits<int>::max();
+            type->digits = 6;
+            if (formal.typeClass == FormalTypeClass::Any) {
+                type->privateTo = decl->symbol;
+                type->isLimited = formal.m_limited;
+            }
+            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
+            symbol->type = type;
+            symbol->location = formal.location;
+            bindings->add(symbol);
+        } else {
+            Type* type = resolveSubtypeIndication(formal.subtype.get(), bindings);
+            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, formal.lower, formal.name);
+            symbol->type = type;
+            symbol->location = formal.location;
+            // Even a currently static-only actual is unknown in the contract.
+            // The contract pass permits symbolic layouts and never emits them.
+            if (formal.defaultValue) {
+                Type* value = analyzeExpr(formal.defaultValue.get(), bindings, type);
+                if (!typesCompatible(type, value)) {
+                    m_diagnostics.error(formal.location, "generic formal object default has an incompatible type");
+                }
+            }
+            bindings->add(symbol);
+        }
+    }
+    std::vector<Token> tokens(decl->tokens.begin() + static_cast<std::ptrdiff_t>(contract->m_tokenCount),
+                              decl->tokens.end());
+    Parser parser(tokens, m_diagnostics);
+    DeclList declarations = parser.parseDeclarations();
+    for (const DeclPtr& unit : declarations) {
+        renameUnit(unit.get(), contract->m_unitName, contract->m_unitName, decl->lower);
+    }
+    analyzeDeclarativePart(declarations, bindings);
+    for (DeclPtr& unit : declarations) {
+        contract->m_declarations.push_back(std::move(unit));
+    }
+    const auto& symbols = m_symbolTable.symbols();
+    for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
+        contract->m_localSymbols.insert(symbols[i].get());
+    }
+    contract->m_tokenCount = decl->tokens.size() - 1;
+    contract->m_valid = contract->m_valid && m_diagnostics.errorCount() == errors;
+    m_recordContract = savedRecord;
+    m_replayContract = savedReplay;
+    m_subprogramNames = std::move(savedNames);
+    m_unitExceptions = std::move(savedExceptions);
 }
 
 // A formal type says what kind of type the instantiation may supply, and a
@@ -190,6 +365,8 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
     case FormalTypeClass::Any:
         if (!isDefinite(actual)) {
             wanted = "a type of a fixed size";
+        } else if (!formal.m_limited && base->isLimited) {
+            wanted = "a nonlimited type";
         }
         break;
     }
@@ -234,7 +411,8 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
 }
 
 bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
-                                 Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault)
+                                 Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
+                                 GenericContract* contract, std::size_t firstSymbol)
 {
     if (namedDefault) {
         Scope* defaults = m_symbolTable.createScope(nullptr);
@@ -271,7 +449,16 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     body->location = formal.location;
     body->spec = std::move(static_cast<SubprogramDecl*>(declarations.front().get())->spec);
     int errors = m_diagnostics.errorCount();
+    auto* savedReplay = m_replayContract;
+    auto* savedRecord = m_recordContract;
+    std::size_t savedFirst = m_instanceFirstSymbol;
+    m_replayContract = contract;
+    m_recordContract = nullptr;
+    m_instanceFirstSymbol = firstSymbol;
     Symbol* wrapper = declareSubprogram(body->spec, bindings, true, true);
+    m_replayContract = savedReplay;
+    m_recordContract = savedRecord;
+    m_instanceFirstSymbol = savedFirst;
     if (m_diagnostics.errorCount() != errors) {
         return false;
     }
@@ -407,6 +594,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
 bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope)
 {
     const std::vector<GenericFormal>& formals = generic->generic->formals;
+    std::size_t firstSymbol = m_symbolTable.symbols().size();
     std::vector<Expr*> actuals(formals.size(), nullptr);
 
     if (decl->arguments.size() > formals.size()) {
@@ -456,7 +644,8 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         }
         if (formal.kind == GenericFormalKind::SubprogramFormal) {
             if (!bindFormalSubprogram(decl, formal, actual, bindings, scope,
-                    actuals[i] == nullptr && formal.defaultValue != nullptr)) {
+                    actuals[i] == nullptr && formal.defaultValue != nullptr,
+                    m_genericContracts.at(generic->generic).get(), firstSymbol)) {
                 return false;
             }
             continue;
@@ -558,7 +747,16 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         instanceDisplay = decl->name.substr(dot + 1);
     }
 
-    Scope* bindings = m_symbolTable.createScope(scope);
+    auto foundContract = m_genericContracts.find(generic->generic);
+    if (foundContract == m_genericContracts.end() || !foundContract->second->m_valid) {
+        for (std::size_t i = 0; i < pushed; ++i) {
+            m_namePrefix.pop_back();
+        }
+        return;
+    }
+    GenericContract* contract = foundContract->second.get();
+    std::size_t firstSymbol = m_symbolTable.symbols().size();
+    Scope* bindings = m_symbolTable.createScope(contract->m_environment);
     if (!bindGenericFormals(decl, generic, bindings, scope)) {
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
@@ -572,9 +770,49 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         renameUnit(unit.get(), instanceDisplay, instanceName, generic->generic->lower);
     }
 
+    auto* savedReplay = m_replayContract;
+    auto* savedRecord = m_recordContract;
+    std::size_t savedFirst = m_instanceFirstSymbol;
+    m_replayContract = contract;
+    m_recordContract = nullptr;
+    m_instanceFirstSymbol = firstSymbol;
+    auto savedCopies = std::move(m_instanceCopies);
+    m_instanceCopies.clear();
     ++m_instantiationDepth;
     analyzeDeclarativePart(expansion, bindings);
     --m_instantiationDepth;
+    m_replayContract = savedReplay;
+    m_recordContract = savedRecord;
+    m_instanceFirstSymbol = savedFirst;
+    m_instanceCopies = std::move(savedCopies);
+
+    // Distinguish multiple copies of the same nested template. Their source
+    // locations coincide, but their enclosing instantiations do not.
+    const auto& symbols = m_symbolTable.symbols();
+    std::string instanceKey = contractKey(decl->location);
+    if (m_recordContract != nullptr) {
+        auto& copies = m_recordContract->m_instances[instanceKey];
+        for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
+            copies.push_back(symbols[i].get());
+        }
+    }
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->m_instances.find(instanceKey);
+        if (found != m_replayContract->m_instances.end()) {
+            std::size_t next = firstSymbol;
+            for (Symbol* original : found->second) {
+                for (std::size_t i = next; i < symbols.size(); ++i) {
+                    Symbol* copy = symbols[i].get();
+                    if (copy->kind == original->kind && copy->name == original->name
+                        && contractKey(copy->location) == contractKey(original->location)) {
+                        m_instanceCopies[original] = copy;
+                        next = i + 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     for (std::size_t i = 0; i < pushed; ++i) {
         m_namePrefix.pop_back();

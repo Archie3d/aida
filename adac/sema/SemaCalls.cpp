@@ -22,7 +22,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     std::vector<Symbol*> candidates;
     if (expr->callee->kind == ExprKind::Identifier) {
         auto* identifier = static_cast<IdentifierExpr*>(expr->callee.get());
-        candidates = scope->lookup(identifier->lower);
+        candidates = expressionNames(expr->callee.get(), scope);
         if (identifier->lower.ends_with("'base")) {
             Type* type = resolveTypeName(identifier->lower, scope, identifier->location);
             if (type == nullptr) {
@@ -30,6 +30,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             Symbol* mark = m_symbolTable.createSymbol(SymbolKind::TypeName, identifier->lower, identifier->name);
             mark->type = type;
+            mark->location = identifier->location;
             candidates = { mark };
         }
         if (candidates.empty()) {
@@ -64,6 +65,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
         }
     }
+
+    candidates = contractNames(expr->callee.get(), std::move(candidates));
 
     // A range as the only argument selects a slice of an array.
     if (expr->arguments.size() == 1 && expr->arguments.front().high) {
@@ -148,6 +151,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
             analyzeExpr(source, scope, nullptr);
         }
+        recordContractName(expr->callee.get(), candidates.front());
         expr->form = CallForm::Conversion;
         expr->type = candidates.front()->type;
         Expr* operand = expr->arguments.front().value.get();
@@ -235,6 +239,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 
         expr->form = CallForm::Subprogram;
         expr->subprogram = chosen;
+        recordContractName(expr->callee.get(), chosen);
         expr->resolvedArguments.assign(chosen->parameters.size(), nullptr);
         for (std::size_t i = 0; i < expr->arguments.size(); ++i) {
             std::size_t index = i;

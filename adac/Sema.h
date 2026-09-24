@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Sema
@@ -54,11 +55,43 @@ private:
     bool checkNotPrivate(Type* type, const SourceLocation& location, const char* what);
 
     // SemaGenerics.cpp
+    // Retain contract ASTs because symbols refer to parameter defaults and
+    // constraint expressions. Stable source keys reconnect reparsed instances
+    // to the declarations and predefined/operator choices checked here.
+    struct GenericContract
+    {
+        Scope* m_environment = nullptr;
+        Scope* m_bindings = nullptr;
+        std::string m_unitName;
+        std::size_t m_tokenCount = 0;
+        std::unordered_set<Symbol*> m_localSymbols;
+        DeclList m_declarations;
+        DeclList m_profiles;
+        std::unordered_map<std::string, Symbol*> m_names;
+        std::unordered_map<std::string, Symbol*> m_operators;
+        std::unordered_map<std::string, Symbol*> m_subprograms;
+        std::unordered_map<std::string, Symbol*> m_typeNames;
+        std::unordered_map<std::string, std::vector<Symbol*>> m_instances;
+        bool m_valid = false;
+    };
+    std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
+    GenericContract* m_recordContract = nullptr;
+    GenericContract* m_replayContract = nullptr;
+    std::size_t m_instanceFirstSymbol = 0;
+    std::unordered_map<Symbol*, Symbol*> m_instanceCopies;
+    static std::string contractKey(const SourceLocation& location);
+    static std::string nameContractKey(Expr* expr);
+    static std::string operatorContractKey(const std::string& name, const std::vector<Expr*>& operands);
+    Symbol* instanceSymbol(Symbol* symbol);
+    std::vector<Symbol*> contractNames(Expr* expr, std::vector<Symbol*> candidates);
+    void recordContractName(Expr* expr, Symbol* symbol);
+    void checkGenericContract(GenericDecl* decl, Scope* scope);
     void analyzeGenericDecl(GenericDecl* decl, Scope* scope);
     bool acceptsFormalType(const GenericFormal& formal, Type* actual, const std::string& genericName,
                            const SourceLocation& location);
     bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
-                              Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault);
+                              Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
+                              GenericContract* contract, std::size_t firstSymbol);
     bool matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,
                             const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);

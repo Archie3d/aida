@@ -86,9 +86,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
 
 void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
 {
-    // The body of a generic is not analysed where it stands, any more than the
-    // specification was.  It joins the tokens an instance parses, right after
-    // the specification they already end with.
+    // Attach a separate generic body and check its contract before any instance.
     Symbol* named = lookupName(decl->lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr) {
         std::vector<Token>& tokens = named->generic->tokens;
@@ -96,6 +94,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         tokens.pop_back();
         tokens.insert(tokens.end(), decl->tokens.begin(), decl->tokens.end());
         tokens.push_back(endOfFile);
+        checkGenericContract(named->generic, scope);
         return;
     }
 

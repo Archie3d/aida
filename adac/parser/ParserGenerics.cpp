@@ -26,6 +26,7 @@ DeclPtr Parser::parseGenericDeclaration()
             formal.name = name.text;
             formal.lower = name.lower;
             expect(TokenKind::KwIs, "in generic formal type");
+            formal.m_limited = check(TokenKind::KwLimited);
             // What follows says which types the instantiation may supply.  Only
             // the first word of it is telling: 'range' and 'digits' each name a
             // family of their own, and '(<>)' asks for a discrete type.

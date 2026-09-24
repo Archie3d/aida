@@ -964,8 +964,21 @@ Formal arrays check dimensionality, constrainedness, index types and subtypes,
 and component subtypes. Constrained formal array indexes must be subtype marks;
 matching runtime-dependent constraints is not yet supported. Formal abstract
 subprograms, null procedure defaults, and attribute or enumeration-literal
-subprogram actuals remain unsupported. Generic bodies are still checked after
-instantiation, rather than independently against their formal contracts.
+subprogram actuals remain unsupported.
+
+Generic declarations and bodies are checked against distinct formal type
+identities, including bodies supplied in separate files. Private formals expose
+assignment and equality, limited private formals restrict copying, and discrete
+formals expose ordering without assuming integer arithmetic. Invalid bodies are
+rejected even if no instance is declared.
+
+Instances reuse the names and operator choices resolved by the contract check.
+For example, `I < J` on `Index_Type` retains its predefined ordering when both
+indices and elements are instantiated with `Integer`; supplying `">"` for the
+formal element comparison changes only element ordering. External names remain
+bound to their declaration environment, and overloads on distinct formal types
+retain their identity when actual types coincide. Instance analysis still checks
+concrete layouts and the currently supported static actual constraints.
 
 The input and output generics are instantiated the same way as any other, since
 they are written in Ada like the rest of the predefined environment.

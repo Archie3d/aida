@@ -65,10 +65,11 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
 
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
-    Type* type = resolveSubtypeIndication(decl->subtype.get(), scope, m_currentSubprogram != nullptr);
+    Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
+                                          m_currentSubprogram != nullptr || m_recordContract != nullptr);
 
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
-        if (m_currentSubprogram == nullptr) {
+        if (m_currentSubprogram == nullptr && m_recordContract == nullptr) {
             m_diagnostics.error(decl->location, "an unconstrained array object is currently supported only inside a subprogram");
         } else if (decl->subtype->indexLows.empty() && !decl->initializer && type->m_boundsSymbol == nullptr) {
             m_diagnostics.error(decl->location, "an unconstrained array object needs an initializer or index constraint");
@@ -218,8 +219,18 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             m_diagnostics.error(spec.location, "a Boolean '/=' is implicitly declared by '=' and cannot be declared explicitly");
         }
     }
+    Symbol* contractDeclaration = nullptr;
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->m_subprograms.find(contractKey(spec.location));
+        if (found != m_replayContract->m_subprograms.end()) {
+            contractDeclaration = instanceSymbol(found->second);
+        }
+    }
     if (isBody) {
         for (Symbol* candidate : scope->lookupLocal(spec.lower)) {
+            if (contractDeclaration != nullptr && candidate != contractDeclaration) {
+                continue;
+            }
             if (candidate->kind != SymbolKind::Subprogram || candidate->hasBody) {
                 continue;
             }
@@ -243,6 +254,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 parameter->name = spec.parameters[i].lower;
                 parameter->displayName = spec.parameters[i].name;
                 spec.parameters[i].symbol = parameter;
+            }
+            if (m_recordContract != nullptr) {
+                m_recordContract->m_subprograms[contractKey(spec.location)] = candidate;
             }
             return candidate;
         }
@@ -310,13 +324,15 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         complement->level = symbol->level;
         scope->add(complement);
     }
+    if (m_recordContract != nullptr) {
+        m_recordContract->m_subprograms[contractKey(spec.location)] = symbol;
+    }
     return symbol;
 }
 
 void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 {
-    // The body of a generic subprogram, like that of a generic package, waits
-    // in the tokens an instance parses rather than being analysed here.
+    // Attach a separately encountered body and check it in the formal environment.
     Symbol* named = lookupName(body->spec.lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr
         && !named->generic->isPackage) {
@@ -325,6 +341,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
         tokens.pop_back();
         tokens.insert(tokens.end(), body->tokens.begin(), body->tokens.end());
         tokens.push_back(endOfFile);
+        checkGenericContract(named->generic, scope);
         return;
     }
 

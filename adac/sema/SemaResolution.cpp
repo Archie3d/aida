@@ -11,13 +11,19 @@ using SemaSupport::isUniversal;
 std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
 {
     if (expr->kind == ExprKind::Identifier) {
-        return scope->lookup(static_cast<IdentifierExpr*>(expr)->lower);
+        const std::string& lower = static_cast<IdentifierExpr*>(expr)->lower;
+        // A Base conversion synthesizes its type mark in analyzeCall; its
+        // prefix is preserved through resolveTypeName instead of name lookup.
+        if (lower.ends_with("'base")) {
+            return {};
+        }
+        return contractNames(expr, scope->lookup(lower));
     }
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
         for (Symbol* prefix : expressionNames(selected->prefix.get(), scope)) {
             if (prefix->kind == SymbolKind::Package && prefix->scope != nullptr) {
-                return prefix->scope->lookupLocal(selected->selectorLower);
+                return contractNames(expr, prefix->scope->lookupLocal(selected->selectorLower));
             }
         }
     }

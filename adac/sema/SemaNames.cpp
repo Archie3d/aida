@@ -49,7 +49,21 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         }
         return result;
     }
-    Symbol* symbol = lookupName(lower, scope);
+    Symbol* symbol = nullptr;
+    std::string key = contractKey(location) + ":" + lower;
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->m_typeNames.find(key);
+        if (found != m_replayContract->m_typeNames.end()) {
+            symbol = instanceSymbol(found->second);
+            if (symbol == nullptr) {
+                m_diagnostics.error(location, "cannot map a resolved generic type name to its instance");
+                return nullptr;
+            }
+        }
+    }
+    if (symbol == nullptr) {
+        symbol = lookupName(lower, scope);
+    }
     if (symbol == nullptr) {
         m_diagnostics.error(location, "'" + lower + "' is not declared");
         return nullptr;
@@ -57,6 +71,9 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
     if (symbol->kind != SymbolKind::TypeName) {
         m_diagnostics.error(location, "'" + symbol->displayName + "' is not a type");
         return nullptr;
+    }
+    if (m_recordContract != nullptr) {
+        m_recordContract->m_typeNames[key] = symbol;
     }
     return symbol->type;
 }
@@ -119,7 +136,7 @@ Symbol* Sema::resolveBareName(const std::vector<Symbol*>& candidates, Type* expe
 
 Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected)
 {
-    std::vector<Symbol*> candidates = scope->lookup(expr->lower);
+    std::vector<Symbol*> candidates = expressionNames(expr, scope);
     if (candidates.empty()) {
         m_diagnostics.error(expr->location, "'" + expr->name + "' is not declared");
         return nullptr;
@@ -130,6 +147,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         return nullptr;
     }
     expr->symbol = chosen;
+    recordContractName(expr, chosen);
 
     switch (chosen->kind) {
     case SymbolKind::Object:
@@ -190,7 +208,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     }
 
     if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
-        std::vector<Symbol*> candidates = prefixSymbol->scope->lookupLocal(expr->selectorLower);
+        std::vector<Symbol*> candidates = contractNames(expr, prefixSymbol->scope->lookupLocal(expr->selectorLower));
         if (candidates.empty()) {
             m_diagnostics.error(expr->location, "'" + expr->selector + "' is not declared in '"
                                                     + prefixSymbol->displayName + "'");
@@ -201,6 +219,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         expr->symbol = chosen;
+        recordContractName(expr, chosen);
         noteReference(chosen);
         if (chosen->kind == SymbolKind::Subprogram) {
             expr->type = chosen->returnType;
