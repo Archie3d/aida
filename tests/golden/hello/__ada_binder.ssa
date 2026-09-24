@@ -1,6 +1,7 @@
 
-export function w $main() {
+export function w $main(w %argc, l %argv) {
 @start
+    call $__ada_command_line_init(w %argc, l %argv)
     call $ada_elab.ada_spec()
     %.t0 =l loadl $__ada_exception
     %.t1 =w cnel %.t0, 0
@@ -30,6 +31,7 @@ export function w $main() {
     call $__ada_unhandled(l %.t10)
     ret 1
 @done
-    ret 0
+    %.exitStatus =w call $__ada_get_exit_status()
+    ret %.exitStatus
 }
 

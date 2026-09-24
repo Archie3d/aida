@@ -37,6 +37,58 @@ static const char* pendingOrigin;
 static int pendingTraceCount;
 static AdaTraceEntry pendingTrace[ADA_TRACE_CAPACITY];
 
+static int argumentCount;
+static char** argumentValues;
+static int exitStatus;
+
+void __ada_command_line_init(int argc, char** argv)
+{
+    argumentCount = argc > 0 && argv != NULL ? argc - 1 : 0;
+    argumentValues = argc > 0 ? argv : NULL;
+    exitStatus = 0;
+}
+
+int __ada_argument_count(void)
+{
+    return argumentCount;
+}
+
+static const char* commandString(const char* value)
+{
+    if (value == NULL) {
+        return "";
+    }
+    if (strlen(value) > INT32_MAX) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return "";
+    }
+    return value;
+}
+
+const char* __ada_argument(int number)
+{
+    if (number < 1 || number > argumentCount) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return "";
+    }
+    return commandString(argumentValues[number]);
+}
+
+const char* __ada_command_name(void)
+{
+    return commandString(argumentValues == NULL ? NULL : argumentValues[0]);
+}
+
+void __ada_set_exit_status(int code)
+{
+    exitStatus = code;
+}
+
+int __ada_get_exit_status(void)
+{
+    return exitStatus;
+}
+
 void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
 {
     frame->previous = currentTrace;

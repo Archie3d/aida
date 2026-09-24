@@ -48,6 +48,14 @@ extern const AdaException __ada_exc_layout_error;
    after every call, and writes it to raise one of its own. */
 extern const AdaException* __ada_exception;
 
+/* The binder captures the host arguments before library elaboration. */
+void __ada_command_line_init(int argc, char** argv);
+int __ada_argument_count(void);
+const char* __ada_argument(int number);
+const char* __ada_command_name(void);
+void __ada_set_exit_status(int code);
+int __ada_get_exit_status(void);
+
 /* Marks an exception as pending.  The generated code inspects the global after
    every call and jumps to the applicable handler. */
 void __ada_raise(const AdaException* exception);

@@ -308,8 +308,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
 void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 {
-    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, m_currentSubprogram != nullptr,
-                                               m_currentSubprogram != nullptr);
+    // Generic formal objects are unknown while checking the contract. Keep
+    // symbolic constraints here; instantiation resolves the actual layout.
+    bool symbolicBounds = m_currentSubprogram != nullptr || m_recordContract != nullptr;
+    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, symbolicBounds, symbolicBounds);
     if (base == nullptr) {
         return;
     }
@@ -324,13 +326,17 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
         type->m_scalarHigh = base->m_scalarHigh;
         type->m_scalarConstraintBase = base->m_scalarConstraintBase;
         symbol->owner = m_currentSubprogram;
-        m_currentSubprogram->needsFrame = true;
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->needsFrame = true;
+        }
     }
     if (type->kind == TypeKind::Array && !type->constrained
-        && !decl->subtype->indexLows.empty() && m_currentSubprogram != nullptr) {
+        && !decl->subtype->indexLows.empty() && symbolicBounds) {
         type->m_boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
-        m_currentSubprogram->needsFrame = true;
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->needsFrame = true;
+        }
         for (std::size_t i = 0; i < decl->subtype->indexLows.size(); ++i) {
             type->m_boundExpressions.push_back({ decl->subtype->indexLows[i].get(),
                                                 decl->subtype->indexHighs[i].get() });
@@ -359,8 +365,11 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         FieldInfo info;
         info.name = field.lower;
         info.displayName = field.name;
-        info.type = resolveSubtypeIndication(field.subtype.get(), scope);
-        if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
+        info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
+        bool symbolicComponent = m_recordContract != nullptr && info.type != nullptr
+            && (!field.subtype->indexLows.empty() || info.type->m_boundsSymbol != nullptr);
+        if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained
+            && !symbolicComponent) {
             m_diagnostics.error(field.subtype->location, info.type->m_boundsSymbol != nullptr
                                     ? "runtime-constrained record components are not yet supported"
                                     : "record components require a constrained array subtype");

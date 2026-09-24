@@ -785,6 +785,9 @@ own may write.
 | Unit | File |
 | --- | --- |
 | `Ada` | `ada.ads` |
+| `Ada.Characters`, `Ada.Characters.Latin_1`, `Ada.Characters.Handling` | `ada-characters*.ads`, `.adb` |
+| `Ada.Strings`, `Ada.Strings.Maps`, `Ada.Strings.Fixed`, `Ada.Strings.Bounded` | `ada-strings*.ads`, `.adb` |
+| `Ada.Command_Line` | `ada-command_line.ads` |
 | `Ada.IO_Exceptions` | `ada-io_exceptions.ads` |
 | `Ada.Exceptions` (inspection and raising subset) | `ada-exceptions.ads`, `ada-exceptions.adb` |
 | `Ada.Text_IO` | `ada-text_io.ads` |
@@ -803,6 +806,74 @@ own may write.
 | `Ada.Numerics.Elementary_Functions` | `ada-numerics-elementary_functions.ads` |
 | `Ada.Numerics.Long_Elementary_Functions` | `ada-numerics-long_elementary_functions.ads` |
 | `Ada.Text_IO.Scanning` | `ada-text_io-scanning.ads` (internal input helper) |
+
+### Character, string, and command-line packages
+
+The character and string packages are implemented in Ada, following the
+Character/String interfaces in Ada RM
+[A.3](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-A-3.html)
+and [A.4](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-A-4.html). `Ada.Characters.Latin_1`
+provides the ISO 8859-1 constants. `Ada.Characters.Handling` provides character
+classification, case and basic-letter conversion, and ISO 646 tests and
+substitution, including String overloads. These operations use Latin-1 values,
+not the host locale or UTF-8 decoding. String conversions return bounds starting
+at 1. Standard object-renaming aliases in `Latin_1` are equivalent constants;
+`Is_Decimal_Digit` is a wrapper for `Is_Digit`.
+
+`Ada.Strings.Maps` supplies private character sets, set algebra, range/sequence
+conversion, and character mapping values. `Ada.Strings.Fixed` supplies searching,
+counting, token finding, translation, replacement, insertion, overwriting,
+deletion, trimming, padding, and repetition. Search results retain source indices;
+function results of type String start at 1. Mutating operations validate and
+prepare their result before assigning it, including when source slices overlap.
+
+`Ada.Strings.Bounded.Generic_Bounded_Length` supplies bounded strings with an
+inline buffer and length, initialized to the empty string. Its conversions,
+concatenation, comparison, selection, search, and transformation operations use
+the same string semantics, with the standard `Length_Error` and truncation
+policies when capacity is exceeded. `Slice` preserves the requested bounds;
+`To_String` starts at 1. Capacity actuals must currently be static and positive.
+Generic contract analysis preserves symbolic subtype and record-component bounds
+until instantiation supplies the capacity. Bounded objects own no heap storage;
+some operations still create temporary String results.
+
+```ada
+with Ada.Characters.Handling;
+with Ada.Strings;
+with Ada.Strings.Fixed;
+with Ada.Strings.Bounded;
+
+procedure Example is
+    package Names is new Ada.Strings.Bounded.Generic_Bounded_Length (64);
+    Name : Names.Bounded_String := Names.To_Bounded_String
+        (Ada.Characters.Handling.To_Lower
+            (Ada.Strings.Fixed.Trim ("  Ada  ", Ada.Strings.Both)));
+begin
+    Names.Append (Name, " compiler");
+end Example;
+```
+
+These remain supported subsets: wide characters/strings, mapping-function
+callbacks (`Character_Mapping_Function` and their overloads),
+`Ada.Strings.Maps.Constants`, and package categorization enforcement
+(`Pure`/`Preelaborate`) are not provided. The implementations do not claim full
+predefined-environment conformance.
+
+`Ada.Command_Line` exposes `Argument_Count`, `Argument`, `Command_Name`, and
+`Set_Exit_Status`. Arguments are the host's `argv[1..argc-1]`, excluding the
+command name, with bytes unchanged and String lower bound 1. `Command_Name`
+returns `argv[0]` without path normalization. Out-of-range argument numbers raise
+`Constraint_Error`. `Exit_Status` ranges from 0 to 255; `Success` is 0 and
+`Failure` is 1. The last status set is returned on normal termination, defaulting
+to success; unhandled exceptions return 1. The binder initializes arguments
+before library elaboration in both compilation modes. Rebuild against the
+matching runtime, which now supplies the binder's command-line entry points.
+
+Regression programs cover Latin-1 boundaries, mapping errors, null strings,
+non-1 and maximum indices, overlapping updates, bounded capacities and copying,
+and command-line arguments/status in both whole-program and separate builds.
+
+### Library lookup
 
 A unit lives in the file its name gives, lowered with each dot turned into a
 hyphen, so `Ada.Text_IO.Integer_IO` is `ada-text_io-integer_io`. The

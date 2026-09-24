@@ -358,3 +358,27 @@ add_ada_error_test(generic_contract_errors SOURCES generic_contract_errors.adb)
 add_determinism_test(generic_contracts SOURCE generic_contracts.adb)
 add_ada_error_test(generic_separate_contract_errors
     SOURCES separate/contract_bad.ads separate/contract_bad.adb)
+
+# Character and string standard-library packages.
+add_ada_test(characterhandling SOURCES characterhandling.adb)
+add_ada_test(stringmaps SOURCES stringmaps.adb)
+add_ada_test(fixedstrings SOURCES fixedstrings.adb)
+add_ada_test(fixedstringchecks SOURCES fixedstringchecks.adb)
+add_determinism_test(fixedstrings SOURCE fixedstrings.adb)
+
+add_ada_test(commandline SOURCES commandline.adb)
+add_ada_test(commandlinefailure SOURCES commandlinefailure.adb EXIT_CODE 1)
+add_test(NAME runtime.commandline_arguments
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/commandline.adb
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckCommandLine.cmake
+)
+
+add_ada_test(boundedstrings SOURCES boundedstrings.adb)
+add_determinism_test(boundedstrings SOURCE boundedstrings.adb)
+add_ada_test(genericcapacity SOURCES genericcapacity.adb)
+add_ada_error_test(genericcapacityerrors SOURCES genericcapacityerrors.adb)

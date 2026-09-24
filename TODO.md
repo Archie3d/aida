@@ -449,8 +449,18 @@ These are later projects with substantial runtime requirements.
   `Long_Float` instances, with domain checks and precision-specific C helpers.
   Covered by the numerics, precision, base-power, and imported-float ABI tests.
   This is a supported subset, not full Numerics Annex conformance.
-- [ ] Fill remaining I/O API gaps and add library packages incrementally, for
-  example `Ada.Exceptions`, string handling, and calendar/time support.
+- [x] Add `Ada.Characters.Latin_1`, Character/String handling, `Ada.Strings`,
+  value-based `Maps`, `Fixed`, and `Bounded.Generic_Bounded_Length`. Cover
+  Latin-1 classification/conversion, set algebra, searching, transformations,
+  truncation, bounds, copying, and exceptions. Static generic capacities use
+  symbolic subtype/component bounds during contract analysis and concrete
+  layouts at instantiation. Mapping callbacks and wide overloads remain omitted.
+- [x] Add `Ada.Command_Line`, including startup argument capture before library
+  elaboration and normal exit status through both binder paths. Cover empty
+  arguments, spaces, invalid indices, repeated status updates, and exceptions.
+- [ ] Fill remaining I/O and exception API gaps; add `Ada.Strings.Maps.Constants`,
+  mapping callbacks after access-to-subprogram support, and calendar/time support
+  after fixed-point `Duration`. Enforce package categorization requirements.
 - [ ] Wide characters, wide strings, and a documented source-encoding policy.
 
 ## 7. Separate compilation and binding

@@ -21,7 +21,8 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     int label = 0;
     std::string unhandled = "@unhandled";
 
-    out << "\nexport function w $main() {\n@start\n";
+    out << "\nexport function w $main(w %argc, l %argv) {\n@start\n";
+    out << "    call $__ada_command_line_init(w %argc, l %argv)\n";
 
     // A unit whose elaboration failed leaves the ones after it unelaborated, so
     // the program stops at the first failure rather than running on.
@@ -53,6 +54,7 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     out << "    ret 1\n";
 
     out << "@done\n";
-    out << "    ret 0\n";
+    out << "    %.exitStatus =w call $__ada_get_exit_status()\n";
+    out << "    ret %.exitStatus\n";
     out << "}\n\n";
 }
