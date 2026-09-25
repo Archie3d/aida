@@ -123,7 +123,7 @@ private:
 
     // Arrays (QbeArrays.cpp).
     void emitDynamicArray(ObjectDecl* object, Symbol* symbol);
-    void emitGenericReference(ObjectDecl* object, Symbol* symbol);
+    void emitObjectReference(ObjectDecl* object, Symbol* symbol);
     void initializeObject(const Value& address, Symbol* symbol, Expr* initializer);
     void emitArrayFill(const Value& address, Type* type, Expr* value);
     void emitScalarSubtype(Type* type, const SourceLocation& location);

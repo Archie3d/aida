@@ -17,8 +17,8 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
-                long long size = symbol->m_genericReference ? 8 : typeSize(symbol->type);
-                long long alignment = symbol->m_genericReference ? 8 : typeAlignment(symbol->type);
+                long long size = symbol->m_objectReference ? 8 : typeSize(symbol->type);
+                long long alignment = symbol->m_objectReference ? 8 : typeAlignment(symbol->type);
                 m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
                        << " { z " << (size < 1 ? 1 : size) << " }\n";
             }
@@ -58,8 +58,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     continue;
                 }
                 Value address { symbol->qbeName, 'l' };
-                if (symbol->m_genericReference) {
-                    emitGenericReference(object, symbol);
+                if (symbol->m_objectReference) {
+                    emitObjectReference(object, symbol);
                 } else if (object->initializer) {
                     initializeObject(address, symbol, object->initializer.get());
                 } else {
@@ -121,15 +121,15 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
-                if (symbol->m_genericReference) {
-                    emitGenericReference(object, symbol);
+                if (symbol->m_objectReference) {
+                    emitObjectReference(object, symbol);
                     continue;
                 }
                 if (isUnconstrainedArray(symbol->type)) {
                     emitDynamicArray(object, symbol);
                     continue;
                 }
-                long long size = symbol->m_genericReference ? 8 : typeSize(symbol->type);
+                long long size = symbol->m_objectReference ? 8 : typeSize(symbol->type);
                 if (size < 1) {
                     size = 1;
                 }
@@ -271,7 +271,7 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
 
 // A reference owns only an address and, for dynamic arrays, saved bounds. No
 // array allocation or copy is performed, and the actual is evaluated once.
-void QbeEmitter::emitGenericReference(ObjectDecl* object, Symbol* symbol)
+void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
 {
     Value actual = emitAddress(object->initializer.get());
     bool dynamic = isUnconstrainedArray(symbol->type);

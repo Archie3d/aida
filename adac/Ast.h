@@ -655,6 +655,7 @@ struct ObjectDecl : Decl
     bool isConstant = false;
     SubtypeIndicationPtr subtype;
     ExprPtr initializer;
+    bool m_isRenaming = false; // initializer names the object whose address is saved.
     std::vector<Symbol*> symbols;
 
     // A deferred constant: named in the visible part of a package, with its

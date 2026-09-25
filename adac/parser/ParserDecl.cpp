@@ -96,7 +96,13 @@ DeclPtr Parser::parseObjectOrNumberDecl()
     decl->namesLower = std::move(lowered);
     decl->isConstant = isConstant;
     decl->subtype = parseSubtypeIndication();
-    if (match(TokenKind::Assign)) {
+    if (match(TokenKind::KwRenames)) {
+        if (decl->names.size() != 1 || isConstant) {
+            fail("an object renaming requires one name and no constant keyword");
+        }
+        decl->m_isRenaming = true;
+        decl->initializer = parseExpression();
+    } else if (match(TokenKind::Assign)) {
         decl->initializer = parseExpression();
     }
     expect(TokenKind::Semicolon, "after object declaration");

@@ -1,0 +1,5 @@
+recordrenameerrors.adb:7:5: error: renamed object is not compatible with the declared subtype
+recordrenameerrors.adb:8:5: error: an object renaming requires an object name
+recordrenameerrors.adb:9:5: error: an object renaming requires an object name
+recordrenameerrors.adb:14:5: error: an object renaming requires an object name
+recordrenameerrors.adb:16:5: error: 'X' cannot be assigned to

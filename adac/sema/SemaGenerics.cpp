@@ -820,7 +820,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         symbol->type = type;
         symbol->location = formal.location;
         symbol->isConstant = !reference;
-        symbol->m_genericReference = reference;
+        symbol->m_objectReference = reference;
         symbol->m_genericObject = true;
         symbol->owner = m_currentSubprogram;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;

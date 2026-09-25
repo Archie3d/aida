@@ -192,6 +192,20 @@ specifications and bodies with elaboration code; the `'First`, `'Last`,
 packages and subprograms with their instantiations; run time range checks
 raising `Constraint_Error`, `raise` statements and exception handlers.
 
+Object renaming gives an existing object another name, including record fields:
+
+```ada
+X : Integer renames R.Field;
+```
+
+The alias shares storage with the field: assigning through either name changes
+what the other reads. Nested fields, indexed components, access values, package
+objects, and aliases used by nested subprograms or `in out` parameters are
+supported. The target is evaluated once when the declaration is elaborated.
+A field of a constant remains read-only through its alias, and the alias inherits
+the target's subtype constraints. Runtime-bound array aliases currently require
+a subprogram scope, as do runtime-bound array objects.
+
 Integer types declared with `type T is range L .. H` and their subtypes are
 checked wherever a value crosses into them: on assignment, on initialisation,
 on argument passing, on conversion and on a returned result.

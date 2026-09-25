@@ -77,7 +77,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         address = Value { newTemp(), 'l' };
         line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         if ((symbol->kind == SymbolKind::Parameter && symbol->byReference)
-            || (symbol->kind == SymbolKind::Object && !symbol->m_genericReference
+            || (symbol->kind == SymbolKind::Object && !symbol->m_objectReference
                 && isUnconstrainedArray(symbol->type))) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
@@ -91,7 +91,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         }
         address = Value { it->second, 'l' };
     }
-    if (symbol->m_genericReference) {
+    if (symbol->m_objectReference) {
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + address.name);
         address.name = pointer;

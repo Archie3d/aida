@@ -63,10 +63,68 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     }
 }
 
+namespace {
+
+// 0 is not an object name, 1 is a constant view, 2 is a variable view.
+int objectView(Expr* expr)
+{
+    Symbol* symbol = nullptr;
+    if (expr->kind == ExprKind::Identifier) {
+        symbol = static_cast<IdentifierExpr*>(expr)->symbol;
+    } else if (expr->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr);
+        symbol = selected->symbol;
+        if (symbol == nullptr) {
+            Type* prefix = baseType(selected->prefix->type);
+            bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
+            Type* record = access ? baseType(prefix->target) : prefix;
+            int view = access ? 2 : objectView(selected->prefix.get());
+            if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
+                && record->fields[selected->fieldIndex].isDiscriminant) {
+                return 1;
+            }
+            return view;
+        }
+    } else if (expr->kind == ExprKind::Call) {
+        auto* call = static_cast<CallExpr*>(expr);
+        if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
+            Type* prefix = baseType(call->callee->type);
+            return prefix != nullptr && prefix->kind == TypeKind::Access ? 2 : objectView(call->callee.get());
+        }
+    }
+    if (symbol == nullptr) {
+        return 0;
+    }
+    if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter
+        || symbol->kind == SymbolKind::LoopParameter) {
+        return symbol->isConstant || symbol->kind == SymbolKind::LoopParameter
+            || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In) ? 1 : 2;
+    }
+    return 0;
+}
+
+}
+
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
+
+    if (decl->m_isRenaming) {
+        Type* targetType = analyzeExpr(decl->initializer.get(), scope, type);
+        int view = objectView(decl->initializer.get());
+        if (view == 0) {
+            m_diagnostics.error(decl->location, "an object renaming requires an object name");
+            return;
+        }
+        if (type == nullptr || targetType == nullptr || rootType(type) != rootType(targetType)) {
+            m_diagnostics.error(decl->location, "renamed object is not compatible with the declared subtype");
+            return;
+        }
+        // A renaming inherits the object's constraints and constant/variable view.
+        type = targetType;
+        decl->isConstant = view == 1;
+    }
 
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
         if (m_currentSubprogram == nullptr && m_recordContract == nullptr) {
@@ -79,12 +137,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     // A discriminant is fixed when the object is declared, so the declaration
     // has to say what to fix it to.
     Type* record = baseType(type);
-    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type)) {
+    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type) && !decl->m_isRenaming) {
         m_diagnostics.error(decl->location, "an object of '" + record->name + "' has to fix its discriminants, as "
                                                 + "in 'X : " + record->name + " (...)'");
     }
 
-    if (decl->initializer) {
+    if (decl->initializer && !decl->m_isRenaming) {
         if (baseType(type) == m_exceptionOccurrenceType && !withinPackage(type->privateTo)) {
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
@@ -117,7 +175,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
                 deferred = candidate;
             }
         }
-        if (deferred != nullptr) {
+        if (deferred != nullptr && !decl->m_isRenaming) {
             if (decl->awaitsValue) {
                 m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been named here");
                 continue;
@@ -138,6 +196,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
+        symbol->m_objectReference = decl->m_isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
         symbol->location = decl->location;
@@ -147,7 +206,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->namesLower[i]);
         }
-        if (decl->isConstant && decl->initializer && type->m_scalarBoundsSymbol == nullptr) {
+        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->m_scalarBoundsSymbol == nullptr) {
             long long value = 0;
             double realValue = 0.0;
             if (isReal(type) && foldStaticReal(decl->initializer.get(), realValue)) {

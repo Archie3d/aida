@@ -46,7 +46,7 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool m_genericObject = false;
-    bool m_genericReference = false; // An instance-owned slot holding an actual object address.
+    bool m_objectReference = false; // A slot holding a renamed or generic actual object address.
     ParameterMode mode = ParameterMode::In;
     bool hasStaticValue = false;
     long long staticValue = 0;

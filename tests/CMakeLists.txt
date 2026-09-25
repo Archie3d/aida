@@ -399,3 +399,6 @@ add_ada_test(generic_composite_checks SOURCES generic_composite_checks.adb)
 add_ada_error_test(generic_composite_errors SOURCES generic_composite_errors.adb)
 add_ada_test(generic_composite_library SOURCES generic_composite_library.adb)
 add_ada_error_test(generic_composite_library_errors SOURCES generic_composite_library_errors.adb)
+
+add_ada_test(recordrenames SOURCES renamed_fields.ads recordrenames.adb)
+add_ada_error_test(recordrenameerrors SOURCES recordrenameerrors.adb)
