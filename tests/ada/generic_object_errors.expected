@@ -5,4 +5,4 @@ generic_object_errors.adb:29:46: error: an in out generic formal object requires
 generic_object_errors.adb:30:57: error: an in out generic formal object requires a variable actual
 generic_object_errors.adb:31:42: error: no visible interpretation of 'True' matches this context
 generic_object_errors.adb:33:46: error: generic formal object actual has an incompatible type
-generic_object_errors.adb:38:43: error: generic formal objects currently require scalar actuals
+generic_object_errors.adb:40:47: error: access generic formal objects are not yet supported

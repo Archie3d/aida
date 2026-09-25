@@ -59,10 +59,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 }
                 Value address { symbol->qbeName, 'l' };
                 if (symbol->m_genericReference) {
-                    Value actual = emitAddress(object->initializer.get());
-                    line("storel " + actual.name + ", " + address.name);
+                    emitGenericReference(object, symbol);
                 } else if (object->initializer) {
-                    assignInto(address, symbol->type, object->initializer.get());
+                    initializeObject(address, symbol, object->initializer.get());
                 } else {
                     emitDefaultInit(address, symbol->type);
                 }
@@ -122,6 +121,10 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
+                if (symbol->m_genericReference) {
+                    emitGenericReference(object, symbol);
+                    continue;
+                }
                 if (isUnconstrainedArray(symbol->type)) {
                     emitDynamicArray(object, symbol);
                     continue;
@@ -139,18 +142,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                                         << size << "\n";
                     m_context->locals[symbol] = slot;
                 }
-                if (symbol->m_genericReference) {
-                    Value actual = emitAddress(object->initializer.get());
-                    std::string slot;
-                    if (symbol->isUplevel) {
-                        slot = newTemp();
-                        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
-                    } else {
-                        slot = m_context->locals[symbol];
-                    }
-                    line("storel " + actual.name + ", " + slot);
-                } else if (object->initializer) {
-                    assignInto(addressOf(symbol), symbol->type, object->initializer.get());
+                if (object->initializer) {
+                    initializeObject(addressOf(symbol), symbol, object->initializer.get());
                 } else {
                     if (needsZeroInit(symbol->type)) {
                         // A file handle has to read as closed before anything
@@ -258,4 +251,58 @@ Value QbeEmitter::scalarBounds(Type* type)
     line(bounds.first + load + lowSlot);
     line(bounds.last + load + highSlot);
     return bounds;
+}
+
+// Generic in objects are initialized once. Even a statically known shape
+// mismatch is an elaboration-time Constraint_Error, before the copy occurs.
+void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* initializer)
+{
+    Type* type = symbol->type;
+    if (symbol->m_genericObject && type->kind == TypeKind::Array
+        && initializer->kind != ExprKind::Aggregate) {
+        Value source = emitExpr(initializer);
+        Value target = withBounds(address, type, nullptr);
+        checkArrayShape(target, type, source, initializer->type);
+        copyInto(target, source, type);
+    } else {
+        assignInto(address, type, initializer);
+    }
+}
+
+// A reference owns only an address and, for dynamic arrays, saved bounds. No
+// array allocation or copy is performed, and the actual is evaluated once.
+void QbeEmitter::emitGenericReference(ObjectDecl* object, Symbol* symbol)
+{
+    Value actual = emitAddress(object->initializer.get());
+    bool dynamic = isUnconstrainedArray(symbol->type);
+    long long size = dynamic ? 8 + 8 * symbol->type->arrayRank : 8;
+    std::string slot;
+    if (symbol->isGlobal) {
+        slot = symbol->qbeName;
+    } else if (symbol->isUplevel) {
+        m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
+        symbol->frameOffset = m_context->frameSize;
+        m_context->frameSize += size;
+        slot = newTemp();
+        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+    } else {
+        slot = allocScratch(size);
+        m_context->locals[symbol] = slot;
+        if (dynamic) {
+            m_context->bounds[symbol] = actual;
+        }
+    }
+    line("storel " + actual.name + ", " + slot);
+    if (dynamic && symbol->isUplevel) {
+        for (int dimension = 0; dimension < symbol->type->arrayRank; ++dimension) {
+            const std::string& first = dimension == 0 ? actual.first : actual.innerBounds[dimension - 1].first;
+            const std::string& last = dimension == 0 ? actual.last : actual.innerBounds[dimension - 1].second;
+            std::string firstSlot = newTemp();
+            std::string lastSlot = newTemp();
+            line(firstSlot + " =l add " + slot + ", " + std::to_string(8 + dimension * 8));
+            line(lastSlot + " =l add " + firstSlot + ", 4");
+            line("storew " + first + ", " + firstSlot);
+            line("storew " + last + ", " + lastSlot);
+        }
+    }
 }

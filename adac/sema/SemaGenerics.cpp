@@ -92,6 +92,26 @@ bool staticallyMatches(Type* actual, Type* formal)
         && actual->discriminantValues == formal->discriminantValues;
 }
 
+// Copying a limited object requires build-in-place support, even when it is
+// hidden in an array or record. References do not copy these components.
+bool hasLimitedComponents(Type* type)
+{
+    if (type->isLimited) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasLimitedComponents(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasLimitedComponents(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // Restrict reference actuals to object names; calls can also denote indexed
 // components, whose prefix must itself be a variable.
 bool isGenericVariable(Expr* expr)
@@ -112,7 +132,8 @@ bool isGenericVariable(Expr* expr)
     }
     if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
-        return call->form == CallForm::Indexing && isGenericVariable(call->callee.get());
+        return (call->form == CallForm::Indexing || call->form == CallForm::Slice)
+            && isGenericVariable(call->callee.get());
     }
     return false;
 }
@@ -760,8 +781,8 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         if (type == nullptr || actualType == nullptr) {
             return false;
         }
-        if (m_recordContract == nullptr && !isDiscrete(type) && !isReal(type)) {
-            m_diagnostics.error(actual->location, "generic formal objects currently require scalar actuals");
+        if (type->kind == TypeKind::Access) {
+            m_diagnostics.error(actual->location, "access generic formal objects are not yet supported");
             return false;
         }
         bool reference = formal.m_mode == ParameterMode::InOut;
@@ -778,20 +799,36 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             // A formal in out is a view of the actual, including its bounds.
             type = actualType;
         } else {
+            if (hasLimitedComponents(type)) {
+                m_diagnostics.error(actual->location, "limited generic in objects require build-in-place initialization, which is not yet supported");
+                return false;
+            }
             SemaSupport::adaptUniversal(actual, type);
+            // An unconstrained constant acquires its bounds/discriminants from
+            // its initializer. A dynamic array keeps its per-object descriptor.
+            if ((type->kind == TypeKind::Array && !type->constrained && type->m_boundsSymbol == nullptr)
+                || (type->kind == TypeKind::Record && !hasKnownDiscriminants(type))) {
+                type = actualType;
+            }
+        }
+        if (type->kind == TypeKind::Array && !type->constrained
+            && m_currentSubprogram == nullptr && m_recordContract == nullptr) {
+            m_diagnostics.error(actual->location, "a runtime-bound generic array object is currently supported only inside a subprogram");
+            return false;
         }
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
         symbol->type = type;
         symbol->location = formal.location;
         symbol->isConstant = !reference;
         symbol->m_genericReference = reference;
+        symbol->m_genericObject = true;
         symbol->owner = m_currentSubprogram;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->lower + "__formal__" + formal.lower);
         }
-        if (!reference) {
+        if (!reference && !isComposite(type)) {
             long long value = 0;
             double real = 0.0;
             if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {

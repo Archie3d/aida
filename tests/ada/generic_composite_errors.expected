@@ -1,0 +1,8 @@
+generic_composite_errors.adb:11:9: error: 'Value' cannot be assigned to
+generic_composite_errors.adb:12:9: error: 'Value' cannot be assigned to
+generic_composite_errors.adb:19:9: error: 'Value' cannot be assigned to
+generic_composite_errors.adb:30:47: error: an in out generic formal object requires a variable actual
+generic_composite_errors.adb:31:52: error: an in out generic formal object requires a variable actual
+generic_composite_errors.adb:32:48: error: an in out generic formal object requires a variable actual
+generic_composite_errors.adb:33:48: error: an in out generic formal object requires a variable actual
+generic_composite_errors.adb:46:47: error: limited generic in objects require build-in-place initialization, which is not yet supported

@@ -77,7 +77,8 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         address = Value { newTemp(), 'l' };
         line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         if ((symbol->kind == SymbolKind::Parameter && symbol->byReference)
-            || (symbol->kind == SymbolKind::Object && isUnconstrainedArray(symbol->type))) {
+            || (symbol->kind == SymbolKind::Object && !symbol->m_genericReference
+                && isUnconstrainedArray(symbol->type))) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
             address.name = pointer;
@@ -185,6 +186,28 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value)
     }
     if (isComposite(type)) {
         Value source = emitExpr(value);
+        // A constrained record view retains the actual object's discriminants.
+        // Check before copying so a failed assignment leaves it intact.
+        Type* record = baseType(type);
+        for (int which = 0; which < record->discriminantCount; ++which) {
+            long long fixed = 0;
+            if (!discriminantValueOf(type, which, fixed)) {
+                continue;
+            }
+            const FieldInfo& field = record->fields[which];
+            std::string slot = newTemp();
+            line(slot + " =l add " + source.name + ", " + std::to_string(field.offset));
+            Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
+            std::string same = newTemp();
+            line(same + " =w ceq" + std::string(1, discriminant.type) + " "
+                 + discriminant.name + ", " + std::to_string(fixed));
+            std::string ok = newLabel("recordconstraintok");
+            std::string bad = newLabel("recordconstraintbad");
+            branch(Value { same, 'w' }, ok, bad);
+            label(bad);
+            raiseConstraintError();
+            label(ok);
+        }
         copyInto(address, source, type);
         return;
     }

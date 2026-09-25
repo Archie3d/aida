@@ -108,8 +108,16 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
         }
         return;
     }
-    case ExprKind::Call:
+    case ExprKind::Call: {
+        auto* call = static_cast<CallExpr*>(target);
+        if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
+            Type* prefix = baseType(call->callee->type);
+            if (prefix != nullptr && prefix->kind != TypeKind::Access) {
+                checkAssignable(call->callee.get(), scope, true);
+            }
+        }
         return;
+    }
     default:
         m_diagnostics.error(target->location, "the target of an assignment must be a variable");
         return;

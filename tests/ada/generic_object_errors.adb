@@ -31,11 +31,13 @@ procedure Generic_Object_Errors is
     package Wrong_Type is new Read_Only (True);
     Wrong : Float := 2.0;
     procedure Wrong_Reference is new Change (Wrong);
+    type Integer_Access is access Integer;
     generic
-        Value : Numbers;
-    package Composite is
-    end Composite;
-    package Unsupported is new Composite (Constants);
+        Value : Integer_Access;
+    package Access_Object is
+    end Access_Object;
+    Pointer : Integer_Access;
+    package Unsupported is new Access_Object (Pointer);
 begin
     null;
 end Generic_Object_Errors;

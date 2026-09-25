@@ -1,0 +1,1 @@
+generic_composite_library_errors.adb:15:60: error: a runtime-bound generic array object is currently supported only inside a subprogram

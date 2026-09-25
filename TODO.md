@@ -401,7 +401,13 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
   actual subtype checks for references and instance-owned defaults referring
   to earlier formals. Covered by `generic_objects`, `generic_object_checks`,
   `generic_object_library`, `generic_object_nested`, and object error tests.
-- [ ] Extend formal objects to composite and access types.
+- [x] Nonlimited record and array `in` objects, composite `in out` references,
+  and local runtime array bounds, including slices and multidimensional arrays.
+  Check array shapes and record discriminants before copying; preserve actual
+  bounds and read-only component legality. Covered by `generic_composites`,
+  `generic_dynamic_objects`, `generic_composite_checks`, and library/error tests.
+- [ ] Access formal objects, limited `in` build-in-place initialization, and
+  library-level runtime-bound array formals.
 - [x] Qualified type actuals, duplicate/named-argument validation, and default
   expressions that refer to earlier formals.
 - [x] Check generic bodies against their declared contracts for the supported
@@ -411,7 +417,7 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
   `generic_contracts.adb`, `generic_contract_errors.adb`, the separate
   `contract_bad` fixture, and the shared Integer index/element sorting regression.
 - [ ] Extend contract checking alongside additional formal categories and
-  composite/access objects; remove remaining instance-time body legality rechecks.
+  access/limited objects; remove remaining instance-time body legality rechecks.
 - [x] Keep the `Enumeration_IO` Character limitation out of general discrete
   formal matching, so ordinary generics accept Character index types.
 
