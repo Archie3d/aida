@@ -17,8 +17,8 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
-                long long size = typeSize(symbol->type);
-                long long alignment = typeAlignment(symbol->type);
+                long long size = symbol->m_genericReference ? 8 : typeSize(symbol->type);
+                long long alignment = symbol->m_genericReference ? 8 : typeAlignment(symbol->type);
                 m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
                        << " { z " << (size < 1 ? 1 : size) << " }\n";
             }
@@ -58,7 +58,10 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     continue;
                 }
                 Value address { symbol->qbeName, 'l' };
-                if (object->initializer) {
+                if (symbol->m_genericReference) {
+                    Value actual = emitAddress(object->initializer.get());
+                    line("storel " + actual.name + ", " + address.name);
+                } else if (object->initializer) {
                     assignInto(address, symbol->type, object->initializer.get());
                 } else {
                     emitDefaultInit(address, symbol->type);
@@ -123,7 +126,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     emitDynamicArray(object, symbol);
                     continue;
                 }
-                long long size = typeSize(symbol->type);
+                long long size = symbol->m_genericReference ? 8 : typeSize(symbol->type);
                 if (size < 1) {
                     size = 1;
                 }
@@ -136,7 +139,17 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                                         << size << "\n";
                     m_context->locals[symbol] = slot;
                 }
-                if (object->initializer) {
+                if (symbol->m_genericReference) {
+                    Value actual = emitAddress(object->initializer.get());
+                    std::string slot;
+                    if (symbol->isUplevel) {
+                        slot = newTemp();
+                        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+                    } else {
+                        slot = m_context->locals[symbol];
+                    }
+                    line("storel " + actual.name + ", " + slot);
+                } else if (object->initializer) {
                     assignInto(addressOf(symbol), symbol->type, object->initializer.get());
                 } else {
                     if (needsZeroInit(symbol->type)) {

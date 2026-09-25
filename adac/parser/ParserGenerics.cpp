@@ -76,17 +76,34 @@ DeclPtr Parser::parseGenericDeclaration()
             formal.m_subprogramTokens.push_back(current()); // The terminating semicolon.
             formal.m_subprogramTokens.push_back(m_tokens.back());
         } else if (check(TokenKind::Identifier)) {
+            std::size_t start = m_position;
             const Token& name = advance();
             formal.kind = GenericFormalKind::ObjectFormal;
             formal.name = name.text;
             formal.lower = name.lower;
             expect(TokenKind::Colon, "in generic formal object");
-            match(TokenKind::KwIn);
-            match(TokenKind::KwOut);
+            formal.m_objectTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+            if (match(TokenKind::KwIn)) {
+                if (match(TokenKind::KwOut)) {
+                    formal.m_mode = ParameterMode::InOut;
+                }
+            } else if (match(TokenKind::KwOut)) {
+                m_diagnostics.error(formal.location, "a generic formal object mode must be in or in out");
+            }
+            start = m_position;
             formal.subtype = parseSubtypeIndication();
             if (match(TokenKind::Assign)) {
                 formal.defaultValue = parseExpression();
+                if (formal.m_mode != ParameterMode::In) {
+                    m_diagnostics.error(formal.location, "an in out generic formal object cannot have a default");
+                }
             }
+            formal.m_objectTokens.insert(formal.m_objectTokens.end(),
+                m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+            formal.m_objectTokens.push_back(current());
+            formal.m_objectTokens.push_back(m_tokens.back());
         } else {
             fail("expected a generic formal parameter");
         }

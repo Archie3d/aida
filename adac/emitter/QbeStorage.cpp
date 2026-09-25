@@ -67,11 +67,10 @@ Value QbeEmitter::staticLinkFor(int targetLevel)
 
 Value QbeEmitter::addressOf(Symbol* symbol)
 {
-    if (symbol->isGlobal) {
-        return withBounds(Value { symbol->qbeName, 'l' }, symbol->type, symbol);
-    }
     Value address;
-    if (symbol->frameOffset >= 0) {
+    if (symbol->isGlobal) {
+        address = Value { symbol->qbeName, 'l' };
+    } else if (symbol->frameOffset >= 0) {
         Value frame = symbol->owner == m_context->symbol
                           ? Value { m_context->frameTemp, 'l' }
                           : staticLinkFor(symbol->owner->level);
@@ -90,6 +89,11 @@ Value QbeEmitter::addressOf(Symbol* symbol)
             return Value { "0", 'l' };
         }
         address = Value { it->second, 'l' };
+    }
+    if (symbol->m_genericReference) {
+        std::string pointer = newTemp();
+        line(pointer + " =l loadl " + address.name);
+        address.name = pointer;
     }
     return withBounds(address, symbol->type, symbol);
 }

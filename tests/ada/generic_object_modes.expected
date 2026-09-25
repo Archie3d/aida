@@ -1,0 +1,2 @@
+generic_object_modes.adb:3:9: error: a generic formal object mode must be in or in out
+generic_object_modes.adb:6:9: error: an in out generic formal object cannot have a default

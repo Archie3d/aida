@@ -396,9 +396,13 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
 - [ ] Extend formal subprograms to abstract formals, null procedure defaults,
   and attribute/enumeration-literal actuals; match dynamic array constraints.
 - [ ] Formal packages and matching of their generic contracts.
-- [ ] Nonstatic formal objects and their modes; current object actuals must fold
-  to static values. Evaluate actual expressions at instantiation elaboration.
-- [ ] Qualified type actuals, duplicate/named-argument validation, and default
+- [x] Nonstatic scalar formal objects with `in` and `in out` modes. Evaluate
+  values or actual object addresses once at instance elaboration; preserve
+  actual subtype checks for references and instance-owned defaults referring
+  to earlier formals. Covered by `generic_objects`, `generic_object_checks`,
+  `generic_object_library`, `generic_object_nested`, and object error tests.
+- [ ] Extend formal objects to composite and access types.
+- [x] Qualified type actuals, duplicate/named-argument validation, and default
   expressions that refer to earlier formals.
 - [x] Check generic bodies against their declared contracts for the supported
   private, discrete, integer, floating-point, array, and subprogram formals.
@@ -407,7 +411,7 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
   `generic_contracts.adb`, `generic_contract_errors.adb`, the separate
   `contract_bad` fixture, and the shared Integer index/element sorting regression.
 - [ ] Extend contract checking alongside additional formal categories and
-  nonstatic objects; remove remaining instance-time body legality rechecks.
+  composite/access objects; remove remaining instance-time body legality rechecks.
 - [x] Keep the `Enumeration_IO` Character limitation out of general discrete
   formal matching, so ordinary generics accept Character index types.
 

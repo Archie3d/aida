@@ -860,6 +860,8 @@ struct GenericFormal
     ExprPtr defaultValue;
     TypeDefinitionPtr m_arrayDefinition;
     std::vector<Token> m_subprogramTokens;
+    std::vector<Token> m_objectTokens;
+    ParameterMode m_mode = ParameterMode::In;
     bool m_boxDefault = false;
     bool m_limited = false;
     std::vector<Symbol*> m_defaultCandidates;

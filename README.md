@@ -1005,8 +1005,17 @@ package Letter_Stack is new Stacks (Element => Character, Capacity => 2);
 Each instance has state and code of its own. A library-level instance elaborates
 during program startup. An instance declared inside a subprogram or block
 elaborates whenever execution reaches its declaration, with fresh state for each
-activation. Generic formal objects currently require static actual values;
-formal packages remain unsupported.
+activation. Scalar generic formal objects accept runtime actuals. An `in`
+formal captures its value once at instance elaboration; an `in out` formal
+retains a view of the actual variable, including its assignment constraints.
+Indexed and selected scalar components can be `in out` actuals, and their
+addresses are evaluated once at elaboration. Defaults may refer to earlier
+formals and retain declaration-site name resolution. Object formals of
+composite or access types and formal packages remain unsupported.
+
+A runtime capacity can constrain local scalar subtypes and local arrays using
+the existing runtime-bound support. Runtime record layouts and library-level
+dynamic arrays remain unsupported.
 
 Formal functions and procedures accept named subprograms and quoted operator
 actuals, including predefined operators and package-qualified user operators.

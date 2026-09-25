@@ -1,6 +1,7 @@
 #include "Sema.h"
 
 #include "Parser.h"
+#include "SemaSupport.h"
 
 #include <algorithm>
 #include <limits>
@@ -89,6 +90,31 @@ bool staticallyMatches(Type* actual, Type* formal)
     }
     return actual->discriminantsKnown == formal->discriminantsKnown
         && actual->discriminantValues == formal->discriminantValues;
+}
+
+// Restrict reference actuals to object names; calls can also denote indexed
+// components, whose prefix must itself be a variable.
+bool isGenericVariable(Expr* expr)
+{
+    if (expr->kind == ExprKind::Identifier) {
+        Symbol* symbol = static_cast<IdentifierExpr*>(expr)->symbol;
+        return symbol != nullptr && ((symbol->kind == SymbolKind::Object && !symbol->isConstant)
+            || (symbol->kind == SymbolKind::Parameter && symbol->mode != ParameterMode::In));
+    }
+    if (expr->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr);
+        if (selected->symbol != nullptr) {
+            return selected->symbol->kind == SymbolKind::Object && !selected->symbol->isConstant;
+        }
+        return (baseType(selected->prefix->type) != nullptr
+            && baseType(selected->prefix->type)->kind == TypeKind::Access)
+            || isGenericVariable(selected->prefix.get());
+    }
+    if (expr->kind == ExprKind::Call) {
+        auto* call = static_cast<CallExpr*>(expr);
+        return call->form == CallForm::Indexing && isGenericVariable(call->callee.get());
+    }
+    return false;
 }
 
 // The symbol a unit declared, which is what makes an instance visible where it
@@ -296,11 +322,12 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             bindings->add(symbol);
         } else {
             Type* type = resolveSubtypeIndication(formal.subtype.get(), bindings);
-            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, formal.lower, formal.name);
+            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
             symbol->type = type;
             symbol->location = formal.location;
-            // Even a currently static-only actual is unknown in the contract.
-            // The contract pass permits symbolic layouts and never emits them.
+            symbol->isConstant = formal.m_mode == ParameterMode::In;
+            // Formal values are unknown while checking the contract. Symbolic
+            // layouts are retained here and resolved when instantiating.
             if (formal.defaultValue) {
                 Type* value = analyzeExpr(formal.defaultValue.get(), bindings, type);
                 if (!typesCompatible(type, value)) {
@@ -699,21 +726,92 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             continue;
         }
 
-        Type* type = resolveSubtypeIndication(formal.subtype.get(), bindings);
-        analyzeExpr(actual, scope, type);
-        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, formal.lower, formal.name);
+        // Reparse the subtype/default so its semantic annotations belong to
+        // this instance. Declaration-site names replay the checked contract.
+        Parser objectParser(formal.m_objectTokens, m_diagnostics);
+        DeclList objects = objectParser.parseDeclarations();
+        if (objects.size() != 1 || objects.front()->kind != DeclKind::Object) {
+            return false;
+        }
+        auto* object = static_cast<ObjectDecl*>(objects.front().get());
+        auto* savedReplay = m_replayContract;
+        auto* savedRecord = m_recordContract;
+        std::size_t savedFirst = m_instanceFirstSymbol;
+        m_replayContract = m_genericContracts.at(generic->generic).get();
+        m_recordContract = nullptr;
+        m_instanceFirstSymbol = firstSymbol;
+        Type* type = resolveSubtypeIndication(object->subtype.get(), bindings);
+        bool useDefault = actuals[i] == nullptr;
+        Type* actualType = nullptr;
+        if (useDefault) {
+            actual = object->initializer.get();
+            actualType = analyzeExpr(actual, bindings, type);
+        }
+        m_replayContract = savedReplay;
+        m_recordContract = savedRecord;
+        m_instanceFirstSymbol = savedFirst;
+        if (!useDefault) {
+            actualType = analyzeExpr(actual, scope, type);
+        }
+        if (!typesCompatible(type, actualType)) {
+            m_diagnostics.error(actual->location, "generic formal object actual has an incompatible type");
+            return false;
+        }
+        if (type == nullptr || actualType == nullptr) {
+            return false;
+        }
+        if (m_recordContract == nullptr && !isDiscrete(type) && !isReal(type)) {
+            m_diagnostics.error(actual->location, "generic formal objects currently require scalar actuals");
+            return false;
+        }
+        bool reference = formal.m_mode == ParameterMode::InOut;
+        if (reference) {
+            int errors = m_diagnostics.errorCount();
+            if (!isGenericVariable(actual)) {
+                m_diagnostics.error(actual->location, "an in out generic formal object requires a variable actual");
+            } else {
+                checkAssignable(actual, scope, true);
+            }
+            if (errors != m_diagnostics.errorCount()) {
+                return false;
+            }
+            // A formal in out is a view of the actual, including its bounds.
+            type = actualType;
+        } else {
+            SemaSupport::adaptUniversal(actual, type);
+        }
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
         symbol->type = type;
         symbol->location = formal.location;
-        long long value = 0;
-        double real = 0.0;
-        if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {
-            symbol->hasStaticValue = true;
-            symbol->staticValue = value;
-            symbol->staticReal = real;
-        } else {
-            m_diagnostics.error(actual->location, "a generic formal object expects a static value");
+        symbol->isConstant = !reference;
+        symbol->m_genericReference = reference;
+        symbol->owner = m_currentSubprogram;
+        symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        if (symbol->isGlobal) {
+            symbol->qbeName = "$" + mangle(decl->lower + "__formal__" + formal.lower);
+        }
+        if (!reference) {
+            long long value = 0;
+            double real = 0.0;
+            if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {
+                symbol->hasStaticValue = true;
+                symbol->staticValue = value;
+                symbol->staticReal = real;
+            }
         }
         bindings->add(symbol);
+        object->isConstant = !reference;
+        object->symbols.push_back(symbol);
+        if (!useDefault) {
+            for (Association& argument : decl->arguments) {
+                if (argument.value.get() == actual) {
+                    object->initializer = std::move(argument.value);
+                    break;
+                }
+            }
+        }
+        decl->expansion.push_back(std::move(objects.front()));
     }
 
     return true;

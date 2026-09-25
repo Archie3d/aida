@@ -45,6 +45,7 @@ struct Symbol
     bool awaitsValue = false;   // A deferred constant, until its value is given.
     bool isGlobal = false;
     bool byReference = false;
+    bool m_genericReference = false; // An instance-owned slot holding an actual object address.
     ParameterMode mode = ParameterMode::In;
     bool hasStaticValue = false;
     long long staticValue = 0;
