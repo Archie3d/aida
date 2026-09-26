@@ -144,6 +144,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
                 m_diagnostics.error(expr->location, "fixed-point scale attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalReal();
+            if (base->m_formalFixed) {
+                return expr->type;
+            }
             expr->isStatic = true;
             expr->m_exactReal = ExactReal::make(1, (__int128)1 << base->m_fixedBits);
             if (name == "delta" && base->m_delta != nullptr) {
@@ -158,7 +161,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
                 m_diagnostics.error(expr->location, "fixed-point bounds take no arguments");
             }
             expr->type = prefixType;
-            expr->isStatic = true;
+            expr->isStatic = !base->m_formalFixed;
             expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
             return expr->type;
         }

@@ -48,6 +48,9 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         auto* literal = static_cast<RealLiteralExpr*>(expr);
         if (expected != nullptr && expected->kind == TypeKind::Fixed) {
             expr->type = expected;
+            if (expected->m_formalFixed) {
+                return expr->type;
+            }
             expr->isStatic = true;
             expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->m_fixedBits, expr->staticValue);
             if (expr->m_fixedInvalid) {
@@ -443,6 +446,9 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         ExactReal exact;
         if (exactValue(expr, exact)) {
             expr->type = expected;
+            if (expected->m_formalFixed) {
+                return expr->type;
+            }
             expr->isStatic = true;
             expr->m_fixedInvalid = !exact.scaled(expected->m_fixedBits, expr->staticValue);
             if (expr->m_fixedInvalid) {

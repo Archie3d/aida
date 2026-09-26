@@ -328,11 +328,13 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             }
             TypeKind kind = formal.typeClass == FormalTypeClass::IntegerType ? TypeKind::Integer
                 : formal.typeClass == FormalTypeClass::FloatType ? TypeKind::Float
+                : formal.typeClass == FormalTypeClass::FixedType ? TypeKind::Fixed
                 : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
             type = m_types.create(kind, formal.name);
             type->low = std::numeric_limits<int>::min();
             type->high = std::numeric_limits<int>::max();
             type->digits = 6;
+            type->m_formalFixed = kind == TypeKind::Fixed;
             if (formal.typeClass == FormalTypeClass::Any) {
                 type->privateTo = decl->symbol;
                 type->isLimited = formal.m_limited;
@@ -398,6 +400,11 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
     case FormalTypeClass::FloatType:
         if (base->kind != TypeKind::Float) {
             wanted = "a floating point type";
+        }
+        break;
+    case FormalTypeClass::FixedType:
+        if (base->kind != TypeKind::Fixed) {
+            wanted = "an ordinary fixed-point type";
         }
         break;
     case FormalTypeClass::Discrete:

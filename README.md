@@ -261,9 +261,8 @@ division by zero, and failed range checks raise `Constraint_Error`.
 Static fixed-point subtype bounds, scalar parameters and returns, arrays,
 records, and `'First`, `'Last`, `'Base`, `'Small`, `'Delta`, and `'Size` are
 supported. Storage is currently always 64 bits. Decimal fixed point, explicit
-`Small` clauses, dynamic fixed-point subtype constraints, fixed-point formal
-type declarations, fixed-point I/O/streaming, and additional fixed-point
-attributes remain future work. Exponentiation, `mod`, and `rem` are not
+`Small` clauses, dynamic fixed-point subtype constraints, fixed-point
+I/O/streaming, and additional fixed-point attributes remain future work. Exponentiation, `mod`, and `rem` are not
 predefined fixed-point operations.
 
 
@@ -1048,6 +1047,15 @@ end Stacks;
 package Number_Stack is new Stacks (Integer);
 package Letter_Stack is new Stacks (Element => Character, Capacity => 2);
 ```
+
+Ordinary fixed-point formal types use `type T is delta <>;`. Their actuals
+must be ordinary fixed-point types or subtypes; integer and floating-point
+actuals are rejected. The generic contract checks fixed-point operations even
+when the generic is never instantiated. Scale-dependent values and constraints
+are checked again for each actual type, so one generic can use different
+`Small`, `Delta`, and range values. Derived fixed-point actuals, nested
+instances, conversions, and formal operator subprograms are supported.
+Decimal fixed-point formals (`delta <> digits <>`) remain unsupported.
 
 Each instance has state and code of its own. A library-level instance elaborates
 during program startup. An instance declared inside a subprogram or block

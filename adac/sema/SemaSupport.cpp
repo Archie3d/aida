@@ -20,6 +20,11 @@ void adaptUniversal(Expr* expr, Type* type)
         return;
     }
     if (type->kind == TypeKind::Fixed) {
+        if (type->m_formalFixed) {
+            expr->type = type;
+            expr->isStatic = false;
+            return;
+        }
         expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->m_fixedBits, expr->staticValue);
         expr->isStatic = !expr->m_fixedInvalid;
         expr->type = type;

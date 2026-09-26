@@ -203,6 +203,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {
+            if (expr->type->m_formalFixed) {
+                return expr->type;
+            }
             ExactReal exact;
             long long value = 0;
             if (exactValue(operand, exact) && exact.scaled(expr->type->m_fixedBits, value)

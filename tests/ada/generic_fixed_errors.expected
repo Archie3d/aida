@@ -1,0 +1,7 @@
+generic_fixed_errors.adb:10:44: error: 'Fixed_Only' expects an ordinary fixed-point type, and 'Integer' is not one
+generic_fixed_errors.adb:11:42: error: 'Fixed_Only' expects an ordinary fixed-point type, and 'Float' is not one
+generic_fixed_errors.adb:12:41: error: 'Fixed_Only' expects an ordinary fixed-point type, and 'Choice' is not one
+generic_fixed_errors.adb:13:43: error: 'Fixed_Only' expects an ordinary fixed-point type, and 'Record_Type' is not one
+generic_fixed_errors.adb:20:18: error: 'mod' and 'rem' require integer operands
+generic_fixed_errors.adb:28:18: error: exponentiation is not defined for fixed-point operands
+generic_fixed_errors.adb:37:9: error: the assigned value has an incompatible type

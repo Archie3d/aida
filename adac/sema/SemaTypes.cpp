@@ -615,6 +615,11 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (base->kind == TypeKind::Fixed && indication->rangeLow && indication->rangeHigh) {
         Type* lowType = analyzeExpr(indication->rangeLow.get(), scope, base);
         Type* highType = analyzeExpr(indication->rangeHigh.get(), scope, base);
+        if (base->m_formalFixed && typesCompatible(base, lowType) && typesCompatible(base, highType)) {
+            // The instance rechecks these constraints with its actual scale.
+            indication->resolved = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            return indication->resolved;
+        }
         long long low = 0, high = 0;
         if (!typesCompatible(base, lowType) || !typesCompatible(base, highType)
             || !foldFixed(indication->rangeLow.get(), low) || !foldFixed(indication->rangeHigh.get(), high)) {

@@ -333,7 +333,8 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
 
 bool Sema::foldFixed(Expr* expr, long long& value) const
 {
-    if (expr == nullptr || expr->m_fixedInvalid) {
+    if (expr == nullptr || expr->m_fixedInvalid
+        || (expr->type != nullptr && expr->type->m_formalFixed)) {
         return false;
     }
     if (expr->isStatic) {

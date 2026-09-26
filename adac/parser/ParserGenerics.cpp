@@ -28,8 +28,8 @@ DeclPtr Parser::parseGenericDeclaration()
             expect(TokenKind::KwIs, "in generic formal type");
             formal.m_limited = check(TokenKind::KwLimited);
             // What follows says which types the instantiation may supply.  Only
-            // the first word of it is telling: 'range' and 'digits' each name a
-            // family of their own, and '(<>)' asks for a discrete type.
+            // the first word of it is telling: 'range', 'digits', and 'delta'
+            // each name a family, and '(<>)' asks for a discrete type.
             if (check(TokenKind::KwArray)) {
                 formal.typeClass = FormalTypeClass::ArrayType;
                 std::size_t start = m_position;
@@ -52,7 +52,15 @@ DeclPtr Parser::parseGenericDeclaration()
             } else if (check(TokenKind::KwRange)) {
                 formal.typeClass = FormalTypeClass::IntegerType;
             } else if (check(TokenKind::KwDelta)) {
-                fail("fixed-point generic formal types are not yet supported");
+                advance();
+                formal.typeClass = FormalTypeClass::FixedType;
+                expect(TokenKind::Box, "after delta in ordinary fixed-point formal type");
+                if (check(TokenKind::KwDigits)) {
+                    fail("decimal fixed-point generic formal types are not yet supported");
+                }
+                if (!check(TokenKind::Semicolon)) {
+                    fail("expected ';' after ordinary fixed-point formal type");
+                }
             } else if (check(TokenKind::KwDigits)) {
                 formal.typeClass = FormalTypeClass::FloatType;
             } else if (check(TokenKind::LeftParen)) {

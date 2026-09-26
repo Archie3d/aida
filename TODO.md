@@ -366,8 +366,10 @@ changes on an unconstrained object, and nested alternatives.
   evaluation, arithmetic, conversions, static subtypes, and basic attributes.
   Shared compiler/runtime rounding and overflow checks; covered by `fixedpoint`,
   `fixedchecks`, `fixedrounding`, and fixed-point diagnostic tests.
+- [x] Ordinary fixed-point generic formals (`type T is delta <>`): contract
+  checking, actual matching, and per-instance scales, conversions, and ranges.
 - [ ] Extend ordinary fixed point to wider scale choices, explicit Small clauses,
-  dynamic subtype bounds, remaining attributes, formal types, and fixed-point I/O.
+  dynamic subtype bounds, remaining attributes, and fixed-point I/O.
 - [ ] Decimal fixed-point types (`delta` and `digits`), with decimal scaling,
   rounding, and checks.
 - [ ] Complete derived-type behavior, including inherited primitive operations and
@@ -391,8 +393,9 @@ Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
 `Sema::analyzeGenericInstantiation`.
 
 - [ ] Parse and enforce formal type categories fully: private/limited private,
-  derived, access, modular, and fixed-point formals as their types become
-  available. The current parser skips much of each formal type definition.
+  derived, access, modular, and decimal fixed-point formals as their types
+  become available. Ordinary fixed-point formals are supported; the parser
+  still skips much of the other formal type definitions.
 - [x] Formal functions/procedures, named and operator actuals, and named/box
   defaults (`<>`), with profile matching, instance-owned parameter defaults,
   declaration-site named defaults and instantiation-site box defaults.

@@ -295,6 +295,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->literals = parent->literals;
     subtype->digits = parent->digits;
     subtype->m_fixedBits = parent->m_fixedBits;
+    subtype->m_formalFixed = parent->m_formalFixed;
     subtype->m_delta = parent->m_delta;
     subtype->hasRealRange = parent->hasRealRange;
     subtype->lowReal = parent->lowReal;

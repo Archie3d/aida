@@ -120,6 +120,8 @@ public:
     // discrete ones because they do not fit in an integer.
     int digits = 0;
     int m_fixedBits = 0;
+    // Contract-only fixed-point types have no scale or bounds until instantiation.
+    bool m_formalFixed = false;
     struct Expr* m_delta = nullptr;
     bool hasRealRange = false;
     double lowReal = 0.0;

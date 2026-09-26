@@ -1,0 +1,1 @@
+generic_fixed_syntax.adb:3:28: error: expected '<>' after delta in ordinary fixed-point formal type, found '0.125'

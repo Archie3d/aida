@@ -854,6 +854,7 @@ enum class FormalTypeClass
     Discrete,
     IntegerType,
     FloatType,
+    FixedType,
     ArrayType
 };
 
