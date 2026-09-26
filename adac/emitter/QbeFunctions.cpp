@@ -55,6 +55,12 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         return;
     }
 
+    // A separately compiled caller can take 'Access without recompiling this
+    // body. Export one stable descriptor alongside every library subprogram.
+    if (symbol->level == 0) {
+        m_data << "export data " << symbol->qbeName << ".access = align 8 { l " << symbol->qbeName << ", l 0 }\n";
+    }
+
     FunctionContext context;
     context.symbol = symbol;
     context.traceName = symbol->displayName;

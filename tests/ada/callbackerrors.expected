@@ -1,0 +1,9 @@
+callbackerrors.adb:12:33: error: no subprogram matches the designated access profile
+callbackerrors.adb:13:39: error: no subprogram matches the designated access profile
+callbackerrors.adb:20:22: error: subprogram is deeper than the access type
+callbackerrors.adb:23:5: error: the assigned value has an incompatible type
+callbackerrors.adb:24:7: error: no visible subprogram matches this call
+callbackerrors.adb:25:8: error: the target of an assignment must be a variable
+callbackerrors.adb:26:7: error: the target of an assignment must be a variable
+callbackerrors.adb:27:7: error: no visible subprogram matches this call
+callbackerrors.adb:28:7: error: no visible subprogram matches this call

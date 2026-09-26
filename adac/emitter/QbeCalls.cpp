@@ -46,6 +46,19 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         return result;
     }
 
+    std::string callee = subprogram->qbeName;
+    std::string indirectLink;
+    if (expr->m_indirect) {
+        Value descriptor = emitExpr(expr->callee.get());
+        checkNotNull(descriptor);
+        callee = newTemp();
+        std::string linkSlot = newTemp();
+        indirectLink = newTemp();
+        line(callee + " =l loadl " + descriptor.name);
+        line(linkSlot + " =l add " + descriptor.name + ", 8");
+        line(indirectLink + " =l loadl " + linkSlot);
+    }
+
     struct ScalarCopyBack
     {
         Value actual;
@@ -128,13 +141,43 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     Value result { "0", 'w' };
-    if (subprogram->returnType != nullptr && !compositeResult) {
-        char type = qbeClass(subprogram->returnType);
-        std::string temp = newTemp();
-        line(temp + " =" + std::string(1, type) + " call " + subprogram->qbeName + "(" + argumentList + ")");
-        result = Value { temp, type };
+    auto invoke = [&](const std::string& actuals) {
+        if (subprogram->returnType != nullptr && !compositeResult) {
+            char type = qbeClass(subprogram->returnType);
+            std::string temp = newTemp();
+            line(temp + " =" + std::string(1, type) + " call " + callee + "(" + actuals + ")");
+            return Value { temp, type };
+        }
+        line("call " + callee + "(" + actuals + ")");
+        return Value { "0", 'w' };
+    };
+    if (expr->m_indirect) {
+        std::string nested = newLabel("nestedcallback");
+        std::string library = newLabel("librarycallback");
+        std::string done = newLabel("callbackdone");
+        std::string hasLink = newTemp();
+        line(hasLink + " =w cnel " + indirectLink + ", 0");
+        branch(Value { hasLink, 'w' }, nested, library);
+        label(nested);
+        std::vector<std::string> linked = arguments;
+        linked.insert(linked.begin() + (compositeResult ? 1 : 0), "l " + indirectLink);
+        std::string linkedArguments;
+        for (const std::string& argument : linked) {
+            linkedArguments += (linkedArguments.empty() ? "" : ", ") + argument;
+        }
+        Value nestedResult = invoke(linkedArguments);
+        jump(done);
+        label(library);
+        Value libraryResult = invoke(argumentList);
+        jump(done);
+        label(done);
+        if (subprogram->returnType != nullptr && !compositeResult) {
+            result = Value { newTemp(), nestedResult.type };
+            line(result.name + " =" + std::string(1, result.type) + " phi " + nested + " " + nestedResult.name
+                 + ", " + library + " " + libraryResult.name);
+        }
     } else {
-        line("call " + subprogram->qbeName + "(" + argumentList + ")");
+        result = invoke(argumentList);
     }
 
     emitExceptionCheck();

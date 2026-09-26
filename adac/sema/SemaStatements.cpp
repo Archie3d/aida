@@ -57,6 +57,12 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
 {
     (void)scope;
 
+    if (target->m_implicitCall != nullptr
+        || (target->kind == ExprKind::Call && static_cast<CallExpr*>(target)->m_indirect)) {
+        m_diagnostics.error(target->location, "the target of an assignment must be a variable");
+        return;
+    }
+
     // A limited private type is not copied outside the package that declared
     // it; whatever it takes to make one is that package's to offer.
     Type* type = baseType(target->type);
@@ -146,9 +152,24 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* call = static_cast<ProcedureCallStmt*>(statement);
         int errorsBefore = m_diagnostics.errorCount();
         Expr* expression = call->call.get();
+        if (expression->kind == ExprKind::Identifier || expression->kind == ExprKind::Selected) {
+            for (Type* type : expressionTypes(expression, scope)) {
+                if (type->m_accessProfile != nullptr) {
+                    auto indirect = std::make_unique<CallExpr>();
+                    indirect->location = expression->location;
+                    indirect->callee = std::move(call->call);
+                    call->call = std::move(indirect);
+                    expression = call->call.get();
+                    break;
+                }
+            }
+        }
         Type* result = analyzeExpr(expression, scope, m_types.voidType());
         if (m_diagnostics.errorCount() != errorsBefore) {
             break;
+        }
+        if (expression->m_implicitCall != nullptr) {
+            expression = expression->m_implicitCall.get();
         }
         Symbol* target = nullptr;
         if (expression->kind == ExprKind::Identifier) {

@@ -70,8 +70,66 @@ int digitsOf(const Type* type)
 
 }
 
-Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
+bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 {
+    if (access == nullptr || access->m_accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
+        return false;
+    }
+    Symbol* profile = access->m_accessProfile;
+    bool sameResult = candidate->returnType == profile->returnType
+        || SemaSupport::staticallyMatches(candidate->returnType, profile->returnType);
+    if (!sameResult || candidate->parameters.size() != profile->parameters.size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < profile->parameters.size(); ++i) {
+        if (!SemaSupport::staticallyMatches(candidate->parameters[i]->type, profile->parameters[i]->type)
+            || candidate->parameters[i]->mode != profile->parameters[i]->mode) {
+            return false;
+        }
+    }
+    return true;
+}
+
+Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
+{
+    if (expr->lower == "access") {
+        if (expected == nullptr || expected->m_accessProfile == nullptr || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "subprogram 'Access requires an access-to-subprogram type context");
+            return nullptr;
+        }
+        Symbol* chosen = nullptr;
+        for (Symbol* candidate : expressionNames(expr->prefix.get(), scope)) {
+            if (matchesAccessProfile(candidate, expected)) {
+                if (chosen != nullptr) {
+                    m_diagnostics.error(expr->location, "ambiguous subprogram 'Access");
+                    return nullptr;
+                }
+                chosen = candidate;
+            }
+        }
+        if (chosen == nullptr) {
+            m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
+            return nullptr;
+        }
+        bool accessible = false;
+        for (Scope* enclosing = expected->m_accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
+            accessible = accessible || enclosing == chosen->m_declarationScope;
+        }
+        // Library subprograms have no captured activation.
+        if (!accessible && chosen->level > 0) {
+            m_diagnostics.error(expr->location, "subprogram is deeper than the access type");
+            return nullptr;
+        }
+        if (chosen->builtin != BuiltinKind::None) {
+            m_diagnostics.error(expr->location, "'Access of imported subprograms is not yet supported");
+            return nullptr;
+        }
+        chosen->m_addressTaken = true;
+        expr->m_accessSubprogram = chosen;
+        recordContractName(expr->prefix.get(), chosen);
+        expr->type = expected;
+        return expr->type;
+    }
     bool prefixIsType = false;
     Type* prefixType = nullptr;
 

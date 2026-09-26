@@ -1,0 +1,4 @@
+callbackprofileerrors.adb:2:40: error: access-to-subprogram parameters cannot have defaults
+callbackprofileerrors.adb:3:44: error: access-to-function parameters must have mode in
+callbackprofileerrors.adb:4:54: error: duplicate access-to-subprogram parameter
+callbackprofileerrors.adb:12:6: error: the target of an assignment must be a variable

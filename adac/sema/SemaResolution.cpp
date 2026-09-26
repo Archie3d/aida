@@ -10,6 +10,9 @@ using SemaSupport::isUniversal;
 // AST annotation belong to the subsequent analysis of the selected context.
 std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
 {
+    if (expr == nullptr) {
+        return {};
+    }
     if (expr->kind == ExprKind::Identifier) {
         const std::string& lower = static_cast<IdentifierExpr*>(expr)->lower;
         // A Base conversion synthesizes its type mark in analyzeCall; its
@@ -109,6 +112,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     if (expr == nullptr) {
         return result;
     }
+    if (expr->m_implicitCall != nullptr) {
+        return expressionTypes(expr->m_implicitCall.get(), scope, expected);
+    }
     switch (expr->kind) {
     case ExprKind::IntegerLiteral:
         add(m_types.universalInteger());
@@ -162,6 +168,12 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             for (Type* prefix : expressionTypes(selected->prefix.get(), scope)) {
                 Type* record = baseType(prefix);
                 if (record->kind == TypeKind::Access) {
+                    if (record->m_accessProfile != nullptr && selected->isDereference) {
+                        if (record->m_accessProfile->parameters.empty()) {
+                            add(record->m_accessProfile->returnType);
+                        }
+                        continue;
+                    }
                     record = baseType(record->target);
                     if (selected->isDereference) {
                         add(record);
@@ -228,7 +240,26 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
         }
         if (!callable) {
-            for (Type* prefix : expressionTypes(call->callee.get(), scope)) {
+            Expr* callee = call->callee.get();
+            if (callee->kind == ExprKind::Selected) {
+                auto* selected = static_cast<SelectedExpr*>(callee);
+                if (selected->isDereference) {
+                    for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
+                        if (type->m_accessProfile != nullptr) {
+                            callee = selected->prefix.get();
+                            break;
+                        }
+                    }
+                }
+            }
+            for (Type* prefix : expressionTypes(callee, scope)) {
+                if (prefix->m_accessProfile != nullptr) {
+                    std::vector<std::size_t> positions;
+                    if (matchCallArguments(call, prefix->m_accessProfile, scope, positions)) {
+                        add(prefix->m_accessProfile->returnType);
+                    }
+                    continue;
+                }
                 Type* array = prefix;
                 if (baseType(array)->kind == TypeKind::Access) {
                     array = baseType(array)->target;
@@ -298,7 +329,15 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::Attribute: {
         auto* attribute = static_cast<AttributeExpr*>(expr);
         const std::string& name = attribute->lower;
-        if (name == "small" || name == "delta") {
+        if (name == "access") {
+            if (expected != nullptr) {
+                for (Symbol* candidate : expressionNames(attribute->prefix.get(), scope)) {
+                    if (matchesAccessProfile(candidate, expected)) {
+                        add(expected);
+                    }
+                }
+            }
+        } else if (name == "small" || name == "delta") {
             add(m_types.universalReal());
         } else if (name == "image") {
             add(m_types.stringType());

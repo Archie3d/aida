@@ -68,6 +68,9 @@ namespace {
 // 0 is not an object name, 1 is a constant view, 2 is a variable view.
 int objectView(Expr* expr)
 {
+    if (expr->m_implicitCall != nullptr) {
+        return 0;
+    }
     Symbol* symbol = nullptr;
     if (expr->kind == ExprKind::Identifier) {
         symbol = static_cast<IdentifierExpr*>(expr)->symbol;
@@ -329,6 +332,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->location = spec.location;
     symbol->returnType = returnType;
     symbol->hasBody = isBody;
+    symbol->m_declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
     if (symbol->owner != nullptr) {

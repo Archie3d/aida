@@ -27,6 +27,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         m_diagnostics.error(expr->location, "fixed-point value exceeds supported exact evaluation or storage limits");
         return Value { "0", 'l' };
     }
+    if (expr->m_implicitCall != nullptr) {
+        return emitExpr(expr->m_implicitCall.get());
+    }
     if (expr->isStatic && expr->type != nullptr && expr->type->kind == TypeKind::Fixed) {
         return Value { std::to_string(expr->staticValue), 'l' };
     }
@@ -273,6 +276,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
 
 Value QbeEmitter::emitAddress(Expr* expr)
 {
+    if (expr->m_implicitCall != nullptr) {
+        return emitAddress(expr->m_implicitCall.get());
+    }
     switch (expr->kind) {
     case ExprKind::Identifier: {
         auto* identifier = static_cast<IdentifierExpr*>(expr);

@@ -9,6 +9,17 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "access") {
+        Symbol* subprogram = expr->m_accessSubprogram;
+        if (subprogram->level == 0) {
+            std::string descriptor = subprogram->qbeName + ".access";
+            return Value { descriptor, 'l' };
+        }
+        Value frame = staticLinkFor(subprogram->level - 1);
+        std::string descriptor = newTemp();
+        line(descriptor + " =l add " + frame.name + ", " + std::to_string(subprogram->m_descriptorOffset));
+        return Value { descriptor, 'l' };
+    }
     if (name == "identity") {
         return Value { expr->exceptionSymbol->exceptionObject, 'l' };
     }

@@ -311,6 +311,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->m_boundsSymbol = parent->m_boundsSymbol;
     subtype->fields = parent->fields;
     subtype->target = parent->target;
+    subtype->m_accessProfile = parent->m_accessProfile;
+    subtype->m_accessScope = parent->m_accessScope;
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
     subtype->discriminantCount = parent->discriminantCount;

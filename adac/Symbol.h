@@ -67,6 +67,10 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    Scope* m_declarationScope = nullptr;
+    bool m_addressTaken = false;
+    // Code pointer and static link, stored once in the enclosing frame.
+    long long m_descriptorOffset = -1;
     Symbol* m_negatedEquality = nullptr; // Implicit Boolean "/=" delegates to "=".
 
 

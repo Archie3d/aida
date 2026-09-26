@@ -194,7 +194,23 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Access);
         definition->location = location;
         advance();
-        definition->parent = parseSubtypeIndication();
+        if (check(TokenKind::KwFunction) || check(TokenKind::KwProcedure)) {
+            definition->m_accessProfile = std::make_unique<SubprogramSpec>();
+            SubprogramSpec& profile = *definition->m_accessProfile;
+            profile.isFunction = match(TokenKind::KwFunction);
+            if (!profile.isFunction) {
+                expect(TokenKind::KwProcedure, "in access-to-subprogram type");
+            }
+            if (check(TokenKind::LeftParen)) {
+                parseParameterList(profile);
+            }
+            if (profile.isFunction) {
+                expect(TokenKind::KwReturn, "in access-to-function type");
+                profile.returnType = parseSubtypeIndication();
+            }
+        } else {
+            definition->parent = parseSubtypeIndication();
+        }
         return definition;
     }
 

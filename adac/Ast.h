@@ -79,6 +79,7 @@ struct Expr : Node
     }
 
     ExprKind kind;
+    std::unique_ptr<Expr> m_implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
     bool isStatic = false;
     long long staticValue = 0;
@@ -225,6 +226,7 @@ struct CallExpr : Expr
     ExprPtr operatorExpression; // Explicit unqualified operator call.
     CallForm form = CallForm::Unresolved;
     Symbol* subprogram = nullptr;
+    bool m_indirect = false;
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
 };
 
@@ -241,6 +243,7 @@ struct AttributeExpr : Expr
     std::vector<ExprPtr> arguments;
     Type* prefixType = nullptr;
     Symbol* exceptionSymbol = nullptr;
+    Symbol* m_accessSubprogram = nullptr;
 };
 
 struct AggregateComponent
@@ -381,6 +384,34 @@ struct VariantPart
 
 using VariantPartPtr = std::unique_ptr<VariantPart>;
 
+enum class ParameterMode
+{
+    In,
+    Out,
+    InOut
+};
+
+struct ParameterDecl
+{
+    std::string name;
+    std::string lower;
+    ParameterMode mode = ParameterMode::In;
+    SubtypeIndicationPtr subtype;
+    ExprPtr defaultValue;
+    SourceLocation location;
+    Symbol* symbol = nullptr;
+};
+
+struct SubprogramSpec
+{
+    bool isFunction = false;
+    std::string name;
+    std::string lower;
+    std::vector<ParameterDecl> parameters;
+    SubtypeIndicationPtr returnType;
+    SourceLocation location;
+};
+
 struct TypeDefinition : Node
 {
     explicit TypeDefinition(TypeDefKind defKind)
@@ -413,6 +444,7 @@ struct TypeDefinition : Node
 
     // Derived / access
     SubtypeIndicationPtr parent;
+    std::unique_ptr<SubprogramSpec> m_accessProfile;
 
     // Private
     bool isLimited = false;
@@ -614,6 +646,7 @@ struct RaiseStmt : Stmt
     std::string name;
     std::string lower;
     Symbol* exceptionSymbol = nullptr;
+    Symbol* m_accessSubprogram = nullptr;
     ExprPtr message;
 };
 
@@ -708,34 +741,6 @@ struct SubtypeDecl : Decl
     std::string lower;
     SubtypeIndicationPtr subtype;
     Type* declaredType = nullptr;
-};
-
-enum class ParameterMode
-{
-    In,
-    Out,
-    InOut
-};
-
-struct ParameterDecl
-{
-    std::string name;
-    std::string lower;
-    ParameterMode mode = ParameterMode::In;
-    SubtypeIndicationPtr subtype;
-    ExprPtr defaultValue;
-    SourceLocation location;
-    Symbol* symbol = nullptr;
-};
-
-struct SubprogramSpec
-{
-    bool isFunction = false;
-    std::string name;
-    std::string lower;
-    std::vector<ParameterDecl> parameters;
-    SubtypeIndicationPtr returnType;
-    SourceLocation location;
 };
 
 struct SubprogramDecl : Decl

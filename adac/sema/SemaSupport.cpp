@@ -6,6 +6,39 @@
 namespace SemaSupport
 {
 
+// Subtype constraints are part of the contract for array indexes/components.
+bool staticallyMatches(Type* actual, Type* formal)
+{
+    if (actual == nullptr || formal == nullptr || baseType(actual) != baseType(formal)) {
+        return false;
+    }
+    if (actual == formal) {
+        return true;
+    }
+    if (isScalar(actual)) {
+        return actual->m_scalarBoundsSymbol == formal->m_scalarBoundsSymbol
+            && actual->low == formal->low && actual->high == formal->high
+            && actual->hasRealRange == formal->hasRealRange
+            && actual->lowReal == formal->lowReal && actual->highReal == formal->highReal;
+    }
+    if (actual->kind == TypeKind::Array) {
+        if (actual->constrained != formal->constrained || actual->m_boundsSymbol != formal->m_boundsSymbol) {
+            return false;
+        }
+        int rank = actual->arrayRank;
+        for (int dimension = 0; dimension < rank; ++dimension) {
+            if (actual->constrained && (actual->indexLow != formal->indexLow || actual->indexHigh != formal->indexHigh)) {
+                return false;
+            }
+            actual = actual->element;
+            formal = formal->element;
+        }
+        return true;
+    }
+    return actual->discriminantsKnown == formal->discriminantsKnown
+        && actual->discriminantValues == formal->discriminantValues;
+}
+
 bool isUniversal(const Type* type)
 {
     return type != nullptr

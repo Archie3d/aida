@@ -1,5 +1,6 @@
 data $.hello.str.0 = { b "hello (body elaboration)" 0 }
 data $.hello.str.1 = { b "<unknown>" 0 }
+export data $hello.access = align 8 { l $hello, l 0 }
 data $.hello.str.2 = { b "Hello, world!" 0 }
 data $.hello.str.3 = { b "hello.adb:6:14" 0 }
 data $.hello.str.4 = { b "Hello" 0 }

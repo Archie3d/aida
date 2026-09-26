@@ -100,6 +100,24 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     line(temporaryMark + " =l loadl " + storageArena(true));
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
+        Symbol* subprogram = nullptr;
+        if (decl->kind == DeclKind::SubprogramBody) {
+            subprogram = static_cast<SubprogramBody*>(decl.get())->symbol;
+        } else if (decl->kind == DeclKind::SubprogramDeclaration) {
+            subprogram = static_cast<SubprogramDecl*>(decl.get())->symbol;
+        }
+        if (subprogram != nullptr && subprogram->m_addressTaken && subprogram->level > 0
+            && subprogram->m_descriptorOffset < 0) {
+            m_context->frameSize = (m_context->frameSize + 7) / 8 * 8;
+            subprogram->m_descriptorOffset = m_context->frameSize;
+            m_context->frameSize += 16;
+            std::string descriptor = newTemp();
+            std::string linkSlot = newTemp();
+            line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(subprogram->m_descriptorOffset));
+            line("storel " + subprogram->qbeName + ", " + descriptor);
+            line(linkSlot + " =l add " + descriptor + ", 8");
+            line("storel " + m_context->frameTemp + ", " + linkSlot);
+        }
         switch (decl->kind) {
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());

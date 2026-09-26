@@ -1,4 +1,6 @@
 #include "Sema.h"
+
+#include <algorithm>
 #include "SemaSupport.h"
 #include <cstdint>
 #include <limits>
@@ -302,7 +304,33 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Access: {
         type = makeType(TypeKind::Access);
-        type->target = resolveSubtypeIndication(definition->parent.get(), scope);
+        if (definition->m_accessProfile != nullptr) {
+            SubprogramSpec& spec = *definition->m_accessProfile;
+            Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
+            profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+            for (ParameterDecl& declaration : spec.parameters) {
+                Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
+                parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
+                parameter->mode = declaration.mode;
+                parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameter->type);
+                if (declaration.defaultValue != nullptr) {
+                    m_diagnostics.error(declaration.location, "access-to-subprogram parameters cannot have defaults");
+                }
+                if (spec.isFunction && declaration.mode != ParameterMode::In) {
+                    m_diagnostics.error(declaration.location, "access-to-function parameters must have mode in");
+                }
+                if (std::any_of(profile->parameters.begin(), profile->parameters.end(), [&](Symbol* other) {
+                        return other->name == parameter->name;
+                    })) {
+                    m_diagnostics.error(declaration.location, "duplicate access-to-subprogram parameter");
+                }
+                profile->parameters.push_back(parameter);
+            }
+            type->m_accessProfile = profile;
+            type->m_accessScope = scope;
+        } else {
+            type->target = resolveSubtypeIndication(definition->parent.get(), scope);
+        }
         break;
     }
     case TypeDefKind::Private: {

@@ -32,6 +32,26 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    if (expr->m_implicitCall != nullptr) {
+        expr->type = analyzeExpr(expr->m_implicitCall.get(), scope, expected);
+        return expr->type;
+    }
+    if (expr->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr);
+        if (selected->isDereference) {
+            for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
+                if (type->m_accessProfile != nullptr) {
+                    auto call = std::make_unique<CallExpr>();
+                    call->location = expr->location;
+                    call->callee = std::move(selected->prefix);
+                    expr->m_implicitCall = std::move(call);
+                    expr->type = analyzeExpr(expr->m_implicitCall.get(), scope, expected);
+                    return expr->type;
+                }
+            }
+        }
+    }
+
     switch (expr->kind) {
     case ExprKind::IntegerLiteral: {
         auto* literal = static_cast<IntegerLiteralExpr*>(expr);
@@ -92,7 +112,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     case ExprKind::Call:
         return analyzeCall(static_cast<CallExpr*>(expr), scope, expected);
     case ExprKind::Attribute:
-        return analyzeAttribute(static_cast<AttributeExpr*>(expr), scope);
+        return analyzeAttribute(static_cast<AttributeExpr*>(expr), scope, expected);
     case ExprKind::Aggregate:
         return analyzeAggregate(static_cast<AggregateExpr*>(expr), scope, expected);
     case ExprKind::Binary:

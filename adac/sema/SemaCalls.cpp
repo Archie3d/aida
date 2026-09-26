@@ -66,7 +66,36 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     }
 
-    candidates = contractNames(expr->callee.get(), std::move(candidates));
+    // An explicit dereference and an implicit one use the same indirect call.
+    if (expr->callee->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
+        if (selected->isDereference) {
+            for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
+                if (type->m_accessProfile != nullptr) {
+                    ExprPtr prefix = std::move(selected->prefix);
+                    expr->callee = std::move(prefix);
+                    break;
+                }
+            }
+        }
+    }
+    bool direct = std::any_of(candidates.begin(), candidates.end(), [](Symbol* candidate) {
+        return candidate->kind == SymbolKind::Subprogram || candidate->kind == SymbolKind::TypeName;
+    });
+    if (!direct) {
+        for (Type* type : expressionTypes(expr->callee.get(), scope)) {
+            if (type->m_accessProfile != nullptr) {
+                analyzeExpr(expr->callee.get(), scope, type);
+                candidates = { type->m_accessProfile };
+                expr->m_indirect = true;
+                break;
+            }
+        }
+    }
+
+    if (!expr->m_indirect) {
+        candidates = contractNames(expr->callee.get(), std::move(candidates));
+    }
 
     // A range as the only argument selects a slice of an array.
     if (expr->arguments.size() == 1 && expr->arguments.front().high) {
@@ -272,7 +301,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 
         expr->form = CallForm::Subprogram;
         expr->subprogram = chosen;
-        recordContractName(expr->callee.get(), chosen);
+        if (!expr->m_indirect) {
+            recordContractName(expr->callee.get(), chosen);
+        }
         expr->resolvedArguments.assign(chosen->parameters.size(), nullptr);
         for (std::size_t i = 0; i < expr->arguments.size(); ++i) {
             std::size_t index = i;

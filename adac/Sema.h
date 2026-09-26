@@ -164,7 +164,8 @@ private:
     Type* analyzeCall(CallExpr* expr, Scope* scope, Type* expected);
 
     // SemaAttributes.cpp
-    Type* analyzeAttribute(AttributeExpr* expr, Scope* scope);
+    Type* analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected = nullptr);
+    bool matchesAccessProfile(Symbol* candidate, Type* access) const;
 
     // SemaAggregates.cpp
     Type* analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected);

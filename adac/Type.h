@@ -21,6 +21,7 @@ enum class TypeKind
 
 class Type;
 struct Symbol;
+class Scope;
 
 struct FieldInfo
 {
@@ -148,6 +149,9 @@ public:
 
     // Access types.
     Type* target = nullptr;
+    // Subprogram access uses a signature instead of an object target.
+    Symbol* m_accessProfile = nullptr;
+    Scope* m_accessScope = nullptr;
 
     // Objects of this type start out cleared.  A File_Type has to, because the
     // run time reads the handle before anything has opened it.

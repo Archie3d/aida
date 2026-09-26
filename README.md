@@ -637,6 +637,36 @@ Nothing checks that no other access value still designates the object, which is
 what "unchecked" says: reaching through one of those afterwards is the program's
 own doing.
 
+### Access-to-subprogram types
+
+Named access types can designate Ada functions and procedures:
+
+```ada
+type Callback_Type is access function (X : Integer) return Integer;
+type Action_Type is access procedure (X : in out Integer);
+
+function Increment (X : Integer) return Integer is
+begin
+    return X + 1;
+end Increment;
+
+Callback : Callback_Type := Increment'Access;
+```
+
+Call with `Callback (42)` or `Callback.all (X => 42)`. A parameterless
+function uses `Callback.all`; parameterless procedure callbacks also accept a
+bare call. Callback values can be assigned, passed, returned, and stored in
+records or arrays. They default to `null`, support equality, and raise
+`Constraint_Error` when called through `null`.
+
+The designated profile checks parameter types, modes, and the result subtype;
+its parameter names control named associations. Nested callbacks carry a link to their
+enclosing activation, and `'Access` rejects subprograms declared deeper than
+the access type. Calls use the normal Ada argument and result conventions,
+including scalar copy-back and composite results. Profile parameters cannot
+have defaults. Anonymous and protected subprogram access types and `'Access`
+of imported subprograms are not yet supported.
+
 ### Private types
 
 A package may name a type without showing what it is made of. Outside the
