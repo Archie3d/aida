@@ -810,8 +810,8 @@ Compatibility with this compiler:
   this is not a claim of conformance to the accuracy requirements of the
   optional Numerics Annex.
 - On Linux and other systems with a separate libm, link generated assembly
-  with `cc program.s /path/to/libadart.a -lm -o program`. The existing Ada
-  driver's link command does not pass `-lm`. On macOS its normal command works.
+  with `cc program.s /path/to/libadart.a -lm -o program`. The Ada driver
+  adds `-lm` automatically on these systems.
 
 The C mappings are private implementation support: Ada wrappers validate domains
 before calling them. They use the existing pending-exception runtime mechanism.

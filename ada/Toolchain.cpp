@@ -188,6 +188,10 @@ void Toolchain::locateFrom(const std::string& executablePath)
     }
 
     applyEnvironment();
+#ifdef ADA_SEPARATE_LIBM
+    // Static runtime dependencies must follow the archive on the link line.
+    m_runtime.push_back("-lm");
+#endif
 }
 
 // bin/ada, bin/adac, bin/qbe and lib/ada beside them.  The environment being

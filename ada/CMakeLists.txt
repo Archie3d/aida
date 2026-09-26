@@ -4,6 +4,10 @@ find_program(ADA_HOST_CC NAMES cc gcc clang REQUIRED)
 
 add_executable(${TARGET})
 
+if(UNIX AND NOT APPLE)
+    target_compile_definitions(${TARGET} PRIVATE ADA_SEPARATE_LIBM)
+endif()
+
 target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp

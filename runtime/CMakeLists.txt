@@ -5,6 +5,10 @@ set(TARGET adart)
 # installed compiler carries it the way it carries anything else.
 add_library(${TARGET} STATIC)
 
+if(UNIX AND NOT APPLE)
+    target_link_libraries(${TARGET} PUBLIC m)
+endif()
+
 target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c

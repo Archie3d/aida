@@ -1,4 +1,13 @@
-# Link assembly explicitly because the existing Ada driver does not pass -lm.
+# Exercise both driver linking and explicit assembly linking with libm.
+add_test(NAME ada.basepower_driver
+    COMMAND ${CMAKE_COMMAND}
+        -DNAME=basepower_driver
+        -DADA=$<TARGET_FILE:ada>
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}/ada/basepower.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/basepower.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunAdaTest.cmake
+)
 set(BASEPOWER_SEPARATE_LIBM OFF)
 if(UNIX AND NOT APPLE)
     set(BASEPOWER_SEPARATE_LIBM ON)

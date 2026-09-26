@@ -21,7 +21,11 @@ execute_process(COMMAND "${ADA}" -S -o "${program}.s" "${SOURCE}"
 if(NOT status EQUAL 0)
     message(FATAL_ERROR "Imported float ABI assembly generation failed")
 endif()
-execute_process(COMMAND "${CC}" "${program}.s" "${HELPERS}" "${RUNTIME}" -o "${program}"
+set(math_library)
+if(SEPARATE_LIBM)
+    set(math_library -lm)
+endif()
+execute_process(COMMAND "${CC}" "${program}.s" "${HELPERS}" "${RUNTIME}" ${math_library} -o "${program}"
     RESULT_VARIABLE status)
 if(NOT status EQUAL 0)
     message(FATAL_ERROR "Imported float ABI link failed")
