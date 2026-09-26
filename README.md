@@ -259,10 +259,11 @@ and runtime arithmetic share the same checked scaling routines. Overflow,
 division by zero, and failed range checks raise `Constraint_Error`.
 
 Static fixed-point subtype bounds, scalar parameters and returns, arrays,
-records, and `'First`, `'Last`, `'Base`, `'Small`, `'Delta`, and `'Size` are
-supported. Storage is currently always 64 bits. Decimal fixed point, explicit
-`Small` clauses, dynamic fixed-point subtype constraints, fixed-point
-I/O/streaming, and additional fixed-point attributes remain future work. Exponentiation, `mod`, and `rem` are not
+records, and `'First`, `'Last`, `'Base`, `'Small`, `'Delta`, `'Size`, `'Fore`,
+`'Aft`, `'Image`, and `'Value` are supported. Storage is currently always
+64 bits. Decimal fixed point, explicit `Small` clauses, dynamic fixed-point
+subtype constraints, fixed-point streaming, and additional fixed-point
+attributes remain future work. Exponentiation, `mod`, and `rem` are not
 predefined fixed-point operations.
 
 
@@ -839,6 +840,7 @@ own may write.
 | `Ada.Text_IO` | `ada-text_io.ads` |
 | `Ada.Text_IO.Integer_IO` | `ada-text_io-integer_io.ads`, `.adb` |
 | `Ada.Text_IO.Float_IO` | `ada-text_io-float_io.ads`, `.adb` |
+| `Ada.Text_IO.Fixed_IO` | `ada-text_io-fixed_io.ads`, `.adb` |
 | `Ada.Text_IO.Enumeration_IO` | `ada-text_io-enumeration_io.ads`, `.adb` |
 | `Ada.Integer_Text_IO` | `ada-integer_text_io.ads` |
 | `Ada.Float_Text_IO` | `ada-float_text_io.ads` |
@@ -964,6 +966,7 @@ Numbers and enumeration values are written through the generic children of
 ```ada
 package Level_IO is new Ada.Text_IO.Integer_IO (Level);
 package Real_IO is new Ada.Text_IO.Float_IO (Real);
+package Fixed_IO is new Ada.Text_IO.Fixed_IO (Fixed);
 package Day_IO is new Ada.Text_IO.Enumeration_IO (Day);
 ```
 
@@ -976,6 +979,28 @@ upper case unless given `Lower_Case`, and `Get` reads one back, raising
 `Ada.Float_Text_IO` are the instances on `Integer` and `Float`, which is what
 they are in Ada, so a value of another numeric type needs an instance of its
 own rather than a conversion.
+
+`Fixed_IO` provides file, current-file, and string `Get`/`Put` overloads.
+Its defaults are `Num'Fore`, `Num'Aft`, and `Exp => 0`; `Aft` follows the
+requested delta, which can differ from the binary `Small`. Formatting rounds
+halfway cases away from zero, supports exponential notation, and pads string
+outputs to their bounds. A string too short for the result raises `Layout_Error`.
+Input accepts signed decimal and based literals, underscores, and exponents.
+`Get` with `Width => 0` skips leading whitespace and stops after the numeric
+item; a positive width reads that field up to a line terminator. String `Get`
+returns the final input index in `Last`, including for slices with non-unit
+lower bounds. Invalid input and values outside the instance subtype raise
+`Data_Error`; exhausted file input raises `End_Error`.
+
+Fixed-point `'Image` uses a leading space or minus sign, no exponent, and
+`T'Aft` fractional digits. `'Value` consumes the entire string apart from
+surrounding whitespace and raises `Constraint_Error` for invalid syntax or
+base-range overflow. It returns a base-type value; assigning that result to a
+constrained object checks the object's range separately. Parsing and formatting
+preserve 64-bit scaled values without converting them through floating point.
+These interfaces follow Ada RM
+[3.5](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-3-5.html)
+and [A.10.9](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-A-10-9.html).
 
 `'Image` on an enumeration value gives the literal in upper case.
 

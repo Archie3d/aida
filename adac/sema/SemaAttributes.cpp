@@ -139,6 +139,30 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
     Type* base = prefixType;
     const std::string& name = expr->lower;
     if (base != nullptr && base->kind == TypeKind::Fixed) {
+        if (name == "fore" || name == "aft") {
+            if (!prefixIsType || !expr->arguments.empty()) {
+                m_diagnostics.error(expr->location, "fixed-point formatting attributes require a subtype and no arguments");
+            }
+            expr->type = m_types.universalInteger();
+            expr->isStatic = !base->m_formalFixed;
+            expr->staticValue = base->m_fixedAft;
+            if (name == "fore") {
+                __int128 low = base->low, high = base->high;
+                if (low < 0) {
+                    low = -low;
+                }
+                if (high < 0) {
+                    high = -high;
+                }
+                __int128 whole = std::max(low, high) >> base->m_fixedBits;
+                expr->staticValue = 2;
+                while (whole >= 10) {
+                    whole /= 10;
+                    ++expr->staticValue;
+                }
+            }
+            return expr->type;
+        }
         if (name == "small" || name == "delta") {
             if (!prefixIsType || !expr->arguments.empty()) {
                 m_diagnostics.error(expr->location, "fixed-point scale attributes require a subtype and no arguments");
@@ -165,7 +189,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
             expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
             return expr->type;
         }
-        if (name != "base" && name != "size" && name != "address") {
+        if (name != "base" && name != "size" && name != "address"
+            && name != "image" && name != "value") {
             m_diagnostics.error(expr->location, "this attribute is not yet supported for fixed-point types");
             return nullptr;
         }
@@ -343,6 +368,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
             return nullptr;
         }
         adaptUniversal(expr->arguments.front().get(), prefixType);
+        if (base != nullptr && base->kind == TypeKind::Fixed
+            && (!prefixIsType || !typesCompatible(prefixType, expr->arguments.front()->type))) {
+            m_diagnostics.error(expr->location, "fixed-point 'Image requires an argument of the prefix type");
+        }
         expr->type = m_types.stringType();
         return expr->type;
     }
@@ -398,15 +427,19 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
             m_diagnostics.error(expr->location, "'Value takes exactly one argument");
             return nullptr;
         }
-        if (!isDiscrete(base)) {
-            m_diagnostics.error(expr->location, "'Value requires a discrete prefix");
+        if (!isDiscrete(base) && (base == nullptr || base->kind != TypeKind::Fixed)) {
+            m_diagnostics.error(expr->location, "'Value requires a discrete or fixed-point prefix");
             return nullptr;
         }
         Type* argumentType = expr->arguments.front()->type;
         if (argumentType != nullptr && !typesCompatible(m_types.stringType(), argumentType)) {
             m_diagnostics.error(expr->location, "'Value reads its value from a string");
         }
-        expr->type = prefixType;
+        if (base != nullptr && base->kind == TypeKind::Fixed && !prefixIsType) {
+            m_diagnostics.error(expr->location, "fixed-point 'Value requires a subtype prefix");
+        }
+        expr->type = base != nullptr && base->kind == TypeKind::Fixed
+            ? m_types.scalarBaseType(prefixType) : prefixType;
         return expr->type;
     }
 

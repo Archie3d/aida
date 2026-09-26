@@ -132,6 +132,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-30) through 1.0");
         }
         type->m_fixedBits = bits;
+        __int128 decimalScale = 10;
+        while (type->m_fixedAft < 10
+            && delta.m_numerator < (delta.m_denominator - 1) / decimalScale + 1) {
+            ++type->m_fixedAft;
+            decimalScale *= 10;
+        }
         type->m_delta = definition->m_delta.get();
         ExactReal low, high;
         Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);

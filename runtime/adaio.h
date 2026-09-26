@@ -39,6 +39,8 @@ void __ada_file_delete(AdaFileRef handle);
 void __ada_text_get_word(AdaFileRef handle, char* item, int length, int* last);
 void __ada_get_word(char* item, int length, int* last);
 double __ada_real_value(const char* text, int length);
+void __ada_fixed_put(AdaFileRef handle, long long value, int bits, int fore, int aft, int exponent);
+long long __ada_fixed_get(AdaFileRef handle, int bits, long long low, long long high, int width);
 
 void __ada_file_reset(AdaFileRef handle, int mode);
 void __ada_file_reset_same(AdaFileRef handle);

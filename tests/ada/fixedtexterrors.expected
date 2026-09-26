@@ -1,0 +1,5 @@
+fixedtexterrors.adb:5:49: error: 'Ada.Text_IO.Fixed_IO' expects an ordinary fixed-point type, and 'Integer' is not one
+fixedtexterrors.adb:7:32: error: fixed-point 'Image requires an argument of the prefix type
+fixedtexterrors.adb:8:31: error: 'Value reads its value from a string
+fixedtexterrors.adb:9:32: error: fixed-point formatting attributes require a subtype and no arguments
+fixedtexterrors.adb:10:31: error: fixed-point formatting attributes require a subtype and no arguments

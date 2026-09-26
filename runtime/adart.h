@@ -120,6 +120,13 @@ void __ada_array_adopt(void** owner, void* data);
    and a 64-bit transfer size. The caller owns and releases the buffer. */
 void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize);
 
+/* Exact fixed-point text conversion; values use signed scaled counts. */
+const char* __ada_image_fixed(long long value, int bits, int aft);
+long long __ada_value_fixed(const char* text, int length, int bits, long long low, long long high);
+int __ada_fixed_scale(double small);
+void __ada_fixed_put_string(char* to, int length, long long value, int bits, int aft, int exponent);
+long long __ada_fixed_get_string(const char* from, int length, int bits, long long low, long long high, int* last);
+
 /* Renders a real value the way Ada.Text_IO does.  Fore is the least number of
    characters before the point including the sign, Aft the number after it, and
    Exp the width of the exponent field counting its sign.  An Exp of zero asks

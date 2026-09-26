@@ -368,8 +368,13 @@ changes on an unconstrained object, and nested alternatives.
   `fixedchecks`, `fixedrounding`, and fixed-point diagnostic tests.
 - [x] Ordinary fixed-point generic formals (`type T is delta <>`): contract
   checking, actual matching, and per-instance scales, conversions, and ranges.
+- [x] Ordinary fixed-point text: `'Fore`, `'Aft`, `'Image`, `'Value`, and
+  `Ada.Text_IO.Fixed_IO` file/current-file/string overloads, exact decimal and
+  based input, formatting, rounding, field widths, and exception checks.
+  Covered by `fixedtext`, `fixedtextchecks`, `fixedtexterrors`, and runtime
+  full-width round trips over every supported scale.
 - [ ] Extend ordinary fixed point to wider scale choices, explicit Small clauses,
-  dynamic subtype bounds, remaining attributes, and fixed-point I/O.
+  dynamic subtype bounds, remaining attributes, and streaming.
 - [ ] Decimal fixed-point types (`delta` and `digits`), with decimal scaling,
   rounding, and checks.
 - [ ] Complete derived-type behavior, including inherited primitive operations and

@@ -43,7 +43,11 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value value = emitExpr(expr->arguments.front().get());
         std::string temp = newTemp();
         Type* base = baseType(prefixType);
-        if (isFloatClass(value.type)) {
+        if (base != nullptr && base->kind == TypeKind::Fixed) {
+            line(temp + " =l call $__ada_image_fixed(l " + value.name + ", w "
+                 + std::to_string(base->m_fixedBits) + ", w " + std::to_string(base->m_fixedAft) + ")");
+            emitExceptionCheck();
+        } else if (isFloatClass(value.type)) {
             std::string wide = widenToDouble(value);
             line(temp + " =l call $__ada_image_float(d " + wide + ", w " + std::to_string(defaultAft(prefixType))
                  + ", w 3)");
@@ -77,7 +81,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value bounds = scalarBounds(prefixType);
         Type* base = baseType(prefixType);
         std::string temp = newTemp();
-        if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
+        if (base != nullptr && base->kind == TypeKind::Fixed) {
+            line(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
+                 + ", w " + std::to_string(base->m_fixedBits) + ", l -9223372036854775808, l 9223372036854775807)");
+        } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
             line(temp + " =w call $__ada_value_enum(l " + text.name + ", w " + length.name + ", l "
                  + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
