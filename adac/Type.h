@@ -13,6 +13,7 @@ enum class TypeKind
     Integer,
     Enumeration,
     Float,
+    Fixed,
     Array,
     Record,
     Access
@@ -118,6 +119,8 @@ public:
     // machine representation, and the bounds are kept separately from the
     // discrete ones because they do not fit in an integer.
     int digits = 0;
+    int m_fixedBits = 0;
+    struct Expr* m_delta = nullptr;
     bool hasRealRange = false;
     double lowReal = 0.0;
     double highReal = 0.0;

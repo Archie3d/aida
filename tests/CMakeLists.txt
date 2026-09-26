@@ -402,3 +402,10 @@ add_ada_error_test(generic_composite_library_errors SOURCES generic_composite_li
 
 add_ada_test(recordrenames SOURCES renamed_fields.ads recordrenames.adb)
 add_ada_error_test(recordrenameerrors SOURCES recordrenameerrors.adb)
+
+add_ada_test(fixedpoint SOURCES fixedpoint.adb)
+add_determinism_test(fixedpoint SOURCE fixedpoint.adb)
+add_ada_test(fixedchecks SOURCES fixedchecks.adb)
+add_ada_test(fixedrounding SOURCES fixedrounding.adb)
+add_ada_error_test(fixederrors SOURCES fixederrors.adb)
+add_ada_error_test(fixeddecimalerrors SOURCES fixeddecimalerrors.adb)

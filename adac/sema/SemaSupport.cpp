@@ -19,6 +19,12 @@ void adaptUniversal(Expr* expr, Type* type)
     if (expr == nullptr || type == nullptr || !isUniversal(expr->type)) {
         return;
     }
+    if (type->kind == TypeKind::Fixed) {
+        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->m_fixedBits, expr->staticValue);
+        expr->isStatic = !expr->m_fixedInvalid;
+        expr->type = type;
+        return;
+    }
     expr->type = type;
     if (expr->kind == ExprKind::Unary) {
         adaptUniversal(static_cast<UnaryExpr*>(expr)->operand.get(), type);

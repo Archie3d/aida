@@ -1,0 +1,10 @@
+fixederrors.adb:2:23: error: fixed-point delta must be a positive exact static real expression
+fixederrors.adb:3:22: error: supported fixed-point deltas are 2.0**(-30) through 1.0
+fixederrors.adb:6:39: error: no visible interpretation of 'True' matches this context
+fixederrors.adb:6:47: error: no visible interpretation of 'False' matches this context
+fixederrors.adb:6:27: error: fixed-point subtype bounds must be static
+fixederrors.adb:7:5: error: fixed-point storage currently requires 64 bits
+fixederrors.adb:10:20: error: the operands of an arithmetic operator must have the same type
+fixederrors.adb:11:20: error: 'mod' and 'rem' require integer operands
+fixederrors.adb:12:20: error: exponentiation is not defined for fixed-point operands
+fixederrors.adb:13:18: error: no visible interpretation of 'True' matches this context

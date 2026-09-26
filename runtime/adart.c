@@ -908,3 +908,36 @@ void __ada_array_adopt(void** owner, void* data)
     allocation->next = *owner;
     *owner = allocation;
 }
+
+
+#include "../common/Fixed.h"
+#include <math.h>
+
+long long __ada_fixed_operation(FixedOperation operation, long long left, int leftBits,
+                               long long right, int rightBits, int resultBits)
+{
+    long long result = 0;
+    if (!fixedOperation(operation, left, leftBits, right, rightBits, resultBits, &result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+    return result;
+}
+
+long long __ada_fixed_rescale(long long value, int fromBits, int toBits)
+{
+    long long result = 0;
+    if (!fixedRescale(value, fromBits, toBits, &result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+    return result;
+}
+
+long long __ada_float_to_fixed(double value, int bits)
+{
+    long double scaled = roundl(ldexpl((long double)value, bits));
+    if (!isfinite(scaled) || scaled < (long double)LLONG_MIN || scaled >= 9223372036854775808.0L) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    return (long long)scaled;
+}

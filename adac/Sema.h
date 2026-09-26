@@ -175,6 +175,8 @@ private:
     // SemaStatic.cpp
     ExprPtr scalarBoundExpr(Type* type, bool first, const SourceLocation& location);
     bool foldStatic(Expr* expr, long long& value) const;
+    bool exactValue(Expr* expr, ExactReal& value) const;
+    bool foldFixed(Expr* expr, long long& value) const;
     bool foldStaticReal(Expr* expr, double& value) const;
     void noteStaticValue(Expr* expr);
 

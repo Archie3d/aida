@@ -111,6 +111,41 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->high = high;
         break;
     }
+    case TypeDefKind::FixedDelta: {
+        type = makeType(TypeKind::Fixed);
+        Type* deltaType = analyzeExpr(definition->m_delta.get(), scope, nullptr);
+        ExactReal delta;
+        if (!isReal(deltaType) || !exactValue(definition->m_delta.get(), delta)
+            || delta.m_numerator <= 0) {
+            m_diagnostics.error(definition->location, "fixed-point delta must be a positive exact static real expression");
+            delta = ExactReal::make(1);
+        }
+        int bits = 0;
+        // Compare delta with 2**(-bits) without overflowing cross-products.
+        auto belowSmall = [&]() {
+            return delta.m_numerator <= (delta.m_denominator - 1) / ((__int128)1 << bits);
+        };
+        while (bits < 30 && belowSmall()) {
+            ++bits;
+        }
+        if (belowSmall() || delta.m_numerator > delta.m_denominator) {
+            m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-30) through 1.0");
+        }
+        type->m_fixedBits = bits;
+        type->m_delta = definition->m_delta.get();
+        ExactReal low, high;
+        Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);
+        Type* highType = analyzeExpr(definition->rangeHigh.get(), scope, nullptr);
+        if (!isReal(lowType) || !isReal(highType) || !exactValue(definition->rangeLow.get(), low)
+            || !exactValue(definition->rangeHigh.get(), high)
+            || !low.scaled(bits, type->low) || !high.scaled(bits, type->high)) {
+            m_diagnostics.error(definition->location, "fixed-point bounds must be exact static real expressions within 64-bit scaled storage");
+        }
+        if (type->low > type->high) {
+            m_diagnostics.error(definition->location, "a fixed-point type requires a non-null range");
+        }
+        break;
+    }
     case TypeDefKind::FloatDigits: {
         type = makeType(TypeKind::Float);
         analyzeExpr(definition->digits.get(), scope, m_types.integerType());
@@ -528,6 +563,10 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope)
             return;
         }
     }
+    if (symbol->type->kind == TypeKind::Fixed && bits != 64) {
+        m_diagnostics.error(decl->location, "fixed-point storage currently requires 64 bits");
+        return;
+    }
     symbol->type->byteSize = static_cast<int>(bits / 8);
 }
 
@@ -569,6 +608,20 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         subtype->hasRealRange = true;
         subtype->lowReal = low;
         subtype->highReal = high;
+        indication->resolved = subtype;
+        return subtype;
+    }
+
+    if (base->kind == TypeKind::Fixed && indication->rangeLow && indication->rangeHigh) {
+        Type* lowType = analyzeExpr(indication->rangeLow.get(), scope, base);
+        Type* highType = analyzeExpr(indication->rangeHigh.get(), scope, base);
+        long long low = 0, high = 0;
+        if (!typesCompatible(base, lowType) || !typesCompatible(base, highType)
+            || !foldFixed(indication->rangeLow.get(), low) || !foldFixed(indication->rangeHigh.get(), high)) {
+            m_diagnostics.error(indication->location, "fixed-point subtype bounds must be static");
+            return base;
+        }
+        Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, low, high);
         indication->resolved = subtype;
         return subtype;
     }
@@ -809,7 +862,7 @@ bool Sema::typesCompatible(Type* target, Type* source) const
         if (universal->kind == TypeKind::UniversalInteger) {
             return concrete->kind == TypeKind::Integer;
         }
-        return concrete->kind == TypeKind::Float;
+        return concrete->kind == TypeKind::Float || concrete->kind == TypeKind::Fixed;
     }
     // Array declarations introduce distinct types, even with identical bounds
     // and components. Subtypes already share identity through the root above.

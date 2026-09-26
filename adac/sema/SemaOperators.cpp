@@ -160,8 +160,21 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                     if (allowed) {
                         predefined({ type, type }, m_types.booleanType());
                     }
+                } else if (type->kind == TypeKind::Fixed && (name == "*" || name == "/")) {
+                    for (Type* other : types) {
+                        if (other->kind == TypeKind::Integer || other->kind == TypeKind::UniversalInteger) {
+                            predefined({ type, other }, type);
+                            if (name == "*") {
+                                predefined({ other, type }, type);
+                            }
+                        } else if (other->kind == TypeKind::Fixed && expected != nullptr
+                                   && expected->kind == TypeKind::Fixed) {
+                            predefined({ type, other }, expected);
+                        }
+                    }
                 } else if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->m_modulus != 0)) {
-                    if ((name == "mod" || name == "rem") && isReal(type)) {
+                    if (((name == "mod" || name == "rem") && (isReal(type) || type->kind == TypeKind::Fixed))
+                        || (name == "**" && type->kind == TypeKind::Fixed)) {
                         continue;
                     }
                     if (name == "+" || name == "-" || name == "*" || name == "/" || name == "mod"
@@ -176,7 +189,9 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
     // contexts (for example a named number or a comparison of literals).
     auto rootNumeric = [](const OperatorCandidate& candidate) {
         return candidate.symbol == nullptr && std::any_of(candidate.parameters.begin(), candidate.parameters.end(),
-            [](Type* type) { return isUniversal(type); });
+            [](Type* type) { return isUniversal(type); })
+            && std::none_of(candidate.parameters.begin(), candidate.parameters.end(),
+                [](Type* type) { return type->kind == TypeKind::Fixed; });
     };
     if (std::any_of(candidates.begin(), candidates.end(), rootNumeric)) {
         std::erase_if(candidates, [&](const OperatorCandidate& candidate) { return !rootNumeric(candidate); });

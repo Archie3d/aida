@@ -149,7 +149,21 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         Expr* source = expr->arguments.front().value.get();
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
-            analyzeExpr(source, scope, nullptr);
+            Type* conversion = candidates.front()->type;
+            Type* context = nullptr;
+            if (conversion->kind == TypeKind::Fixed && source->kind == ExprKind::Binary) {
+                auto* binary = static_cast<BinaryExpr*>(source);
+                if (binary->op == BinaryOp::Multiply || binary->op == BinaryOp::Divide) {
+                    for (Expr* part : { binary->left.get(), binary->right.get() }) {
+                        for (Type* type : expressionTypes(part, scope)) {
+                            if (type->kind == TypeKind::Fixed) {
+                                context = conversion;
+                            }
+                        }
+                    }
+                }
+            }
+            analyzeExpr(source, scope, context);
         }
         recordContractName(expr->callee.get(), candidates.front());
         expr->form = CallForm::Conversion;
@@ -158,7 +172,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         expr->resolvedArguments.push_back(operand);
         // A literal only takes the type it is converted to when both belong to
         // the same family; crossing families is what the conversion is for.
-        if (isReal(expr->type) == isReal(operand->type)) {
+        if (expr->type->kind != TypeKind::Fixed && operand->type != nullptr && operand->type->kind != TypeKind::Fixed
+            && isReal(expr->type) == isReal(operand->type)) {
             adaptUniversal(operand, expr->type);
         }
 
@@ -186,6 +201,21 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         if (!numeric && !arrayConversion && !typesCompatible(expr->type, operand->type)) {
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
+        }
+        if (expr->type->kind == TypeKind::Fixed) {
+            ExactReal exact;
+            long long value = 0;
+            if (exactValue(operand, exact) && exact.scaled(expr->type->m_fixedBits, value)
+                && value >= expr->type->low && value <= expr->type->high) {
+                expr->isStatic = true;
+                expr->staticValue = value;
+            } else if (operand->type != nullptr && operand->type->kind == TypeKind::UniversalReal) {
+                m_diagnostics.error(expr->location, "fixed-point conversion requires an exact static real within the target range");
+            }
+            return expr->type;
+        }
+        if (operand->type != nullptr && operand->type->kind == TypeKind::Fixed) {
+            return expr->type;
         }
         if (operand->isStatic && expr->type->m_scalarBoundsSymbol == nullptr
             && isReal(expr->type) == isReal(operand->type)

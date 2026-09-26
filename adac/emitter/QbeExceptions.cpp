@@ -170,7 +170,7 @@ void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLoca
         label(ok);
         return;
     }
-    if (type == nullptr || !isDiscrete(type)) {
+    if (type == nullptr || (!isDiscrete(type) && type->kind != TypeKind::Fixed)) {
         return;
     }
     Value bounds = scalarBounds(type);

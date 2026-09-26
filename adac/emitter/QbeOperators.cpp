@@ -22,6 +22,32 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
     Value left = emitExpr(expr->left.get());
     Value right = emitExpr(expr->right.get());
+    if (expr->type->kind == TypeKind::Fixed) {
+        auto wide = [&](Value value) {
+            if (value.type == 'w') {
+                std::string name = newTemp();
+                line(name + " =l extsw " + value.name);
+                value = Value { name, 'l' };
+            }
+            return value;
+        };
+        left = wide(left);
+        right = wide(right);
+        FixedOperation operation = FixedInvalid;
+        switch (expr->op) {
+        case BinaryOp::Add: operation = FixedAdd; break;
+        case BinaryOp::Subtract: operation = FixedSubtract; break;
+        case BinaryOp::Multiply: operation = FixedMultiply; break;
+        case BinaryOp::Divide: operation = FixedDivide; break;
+        default: break;
+        }
+        std::string result = newTemp();
+        line(result + " =l call $__ada_fixed_operation(w " + std::to_string(operation) + ", l " + left.name
+            + ", w " + std::to_string(expr->left->type->m_fixedBits) + ", l " + right.name
+            + ", w " + std::to_string(expr->right->type->m_fixedBits) + ", w " + std::to_string(expr->type->m_fixedBits) + ")");
+        emitExceptionCheck();
+        return Value { result, 'l' };
+    }
     char type = left.type == 'l' || right.type == 'l' ? 'l' : left.type;
     if (isFloatClass(left.type)) {
         type = left.type;

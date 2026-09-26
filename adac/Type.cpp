@@ -40,13 +40,13 @@ bool isNumeric(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    return type->kind == TypeKind::Integer || type->kind == TypeKind::Float
+    return type->kind == TypeKind::Integer || type->kind == TypeKind::Float || type->kind == TypeKind::Fixed
            || type->kind == TypeKind::UniversalInteger || type->kind == TypeKind::UniversalReal;
 }
 
 bool isScalar(const Type* type)
 {
-    return isDiscrete(type) || (type != nullptr && (type->kind == TypeKind::Float || type->kind == TypeKind::Access
+    return isDiscrete(type) || (type != nullptr && (type->kind == TypeKind::Float || type->kind == TypeKind::Fixed || type->kind == TypeKind::Access
                                                     || type->kind == TypeKind::UniversalReal));
 }
 
@@ -104,6 +104,7 @@ long long typeSize(const Type* type)
     case TypeKind::Float:
         // Six decimal digits are what a single precision number holds.
         return type->digits > 6 ? 8 : 4;
+    case TypeKind::Fixed:
     case TypeKind::Access:
         return 8;
     case TypeKind::Array: {
@@ -180,6 +181,7 @@ char qbeClass(const Type* type)
     case TypeKind::Integer:
         return typeSize(type) == 8 ? 'l' : 'w';
     case TypeKind::UniversalInteger:
+    case TypeKind::Fixed:
     case TypeKind::Access:
     case TypeKind::Array:
     case TypeKind::Record:
@@ -292,6 +294,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->needsZeroInit = parent->needsZeroInit;
     subtype->literals = parent->literals;
     subtype->digits = parent->digits;
+    subtype->m_fixedBits = parent->m_fixedBits;
+    subtype->m_delta = parent->m_delta;
     subtype->hasRealRange = parent->hasRealRange;
     subtype->lowReal = parent->lowReal;
     subtype->highReal = parent->highReal;
@@ -364,7 +368,7 @@ bool TypeTable::isString(const Type* type) const
 Type* TypeTable::scalarBaseType(Type* type)
 {
     type = baseType(type);
-    if (type == nullptr || (!isDiscrete(type) && !isReal(type))) {
+    if (type == nullptr || (!isDiscrete(type) && !isReal(type) && type->kind != TypeKind::Fixed)) {
         return nullptr;
     }
     if (type->m_scalarBase != nullptr) {
@@ -375,7 +379,7 @@ Type* TypeTable::scalarBaseType(Type* type)
     if (type->m_modulus != 0) {
         result->low = 0;
         result->high = type->m_modulus - 1;
-    } else if (type->kind == TypeKind::Integer) {
+    } else if (type->kind == TypeKind::Integer || type->kind == TypeKind::Fixed) {
         bool wide = typeSize(type) == 8;
         result->low = wide ? std::numeric_limits<long long>::min() : -2147483648LL;
         result->high = wide ? std::numeric_limits<long long>::max() : 2147483647LL;

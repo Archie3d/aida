@@ -23,6 +23,13 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return Value { "0", 'w' };
     }
 
+    if (expr->m_fixedInvalid) {
+        m_diagnostics.error(expr->location, "fixed-point value exceeds supported exact evaluation or storage limits");
+        return Value { "0", 'l' };
+    }
+    if (expr->isStatic && expr->type != nullptr && expr->type->kind == TypeKind::Fixed) {
+        return Value { std::to_string(expr->staticValue), 'l' };
+    }
     if (expr->isStatic && isDiscrete(baseType(expr->type))) {
         if (expr->type->m_modulus != 0
             && (expr->staticValue < 0 || expr->staticValue >= expr->type->m_modulus)) {
@@ -141,6 +148,46 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             Value value = emitExpr(operand);
             char from = value.type;
             char to = qbeClass(expr->type);
+            if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {
+                std::string result = newTemp();
+                int fromBits = operand->type->m_fixedBits;
+                int toBits = expr->type->m_fixedBits;
+                if (isFloatClass(from)) {
+                    std::string wide = value.name;
+                    if (from == 's') {
+                        wide = newTemp();
+                        line(wide + " =d exts " + value.name);
+                    }
+                    line(result + " =l call $__ada_float_to_fixed(d " + wide + ", w " + std::to_string(toBits) + ")");
+                    emitExceptionCheck();
+                } else if (isFloatClass(to)) {
+                    std::string wide = newTemp();
+                    line(wide + " =d sltof " + value.name);
+                    line(result + " =d div " + wide + ", " + QbeSupport::realLiteral(static_cast<double>(1LL << fromBits), 'd'));
+                    if (to == 's') {
+                        std::string narrow = newTemp();
+                        line(narrow + " =s truncd " + result);
+                        result = narrow;
+                    }
+                } else {
+                    std::string wide = value.name;
+                    if (from == 'w') {
+                        wide = newTemp();
+                        line(wide + " =l extsw " + value.name);
+                    }
+                    line(result + " =l call $__ada_fixed_rescale(l " + wide + ", w " + std::to_string(fromBits)
+                        + ", w " + std::to_string(toBits) + ")");
+                    emitExceptionCheck();
+                }
+                Value converted { result, isFloatClass(to) ? to : 'l' };
+                emitRangeCheck(converted, expr->type, expr->location);
+                if (to == 'w') {
+                    std::string narrow = newTemp();
+                    line(narrow + " =w copy " + result);
+                    return Value { narrow, 'w' };
+                }
+                return converted;
+            }
             if (from == to) {
                 emitRangeCheck(value, expr->type, expr->location);
                 return value;
@@ -193,7 +240,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
         Value value = emitExpr(static_cast<QualifiedExpr*>(expr)->operand.get());
-        if (expr->type->m_scalarBoundsSymbol != nullptr || expr->type->m_modulus != 0) {
+        if (expr->type->m_scalarBoundsSymbol != nullptr || expr->type->m_modulus != 0 || expr->type->kind == TypeKind::Fixed) {
             emitRangeCheck(value, expr->type, expr->location);
         }
         return value;

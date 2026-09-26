@@ -51,6 +51,7 @@ struct Symbol
     bool hasStaticValue = false;
     long long staticValue = 0;
     double staticReal = 0.0;
+    ExactReal m_exactReal;
     std::string qbeName;   // Global symbol name, including the '$' sigil.
 
     // A parameter the caller may leave out.

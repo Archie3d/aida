@@ -178,6 +178,7 @@ ExprPtr Parser::parsePrimary()
     case TokenKind::RealLiteral: {
         auto expr = std::make_unique<RealLiteralExpr>();
         expr->location = location;
+        expr->m_exactReal = ExactReal::parse(current().text);
         expr->value = advance().realValue;
         return expr;
     }

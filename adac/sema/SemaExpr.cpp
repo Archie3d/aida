@@ -46,6 +46,15 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     }
     case ExprKind::RealLiteral: {
         auto* literal = static_cast<RealLiteralExpr*>(expr);
+        if (expected != nullptr && expected->kind == TypeKind::Fixed) {
+            expr->type = expected;
+            expr->isStatic = true;
+            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->m_fixedBits, expr->staticValue);
+            if (expr->m_fixedInvalid) {
+                m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
+            }
+            return expr->type;
+        }
         expr->type = expected != nullptr && expected->kind == TypeKind::Float ? expected : m_types.universalReal();
         expr->isStatic = true;
         expr->staticReal = literal->value;
@@ -98,7 +107,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         }
         adaptUniversal(qualified->operand.get(), type);
         expr->type = type;
-        expr->isStatic = qualified->operand->isStatic && type != nullptr && type->m_scalarBoundsSymbol == nullptr;
+        expr->isStatic = type != nullptr && type->kind != TypeKind::Fixed && qualified->operand->isStatic && type != nullptr && type->m_scalarBoundsSymbol == nullptr;
         if (expr->isStatic && type->m_modulus != 0
             && (qualified->operand->staticValue < type->low || qualified->operand->staticValue > type->high)) {
             expr->isStatic = false;
@@ -184,6 +193,18 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     Type* operandContext = nullptr;
     if (!name.empty()) {
         auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected);
+        if (expected != nullptr && expected->kind == TypeKind::Fixed
+            && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
+            auto universal = expressionTypes(expr, scope);
+            if (universal.size() == 1 && universal.front()->kind == TypeKind::UniversalReal) {
+                analyzeBinaryOperation(expr, scope, nullptr, nullptr);
+                adaptUniversal(expr, expected);
+                if (expr->m_fixedInvalid) {
+                    m_diagnostics.error(expr->location, "fixed-point expression exceeds exact evaluation or storage limits");
+                }
+                return expr->type;
+            }
+        }
         if (candidates.size() > 1) {
             m_diagnostics.error(expr->location, "ambiguous operator '" + name + "'");
             Type* result = candidates.front().result;
@@ -205,6 +226,15 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
                 expr->type = chosen.result;
                 expr->isStatic = false;
+                return expr->type;
+            }
+            if ((expr->op == BinaryOp::Multiply || expr->op == BinaryOp::Divide)
+                && (chosen.parameters[0]->kind == TypeKind::Fixed || chosen.parameters[1]->kind == TypeKind::Fixed)) {
+                analyzeExpr(expr->left.get(), scope, chosen.parameters[0]);
+                analyzeExpr(expr->right.get(), scope, chosen.parameters[1]);
+                expr->type = chosen.result;
+                noteStaticValue(expr);
+                checkPrivateOperands(expr);
                 return expr->type;
             }
             operandContext = chosen.parameters.front();
@@ -338,6 +368,9 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         Type* left = analyzeExpr(expr->left.get(), scope, expected);
         Type* right = analyzeExpr(expr->right.get(), scope, m_types.integerType());
         adaptUniversal(expr->right.get(), m_types.integerType());
+        if (left != nullptr && left->kind == TypeKind::Fixed) {
+            m_diagnostics.error(expr->location, "exponentiation is not defined for fixed-point operands");
+        }
         if (!isNumeric(baseType(left))) {
             m_diagnostics.error(expr->location, "arithmetic operators require numeric operands");
         }
@@ -354,6 +387,10 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         Type* left = analyzeExpr(expr->left.get(), scope, context);
         Type* right = analyzeExpr(expr->right.get(), scope, isUniversal(left) ? expected : left);
         Type* result = left;
+        if ((expr->op == BinaryOp::Multiply || expr->op == BinaryOp::Divide)
+            && ((left != nullptr && left->kind == TypeKind::Fixed) || (right != nullptr && right->kind == TypeKind::Fixed))) {
+            m_diagnostics.error(expr->location, "fixed-point multiplication or division requires a resolvable fixed-point result context");
+        }
         if (!typesCompatible(left, right)) {
             m_diagnostics.error(expr->location, "the operands of an arithmetic operator must have the same type");
         }
@@ -366,7 +403,7 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         if (!isNumeric(baseType(result))) {
             m_diagnostics.error(expr->location, "arithmetic operators require numeric operands");
         }
-        if ((expr->op == BinaryOp::Modulo || expr->op == BinaryOp::Remainder) && isReal(baseType(result))) {
+        if ((expr->op == BinaryOp::Modulo || expr->op == BinaryOp::Remainder) && (isReal(baseType(result)) || (result != nullptr && result->kind == TypeKind::Fixed))) {
             m_diagnostics.error(expr->location, "'mod' and 'rem' require integer operands");
         }
         expr->type = result;
@@ -401,6 +438,18 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
             return expr->type;
         }
         expected = chosen.parameters.front();
+    }
+    if (expected != nullptr && expected->kind == TypeKind::Fixed && expr->op != UnaryOp::Not) {
+        ExactReal exact;
+        if (exactValue(expr, exact)) {
+            expr->type = expected;
+            expr->isStatic = true;
+            expr->m_fixedInvalid = !exact.scaled(expected->m_fixedBits, expr->staticValue);
+            if (expr->m_fixedInvalid) {
+                m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
+            }
+            return expr->type;
+        }
     }
     Type* operand = analyzeExpr(expr->operand.get(), scope,
                                 expr->op == UnaryOp::Not && (expected == nullptr || expected->m_modulus == 0)
@@ -441,7 +490,7 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
     if (!expr->typeLower.empty()) {
         Type* type = mark;
         if (type != nullptr) {
-            if (!isDiscrete(type) || !typesCompatible(type, operand)) {
+            if ((!isDiscrete(type) && type->kind != TypeKind::Fixed) || !typesCompatible(type, operand)) {
                 m_diagnostics.error(expr->location, "membership subtype must match the operand's discrete type");
             }
             expr->low = scalarBoundExpr(type, true, expr->location);

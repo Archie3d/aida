@@ -361,8 +361,15 @@ changes on an unconstrained object, and nested alternatives.
   Covered by `modular.adb`, `modularchecks.adb`, and `modularerrors.adb`.
 - [ ] Extend modular representations to unsigned machine-width storage and
   `mod 2 ** 64`; add modular generic formals and `Ada.Text_IO.Modular_IO`.
-- [ ] Ordinary fixed-point types (`delta` and range), followed separately by decimal
-  fixed-point types (`delta` and `digits`), with scaling, rounding, and checks.
+- [x] Initial ordinary fixed-point support (`delta` and range): 64-bit scaled
+  integers, binary Small with 0..30 fractional bits, checked exact static real
+  evaluation, arithmetic, conversions, static subtypes, and basic attributes.
+  Shared compiler/runtime rounding and overflow checks; covered by `fixedpoint`,
+  `fixedchecks`, `fixedrounding`, and fixed-point diagnostic tests.
+- [ ] Extend ordinary fixed point to wider scale choices, explicit Small clauses,
+  dynamic subtype bounds, remaining attributes, formal types, and fixed-point I/O.
+- [ ] Decimal fixed-point types (`delta` and `digits`), with decimal scaling,
+  rounding, and checks.
 - [ ] Complete derived-type behavior, including inherited primitive operations and
   explicit conversions, rather than merely copying representation metadata.
 - [ ] General access types, `aliased` objects, `'Access`, access-to-constant, and

@@ -217,6 +217,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
                 symbol->staticValue = value;
             }
         }
+        if (decl->initializer) {
+            symbol->m_exactReal = decl->initializer->m_exactReal;
+        }
         scope->add(symbol);
         decl->symbols.push_back(symbol);
     }
@@ -243,6 +246,7 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
+        exactValue(decl->value.get(), symbol->m_exactReal);
         symbol->isConstant = true;
         symbol->hasStaticValue = isStatic;
         symbol->staticValue = value;

@@ -2,6 +2,7 @@
 
 #include "Diagnostics.h"
 #include "Token.h"
+#include "ExactReal.h"
 
 #include <memory>
 #include <string>
@@ -81,6 +82,8 @@ struct Expr : Node
     Type* type = nullptr;
     bool isStatic = false;
     long long staticValue = 0;
+    ExactReal m_exactReal;
+    bool m_fixedInvalid = false;
     double staticReal = 0.0;   // Holds the folded value of a real expression.
 };
 
@@ -296,7 +299,8 @@ struct SubtypeIndication : Node
 {
     std::string name;
     std::string lower;
-    ExprPtr digits;   // Accuracy constraint on a floating point subtype.
+    ExprPtr digits;
+    ExprPtr m_delta;   // Accuracy constraint on a floating point subtype.
     ExprPtr rangeLow;
     ExprPtr rangeHigh;
     std::vector<ExprPtr> indexLows;   // Index constraint for array subtypes.
@@ -335,6 +339,7 @@ enum class TypeDefKind
     IntegerRange,
     Modular,
     FloatDigits,
+    FixedDelta,
     Array,
     Record,
     Derived,
@@ -395,6 +400,7 @@ struct TypeDefinition : Node
 
     // Floating point
     ExprPtr digits;
+    ExprPtr m_delta;
 
     // Array
     std::vector<SubtypeIndicationPtr> indexTypes;

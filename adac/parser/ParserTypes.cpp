@@ -94,6 +94,20 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         return definition;
     }
 
+    if (match(TokenKind::KwDelta)) {
+        auto definition = std::make_unique<TypeDefinition>(TypeDefKind::FixedDelta);
+        definition->location = location;
+        definition->m_delta = parseSimpleExpression();
+        if (check(TokenKind::KwDigits)) {
+            fail("decimal fixed-point types are not yet supported");
+        }
+        expect(TokenKind::KwRange, "in ordinary fixed-point definition");
+        definition->rangeLow = parseSimpleExpression();
+        expect(TokenKind::DoubleDot, "in fixed-point range");
+        definition->rangeHigh = parseSimpleExpression();
+        return definition;
+    }
+
     if (check(TokenKind::KwDigits)) {
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::FloatDigits);
         definition->location = location;

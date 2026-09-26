@@ -298,7 +298,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::Attribute: {
         auto* attribute = static_cast<AttributeExpr*>(expr);
         const std::string& name = attribute->lower;
-        if (name == "image") {
+        if (name == "small" || name == "delta") {
+            add(m_types.universalReal());
+        } else if (name == "image") {
             add(m_types.stringType());
         } else if (name == "address") {
             add(m_addressType);

@@ -234,6 +234,39 @@ storage. Full unsigned 64-bit modular types, modular generic formals, and
 `Ada.Text_IO.Modular_IO` remain future work. The modular regression programs
 cover arithmetic, static values, logical operations, boundaries, and diagnostics.
 
+Ordinary fixed-point types use signed 64-bit scaled integers:
+
+```ada
+type Voltage is delta 0.125 range -100.0 .. 100.0;
+Reading : Voltage := 1.25;
+Adjusted : Voltage := Reading * 3;
+```
+
+The supported `delta` range is `2.0**(-30)` through `1.0`. The compiler chooses
+`Small` as the largest power of two no greater than `delta`, with 0 through 30
+fractional bits. Bounds and values must fit signed 64-bit scaled storage.
+Decimal and based real literals and static real expressions use checked exact
+128-bit rational evaluation when converted to fixed point. Expressions beyond
+that evaluator's capacity are diagnosed. A constant expression is converted
+as a whole; floating-point operands first retain their own precision.
+
+Supported operations include addition, subtraction, unary signs, `abs`,
+comparisons, multiplication/division by integers, and fixed-by-fixed products
+and quotients with a fixed-point result context. Explicit conversions between
+fixed-point, integer, and floating-point types check the target range. Scaling
+rounds to nearest, with halfway results away from zero; compile-time folding
+and runtime arithmetic share the same checked scaling routines. Overflow,
+division by zero, and failed range checks raise `Constraint_Error`.
+
+Static fixed-point subtype bounds, scalar parameters and returns, arrays,
+records, and `'First`, `'Last`, `'Base`, `'Small`, `'Delta`, and `'Size` are
+supported. Storage is currently always 64 bits. Decimal fixed point, explicit
+`Small` clauses, dynamic fixed-point subtype constraints, fixed-point formal
+type declarations, fixed-point I/O/streaming, and additional fixed-point
+attributes remain future work. Exponentiation, `mod`, and `rem` are not
+predefined fixed-point operations.
+
+
 `Long_Integer` is supported by `'Image`, `'Value`, generic `Integer_IO`, and
 `for` loops. A loop tests its final value before incrementing or decrementing,
 so a loop ending at a machine limit does not wrap around.

@@ -159,6 +159,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
             expr->isStatic = true;
             expr->staticValue = chosen->staticValue;
             expr->staticReal = chosen->staticReal;
+            expr->m_exactReal = chosen->m_exactReal;
         }
         return expr->type;
     case SymbolKind::Number:
@@ -166,6 +167,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         expr->isStatic = chosen->hasStaticValue;
         expr->staticValue = chosen->staticValue;
         expr->staticReal = chosen->staticReal;
+        expr->m_exactReal = chosen->m_exactReal;
         return expr->type;
     case SymbolKind::EnumerationLiteral:
         expr->type = chosen->type;
@@ -232,6 +234,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
                 expr->isStatic = true;
                 expr->staticValue = chosen->staticValue;
                 expr->staticReal = chosen->staticReal;
+            expr->m_exactReal = chosen->m_exactReal;
             }
         }
         return expr->type;

@@ -138,6 +138,36 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope)
     // Subtypes carry their own constraint, so the prefix type is used as written.
     Type* base = prefixType;
     const std::string& name = expr->lower;
+    if (base != nullptr && base->kind == TypeKind::Fixed) {
+        if (name == "small" || name == "delta") {
+            if (!prefixIsType || !expr->arguments.empty()) {
+                m_diagnostics.error(expr->location, "fixed-point scale attributes require a subtype and no arguments");
+            }
+            expr->type = m_types.universalReal();
+            expr->isStatic = true;
+            expr->m_exactReal = ExactReal::make(1, (__int128)1 << base->m_fixedBits);
+            if (name == "delta" && base->m_delta != nullptr) {
+                exactValue(base->m_delta, expr->m_exactReal);
+            }
+            expr->staticReal = static_cast<double>(expr->m_exactReal.m_numerator)
+                / static_cast<double>(expr->m_exactReal.m_denominator);
+            return expr->type;
+        }
+        if (name == "first" || name == "last") {
+            if (!expr->arguments.empty()) {
+                m_diagnostics.error(expr->location, "fixed-point bounds take no arguments");
+            }
+            expr->type = prefixType;
+            expr->isStatic = true;
+            expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
+            return expr->type;
+        }
+        if (name != "base" && name != "size" && name != "address") {
+            m_diagnostics.error(expr->location, "this attribute is not yet supported for fixed-point types");
+            return nullptr;
+        }
+    }
+
     if (base != nullptr && base->kind == TypeKind::Array
         && (name == "first" || name == "last" || name == "length")) {
         if (prefixIsType && !base->constrained && base->m_boundsSymbol == nullptr) {

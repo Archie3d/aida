@@ -51,6 +51,8 @@ DeclPtr Parser::parseGenericDeclaration()
                 }
             } else if (check(TokenKind::KwRange)) {
                 formal.typeClass = FormalTypeClass::IntegerType;
+            } else if (check(TokenKind::KwDelta)) {
+                fail("fixed-point generic formal types are not yet supported");
             } else if (check(TokenKind::KwDigits)) {
                 formal.typeClass = FormalTypeClass::FloatType;
             } else if (check(TokenKind::LeftParen)) {
