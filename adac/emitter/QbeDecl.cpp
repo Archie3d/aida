@@ -7,6 +7,9 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
+        case DeclKind::SubprogramDeclaration:
+            collectGlobals(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+            break;
         case DeclKind::Object: {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -48,7 +51,13 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
-        if (decl->kind == DeclKind::Object) {
+        if (decl->kind == DeclKind::SubprogramDeclaration) {
+            auto* renaming = static_cast<SubprogramDecl*>(decl.get());
+            emitElaborationDeclarations(renaming->m_renamingExpansion);
+            if (renaming->m_callbackBinding != nullptr) {
+                checkNotNull(loadFrom(addressOf(renaming->m_callbackBinding), renaming->m_callbackBinding->type));
+            }
+        } else if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
                 continue;
@@ -106,7 +115,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
             subprogram = static_cast<SubprogramDecl*>(decl.get())->symbol;
         }
-        if (subprogram != nullptr && subprogram->m_addressTaken && subprogram->level > 0
+        if (subprogram != nullptr && subprogram->m_addressTaken && subprogram->m_renamedAccess == nullptr
+            && subprogram->level > 0
             && subprogram->m_descriptorOffset < 0) {
             m_context->frameSize = (m_context->frameSize + 7) / 8 * 8;
             subprogram->m_descriptorOffset = m_context->frameSize;
@@ -119,6 +129,16 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             line("storel " + m_context->frameTemp + ", " + linkSlot);
         }
         switch (decl->kind) {
+        case DeclKind::SubprogramDeclaration: {
+            auto* renaming = static_cast<SubprogramDecl*>(decl.get());
+            if (!renaming->m_renamingExpansion.empty()) {
+                emitLocalDeclarations(renaming->m_renamingExpansion);
+                if (renaming->m_callbackBinding != nullptr) {
+                    checkNotNull(loadFrom(addressOf(renaming->m_callbackBinding), renaming->m_callbackBinding->type));
+                }
+            }
+            break;
+        }
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {

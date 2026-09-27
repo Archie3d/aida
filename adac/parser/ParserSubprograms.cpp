@@ -62,7 +62,9 @@ void Parser::parseParameterList(SubprogramSpec& spec)
             parameter.location = location;
             parameter.subtype = parseSubtypeIndication();
             if (match(TokenKind::Assign)) {
+                std::size_t defaultStart = m_position;
                 parameter.defaultValue = parseExpression();
+                parameter.m_defaultTokens.assign(m_tokens.begin() + defaultStart, m_tokens.begin() + m_position);
             }
             spec.parameters.push_back(std::move(parameter));
         }
@@ -79,6 +81,17 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     SourceLocation location = current().location;
     std::size_t start = m_position;
     SubprogramSpec spec = parseSubprogramSpec(true);
+
+    if (match(TokenKind::KwRenames)) {
+        auto decl = std::make_unique<SubprogramDecl>();
+        decl->location = location;
+        decl->spec = std::move(spec);
+        std::size_t nameStart = m_position;
+        decl->m_renamedName = parseExpression();
+        decl->m_renamedTokens.assign(m_tokens.begin() + nameStart, m_tokens.begin() + m_position);
+        expect(TokenKind::Semicolon, "after subprogram renaming");
+        return decl;
+    }
 
     if (match(TokenKind::Semicolon)) {
         auto decl = std::make_unique<SubprogramDecl>();

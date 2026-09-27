@@ -61,12 +61,16 @@ struct Symbol
     // the declaration, so a call that leaves the parameter out simply points at
     // it rather than making a copy.
     Expr* defaultExpr = nullptr;
+    std::vector<Token> m_defaultTokens;
 
     // Subprograms.
     std::vector<Symbol*> parameters;
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    Symbol* m_renamedSubprogram = nullptr;
+    Symbol* m_renamedAccess = nullptr;
+    bool m_intrinsicRenaming = false;
     Scope* m_declarationScope = nullptr;
     bool m_addressTaken = false;
     // Code pointer and static link, stored once in the enclosing frame.

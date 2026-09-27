@@ -424,3 +424,9 @@ add_ada_test(callbacklibrary SOURCES callback_library.ads callback_library.adb c
 add_ada_error_test(callbackerrors SOURCES callbackerrors.adb)
 add_ada_error_test(callbackprofileerrors SOURCES callbackprofileerrors.adb)
 add_ada_test(callbackchecks SOURCES callbackchecks.adb)
+
+add_ada_test(subprogramrenames SOURCES subprogramrenames.adb)
+add_ada_test(callbackrenames SOURCES callbackrenames.adb)
+add_ada_test(renamelibrary SOURCES rename_library.ads rename_library.adb renamelibrary.adb)
+add_ada_error_test(subprogramrenameerrors SOURCES subprogramrenameerrors.adb)
+add_ada_test(renamemain SOURCES rename_entry.adb renamemain.adb)

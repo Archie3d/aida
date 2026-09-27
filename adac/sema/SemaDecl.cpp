@@ -30,7 +30,11 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     case DeclKind::SubprogramDeclaration: {
         auto* subprogram = static_cast<SubprogramDecl*>(decl);
-        subprogram->symbol = declareSubprogram(subprogram->spec, scope, false);
+        if (subprogram->m_renamedName != nullptr) {
+            analyzeSubprogramRenaming(subprogram, scope);
+        } else {
+            subprogram->symbol = declareSubprogram(subprogram->spec, scope, false);
+        }
         break;
     }
     case DeclKind::SubprogramBody:
@@ -374,6 +378,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             adaptUniversal(declaration.defaultValue.get(), parameterTypes[i]);
             parameter->hasDefault = true;
             parameter->defaultExpr = declaration.defaultValue.get();
+            parameter->m_defaultTokens = declaration.m_defaultTokens;
         }
         declaration.symbol = parameter;
         symbol->parameters.push_back(parameter);

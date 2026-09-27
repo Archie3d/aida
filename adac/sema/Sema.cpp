@@ -140,7 +140,8 @@ void Sema::analyze(CompilationUnit& unit)
     for (const WithClause& clause : unit.withClauses) {
         for (std::size_t i = 0; i < clause.names.size(); ++i) {
             Symbol* symbol = lookupName(clause.namesLower[i], m_globalScope);
-            if (symbol == nullptr || (symbol->kind != SymbolKind::Package && symbol->kind != SymbolKind::Generic)) {
+            if (symbol == nullptr || (symbol->kind != SymbolKind::Package && symbol->kind != SymbolKind::Generic
+                && symbol->kind != SymbolKind::Subprogram)) {
                 m_diagnostics.error(clause.location, "cannot find the unit '" + clause.names[i] + "'");
             }
         }
@@ -153,12 +154,17 @@ void Sema::analyze(CompilationUnit& unit)
 
     if (m_main == nullptr) {
         for (const DeclPtr& decl : unit.units) {
-            if (decl->kind != DeclKind::SubprogramBody) {
-                continue;
+            Symbol* candidate = nullptr;
+            if (decl->kind == DeclKind::SubprogramBody) {
+                candidate = static_cast<SubprogramBody*>(decl.get())->symbol;
+            } else if (decl->kind == DeclKind::SubprogramDeclaration) {
+                auto* renaming = static_cast<SubprogramDecl*>(decl.get());
+                if (!renaming->m_renamingExpansion.empty()) {
+                    candidate = renaming->symbol;
+                }
             }
-            auto* body = static_cast<SubprogramBody*>(decl.get());
-            if (body->symbol != nullptr && !body->spec.isFunction && body->spec.parameters.empty()) {
-                m_main = body->symbol;
+            if (candidate != nullptr && candidate->returnType == nullptr && candidate->parameters.empty()) {
+                m_main = candidate;
                 break;
             }
         }

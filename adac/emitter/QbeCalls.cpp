@@ -35,6 +35,25 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             return Value { "0", 'w' };
         }
     }
+    if (subprogram->m_renamedSubprogram != nullptr || subprogram->m_renamedAccess != nullptr) {
+        CallExpr renamed;
+        renamed.location = expr->location;
+        renamed.form = CallForm::Subprogram;
+        renamed.type = expr->type;
+        renamed.resolvedArguments = expr->resolvedArguments;
+        renamed.subprogram = subprogram->m_renamedSubprogram;
+        if (subprogram->m_renamedAccess != nullptr) {
+            Symbol* binding = subprogram->m_renamedAccess;
+            auto callee = std::make_unique<IdentifierExpr>();
+            callee->symbol = binding;
+            callee->type = binding->type;
+            callee->location = expr->location;
+            renamed.callee = std::move(callee);
+            renamed.m_indirect = true;
+            renamed.subprogram = binding->type->m_accessProfile;
+        }
+        return emitCall(&renamed);
+    }
     if (subprogram->builtin == BuiltinKind::Runtime) {
         Value result = emitRuntimeCall(expr, subprogram);
         if (subprogram->canRaise) {

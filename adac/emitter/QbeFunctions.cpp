@@ -25,6 +25,9 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
+        case DeclKind::SubprogramDeclaration:
+            emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+            break;
         case DeclKind::SubprogramBody:
             emitSubprogram(static_cast<SubprogramBody*>(decl.get()));
             break;

@@ -40,6 +40,7 @@ private:
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false);
+    void analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope);
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);

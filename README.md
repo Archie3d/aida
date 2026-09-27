@@ -667,6 +667,37 @@ including scalar copy-back and composite results. Profile parameters cannot
 have defaults. Anonymous and protected subprogram access types and `'Access`
 of imported subprograms are not yet supported.
 
+### Subprogram renaming
+
+Functions and procedures can introduce another view of a visible subprogram,
+including overloaded and package-selected names:
+
+```ada
+procedure Print (Message : String) renames Ada.Text_IO.Put_Line;
+function Apply (Value : Integer := 1) return Integer renames Increment;
+function Saved (Value : Integer) return Integer renames Callback.all;
+```
+
+The target's parameter types, modes, result type, and calling convention must
+match the profile. A new view inherits the target's subtype constraints while
+using its own parameter names and defaults. Defaults are not inherited. Alias
+chains, imported routines, nested subprograms, library units (including a renamed
+main procedure), and generic bodies are supported;
+`'Access` through an ordinary renaming preserves the original callback identity.
+
+A callback dereference is evaluated once when the renaming is elaborated.
+Changing the access variable afterwards does not change the renamed target,
+and a null callback raises `Constraint_Error` during elaboration. A renaming
+can also complete a previous subprogram declaration; its generated body calls
+the selected target using the original declaration's profile.
+
+Predefined operators, enumeration literals, and the callable `Succ`, `Pred`,
+`Image`, and `Value` attributes can be renamed. Intrinsic renamings cannot be
+used with `'Access`. Invalid profiles, duplicate definitions, references to the
+new formal parameters in the target, and statically circular renamings are
+rejected. These semantics follow [Ada RM 8.5.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-8-5-4.html)
+within the compiler's existing subprogram and elaboration support.
+
 ### Private types
 
 A package may name a type without showing what it is made of. Outside the

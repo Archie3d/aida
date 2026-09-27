@@ -398,6 +398,7 @@ struct ParameterDecl
     ParameterMode mode = ParameterMode::In;
     SubtypeIndicationPtr subtype;
     ExprPtr defaultValue;
+    std::vector<Token> m_defaultTokens;
     SourceLocation location;
     Symbol* symbol = nullptr;
 };
@@ -752,6 +753,10 @@ struct SubprogramDecl : Decl
 
     SubprogramSpec spec;
     Symbol* symbol = nullptr;
+    ExprPtr m_renamedName;
+    std::vector<Token> m_renamedTokens;
+    DeclList m_renamingExpansion;
+    Symbol* m_callbackBinding = nullptr;
 };
 
 struct SubprogramBody : Decl

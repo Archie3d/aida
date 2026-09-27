@@ -11,6 +11,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     Type* prefixType = expr->prefixType;
     if (name == "access") {
         Symbol* subprogram = expr->m_accessSubprogram;
+        if (subprogram->m_renamedAccess != nullptr) {
+            Symbol* binding = subprogram->m_renamedAccess;
+            return loadFrom(addressOf(binding), binding->type);
+        }
         if (subprogram->level == 0) {
             std::string descriptor = subprogram->qbeName + ".access";
             return Value { descriptor, 'l' };

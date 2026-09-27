@@ -1,0 +1,12 @@
+subprogramrenameerrors.adb:10:55: error: no subprogram matches the renaming profile
+subprogramrenameerrors.adb:11:48: error: no subprogram matches the renaming profile
+subprogramrenameerrors.adb:12:52: error: no subprogram matches the renaming profile
+subprogramrenameerrors.adb:13:59: error: no subprogram matches the renaming profile
+subprogramrenameerrors.adb:15:51: error: no subprogram matches the renaming profile
+subprogramrenameerrors.adb:16:5: error: 'Original' has already been declared in this scope
+subprogramrenameerrors.adb:18:5: error: renaming-as-body does not conform to the previous declaration
+subprogramrenameerrors.adb:20:5: error: renaming-as-body does not conform to the previous declaration
+subprogramrenameerrors.adb:23:5: error: a subprogram cannot rename itself
+subprogramrenameerrors.adb:28:67: error: a renaming target cannot reference a formal parameter
+subprogramrenameerrors.adb:32:32: error: 'Access of intrinsic subprograms is not allowed
+subprogramrenameerrors.adb:34:14: error: no visible interpretation of 'Needs_Argument' matches this context

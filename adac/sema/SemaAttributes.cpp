@@ -111,9 +111,19 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
             return nullptr;
         }
+        // A renaming is another view of the same callable entity.
+        while (chosen->m_renamedSubprogram != nullptr) {
+            chosen = chosen->m_renamedSubprogram;
+        }
+        if (chosen->m_intrinsicRenaming) {
+            m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
+            return nullptr;
+        }
         bool accessible = false;
+        Scope* declarationScope = chosen->m_renamedAccess != nullptr
+            ? chosen->m_renamedAccess->type->m_accessScope : chosen->m_declarationScope;
         for (Scope* enclosing = expected->m_accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
-            accessible = accessible || enclosing == chosen->m_declarationScope;
+            accessible = accessible || enclosing == declarationScope;
         }
         // Library subprograms have no captured activation.
         if (!accessible && chosen->level > 0) {
@@ -124,7 +134,11 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "'Access of imported subprograms is not yet supported");
             return nullptr;
         }
-        chosen->m_addressTaken = true;
+        if (chosen->m_renamedAccess != nullptr) {
+            noteReference(chosen->m_renamedAccess);
+        } else {
+            chosen->m_addressTaken = true;
+        }
         expr->m_accessSubprogram = chosen;
         recordContractName(expr->prefix.get(), chosen);
         expr->type = expected;

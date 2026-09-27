@@ -498,11 +498,17 @@ int main(int argc, char** argv)
         // Only a main declared by this unit belongs in its record.
         for (CompilationUnit* part : target->parts) {
             for (const DeclPtr& declaration : part->units) {
+                Symbol* candidate = nullptr;
                 if (declaration->kind == DeclKind::SubprogramBody) {
-                    auto* body = static_cast<SubprogramBody*>(declaration.get());
-                    if (body->symbol != nullptr && !body->spec.isFunction && body->spec.parameters.empty()) {
-                        record.mainName = body->symbol->qbeName;
+                    candidate = static_cast<SubprogramBody*>(declaration.get())->symbol;
+                } else if (declaration->kind == DeclKind::SubprogramDeclaration) {
+                    auto* renaming = static_cast<SubprogramDecl*>(declaration.get());
+                    if (!renaming->m_renamingExpansion.empty()) {
+                        candidate = renaming->symbol;
                     }
+                }
+                if (candidate != nullptr && candidate->returnType == nullptr && candidate->parameters.empty()) {
+                    record.mainName = candidate->qbeName;
                 }
             }
         }
