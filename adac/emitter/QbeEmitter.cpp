@@ -60,6 +60,7 @@ void QbeEmitter::beginUnit(const std::string& key)
     m_functions.clear();
     m_stringPool.clear();
     m_enumTables.clear();
+    m_emittedTags.clear();
     m_pendingSubprograms.clear();
     m_unitTag = unitTag(key);
     m_tempCounter = 0;

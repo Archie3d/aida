@@ -185,7 +185,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
                     line("storew " + value.innerBounds[dimension].second + ", " + last);
                 }
             } else {
-                assignInto(Value { "%.result", 'l' }, resultType, returnStatement->value.get());
+                assignInto(Value { "%.result", 'l' }, resultType, returnStatement->value.get(), true);
             }
             line("ret");
         } else if (returnStatement->value) {

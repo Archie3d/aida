@@ -68,6 +68,7 @@ const std::unordered_map<std::string, TokenKind>& keywordTable()
         { "select", TokenKind::KwSelect },
         { "separate", TokenKind::KwSeparate },
         { "subtype", TokenKind::KwSubtype },
+        { "tagged", TokenKind::KwTagged },
         { "task", TokenKind::KwTask },
         { "terminate", TokenKind::KwTerminate },
         { "then", TokenKind::KwThen },

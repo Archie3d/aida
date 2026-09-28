@@ -58,15 +58,25 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = completing->name;
         Symbol* privateTo = completing->privateTo;
         bool isLimited = completing->isLimited;
+        bool tagged = completing->m_tagged;
+        std::string tagName = completing->m_tagName;
         auto primitives = std::move(completing->m_primitives);
         *completing = Type(kind, name);
         completing->m_primitives = std::move(primitives);
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
+        completing->m_tagged = tagged;
+        completing->m_tagName = tagName;
         return completing;
     };
 
     TypeDefinition* definition = decl->definition.get();
+    if (completing != nullptr && completing->privateTo != nullptr && completing->m_tagged
+        && !(definition->kind == TypeDefKind::Record && definition->m_tagged)
+        && !(definition->kind == TypeDefKind::Derived && definition->m_extension)) {
+        m_diagnostics.error(decl->location, "a tagged private type requires a tagged full definition");
+        return;
+    }
     Type* type = nullptr;
 
     switch (definition->kind) {
@@ -278,12 +288,28 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Record: {
         type = makeType(TypeKind::Record);
+        type->m_tagged = definition->m_tagged;
         layoutRecord(decl, definition, type, scope);
         break;
     }
     case TypeDefKind::Derived: {
         Type* parent = resolveSubtypeIndication(definition->parent.get(), scope);
         if (parent == nullptr) {
+            return;
+        }
+        if (parent->m_tagged) {
+            parent = rootType(parent);
+        }
+        if (definition->m_extension && (!parent->m_tagged || parent->kind != TypeKind::Record)) {
+            m_diagnostics.error(decl->location, "a record extension requires a tagged parent type");
+            return;
+        }
+        if (parent->m_tagged && !definition->m_extension) {
+            m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
+            return;
+        }
+        if (parent->m_tagged && (!representationVisible(parent) || parent->isIncomplete)) {
+            m_diagnostics.error(decl->location, "extension of a private or incomplete tagged view is not yet supported");
             return;
         }
         Type* built = m_types.makeSubtype(decl->name, parent, parent->low, parent->high);
@@ -307,6 +333,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->m_primitives = std::move(primitives);
         type->m_parentType = rootType(parent);
         type->name = name;
+        if (definition->m_extension) {
+            type->byteSize = 0;
+            type->m_tagName.clear();
+            type->m_parentFieldCount = static_cast<int>(parent->fields.size());
+            layoutRecord(decl, definition, type, scope);
+        }
         inheritPrimitives(type, parent, scope, decl->location);
 
         for (std::size_t i = 0; i < parent->literals.size(); ++i) {
@@ -361,6 +393,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type = makeType(TypeKind::Record);
         type->isIncomplete = true;
+        type->m_tagged = definition->m_tagged;
         type->privateTo = m_packages.back();
         type->isLimited = definition->isLimited;
         break;
@@ -369,6 +402,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
     if (type == nullptr) {
         return;
+    }
+    if (type->m_tagged && type->m_tagName.empty()) {
+        std::string name = "$" + mangle(decl->lower) + "__tag";
+        std::size_t ordinal = ++m_tagNames[name];
+        type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
     }
     type->m_declarationScope = scope;
     decl->declaredType = type;
@@ -442,8 +480,12 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 // discriminant it was made with.
 void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope)
 {
-    long long offset = 0;
-    int fieldIndex = 0;
+    if (type->m_tagged && (!decl->discriminants.empty() || definition->variant != nullptr)) {
+        m_diagnostics.error(decl->location, "discriminated tagged records are not yet supported");
+        return;
+    }
+    long long offset = definition->m_extension ? typeSize(type->m_parentType) : type->m_tagged ? 8 : 0;
+    int fieldIndex = static_cast<int>(type->fields.size());
 
     auto place = [&](RecordField& field, int variantIndex, bool isDiscriminant) {
         for (const FieldInfo& seen : type->fields) {
@@ -503,7 +545,9 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
                                                            + "' is not");
         }
     }
-    type->discriminantCount = static_cast<int>(type->fields.size());
+    if (!definition->m_extension) {
+        type->discriminantCount = static_cast<int>(type->fields.size());
+    }
 
     for (RecordField& field : definition->fields) {
         place(field, -1, false);
@@ -577,6 +621,16 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
             continue;
         }
         auto* typeDecl = static_cast<TypeDecl*>(decl.get());
+        Type* type = typeDecl->declaredType;
+        if (type != nullptr && type->m_tagged && type->m_parentType != nullptr
+            && type->fields.size() > static_cast<std::size_t>(type->m_parentFieldCount)) {
+            for (Symbol* primitive : type->m_primitives) {
+                if (primitive->m_inheritedFrom != nullptr && rootType(primitive->returnType) == type) {
+                    m_diagnostics.error(decl->location, "inherited function '" + primitive->displayName
+                        + "' returning the extended type must be overridden");
+                }
+            }
+        }
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->isIncomplete) {
             m_diagnostics.error(decl->location, "'" + typeDecl->name + "' is never described");
         }
@@ -598,6 +652,10 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope)
         return;
     }
 
+    if (symbol->type->m_tagged) {
+        m_diagnostics.error(decl->location, "size clauses for tagged types are not yet supported");
+        return;
+    }
     analyzeExpr(decl->value.get(), scope, m_types.integerType());
     if (!decl->value->isStatic) {
         m_diagnostics.error(decl->location, "a size clause needs a static number of bits");
@@ -1007,6 +1065,11 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         if (original == nullptr || rootType(original) != rootType(parent)) {
             return original;
         }
+        if (type->m_tagged) {
+            // This stage supports only nondiscriminated tagged types, so there
+            // are no profile constraints to retain separately from the layout.
+            return type;
+        }
         Type* subtype = m_types.create(original->kind, type->name);
         *subtype = *original;
         subtype->base = type;
@@ -1017,6 +1080,12 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
     for (Symbol* primitive : rootType(parent)->m_primitives) {
         if (primitive->kind != SymbolKind::Subprogram
             || (primitive->m_privatePrimitiveTo != nullptr && !withinPackage(primitive->m_privatePrimitiveTo))) {
+            continue;
+        }
+        if (type->m_tagged && (primitive->name == "=" || primitive->name == "/=")
+            && m_types.isBoolean(primitive->returnType) && primitive->parameters.size() == 2
+            && rootType(primitive->parameters[0]->type) == rootType(parent)
+            && rootType(primitive->parameters[1]->type) == rootType(parent)) {
             continue;
         }
         Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);

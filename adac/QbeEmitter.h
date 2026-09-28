@@ -83,6 +83,7 @@ private:
     std::string enumTableFor(const Type* type);
 
     // Declarations (QbeDecl.cpp).
+    void emitTypeTag(Type* type);
     void collectGlobals(DeclList& declarations);
     void emitElaborationDeclarations(DeclList& declarations);
     void emitLocalDeclarations(DeclList& declarations);
@@ -119,7 +120,7 @@ private:
     Value loadFrom(const Value& address, Type* type);
     void storeInto(const Value& address, const Value& value, Type* type);
     void copyInto(const Value& destination, const Value& source, Type* type);
-    void assignInto(const Value& address, Type* type, Expr* value);
+    void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false);
 
     // Arrays (QbeArrays.cpp).
     void emitDynamicArray(ObjectDecl* object, Symbol* symbol);
@@ -162,6 +163,7 @@ private:
     // Comparisons (QbeComparisons.cpp).
     Value compareObjects(const Value& left, const Value& right, Type* type);
     Value compareArrays(BinaryOp op, const Value& left, Type* leftType, const Value& right, Type* rightType);
+    Value comparePrimitiveRecord(const Value& left, const Value& right, Type* type);
     Value compareRecords(const Value& left, const Value& right, Type* type);
 
     // Attributes (QbeAttributes.cpp).
@@ -184,6 +186,7 @@ private:
     std::vector<SubprogramBody*> m_pendingSubprograms;
     std::unordered_map<std::string, std::string> m_stringPool;
     std::unordered_map<const Type*, std::string> m_enumTables;
+    std::unordered_map<Type*, bool> m_emittedTags;
     FunctionContext* m_context = nullptr;
 
     // Strings and tables are private to the object they end up in, so their

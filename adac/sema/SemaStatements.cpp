@@ -99,6 +99,10 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
         if (symbol == nullptr) {
             return;
         }
+        if (target->type != nullptr && target->type->m_tagged && symbol->kind == SymbolKind::Subprogram) {
+            m_diagnostics.error(target->location, "the target of an assignment must be a variable");
+            return;
+        }
         if (symbol->kind == SymbolKind::Number || symbol->kind == SymbolKind::LoopParameter
             || (symbol->kind == SymbolKind::Object && symbol->isConstant)
             || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In)) {
@@ -108,6 +112,11 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
     }
     case ExprKind::Selected: {
         auto* selected = static_cast<SelectedExpr*>(target);
+        if (selected->symbol != nullptr && selected->symbol->kind == SymbolKind::Subprogram
+            && target->type != nullptr && target->type->m_tagged) {
+            m_diagnostics.error(target->location, "the target of an assignment must be a variable");
+            return;
+        }
         Type* prefix = baseType(selected->prefix->type);
         if (selected->symbol == nullptr && prefix != nullptr && prefix->kind != TypeKind::Access) {
             checkAssignable(selected->prefix.get(), scope, true);
@@ -116,11 +125,17 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
     }
     case ExprKind::Call: {
         auto* call = static_cast<CallExpr*>(target);
+        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
+            checkAssignable(call->resolvedArguments.front(), scope, allowLimited);
+            return;
+        }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
             if (prefix != nullptr && prefix->kind != TypeKind::Access) {
                 checkAssignable(call->callee.get(), scope, true);
             }
+        } else if (target->type != nullptr && target->type->m_tagged) {
+            m_diagnostics.error(target->location, "the target of an assignment must be a variable");
         }
         return;
     }

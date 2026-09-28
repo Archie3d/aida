@@ -64,6 +64,7 @@ const char* tokenKindName(TokenKind kind)
     case TokenKind::KwSelect: return "select";
     case TokenKind::KwSeparate: return "separate";
     case TokenKind::KwSubtype: return "subtype";
+    case TokenKind::KwTagged: return "tagged";
     case TokenKind::KwTask: return "task";
     case TokenKind::KwTerminate: return "terminate";
     case TokenKind::KwThen: return "then";

@@ -70,6 +70,7 @@ enum class TokenKind
     KwSelect,
     KwSeparate,
     KwSubtype,
+    KwTagged,
     KwTask,
     KwTerminate,
     KwThen,

@@ -160,7 +160,6 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
             SourceLocation location = current().location;
             if (peek(1).kind == TokenKind::LeftParen) {
                 advance();
-                advance();
                 auto expr = std::make_unique<QualifiedExpr>();
                 expr->location = location;
                 expr->typeLower = typeMarkName(prefix.get());
@@ -168,8 +167,7 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
                 if (expr->typeLower.empty()) {
                     fail("qualified expression requires a subtype mark");
                 }
-                expr->operand = parseExpression();
-                expect(TokenKind::RightParen, "after qualified expression");
+                expr->operand = parseParenthesizedOrAggregate();
                 prefix = std::move(expr);
                 continue;
             }

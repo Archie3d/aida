@@ -47,6 +47,16 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
 {
     SourceLocation location = current().location;
 
+    if (match(TokenKind::KwTagged)) {
+        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull) && !check(TokenKind::KwPrivate)) {
+            fail("expected record, null record or private after tagged");
+        }
+        auto definition = parseTypeDefinition();
+        definition->m_tagged = true;
+        definition->location = location;
+        return definition;
+    }
+
     if (check(TokenKind::LeftParen)) {
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Enumeration);
         definition->location = location;
@@ -187,6 +197,15 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         definition->location = location;
         advance();
         definition->parent = parseSubtypeIndication();
+        if (match(TokenKind::KwWith)) {
+            if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull)) {
+                fail("only record extensions are supported after with");
+            }
+            auto extension = parseTypeDefinition();
+            definition->m_extension = true;
+            definition->fields = std::move(extension->fields);
+            definition->variant = std::move(extension->variant);
+        }
         return definition;
     }
 

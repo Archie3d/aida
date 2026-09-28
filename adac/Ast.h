@@ -263,6 +263,10 @@ struct AggregateExpr : Expr
     {
     }
 
+    ExprPtr m_ancestor;
+    Type* m_ancestorType = nullptr;
+    bool m_ancestorIsType = false;
+    bool m_nullRecord = false;
     std::vector<AggregateComponent> components;
     std::vector<Expr*> resolvedFields;  // Record aggregates, in field order.
 };
@@ -442,6 +446,8 @@ struct TypeDefinition : Node
     SubtypeIndicationPtr elementType;
 
     // Record
+    bool m_tagged = false;
+    bool m_extension = false;
     std::vector<RecordField> fields;
     VariantPartPtr variant;
 

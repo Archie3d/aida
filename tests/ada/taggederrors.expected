@@ -1,0 +1,16 @@
+taggederrors.adb:5:5: error: a record extension requires a tagged parent type
+taggederrors.adb:9:5: error: derivation from a tagged type requires with record or with null record
+taggederrors.adb:13:5: error: discriminated tagged records are not yet supported
+taggederrors.adb:15:9: error: 'X' is named twice in 'Duplicate_Field'
+taggederrors.adb:17:5: error: size clauses for tagged types are not yet supported
+taggederrors.adb:21:20: error: a record extension requires an extension aggregate
+taggederrors.adb:22:29: error: extension aggregate ancestor must be a proper tagged ancestor of the result type
+taggederrors.adb:23:38: error: component 'X' is already supplied by the ancestor part
+taggederrors.adb:24:24: error: component 'Y' has no value in the aggregate
+taggederrors.adb:25:46: error: duplicate record aggregate component 'Y'
+taggederrors.adb:26:27: error: this type conversion is not allowed
+taggederrors.adb:27:21: error: an extension aggregate requires a record extension type
+taggederrors.adb:35:9: error: inherited function 'Make' returning the extended type must be overridden
+taggederrors.adb:40:11: error: 'C' cannot be assigned to
+taggederrors.adb:41:11: error: 'C' cannot be assigned to
+taggederrors.adb:42:11: error: the target of an assignment must be a variable

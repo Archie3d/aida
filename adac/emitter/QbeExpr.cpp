@@ -446,7 +446,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 
     Value address { pointer, 'l' };
     if (expr->value != nullptr) {
-        assignInto(address, designated, expr->value.get());
+        assignInto(address, designated, expr->value.get(), true);
     } else {
         emitDefaultInit(address, designated);
     }
@@ -465,6 +465,9 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     }
     if (base->kind != TypeKind::Record) {
         return false;
+    }
+    if (base->m_tagged) {
+        return true;
     }
     // A discriminant the subtype fixed is written into the object too, so that
     // reading it back gives what the declaration said.
@@ -508,6 +511,9 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         return;
     }
 
+    if (base->m_tagged) {
+        line("storel " + base->m_tagName + ", " + address.name);
+    }
     long long discriminant = 0;
     bool fixedVariant = base->variantOn >= 0 && discriminantValueOf(type, base->variantOn, discriminant);
     int activeVariant = fixedVariant ? variantFor(base, discriminant) : -1;
@@ -527,7 +533,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         if (field.isDiscriminant && discriminantValueOf(type, field.index, fixed)) {
             storeInto(slot, constantValue(fixed, qbeClass(field.type)), field.type);
         } else if (field.defaultValue != nullptr) {
-            assignInto(slot, field.type, field.defaultValue);
+            assignInto(slot, field.type, field.defaultValue, true);
         } else {
             emitDefaultInit(slot, field.type);
         }

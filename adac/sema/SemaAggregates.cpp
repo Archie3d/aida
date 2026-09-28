@@ -8,7 +8,7 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
 {
-    Type* target = expected;
+    Type* target = expected != nullptr && expected->m_tagged ? rootType(expected) : expected;
     if (target == nullptr || (target->kind != TypeKind::Array && target->kind != TypeKind::Record)) {
         m_diagnostics.error(expr->location, "an aggregate needs a known array or record type");
         for (AggregateComponent& component : expr->components) {
@@ -20,6 +20,48 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    std::size_t firstField = 0;
+    if (expr->m_ancestor != nullptr) {
+        Type* extension = rootType(target);
+        if (!extension->m_tagged || extension->m_parentType == nullptr) {
+            m_diagnostics.error(expr->location, "an extension aggregate requires a record extension type");
+            return nullptr;
+        }
+        for (Symbol* candidate : expressionNames(expr->m_ancestor.get(), scope)) {
+            if (candidate->kind == SymbolKind::TypeName) {
+                expr->m_ancestorType = candidate->type;
+                expr->m_ancestorIsType = true;
+                recordContractName(expr->m_ancestor.get(), candidate);
+                break;
+            }
+        }
+        if (!expr->m_ancestorIsType) {
+            for (Type* candidate : expressionTypes(expr->m_ancestor.get(), scope)) {
+                if (isTaggedAncestor(candidate, extension) && rootType(candidate) != extension) {
+                    if (expr->m_ancestorType != nullptr && rootType(expr->m_ancestorType) != rootType(candidate)) {
+                        m_diagnostics.error(expr->location, "ambiguous ancestor expression in extension aggregate");
+                        return nullptr;
+                    }
+                    expr->m_ancestorType = candidate;
+                }
+            }
+        }
+        if (!isTaggedAncestor(expr->m_ancestorType, extension) || rootType(expr->m_ancestorType) == extension) {
+            m_diagnostics.error(expr->location, "extension aggregate ancestor must be a proper tagged ancestor of the result type");
+            return nullptr;
+        }
+        if (!expr->m_ancestorIsType) {
+            analyzeExpr(expr->m_ancestor.get(), scope, expr->m_ancestorType);
+        }
+        firstField = expr->m_ancestorType->fields.size();
+    } else if (target->m_tagged && rootType(target)->m_parentType != nullptr) {
+        m_diagnostics.error(expr->location, "a record extension requires an extension aggregate");
+        return nullptr;
+    }
+    if (target->kind != TypeKind::Record && expr->m_nullRecord) {
+        m_diagnostics.error(expr->location, "null record requires a record aggregate");
+        return nullptr;
+    }
     if (target->kind == TypeKind::Record) {
         // A record with a variant part carries the components of one
         // alternative and no other, so which one it is has to be settled before
@@ -52,7 +94,9 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
 
-        auto present = [&](const FieldInfo& field) { return field.variant < 0 || field.variant == variant; };
+        auto present = [&](const FieldInfo& field) {
+            return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || field.variant == variant);
+        };
         auto analyzeComponent = [&](Expr* value, Type* fieldType) {
             Type* valueType = analyzeExpr(value, scope, fieldType);
             if (!typesCompatible(fieldType, valueType)) {
@@ -63,7 +107,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         bool complained = false;
 
         expr->resolvedFields.assign(target->fields.size(), nullptr);
-        std::size_t positional = 0;
+        std::size_t positional = firstField;
         for (AggregateComponent& component : expr->components) {
             if (component.isOthers) {
                 for (std::size_t i = 0; i < target->fields.size(); ++i) {
@@ -95,6 +139,15 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                         continue;
                     }
                     found = true;
+                    if (static_cast<std::size_t>(field.index) < firstField) {
+                        m_diagnostics.error(component.value->location, "component '" + field.displayName
+                            + "' is already supplied by the ancestor part");
+                        break;
+                    }
+                    if (expr->resolvedFields[field.index] != nullptr) {
+                        m_diagnostics.error(component.value->location, "duplicate record aggregate component '" + field.displayName + "'");
+                        break;
+                    }
                     if (!present(field)) {
                         // One message for the aggregate rather than one for
                         // every component of the alternative it named.

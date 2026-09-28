@@ -347,7 +347,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
         if (type->arrayRank > 1 && value->kind == ExprKind::Aggregate) {
             emitDynamicAggregateInto(static_cast<AggregateExpr*>(value), cell, type->element, plan);
         } else {
-            assignInto(cell, type->element, value);
+            assignInto(cell, type->element, value, true);
         }
         rewindStorage(checkpoint);
         jump(next);
@@ -389,12 +389,23 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
 
 void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Type* type)
 {
-    Type* target = type;
+    Type* target = type != nullptr && type->m_tagged ? rootType(type) : type;
     if (target == nullptr) {
         return;
     }
 
     if (target->kind == TypeKind::Record) {
+        if (expr->m_ancestor != nullptr) {
+            if (expr->m_ancestorIsType) {
+                emitDefaultInit(address, expr->m_ancestorType);
+            } else {
+                Value ancestor = emitExpr(expr->m_ancestor.get());
+                copyInto(address, ancestor, expr->m_ancestorType);
+            }
+        }
+        if (target->m_tagged) {
+            line("storel " + rootType(target)->m_tagName + ", " + address.name);
+        }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
             Value fieldAddress = address;
@@ -403,7 +414,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
                 line(temp + " =l add " + address.name + ", " + std::to_string(field.offset));
                 fieldAddress = Value { temp, 'l' };
             }
-            assignInto(fieldAddress, field.type, expr->resolvedFields[i]);
+            assignInto(fieldAddress, field.type, expr->resolvedFields[i], true);
         }
         return;
     }
@@ -454,7 +465,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
                 line(temp + " =l add " + address.name + ", " + std::to_string(offset));
                 elementAddress = Value { temp, 'l' };
             }
-            assignInto(elementAddress, target->element, component.value.get());
+            assignInto(elementAddress, target->element, component.value.get(), true);
         }
     }
 
@@ -483,7 +494,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
     line(scaled + " =l mul " + offset + ", " + std::to_string(elementSize));
     std::string elementAddress = newTemp();
     line(elementAddress + " =l add " + address.name + ", " + scaled);
-    assignInto(Value { elementAddress, 'l' }, target->element, others->value.get());
+    assignInto(Value { elementAddress, 'l' }, target->element, others->value.get(), true);
     std::string next = newTemp();
     line(next + " =l add " + index + ", 1");
     line("storel " + next + ", " + indexSlot);

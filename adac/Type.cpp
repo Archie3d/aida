@@ -18,6 +18,21 @@ Type* baseType(Type* type)
     return type;
 }
 
+bool isTaggedAncestor(Type* ancestor, Type* type)
+{
+    ancestor = rootType(ancestor);
+    type = rootType(type);
+    if (ancestor == nullptr || type == nullptr || !ancestor->m_tagged || !type->m_tagged) {
+        return false;
+    }
+    for (; type != nullptr; type = type->m_parentType) {
+        if (type == ancestor) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool isDiscrete(const Type* type)
 {
     if (type == nullptr) {
@@ -86,6 +101,9 @@ long long typeSize(const Type* type)
     if (type == nullptr) {
         return 0;
     }
+    if (type->m_tagged && type->isSubtype && type->base != nullptr) {
+        return typeSize(type->base);
+    }
     if (type->byteSize > 0) {
         return type->byteSize;
     }
@@ -117,7 +135,7 @@ long long typeSize(const Type* type)
         return count * elementSize;
     }
     case TypeKind::Record: {
-        long long size = 0;
+        long long size = type->m_tagged ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
@@ -145,7 +163,7 @@ long long typeAlignment(const Type* type)
     case TypeKind::Array:
         return typeAlignment(type->element);
     case TypeKind::Record: {
-        long long alignment = 1;
+        long long alignment = type->m_tagged ? 8 : 1;
         for (const FieldInfo& field : type->fields) {
             long long fieldAlignment = typeAlignment(field.type);
             if (fieldAlignment > alignment) {
@@ -286,6 +304,9 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     Type* subtype = create(parent->kind, name);
     subtype->base = parent;
     subtype->isSubtype = true;
+    subtype->m_tagged = parent->m_tagged;
+    subtype->m_tagName = parent->m_tagName;
+    subtype->m_parentFieldCount = parent->m_parentFieldCount;
     subtype->m_modulus = parent->m_modulus;
     subtype->low = low;
     subtype->high = high;

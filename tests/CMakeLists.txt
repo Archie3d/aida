@@ -440,3 +440,20 @@ add_determinism_test(primitivechecks SOURCE primitivechecks.adb)
 add_ada_test(primitiveseparate SOURCES primitive_base.ads primitive_base.adb
     primitive_child.ads primitive_child.adb primitiveseparate.adb)
 add_determinism_test(primitiveseparate SOURCE primitiveseparate.adb)
+
+add_ada_test(taggedrecords SOURCES taggedrecords.adb)
+add_determinism_test(taggedrecords SOURCE taggedrecords.adb)
+add_ada_test(taggedequality SOURCES taggedequality.adb)
+add_ada_error_test(taggederrors SOURCES taggederrors.adb)
+add_test(NAME ada.taggedlayout
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/taggedlayout.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/TaggedLayout.c
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/taggedlayout
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTaggedLayout.cmake
+)
+add_determinism_test(taggedlayout SOURCE taggedlayout.adb)

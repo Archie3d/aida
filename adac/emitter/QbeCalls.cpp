@@ -18,7 +18,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         inherited.subprogram = subprogram->m_inheritedFrom;
         inherited.type = expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
-        return emitCall(&inherited);
+        Value result = emitCall(&inherited);
+        if (expr->type != nullptr && expr->type->m_tagged
+            && rootType(expr->type) != rootType(inherited.subprogram->returnType)) {
+            line("storel " + rootType(expr->type)->m_tagName + ", " + result.name);
+        }
+        return result;
     }
     if (subprogram->m_negatedEquality != nullptr) {
         CallExpr equality;

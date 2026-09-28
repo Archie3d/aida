@@ -144,6 +144,41 @@ Value QbeEmitter::compareArrays(BinaryOp op, const Value& left, Type* leftType, 
     return Value { result, 'w' };
 }
 
+// Parent-part equality uses the parent's primitive, including user overrides.
+Value QbeEmitter::comparePrimitiveRecord(const Value& left, const Value& right, Type* type)
+{
+    Type* identity = rootType(type);
+    for (Symbol* primitive : identity->m_primitives) {
+        if (primitive->name != "=" || !m_sema.typeTable().isBoolean(primitive->returnType)
+            || primitive->parameters.size() != 2
+            || rootType(primitive->parameters[0]->type) != identity
+            || rootType(primitive->parameters[1]->type) != identity) {
+            continue;
+        }
+        Symbol leftObject;
+        Symbol rightObject;
+        leftObject.type = rightObject.type = type;
+        m_context->locals[&leftObject] = left.name;
+        m_context->locals[&rightObject] = right.name;
+        IdentifierExpr leftExpr;
+        IdentifierExpr rightExpr;
+        leftExpr.symbol = &leftObject;
+        rightExpr.symbol = &rightObject;
+        leftExpr.type = rightExpr.type = type;
+        CallExpr call;
+        call.location = m_context->sourceLocation;
+        call.form = CallForm::Subprogram;
+        call.subprogram = primitive;
+        call.type = primitive->returnType;
+        call.resolvedArguments = { &leftExpr, &rightExpr };
+        Value result = emitCall(&call);
+        m_context->locals.erase(&leftObject);
+        m_context->locals.erase(&rightObject);
+        return result;
+    }
+    return compareRecords(left, right, type);
+}
+
 // Compare common fields first, including every discriminant, then dispatch to
 // the active variant. Neither padding nor inactive storage contributes to equality.
 Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* type)
@@ -165,12 +200,23 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
     auto compareField = [&](const FieldInfo& field) {
         Value leftField = fieldAddress(left, field);
         Value rightField = fieldAddress(right, field);
-        Value equal = compareObjects(leftField, rightField, field.type);
+        Value equal = record->m_tagged && field.type->kind == TypeKind::Record
+            ? comparePrimitiveRecord(leftField, rightField, field.type)
+            : compareObjects(leftField, rightField, field.type);
         std::string next = newLabel("recordnextfield");
         branch(equal, next, different);
         label(next);
     };
+    if (record->m_tagged && record->m_parentType != nullptr) {
+        Value equal = comparePrimitiveRecord(left, right, record->m_parentType);
+        std::string next = newLabel("compareparent");
+        branch(equal, next, different);
+        label(next);
+    }
     for (const FieldInfo& field : record->fields) {
+        if (record->m_tagged && field.index < record->m_parentFieldCount) {
+            continue;
+        }
         if (field.variant < 0) {
             compareField(field);
         }

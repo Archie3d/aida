@@ -118,13 +118,33 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
     if (size <= 0) {
         return;
     }
+    if (type->m_tagged) {
+        // A tagged object's tag is immutable, including through an ancestor view.
+        // Parent layouts include their padding; extension fields start after it.
+        if (size > 8) {
+            std::string target = newTemp();
+            std::string value = newTemp();
+            line(target + " =l add " + destination.name + ", 8");
+            line(value + " =l add " + source.name + ", 8");
+            line("call $memmove(l " + target + ", l " + value + ", l " + std::to_string(size - 8) + ")");
+        }
+        return;
+    }
     // Source and destination may refer to overlapping slices of the same array.
     line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")");
 }
 
-void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value)
+void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool initialize)
 {
     if (value == nullptr) {
+        return;
+    }
+    if (initialize && type != nullptr && type->m_tagged) {
+        line("storel " + rootType(type)->m_tagName + ", " + address.name);
+    }
+    if (value->kind == ExprKind::Aggregate && type != nullptr && type->m_tagged && !initialize) {
+        Value source = emitAggregate(static_cast<AggregateExpr*>(value));
+        copyInto(address, source, type);
         return;
     }
     if (value->kind == ExprKind::Aggregate) {

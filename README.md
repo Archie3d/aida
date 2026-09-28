@@ -582,8 +582,40 @@ accept subtype marks and preserve overload hiding and private-operation
 visibility. Inherited untagged operations are intrinsic and cannot be used
 with subprogram `'Access`.
 
-Tagged records, record extensions, class-wide types, dispatching, and a full
-language visibility audit remain separate roadmap items.
+Fixed-size tagged records support static primitive calls and record extensions:
+
+```ada
+type Root is tagged record
+    X : Integer := 0;
+end record;
+type Child is new Root with record
+    Y : Integer := 1;
+end record;
+
+Item : Child := (Root with Y => 2);
+-- Root (Item) is a view of Item's parent part, usable as an in out actual.
+```
+
+`tagged null record`, `with null record`, and tagged private types with tagged
+record completions are supported. Extension aggregates accept an ancestor
+expression or subtype mark, followed by positional or named extension
+components (or `null record`). A subtype mark initializes its ancestor fields
+from their defaults. Qualified aggregates use the usual `Root'(X => 3)` syntax.
+
+Each tagged object begins with a tag pointer. Its descriptor contains the
+parent tag, object size, and alignment; extension fields follow the complete,
+aligned parent layout. Ancestor conversions preserve the original object and
+tag. Assignment through an ancestor view changes only the parent part, while
+new objects and function results receive their own specific type's tag.
+Predefined extension equality combines the parent's primitive equality with
+comparison of the extension fields. Inherited functions returning a non-null
+extension require overriding; null extensions can inherit those functions.
+
+This stage excludes discriminated tagged records, private extensions and
+extensions of private views, abstract/limited tagged definitions, downward
+conversions, tagged size clauses, and `'Access` of inherited tagged operations.
+Class-wide types, dispatching, the public tag API, and a full language visibility
+audit remain separate roadmap items.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

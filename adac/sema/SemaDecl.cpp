@@ -94,6 +94,9 @@ int objectView(Expr* expr)
         }
     } else if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
+        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
+            return objectView(call->resolvedArguments.front());
+        }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
             return prefix != nullptr && prefix->kind == TypeKind::Access ? 2 : objectView(call->callee.get());

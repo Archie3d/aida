@@ -268,6 +268,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     auto* savedRecord = m_recordContract;
     auto* savedReplay = m_replayContract;
     auto savedNames = m_subprogramNames;
+    auto savedTagNames = m_tagNames;
     auto savedExceptions = m_unitExceptions;
     m_recordContract = contract;
     m_replayContract = nullptr;
@@ -352,6 +353,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     m_recordContract = savedRecord;
     m_replayContract = savedReplay;
     m_subprogramNames = std::move(savedNames);
+    m_tagNames = std::move(savedTagNames);
     m_unitExceptions = std::move(savedExceptions);
 }
 

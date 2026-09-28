@@ -228,7 +228,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             arrayConversion = arrayConversion && targetAxis == sourceAxis;
         }
-        if (!numeric && !arrayConversion && !typesCompatible(expr->type, operand->type)) {
+        bool ancestorView = isTaggedAncestor(expr->type, operand->type)
+            && (rootType(expr->type) == rootType(operand->type) || representationVisible(operand->type));
+        if (!numeric && !arrayConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {

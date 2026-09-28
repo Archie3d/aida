@@ -240,6 +240,17 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
     std::size_t saved = m_position;
     expect(TokenKind::LeftParen, "in expression");
 
+    ExprPtr ancestor;
+    bool nullRecord = check(TokenKind::KwNull) && peek(1).kind == TokenKind::KwRecord;
+    if (nullRecord) {
+        advance();
+        expect(TokenKind::KwRecord, "in null record aggregate");
+        expect(TokenKind::RightParen, "after null record aggregate");
+        auto aggregate = std::make_unique<AggregateExpr>();
+        aggregate->location = location;
+        aggregate->m_nullRecord = true;
+        return aggregate;
+    }
     if (!check(TokenKind::KwOthers)) {
         std::size_t afterParen = m_position;
         bool parenthesized = false;
@@ -254,14 +265,27 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
             advance();
             return parseNameSuffixes(std::move(inner));
         }
-        m_position = afterParen;
+        if (match(TokenKind::KwWith)) {
+            ancestor = std::move(inner);
+        } else {
+            m_position = afterParen;
+        }
     }
 
-    m_position = saved;
-    expect(TokenKind::LeftParen, "in aggregate");
+    if (ancestor == nullptr) {
+        m_position = saved;
+        expect(TokenKind::LeftParen, "in aggregate");
+    }
 
     auto aggregate = std::make_unique<AggregateExpr>();
     aggregate->location = location;
+    aggregate->m_ancestor = std::move(ancestor);
+    if (aggregate->m_ancestor != nullptr && match(TokenKind::KwNull)) {
+        expect(TokenKind::KwRecord, "in extension aggregate");
+        expect(TokenKind::RightParen, "after extension aggregate");
+        aggregate->m_nullRecord = true;
+        return aggregate;
+    }
 
     while (true) {
         AggregateComponent component;

@@ -115,6 +115,16 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         while (chosen->m_renamedSubprogram != nullptr) {
             chosen = chosen->m_renamedSubprogram;
         }
+        if (chosen->m_inheritedFrom != nullptr) {
+            bool tagged = chosen->returnType != nullptr && chosen->returnType->m_tagged;
+            for (Symbol* parameter : chosen->parameters) {
+                tagged = tagged || parameter->type->m_tagged;
+            }
+            if (tagged) {
+                m_diagnostics.error(expr->location, "'Access of inherited tagged subprograms is not yet supported");
+                return nullptr;
+            }
+        }
         if (chosen->m_intrinsicRenaming || chosen->m_inheritedFrom != nullptr) {
             m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
             return nullptr;

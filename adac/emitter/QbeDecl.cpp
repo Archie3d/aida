@@ -3,10 +3,26 @@
 
 using QbeSupport::isUnconstrainedArray;
 
+void QbeEmitter::emitTypeTag(Type* type)
+{
+    if (type == nullptr || !type->m_tagged || m_emittedTags.contains(type)) {
+        return;
+    }
+    m_emittedTags[type] = true;
+    // Stable descriptor prefix: parent tag, object size, and alignment.
+    // Dispatch slots can be appended without changing the object layout.
+    m_data << "export data " << type->m_tagName << " = align 8 { l "
+           << (type->m_parentType == nullptr ? "0" : type->m_parentType->m_tagName)
+           << ", l " << typeSize(type) << ", l " << typeAlignment(type) << " }\n";
+}
+
 void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
+        case DeclKind::Type:
+            emitTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
+            break;
         case DeclKind::SubprogramDeclaration:
             collectGlobals(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
             break;
@@ -141,6 +157,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
+            emitTypeTag(typeDecl->declaredType);
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }
@@ -172,6 +189,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     size = 1;
                 }
                 if (symbol->isUplevel) {
+                    long long alignment = typeAlignment(symbol->type);
+                    m_context->frameSize = (m_context->frameSize + alignment - 1) / alignment * alignment;
                     symbol->frameOffset = m_context->frameSize;
                     m_context->frameSize += size;
                 } else {
@@ -303,7 +322,7 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
         checkArrayShape(target, type, source, initializer->type);
         copyInto(target, source, type);
     } else {
-        assignInto(address, type, initializer);
+        assignInto(address, type, initializer, true);
     }
 }
 

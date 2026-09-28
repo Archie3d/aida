@@ -229,6 +229,7 @@ private:
     std::vector<LoopStmt*> m_loops;
     std::vector<std::string> m_namePrefix;
     std::unordered_map<std::string, std::size_t> m_subprogramNames;
+    std::unordered_map<std::string, std::size_t> m_tagNames;
     int m_anonymousCounter = 0;
     int m_instantiationDepth = 0;
 };

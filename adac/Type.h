@@ -77,6 +77,10 @@ public:
     bool isSubtype = false;
     // Derivation ancestry and primitive declarations are independent of layout.
     Type* m_parentType = nullptr;
+    // Tagged records reserve the leading pointer and retain a parent prefix.
+    bool m_tagged = false;
+    int m_parentFieldCount = 0;
+    std::string m_tagName;
     Scope* m_declarationScope = nullptr;
     std::vector<Symbol*> m_primitives;
     Type* m_scalarBase = nullptr;
@@ -183,6 +187,7 @@ bool discriminantValueOf(const Type* type, int index, long long& value);
 // The type that carries the value representation (skips subtypes only).
 Type* baseType(Type* type);
 
+bool isTaggedAncestor(Type* ancestor, Type* type);
 bool isDiscrete(const Type* type);
 bool isReal(const Type* type);
 bool isNumeric(const Type* type);

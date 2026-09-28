@@ -57,7 +57,7 @@ Primary code: `adac/sema/SemaCalls.cpp`, `adac/sema/SemaNames.cpp`,
   Boolean equality declares complementary inequality; validate operator arity,
   modes, defaults, designators, and closing names. Covered by `operators.adb`,
   `operatorprofiles.adb`, `operatorunits.adb`, and the operator rejection tests.
-  General derived-type inheritance and `use type` remain separate work.
+  Derived primitive inheritance and `use type` are covered in section 5.
 - [ ] **Audit** visibility, `use` clauses, homographs, duplicate declarations, and
   specification/body conformance. Validate parameter modes, names, defaults, and
   return profiles where applicable; do not defer missing bodies to linker errors.
@@ -377,8 +377,10 @@ changes on an unconstrained object, and nested alternatives.
   dynamic subtype bounds, remaining attributes, and streaming.
 - [ ] Decimal fixed-point types (`delta` and `digits`), with decimal scaling,
   rounding, and checks.
-- [ ] Complete derived-type behavior, including inherited primitive operations and
-  explicit conversions, rather than merely copying representation metadata.
+- [x] Inherit user-defined primitive operations for derived types, preserving
+  distinct type identity, substituted profiles, and static overriding (section 5).
+- [ ] Audit remaining derived-type legality and conversion rules beyond the
+  supported explicit conversions and tagged ancestor views.
 - [ ] General access types, `aliased` objects, `'Access`, access-to-constant, and
   accessibility checks. Existing named access types and allocators are a starting point.
 - [ ] Access-to-subprogram types and indirect calls. Nested subprogram values need
@@ -442,22 +444,61 @@ happens to work for one instantiation.
 
 ## 5. Tagged records and object-oriented features
 
-This expands the original “Tagged records” item; a tag field alone is insufficient.
+Stages 1 and 2 provide primitive inheritance and static tagged records. Dynamic
+dispatch and object finalization remain later stages.
 
-- [ ] Tagged type declarations, primitive operations, and record extensions.
-- [ ] Inheritance and overriding, with profile and visibility checks.
-- [ ] Class-wide types, tag checks, conversions, and dispatch tables/calls.
+- [x] Stage 1: collect user-defined primitives declared in the type's package
+  specification and inherit visible operations into derived types. Substitute
+  parameter/result types while preserving constraints, names, and defaults;
+  forward calls to the parent implementation and support further derivation.
+- [x] Static overriding and checked `overriding`/`not overriding` indicators,
+  including bodies, renamings, and private completions. Support `use type` for
+  primitive operators and `use all type` for named primitives and enumeration
+  literals, including subtype marks and private-operation visibility.
+  Covered by `primitives.adb`, `primitivevisibility.adb`, `primitivechecks.adb`,
+  `primitiveerrors.adb`, and `primitiveseparate.adb`.
+- [x] Stage 2: fixed-size, nondiscriminated tagged records, `tagged null record`,
+  `with record`/`with null record` extensions, and tagged private types with
+  tagged record completions. Put the tag pointer at offset zero and append
+  extension fields after the complete aligned parent layout. Emit descriptors
+  containing parent tag, size, and alignment, with stable separate-unit identity
+  and distinct generic-instance identity.
+- [x] Ancestor conversions as views, including renaming and variable actuals;
+  assignment through an ancestor view updates only the parent payload, preserving
+  the tag and extension fields. Establish specific tags for new objects,
+  allocators, nested components, arrays, and function results.
+- [x] Extension aggregates with an ancestor expression or subtype mark, ancestor
+  defaults, positional/named extension fields, and `null record`. Predefined
+  extension equality uses the parent's primitive equality. Require overriding
+  inherited controlling-result functions for non-null extensions; support
+  inherited constructors for null extensions.
+  Covered by `taggedrecords.adb`, `taggedequality.adb`, `taggederrors.adb`, and
+  `taggedlayout.adb`, including C layout checks, separate compilation, and
+  determinism. The complete suite passed all 251 tests after stage 2.
+- [ ] Stage 3: class-wide types (`T'Class`), dispatch slots/tables and indirect
+  calls, downward conversions with tag checks, and the public tag API. Current
+  descriptors carry layout metadata only; downward conversions are rejected.
+- [ ] Extend tagged support to discriminants, private extensions and extensions
+  of private views, limited definitions, and inherited tagged subprogram
+  `'Access`. Tagged size clauses are currently rejected. Complete the wider
+  primitive visibility and legality audit.
 - [ ] Abstract types and operations; interfaces as a later extension.
-- [ ] Controlled types and initialization/adjustment/finalization. First establish
-  cleanup on normal return, scope exit, exceptions, and deallocation.
+- [ ] Stage 4: controlled types and `Initialize`/`Adjust`/`Finalize`. Build on
+  existing storage cleanup at scope/block exit and exception unwinding, adding
+  object finalization order, copy/adjust semantics, temporary cleanup, and
+  finalization on return and deallocation.
 
-Tests: inherited operations, overridden dispatch through a class-wide value,
-invalid downcasts, abstract-operation rejection, and cleanup during exception propagation.
+Remaining acceptance tests: overridden dispatch through a class-wide value,
+valid/invalid downcasts, abstract-operation rejection, controlled copies and
+returns, and finalization during exception propagation and deallocation.
 
 ## 6. Larger runtime and library extensions
 
 These are later projects with substantial runtime requirements.
 
+- [ ] Stage 5, after controlled lifetime support: implement `Ada.Strings.Unbounded`
+  in Ada, followed by a basic `Ada.Containers.Vectors`. Cover copying, growth,
+  element lifetime, bounds, and exception cleanup.
 - [ ] Task types/objects, activation, entries, rendezvous, and termination.
 - [ ] Protected objects, protected procedures/functions/entries, and synchronization.
 - [ ] Delay/select/abort semantics and task-local exception state. The current

@@ -133,11 +133,21 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(expected);
         }
         break;
-    case ExprKind::Aggregate:
+    case ExprKind::Aggregate: {
+        auto* aggregate = static_cast<AggregateExpr*>(expr);
         if (expected != nullptr && (expected->kind == TypeKind::Array || expected->kind == TypeKind::Record)) {
-            add(expected);
+            if (aggregate->m_ancestor != nullptr) {
+                for (Type* ancestor : expressionTypes(aggregate->m_ancestor.get(), scope)) {
+                    if (isTaggedAncestor(ancestor, expected) && rootType(ancestor) != rootType(expected)) {
+                        add(expected);
+                    }
+                }
+            } else if (!expected->m_tagged || rootType(expected)->m_parentType == nullptr) {
+                add(expected);
+            }
         }
         break;
+    }
     case ExprKind::Allocator: {
         auto* allocator = static_cast<AllocatorExpr*>(expr);
         Symbol* designated = lookupName(allocator->subtype->lower, scope);

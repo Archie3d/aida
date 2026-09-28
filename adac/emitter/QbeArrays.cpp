@@ -172,7 +172,7 @@ void QbeEmitter::emitArrayFill(const Value& address, Type* type, Expr* value)
     cell.name = element;
     auto elementStorage = storageCheckpoint();
     if (value != nullptr) {
-        assignInto(cell, type->element, value);
+        assignInto(cell, type->element, value, true);
     } else {
         emitDefaultInit(cell, type->element);
     }
