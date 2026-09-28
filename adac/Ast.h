@@ -405,6 +405,8 @@ struct ParameterDecl
 
 struct SubprogramSpec
 {
+    // 0: omitted, 1: overriding, -1: not overriding.
+    int m_overriding = 0;
     bool isFunction = false;
     std::string name;
     std::string lower;
@@ -813,6 +815,8 @@ struct PackageBodyDecl : Decl
 
 struct UseDecl : Decl
 {
+    bool m_typeOnly = false;
+    bool m_all = false;
     UseDecl()
         : Decl(DeclKind::Use)
     {

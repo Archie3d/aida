@@ -11,6 +11,15 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
+    if (subprogram->m_inheritedFrom != nullptr) {
+        CallExpr inherited;
+        inherited.location = expr->location;
+        inherited.form = CallForm::Subprogram;
+        inherited.subprogram = subprogram->m_inheritedFrom;
+        inherited.type = expr->type;
+        inherited.resolvedArguments = expr->resolvedArguments;
+        return emitCall(&inherited);
+    }
     if (subprogram->m_negatedEquality != nullptr) {
         CallExpr equality;
         equality.location = expr->location;

@@ -1,8 +1,20 @@
 #include "Scope.h"
 
+#include <algorithm>
+
 void Scope::add(Symbol* symbol)
 {
     m_symbols[symbol->name].push_back(symbol);
+}
+
+void Scope::remove(Symbol* symbol)
+{
+    std::erase(m_symbols[symbol->name], symbol);
+}
+
+void Scope::addUseType(Type* type, bool all)
+{
+    m_useTypes.push_back({ rootType(type), all });
 }
 
 void Scope::addUseScope(Scope* scope)
@@ -22,6 +34,23 @@ std::vector<Symbol*> Scope::lookupLocal(const std::string& name) const
         return {};
     }
     return it->second;
+}
+
+std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Scope* from) const
+{
+    auto symbols = lookupLocal(name);
+    std::erase_if(symbols, [&](Symbol* symbol) {
+        if (symbol->m_privatePrimitiveTo == nullptr) {
+            return false;
+        }
+        for (const Scope* enclosing = from; enclosing != nullptr; enclosing = enclosing->m_parent) {
+            if (enclosing == symbol->m_privatePrimitiveTo->scope) {
+                return false;
+            }
+        }
+        return true;
+    });
+    return symbols;
 }
 
 namespace {
@@ -63,18 +92,37 @@ std::vector<Symbol*> Scope::lookup(const std::string& name) const
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
         std::vector<Symbol*> level = scope->lookupLocal(name);
         std::size_t localCount = level.size();
+        std::vector<Symbol*> imported;
         for (const Scope* used : scope->m_useScopes) {
-            for (Symbol* symbol : used->lookupLocal(name)) {
-                bool hidden = false;
-                for (std::size_t i = 0; i < localCount; ++i) {
-                    if (!isOverloadable(level[i]) || sameProfile(level[i], symbol)) {
-                        hidden = true;
-                        break;
-                    }
+            auto symbols = used->lookupVisibleLocal(name, this);
+            imported.insert(imported.end(), symbols.begin(), symbols.end());
+        }
+        for (const auto& [type, all] : scope->m_useTypes) {
+            for (Symbol* symbol : type->m_primitives) {
+                if (symbol->name == name && (all || !operatorSymbol(name).empty())) {
+                    imported.push_back(symbol);
                 }
-                if (!hidden) {
-                    level.push_back(symbol);
+            }
+        }
+        for (Symbol* symbol : imported) {
+            if (symbol->m_privatePrimitiveTo != nullptr) {
+                bool visible = false;
+                for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
+                    visible = visible || enclosing == symbol->m_privatePrimitiveTo->scope;
                 }
+                if (!visible) {
+                    continue;
+                }
+            }
+            bool hidden = false;
+            for (std::size_t i = 0; i < localCount; ++i) {
+                if (!isOverloadable(level[i]) || sameProfile(level[i], symbol)) {
+                    hidden = true;
+                    break;
+                }
+            }
+            if (!hidden) {
+                level.push_back(symbol);
             }
         }
 

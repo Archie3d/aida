@@ -55,6 +55,7 @@ enum class TokenKind
     KwOr,
     KwOthers,
     KwOut,
+    KwOverriding,
     KwPackage,
     KwPragma,
     KwPrivate,

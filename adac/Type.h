@@ -72,9 +72,13 @@ public:
     TypeKind kind;
     std::string name;
 
-    // A subtype or derived type points at the type it was built from.
+    // Subtypes share identity through base. Derivation keeps a distinct identity.
     Type* base = nullptr;
     bool isSubtype = false;
+    // Derivation ancestry and primitive declarations are independent of layout.
+    Type* m_parentType = nullptr;
+    Scope* m_declarationScope = nullptr;
+    std::vector<Symbol*> m_primitives;
     Type* m_scalarBase = nullptr;
 
     // Named but not yet described.  'type Node;' declares one so that an access
@@ -165,7 +169,7 @@ public:
 // True when an object of this type, or one holding it, must be cleared.
 bool needsZeroInit(const Type* type);
 
-// The root of a subtype or derived type chain.
+// The type identity at the root of a subtype chain.
 Type* rootType(Type* type);
 
 // Which alternative of a variant part a discriminant value picks, or -1 when

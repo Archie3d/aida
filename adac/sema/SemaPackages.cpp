@@ -55,10 +55,34 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     // What a private type is made of is in reach from here down to the end of
     // the private part, and from the body, but nowhere else.
     m_packages.push_back(symbol);
+    Scope* savedSpecScope = m_packageSpecScope;
+    bool savedVisiblePart = m_inVisiblePart;
+    m_packageSpecScope = symbol->scope;
     m_inVisiblePart = true;
     analyzeDeclarativePart(decl->publicPart, symbol->scope, false);
     m_inVisiblePart = false;
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
+    // A private type can acquire inherited operations only at its completion.
+    // Check indicators on its earlier declarations once that ancestry is known.
+    for (DeclList* part : { &decl->publicPart, &decl->privatePart }) {
+        for (const DeclPtr& item : *part) {
+            if (item->kind != DeclKind::SubprogramDeclaration) {
+                continue;
+            }
+            Symbol* operation = static_cast<SubprogramDecl*>(item.get())->symbol;
+            if (operation == nullptr) {
+                continue;
+            }
+            if (operation->m_pendingOverride == 1 && !operation->m_overrides) {
+                m_diagnostics.error(operation->location, "subprogram marked overriding does not override an inherited operation");
+            } else if (operation->m_pendingOverride == -1 && operation->m_overrides) {
+                m_diagnostics.error(operation->location, "subprogram marked not overriding overrides an inherited operation");
+            }
+            operation->m_pendingOverride = 0;
+        }
+    }
+    m_packageSpecScope = savedSpecScope;
+    m_inVisiblePart = savedVisiblePart;
     m_packages.pop_back();
 
     reportIncompleteTypes(decl->publicPart);
@@ -119,6 +143,13 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
 void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
 {
     for (std::size_t i = 0; i < decl.namesLower.size(); ++i) {
+        if (decl.m_typeOnly) {
+            Type* type = resolveTypeName(decl.namesLower[i], scope, decl.location);
+            if (type != nullptr) {
+                scope->addUseType(type, decl.m_all);
+            }
+            continue;
+        }
         Symbol* symbol = lookupName(decl.namesLower[i], scope);
         if (symbol == nullptr) {
             m_diagnostics.error(decl.location, "unknown package '" + decl.names[i] + "' in use clause");

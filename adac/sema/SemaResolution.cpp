@@ -26,7 +26,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
         auto* selected = static_cast<SelectedExpr*>(expr);
         for (Symbol* prefix : expressionNames(selected->prefix.get(), scope)) {
             if (prefix->kind == SymbolKind::Package && prefix->scope != nullptr) {
-                return contractNames(expr, prefix->scope->lookupLocal(selected->selectorLower));
+                return contractNames(expr, prefix->scope->lookupVisibleLocal(selected->selectorLower, scope));
             }
         }
     }

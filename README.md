@@ -563,9 +563,27 @@ exception propagation, and are not folded as predefined arithmetic.
 A Boolean-valued `"="` implicitly declares the complementary `"/="`; explicitly
 declaring a Boolean-valued `"/="` is rejected. Comparison operators may also have
 non-Boolean result types, selected by context. `and then` and `or else` retain
-short-circuit evaluation and cannot be overloaded. General derived-type
-inheritance, `use type`, and the remaining visibility audits are still separate
-roadmap items.
+short-circuit evaluation and cannot be overloaded.
+
+Untagged derived types inherit user-defined primitive subprograms declared in
+the same package specification as their parent type and visible at the point
+of derivation. Parameter and result types are substituted while preserving
+profile constraints, parameter names, and defaults. Inherited calls use the
+parent implementation, including its checks, exception propagation, and
+captured variables. Further derivation inherits the current overridden
+operations; the derived type remains distinct from its parent for overload
+resolution and assignment.
+
+An explicit homograph overrides an inherited operation. Optional `overriding`
+and `not overriding` indicators are checked, including on bodies and renamings.
+`use type P.T` makes primitive operators use-visible; `use all type P.T` also
+makes named primitive subprograms and enumeration literals use-visible. Both
+accept subtype marks and preserve overload hiding and private-operation
+visibility. Inherited untagged operations are intrinsic and cannot be used
+with subprogram `'Access`.
+
+Tagged records, record extensions, class-wide types, dispatching, and a full
+language visibility audit remain separate roadmap items.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

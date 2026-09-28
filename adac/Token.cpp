@@ -49,6 +49,7 @@ const char* tokenKindName(TokenKind kind)
     case TokenKind::KwOr: return "or";
     case TokenKind::KwOthers: return "others";
     case TokenKind::KwOut: return "out";
+    case TokenKind::KwOverriding: return "overriding";
     case TokenKind::KwPackage: return "package";
     case TokenKind::KwPragma: return "pragma";
     case TokenKind::KwPrivate: return "private";

@@ -214,9 +214,12 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
     if (!m_replayContract->m_localSymbols.contains(symbol)) {
         return symbol;
     }
+    // Implicit inherited overloads share the derived declaration's location.
+    // Their originating operation distinguishes them during contract replay.
+    Symbol* origin = symbol->m_inheritedFrom != nullptr ? instanceSymbol(symbol->m_inheritedFrom) : nullptr;
     for (std::size_t i = symbols.size(); i > m_instanceFirstSymbol; --i) {
         Symbol* candidate = symbols[i - 1].get();
-        if (candidate->kind == symbol->kind
+        if (candidate->kind == symbol->kind && candidate->m_inheritedFrom == origin
             && (candidate->name == symbol->name || (symbol->name == m_replayContract->m_unitName
                 && (symbol->kind == SymbolKind::Subprogram || symbol->kind == SymbolKind::Package)))
             && contractKey(candidate->location) == contractKey(symbol->location)) {

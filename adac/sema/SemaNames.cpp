@@ -25,7 +25,7 @@ Symbol* Sema::lookupName(const std::string& lower, Scope* scope)
         if (symbol->scope == nullptr) {
             return nullptr;
         }
-        std::vector<Symbol*> nested = symbol->scope->lookupLocal(names[i]);
+        std::vector<Symbol*> nested = symbol->scope->lookupVisibleLocal(names[i], scope);
         if (nested.empty()) {
             return nullptr;
         }
@@ -210,7 +210,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     }
 
     if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
-        std::vector<Symbol*> candidates = contractNames(expr, prefixSymbol->scope->lookupLocal(expr->selectorLower));
+        std::vector<Symbol*> candidates = contractNames(expr, prefixSymbol->scope->lookupVisibleLocal(expr->selectorLower, scope));
         if (candidates.empty()) {
             m_diagnostics.error(expr->location, "'" + expr->selector + "' is not declared in '"
                                                     + prefixSymbol->displayName + "'");

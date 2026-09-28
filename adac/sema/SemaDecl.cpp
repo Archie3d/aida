@@ -289,6 +289,62 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             m_diagnostics.error(spec.location, "a Boolean '/=' is implicitly declared by '=' and cannot be declared explicitly");
         }
     }
+    bool overrides = false;
+    for (Symbol* candidate : scope->lookupLocal(spec.lower)) {
+        if (candidate->kind != SymbolKind::Subprogram || candidate->parameters.size() != parameterTypes.size()
+            || rootType(candidate->returnType) != rootType(returnType)) {
+            continue;
+        }
+        bool matches = true;
+        for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
+            matches = matches && rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i]);
+        }
+        if (matches && (candidate->m_inheritedFrom != nullptr || (isBody && candidate->m_overrides))) {
+            overrides = true;
+            for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
+                if (candidate->parameters[i]->mode != spec.parameters[i].mode) {
+                    m_diagnostics.error(spec.location, "overriding parameters must have the inherited modes");
+                }
+            }
+        }
+    }
+    if (!overrides && !operatorSymbol(spec.lower).empty() && spec.isFunction) {
+        Scope* probes = m_symbolTable.createScope(scope);
+        std::vector<ExprPtr> expressions;
+        std::vector<Expr*> operands;
+        for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
+            std::string name = "$primitive_operand_" + std::to_string(i);
+            Symbol* probe = m_symbolTable.createSymbol(SymbolKind::Object, name, name);
+            probe->type = parameterTypes[i];
+            probes->add(probe);
+            auto operand = std::make_unique<IdentifierExpr>();
+            operand->name = operand->lower = name;
+            operands.push_back(operand.get());
+            expressions.push_back(std::move(operand));
+        }
+        for (const OperatorCandidate& candidate : operatorCandidates(spec.lower, operands, probes, returnType)) {
+            bool matches = candidate.symbol == nullptr && rootType(candidate.result) == rootType(returnType)
+                && candidate.parameters.size() == parameterTypes.size();
+            for (std::size_t i = 0; matches && i < parameterTypes.size(); ++i) {
+                matches = rootType(candidate.parameters[i]) == rootType(parameterTypes[i])
+                    && spec.parameters[i].mode == ParameterMode::In;
+            }
+            overrides = overrides || matches;
+        }
+    }
+    auto incompletePrivate = [](Type* type) {
+        type = rootType(type);
+        return type != nullptr && type->isIncomplete && type->privateTo != nullptr;
+    };
+    bool pendingOverride = incompletePrivate(returnType);
+    for (Type* parameter : parameterTypes) {
+        pendingOverride = pendingOverride || incompletePrivate(parameter);
+    }
+    if (!pendingOverride && spec.m_overriding == 1 && !overrides) {
+        m_diagnostics.error(spec.location, "subprogram marked overriding does not override an inherited operation");
+    } else if (!pendingOverride && spec.m_overriding == -1 && overrides) {
+        m_diagnostics.error(spec.location, "subprogram marked not overriding overrides an inherited operation");
+    }
     Symbol* contractDeclaration = nullptr;
     if (m_replayContract != nullptr) {
         auto found = m_replayContract->m_subprograms.find(contractKey(spec.location));
@@ -336,6 +392,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->location = spec.location;
     symbol->returnType = returnType;
     symbol->hasBody = isBody;
+    symbol->m_overrides = overrides;
+    symbol->m_pendingOverride = pendingOverride ? spec.m_overriding : 0;
     symbol->m_declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
@@ -385,16 +443,19 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
 
     scope->add(symbol);
+    registerPrimitive(symbol, scope);
     if (spec.lower == "=" && m_types.isBoolean(returnType)) {
         Symbol* complement = m_symbolTable.createSymbol(SymbolKind::Subprogram, "/=", "/=");
         complement->parameters = symbol->parameters;
         complement->returnType = returnType;
         complement->m_negatedEquality = symbol;
+        complement->m_overrides = symbol->m_overrides;
         complement->hasBody = true;
         complement->location = symbol->location;
         complement->owner = symbol->owner;
         complement->level = symbol->level;
         scope->add(complement);
+        registerPrimitive(complement, scope);
     }
     if (m_recordContract != nullptr) {
         m_recordContract->m_subprograms[contractKey(spec.location)] = symbol;

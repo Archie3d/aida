@@ -148,7 +148,8 @@ DeclPtr Parser::parseLibraryUnit()
     if (check(TokenKind::KwGeneric)) {
         return parseGenericDeclaration();
     }
-    if (check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)) {
+    if (check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)
+        || check(TokenKind::KwOverriding) || check(TokenKind::KwNot)) {
         return parseSubprogramDeclOrBody();
     }
     if (check(TokenKind::KwPackage)) {

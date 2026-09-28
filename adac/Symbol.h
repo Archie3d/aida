@@ -68,6 +68,11 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    // An inherited untagged operation uses its own profile and the parent body.
+    Symbol* m_inheritedFrom = nullptr;
+    Symbol* m_privatePrimitiveTo = nullptr;
+    bool m_overrides = false;
+    int m_pendingOverride = 0;
     Symbol* m_renamedSubprogram = nullptr;
     Symbol* m_renamedAccess = nullptr;
     bool m_intrinsicRenaming = false;

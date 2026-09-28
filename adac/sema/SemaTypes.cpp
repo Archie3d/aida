@@ -28,6 +28,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         Type* placeholder = m_types.create(TypeKind::Record, decl->name);
         placeholder->isIncomplete = true;
+        placeholder->m_declarationScope = scope;
         decl->declaredType = placeholder;
 
         Symbol* named = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
@@ -57,7 +58,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = completing->name;
         Symbol* privateTo = completing->privateTo;
         bool isLimited = completing->isLimited;
+        auto primitives = std::move(completing->m_primitives);
         *completing = Type(kind, name);
+        completing->m_primitives = std::move(primitives);
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
         return completing;
@@ -78,7 +81,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             literal->location = definition->location;
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
+            if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
+                literal->m_privatePrimitiveTo = m_packages.back();
+            }
             scope->add(literal);
+            type->m_primitives.push_back(literal);
         }
         break;
     }
@@ -289,8 +296,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         // type this declaration ends up being.
         type = makeType(parent->kind);
         std::string name = type->name;
+        auto primitives = std::move(type->m_primitives);
+        Symbol* privateTo = type->privateTo;
+        bool isLimited = type->isLimited;
         *type = *built;
+        if (completing != nullptr) {
+            type->privateTo = privateTo;
+            type->isLimited = isLimited;
+        }
+        type->m_primitives = std::move(primitives);
+        type->m_parentType = rootType(parent);
         type->name = name;
+        inheritPrimitives(type, parent, scope, decl->location);
 
         for (std::size_t i = 0; i < parent->literals.size(); ++i) {
             Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, parent->literals[i],
@@ -298,7 +315,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             literal->location = definition->location;
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
+            if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
+                literal->m_privatePrimitiveTo = m_packages.back();
+            }
             scope->add(literal);
+            type->m_primitives.push_back(literal);
         }
         break;
     }
@@ -349,6 +370,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
+    type->m_declarationScope = scope;
     decl->declaredType = type;
     Symbol* symbol = nullptr;
     if (completing != nullptr) {
@@ -932,4 +954,113 @@ ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& loca
     attribute->type = type;
     attribute->name = attribute->lower = first ? "first" : "last";
     return attribute;
+}
+
+// Primitive profiles belong to the declaration of a type, not to its layout.
+// A subtype shares that identity; a derivation receives new callable views.
+void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
+{
+    std::vector<Type*> types;
+    auto consider = [&](Type* type) {
+        type = rootType(type);
+        if (type != nullptr && type->m_declarationScope == scope
+            && std::find(types.begin(), types.end(), type) == types.end()) {
+            types.push_back(type);
+        }
+    };
+    consider(symbol->returnType);
+    for (Symbol* parameter : symbol->parameters) {
+        consider(parameter->type);
+    }
+    if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
+        symbol->m_privatePrimitiveTo = m_packages.back();
+    }
+    for (Type* type : types) {
+        bool replaced = false;
+        for (Symbol*& primitive : type->m_primitives) {
+            if (primitive->name != symbol->name || primitive->m_inheritedFrom == nullptr
+                || primitive->parameters.size() != symbol->parameters.size()
+                || rootType(primitive->returnType) != rootType(symbol->returnType)) {
+                continue;
+            }
+            bool matches = true;
+            for (std::size_t i = 0; i < symbol->parameters.size(); ++i) {
+                matches = matches && rootType(primitive->parameters[i]->type) == rootType(symbol->parameters[i]->type);
+            }
+            if (matches) {
+                scope->remove(primitive);
+                primitive = symbol;
+                replaced = true;
+            }
+        }
+        if (!replaced && (scope == m_packageSpecScope || symbol->m_overrides)) {
+            type->m_primitives.push_back(symbol);
+        }
+    }
+}
+
+void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const SourceLocation& location)
+{
+    // Constraints in the parent's profile survive derivation. In particular,
+    // deriving from a constrained subtype does not narrow every inherited formal.
+    auto corresponding = [&](Type* original) -> Type* {
+        if (original == nullptr || rootType(original) != rootType(parent)) {
+            return original;
+        }
+        Type* subtype = m_types.create(original->kind, type->name);
+        *subtype = *original;
+        subtype->base = type;
+        subtype->isSubtype = true;
+        subtype->m_primitives.clear();
+        return subtype;
+    };
+    for (Symbol* primitive : rootType(parent)->m_primitives) {
+        if (primitive->kind != SymbolKind::Subprogram
+            || (primitive->m_privatePrimitiveTo != nullptr && !withinPackage(primitive->m_privatePrimitiveTo))) {
+            continue;
+        }
+        Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);
+        inherited->location = location;
+        inherited->m_inheritedFrom = primitive;
+        inherited->m_declarationScope = scope;
+        inherited->returnType = corresponding(primitive->returnType);
+        inherited->hasBody = true;
+        inherited->level = primitive->level;
+        inherited->owner = primitive->owner;
+        if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
+            inherited->m_privatePrimitiveTo = m_packages.back();
+        }
+        for (Symbol* parameter : primitive->parameters) {
+            Symbol* copy = m_symbolTable.createSymbol(SymbolKind::Parameter, parameter->name, parameter->displayName);
+            *copy = *parameter;
+            copy->type = corresponding(parameter->type);
+            copy->owner = inherited;
+            inherited->parameters.push_back(copy);
+        }
+        bool overridden = false;
+        for (Symbol* declared : type->m_primitives) {
+            if (declared->kind != SymbolKind::Subprogram || declared->name != inherited->name
+                || rootType(declared->returnType) != rootType(inherited->returnType)
+                || declared->parameters.size() != inherited->parameters.size()) {
+                continue;
+            }
+            bool matches = true;
+            for (std::size_t i = 0; i < declared->parameters.size(); ++i) {
+                matches = matches && rootType(declared->parameters[i]->type) == rootType(inherited->parameters[i]->type);
+            }
+            if (matches) {
+                for (std::size_t i = 0; i < declared->parameters.size(); ++i) {
+                    if (declared->parameters[i]->mode != inherited->parameters[i]->mode) {
+                        m_diagnostics.error(declared->location, "overriding parameters must have the inherited modes");
+                    }
+                }
+                declared->m_overrides = true;
+                overridden = true;
+            }
+        }
+        if (!overridden) {
+            type->m_primitives.push_back(inherited);
+            scope->add(inherited);
+        }
+    }
 }

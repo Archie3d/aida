@@ -115,7 +115,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         while (chosen->m_renamedSubprogram != nullptr) {
             chosen = chosen->m_renamedSubprogram;
         }
-        if (chosen->m_intrinsicRenaming) {
+        if (chosen->m_intrinsicRenaming || chosen->m_inheritedFrom != nullptr) {
             m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
             return nullptr;
         }

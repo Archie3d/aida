@@ -6,6 +6,12 @@ SubprogramSpec Parser::parseSubprogramSpec(bool allowInstantiation)
 {
     SubprogramSpec spec;
     spec.location = current().location;
+    if (match(TokenKind::KwNot)) {
+        expect(TokenKind::KwOverriding, "after not");
+        spec.m_overriding = -1;
+    } else if (match(TokenKind::KwOverriding)) {
+        spec.m_overriding = 1;
+    }
     if (match(TokenKind::KwFunction)) {
         spec.isFunction = true;
     } else {

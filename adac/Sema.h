@@ -39,6 +39,8 @@ private:
     void analyzeDecl(Decl* decl, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
+    void registerPrimitive(Symbol* symbol, Scope* scope);
+    void inheritPrimitives(Type* type, Type* parent, Scope* scope, const SourceLocation& location);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false);
     void analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope);
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
@@ -213,6 +215,7 @@ private:
     // Set while the visible part of a package specification is being analysed,
     // which is the only place a constant may be named without a value.
     bool m_inVisiblePart = false;
+    Scope* m_packageSpecScope = nullptr;
     Type* m_textFileType = nullptr;
     Type* m_fieldType = nullptr;
     Type* m_numberBaseType = nullptr;

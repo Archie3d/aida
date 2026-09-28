@@ -39,6 +39,8 @@ DeclPtr Parser::parseDeclarativeItem()
         return parseTypeDecl();
     case TokenKind::KwSubtype:
         return parseSubtypeDecl();
+    case TokenKind::KwOverriding:
+    case TokenKind::KwNot:
     case TokenKind::KwProcedure:
     case TokenKind::KwFunction:
         return parseSubprogramDeclOrBody();
@@ -114,7 +116,11 @@ DeclPtr Parser::parseUseClause()
     auto decl = std::make_unique<UseDecl>();
     decl->location = current().location;
     expect(TokenKind::KwUse, "in use clause");
-    match(TokenKind::KwType);
+    decl->m_all = match(TokenKind::KwAll);
+    decl->m_typeOnly = match(TokenKind::KwType);
+    if (decl->m_all && !decl->m_typeOnly) {
+        fail("expected type after use all");
+    }
     while (true) {
         std::string lowered;
         std::string name = parseCompoundName(lowered);

@@ -53,6 +53,7 @@ const std::unordered_map<std::string, TokenKind>& keywordTable()
         { "or", TokenKind::KwOr },
         { "others", TokenKind::KwOthers },
         { "out", TokenKind::KwOut },
+        { "overriding", TokenKind::KwOverriding },
         { "package", TokenKind::KwPackage },
         { "pragma", TokenKind::KwPragma },
         { "private", TokenKind::KwPrivate },

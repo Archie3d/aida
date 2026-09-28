@@ -430,3 +430,13 @@ add_ada_test(callbackrenames SOURCES callbackrenames.adb)
 add_ada_test(renamelibrary SOURCES rename_library.ads rename_library.adb renamelibrary.adb)
 add_ada_error_test(subprogramrenameerrors SOURCES subprogramrenameerrors.adb)
 add_ada_test(renamemain SOURCES rename_entry.adb renamemain.adb)
+
+add_ada_test(primitives SOURCES primitives.adb)
+add_determinism_test(primitives SOURCE primitives.adb)
+add_ada_test(primitivevisibility SOURCES primitivevisibility.adb)
+add_ada_error_test(primitiveerrors SOURCES primitiveerrors.adb)
+add_ada_test(primitivechecks SOURCES primitivechecks.adb)
+add_determinism_test(primitivechecks SOURCE primitivechecks.adb)
+add_ada_test(primitiveseparate SOURCES primitive_base.ads primitive_base.adb
+    primitive_child.ads primitive_child.adb primitiveseparate.adb)
+add_determinism_test(primitiveseparate SOURCE primitiveseparate.adb)

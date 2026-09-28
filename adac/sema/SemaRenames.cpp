@@ -183,6 +183,9 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 
     Symbol* completion = nullptr;
     for (Symbol* existing : scope->lookupLocal(spec.lower)) {
+        if (existing->m_inheritedFrom != nullptr) {
+            continue;
+        }
         bool sameTypes = existing->kind == SymbolKind::Subprogram
             && baseType(existing->returnType) == baseType(result) && existing->parameters.size() == types.size();
         for (std::size_t i = 0; sameTypes && i < types.size(); ++i) {

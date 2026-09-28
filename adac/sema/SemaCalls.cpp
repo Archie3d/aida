@@ -57,7 +57,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
         }
         if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
-            candidates = prefixSymbol->scope->lookupLocal(selected->selectorLower);
+            candidates = prefixSymbol->scope->lookupVisibleLocal(selected->selectorLower, scope);
             if (candidates.empty()) {
                 m_diagnostics.error(expr->callee->location, "'" + selected->selector + "' is not declared in '"
                                                                 + prefixSymbol->displayName + "'");
