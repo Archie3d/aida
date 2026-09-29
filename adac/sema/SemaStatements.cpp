@@ -159,6 +159,10 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (!typesCompatible(targetType, valueType)) {
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
         }
+        if (targetType != nullptr && targetType->m_classRoot != nullptr
+            && valueType != nullptr && valueType->m_classRoot == nullptr) {
+            m_diagnostics.error(assign->location, "class-wide assignment requires a dynamically tagged value");
+        }
         adaptUniversal(assign->value.get(), targetType);
         break;
     }

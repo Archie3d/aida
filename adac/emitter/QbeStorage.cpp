@@ -114,6 +114,26 @@ void QbeEmitter::storeInto(const Value& address, const Value& value, Type* type)
 
 void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* type)
 {
+    if (type->m_classRoot != nullptr) {
+        std::string targetTag = newTemp();
+        std::string sourceTag = newTemp();
+        std::string same = newTemp();
+        line(targetTag + " =l loadl " + destination.name);
+        line(sourceTag + " =l loadl " + source.name);
+        line(same + " =w ceql " + targetTag + ", " + sourceTag);
+        std::string valid = newLabel("copytagvalid");
+        std::string invalid = newLabel("copytaginvalid");
+        branch(Value { same, 'w' }, valid, invalid);
+        label(invalid);
+        raiseConstraintError();
+        label(valid);
+        std::string sizeSlot = newTemp();
+        std::string size = newTemp();
+        line(sizeSlot + " =l add " + targetTag + ", 8");
+        line(size + " =l loadl " + sizeSlot);
+        line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")");
+        return;
+    }
     long long size = typeSize(type);
     if (size <= 0) {
         return;
@@ -234,4 +254,47 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     Value result = emitExpr(value);
     emitRangeCheck(result, type, value->location);
     storeInto(address, result, type);
+}
+
+// Walk the descriptor's immutable parent links; zero terminates the ancestry.
+Value QbeEmitter::taggedMembership(const Value& object, Type* target)
+{
+    target = rootType(target);
+    if (target->m_classRoot != nullptr) {
+        target = target->m_classRoot;
+    }
+    std::string cursor = allocScratch(8);
+    std::string result = allocScratch(4);
+    std::string tag = newTemp();
+    line(tag + " =l loadl " + object.name);
+    line("storel " + tag + ", " + cursor);
+    line("storew 0, " + result);
+    std::string loop = newLabel("ancestry");
+    std::string compare = newLabel("comparetag");
+    std::string parent = newLabel("parenttag");
+    std::string found = newLabel("tagfound");
+    std::string done = newLabel("ancestrydone");
+    jump(loop);
+    label(loop);
+    std::string current = newTemp();
+    std::string nonzero = newTemp();
+    line(current + " =l loadl " + cursor);
+    line(nonzero + " =w cnel " + current + ", 0");
+    branch(Value { nonzero, 'w' }, compare, done);
+    label(compare);
+    std::string same = newTemp();
+    line(same + " =w ceql " + current + ", " + target->m_tagName);
+    branch(Value { same, 'w' }, found, parent);
+    label(parent);
+    std::string next = newTemp();
+    line(next + " =l loadl " + current);
+    line("storel " + next + ", " + cursor);
+    jump(loop);
+    label(found);
+    line("storew 1, " + result);
+    jump(done);
+    label(done);
+    std::string answer = newTemp();
+    line(answer + " =w loadw " + result);
+    return Value { answer, 'w' };
 }

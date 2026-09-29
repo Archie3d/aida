@@ -480,6 +480,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         expr->type = m_types.integerType();
+        if (prefixType->m_classRoot != nullptr) {
+            if (prefixIsType) {
+                m_diagnostics.error(expr->location, "class-wide subtype 'Size is not yet supported");
+            }
+            return expr->type;
+        }
         expr->isStatic = true;
         expr->staticValue = typeSize(prefixType) * 8;
         return expr->type;

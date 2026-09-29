@@ -11,7 +11,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
-    if (subprogram->m_inheritedFrom != nullptr) {
+    if (!expr->m_dispatching && subprogram->m_inheritedFrom != nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;
         inherited.form = CallForm::Subprogram;
@@ -49,7 +49,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             return Value { "0", 'w' };
         }
     }
-    if (subprogram->m_renamedSubprogram != nullptr || subprogram->m_renamedAccess != nullptr) {
+    if (!expr->m_dispatching && (subprogram->m_renamedSubprogram != nullptr || subprogram->m_renamedAccess != nullptr)) {
         CallExpr renamed;
         renamed.location = expr->location;
         renamed.form = CallForm::Subprogram;
@@ -113,6 +113,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         arguments.push_back("l " + link.name);
     }
 
+    std::string controllingTag;
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];
@@ -143,6 +144,26 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 value.first = target.first;
                 value.last = target.last;
                 value.innerBounds = target.innerBounds;
+            }
+            if (expr->m_dispatching && rootType(parameter->type) == subprogram->m_controllingType) {
+                std::string tag = newTemp();
+                line(tag + " =l loadl " + value.name);
+                if (controllingTag.empty()) {
+                    controllingTag = tag;
+                    std::string slot = newTemp();
+                    callee = newTemp();
+                    line(slot + " =l add " + tag + ", " + std::to_string(24 + 8 * subprogram->m_dispatchSlot));
+                    line(callee + " =l loadl " + slot);
+                } else {
+                    std::string same = newTemp();
+                    std::string valid = newLabel("sametag");
+                    std::string invalid = newLabel("tagmismatch");
+                    line(same + " =w ceql " + controllingTag + ", " + tag);
+                    branch(Value { same, 'w' }, valid, invalid);
+                    label(invalid);
+                    raiseConstraintError();
+                    label(valid);
+                }
             }
             arguments.push_back("l " + value.name);
             if (isUnconstrainedArray(parameter->type)) {
@@ -261,6 +282,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
     std::vector<std::string> arguments;
 
+    std::string controllingTag;
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];

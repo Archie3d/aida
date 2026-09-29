@@ -88,6 +88,20 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { address.name, 'l' };
     }
     if (name == "size") {
+        if (prefixType->m_classRoot != nullptr) {
+            Value object = emitExpr(expr->prefix.get());
+            std::string tag = newTemp();
+            std::string slot = newTemp();
+            std::string size = newTemp();
+            std::string bits = newTemp();
+            std::string result = newTemp();
+            line(tag + " =l loadl " + object.name);
+            line(slot + " =l add " + tag + ", 8");
+            line(size + " =l loadl " + slot);
+            line(bits + " =l mul " + size + ", 8");
+            line(result + " =w copy " + bits);
+            return Value { result, 'w' };
+        }
         return constantValue(typeSize(prefixType) * 8, 'w');
     }
     if (name == "value") {

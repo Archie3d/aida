@@ -457,3 +457,8 @@ add_test(NAME ada.taggedlayout
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTaggedLayout.cmake
 )
 add_determinism_test(taggedlayout SOURCE taggedlayout.adb)
+
+add_ada_test(classwidedispatch SOURCES classwidedispatch.adb)
+add_ada_error_test(classwideerrors SOURCES classwideerrors.adb)
+add_ada_test(classwidelibrary SOURCES dispatch_model.ads dispatch_model.adb classwidelibrary.adb)
+add_determinism_test(classwidedispatch SOURCE classwidedispatch.adb)

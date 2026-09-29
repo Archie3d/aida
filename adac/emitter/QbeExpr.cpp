@@ -149,6 +149,15 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (call->form == CallForm::Conversion) {
             Expr* operand = call->resolvedArguments.front();
             Value value = emitExpr(operand);
+            if (operand->type->m_classRoot != nullptr && expr->type->m_tagged) {
+                Value valid = taggedMembership(value, expr->type);
+                std::string good = newLabel("tagvalid");
+                std::string bad = newLabel("taginvalid");
+                branch(valid, good, bad);
+                label(bad);
+                raiseConstraintError();
+                label(good);
+            }
             char from = value.type;
             char to = qbeClass(expr->type);
             if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {
@@ -252,6 +261,26 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     case ExprKind::Membership: {
         auto* membership = static_cast<MembershipExpr*>(expr);
         Value operand = emitExpr(membership->operand.get());
+        if (membership->m_testedTaggedType != nullptr) {
+            Type* tested = membership->m_testedTaggedType;
+            Value result { "1", 'w' };
+            if (membership->operand->type->m_classRoot != nullptr) {
+                if (tested->m_classRoot != nullptr) {
+                    result = taggedMembership(operand, tested);
+                } else {
+                    std::string tag = newTemp();
+                    result.name = newTemp();
+                    line(tag + " =l loadl " + operand.name);
+                    line(result.name + " =w ceql " + tag + ", " + rootType(tested)->m_tagName);
+                }
+            }
+            if (membership->negated) {
+                std::string negated = newTemp();
+                line(negated + " =w ceqw " + result.name + ", 0");
+                return Value { negated, 'w' };
+            }
+            return result;
+        }
         Value low = emitExpr(membership->low.get());
         Value high = emitExpr(membership->high.get());
         std::string lowTest = newTemp();

@@ -21,8 +21,8 @@ std::string typeMarkName(Expr* expr)
     if (expr->kind == ExprKind::Attribute) {
         auto* attribute = static_cast<AttributeExpr*>(expr);
         std::string prefix = typeMarkName(attribute->prefix.get());
-        if (attribute->lower == "base" && attribute->arguments.empty() && !prefix.empty()) {
-            return prefix + "'base";
+        if ((attribute->lower == "base" || attribute->lower == "class") && attribute->arguments.empty() && !prefix.empty()) {
+            return prefix + "'" + attribute->lower;
         }
     }
     return "";
@@ -75,11 +75,11 @@ std::string Parser::parseCompoundName(std::string& lowered)
 std::string Parser::parseSubtypeMark(std::string& lowered)
 {
     std::string name = parseCompoundName(lowered);
-    while (check(TokenKind::Tick) && peek(1).lower == "base") {
+    while (check(TokenKind::Tick) && (peek(1).lower == "base" || peek(1).lower == "class")) {
         advance();
-        advance();
-        name += "'Base";
-        lowered += "'base";
+        const Token& attribute = advance();
+        name += "'" + attribute.text;
+        lowered += "'" + attribute.lower;
     }
     return name;
 }
@@ -181,7 +181,7 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
             expr->prefix = std::move(prefix);
             expr->name = name.text.empty() ? tokenKindName(name.kind) : name.text;
             expr->lower = toLower(expr->name);
-            if (expr->lower == "base" && check(TokenKind::LeftParen)) {
+            if ((expr->lower == "base" || expr->lower == "class") && check(TokenKind::LeftParen)) {
                 // Keep conversion argument ownership and emission identical to
                 // ordinary type conversions; resolveTypeName handles the mark.
                 auto mark = std::make_unique<IdentifierExpr>();

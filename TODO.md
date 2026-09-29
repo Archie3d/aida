@@ -444,8 +444,9 @@ happens to work for one instantiation.
 
 ## 5. Tagged records and object-oriented features
 
-Stages 1 and 2 provide primitive inheritance and static tagged records. Dynamic
-dispatch and object finalization remain later stages.
+Stages 1 and 2 provide primitive inheritance and static tagged records. Stage 3
+now supports class-wide parameters and dispatch; class-wide ownership and results
+remain follow-up work. Object finalization remains stage 4.
 
 - [x] Stage 1: collect user-defined primitives declared in the type's package
   specification and inherit visible operations into derived types. Substitute
@@ -475,9 +476,34 @@ dispatch and object finalization remain later stages.
   Covered by `taggedrecords.adb`, `taggedequality.adb`, `taggederrors.adb`, and
   `taggedlayout.adb`, including C layout checks, separate compilation, and
   determinism. The complete suite passed all 251 tests after stage 2.
-- [ ] Stage 3: class-wide types (`T'Class`), dispatch slots/tables and indirect
-  calls, downward conversions with tag checks, and the public tag API. Current
-  descriptors carry layout metadata only; downward conversions are rejected.
+- [x] Stage 3, parameter milestone: distinct class-wide types (`T'Class`) and
+  class-wide parameters. Append code-pointer slots to the parent/size/alignment
+  descriptor prefix; preserve inherited slot numbers, including hidden slots,
+  and replace slots on overriding. Preserve slots and class-wide identity through
+  tagged private completions. Diagnose new primitives or overrides after derivation.
+- [x] Dispatch calls with class-wide controlling operands while retaining static
+  calls for specific operands and explicit ancestor views. Share ordinary argument
+  marshalling and lexical static links. Check matching tags for multiple controlling
+  operands before invocation, raising `Constraint_Error` on mismatch.
+- [x] Checked conversions from class-wide values to specific descendant views;
+  membership tests using exact tags for specific tested types and ancestry for
+  class-wide tested types. Read object `'Size` from the dynamic descriptor.
+- [x] Assignment through class-wide parameters checks equal tags and copies the
+  full dynamic object, including extension fields; support self-assignment and
+  preserve existing ancestor-part assignment behavior.
+  Covered by `classwidedispatch.adb`, `classwideerrors.adb`, and
+  `classwidelibrary.adb` with `dispatch_model.ads`/`.adb`: inherited and overridden
+  dispatch, static calls, captured variables, private completions, separate
+  compilation, tag mismatches, failed conversions, dynamic size/copying, and
+  determinism. The complete suite passed all 255 tests after this milestone.
+- [ ] Finish stage 3: class-wide owned objects, allocators and components;
+  class-wide function results and dispatching tagged results. Define dynamic
+  storage ownership, result transfer, and exception cleanup before enabling them.
+- [ ] Add class-wide operators, including equality, and the public tag API.
+  These remain unsupported in the parameter milestone.
+- [ ] Support overriding dispatching operations with controlling parameters across
+  lexical owners. The current ABI requires the original enclosing frame; such
+  overrides are explicitly rejected until dispatch can supply the correct link.
 - [ ] Extend tagged support to discriminants, private extensions and extensions
   of private views, limited definitions, and inherited tagged subprogram
   `'Access`. Tagged size clauses are currently rejected. Complete the wider
@@ -488,9 +514,10 @@ dispatch and object finalization remain later stages.
   object finalization order, copy/adjust semantics, temporary cleanup, and
   finalization on return and deallocation.
 
-Remaining acceptance tests: overridden dispatch through a class-wide value,
-valid/invalid downcasts, abstract-operation rejection, controlled copies and
-returns, and finalization during exception propagation and deallocation.
+Remaining acceptance tests: class-wide owned values and returned results,
+class-wide equality, dispatch across different enclosing frames, abstract-operation
+rejection, controlled copies and returns, and finalization during exception
+propagation and deallocation.
 
 ## 6. Larger runtime and library extensions
 

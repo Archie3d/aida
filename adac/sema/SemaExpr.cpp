@@ -158,6 +158,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
+    if (designated->m_classRoot != nullptr) {
+        m_diagnostics.error(expr->location, "class-wide allocators are not yet supported");
+        return nullptr;
+    }
     if (rootType(designated) != rootType(access->target)) {
         m_diagnostics.error(expr->location, "an allocator for '" + access->name + "' has to make a '"
                                                 + (access->target != nullptr ? access->target->name : "?") + "'");
@@ -209,6 +213,13 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
 Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
 {
+    for (Type* operand : expressionTypes(expr->left.get(), scope)) {
+        if (operand->m_classRoot != nullptr) {
+            m_diagnostics.error(expr->location, "class-wide operators are not yet supported");
+            expr->type = m_types.booleanType();
+            return expr->type;
+        }
+    }
     if (expr->operatorCall != nullptr) {
         return expr->type;
     }
@@ -507,7 +518,18 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 {
     Type* mark = expr->typeLower.empty() ? nullptr
         : resolveTypeName(expr->typeLower, scope, expr->location);
-    Type* operand = analyzeExpr(expr->operand.get(), scope, mark);
+    Type* operand = analyzeExpr(expr->operand.get(), scope, mark != nullptr && mark->m_tagged ? nullptr : mark);
+    if (mark != nullptr && mark->m_tagged && operand != nullptr && operand->m_tagged) {
+        Type* target = mark->m_classRoot != nullptr ? mark->m_classRoot : mark;
+        Type* source = operand->m_classRoot != nullptr ? operand->m_classRoot : operand;
+        if (!isTaggedAncestor(target, source)
+            && !(operand->m_classRoot != nullptr && isTaggedAncestor(source, target))) {
+            m_diagnostics.error(expr->location, "tagged membership requires convertible types");
+        }
+        expr->m_testedTaggedType = mark;
+        expr->type = m_types.booleanType();
+        return expr->type;
+    }
     if (isUniversal(operand)) {
         operand = m_types.integerType();
         adaptUniversal(expr->operand.get(), operand);

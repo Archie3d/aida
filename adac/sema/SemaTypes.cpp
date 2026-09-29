@@ -60,9 +60,13 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool isLimited = completing->isLimited;
         bool tagged = completing->m_tagged;
         std::string tagName = completing->m_tagName;
+        auto slots = std::move(completing->m_dispatchSlots);
+        Type* classWide = completing->m_classWide;
         auto primitives = std::move(completing->m_primitives);
         *completing = Type(kind, name);
         completing->m_primitives = std::move(primitives);
+        completing->m_dispatchSlots = std::move(slots);
+        completing->m_classWide = classWide;
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
         completing->m_tagged = tagged;
@@ -207,6 +211,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope);
+        if (cell != nullptr && cell->m_classRoot != nullptr) {
+            m_diagnostics.error(decl->location, "class-wide array components are not yet supported");
+            return;
+        }
         if (cell != nullptr && cell->kind == TypeKind::Array && !cell->constrained) {
             m_diagnostics.error(definition->elementType->location, cell->m_boundsSymbol != nullptr
                                     ? "runtime-constrained array components are not yet supported"
@@ -297,6 +305,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
+        if (parent->m_classRoot != nullptr) {
+            m_diagnostics.error(decl->location, "a class-wide type cannot be a derivation parent");
+            return;
+        }
         if (parent->m_tagged) {
             parent = rootType(parent);
         }
@@ -323,6 +335,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(parent->kind);
         std::string name = type->name;
         auto primitives = std::move(type->m_primitives);
+        Type* classWide = type->m_classWide;
         Symbol* privateTo = type->privateTo;
         bool isLimited = type->isLimited;
         *type = *built;
@@ -332,6 +345,13 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type->m_primitives = std::move(primitives);
         type->m_parentType = rootType(parent);
+        type->m_classWide = completing != nullptr ? classWide : nullptr;
+        type->m_dispatchSlots = parent->m_dispatchSlots;
+        for (Symbol* primitive : type->m_primitives) {
+            primitive->m_dispatchSlot = -1;
+        }
+        type->m_dispatchFrozen = false;
+        parent->m_dispatchFrozen = parent->m_tagged;
         type->name = name;
         if (definition->m_extension) {
             type->byteSize = 0;
@@ -340,6 +360,17 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             layoutRecord(decl, definition, type, scope);
         }
         inheritPrimitives(type, parent, scope, decl->location);
+        if (type->m_tagged) {
+            // A private view can declare operations before its parent is known.
+            // Complete inherited slots first, then append its own operations.
+            for (Symbol* primitive : type->m_primitives) {
+                if (primitive->kind == SymbolKind::Subprogram && primitive->m_dispatchSlot < 0) {
+                    primitive->m_controllingType = type;
+                    primitive->m_dispatchSlot = static_cast<int>(type->m_dispatchSlots.size());
+                    type->m_dispatchSlots.push_back(primitive);
+                }
+            }
+        }
 
         for (std::size_t i = 0; i < parent->literals.size(); ++i) {
             Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, parent->literals[i],
@@ -409,6 +440,15 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
     }
     type->m_declarationScope = scope;
+    if (type->m_classWide != nullptr) {
+        Type* wide = type->m_classWide;
+        *wide = *type;
+        wide->base = nullptr;
+        wide->name = type->name + "'Class";
+        wide->m_classRoot = type;
+        wide->m_primitives.clear();
+        wide->m_declarationScope = nullptr;
+    }
     decl->declaredType = type;
     Symbol* symbol = nullptr;
     if (completing != nullptr) {
@@ -499,6 +539,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
+        if (info.type != nullptr && info.type->m_classRoot != nullptr) {
+            m_diagnostics.error(field.location, "class-wide record components are not yet supported");
+            return;
+        }
         bool symbolicComponent = m_recordContract != nullptr && info.type != nullptr
             && (!field.subtype->indexLows.empty() || info.type->m_boundsSymbol != nullptr);
         if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained
@@ -967,6 +1011,9 @@ bool Sema::typesCompatible(Type* target, Type* source) const
     }
     Type* left = rootType(target);
     Type* right = rootType(source);
+    if (left->m_classRoot != nullptr) {
+        return isTaggedAncestor(left->m_classRoot, right->m_classRoot != nullptr ? right->m_classRoot : right);
+    }
     if (left == right) {
         return true;
     }
@@ -1047,12 +1094,38 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
             if (matches) {
                 scope->remove(primitive);
+                if (type->m_tagged && primitive->m_dispatchSlot >= 0) {
+                    if (type->m_dispatchFrozen) {
+                        m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after derivation from its type");
+                    }
+                    bool controllingParameter = false;
+                    for (Symbol* parameter : symbol->parameters) {
+                        controllingParameter = controllingParameter || rootType(parameter->type) == type;
+                    }
+                    if (controllingParameter && symbol->owner != primitive->owner) {
+                        m_diagnostics.error(symbol->location, "overriding a dispatching operation across lexical owners is not yet supported");
+                    }
+                    symbol->m_dispatchSlot = primitive->m_dispatchSlot;
+                    symbol->m_controllingType = type;
+                    type->m_dispatchSlots[symbol->m_dispatchSlot] = symbol;
+                }
                 primitive = symbol;
                 replaced = true;
             }
         }
         if (!replaced && (scope == m_packageSpecScope || symbol->m_overrides)) {
             type->m_primitives.push_back(symbol);
+            if (type->m_tagged && type->m_classRoot == nullptr) {
+                if (type->m_dispatchFrozen) {
+                    m_diagnostics.error(symbol->location, "a tagged primitive cannot be declared after derivation from its type");
+                }
+                if (symbol->m_controllingType != nullptr && symbol->m_controllingType != type) {
+                    m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
+                }
+                symbol->m_controllingType = type;
+                symbol->m_dispatchSlot = static_cast<int>(type->m_dispatchSlots.size());
+                type->m_dispatchSlots.push_back(symbol);
+            }
         }
     }
 }
@@ -1091,6 +1164,11 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);
         inherited->location = location;
         inherited->m_inheritedFrom = primitive;
+        inherited->m_dispatchSlot = primitive->m_dispatchSlot;
+        inherited->m_controllingType = type;
+        if (inherited->m_dispatchSlot >= 0) {
+            type->m_dispatchSlots[inherited->m_dispatchSlot] = inherited;
+        }
         inherited->m_declarationScope = scope;
         inherited->returnType = corresponding(primitive->returnType);
         inherited->hasBody = true;
@@ -1124,6 +1202,11 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                     }
                 }
                 declared->m_overrides = true;
+                if (type->m_tagged && inherited->m_dispatchSlot >= 0) {
+                    declared->m_controllingType = type;
+                    declared->m_dispatchSlot = inherited->m_dispatchSlot;
+                    type->m_dispatchSlots[declared->m_dispatchSlot] = declared;
+                }
                 overridden = true;
             }
         }

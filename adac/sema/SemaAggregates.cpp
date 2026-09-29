@@ -8,6 +8,10 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
 {
+    if (expected != nullptr && expected->m_classRoot != nullptr) {
+        m_diagnostics.error(expr->location, "an aggregate requires a specific type");
+        return nullptr;
+    }
     Type* target = expected != nullptr && expected->m_tagged ? rootType(expected) : expected;
     if (target == nullptr || (target->kind != TypeKind::Array && target->kind != TypeKind::Record)) {
         m_diagnostics.error(expr->location, "an aggregate needs a known array or record type");

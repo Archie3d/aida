@@ -10,10 +10,20 @@ void QbeEmitter::emitTypeTag(Type* type)
     }
     m_emittedTags[type] = true;
     // Stable descriptor prefix: parent tag, object size, and alignment.
-    // Dispatch slots can be appended without changing the object layout.
+    // Inherited slots retain their offsets; overrides replace their code pointers.
     m_data << "export data " << type->m_tagName << " = align 8 { l "
            << (type->m_parentType == nullptr ? "0" : type->m_parentType->m_tagName)
-           << ", l " << typeSize(type) << ", l " << typeAlignment(type) << " }\n";
+           << ", l " << typeSize(type) << ", l " << typeAlignment(type);
+    for (Symbol* slot : type->m_dispatchSlots) {
+        while (slot->m_inheritedFrom != nullptr) {
+            slot = slot->m_inheritedFrom;
+        }
+        while (slot->m_renamedSubprogram != nullptr) {
+            slot = slot->m_renamedSubprogram;
+        }
+        m_data << ", l " << (slot->qbeName.empty() ? "0" : slot->qbeName);
+    }
+    m_data << " }\n";
 }
 
 void QbeEmitter::collectGlobals(DeclList& declarations)

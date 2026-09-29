@@ -41,6 +41,27 @@ std::vector<Symbol*> Sema::lookupAll(const std::string& lower, Scope* scope)
 
 Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location)
 {
+    if (lower.ends_with("'class")) {
+        Type* specific = rootType(resolveTypeName(lower.substr(0, lower.size() - 6), scope, location));
+        if (specific == nullptr) {
+            return nullptr;
+        }
+        if (!specific->m_tagged || specific->m_classRoot != nullptr) {
+            m_diagnostics.error(location, "'Class requires a specific tagged type");
+            return nullptr;
+        }
+        if (specific->m_classWide == nullptr) {
+            Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
+            *wide = *specific;
+            wide->base = nullptr;
+            wide->name = specific->name + "'Class";
+            wide->m_classRoot = specific;
+            wide->m_primitives.clear();
+            wide->m_declarationScope = nullptr;
+            specific->m_classWide = wide;
+        }
+        return specific->m_classWide;
+    }
     if (lower.ends_with("'base")) {
         Type* prefix = resolveTypeName(lower.substr(0, lower.size() - 5), scope, location);
         Type* result = m_types.scalarBaseType(prefix);

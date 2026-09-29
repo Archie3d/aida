@@ -79,6 +79,12 @@ public:
     Type* m_parentType = nullptr;
     // Tagged records reserve the leading pointer and retain a parent prefix.
     bool m_tagged = false;
+    // Class-wide identity is distinct from subtype identity and derivation.
+    bool m_dispatchFrozen = false;
+    Type* m_classRoot = nullptr;
+    Type* m_classWide = nullptr;
+    // Includes hidden inherited slots, independently of source visibility.
+    std::vector<Symbol*> m_dispatchSlots;
     int m_parentFieldCount = 0;
     std::string m_tagName;
     Scope* m_declarationScope = nullptr;

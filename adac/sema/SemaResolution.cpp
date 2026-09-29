@@ -17,7 +17,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
         const std::string& lower = static_cast<IdentifierExpr*>(expr)->lower;
         // A Base conversion synthesizes its type mark in analyzeCall; its
         // prefix is preserved through resolveTypeName instead of name lookup.
-        if (lower.ends_with("'base")) {
+        if (lower.ends_with("'base") || lower.ends_with("'class")) {
             return {};
         }
         return contractNames(expr, scope->lookup(lower));
@@ -75,7 +75,16 @@ bool Sema::matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
     }
     for (std::size_t i = 0; i < positions.size(); ++i) {
         if (!matchesExpression(expr->arguments[i].value.get(), scope, candidate->parameters[positions[i]]->type)) {
-            return false;
+            Type* controlling = candidate->m_controllingType;
+            bool dispatch = false;
+            if (controlling != nullptr && rootType(candidate->parameters[positions[i]]->type) == controlling) {
+                for (Type* actual : expressionTypes(expr->arguments[i].value.get(), scope)) {
+                    dispatch = dispatch || actual->m_classRoot == controlling;
+                }
+            }
+            if (!dispatch) {
+                return false;
+            }
         }
     }
     return true;
@@ -225,6 +234,13 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         bool callable = false;
         if (call->callee->kind == ExprKind::Identifier) {
             const std::string& name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
+            if (name.ends_with("'class") && call->arguments.size() == 1) {
+                Symbol* symbol = lookupName(name.substr(0, name.size() - 6), scope);
+                if (symbol != nullptr && symbol->kind == SymbolKind::TypeName && symbol->type->m_tagged) {
+                    add(resolveTypeName(name, scope, call->location));
+                    callable = true;
+                }
+            }
             if (name.ends_with("'base") && call->arguments.size() == 1) {
                 Symbol* symbol = lookupName(name.substr(0, name.size() - 5), scope);
                 if (symbol != nullptr && symbol->kind == SymbolKind::TypeName) {

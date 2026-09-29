@@ -109,6 +109,7 @@ private:
     std::string rangeTest(const Value& value, long long low, long long high);
     void checkNotNull(const Value& pointer);
     void raiseConstraintError();
+    Value taggedMembership(const Value& object, Type* target);
 
     // Storage and assignment (QbeStorage.cpp).
     std::string allocScratch(long long size);

@@ -18,12 +18,13 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     expr->resolvedArguments.clear();
+    expr->m_dispatching = false;
     // Collect the entities the callee may denote.
     std::vector<Symbol*> candidates;
     if (expr->callee->kind == ExprKind::Identifier) {
         auto* identifier = static_cast<IdentifierExpr*>(expr->callee.get());
         candidates = expressionNames(expr->callee.get(), scope);
-        if (identifier->lower.ends_with("'base")) {
+        if (identifier->lower.ends_with("'base") || identifier->lower.ends_with("'class")) {
             Type* type = resolveTypeName(identifier->lower, scope, identifier->location);
             if (type == nullptr) {
                 return nullptr;
@@ -228,9 +229,13 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             arrayConversion = arrayConversion && targetAxis == sourceAxis;
         }
+        Type* sourceRoot = operand->type == nullptr ? nullptr : operand->type->m_classRoot;
+        Type* targetRoot = expr->type->m_classRoot != nullptr ? expr->type->m_classRoot : expr->type;
+        bool classConversion = sourceRoot != nullptr
+            && (isTaggedAncestor(sourceRoot, targetRoot) || isTaggedAncestor(targetRoot, sourceRoot));
         bool ancestorView = isTaggedAncestor(expr->type, operand->type)
             && (rootType(expr->type) == rootType(operand->type) || representationVisible(operand->type));
-        if (!numeric && !arrayConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
+        if (!numeric && !arrayConversion && !classConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {
@@ -318,7 +323,17 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 }
             }
             Expr* argument = expr->arguments[i].value.get();
-            analyzeExpr(argument, scope, chosen->parameters[index]->type);
+            Type* formal = chosen->parameters[index]->type;
+            Type* context = formal;
+            if (rootType(formal) == chosen->m_controllingType) {
+                for (Type* actual : expressionTypes(argument, scope)) {
+                    if (actual->m_classRoot == chosen->m_controllingType) {
+                        context = actual;
+                        expr->m_dispatching = true;
+                    }
+                }
+            }
+            analyzeExpr(argument, scope, context);
             adaptUniversal(argument, chosen->parameters[index]->type);
             if (chosen->parameters[index]->mode != ParameterMode::In) {
                 // Passing a variable by reference does not copy a limited value.
@@ -331,6 +346,19 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         for (std::size_t p = 0; p < chosen->parameters.size(); ++p) {
             if (expr->resolvedArguments[p] == nullptr) {
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
+            }
+        }
+        if (expr->m_dispatching) {
+            for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
+                if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
+                    && expr->resolvedArguments[i] != nullptr
+                    && expr->resolvedArguments[i]->type != nullptr
+                    && expr->resolvedArguments[i]->type->m_classRoot == nullptr) {
+                    m_diagnostics.error(expr->location, "all controlling operands of a dispatching call must be class-wide");
+                }
+            }
+            if (chosen->returnType != nullptr && chosen->returnType->m_tagged) {
+                m_diagnostics.error(expr->location, "dispatching tagged function results are not yet supported");
             }
         }
         expr->type = chosen->returnType;

@@ -120,6 +120,10 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
 
+    if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming) {
+        m_diagnostics.error(decl->location, "class-wide owned objects are not yet supported");
+        return;
+    }
     if (decl->m_isRenaming) {
         Type* targetType = analyzeExpr(decl->initializer.get(), scope, type);
         int view = objectView(decl->initializer.get());
@@ -274,6 +278,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+    if (returnType != nullptr && returnType->m_classRoot != nullptr) {
+        m_diagnostics.error(spec.returnType->location, "class-wide function results are not yet supported");
+    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";

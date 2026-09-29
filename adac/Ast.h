@@ -227,6 +227,7 @@ struct CallExpr : Expr
     CallForm form = CallForm::Unresolved;
     Symbol* subprogram = nullptr;
     bool m_indirect = false;
+    bool m_dispatching = false;
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
 };
 
@@ -292,6 +293,7 @@ struct MembershipExpr : Expr
 
     ExprPtr operand;
     bool negated = false;
+    Type* m_testedTaggedType = nullptr;
     std::string typeName;   // "X in Positive"
     std::string typeLower;
     ExprPtr low;            // "X in 1 .. 10"
