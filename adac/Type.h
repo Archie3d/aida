@@ -81,6 +81,9 @@ public:
     bool m_tagged = false;
     // Class-wide identity is distinct from subtype identity and derivation.
     bool m_dispatchFrozen = false;
+    Symbol* m_tagOwner = nullptr;
+    long long m_tagOffset = -1;
+    int m_accessLevel = 0;
     Type* m_classRoot = nullptr;
     Type* m_classWide = nullptr;
     // Includes hidden inherited slots, independently of source visibility.

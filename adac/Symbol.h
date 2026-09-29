@@ -46,6 +46,7 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool m_genericObject = false;
+    bool m_classWideObject = false;
     bool m_objectReference = false; // A slot holding a renamed or generic actual object address.
     ParameterMode mode = ParameterMode::In;
     bool hasStaticValue = false;
@@ -111,6 +112,7 @@ struct Symbol
     // that owns them.  Objects referenced from a nested subprogram live in the
     // owner's frame block instead of a plain stack slot.
     int level = 0;
+    int m_accessibilityLevel = 0;
     Symbol* owner = nullptr;
     bool isUplevel = false;
     long long frameOffset = -1;

@@ -44,6 +44,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     // outlives the completion, since that is the whole point of it.
     auto makeType = [&](TypeKind kind) {
         if (completing == nullptr) {
+            if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "tags"
+                && decl->lower == "tag") {
+                return m_tagType;
+            }
             if (m_namePrefix.size() == 2
                 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "exceptions") {
                 if (decl->lower == "exception_occurrence") {
@@ -212,7 +216,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope);
         if (cell != nullptr && cell->m_classRoot != nullptr) {
-            m_diagnostics.error(decl->location, "class-wide array components are not yet supported");
+            m_diagnostics.error(decl->location, "an array component requires a definite subtype");
             return;
         }
         if (cell != nullptr && cell->kind == TypeKind::Array && !cell->constrained) {
@@ -440,6 +444,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
     }
     type->m_declarationScope = scope;
+    if (type->m_tagged) {
+        type->m_tagOwner = m_currentSubprogram;
+        type->m_tagOffset = -1;
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->needsFrame = true;
+        }
+    }
+    if (type->kind == TypeKind::Access || type->m_tagged) {
+        type->m_accessLevel = m_accessibilityLevel;
+    }
     if (type->m_classWide != nullptr) {
         Type* wide = type->m_classWide;
         *wide = *type;
@@ -540,7 +554,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
         if (info.type != nullptr && info.type->m_classRoot != nullptr) {
-            m_diagnostics.error(field.location, "class-wide record components are not yet supported");
+            m_diagnostics.error(field.location, "a record component requires a definite subtype");
             return;
         }
         bool symbolicComponent = m_recordContract != nullptr && info.type != nullptr
@@ -1097,13 +1111,6 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                 if (type->m_tagged && primitive->m_dispatchSlot >= 0) {
                     if (type->m_dispatchFrozen) {
                         m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after derivation from its type");
-                    }
-                    bool controllingParameter = false;
-                    for (Symbol* parameter : symbol->parameters) {
-                        controllingParameter = controllingParameter || rootType(parameter->type) == type;
-                    }
-                    if (controllingParameter && symbol->owner != primitive->owner) {
-                        m_diagnostics.error(symbol->location, "overriding a dispatching operation across lexical owners is not yet supported");
                     }
                     symbol->m_dispatchSlot = primitive->m_dispatchSlot;
                     symbol->m_controllingType = type;

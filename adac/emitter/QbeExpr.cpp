@@ -78,7 +78,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
-            call.type = symbol->returnType;
+            call.type = expr->type;
+            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
+            call.m_tagIndeterminate = expr->m_tagIndeterminate;
             return emitCall(&call);
         }
         if (symbol->kind == SymbolKind::EnumerationLiteral) {
@@ -109,7 +111,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
-            call.type = symbol->returnType;
+            call.type = expr->type;
+            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
+            call.m_tagIndeterminate = expr->m_tagIndeterminate;
             return emitCall(&call);
         }
         if (symbol != nullptr && symbol->kind == SymbolKind::EnumerationLiteral) {
@@ -271,7 +275,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     std::string tag = newTemp();
                     result.name = newTemp();
                     line(tag + " =l loadl " + operand.name);
-                    line(result.name + " =w ceql " + tag + ", " + rootType(tested)->m_tagName);
+                    line(result.name + " =w ceql " + tag + ", " + typeTag(tested).name);
                 }
             }
             if (membership->negated) {
@@ -466,6 +470,26 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
     long long size = typeSize(designated);
+    if (designated->m_classRoot != nullptr || (expr->type->target != nullptr && expr->type->target->m_classRoot != nullptr)) {
+        Value source;
+        if (designated->m_classRoot != nullptr) {
+            source = emitExpr(expr->value.get());
+        } else {
+            source = Value { allocScratch(size), 'l' };
+            if (expr->value != nullptr) {
+                assignInto(source, designated, expr->value.get(), true);
+            } else {
+                emitDefaultInit(source, designated);
+            }
+        }
+        checkTagLevel(source, expr->type->m_accessLevel);
+        Value bytes = taggedSize(source);
+        std::string pointer = newTemp();
+        line(pointer + " =l call $__ada_allocate(l " + bytes.name + ")");
+        emitExceptionCheck();
+        line("call $memmove(l " + pointer + ", l " + source.name + ", l " + bytes.name + ")");
+        return Value { pointer, 'l' };
+    }
 
     // The run time hands back cleared storage, so an access component of the
     // new object starts out null even when no value is given.
@@ -541,7 +565,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
     }
 
     if (base->m_tagged) {
-        line("storel " + base->m_tagName + ", " + address.name);
+        line("storel " + typeTag(base).name + ", " + address.name);
     }
     long long discriminant = 0;
     bool fixedVariant = base->variantOn >= 0 && discriminantValueOf(type, base->variantOn, discriminant);

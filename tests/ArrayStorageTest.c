@@ -40,6 +40,7 @@ static void testFree(void* pointer)
 #define calloc testCalloc
 #define free testFree
 #include "../runtime/adart.c"
+#include "../runtime/adatags.c"
 #undef malloc
 #undef calloc
 #undef free
@@ -170,5 +171,44 @@ int main(void)
     __ada_trace_leave(&caller);
     __ada_save_occurrence(&saved, &empty);
     CHECK(saved.origin == NULL && saved.traceCount == 0 && liveAllocations == 0);
+    /* Tagged results use the same ownership transfer and rewind boundaries. */
+    AdaDispatchEntry slots[] = { { NULL, NULL } };
+    AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1 };
+    failNext = 1;
+    CHECK(__ada_tag_create(&template, NULL, &owner) == NULL);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
+    __ada_exception = NULL;
+    AdaTag* tag = __ada_tag_create(&template, NULL, &owner);
+    CHECK(tag != NULL && tag->master == &owner && tag->slots != slots);
+    CHECK(liveAllocations == 3);
+    struct TaggedObject
+    {
+        AdaTag* tag;
+        long long fields[3];
+    } object = { tag, { 11, 22, 33 } };
+    for (int i = 0; i < 1000; ++i) {
+        void* result = NULL;
+        __ada_tagged_result(&result, &object);
+        CHECK(result != NULL && liveAllocations == 4);
+        CHECK(memcmp(result, &object, sizeof object) == 0);
+        __ada_array_adopt(&owner, result);
+        CHECK(liveAllocations == 5);
+        __ada_array_release(&owner);
+        CHECK(liveAllocations == 3);
+    }
+    transfer = NULL;
+    failNext = 1;
+    __ada_tagged_result(&transfer, &object);
+    CHECK(transfer == NULL && liveAllocations == 3 && __ada_exception == ADA_STORAGE_ERROR);
+    __ada_exception = NULL;
+    __ada_tagged_result(&transfer, &object);
+    failNext = 1;
+    __ada_array_adopt(&owner, transfer);
+    CHECK(liveAllocations == 3 && owner == NULL && __ada_exception == ADA_STORAGE_ERROR);
+    __ada_exception = NULL;
+    __ada_tag_check_level(&object, 0);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR);
+    releaseTags();
+    CHECK(liveAllocations == 0);
     return 0;
 }

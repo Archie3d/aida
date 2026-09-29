@@ -34,11 +34,29 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         candidate.symbol = symbol;
         candidate.result = symbol->returnType;
         bool matches = true;
+        bool dispatching = false;
         for (std::size_t i = 0; i < operands.size(); ++i) {
             Symbol* formal = symbol->parameters[i];
+            Type* context = formal->type;
+            if (symbol->m_controllingType != nullptr && rootType(formal->type) == symbol->m_controllingType) {
+                for (Type* actual : expressionTypes(operands[i], scope)) {
+                    if (actual->m_classRoot == symbol->m_controllingType) {
+                        context = actual;
+                        dispatching = true;
+                    }
+                }
+            }
             matches = matches && formal->mode == ParameterMode::In && !formal->hasDefault
-                && matchesExpression(operands[i], scope, formal->type);
-            candidate.parameters.push_back(formal->type);
+                && matchesExpression(operands[i], scope, context);
+            candidate.parameters.push_back(context);
+        }
+        if (dispatching && (name == "=" || name == "/=") && symbol->parameters.size() == 2
+            && rootType(symbol->parameters[0]->type) == symbol->m_controllingType
+            && rootType(symbol->parameters[1]->type) == symbol->m_controllingType) {
+            continue; // Class-wide equality dispatches the complete specific equality.
+        }
+        if (dispatching && rootType(candidate.result) == symbol->m_controllingType) {
+            candidate.result = classWideType(symbol->m_controllingType);
         }
         if (matches) {
             candidates.push_back(std::move(candidate));
@@ -214,12 +232,42 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
     callee->symbol = symbol;
     call->callee = std::move(callee);
     for (std::size_t i = 0; i < operands.size(); ++i) {
-        analyzeExpr(operands[i].get(), scope, symbol->parameters[i]->type);
+        Type* context = symbol->parameters[i]->type;
+        if (symbol->m_controllingType != nullptr && rootType(context) == symbol->m_controllingType) {
+            for (Type* actual : expressionTypes(operands[i].get(), scope)) {
+                if (actual->m_classRoot == symbol->m_controllingType) {
+                    context = actual;
+                    call->m_dispatching = true;
+                }
+            }
+        }
+        analyzeExpr(operands[i].get(), scope, context);
         adaptUniversal(operands[i].get(), symbol->parameters[i]->type);
         call->resolvedArguments.push_back(operands[i].get());
         Association argument;
         argument.value = std::move(operands[i]);
         call->arguments.push_back(std::move(argument));
+    }
+    call->m_tagIndeterminate = symbol->m_controllingType != nullptr
+        && rootType(call->type) == symbol->m_controllingType && !call->m_dispatching;
+    for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
+        if (rootType(symbol->parameters[i]->type) == symbol->m_controllingType) {
+            call->m_tagIndeterminate = call->m_tagIndeterminate && call->resolvedArguments[i]->m_tagIndeterminate;
+        }
+    }
+    if (call->m_dispatching) {
+        if (rootType(call->type) == symbol->m_controllingType) {
+            call->type = classWideType(symbol->m_controllingType);
+        }
+        for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
+            if (call->resolvedArguments[i]->m_tagIndeterminate) {
+                dispatchIndeterminate(call->resolvedArguments[i], symbol->m_controllingType);
+            }
+            if (rootType(symbol->parameters[i]->type) == symbol->m_controllingType
+                && call->resolvedArguments[i]->type != nullptr && call->resolvedArguments[i]->type->m_classRoot == nullptr) {
+                m_diagnostics.error(location, "all controlling operands of a dispatching call must be class-wide");
+            }
+        }
     }
     return call;
 }

@@ -69,6 +69,7 @@ private:
         std::vector<SubprogramBody*> nested;
         SourceLocation sourceLocation;
         std::string traceName;
+        std::string m_controllingTag;
     };
 
     // Output and data (QbeEmitter.cpp).
@@ -84,6 +85,11 @@ private:
 
     // Declarations (QbeDecl.cpp).
     void emitTypeTag(Type* type);
+    void initializeTypeTag(Type* type);
+    Value typeTag(Type* type);
+    Value taggedSize(const Value& object);
+    void checkTagLevel(const Value& object, int level);
+    void emitClassWideObject(ObjectDecl* object, Symbol* symbol);
     void collectGlobals(DeclList& declarations);
     void emitElaborationDeclarations(DeclList& declarations);
     void emitLocalDeclarations(DeclList& declarations);

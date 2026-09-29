@@ -10,4 +10,5 @@ package Dispatch_Model is
     function Extra (Item : Child) return Integer;
     type Leaf is new Child with null record;
     overriding function Value (Item : Leaf) return Integer;
+    function Apply (Item : Root'Class) return Integer;
 end Dispatch_Model;

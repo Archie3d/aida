@@ -184,6 +184,12 @@ Value QbeEmitter::comparePrimitiveRecord(const Value& left, const Value& right, 
 Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* type)
 {
     Type* record = baseType(type);
+    if (record->m_classRoot != nullptr) {
+        std::string result = newTemp();
+        line(result + " =w call $__ada_tagged_equal(l " + left.name + ", l " + right.name + ")");
+        emitExceptionCheck();
+        return Value { result, 'w' };
+    }
     std::string resultSlot = allocScratch(4);
     std::string different = newLabel("recorddifferent");
     std::string done = newLabel("recordcompared");

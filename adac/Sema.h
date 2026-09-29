@@ -124,6 +124,8 @@ private:
     // SemaNames.cpp
     Symbol* lookupName(const std::string& lower, Scope* scope);
     std::vector<Symbol*> lookupAll(const std::string& lower, Scope* scope);
+    Type* classWideType(Type* specific);
+    void dispatchIndeterminate(Expr* expr, Type* controlling);
     Type* resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location);
     void noteReference(Symbol* symbol);
     bool matchesResult(Symbol* subprogram, Type* expected) const;
@@ -221,10 +223,12 @@ private:
     Type* m_numberBaseType = nullptr;
     Type* m_typeSetType = nullptr;
     Type* m_addressType = nullptr;
+    Type* m_tagType = nullptr;
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
+    int m_accessibilityLevel = 0;
     int m_handlerDepth = 0;
     std::vector<LoopStmt*> m_loops;
     std::vector<std::string> m_namePrefix;

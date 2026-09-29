@@ -130,6 +130,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         }
         adaptUniversal(qualified->operand.get(), type);
         expr->type = type;
+        expr->m_tagIndeterminate = qualified->operand->m_tagIndeterminate;
         expr->isStatic = type != nullptr && type->kind != TypeKind::Fixed && qualified->operand->isStatic && type != nullptr && type->m_scalarBoundsSymbol == nullptr;
         if (expr->isStatic && type->m_modulus != 0
             && (qualified->operand->staticValue < type->low || qualified->operand->staticValue > type->high)) {
@@ -158,11 +159,11 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if (designated->m_classRoot != nullptr) {
-        m_diagnostics.error(expr->location, "class-wide allocators are not yet supported");
+    if (designated->m_classRoot != nullptr && expr->value == nullptr) {
+        m_diagnostics.error(expr->location, "a class-wide allocator requires an initializer");
         return nullptr;
     }
-    if (rootType(designated) != rootType(access->target)) {
+    if (!typesCompatible(access->target, designated)) {
         m_diagnostics.error(expr->location, "an allocator for '" + access->name + "' has to make a '"
                                                 + (access->target != nullptr ? access->target->name : "?") + "'");
         return nullptr;
@@ -213,13 +214,6 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
 Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
 {
-    for (Type* operand : expressionTypes(expr->left.get(), scope)) {
-        if (operand->m_classRoot != nullptr) {
-            m_diagnostics.error(expr->location, "class-wide operators are not yet supported");
-            expr->type = m_types.booleanType();
-            return expr->type;
-        }
-    }
     if (expr->operatorCall != nullptr) {
         return expr->type;
     }
@@ -259,6 +253,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 operands.push_back(std::move(expr->right));
                 expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
                 expr->type = chosen.result;
+                expr->m_tagIndeterminate = expr->operatorCall->m_tagIndeterminate;
                 expr->isStatic = false;
                 return expr->type;
             }
@@ -468,6 +463,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
             operands.push_back(std::move(expr->operand));
             expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
             expr->type = chosen.result;
+            expr->m_tagIndeterminate = expr->operatorCall->m_tagIndeterminate;
             expr->isStatic = false;
             return expr->type;
         }

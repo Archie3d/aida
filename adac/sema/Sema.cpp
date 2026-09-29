@@ -62,6 +62,8 @@ void Sema::setupStandardScope()
 
     m_addressType = m_types.create(TypeKind::Access, "Address");
     addTypeTo(system->scope, m_addressType);
+    m_tagType = m_types.create(TypeKind::Access, "Tag");
+    m_tagType->privateTo = m_symbolTable.createSymbol(SymbolKind::Package, "ada.tags", "Ada.Tags");
 
     // Handler bindings exist even without a with clause for Ada.Exceptions.
     // Its source declaration later completes this same canonical type.

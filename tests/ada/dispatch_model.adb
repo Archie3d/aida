@@ -15,4 +15,8 @@ package body Dispatch_Model is
     begin
         return Item.X + Item.Y + 1;
     end Value;
+    function Apply (Item : Root'Class) return Integer is
+    begin
+        return Value (Item);
+    end Apply;
 end Dispatch_Model;

@@ -50,17 +50,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
             m_diagnostics.error(location, "'Class requires a specific tagged type");
             return nullptr;
         }
-        if (specific->m_classWide == nullptr) {
-            Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
-            *wide = *specific;
-            wide->base = nullptr;
-            wide->name = specific->name + "'Class";
-            wide->m_classRoot = specific;
-            wide->m_primitives.clear();
-            wide->m_declarationScope = nullptr;
-            specific->m_classWide = wide;
-        }
-        return specific->m_classWide;
+        return classWideType(specific);
     }
     if (lower.ends_with("'base")) {
         Type* prefix = resolveTypeName(lower.substr(0, lower.size() - 5), scope, location);
@@ -197,6 +187,11 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         return expr->type;
     case SymbolKind::Subprogram:
         expr->type = chosen->returnType;
+        expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
+            && rootType(chosen->returnType) == chosen->m_controllingType
+            && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
+                return rootType(parameter->type) == chosen->m_controllingType;
+            });
         return expr->type;
     case SymbolKind::TypeName:
         expr->type = chosen->type;
@@ -246,6 +241,11 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         noteReference(chosen);
         if (chosen->kind == SymbolKind::Subprogram) {
             expr->type = chosen->returnType;
+            expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
+                && rootType(chosen->returnType) == chosen->m_controllingType
+                && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
+                    return rootType(parameter->type) == chosen->m_controllingType;
+                });
         } else {
             expr->type = chosen->type;
             if (chosen->kind == SymbolKind::EnumerationLiteral) {
@@ -333,4 +333,54 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     }
     m_diagnostics.error(expr->location, "'" + expr->selector + "' is not a component of type '" + record->name + "'");
     return nullptr;
+}
+
+Type* Sema::classWideType(Type* specific)
+{
+    specific = rootType(specific);
+    if (specific->m_classWide == nullptr) {
+        Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
+        *wide = *specific;
+        wide->base = nullptr;
+        wide->name = specific->name + "'Class";
+        wide->m_classRoot = specific;
+        wide->m_primitives.clear();
+        wide->m_declarationScope = nullptr;
+        specific->m_classWide = wide;
+    }
+    return specific->m_classWide;
+}
+
+// Resolution has already selected the specific operation. A surrounding
+// dispatch or class-wide assignment supplies the tag without re-resolving names.
+void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
+{
+    if (expr == nullptr || !expr->m_tagIndeterminate) {
+        return;
+    }
+    if (expr->m_implicitCall != nullptr) {
+        dispatchIndeterminate(expr->m_implicitCall.get(), controlling);
+    } else if (expr->kind == ExprKind::Qualified) {
+        dispatchIndeterminate(static_cast<QualifiedExpr*>(expr)->operand.get(), controlling);
+    } else if (expr->kind == ExprKind::Binary) {
+        dispatchIndeterminate(static_cast<BinaryExpr*>(expr)->operatorCall.get(), controlling);
+    } else if (expr->kind == ExprKind::Unary) {
+        dispatchIndeterminate(static_cast<UnaryExpr*>(expr)->operatorCall.get(), controlling);
+    } else if (expr->kind == ExprKind::Call) {
+        auto* call = static_cast<CallExpr*>(expr);
+        if (call->operatorExpression != nullptr) {
+            dispatchIndeterminate(call->operatorExpression.get(), controlling);
+        }
+        if (call->subprogram != nullptr && call->subprogram->m_controllingType == controlling) {
+            call->m_dispatching = true;
+            for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
+                if (rootType(call->subprogram->parameters[i]->type) == controlling) {
+                    dispatchIndeterminate(call->resolvedArguments[i], controlling);
+                }
+            }
+        }
+    }
+    if (rootType(expr->type) == controlling) {
+        expr->type = classWideType(controlling);
+    }
 }

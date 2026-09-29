@@ -177,7 +177,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         auto* selected = static_cast<SelectedExpr*>(expr->prefix.get());
         prefixIsType = selected->symbol != nullptr && selected->symbol->kind == SymbolKind::TypeName;
     } else if (expr->prefix->kind == ExprKind::Attribute) {
-        prefixIsType = static_cast<AttributeExpr*>(expr->prefix.get())->lower == "base";
+        prefixIsType = static_cast<AttributeExpr*>(expr->prefix.get())->lower == "base"
+            || static_cast<AttributeExpr*>(expr->prefix.get())->lower == "class";
     }
     expr->prefixType = prefixType;
     if (expr->lower == "identity") {
@@ -193,6 +194,25 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->exceptionSymbol = symbol;
         expr->type = m_exceptionIdType;
+        return expr->type;
+    }
+    if (expr->lower == "class") {
+        if (!prefixIsType || prefixType == nullptr || !prefixType->m_tagged || prefixType->m_classRoot != nullptr) {
+            m_diagnostics.error(expr->location, "'Class requires a specific tagged type");
+            return nullptr;
+        }
+        expr->type = classWideType(prefixType);
+        return expr->type;
+    }
+    if (expr->lower == "tag" || expr->lower == "external_tag") {
+        if (prefixType == nullptr || !prefixType->m_tagged || !expr->arguments.empty()
+            || (prefixIsType && prefixType->m_classRoot != nullptr)
+            || (expr->lower == "external_tag" && !prefixIsType)) {
+            m_diagnostics.error(expr->location, "tag attributes require a specific tagged subtype or a tagged object");
+            return nullptr;
+        }
+        expr->type = expr->lower == "tag" ? m_tagType : m_types.stringType();
+        expr->prefixType = prefixType;
         return expr->type;
     }
     if (expr->lower == "base") {
@@ -301,6 +321,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
+        if (base != nullptr && base->m_classRoot != nullptr) {
+            m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
+            return nullptr;
+        }
         if (base != nullptr && base->m_scalarBoundsSymbol != nullptr) {
             m_diagnostics.error(expr->location, "stream attributes for runtime scalar subtypes are not yet supported");
             return nullptr;

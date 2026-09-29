@@ -83,6 +83,33 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         line(length + " =w copy " + size);
         return Value { temp, 'l', "1", length };
     }
+    if (name == "tag" || name == "external_tag") {
+        Symbol* symbol = nullptr;
+        if (expr->prefix->kind == ExprKind::Identifier) {
+            symbol = static_cast<IdentifierExpr*>(expr->prefix.get())->symbol;
+        } else if (expr->prefix->kind == ExprKind::Selected) {
+            symbol = static_cast<SelectedExpr*>(expr->prefix.get())->symbol;
+        }
+        Value tag;
+        if (symbol != nullptr && symbol->kind == SymbolKind::TypeName) {
+            tag = typeTag(prefixType);
+        } else {
+            Value object = emitExpr(expr->prefix.get());
+            tag = Value { newTemp(), 'l' };
+            line(tag.name + " =l loadl " + object.name);
+        }
+        if (name == "tag") {
+            return tag;
+        }
+        std::string text = newTemp();
+        std::string length = newTemp();
+        std::string count = newTemp();
+        line(text + " =l call $__ada_tag_name(l " + tag.name + ")");
+        emitExceptionCheck();
+        line(length + " =l call $strlen(l " + text + ")");
+        line(count + " =w copy " + length);
+        return Value { text, 'l', "1", count };
+    }
     if (name == "address") {
         Value address = isComposite(prefixType) ? emitExpr(expr->prefix.get()) : emitAddress(expr->prefix.get());
         return Value { address.name, 'l' };

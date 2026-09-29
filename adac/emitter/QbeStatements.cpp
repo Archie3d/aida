@@ -162,7 +162,18 @@ void QbeEmitter::emitStatement(Stmt* statement)
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* resultType = m_context->symbol == nullptr ? nullptr : m_context->symbol->returnType;
         if (returnStatement->value && isComposite(resultType)) {
-            if (isUnconstrainedArray(resultType)) {
+            if (resultType->m_tagged) {
+                Value value;
+                if (resultType->m_classRoot != nullptr) {
+                    value = emitExpr(returnStatement->value.get());
+                    checkTagLevel(value, m_context->symbol->m_accessibilityLevel);
+                } else {
+                    value = Value { allocScratch(typeSize(resultType)), 'l' };
+                    assignInto(value, resultType, returnStatement->value.get(), true);
+                }
+                line("call $__ada_tagged_result(l %.result, l " + value.name + ")");
+                emitExceptionCheck();
+            } else if (isUnconstrainedArray(resultType)) {
                 Value value = emitExpr(returnStatement->value.get());
                 value = withBounds(value, returnStatement->value->type, nullptr);
                 if (resultType->m_boundsSymbol != nullptr) {

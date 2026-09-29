@@ -21,11 +21,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         Value result = emitCall(&inherited);
         if (expr->type != nullptr && expr->type->m_tagged
             && rootType(expr->type) != rootType(inherited.subprogram->returnType)) {
-            line("storel " + rootType(expr->type)->m_tagName + ", " + result.name);
+            line("storel " + typeTag(expr->type).name + ", " + result.name);
         }
         return result;
     }
-    if (subprogram->m_negatedEquality != nullptr) {
+    if (!expr->m_dispatching && subprogram->m_negatedEquality != nullptr) {
         CallExpr equality;
         equality.location = expr->location;
         equality.form = CallForm::Subprogram;
@@ -79,6 +79,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         return result;
     }
 
+    bool dispatchEquality = expr->m_dispatching && (subprogram->name == "=" || subprogram->name == "/=")
+        && subprogram->parameters.size() == 2
+        && rootType(subprogram->parameters[0]->type) == subprogram->m_controllingType
+        && rootType(subprogram->parameters[1]->type) == subprogram->m_controllingType;
     std::string callee = subprogram->qbeName;
     std::string indirectLink;
     if (expr->m_indirect) {
@@ -103,17 +107,43 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::vector<std::string> arguments;
     bool compositeResult = isComposite(subprogram->returnType);
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
+    bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->m_tagged;
     std::string resultStorage;
     if (compositeResult) {
-        resultStorage = allocScratch(dynamicResult ? 24 + 8 * (subprogram->returnType->arrayRank - 1) : std::max(1LL, typeSize(subprogram->returnType)));
+        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? 24 + 8 * (subprogram->returnType->arrayRank - 1) : std::max(1LL, typeSize(subprogram->returnType)));
         arguments.push_back("l " + resultStorage);
     }
-    if (subprogram->level > 0) {
+    if (subprogram->level > 0 && !expr->m_dispatching) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
     }
 
+    struct TagContext
+    {
+        std::string& m_current;
+        std::string m_saved;
+        ~TagContext()
+        {
+            m_current = m_saved;
+        }
+    } tagContext { m_context->m_controllingTag, m_context->m_controllingTag };
     std::string controllingTag;
+    std::vector<Value> controllingValues(subprogram->parameters.size());
+    if (expr->m_dispatching) {
+        for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
+            Expr* argument = expr->resolvedArguments[i];
+            if (rootType(subprogram->parameters[i]->type) == subprogram->m_controllingType
+                && !argument->m_tagIndeterminate) {
+                Value value = emitExpr(argument);
+                controllingValues[i] = value;
+                if (m_context->m_controllingTag == tagContext.m_saved) {
+                    std::string tag = newTemp();
+                    line(tag + " =l loadl " + value.name);
+                    m_context->m_controllingTag = tag;
+                }
+            }
+        }
+    }
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];
@@ -137,7 +167,8 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 continue;
             }
             // Composite values are already addresses and carry their bounds.
-            Value value = isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
+            Value value = !controllingValues[i].name.empty() ? controllingValues[i]
+                : isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
             if (parameter->type->m_boundsSymbol != nullptr) {
                 Value target = withBounds(Value {}, parameter->type, nullptr);
                 checkArrayShape(target, parameter->type, value, argument->type);
@@ -150,10 +181,6 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 line(tag + " =l loadl " + value.name);
                 if (controllingTag.empty()) {
                     controllingTag = tag;
-                    std::string slot = newTemp();
-                    callee = newTemp();
-                    line(slot + " =l add " + tag + ", " + std::to_string(24 + 8 * subprogram->m_dispatchSlot));
-                    line(callee + " =l loadl " + slot);
                 } else {
                     std::string same = newTemp();
                     std::string valid = newLabel("sametag");
@@ -186,6 +213,31 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
     }
 
+    if (expr->m_dispatching) {
+        if (controllingTag.empty()) {
+            controllingTag = m_context->m_controllingTag;
+        }
+        if (controllingTag.empty()) {
+            m_diagnostics.error(expr->location, "a dispatching result requires a controlling tag");
+            return Value { "0", 'l' };
+        }
+        std::string tableSlot = newTemp();
+        std::string table = newTemp();
+        std::string slot = newTemp();
+        std::string linkSlot = newTemp();
+        callee = newTemp();
+        indirectLink = newTemp();
+        if (dispatchEquality) {
+            line(slot + " =l add " + controllingTag + ", 32");
+        } else {
+            line(tableSlot + " =l add " + controllingTag + ", 24");
+            line(table + " =l loadl " + tableSlot);
+            line(slot + " =l add " + table + ", " + std::to_string(16 * subprogram->m_dispatchSlot));
+        }
+        line(callee + " =l loadl " + slot);
+        line(linkSlot + " =l add " + slot + ", 8");
+        line(indirectLink + " =l loadl " + linkSlot);
+    }
     std::string argumentList;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (i > 0) {
@@ -205,12 +257,16 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         line("call " + callee + "(" + actuals + ")");
         return Value { "0", 'w' };
     };
-    if (expr->m_indirect) {
+    if (expr->m_indirect || expr->m_dispatching) {
         std::string nested = newLabel("nestedcallback");
         std::string library = newLabel("librarycallback");
         std::string done = newLabel("callbackdone");
         std::string hasLink = newTemp();
-        line(hasLink + " =w cnel " + indirectLink + ", 0");
+        if (dispatchEquality) {
+            line(hasLink + " =w copy 1");
+        } else {
+            line(hasLink + " =w cnel " + indirectLink + ", 0");
+        }
         branch(Value { hasLink, 'w' }, nested, library);
         label(nested);
         std::vector<std::string> linked = arguments;
@@ -235,7 +291,21 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     emitExceptionCheck();
-    if (dynamicResult) {
+    if (dispatchEquality && subprogram->name == "/=") {
+        std::string negated = newTemp();
+        line(negated + " =w ceqw " + result.name + ", 0");
+        result = Value { negated, 'w' };
+    }
+    if (taggedResult) {
+        std::string pointer = newTemp();
+        line(pointer + " =l loadl " + resultStorage);
+        line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
+        emitExceptionCheck();
+        result = Value { pointer, 'l' };
+        if (expr->m_dispatching && rootType(subprogram->returnType) == subprogram->m_controllingType) {
+            line("storel " + controllingTag + ", " + pointer);
+        }
+    } else if (dynamicResult) {
         // Adopt the transfer buffer into the caller's expression lifetime.
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + resultStorage);
@@ -282,7 +352,6 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
     std::vector<std::string> arguments;
 
-    std::string controllingTag;
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];

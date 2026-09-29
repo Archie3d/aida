@@ -1,10 +1,10 @@
 classwideerrors.adb:17:9: error: a tagged primitive cannot be declared after derivation from its type
-classwideerrors.adb:19:5: error: class-wide owned objects are not yet supported
-classwideerrors.adb:20:5: error: class-wide array components are not yet supported
-classwideerrors.adb:22:9: error: class-wide record components are not yet supported
+classwideerrors.adb:19:5: error: a class-wide object requires an initializer
+classwideerrors.adb:20:5: error: an array component requires a definite subtype
+classwideerrors.adb:22:9: error: a record component requires a definite subtype
 classwideerrors.adb:24:5: error: a class-wide type cannot be a derivation parent
-classwideerrors.adb:25:32: error: class-wide function results are not yet supported
-classwideerrors.adb:26:30: error: 'Class requires a specific tagged type
-classwideerrors.adb:30:14: error: all controlling operands of a dispatching call must be class-wide
-classwideerrors.adb:31:9: error: class-wide assignment requires a dynamically tagged value
-classwideerrors.adb:32:22: error: class-wide operators are not yet supported
+classwideerrors.adb:25:30: error: 'Class requires a specific tagged type
+classwideerrors.adb:29:29: error: a class-wide allocator requires an initializer
+classwideerrors.adb:32:14: error: all controlling operands of a dispatching call must be class-wide
+classwideerrors.adb:33:9: error: class-wide assignment requires a dynamically tagged value
+classwideerrors.adb:34:19: error: class-wide streaming requires tag-aware stream support

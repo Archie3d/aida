@@ -162,7 +162,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         Symbol* designated = lookupName(allocator->subtype->lower, scope);
         if (expected != nullptr && expected->kind == TypeKind::Access && designated != nullptr
             && designated->kind == SymbolKind::TypeName
-            && rootType(expected->target) == rootType(designated->type)) {
+            && typesCompatible(expected->target, designated->type)) {
             add(expected);
         }
         break;
@@ -255,7 +255,19 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 std::vector<std::size_t> positions;
                 if (symbol->returnType != nullptr && matchesResult(symbol, expected)
                     && matchCallArguments(call, symbol, scope, positions)) {
-                    add(symbol->returnType);
+                    Type* resultType = symbol->returnType;
+                    if (symbol->m_controllingType != nullptr && rootType(resultType) == symbol->m_controllingType) {
+                        for (std::size_t i = 0; i < positions.size(); ++i) {
+                            if (rootType(symbol->parameters[positions[i]]->type) == symbol->m_controllingType) {
+                                for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
+                                    if (actual->m_classRoot == symbol->m_controllingType) {
+                                        resultType = classWideType(symbol->m_controllingType);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    add(resultType);
                 }
             } else if (symbol->kind == SymbolKind::TypeName) {
                 callable = true;
@@ -343,6 +355,10 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     }
     case ExprKind::Qualified: {
         auto* qualified = static_cast<QualifiedExpr*>(expr);
+        if (qualified->typeLower.ends_with("'class")) {
+            add(resolveTypeName(qualified->typeLower, scope, expr->location));
+            break;
+        }
         Symbol* symbol = lookupName(qualified->typeLower, scope);
         if (symbol != nullptr && symbol->kind == SymbolKind::TypeName) {
             add(symbol->type);
@@ -369,6 +385,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.stringType());
         } else if (name == "address") {
             add(m_addressType);
+        } else if (name == "tag") {
+            add(m_tagType);
+        } else if (name == "external_tag") {
+            add(m_types.stringType());
+        } else if (name == "class") {
+            for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
+                if (prefix->m_tagged && prefix->m_classRoot == nullptr) {
+                    add(classWideType(prefix));
+                }
+            }
         } else if (name == "identity") {
             add(m_exceptionIdType);
         } else if (name == "pos" || name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {

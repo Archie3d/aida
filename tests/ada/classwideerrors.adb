@@ -22,14 +22,16 @@ procedure ClasswideErrors is
         Item : Root'Class;
     end record;
     type Bad_Parent is new Root'Class with null record;
-    function Bad_Result return Root'Class;
     type Bad_Class is access Integer'Class;
+    type Stream is access Integer;
+    S : Stream;
+    type Link is access Root'Class;
+    Bad_Allocator : Link := new Root'Class;
     procedure Bad_Calls (Left : in out Root'Class; Right : Root) is
-        Same : Boolean;
     begin
         Pair (Left, Right);
         Left := Right;
-        Same := Left = Left;
+        Root'Class'Read (S, Left);
     end Bad_Calls;
 begin
     null;

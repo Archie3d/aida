@@ -444,9 +444,10 @@ happens to work for one instantiation.
 
 ## 5. Tagged records and object-oriented features
 
-Stages 1 and 2 provide primitive inheritance and static tagged records. Stage 3
-now supports class-wide parameters and dispatch; class-wide ownership and results
-remain follow-up work. Object finalization remains stage 4.
+Stages 1 through 3 are complete for the supported fixed-size, nondiscriminated,
+single-inheritance tagged subset. Class-wide storage, results, dispatch, operators,
+and the narrow-string tag API are implemented. Object finalization remains stage 4;
+abstract types, interfaces, and wider tagged forms remain separate extensions below.
 
 - [x] Stage 1: collect user-defined primitives declared in the type's package
   specification and inherit visible operations into derived types. Substitute
@@ -477,9 +478,10 @@ remain follow-up work. Object finalization remains stage 4.
   `taggedlayout.adb`, including C layout checks, separate compilation, and
   determinism. The complete suite passed all 251 tests after stage 2.
 - [x] Stage 3, parameter milestone: distinct class-wide types (`T'Class`) and
-  class-wide parameters. Append code-pointer slots to the parent/size/alignment
-  descriptor prefix; preserve inherited slot numbers, including hidden slots,
-  and replace slots on overriding. Preserve slots and class-wide identity through
+  class-wide parameters. Preserve the parent/size/alignment descriptor prefix;
+  its dispatch table now pairs each code pointer with the implementation's enclosing
+  frame. Preserve inherited slot numbers, including hidden slots, and replace slots
+  on overriding. Preserve slots and class-wide identity through
   tagged private completions. Diagnose new primitives or overrides after derivation.
 - [x] Dispatch calls with class-wide controlling operands while retaining static
   calls for specific operands and explicit ancestor views. Share ordinary argument
@@ -496,14 +498,35 @@ remain follow-up work. Object finalization remains stage 4.
   dispatch, static calls, captured variables, private completions, separate
   compilation, tag mismatches, failed conversions, dynamic size/copying, and
   determinism. The complete suite passed all 255 tests after this milestone.
-- [ ] Finish stage 3: class-wide owned objects, allocators and components;
-  class-wide function results and dispatching tagged results. Define dynamic
-  storage ownership, result transfer, and exception cleanup before enabling them.
-- [ ] Add class-wide operators, including equality, and the public tag API.
-  These remain unsupported in the parameter milestone.
-- [ ] Support overriding dispatching operations with controlling parameters across
-  lexical owners. The current ABI requires the original enclosing frame; such
-  overrides are explicitly rejected until dispatch can supply the correct link.
+- [x] Finish stage 3 storage: initialized class-wide owned objects and allocators,
+  with dynamic size and independent copies. Local objects use the existing arena
+  cleanup boundaries; allocated objects support `Unchecked_Deallocation`.
+  Access-to-class-wide components are supported. Direct class-wide array/record
+  components remain illegal because their subtype is indefinite, rather than a
+  missing storage feature. Uninitialized class-wide objects/allocators are rejected.
+- [x] Class-wide function results and dispatching tagged results transfer a heap
+  copy into the caller's temporary arena. Preserve extension payloads and tags,
+  support controlling-result calls whose tag comes from an assignment or another
+  controlling operand, and reclaim transfers on normal and exceptional exits.
+- [x] Class-wide primitive operators and equality. Equal tags select the complete
+  specific equality implementation, including user-defined parent equality and
+  extension fields; different tags compare unequal. Preserve single evaluation
+  and propagate exceptions from equality implementations.
+- [x] Implement `Ada.Tags.Tag`, `No_Tag`, `Tag_Error`, `'Tag`, `'External_Tag`,
+  `Expanded_Name`, `External_Tag`, `Internal_Tag`, `Descendant_Tag`,
+  `Is_Descendant_At_Same_Level`, `Parent_Tag`, `Is_Abstract`, and
+  `Interface_Ancestor_Tags`. The supported concrete, interface-free subset returns
+  false for `Is_Abstract` and an empty interface-tag array. Wide-name variants
+  follow wide-character/string support in section 6.
+- [x] Dispatch across lexical owners using the selected implementation's saved
+  frame, including local overrides of library primitives and recursive activations.
+  Local type elaborations receive distinct tags; metadata remains available for
+  tag queries until program exit. Accessibility checks reject class-wide results
+  and allocations that would escape their type's subprogram or block master.
+  Covered by `classwideobjects.adb`, `classwideframes.adb`, and
+  `classwidechecks.adb`, plus separate compilation and determinism tests.
+  `runtime.array_storage` instruments tagged-result allocation, adoption, failure,
+  rewind, and tag-metadata cleanup. The complete suite passed all 260 tests.
 - [ ] Extend tagged support to discriminants, private extensions and extensions
   of private views, limited definitions, and inherited tagged subprogram
   `'Access`. Tagged size clauses are currently rejected. Complete the wider
@@ -514,10 +537,10 @@ remain follow-up work. Object finalization remains stage 4.
   object finalization order, copy/adjust semantics, temporary cleanup, and
   finalization on return and deallocation.
 
-Remaining acceptance tests: class-wide owned values and returned results,
-class-wide equality, dispatch across different enclosing frames, abstract-operation
-rejection, controlled copies and returns, and finalization during exception
-propagation and deallocation.
+Remaining acceptance tests for later stages: abstract-operation rejection,
+controlled copies and returns, and finalization during exception propagation and
+deallocation. Extend the tagged regressions alongside discriminants, interfaces,
+private extensions, and wide-character support.
 
 ## 6. Larger runtime and library extensions
 
@@ -533,6 +556,7 @@ These are later projects with substantial runtime requirements.
 - [ ] Complete streaming by type/components, including bounds and discriminants,
   user-defined stream operations, and a real stream abstraction. Current stream
   support largely transfers object bytes rather than implementing all type semantics.
+  Class-wide streaming is explicitly rejected until tag-aware streams are implemented.
 - [x] Integer `'Value` accepts based literals, underscores and nonnegative
   exponents, with malformed-input, overflow and range checks. `Integer_IO.Get`
   uses this parser. Covered by `valuebased.adb`, `valueparsing.adb`, and

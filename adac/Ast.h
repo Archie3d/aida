@@ -79,6 +79,7 @@ struct Expr : Node
     }
 
     ExprKind kind;
+    bool m_tagIndeterminate = false;
     std::unique_ptr<Expr> m_implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
     bool isStatic = false;

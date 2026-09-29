@@ -13,6 +13,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     if (expr->operatorExpression != nullptr) {
         expr->type = analyzeExpr(expr->operatorExpression.get(), scope, expected);
         expr->isStatic = expr->operatorExpression->isStatic;
+        expr->m_tagIndeterminate = expr->operatorExpression->m_tagIndeterminate;
         expr->staticValue = expr->operatorExpression->staticValue;
         expr->staticReal = expr->operatorExpression->staticReal;
         return expr->type;
@@ -348,7 +349,22 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
             }
         }
+        expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
+            && rootType(chosen->returnType) == chosen->m_controllingType
+            && !expr->m_dispatching;
+        for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
+            if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType) {
+                expr->m_tagIndeterminate = expr->m_tagIndeterminate && expr->resolvedArguments[i] != nullptr
+                    && expr->resolvedArguments[i]->m_tagIndeterminate;
+            }
+        }
         if (expr->m_dispatching) {
+            for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
+                if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
+                    && expr->resolvedArguments[i] != nullptr && expr->resolvedArguments[i]->m_tagIndeterminate) {
+                    dispatchIndeterminate(expr->resolvedArguments[i], chosen->m_controllingType);
+                }
+            }
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
                 if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
                     && expr->resolvedArguments[i] != nullptr
@@ -357,11 +373,12 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                     m_diagnostics.error(expr->location, "all controlling operands of a dispatching call must be class-wide");
                 }
             }
-            if (chosen->returnType != nullptr && chosen->returnType->m_tagged) {
-                m_diagnostics.error(expr->location, "dispatching tagged function results are not yet supported");
-            }
         }
         expr->type = chosen->returnType;
+        if (expr->m_dispatching && chosen->returnType != nullptr
+            && rootType(chosen->returnType) == chosen->m_controllingType) {
+            expr->type = classWideType(chosen->m_controllingType);
+        }
         return expr->type;
     }
 

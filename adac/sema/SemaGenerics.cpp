@@ -689,7 +689,8 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (actual->kind == ExprKind::Identifier) {
                 type = resolveTypeName(static_cast<IdentifierExpr*>(actual)->lower, scope, actual->location);
             } else if (actual->kind == ExprKind::Attribute
-                       && static_cast<AttributeExpr*>(actual)->lower == "base") {
+                       && (static_cast<AttributeExpr*>(actual)->lower == "base"
+                           || static_cast<AttributeExpr*>(actual)->lower == "class")) {
                 type = analyzeAttribute(static_cast<AttributeExpr*>(actual), scope);
             } else if (actual->kind == ExprKind::Selected) {
                 auto* selected = static_cast<SelectedExpr*>(actual);

@@ -120,8 +120,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
 
-    if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming) {
-        m_diagnostics.error(decl->location, "class-wide owned objects are not yet supported");
+    if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
+        m_diagnostics.error(decl->location, "a class-wide object requires an initializer");
         return;
     }
     if (decl->m_isRenaming) {
@@ -211,10 +211,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
         symbol->m_objectReference = decl->m_isRenaming;
+        symbol->m_classWideObject = type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
         symbol->location = decl->location;
         symbol->owner = m_currentSubprogram;
+        symbol->m_accessibilityLevel = m_accessibilityLevel;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         if (symbol->isGlobal) {
@@ -278,9 +280,6 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
-    if (returnType != nullptr && returnType->m_classRoot != nullptr) {
-        m_diagnostics.error(spec.returnType->location, "class-wide function results are not yet supported");
-    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";
@@ -407,6 +406,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->m_declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
+    symbol->m_accessibilityLevel = m_accessibilityLevel;
     if (symbol->owner != nullptr) {
         // Every intervening lexical level needs a link, even when it has no
         // captured variables of its own. Defaults can read through that level.
@@ -501,6 +501,8 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 
     Symbol* savedSubprogram = m_currentSubprogram;
     m_currentSubprogram = symbol;
+    int savedAccessibility = m_accessibilityLevel;
+    m_accessibilityLevel = symbol->m_accessibilityLevel + 1;
     int savedHandlerDepth = m_handlerDepth;
     m_handlerDepth = 0;
     m_namePrefix.push_back(symbol->name);
@@ -511,6 +513,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 
     m_namePrefix.pop_back();
     m_currentSubprogram = savedSubprogram;
+    m_accessibilityLevel = savedAccessibility;
     m_handlerDepth = savedHandlerDepth;
 }
 
@@ -530,7 +533,7 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
 
     // The run time raises the input output exceptions itself, so those stand
     // for objects it owns rather than ones emitted from this declaration.
-    bool predefined = m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "io_exceptions";
+    bool predefined = m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && (m_namePrefix[1] == "io_exceptions" || m_namePrefix[1] == "tags");
 
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, decl->namesLower[i], decl->names[i]);

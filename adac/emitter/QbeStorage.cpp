@@ -91,7 +91,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         }
         address = Value { it->second, 'l' };
     }
-    if (symbol->m_objectReference) {
+    if (symbol->m_objectReference || symbol->m_classWideObject) {
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + address.name);
         address.name = pointer;
@@ -159,8 +159,18 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     if (value == nullptr) {
         return;
     }
+    if (type != nullptr && type->m_classRoot != nullptr && !initialize) {
+        std::string saved = m_context->m_controllingTag;
+        std::string tag = newTemp();
+        line(tag + " =l loadl " + address.name);
+        m_context->m_controllingTag = tag;
+        Value source = emitExpr(value);
+        m_context->m_controllingTag = saved;
+        copyInto(address, source, type);
+        return;
+    }
     if (initialize && type != nullptr && type->m_tagged) {
-        line("storel " + rootType(type)->m_tagName + ", " + address.name);
+        line("storel " + typeTag(type).name + ", " + address.name);
     }
     if (value->kind == ExprKind::Aggregate && type != nullptr && type->m_tagged && !initialize) {
         Value source = emitAggregate(static_cast<AggregateExpr*>(value));
@@ -283,7 +293,7 @@ Value QbeEmitter::taggedMembership(const Value& object, Type* target)
     branch(Value { nonzero, 'w' }, compare, done);
     label(compare);
     std::string same = newTemp();
-    line(same + " =w ceql " + current + ", " + target->m_tagName);
+    line(same + " =w ceql " + current + ", " + typeTag(target).name);
     branch(Value { same, 'w' }, found, parent);
     label(parent);
     std::string next = newTemp();
@@ -297,4 +307,21 @@ Value QbeEmitter::taggedMembership(const Value& object, Type* target)
     std::string answer = newTemp();
     line(answer + " =w loadw " + result);
     return Value { answer, 'w' };
+}
+
+Value QbeEmitter::taggedSize(const Value& object)
+{
+    std::string tag = newTemp();
+    std::string slot = newTemp();
+    std::string size = newTemp();
+    line(tag + " =l loadl " + object.name);
+    line(slot + " =l add " + tag + ", 8");
+    line(size + " =l loadl " + slot);
+    return Value { size, 'l' };
+}
+
+void QbeEmitter::checkTagLevel(const Value& object, int level)
+{
+    line("call $__ada_tag_check_level(l " + object.name + ", w " + std::to_string(level) + ")");
+    emitExceptionCheck();
 }

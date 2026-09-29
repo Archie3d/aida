@@ -120,6 +120,21 @@ void __ada_array_adopt(void** owner, void* data);
    and a 64-bit transfer size. The caller owns and releases the buffer. */
 void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize);
 
+/* Tagged descriptors preserve their first three layout words. Local tag
+   metadata survives its master for tag queries; object escape checks protect
+   the captured frames. Tagged results transfer a heap copy to the caller. */
+void __ada_tag_register(void* tag);
+void* __ada_tag_create(const void* templateTag, void* parent, void* master);
+void __ada_tag_check_level(const void* object, int level);
+void __ada_tagged_result(void** result, const void* object);
+int __ada_tagged_equal(const void* left, const void* right);
+const char* __ada_tag_name(const void* tag);
+void* __ada_tag_parent(void* tag);
+int __ada_tag_is_descendant(void* descendant, void* ancestor);
+void* __ada_tag_internal(const char* name, int length);
+void* __ada_tag_descendant(const char* name, int length, void* ancestor);
+int __ada_tag_is_abstract(void* tag);
+
 /* Exact fixed-point text conversion; values use signed scaled counts. */
 const char* __ada_image_fixed(long long value, int bits, int aft);
 long long __ada_value_fixed(const char* text, int length, int bits, long long low, long long high);

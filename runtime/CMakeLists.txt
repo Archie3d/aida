@@ -12,6 +12,7 @@ endif()
 target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/adatags.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adaio.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adafixed.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adanumerics.c

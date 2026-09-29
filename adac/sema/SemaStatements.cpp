@@ -160,8 +160,11 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
         }
         if (targetType != nullptr && targetType->m_classRoot != nullptr
-            && valueType != nullptr && valueType->m_classRoot == nullptr) {
+            && valueType != nullptr && valueType->m_classRoot == nullptr && !assign->value->m_tagIndeterminate) {
             m_diagnostics.error(assign->location, "class-wide assignment requires a dynamically tagged value");
+        }
+        if (targetType != nullptr && targetType->m_classRoot != nullptr && assign->value->m_tagIndeterminate) {
+            dispatchIndeterminate(assign->value.get(), targetType->m_classRoot);
         }
         adaptUniversal(assign->value.get(), targetType);
         break;
@@ -329,10 +332,12 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 
     case StmtKind::Block: {
         auto* block = static_cast<BlockStmt*>(statement);
+        ++m_accessibilityLevel;
         Scope* inner = m_symbolTable.createScope(scope);
         analyzeDeclarativePart(block->declarations, inner);
         analyzeStatements(block->body, inner);
         analyzeHandlers(block->handlers, inner);
+        --m_accessibilityLevel;
         break;
     }
 

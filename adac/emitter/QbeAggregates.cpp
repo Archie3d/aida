@@ -404,7 +404,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
             }
         }
         if (target->m_tagged) {
-            line("storel " + rootType(target)->m_tagName + ", " + address.name);
+            line("storel " + typeTag(target).name + ", " + address.name);
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
