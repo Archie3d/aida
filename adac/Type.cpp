@@ -305,6 +305,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->m_tagged = parent->m_tagged;
+    subtype->m_abstract = parent->m_abstract;
+    subtype->m_controlled = parent->m_controlled;
     subtype->m_tagName = parent->m_tagName;
     subtype->m_parentFieldCount = parent->m_parentFieldCount;
     subtype->m_modulus = parent->m_modulus;

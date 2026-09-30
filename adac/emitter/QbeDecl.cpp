@@ -27,7 +27,7 @@ void QbeEmitter::emitTypeTag(Type* type)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
            << ", l " << type->m_tagName << ".slots, l " << type->m_tagName << ".equal, l 0, l "
            << expanded << ", l " << type->m_accessLevel
-           << ", l 0, l " << type->m_dispatchSlots.size() << " }\n";
+           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << " }\n";
     m_data << "export data " << type->m_tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->m_dispatchSlots) {
@@ -64,6 +64,9 @@ void QbeEmitter::emitTypeTag(Type* type)
     equality.terminated = true;
     finishFunction("export function w " + type->m_tagName + ".equal(l %.link, l %left, l %right)");
     m_context = saved;
+    if (type->m_controlled) {
+        emitFinalizer(type);
+    }
 }
 
 void QbeEmitter::collectGlobals(DeclList& declarations)
@@ -268,6 +271,11 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                         line("call $memset(l " + slot.name + ", w 0, l " + std::to_string(size) + ")");
                     }
                     emitDefaultInit(addressOf(symbol), symbol->type);
+                    if (symbol->type->m_controlled) {
+                        emitControlledCall(addressOf(symbol), symbol->type, "initialize");
+                        emitExceptionCheck();
+                        registerControlledObject(addressOf(symbol), symbol->type);
+                    }
                 }
             }
             break;

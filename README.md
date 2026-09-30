@@ -611,11 +611,51 @@ Predefined extension equality combines the parent's primitive equality with
 comparison of the extension fields. Inherited functions returning a non-null
 extension require overriding; null extensions can inherit those functions.
 
-This stage excludes discriminated tagged records, private extensions and
-extensions of private views, abstract/limited tagged definitions, downward
-conversions, tagged size clauses, and `'Access` of inherited tagged operations.
-Class-wide types, dispatching, the public tag API, and a full language visibility
-audit remain separate roadmap items.
+Class-wide objects and results, dispatching, checked downward conversions,
+and the narrow-string `Ada.Tags` API are supported. Discriminated tagged records,
+private extensions, general extensions of private views, abstract operations,
+interfaces, general limited record definitions, tagged size clauses, and
+`'Access` of inherited tagged operations remain unsupported.
+
+`Ada.Finalization` provides the abstract `Controlled` and `Limited_Controlled`
+roots, with null lifecycle procedures. The first controlled-type increment
+supports default-initialized local objects of specific descendants:
+
+```ada
+with Ada.Finalization;
+with Ada.Text_IO; use Ada.Text_IO;
+procedure Scope_Guard is
+    type Guard is new Ada.Finalization.Limited_Controlled with null record;
+    overriding procedure Finalize (Object : in out Guard) is
+    begin
+        Put_Line ("leaving scope");
+    end Finalize;
+    Object : Guard;
+begin
+    Put_Line ("inside scope");
+end Scope_Guard;
+```
+
+Component defaults run before `Initialize`. A successfully initialized object
+is finalized in reverse declaration order on block or subprogram exit, including
+`return`, loop `exit`, and exception propagation. Objects belonging to a handled
+block remain alive throughout that block's handler. Failed initialization does
+not register the object for finalization; previously initialized objects still
+receive cleanup. Finalizers run before storage is released. A failing finalizer
+does not stop the remaining finalizers; cleanup reports `Program_Error`.
+These lifetime rules follow [Ada RM 7.6.1](https://www.adaic.org/resources/add_content/standards/22rm/html/RM-7-6-1.html).
+
+Inherited and overridden hooks work across library units, local packages, and
+recursive activations. Passing an existing object by reference or renaming it
+does not register another lifetime. `Ada.Tags.Is_Abstract` reflects the type's
+abstract flag; direct objects of abstract types are rejected.
+
+Implicit `Adjust`, assignment and explicit initialization of controlled objects,
+controlled components and aggregates, function results, owned class-wide objects,
+allocators/deallocation, library-level objects, streaming, and private controlled
+completions remain unsupported and are diagnosed. These are the remaining parts
+of stage 4; the local lifetime support does not yet enable `Unbounded_String`
+or containers.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

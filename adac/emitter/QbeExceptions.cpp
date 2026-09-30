@@ -75,7 +75,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
                               const std::string& dispatchLabel)
 {
     label(dispatchLabel);
-    rewindStorage(m_context->handlerStorage.at(dispatchLabel));
+    rewindStorage(m_context->handlerStorage.at(dispatchLabel), false);
 
     // Save the occurrence before clearing the pending status. Nested handlers
     // and calls may replace the global while this handler remains active.

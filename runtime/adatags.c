@@ -24,9 +24,10 @@ typedef struct AdaTag
     int64_t level;
     void* master;
     int64_t slotCount;
+    int64_t m_isAbstract;
 } AdaTag;
 
-_Static_assert(sizeof(AdaTag) == 80, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 88, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");
@@ -202,8 +203,7 @@ void* __ada_tag_descendant(const char* name, int length, void* ancestor)
 
 int __ada_tag_is_abstract(void* tag)
 {
-    requireTag(tag);
-    return 0; /* Abstract types are a separate language milestone. */
+    return requireTag(tag) ? ((AdaTag*)tag)->m_isAbstract != 0 : 0;
 }
 
 int __ada_tagged_equal(const void* left, const void* right)

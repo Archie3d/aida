@@ -1,0 +1,10 @@
+library initialize 1
+library initialize 2
+package body
+library initialize 3
+borrowed
+local finalize 42
+library finalize 3
+library finalize 2
+library finalize 1
+library passed

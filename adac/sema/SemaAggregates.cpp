@@ -20,6 +20,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
         return nullptr;
     }
+    if (target->m_controlled || target->m_abstract) {
+        m_diagnostics.error(expr->location, "controlled or abstract aggregates are not yet supported");
+        return nullptr;
+    }
     if (!checkNotPrivate(target, expr->location, "an aggregate spells out the components")) {
         return nullptr;
     }

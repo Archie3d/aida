@@ -45,6 +45,16 @@ static void testFree(void* pointer)
 #undef calloc
 #undef free
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "line %d\n", __LINE__); return 1; } } while (0)
+static int finalizationOrder;
+static void finalizeValue(void* object)
+{
+    int value = *(int*)object;
+    finalizationOrder = finalizationOrder * 10 + value;
+    if (value == 2) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+}
+
 int main(void)
 {
     void* owner = NULL;
@@ -171,9 +181,41 @@ int main(void)
     __ada_trace_leave(&caller);
     __ada_save_occurrence(&saved, &empty);
     CHECK(saved.origin == NULL && saved.traceCount == 0 && liveAllocations == 0);
+    /* Registration and cleanup work even when the next heap allocation fails.
+       A suffix rewind retains earlier records; failing callbacks do not stop it. */
+    AdaFinalization* finalizations = NULL;
+    AdaFinalization firstRecord, secondRecord;
+    int firstObject = 1;
+    int secondObject = 3;
+    __ada_exception = NULL;
+    failNext = 1;
+    __ada_finalization_push(&finalizations, &firstRecord, &firstObject, finalizeValue);
+    __ada_finalization_push(&finalizations, &secondRecord, &secondObject, finalizeValue);
+    __ada_finalize_to(&finalizations, &firstRecord);
+    CHECK(finalizations == &firstRecord && finalizationOrder == 3 && failNext == 1);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(finalizations == NULL && finalizationOrder == 31 && liveAllocations == 0);
+    failNext = 0;
+    finalizationOrder = 0;
+    __ada_raise_message(ADA_STORAGE_ERROR, "original", 8);
+    __ada_finalization_push(&finalizations, &firstRecord, &firstObject, finalizeValue);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 1);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.length == 8 && memcmp(occurrence.message, "original", 8) == 0);
+    __ada_array_release(&owner);
+    finalizationOrder = 0;
+    secondObject = 2;
+    __ada_raise_message(ADA_STORAGE_ERROR, "replaced", 8);
+    __ada_finalization_push(&finalizations, &firstRecord, &firstObject, finalizeValue);
+    __ada_finalization_push(&finalizations, &secondRecord, &secondObject, finalizeValue);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(finalizations == NULL && finalizationOrder == 21);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR && liveAllocations == 0);
+    __ada_exception = NULL;
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };
-    AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1 };
+    AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1, 0 };
     failNext = 1;
     CHECK(__ada_tag_create(&template, NULL, &owner) == NULL);
     CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);

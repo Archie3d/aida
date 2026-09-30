@@ -47,13 +47,31 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
 {
     SourceLocation location = current().location;
 
+    if (match(TokenKind::KwAbstract)) {
+        auto definition = parseTypeDefinition();
+        definition->m_abstract = true;
+        definition->location = location;
+        return definition;
+    }
+
     if (match(TokenKind::KwTagged)) {
-        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull) && !check(TokenKind::KwPrivate)) {
+        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull)
+            && !check(TokenKind::KwPrivate) && !check(TokenKind::KwLimited)) {
             fail("expected record, null record or private after tagged");
         }
         auto definition = parseTypeDefinition();
         definition->m_tagged = true;
         definition->location = location;
+        return definition;
+    }
+
+    if (check(TokenKind::KwLimited) && peek(1).kind != TokenKind::KwPrivate) {
+        advance();
+        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull)) {
+            fail("expected record or null record after limited");
+        }
+        auto definition = parseTypeDefinition();
+        definition->isLimited = true;
         return definition;
     }
 

@@ -1,0 +1,18 @@
+remaining 0
+initialization failure
+remaining 1
+handler retains enclosing object
+remaining 0
+remaining 1
+remaining 0
+normal finalization failure
+remaining 1
+remaining 0
+return finalization failure
+remaining 1
+remaining 0
+unwinding finalization failure
+remaining 1
+remaining 0
+exit finalization failure
+exceptions passed

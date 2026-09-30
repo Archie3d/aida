@@ -121,6 +121,15 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     auto body = std::make_unique<SubprogramBody>();
     body->location = location;
     body->spec = std::move(spec);
+    if (match(TokenKind::KwNull)) {
+        if (body->spec.isFunction) {
+            fail("only a procedure can have a null body");
+        }
+        expect(TokenKind::Semicolon, "after null procedure");
+        body->tokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                            m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+        return body;
+    }
     body->declarations = parseDeclarativePart();
     expect(TokenKind::KwBegin, "in subprogram body");
     body->body = parseSequenceOfStatements();

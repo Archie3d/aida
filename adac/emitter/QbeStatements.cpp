@@ -64,6 +64,10 @@ void QbeEmitter::emitStatement(Stmt* statement)
         std::string bodyLabel = newLabel("loopbody");
         std::string exit = newLabel("endloop");
         m_context->loopExits[loop] = exit;
+        if (!m_context->m_finalizationChain.empty()) {
+            m_context->m_loopStorage[loop] = storageCheckpoint();
+            m_context->m_loopHandlerDepth[loop] = m_context->handlerLabels.size();
+        }
 
         if (loop->loopKind == LoopKind::For) {
             Symbol* variable = loop->variableSymbol;
@@ -147,13 +151,28 @@ void QbeEmitter::emitStatement(Stmt* statement)
         if (it == m_context->loopExits.end()) {
             break;
         }
+        std::string cleanup;
+        if (!m_context->m_finalizationChain.empty()) {
+            cleanup = newLabel("exitcleanup");
+        }
+        std::string destination = cleanup.empty() ? it->second : cleanup;
+        std::string next = newLabel("noexit");
         if (exitStatement->condition) {
             Value condition = emitExpr(exitStatement->condition.get());
-            std::string next = newLabel("noexit");
-            branch(condition, it->second, next);
-            label(next);
+            branch(condition, destination, next);
         } else {
+            jump(destination);
+        }
+        if (!cleanup.empty()) {
+            label(cleanup);
+            auto handlers = m_context->handlerLabels;
+            m_context->handlerLabels.resize(m_context->m_loopHandlerDepth.at(exitStatement->target));
+            rewindStorage(m_context->m_loopStorage.at(exitStatement->target));
+            m_context->handlerLabels = std::move(handlers);
             jump(it->second);
+        }
+        if (exitStatement->condition) {
+            label(next);
         }
         break;
     }

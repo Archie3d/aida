@@ -941,3 +941,58 @@ long long __ada_float_to_fixed(double value, int bits)
     }
     return (long long)scaled;
 }
+
+_Static_assert(sizeof(AdaFinalization) == 24, "finalization record ABI");
+
+void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
+                             void* object, void (*finalize)(void*))
+{
+    record->m_next = *owner;
+    record->m_object = object;
+    record->m_finalize = finalize;
+    *owner = record;
+}
+
+void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
+{
+    if (*owner == checkpoint) {
+        return;
+    }
+    /* Suspend the complete pending occurrence without allocating. Ada calls
+       made by a finalizer must start with a clear pending exception status. */
+    const AdaException* savedException = __ada_exception;
+    char* savedMessage = pendingMessage;
+    int savedLength = pendingMessageLength;
+    const char* savedOrigin = pendingOrigin;
+    int savedCount = pendingTraceCount;
+    AdaTraceEntry savedTrace[ADA_TRACE_CAPACITY];
+    memcpy(savedTrace, pendingTrace, (size_t)savedCount * sizeof *savedTrace);
+    __ada_exception = NULL;
+    pendingMessage = NULL;
+    pendingMessageLength = 0;
+    int failed = 0;
+    while (*owner != checkpoint) {
+        AdaFinalization* record = *owner;
+        /* Pop before calling: nested cleanup cannot finalize this object twice. */
+        *owner = record->m_next;
+        record->m_finalize(record->m_object);
+        if (__ada_exception != NULL) {
+            failed = 1;
+        }
+        free(pendingMessage);
+        pendingMessage = NULL;
+        pendingMessageLength = 0;
+        __ada_exception = NULL;
+    }
+    if (failed) {
+        free(savedMessage);
+        __ada_raise(ADA_PROGRAM_ERROR);
+    } else {
+        __ada_exception = savedException;
+        pendingMessage = savedMessage;
+        pendingMessageLength = savedLength;
+        pendingOrigin = savedOrigin;
+        pendingTraceCount = savedCount;
+        memcpy(pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
+    }
+}

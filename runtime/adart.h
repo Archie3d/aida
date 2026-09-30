@@ -166,4 +166,16 @@ long long __ada_integer_operation(int operation, int bits, long long left, long 
 int __ada_value_enum(const char* text, int length, const char** names, int count);
 int __ada_value_character(const char* text, int length);
 
+/* Compiler-owned activation records: no heap allocation during registration. */
+typedef struct AdaFinalization
+{
+    struct AdaFinalization* m_next;
+    void* m_object;
+    void (*m_finalize)(void*);
+} AdaFinalization;
+
+void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
+                             void* object, void (*finalize)(void*));
+void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
+
 #endif

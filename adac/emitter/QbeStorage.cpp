@@ -25,19 +25,30 @@ std::string QbeEmitter::storageArena(bool temporary, bool allocate)
     return arena;
 }
 
-std::pair<std::string, std::string> QbeEmitter::storageCheckpoint()
+QbeEmitter::StorageCheckpoint QbeEmitter::storageCheckpoint()
 {
     std::string local = newTemp();
     std::string temporary = newTemp();
     line(local + " =l loadl " + storageArena(false));
     line(temporary + " =l loadl " + storageArena(true));
-    return { local, temporary };
+    std::string finalization;
+    if (!m_context->m_finalizationChain.empty()) {
+        finalization = newTemp();
+        line(finalization + " =l loadl " + m_context->m_finalizationChain);
+    }
+    return { local, temporary, finalization };
 }
 
-void QbeEmitter::rewindStorage(const std::pair<std::string, std::string>& checkpoint)
+void QbeEmitter::rewindStorage(const StorageCheckpoint& checkpoint, bool checkException)
 {
-    line("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.second + ")");
-    line("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.first + ")");
+    if (!checkpoint.m_finalization.empty()) {
+        line("call $__ada_finalize_to(l " + m_context->m_finalizationChain + ", l " + checkpoint.m_finalization + ")");
+    }
+    line("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.m_temporary + ")");
+    line("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.m_local + ")");
+    if (!checkpoint.m_finalization.empty() && checkException) {
+        emitExceptionCheck();
+    }
 }
 
 Value QbeEmitter::staticLinkFor(int targetLevel)
@@ -324,4 +335,68 @@ void QbeEmitter::checkTagLevel(const Value& object, int level)
 {
     line("call $__ada_tag_check_level(l " + object.name + ", w " + std::to_string(level) + ")");
     emitExceptionCheck();
+}
+
+void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::string& operation)
+{
+    type = rootType(type);
+    Symbol* primitive = nullptr;
+    for (Symbol* slot : type->m_dispatchSlots) {
+        if (slot->name == operation && slot->parameters.size() == 1
+            && rootType(slot->parameters.front()->type) == type && slot->returnType == nullptr) {
+            primitive = slot;
+            break;
+        }
+    }
+    if (primitive == nullptr) {
+        m_diagnostics.error(m_context->sourceLocation, "missing controlled primitive '" + operation + "'");
+        return;
+    }
+    Symbol* implementation = primitive;
+    while (implementation->m_inheritedFrom != nullptr || implementation->m_renamedSubprogram != nullptr) {
+        implementation = implementation->m_inheritedFrom != nullptr
+            ? implementation->m_inheritedFrom : implementation->m_renamedSubprogram;
+    }
+    std::string tag = newTemp();
+    std::string tableSlot = newTemp();
+    std::string table = newTemp();
+    std::string entry = newTemp();
+    std::string code = newTemp();
+    line(tag + " =l loadl " + object.name);
+    line(tableSlot + " =l add " + tag + ", 24");
+    line(table + " =l loadl " + tableSlot);
+    line(entry + " =l add " + table + ", " + std::to_string(primitive->m_dispatchSlot * 16));
+    line(code + " =l loadl " + entry);
+    std::string arguments;
+    if (implementation->level > 0) {
+        std::string linkSlot = newTemp();
+        std::string link = newTemp();
+        line(linkSlot + " =l add " + entry + ", 8");
+        line(link + " =l loadl " + linkSlot);
+        arguments = "l " + link + ", ";
+    }
+    line("call " + code + "(" + arguments + "l " + object.name + ")");
+}
+
+void QbeEmitter::registerControlledObject(const Value& object, Type* type)
+{
+    // Fixed-size records live in the activation, so successful Initialize is
+    // followed by registration without an intervening allocation that can fail.
+    std::string record = allocScratch(24);
+    line("call $__ada_finalization_push(l " + m_context->m_finalizationChain + ", l " + record
+         + ", l " + object.name + ", l " + rootType(type)->m_tagName + ".finalize)");
+}
+
+void QbeEmitter::emitFinalizer(Type* type)
+{
+    FunctionContext context;
+    context.traceName = type->name + " finalization";
+    context.propagateLabel = newLabel("finalizepropagate");
+    FunctionContext* saved = m_context;
+    m_context = &context;
+    emitControlledCall(Value { "%object", 'l' }, type, "finalize");
+    line("ret");
+    context.terminated = true;
+    finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
+    m_context = saved;
 }

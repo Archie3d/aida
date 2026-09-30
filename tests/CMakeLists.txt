@@ -467,3 +467,11 @@ add_ada_test(classwideframes SOURCES dispatch_model.ads dispatch_model.adb class
 add_ada_test(classwidechecks SOURCES classwidechecks.adb)
 add_determinism_test(classwideobjects SOURCE classwideobjects.adb)
 add_determinism_test(classwideframes SOURCE classwideframes.adb)
+
+add_ada_test(controlledlifetimes SOURCES controlledlifetimes.adb)
+add_ada_test(controlledexceptions SOURCES controlledexceptions.adb)
+add_determinism_test(controlledlifetimes SOURCE controlledlifetimes.adb)
+add_ada_test(controlledlibrary SOURCES controlled_model.ads controlled_model.adb controlledlibrary.adb)
+add_determinism_test(controlledlibrary SOURCE controlledlibrary.adb)
+add_ada_error_test(controllederrors SOURCES controllederrors.adb)
+add_ada_error_test(controlledglobalerrors SOURCES controlledglobalerrors.ads)

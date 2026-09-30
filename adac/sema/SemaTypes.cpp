@@ -63,6 +63,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Symbol* privateTo = completing->privateTo;
         bool isLimited = completing->isLimited;
         bool tagged = completing->m_tagged;
+        bool controlled = completing->m_controlled;
         std::string tagName = completing->m_tagName;
         auto slots = std::move(completing->m_dispatchSlots);
         Type* classWide = completing->m_classWide;
@@ -74,6 +75,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
         completing->m_tagged = tagged;
+        completing->m_controlled = controlled;
         completing->m_tagName = tagName;
         return completing;
     };
@@ -83,6 +85,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && !(definition->kind == TypeDefKind::Record && definition->m_tagged)
         && !(definition->kind == TypeDefKind::Derived && definition->m_extension)) {
         m_diagnostics.error(decl->location, "a tagged private type requires a tagged full definition");
+        return;
+    }
+    if (completing != nullptr && completing->privateTo != nullptr
+        && completing->m_abstract != definition->m_abstract) {
+        m_diagnostics.error(decl->location, "a private type and its completion must agree on abstractness");
         return;
     }
     Type* type = nullptr;
@@ -215,6 +222,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope);
+        if (cell != nullptr && (cell->m_controlled || cell->m_abstract)) {
+            m_diagnostics.error(decl->location, "controlled or abstract array components are not yet supported");
+            return;
+        }
         if (cell != nullptr && cell->m_classRoot != nullptr) {
             m_diagnostics.error(decl->location, "an array component requires a definite subtype");
             return;
@@ -309,6 +320,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
+        if (completing != nullptr && parent->m_controlled) {
+            m_diagnostics.error(decl->location, "private controlled completions are not yet supported");
+            return;
+        }
         if (parent->m_classRoot != nullptr) {
             m_diagnostics.error(decl->location, "a class-wide type cannot be a derivation parent");
             return;
@@ -324,7 +339,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
             return;
         }
-        if (parent->m_tagged && (!representationVisible(parent) || parent->isIncomplete)) {
+        if (parent->m_tagged && ((!representationVisible(parent) && !parent->m_controlled) || parent->isIncomplete)) {
             m_diagnostics.error(decl->location, "extension of a private or incomplete tagged view is not yet supported");
             return;
         }
@@ -346,6 +361,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (completing != nullptr) {
             type->privateTo = privateTo;
             type->isLimited = isLimited;
+        }
+        if (completing == nullptr && parent->m_controlled) {
+            type->privateTo = nullptr;
         }
         type->m_primitives = std::move(primitives);
         type->m_parentType = rootType(parent);
@@ -437,6 +455,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
     if (type == nullptr) {
         return;
+    }
+    type->m_abstract = definition->m_abstract;
+    type->isLimited = type->isLimited || definition->isLimited;
+    if (type->m_abstract && !type->m_tagged) {
+        m_diagnostics.error(decl->location, "an abstract type must be tagged");
+    }
+    if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "finalization"
+        && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
+        type->m_controlled = true;
+    }
+    if (definition->kind == TypeDefKind::Record && definition->isLimited && !type->m_controlled) {
+        m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
     }
     if (type->m_tagged && type->m_tagName.empty()) {
         std::string name = "$" + mangle(decl->lower) + "__tag";
@@ -553,6 +583,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
+        if (info.type != nullptr && (info.type->m_controlled || info.type->m_abstract)) {
+            m_diagnostics.error(field.location, "controlled or abstract record components are not yet supported");
+            return;
+        }
         if (info.type != nullptr && info.type->m_classRoot != nullptr) {
             m_diagnostics.error(field.location, "a record component requires a definite subtype");
             return;

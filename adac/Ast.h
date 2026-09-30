@@ -450,6 +450,7 @@ struct TypeDefinition : Node
 
     // Record
     bool m_tagged = false;
+    bool m_abstract = false;
     bool m_extension = false;
     std::vector<RecordField> fields;
     VariantPartPtr variant;

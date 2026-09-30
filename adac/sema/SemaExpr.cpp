@@ -159,6 +159,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
+    if (designated->m_controlled || (designated->m_abstract && designated->m_classRoot == nullptr)) {
+        m_diagnostics.error(expr->location, "controlled or abstract allocators are not yet supported");
+        return nullptr;
+    }
     if (designated->m_classRoot != nullptr && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "a class-wide allocator requires an initializer");
         return nullptr;
@@ -198,6 +202,10 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
     for (Expr* operand : { expr->left.get(), expr->right.get() }) {
         Type* type = operand != nullptr ? baseType(operand->type) : nullptr;
+        if (type != nullptr && type->m_controlled && type->isLimited && comparison) {
+            m_diagnostics.error(expr->location, "a limited controlled type has no predefined equality");
+            return;
+        }
         if (type == nullptr || type->privateTo == nullptr || withinPackage(type->privateTo)) {
             continue;
         }

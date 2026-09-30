@@ -44,6 +44,13 @@ private:
         std::unordered_map<Expr*, Value> shapes;
     };
 
+    struct StorageCheckpoint
+    {
+        std::string m_local;
+        std::string m_temporary;
+        std::string m_finalization;
+    };
+
     struct FunctionContext
     {
         Symbol* symbol = nullptr;
@@ -52,6 +59,7 @@ private:
         std::string frameAllocation;
         std::string arrayArena;
         std::string temporaryArena;
+        std::string m_finalizationChain;
         bool arrayArenaUsed = false;
         bool temporaryArenaUsed = false;
         std::string frameTemp;
@@ -61,7 +69,9 @@ private:
         std::unordered_map<Symbol*, std::string> locals;
         std::unordered_map<Symbol*, Value> bounds;
         std::vector<std::string> handlerLabels;
-        std::unordered_map<std::string, std::pair<std::string, std::string>> handlerStorage;
+        std::unordered_map<std::string, StorageCheckpoint> handlerStorage;
+        std::unordered_map<const LoopStmt*, StorageCheckpoint> m_loopStorage;
+        std::unordered_map<const LoopStmt*, std::size_t> m_loopHandlerDepth;
         std::vector<std::string> activeExceptions;
         std::unordered_map<const LoopStmt*, std::string> loopExits;
         std::string propagateLabel;
@@ -120,8 +130,11 @@ private:
     // Storage and assignment (QbeStorage.cpp).
     std::string allocScratch(long long size);
     std::string storageArena(bool temporary, bool allocate = false);
-    std::pair<std::string, std::string> storageCheckpoint();
-    void rewindStorage(const std::pair<std::string, std::string>& checkpoint);
+    StorageCheckpoint storageCheckpoint();
+    void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);
+    void emitControlledCall(const Value& object, Type* type, const std::string& operation);
+    void registerControlledObject(const Value& object, Type* type);
+    void emitFinalizer(Type* type);
     Value staticLinkFor(int targetLevel);
     Value addressOf(Symbol* symbol);
     Value loadFrom(const Value& address, Type* type);

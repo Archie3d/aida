@@ -155,6 +155,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* assign = static_cast<AssignStmt*>(statement);
         Type* targetType = analyzeExpr(assign->target.get(), scope, nullptr);
         checkAssignable(assign->target.get(), scope);
+        if (targetType != nullptr && targetType->m_controlled) {
+            m_diagnostics.error(assign->location, "controlled assignment and Adjust are not yet supported");
+        }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);
         if (!typesCompatible(targetType, valueType)) {
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");

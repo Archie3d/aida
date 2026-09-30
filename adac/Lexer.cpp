@@ -15,6 +15,7 @@ const std::unordered_map<std::string, TokenKind>& keywordTable()
     static const std::unordered_map<std::string, TokenKind> table = {
         { "abort", TokenKind::KwAbort },
         { "abs", TokenKind::KwAbs },
+        { "abstract", TokenKind::KwAbstract },
         { "accept", TokenKind::KwAccept },
         { "access", TokenKind::KwAccess },
         { "all", TokenKind::KwAll },

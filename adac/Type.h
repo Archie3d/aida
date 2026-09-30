@@ -79,6 +79,8 @@ public:
     Type* m_parentType = nullptr;
     // Tagged records reserve the leading pointer and retain a parent prefix.
     bool m_tagged = false;
+    bool m_abstract = false;
+    bool m_controlled = false;
     // Class-wide identity is distinct from subtype identity and derivation.
     bool m_dispatchFrozen = false;
     Symbol* m_tagOwner = nullptr;

@@ -120,6 +120,16 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
 
+    if (type != nullptr && !decl->m_isRenaming) {
+        if (type->m_abstract && type->m_classRoot == nullptr) {
+            m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
+        }
+        if (type->m_controlled && (m_currentSubprogram == nullptr || decl->initializer
+                                    || type->m_classRoot != nullptr)) {
+            m_diagnostics.error(decl->location, "controlled objects currently require a local, specific, default-initialized declaration");
+        }
+    }
+
     if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
         m_diagnostics.error(decl->location, "a class-wide object requires an initializer");
         return;
@@ -280,6 +290,10 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+
+    if (returnType != nullptr && returnType->m_controlled) {
+        m_diagnostics.error(spec.location, "controlled function results are not yet supported");
+    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";

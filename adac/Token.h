@@ -17,6 +17,7 @@ enum class TokenKind
     // Reserved words (Ada 83).
     KwAbort,
     KwAbs,
+    KwAbstract,
     KwAccept,
     KwAccess,
     KwAll,

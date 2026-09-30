@@ -7,6 +7,99 @@
 
 using QbeSupport::isUnconstrainedArray;
 
+namespace
+{
+
+bool hasControlledObjects(DeclList& declarations);
+bool hasControlledObjects(StmtList& statements);
+
+bool hasControlledObjects(std::vector<ExceptionHandler>& handlers)
+{
+    for (auto& handler : handlers) {
+        if (hasControlledObjects(handler.body)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Discover lifetimes before emission so early returns and handlers emitted
+// before a later declaration still receive the activation cleanup chain.
+bool hasControlledObjects(DeclList& declarations)
+{
+    for (auto& decl : declarations) {
+        if (decl->kind == DeclKind::Object) {
+            auto* object = static_cast<ObjectDecl*>(decl.get());
+            for (Symbol* symbol : object->symbols) {
+                if (!object->m_isRenaming && symbol->type->m_controlled) {
+                    return true;
+                }
+            }
+        } else if (decl->kind == DeclKind::PackageSpecification) {
+            auto* package = static_cast<PackageSpecDecl*>(decl.get());
+            if (hasControlledObjects(package->publicPart) || hasControlledObjects(package->privatePart)) {
+                return true;
+            }
+        } else if (decl->kind == DeclKind::PackageBody) {
+            auto* package = static_cast<PackageBodyDecl*>(decl.get());
+            if (hasControlledObjects(package->declarations) || hasControlledObjects(package->body)
+                || hasControlledObjects(package->handlers)) {
+                return true;
+            }
+        } else if (decl->kind == DeclKind::GenericInstantiation) {
+            if (hasControlledObjects(static_cast<GenericInstantiationDecl*>(decl.get())->expansion)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool hasControlledObjects(StmtList& statements)
+{
+    for (auto& statement : statements) {
+        switch (statement->kind) {
+        case StmtKind::Block: {
+            auto* block = static_cast<BlockStmt*>(statement.get());
+            if (hasControlledObjects(block->declarations) || hasControlledObjects(block->body)
+                || hasControlledObjects(block->handlers)) {
+                return true;
+            }
+            break;
+        }
+        case StmtKind::If: {
+            auto* conditional = static_cast<IfStmt*>(statement.get());
+            for (auto& branch : conditional->branches) {
+                if (hasControlledObjects(branch.body)) {
+                    return true;
+                }
+            }
+            if (hasControlledObjects(conditional->elseBody)) {
+                return true;
+            }
+            break;
+        }
+        case StmtKind::Loop:
+            if (hasControlledObjects(static_cast<LoopStmt*>(statement.get())->body)) {
+                return true;
+            }
+            break;
+        case StmtKind::Case:
+            for (auto& alternative : static_cast<CaseStmt*>(statement.get())->alternatives) {
+                if (hasControlledObjects(alternative.body)) {
+                    return true;
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
+}
+
 void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {
     for (CompilationUnit* part : unit.parts) {
@@ -73,6 +166,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     context.propagateLabel = newLabel("propagate");
     FunctionContext* saved = m_context;
     m_context = &context;
+    if (hasControlledObjects(body->declarations) || hasControlledObjects(body->body)
+        || hasControlledObjects(body->handlers)) {
+        context.m_finalizationChain = allocScratch(8);
+        context.prologue << "    storel 0, " << context.m_finalizationChain << "\n";
+    }
 
     // A subprogram nested in another one is reached through its static link
     // and never by name, so only library level ones leave the object file.
@@ -255,6 +353,9 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::istringstream bodyLines(context.body.str());
     std::string bodyLine;
     while (std::getline(bodyLines, bodyLine)) {
+        if (!context.m_finalizationChain.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
+            text += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
+        }
         if (!context.arrayArena.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_array_release(l " + context.arrayArena + ")\n";
         }

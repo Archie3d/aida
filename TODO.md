@@ -446,8 +446,9 @@ happens to work for one instantiation.
 
 Stages 1 through 3 are complete for the supported fixed-size, nondiscriminated,
 single-inheritance tagged subset. Class-wide storage, results, dispatch, operators,
-and the narrow-string tag API are implemented. Object finalization remains stage 4;
-abstract types, interfaces, and wider tagged forms remain separate extensions below.
+and the narrow-string tag API are implemented. Stage 4 now covers default-initialized
+local controlled objects. Copy/adjust semantics, escaping lifetimes, abstract
+operations, interfaces, and wider tagged forms remain extensions below.
 
 - [x] Stage 1: collect user-defined primitives declared in the type's package
   specification and inherit visible operations into derived types. Substitute
@@ -516,8 +517,8 @@ abstract types, interfaces, and wider tagged forms remain separate extensions be
   `Expanded_Name`, `External_Tag`, `Internal_Tag`, `Descendant_Tag`,
   `Is_Descendant_At_Same_Level`, `Parent_Tag`, `Is_Abstract`, and
   `Interface_Ancestor_Tags`. The supported concrete, interface-free subset returns
-  false for `Is_Abstract` and an empty interface-tag array. Wide-name variants
-  follow wide-character/string support in section 6.
+  an empty interface-tag array. Stage 4 adds the descriptor flag for `Is_Abstract`.
+  Wide-name variants follow wide-character/string support in section 6.
 - [x] Dispatch across lexical owners using the selected implementation's saved
   frame, including local overrides of library primitives and recursive activations.
   Local type elaborations receive distinct tags; metadata remains available for
@@ -531,16 +532,31 @@ abstract types, interfaces, and wider tagged forms remain separate extensions be
   of private views, limited definitions, and inherited tagged subprogram
   `'Access`. Tagged size clauses are currently rejected. Complete the wider
   primitive visibility and legality audit.
-- [ ] Abstract types and operations; interfaces as a later extension.
-- [ ] Stage 4: controlled types and `Initialize`/`Adjust`/`Finalize`. Build on
-  existing storage cleanup at scope/block exit and exception unwinding, adding
-  object finalization order, copy/adjust semantics, temporary cleanup, and
-  finalization on return and deallocation.
+- [x] Abstract tagged declarations and null procedures needed by `Ada.Finalization`;
+  reject direct abstract objects and report the descriptor flag through `Is_Abstract`.
+- [ ] Abstract operations and their full legality rules; interfaces as a later extension.
+- [x] Stage 4a: `Ada.Finalization.Controlled` and `Limited_Controlled`, default
+  initialization and finalization of specific local objects, inherited/overridden
+  hooks, subtype aliases, local packages, and separate compilation. Keep an
+  allocation-free finalization chain separate from storage arenas. Register only
+  after successful initialization; finalize in reverse creation order before
+  releasing storage on block exit, return, loop exit, and exception propagation.
+  Preserve pending exception occurrences across successful finalizers; continue
+  cleanup and report `Program_Error` when a finalizer fails. Covered by
+  `controlledlifetimes.adb`, `controlledexceptions.adb`, `controlledlibrary.adb`,
+  rejection and determinism tests, and allocation instrumentation in
+  `runtime.array_storage`.
+- [ ] Stage 4b: controlled assignment and `Adjust`, explicit initialization,
+  controlled components/aggregates, and partial component initialization cleanup.
+- [ ] Stage 4c: controlled function results and temporaries, owned class-wide
+  objects, allocators/deallocation and collections, library-level finalization,
+  private controlled completions, and streaming. Unsupported forms are rejected
+  while the local-object increment is in use.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
-controlled copies and returns, and finalization during exception propagation and
-deallocation. Extend the tagged regressions alongside discriminants, interfaces,
-private extensions, and wide-character support.
+controlled copies and returns, component initialization failure, and finalization
+on deallocation and library shutdown. Extend the tagged regressions alongside
+discriminants, interfaces, private extensions, and wide-character support.
 
 ## 6. Larger runtime and library extensions
 
