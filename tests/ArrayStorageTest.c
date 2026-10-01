@@ -55,6 +55,16 @@ static void finalizeValue(void* object)
     }
 }
 
+static int adjustments;
+static void adjustValue(void* object)
+{
+    if (*(int*)object == 2) {
+        __ada_raise_message(ADA_CONSTRAINT_ERROR, "adjustment", 10);
+    } else {
+        ++adjustments;
+    }
+}
+
 int main(void)
 {
     void* owner = NULL;
@@ -213,9 +223,32 @@ int main(void)
     CHECK(finalizations == NULL && finalizationOrder == 21);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR && liveAllocations == 0);
     __ada_exception = NULL;
+    /* Reservations fail before construction, and inactive or finalized values
+       are never finalized again when their containing scope unwinds. */
+    failNext = 1;
+    __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeValue);
+    CHECK(finalizations == NULL && __ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
+    __ada_exception = NULL;
+    finalizationOrder = 0;
+    __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeValue);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(finalizationOrder == 0 && __ada_exception == NULL);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0 && registeredFinalizations == NULL);
+    __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeValue);
+    __ada_finalization_reserve(&finalizations, &owner, &secondObject, finalizeValue);
+    CHECK(liveAllocations == 4);
+    CHECK(__ada_controlled_adjust(&firstObject, adjustValue) == 0 && adjustments == 1);
+    CHECK(__ada_controlled_adjust(&secondObject, adjustValue) == 1 && __ada_exception == NULL);
+    CHECK(liveAllocations == 4);
+    CHECK(__ada_controlled_finalize(&firstObject) == 0 && finalizationOrder == 1);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(finalizationOrder == 1 && registeredFinalizations == NULL);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0);
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };
-    AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1, 0 };
+    AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1, 0, 0 };
     failNext = 1;
     CHECK(__ada_tag_create(&template, NULL, &owner) == NULL);
     CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
@@ -250,6 +283,14 @@ int main(void)
     __ada_exception = NULL;
     __ada_tag_check_level(&object, 0);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR);
+    __ada_exception = NULL;
+    tag->m_needsFinalization = 1;
+    __ada_tag_check_copy(&object);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR);
+    __ada_exception = NULL;
+    transfer = NULL;
+    __ada_tagged_result(&transfer, &object);
+    CHECK(transfer == NULL && __ada_exception == ADA_PROGRAM_ERROR && liveAllocations == 3);
     releaseTags();
     CHECK(liveAllocations == 0);
     return 0;

@@ -28,6 +28,19 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
+    Type* result = analyzeExprValue(expr, scope, expected);
+    if (needsFinalization(result)) {
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->m_usesFinalization = true;
+        } else {
+            m_finalizingUnits.insert(m_currentUnit);
+        }
+    }
+    return result;
+}
+
+Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
+{
     if (expr == nullptr) {
         return nullptr;
     }
@@ -159,7 +172,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if (designated->m_controlled || (designated->m_abstract && designated->m_classRoot == nullptr)) {
+    if (needsFinalization(designated) || (designated->m_abstract && designated->m_classRoot == nullptr)) {
         m_diagnostics.error(expr->location, "controlled or abstract allocators are not yet supported");
         return nullptr;
     }
@@ -184,6 +197,9 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
+        if (needsFinalization(value)) {
+            m_diagnostics.error(expr->location, "allocators with controlled parts are not yet supported");
+        }
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");
         }
@@ -202,7 +218,7 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
     for (Expr* operand : { expr->left.get(), expr->right.get() }) {
         Type* type = operand != nullptr ? baseType(operand->type) : nullptr;
-        if (type != nullptr && type->m_controlled && type->isLimited && comparison) {
+        if (hasLimitedControlledParts(type) && comparison) {
             m_diagnostics.error(expr->location, "a limited controlled type has no predefined equality");
             return;
         }

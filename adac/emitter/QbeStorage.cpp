@@ -36,11 +36,20 @@ QbeEmitter::StorageCheckpoint QbeEmitter::storageCheckpoint()
         finalization = newTemp();
         line(finalization + " =l loadl " + m_context->m_finalizationChain);
     }
-    return { local, temporary, finalization };
+    std::string temporaryFinalization;
+    if (!m_context->m_temporaryFinalizationChain.empty()) {
+        temporaryFinalization = newTemp();
+        line(temporaryFinalization + " =l loadl " + m_context->m_temporaryFinalizationChain);
+    }
+    return { local, temporary, finalization, temporaryFinalization };
 }
 
 void QbeEmitter::rewindStorage(const StorageCheckpoint& checkpoint, bool checkException)
 {
+    if (!checkpoint.m_temporaryFinalization.empty()) {
+        line("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain
+             + ", l " + checkpoint.m_temporaryFinalization + ")");
+    }
     if (!checkpoint.m_finalization.empty()) {
         line("call $__ada_finalize_to(l " + m_context->m_finalizationChain + ", l " + checkpoint.m_finalization + ")");
     }
@@ -126,6 +135,8 @@ void QbeEmitter::storeInto(const Value& address, const Value& value, Type* type)
 void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* type)
 {
     if (type->m_classRoot != nullptr) {
+        line("call $__ada_tag_check_copy(l " + source.name + ")");
+        emitExceptionCheck();
         std::string targetTag = newTemp();
         std::string sourceTag = newTemp();
         std::string same = newTemp();
@@ -168,6 +179,54 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
 void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool initialize)
 {
     if (value == nullptr) {
+        return;
+    }
+    if (needsFinalization(type)) {
+        Expr* operand = value;
+        while (operand->kind == ExprKind::Qualified) {
+            if (type->kind == TypeKind::Array && operand->type != nullptr
+                && (operand->type->constrained || operand->type->m_boundsSymbol != nullptr)) {
+                checkArrayShape(withBounds(address, type, nullptr), type,
+                                withBounds(Value {}, operand->type, nullptr), operand->type);
+            }
+            operand = static_cast<QualifiedExpr*>(operand)->operand.get();
+        }
+        if (initialize && operand->kind == ExprKind::Aggregate) {
+            emitAggregateInto(static_cast<AggregateExpr*>(operand), address, type);
+            return;
+        }
+        if (hasLimitedControlledParts(type)) {
+            m_diagnostics.error(value->location, "limited controlled objects cannot be copied");
+            return;
+        }
+        Value source = emitExpr(value);
+        if (type->kind == TypeKind::Array) {
+            checkArrayShape(withBounds(address, type, nullptr), type, source, value->type);
+        } else {
+            Type* record = baseType(type);
+            for (int which = 0; which < record->discriminantCount; ++which) {
+                long long fixed = 0;
+                if (!discriminantValueOf(type, which, fixed)) {
+                    continue;
+                }
+                const FieldInfo& field = record->fields[which];
+                std::string slot = newTemp();
+                line(slot + " =l add " + source.name + ", " + std::to_string(field.offset));
+                Value actual = loadFrom(Value { slot, 'l' }, field.type);
+                std::string same = newTemp();
+                std::string good = newLabel("controlledconstraint");
+                std::string bad = newLabel("controlledconstraintbad");
+                line(same + " =w ceq" + actual.type + " " + actual.name + ", " + std::to_string(fixed));
+                branch(Value { same, 'w' }, good, bad);
+                label(bad);
+                raiseConstraintError();
+                label(good);
+            }
+        }
+        if (initialize && type->m_tagged) {
+            line("storel " + typeTag(type).name + ", " + address.name);
+        }
+        copyControlledObject(address, source, type, initialize);
         return;
     }
     if (type != nullptr && type->m_classRoot != nullptr && !initialize) {
@@ -378,15 +437,6 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
     line("call " + code + "(" + arguments + "l " + object.name + ")");
 }
 
-void QbeEmitter::registerControlledObject(const Value& object, Type* type)
-{
-    // Fixed-size records live in the activation, so successful Initialize is
-    // followed by registration without an intervening allocation that can fail.
-    std::string record = allocScratch(24);
-    line("call $__ada_finalization_push(l " + m_context->m_finalizationChain + ", l " + record
-         + ", l " + object.name + ", l " + rootType(type)->m_tagName + ".finalize)");
-}
-
 void QbeEmitter::emitFinalizer(Type* type)
 {
     FunctionContext context;
@@ -398,5 +448,15 @@ void QbeEmitter::emitFinalizer(Type* type)
     line("ret");
     context.terminated = true;
     finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
+    if (!type->isLimited) {
+        FunctionContext adjust;
+        adjust.traceName = type->name + " adjustment";
+        adjust.propagateLabel = newLabel("adjustpropagate");
+        m_context = &adjust;
+        emitControlledCall(Value { "%object", 'l' }, type, "adjust");
+        line("ret");
+        adjust.terminated = true;
+        finishFunction("export function " + type->m_tagName + ".adjust(l %object)");
+    }
     m_context = saved;
 }

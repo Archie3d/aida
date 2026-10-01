@@ -1,0 +1,19 @@
+leaf initialize
+parent initialize
+leaf adjust
+child adjust
+leaf adjust
+parent adjust
+constructed
+child finalize
+leaf finalize
+child finalize
+leaf finalize
+child finalize
+leaf finalize
+leaf initialize
+parent initialize
+parent finalize
+leaf finalize
+ancestor cleanup
+aggregates passed

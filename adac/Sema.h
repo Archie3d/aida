@@ -24,6 +24,7 @@ public:
     // The exceptions declared in one file, whose objects that file's unit is
     // the one to emit.
     const std::vector<Symbol*>& exceptionsIn(const CompilationUnit* unit) const;
+    bool usesFinalization(const CompilationUnit* unit) const { return m_finalizingUnits.contains(unit); }
 
 private:
     // Sema.cpp
@@ -149,6 +150,7 @@ private:
 
     // SemaExpr.cpp
     Type* analyzeExpr(Expr* expr, Scope* scope, Type* expected = nullptr);
+    Type* analyzeExprValue(Expr* expr, Scope* scope, Type* expected);
     Type* analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected);
     void checkPrivateOperands(BinaryExpr* expr);
     Type* analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected);
@@ -208,6 +210,7 @@ private:
     // The exceptions each file declared, since the object standing for one
     // belongs to the unit it was written in and to no other.
     const CompilationUnit* m_currentUnit = nullptr;
+    std::unordered_set<const CompilationUnit*> m_finalizingUnits;
     std::unordered_map<const CompilationUnit*, std::vector<Symbol*>> m_unitExceptions;
 
     // The packages being analysed, innermost last.  A private type is only

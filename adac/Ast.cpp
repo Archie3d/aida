@@ -60,3 +60,11 @@ std::string operatorSymbol(const std::string& spelling)
     }
     return "";
 }
+
+bool isAggregateExpression(const Expr* expr)
+{
+    while (expr != nullptr && expr->kind == ExprKind::Qualified) {
+        expr = static_cast<const QualifiedExpr*>(expr)->operand.get();
+    }
+    return expr != nullptr && expr->kind == ExprKind::Aggregate;
+}

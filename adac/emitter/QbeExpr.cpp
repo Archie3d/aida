@@ -591,4 +591,9 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             emitDefaultInit(slot, field.type);
         }
     }
+    if (base->m_controlled) {
+        emitControlledCall(address, type, "initialize");
+        emitExceptionCheck();
+        activateControlledObject(address, type);
+    }
 }

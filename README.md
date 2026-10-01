@@ -618,8 +618,8 @@ interfaces, general limited record definitions, tagged size clauses, and
 `'Access` of inherited tagged operations remain unsupported.
 
 `Ada.Finalization` provides the abstract `Controlled` and `Limited_Controlled`
-roots, with null lifecycle procedures. The first controlled-type increment
-supports default-initialized local objects of specific descendants:
+roots, with null lifecycle procedures. Local objects of specific descendants
+support default initialization, explicit initialization, copying, and assignment:
 
 ```ada
 with Ada.Finalization;
@@ -640,8 +640,8 @@ Component defaults run before `Initialize`. A successfully initialized object
 is finalized in reverse declaration order on block or subprogram exit, including
 `return`, loop `exit`, and exception propagation. Objects belonging to a handled
 block remain alive throughout that block's handler. Failed initialization does
-not register the object for finalization; previously initialized objects still
-receive cleanup. Finalizers run before storage is released. A failing finalizer
+not finalize the failed object itself; its successfully initialized components
+and previously initialized objects still receive cleanup. Finalizers run before storage is released. A failing finalizer
 does not stop the remaining finalizers; cleanup reports `Program_Error`.
 These lifetime rules follow [Ada RM 7.6.1](https://www.adaic.org/resources/add_content/standards/22rm/html/RM-7-6-1.html).
 
@@ -650,12 +650,24 @@ recursive activations. Passing an existing object by reference or renaming it
 does not register another lifetime. `Ada.Tags.Is_Abstract` reflects the type's
 abstract flag; direct objects of abstract types are rejected.
 
-Implicit `Adjust`, assignment and explicit initialization of controlled objects,
-controlled components and aggregates, function results, owned class-wide objects,
-allocators/deallocation, library-level objects, streaming, and private controlled
-completions remain unsupported and are diagnosed. These are the remaining parts
-of stage 4; the local lifetime support does not yet enable `Unbounded_String`
-or containers.
+Copy initialization calls `Adjust` on controlled components before the enclosing
+object. Assignment first creates an adjusted temporary copy, then finalizes and
+replaces the target, adjusts the replacement, and cleans up the temporary. This
+also handles overlapping array slices and assignment through parameters. Record
+and array components, including dynamically bounded multidimensional arrays,
+participate in cleanup. Aggregates construct their destination directly without
+calling whole-object `Initialize` or `Adjust`; component copies still adjust.
+Limited controlled values can be built from aggregates but cannot be copied.
+Finalization runs the enclosing object's hook before its components. Failed
+adjustment reports `Program_Error` and retains cleanup for successful parts.
+
+Controlled function results, owned class-wide objects, allocators/deallocation,
+library-level objects, streaming, private controlled completions, variant records
+with controlled components, array conversions with controlled components, and
+assignment through ancestor views remain unsupported. Statically visible cases
+are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a
+controlled value behind a parameter raises `Program_Error`. These remaining
+stage 4 forms are needed before enabling `Unbounded_String` or containers.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

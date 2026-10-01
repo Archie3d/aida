@@ -316,11 +316,18 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     std::string resultLast = inferred ? last : address.last;
     Value resultShape = inferred && plan != nullptr ? plan->shapes.at(expr) : address;
     std::string elementSize = arrayElementSize(resultShape, type);
-    std::string buffer = newTemp();
-    line(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
-         + ", w " + resultFirst + ", w " + resultLast + ", l "
-         + elementSize + ")");
-    emitExceptionCheck();
+    std::string buffer = address.name;
+    if (buffer.empty() || !needsFinalization(type)) {
+        buffer = newTemp();
+        line(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
+             + ", w " + resultFirst + ", w " + resultLast + ", l " + elementSize + ")");
+        emitExceptionCheck();
+        if (needsFinalization(type)) {
+            Value object { buffer, 'l', resultFirst, resultLast };
+            object.innerBounds = resultShape.innerBounds;
+            prepareControlledObject(object, type);
+        }
+    }
     std::string slot = allocScratch(8);
     line("storel 0, " + slot);
     std::string head = newLabel("aggregatefill");
@@ -379,7 +386,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     label(done);
     std::string size = newTemp();
     line(size + " =l mul " + wideLength + ", " + elementSize);
-    if (!address.name.empty()) {
+    if (!address.name.empty() && !needsFinalization(type)) {
         line("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")");
     }
     Value result { buffer, 'l', resultFirst, resultLast };
@@ -399,12 +406,19 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
             if (expr->m_ancestorIsType) {
                 emitDefaultInit(address, expr->m_ancestorType);
             } else {
-                Value ancestor = emitExpr(expr->m_ancestor.get());
-                copyInto(address, ancestor, expr->m_ancestorType);
+                if (needsFinalization(expr->m_ancestorType)) {
+                    assignInto(address, expr->m_ancestorType, expr->m_ancestor.get(), true);
+                } else {
+                    Value ancestor = emitExpr(expr->m_ancestor.get());
+                    copyInto(address, ancestor, expr->m_ancestorType);
+                }
             }
         }
-        if (target->m_tagged) {
+        if (target->m_tagged && !target->m_controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
+        }
+        if (target->m_controlled && expr->m_ancestor != nullptr && expr->m_ancestorType->m_controlled) {
+            activateControlledObject(address, expr->m_ancestorType);
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
@@ -415,6 +429,10 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
                 fieldAddress = Value { temp, 'l' };
             }
             assignInto(fieldAddress, field.type, expr->resolvedFields[i], true);
+        }
+        if (target->m_controlled) {
+            line("storel " + typeTag(target).name + ", " + address.name);
+            activateControlledObject(address, target);
         }
         return;
     }
@@ -505,11 +523,18 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
 
 Value QbeEmitter::emitAggregate(AggregateExpr* expr)
 {
+    bool saved = m_context->m_initializingTemporary;
+    m_context->m_initializingTemporary = true;
+    Value result;
     if (isUnconstrainedArray(expr->type)) {
-        return emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
+        result = emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
+    } else {
+        long long size = typeSize(expr->type);
+        std::string buffer = allocScratch(size > 0 ? size : 1);
+        result = withBounds(Value { buffer, 'l' }, expr->type, nullptr);
+        prepareControlledObject(result, expr->type);
+        emitAggregateInto(expr, result, expr->type);
     }
-    long long size = typeSize(expr->type);
-    std::string buffer = allocScratch(size > 0 ? size : 1);
-    emitAggregateInto(expr, Value { buffer, 'l' }, expr->type);
-    return withBounds(Value { buffer, 'l' }, expr->type, nullptr);
+    m_context->m_initializingTemporary = saved;
+    return result;
 }

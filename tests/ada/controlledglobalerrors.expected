@@ -1,1 +1,1 @@
-controlledglobalerrors.ads:4:5: error: controlled objects currently require a local, specific, default-initialized declaration
+controlledglobalerrors.ads:4:5: error: objects requiring finalization currently require a local, specific declaration

@@ -31,7 +31,7 @@ bool hasControlledObjects(DeclList& declarations)
         if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             for (Symbol* symbol : object->symbols) {
-                if (!object->m_isRenaming && symbol->type->m_controlled) {
+                if (!object->m_isRenaming && needsFinalization(symbol->type)) {
                     return true;
                 }
             }
@@ -108,6 +108,9 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
         context.propagateLabel = newLabel("propagate");
         FunctionContext* saved = m_context;
         m_context = &context;
+        if (m_sema.usesFinalization(part)) {
+            initializeFinalization();
+        }
         emitElaborationDeclarations(part->units);
         finishFunction("export function $" + elaborationName(unit.key + (part->isSpec ? ".spec" : ".body")) + "()");
         m_context = saved;
@@ -166,10 +169,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     context.propagateLabel = newLabel("propagate");
     FunctionContext* saved = m_context;
     m_context = &context;
-    if (hasControlledObjects(body->declarations) || hasControlledObjects(body->body)
-        || hasControlledObjects(body->handlers)) {
-        context.m_finalizationChain = allocScratch(8);
-        context.prologue << "    storel 0, " << context.m_finalizationChain << "\n";
+    if (symbol->m_usesFinalization || hasControlledObjects(body->declarations)
+        || hasControlledObjects(body->body) || hasControlledObjects(body->handlers)) {
+        initializeFinalization();
     }
 
     // A subprogram nested in another one is reached through its static link
@@ -354,6 +356,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::string bodyLine;
     while (std::getline(bodyLines, bodyLine)) {
         if (!context.m_finalizationChain.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
+            text += "    call $__ada_finalize_to(l " + context.m_temporaryFinalizationChain + ", l 0)\n";
             text += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
         }
         if (!context.arrayArena.empty() && bodyLine.compare(0, 7, "    ret") == 0) {

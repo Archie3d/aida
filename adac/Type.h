@@ -183,6 +183,8 @@ public:
 
 // True when an object of this type, or one holding it, must be cleared.
 bool needsZeroInit(const Type* type);
+bool needsFinalization(const Type* type);
+bool hasLimitedControlledParts(const Type* type);
 
 // The type identity at the root of a subtype chain.
 Type* rootType(Type* type);

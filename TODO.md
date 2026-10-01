@@ -446,8 +446,8 @@ happens to work for one instantiation.
 
 Stages 1 through 3 are complete for the supported fixed-size, nondiscriminated,
 single-inheritance tagged subset. Class-wide storage, results, dispatch, operators,
-and the narrow-string tag API are implemented. Stage 4 now covers default-initialized
-local controlled objects. Copy/adjust semantics, escaping lifetimes, abstract
+and the narrow-string tag API are implemented. Stage 4 now covers local controlled lifetimes, copying, assignment, and
+controlled components. Escaping lifetimes, abstract
 operations, interfaces, and wider tagged forms remain extensions below.
 
 - [x] Stage 1: collect user-defined primitives declared in the type's package
@@ -537,8 +537,8 @@ operations, interfaces, and wider tagged forms remain extensions below.
 - [ ] Abstract operations and their full legality rules; interfaces as a later extension.
 - [x] Stage 4a: `Ada.Finalization.Controlled` and `Limited_Controlled`, default
   initialization and finalization of specific local objects, inherited/overridden
-  hooks, subtype aliases, local packages, and separate compilation. Keep an
-  allocation-free finalization chain separate from storage arenas. Register only
+  hooks, subtype aliases, local packages, and separate compilation. Keep a
+  finalization chain separate from storage arenas. Activate entries only
   after successful initialization; finalize in reverse creation order before
   releasing storage on block exit, return, loop exit, and exception propagation.
   Preserve pending exception occurrences across successful finalizers; continue
@@ -546,15 +546,22 @@ operations, interfaces, and wider tagged forms remain extensions below.
   `controlledlifetimes.adb`, `controlledexceptions.adb`, `controlledlibrary.adb`,
   rejection and determinism tests, and allocation instrumentation in
   `runtime.array_storage`.
-- [ ] Stage 4b: controlled assignment and `Adjust`, explicit initialization,
+- [x] Stage 4b: controlled assignment and `Adjust`, explicit initialization,
   controlled components/aggregates, and partial component initialization cleanup.
-- [ ] Stage 4c: controlled function results and temporaries, owned class-wide
+  Reserve inactive component entries before construction; track active parts
+  across failed hooks. Adjusted assignment snapshots handle aliases and overlapping
+  slices. Cover dynamic multidimensional arrays, component expression temporaries,
+  separate compilation, inherited hooks, and recursive static links in
+  `controlledcopies`, `controlledparts`, `controlledaggregates`, `controlledarrays`,
+  and `controlledcopylibrary`, plus rejection and runtime allocation tests.
+- [ ] Stage 4c: controlled function results and escaping temporaries, owned class-wide
   objects, allocators/deallocation and collections, library-level finalization,
-  private controlled completions, and streaming. Unsupported forms are rejected
-  while the local-object increment is in use.
+  private controlled completions, and streaming. Also extend variant components,
+  array conversions, and ancestor-view assignment. Unsupported static forms are
+  rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
-controlled copies and returns, component initialization failure, and finalization
+controlled returns and escaping temporaries, and finalization
 on deallocation and library shutdown. Extend the tagged regressions alongside
 discriminants, interfaces, private extensions, and wide-character support.
 

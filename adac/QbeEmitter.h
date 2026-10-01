@@ -5,6 +5,7 @@
 #include "Diagnostics.h"
 #include "Sema.h"
 
+#include <functional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -49,6 +50,7 @@ private:
         std::string m_local;
         std::string m_temporary;
         std::string m_finalization;
+        std::string m_temporaryFinalization;
     };
 
     struct FunctionContext
@@ -60,6 +62,8 @@ private:
         std::string arrayArena;
         std::string temporaryArena;
         std::string m_finalizationChain;
+        std::string m_temporaryFinalizationChain;
+        bool m_initializingTemporary = false;
         bool arrayArenaUsed = false;
         bool temporaryArenaUsed = false;
         std::string frameTemp;
@@ -133,7 +137,15 @@ private:
     StorageCheckpoint storageCheckpoint();
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);
     void emitControlledCall(const Value& object, Type* type, const std::string& operation);
-    void registerControlledObject(const Value& object, Type* type);
+    void initializeFinalization();
+    void prepareControlledObject(const Value& object, Type* type);
+    void activateControlledObject(const Value& object, Type* type);
+    void walkControlled(const Value& object, Type* type, bool parentFirst,
+                        const std::function<void(const Value&, Type*)>& action);
+    void adjustControlledObject(const Value& object, Type* type);
+    void finalizeControlledObject(const Value& object, Type* type);
+    void copyControlledObject(const Value& target, const Value& source, Type* type, bool initialize);
+    std::string objectBytes(const Value& object, Type* type);
     void emitFinalizer(Type* type);
     Value staticLinkFor(int targetLevel);
     Value addressOf(Symbol* symbol);

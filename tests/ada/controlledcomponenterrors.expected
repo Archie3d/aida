@@ -1,0 +1,12 @@
+controlledcomponenterrors.adb:9:28: error: limited controlled components cannot be copied
+controlledcomponenterrors.adb:11:34: error: limited controlled components cannot be copied
+controlledcomponenterrors.adb:13:9: error: limited controlled components cannot be copied
+controlledcomponenterrors.adb:16:5: error: limited controlled objects cannot be copied
+controlledcomponenterrors.adb:18:17: error: controlled or abstract allocators are not yet supported
+controlledcomponenterrors.adb:19:55: error: controlled deallocation is not yet supported
+controlledcomponenterrors.adb:20:5: error: controlled function results are not yet supported
+controlledcomponenterrors.adb:21:5: error: controlled function results are not yet supported
+controlledcomponenterrors.adb:23:5: error: limited controlled objects cannot be copied
+controlledcomponenterrors.adb:23:42: error: array conversions with controlled components are not yet supported
+controlledcomponenterrors.adb:24:5: error: variant records with controlled components are not yet supported
+controlledcomponenterrors.adb:31:5: error: limited controlled objects cannot be assigned

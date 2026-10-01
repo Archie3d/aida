@@ -321,7 +321,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
-        if (base != nullptr && base->m_controlled) {
+        if (needsFinalization(base)) {
             m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;
         }

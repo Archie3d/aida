@@ -124,9 +124,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (type->m_abstract && type->m_classRoot == nullptr) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
-        if (type->m_controlled && (m_currentSubprogram == nullptr || decl->initializer
-                                    || type->m_classRoot != nullptr)) {
-            m_diagnostics.error(decl->location, "controlled objects currently require a local, specific, default-initialized declaration");
+        if (needsFinalization(type) && (m_currentSubprogram == nullptr || type->m_classRoot != nullptr)) {
+            m_diagnostics.error(decl->location, "objects requiring finalization currently require a local, specific declaration");
+        }
+        if (hasLimitedControlledParts(type) && decl->initializer
+            && !isAggregateExpression(decl->initializer.get())) {
+            m_diagnostics.error(decl->location, "limited controlled objects cannot be copied");
         }
     }
 
@@ -171,6 +174,10 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
+        if (type != nullptr && type->m_classRoot != nullptr && needsFinalization(valueType)
+            && !needsFinalization(type)) {
+            m_diagnostics.error(decl->location, "owned class-wide objects with controlled parts are not yet supported");
+        }
         if (!typesCompatible(type, valueType)) {
             m_diagnostics.error(decl->initializer->location,
                                 "initial value is not compatible with the declared subtype");
@@ -291,7 +298,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
 
-    if (returnType != nullptr && returnType->m_controlled) {
+    if (needsFinalization(returnType)) {
         m_diagnostics.error(spec.location, "controlled function results are not yet supported");
     }
 

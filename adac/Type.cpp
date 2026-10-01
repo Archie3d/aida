@@ -416,3 +416,45 @@ Type* TypeTable::scalarBaseType(Type* type)
     type->m_scalarBase = result;
     return result;
 }
+
+bool needsFinalization(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->m_controlled) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return needsFinalization(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (needsFinalization(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool hasLimitedControlledParts(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->m_controlled && type->isLimited) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasLimitedControlledParts(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasLimitedControlledParts(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}

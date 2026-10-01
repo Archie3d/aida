@@ -1,8 +1,5 @@
-controllederrors.adb:7:5: error: controlled objects currently require a local, specific, default-initialized declaration
-controllederrors.adb:8:5: error: controlled objects currently require a local, specific, default-initialized declaration
+controllederrors.adb:8:5: error: objects requiring finalization currently require a local, specific declaration
 controllederrors.adb:9:5: error: an abstract type cannot be used to create an object
-controllederrors.adb:10:5: error: controlled or abstract array components are not yet supported
-controllederrors.adb:12:9: error: controlled or abstract record components are not yet supported
 controllederrors.adb:15:17: error: controlled or abstract allocators are not yet supported
 controllederrors.adb:16:55: error: controlled deallocation is not yet supported
 controllederrors.adb:17:5: error: controlled function results are not yet supported
@@ -10,6 +7,5 @@ controllederrors.adb:21:9: error: private controlled completions are not yet sup
 controllederrors.adb:19:9: error: 'Private_Guard' is never described
 controllederrors.adb:26:9: error: a private type and its completion must agree on abstractness
 controllederrors.adb:24:9: error: 'Root' is never described
-controllederrors.adb:30:5: error: controlled assignment and Adjust are not yet supported
-controllederrors.adb:31:5: error: controlled assignment and Adjust are not yet supported
+controllederrors.adb:31:5: error: limited controlled objects cannot be assigned
 controllederrors.adb:32:10: error: a limited controlled type has no predefined equality

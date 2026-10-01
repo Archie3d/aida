@@ -1015,3 +1015,5 @@ struct LibraryUnit
 const char* operatorName(BinaryOp op);
 const char* operatorName(UnaryOp op);
 std::string operatorSymbol(const std::string& spelling);
+
+bool isAggregateExpression(const Expr* expr);

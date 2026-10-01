@@ -155,10 +155,24 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* assign = static_cast<AssignStmt*>(statement);
         Type* targetType = analyzeExpr(assign->target.get(), scope, nullptr);
         checkAssignable(assign->target.get(), scope);
-        if (targetType != nullptr && targetType->m_controlled) {
-            m_diagnostics.error(assign->location, "controlled assignment and Adjust are not yet supported");
+        if (hasLimitedControlledParts(targetType)) {
+            m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
+        }
+        if (needsFinalization(targetType) && targetType->m_classRoot != nullptr) {
+            m_diagnostics.error(assign->location, "class-wide controlled assignment is not yet supported");
+        }
+        if (needsFinalization(targetType) && assign->target->kind == ExprKind::Call) {
+            auto* target = static_cast<CallExpr*>(assign->target.get());
+            if (target->form == CallForm::Conversion
+                && rootType(target->resolvedArguments.front()->type) != rootType(targetType)) {
+                m_diagnostics.error(assign->location, "controlled assignment through an ancestor view is not yet supported");
+            }
         }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);
+        if (targetType != nullptr && targetType->m_classRoot != nullptr
+            && needsFinalization(valueType) && !needsFinalization(targetType)) {
+            m_diagnostics.error(assign->location, "class-wide controlled assignment is not yet supported");
+        }
         if (!typesCompatible(targetType, valueType)) {
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
         }
@@ -317,6 +331,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 m_diagnostics.error(returnStatement->location, "exception occurrence results are not yet supported");
             }
             Type* valueType = analyzeExpr(returnStatement->value.get(), scope, expected);
+            if (needsFinalization(valueType) && !needsFinalization(expected)) {
+                m_diagnostics.error(returnStatement->location, "function results with controlled parts are not yet supported");
+            }
             if (expected == nullptr) {
                 m_diagnostics.error(returnStatement->location, "a procedure cannot return a value");
             } else if (!typesCompatible(expected, valueType)) {

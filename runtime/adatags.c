@@ -25,9 +25,10 @@ typedef struct AdaTag
     void* master;
     int64_t slotCount;
     int64_t m_isAbstract;
+    int64_t m_needsFinalization;
 } AdaTag;
 
-_Static_assert(sizeof(AdaTag) == 88, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 96, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");
@@ -114,7 +115,7 @@ void* __ada_tag_create(const void* templateTag, void* parent, void* master)
 void __ada_tag_check_level(const void* object, int level)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;
-    if (tag->level > level) {
+    if (tag->m_needsFinalization || tag->level > level) {
         __ada_raise(ADA_PROGRAM_ERROR);
     }
 }
@@ -122,6 +123,10 @@ void __ada_tag_check_level(const void* object, int level)
 void __ada_tagged_result(void** result, const void* object)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;
+    if (tag->m_needsFinalization) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
     void* copy = __ada_allocate(tag->size);
     if (copy != NULL) {
         memcpy(copy, object, tag->size);
@@ -215,4 +220,12 @@ int __ada_tagged_equal(const void* left, const void* right)
         return 0;
     }
     return ((Equality)tag->equality)(tag->equalityLink, left, right);
+}
+
+void __ada_tag_check_copy(const void* object)
+{
+    const AdaTag* tag = *(const AdaTag* const*)object;
+    if (tag->m_needsFinalization) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+    }
 }

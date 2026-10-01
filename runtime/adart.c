@@ -942,7 +942,34 @@ long long __ada_float_to_fixed(double value, int bits)
     return (long long)scaled;
 }
 
-_Static_assert(sizeof(AdaFinalization) == 24, "finalization record ABI");
+_Static_assert(sizeof(AdaFinalization) == 40, "finalization record ABI");
+
+/* The runtime is single-threaded, like its pending-exception state. This
+   registry lets assignment through borrowed parameters find the caller's
+   lifetime record without putting hidden fields in Ada object layouts. */
+static AdaFinalization* registeredFinalizations;
+
+static AdaFinalization* findFinalization(void* object)
+{
+    for (AdaFinalization* record = registeredFinalizations; record != NULL; record = record->m_registeredNext) {
+        if (record->m_object == object) {
+            return record;
+        }
+    }
+    __ada_raise(ADA_PROGRAM_ERROR);
+    return NULL;
+}
+
+static void unregisterFinalization(AdaFinalization* record)
+{
+    AdaFinalization** link = &registeredFinalizations;
+    while (*link != NULL && *link != record) {
+        link = &(*link)->m_registeredNext;
+    }
+    if (*link != NULL) {
+        *link = record->m_registeredNext;
+    }
+}
 
 void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
                              void* object, void (*finalize)(void*))
@@ -950,6 +977,9 @@ void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
     record->m_next = *owner;
     record->m_object = object;
     record->m_finalize = finalize;
+    record->m_registeredNext = registeredFinalizations;
+    record->m_active = 1;
+    registeredFinalizations = record;
     *owner = record;
 }
 
@@ -975,7 +1005,11 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
         AdaFinalization* record = *owner;
         /* Pop before calling: nested cleanup cannot finalize this object twice. */
         *owner = record->m_next;
-        record->m_finalize(record->m_object);
+        if (record->m_active) {
+            record->m_active = 0;
+            record->m_finalize(record->m_object);
+        }
+        unregisterFinalization(record);
         if (__ada_exception != NULL) {
             failed = 1;
         }
@@ -995,4 +1029,64 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
         pendingTraceCount = savedCount;
         memcpy(pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
     }
+}
+
+void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*))
+{
+    AdaFinalization* record = __ada_array_local(arena, 1, 1, sizeof *record);
+    if (record == NULL) {
+        return;
+    }
+    __ada_finalization_push(owner, record, object, finalize);
+    record->m_active = 0;
+}
+
+void __ada_controlled_activate(void* object, void (*finalize)(void*))
+{
+    AdaFinalization* record = findFinalization(object);
+    if (record != NULL) {
+        record->m_finalize = finalize;
+        record->m_active = 1;
+    }
+}
+
+int __ada_controlled_finalize(void* object)
+{
+    AdaFinalization* record = findFinalization(object);
+    if (record == NULL) {
+        __ada_exception = NULL;
+        return 1;
+    }
+    if (!record->m_active) {
+        return 0;
+    }
+    record->m_active = 0;
+    /* Finalize one object without removing its persistent registration. Reuse
+       the exception suspension and Program_Error handling of scope cleanup. */
+    AdaFinalization current = { NULL, object, record->m_finalize, NULL, 1 };
+    AdaFinalization* owner = &current;
+    __ada_finalize_to(&owner, NULL);
+    int failed = __ada_exception != NULL;
+    __ada_exception = NULL;
+    return failed;
+}
+
+int __ada_controlled_adjust(void* object, void (*adjust)(void*))
+{
+    AdaFinalization* record = findFinalization(object);
+    if (record == NULL) {
+        __ada_exception = NULL;
+        return 1;
+    }
+    record->m_active = 0;
+    adjust(object);
+    if (__ada_exception != NULL) {
+        /* The emitter accumulates failures while adjusting the other parts,
+           then raises Program_Error. A failed adjustment is not finalized. */
+        __ada_raise(ADA_PROGRAM_ERROR);
+        __ada_exception = NULL;
+        return 1;
+    }
+    record->m_active = 1;
+    return 0;
 }

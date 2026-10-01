@@ -1,0 +1,6 @@
+partial initialization
+parent initialization failure
+partial adjustment
+assignment adjustment failure and recovery
+assignment finalization failure
+controlled parts passed

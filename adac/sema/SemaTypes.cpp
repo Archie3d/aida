@@ -222,8 +222,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope);
-        if (cell != nullptr && (cell->m_controlled || cell->m_abstract)) {
-            m_diagnostics.error(decl->location, "controlled or abstract array components are not yet supported");
+        if (cell != nullptr && cell->m_abstract) {
+            m_diagnostics.error(decl->location, "abstract array components are not supported");
             return;
         }
         if (cell != nullptr && cell->m_classRoot != nullptr) {
@@ -414,6 +414,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             SubprogramSpec& spec = *definition->m_accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+            if (needsFinalization(profile->returnType)) {
+                m_diagnostics.error(decl->location, "controlled function results are not yet supported");
+            }
             for (ParameterDecl& declaration : spec.parameters) {
                 Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
                 parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
@@ -456,8 +459,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
+    if (type->variantOn >= 0 && needsFinalization(type)) {
+        m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
+    }
     type->m_abstract = definition->m_abstract;
-    type->isLimited = type->isLimited || definition->isLimited;
+    type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type);
     if (type->m_abstract && !type->m_tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
     }
@@ -583,8 +589,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
-        if (info.type != nullptr && (info.type->m_controlled || info.type->m_abstract)) {
-            m_diagnostics.error(field.location, "controlled or abstract record components are not yet supported");
+        if (info.type != nullptr && info.type->m_abstract) {
+            m_diagnostics.error(field.location, "abstract record components are not supported");
             return;
         }
         if (info.type != nullptr && info.type->m_classRoot != nullptr) {
@@ -603,6 +609,9 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.variant = variantIndex;
         info.isDiscriminant = isDiscriminant;
         if (field.defaultValue) {
+            if (hasLimitedControlledParts(info.type) && !isAggregateExpression(field.defaultValue.get())) {
+                m_diagnostics.error(field.location, "limited controlled components cannot be copied");
+            }
             Type* valueType = analyzeExpr(field.defaultValue.get(), scope, info.type);
             if (!typesCompatible(info.type, valueType)) {
                 m_diagnostics.error(field.defaultValue->location, "the component default has an incompatible type");

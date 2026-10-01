@@ -118,4 +118,5 @@ struct Symbol
     long long frameOffset = -1;
     long long frameSize = 8;
     bool needsFrame = false;
+    bool m_usesFinalization = false;
 };

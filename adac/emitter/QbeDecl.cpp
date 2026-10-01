@@ -27,7 +27,7 @@ void QbeEmitter::emitTypeTag(Type* type)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
            << ", l " << type->m_tagName << ".slots, l " << type->m_tagName << ".equal, l 0, l "
            << expanded << ", l " << type->m_accessLevel
-           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << " }\n";
+           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << ", l " << needsFinalization(type) << " }\n";
     m_data << "export data " << type->m_tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->m_dispatchSlots) {
@@ -180,6 +180,11 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
 {
     std::string temporaryMark = newTemp();
     line(temporaryMark + " =l loadl " + storageArena(true));
+    std::string finalizationMark;
+    if (!m_context->m_temporaryFinalizationChain.empty()) {
+        finalizationMark = newTemp();
+        line(finalizationMark + " =l loadl " + m_context->m_temporaryFinalizationChain);
+    }
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
         Symbol* subprogram = nullptr;
@@ -260,6 +265,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                                         << size << "\n";
                     m_context->locals[symbol] = slot;
                 }
+                prepareControlledObject(addressOf(symbol), symbol->type);
                 if (object->initializer) {
                     initializeObject(addressOf(symbol), symbol, object->initializer.get());
                 } else {
@@ -271,11 +277,6 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                         line("call $memset(l " + slot.name + ", w 0, l " + std::to_string(size) + ")");
                     }
                     emitDefaultInit(addressOf(symbol), symbol->type);
-                    if (symbol->type->m_controlled) {
-                        emitControlledCall(addressOf(symbol), symbol->type, "initialize");
-                        emitExceptionCheck();
-                        registerControlledObject(addressOf(symbol), symbol->type);
-                    }
                 }
             }
             break;
@@ -315,7 +316,13 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
     }
     if (!m_context->terminated) {
+        if (!finalizationMark.empty()) {
+            line("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain + ", l " + finalizationMark + ")");
+        }
         line("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")");
+        if (!finalizationMark.empty()) {
+            emitExceptionCheck();
+        }
     }
 }
 
@@ -381,7 +388,7 @@ Value QbeEmitter::scalarBounds(Type* type)
 void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* initializer)
 {
     Type* type = symbol->type;
-    if (symbol->m_genericObject && type->kind == TypeKind::Array
+    if (!needsFinalization(type) && symbol->m_genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
         Value source = emitExpr(initializer);
         Value target = withBounds(address, type, nullptr);

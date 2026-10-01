@@ -706,7 +706,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (type == nullptr) {
                 return false;
             }
-            if (generic->generic->lower == "ada.unchecked_deallocation" && type->m_controlled) {
+            if (generic->generic->lower == "ada.unchecked_deallocation" && needsFinalization(type)) {
                 m_diagnostics.error(actual->location, "controlled deallocation is not yet supported");
                 return false;
             }

@@ -81,8 +81,18 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         }
     }
     Value source;
-    bool aggregate = explicitBounds && object->initializer
-        && object->initializer->kind == ExprKind::Aggregate;
+    Expr* aggregateExpr = object->initializer.get();
+    while (aggregateExpr != nullptr && aggregateExpr->kind == ExprKind::Qualified) {
+        aggregateExpr = static_cast<QualifiedExpr*>(aggregateExpr)->operand.get();
+    }
+    bool aggregate = isAggregateExpression(object->initializer.get())
+        && (explicitBounds || needsFinalization(type));
+    ArrayAggregatePlan aggregatePlan;
+    bool preparedAggregate = aggregate && !explicitBounds;
+    if (preparedAggregate) {
+        Value context = withBounds(Value {}, object->initializer->type, nullptr);
+        bounds = prepareArrayAggregate(aggregateExpr, context, type, aggregatePlan);
+    }
     if (object->initializer && !aggregate) {
         source = emitExpr(object->initializer.get());
         if (!explicitBounds) {
@@ -133,14 +143,21 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         m_context->locals[symbol] = pointer;
         m_context->bounds[symbol] = bounds;
     }
-    if (aggregate) {
-        assignInto(address, type, object->initializer.get());
+    prepareControlledObject(address, type);
+    if (preparedAggregate) {
+        emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregateExpr), address, type, &aggregatePlan);
+    } else if (aggregate) {
+        assignInto(address, type, object->initializer.get(), true);
     } else if (object->initializer) {
         checkArrayShape(address, type, source, object->initializer->type);
         std::string size = newTemp();
         line(size + " =l call $__ada_array_size(w " + address.first + ", w " + address.last + ", l " + elementSize + ")");
         emitExceptionCheck();
-        line("call $memmove(l " + pointer + ", l " + source.name + ", l " + size + ")");
+        if (needsFinalization(type)) {
+            copyControlledObject(address, source, type, true);
+        } else {
+            line("call $memmove(l " + pointer + ", l " + source.name + ", l " + size + ")");
+        }
     } else if (hasComponentDefaults(type->element)) {
         emitArrayFill(address, type, nullptr);
     }

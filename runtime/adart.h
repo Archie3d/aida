@@ -134,6 +134,7 @@ int __ada_tag_is_descendant(void* descendant, void* ancestor);
 void* __ada_tag_internal(const char* name, int length);
 void* __ada_tag_descendant(const char* name, int length, void* ancestor);
 int __ada_tag_is_abstract(void* tag);
+void __ada_tag_check_copy(const void* object);
 
 /* Exact fixed-point text conversion; values use signed scaled counts. */
 const char* __ada_image_fixed(long long value, int bits, int aft);
@@ -172,10 +173,17 @@ typedef struct AdaFinalization
     struct AdaFinalization* m_next;
     void* m_object;
     void (*m_finalize)(void*);
+    struct AdaFinalization* m_registeredNext;
+    int m_active;
 } AdaFinalization;
 
 void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
                              void* object, void (*finalize)(void*));
 void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
+
+void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*));
+void __ada_controlled_activate(void* object, void (*finalize)(void*));
+int __ada_controlled_finalize(void* object);
+int __ada_controlled_adjust(void* object, void (*adjust)(void*));
 
 #endif
