@@ -298,8 +298,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
 
-    if (needsFinalization(returnType)) {
-        m_diagnostics.error(spec.location, "controlled function results are not yet supported");
+    if (hasLimitedControlledParts(returnType)
+        || (needsFinalization(returnType) && returnType->m_classRoot != nullptr)) {
+        m_diagnostics.error(spec.location, "limited or class-wide controlled function results are not yet supported");
     }
 
     if (!operatorSymbol(spec.lower).empty()) {
@@ -591,6 +592,9 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
     }
 
     target->builtin = BuiltinKind::Runtime;
+    if (needsFinalization(target->returnType)) {
+        m_diagnostics.error(decl->location, "imported controlled function results are not yet supported");
+    }
     target->runtimeSymbol = "$" + decl->linkName;
     target->canRaise = true;
     target->hasBody = true;

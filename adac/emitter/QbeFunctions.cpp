@@ -184,6 +184,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     bool first = true;
     if (isComposite(symbol->returnType)) {
         signature += "l %.result";
+        if (needsFinalization(symbol->returnType)) {
+            signature += ", l %.resultOwner, l %.resultArena";
+        }
         first = false;
     }
     if (symbol->level > 0) {

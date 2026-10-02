@@ -669,7 +669,19 @@ elaboration or an unhandled exception in main, cleaning up successfully
 initialized objects and components. Successful finalizers preserve the pending
 exception; failing finalizers do not stop cleanup and report `Program_Error`.
 
-Controlled function results, owned class-wide objects, allocators/deallocation,
+Functions can return specific nonlimited controlled types and records or arrays
+containing them, including dynamically bounded multidimensional arrays. Result
+storage and cleanup belong to the caller before construction begins, so returned
+resources survive callee cleanup. Copy returns adjust their controlled parts;
+aggregate returns construct the result directly. Temporary results participate
+in the caller's declaration or statement cleanup. This also works through
+callbacks, recursive calls, separate compilation, and library initialization.
+A failed result construction cleans up its successful parts before a function
+handler retries the return; failed callee cleanup leaves the result owned by
+the caller for exception cleanup.
+
+Limited controlled results, class-wide controlled results and owned objects,
+imported controlled results, allocators/deallocation,
 streaming, private controlled completions, variant records
 with controlled components, array conversions with controlled components, and
 assignment through ancestor views remain unsupported. Statically visible cases

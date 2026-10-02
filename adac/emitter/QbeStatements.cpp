@@ -181,7 +181,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* resultType = m_context->symbol == nullptr ? nullptr : m_context->symbol->returnType;
         if (returnStatement->value && isComposite(resultType)) {
-            if (resultType->m_tagged) {
+            if (needsFinalization(resultType)) {
+                emitControlledResult(returnStatement->value.get());
+            } else if (resultType->m_tagged) {
                 Value value;
                 if (resultType->m_classRoot != nullptr) {
                     value = emitExpr(returnStatement->value.get());

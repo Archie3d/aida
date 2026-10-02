@@ -561,14 +561,23 @@ operations, interfaces, and wider tagged forms remain extensions below.
   Cover separate specs/bodies, private and nested package objects, copies,
   assignment, record/array components, limited controlled objects, failed hooks,
   and registration allocation failures. The full suite passes all 280 tests.
-- [ ] Finish stage 4c: controlled function results and escaping temporaries, owned class-wide
-  objects, allocators/deallocation and collections,
+- [x] Stage 4c, specific nonlimited results milestone: construct controlled
+  function results in caller-owned storage with caller-owned cleanup records.
+  Support records, fixed/dynamic arrays and multidimensional bounds, aggregate
+  returns, recursive forwarding, callbacks, dispatch, and separate compilation.
+  Clean up partial results before a function handler retries; retain ownership
+  when callee finalization fails. Cover reference-counted resources, missing
+  returns, failing hooks, global initialization/shutdown, and deterministic IR
+  in `controlledresults`, `controlledresultfailures`, `controlledresultdispatch`,
+  and `controlledresultglobals`. All 286 tests pass.
+- [ ] Finish stage 4c: limited controlled results, class-wide results and owned
+  objects, imported controlled results, allocators/deallocation and collections,
   private controlled completions, and streaming. Also extend variant components,
   array conversions, and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
-controlled returns and escaping temporaries, and finalization
+limited and class-wide controlled returns, escaping ownership, and finalization
 on deallocation. Extend the tagged regressions alongside
 discriminants, interfaces, private extensions, and wide-character support.
 

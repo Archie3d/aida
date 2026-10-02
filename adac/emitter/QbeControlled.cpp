@@ -1,4 +1,78 @@
 #include "QbeEmitter.h"
+#include "QbeSupport.h"
+
+void QbeEmitter::emitControlledResult(Expr* expression)
+{
+    Type* type = m_context->symbol->returnType;
+    // Construct in caller-owned storage. Registrations are installed before
+    // adjustment, so propagation (including a failing local finalizer) never
+    // leaves an unowned result. A caught construction failure discards just
+    // this attempt before the function's handler can retry the return.
+    std::string ownerMark = newTemp();
+    std::string arenaMark = newTemp();
+    line(ownerMark + " =l loadl %.resultOwner");
+    line(arenaMark + " =l loadl %.resultArena");
+    std::string failed = newLabel("resultfailed");
+    std::string ready = newLabel("resultready");
+    m_context->handlerLabels.push_back(failed);
+
+    Value destination { "%.result", 'l' };
+    Value source;
+    bool dynamic = QbeSupport::isUnconstrainedArray(type);
+    if (dynamic) {
+        source = emitExpr(expression);
+        source = withBounds(source, expression->type, nullptr);
+        destination = source;
+        if (type->m_boundsSymbol != nullptr) {
+            destination = withBounds(Value {}, type, nullptr);
+            checkArrayShape(destination, type, source, expression->type);
+        }
+    }
+    if (dynamic || type->m_tagged) {
+        std::string size = dynamic ? objectBytes(destination, type) : std::to_string(typeSize(type));
+        destination.name = newTemp();
+        line(destination.name + " =l call $__ada_array_local(l %.resultArena, w 1, w 1, l " + size + ")");
+        emitExceptionCheck();
+        line("storel " + destination.name + ", %.result");
+    }
+    if (dynamic) {
+        auto storeBounds = [&](const std::string& first, const std::string& last, int offset) {
+            std::string firstSlot = newTemp();
+            std::string lastSlot = newTemp();
+            line(firstSlot + " =l add %.result, " + std::to_string(offset));
+            line(lastSlot + " =l add " + firstSlot + ", 4");
+            line("storew " + first + ", " + firstSlot);
+            line("storew " + last + ", " + lastSlot);
+        };
+        storeBounds(destination.first, destination.last, 8);
+        for (std::size_t dimension = 0; dimension < destination.innerBounds.size(); ++dimension) {
+            storeBounds(destination.innerBounds[dimension].first, destination.innerBounds[dimension].second,
+                        24 + static_cast<int>(dimension) * 8);
+        }
+    }
+    walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
+        line("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
+             + ", l " + rootType(partType)->m_tagName + ".finalize)");
+        emitExceptionCheck();
+    });
+    if (dynamic) {
+        copyControlledObject(destination, source, type, true);
+    } else {
+        assignInto(destination, type, expression, true);
+    }
+    m_context->handlerLabels.pop_back();
+    jump(ready);
+    label(failed);
+    line("call $__ada_finalize_to(l %.resultOwner, l " + ownerMark + ")");
+    line("call $__ada_array_rewind(l %.resultArena, l " + arenaMark + ")");
+    if (!m_context->handlerLabels.empty()) {
+        jump(m_context->handlerLabels.back());
+    } else {
+        m_context->usesPropagate = true;
+        jump(m_context->propagateLabel);
+    }
+    label(ready);
+}
 
 void QbeEmitter::initializeFinalization()
 {

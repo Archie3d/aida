@@ -2,7 +2,7 @@ controllederrors.adb:8:5: error: objects requiring finalization currently requir
 controllederrors.adb:9:5: error: an abstract type cannot be used to create an object
 controllederrors.adb:15:17: error: controlled or abstract allocators are not yet supported
 controllederrors.adb:16:55: error: controlled deallocation is not yet supported
-controllederrors.adb:17:5: error: controlled function results are not yet supported
+controllederrors.adb:17:5: error: limited or class-wide controlled function results are not yet supported
 controllederrors.adb:21:9: error: private controlled completions are not yet supported
 controllederrors.adb:19:9: error: 'Private_Guard' is never described
 controllederrors.adb:26:9: error: a private type and its completion must agree on abstractness

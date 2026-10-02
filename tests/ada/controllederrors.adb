@@ -14,7 +14,7 @@ procedure ControlledErrors is
     type Link is access Guard;
     P : Link := new Guard;
     procedure Free is new Ada.Unchecked_Deallocation (Guard, Link);
-    function Make return Guard;
+    function Make return Guard'Class;
     package Hidden is
         type Private_Guard is tagged private;
     private

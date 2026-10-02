@@ -495,3 +495,10 @@ add_ada_test(controlledcopylibrary SOURCES controlled_copy_model.ads controlled_
 add_determinism_test(controlledcopylibrary SOURCE controlledcopylibrary.adb)
 add_ada_error_test(controlledcomponenterrors SOURCES controlledcomponenterrors.adb)
 add_ada_test(controlledviews SOURCES controlledviews.adb)
+add_ada_test(controlledresults SOURCES controlled_result_model.ads controlled_result_model.adb controlledresults.adb)
+add_determinism_test(controlledresults SOURCE controlledresults.adb)
+add_ada_test(controlledresultfailures SOURCES controlled_result_model.ads controlled_result_model.adb controlledresultfailures.adb)
+add_ada_error_test(controlledresulterrors SOURCES controlledresulterrors.adb)
+add_ada_test(controlledresultdispatch SOURCES controlled_result_model.ads controlled_result_model.adb controlledresultdispatch.adb)
+add_ada_test(controlledresultglobals SOURCES controlled_result_model.ads controlled_result_model.adb
+    controlled_result_globals.ads controlled_result_globals.adb controlledresultglobals.adb)

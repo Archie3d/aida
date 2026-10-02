@@ -414,8 +414,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             SubprogramSpec& spec = *definition->m_accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
-            if (needsFinalization(profile->returnType)) {
-                m_diagnostics.error(decl->location, "controlled function results are not yet supported");
+            if (hasLimitedControlledParts(profile->returnType)
+                || (needsFinalization(profile->returnType) && profile->returnType->m_classRoot != nullptr)) {
+                m_diagnostics.error(decl->location, "limited or class-wide controlled function results are not yet supported");
             }
             for (ParameterDecl& declaration : spec.parameters) {
                 Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
