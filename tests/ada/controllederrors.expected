@@ -1,4 +1,4 @@
-controllederrors.adb:8:5: error: objects requiring finalization currently require a local, specific declaration
+controllederrors.adb:8:5: error: objects requiring finalization currently require a specific declaration
 controllederrors.adb:9:5: error: an abstract type cannot be used to create an object
 controllederrors.adb:15:17: error: controlled or abstract allocators are not yet supported
 controllederrors.adb:16:55: error: controlled deallocation is not yet supported

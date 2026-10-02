@@ -124,8 +124,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (type->m_abstract && type->m_classRoot == nullptr) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
-        if (needsFinalization(type) && (m_currentSubprogram == nullptr || type->m_classRoot != nullptr)) {
-            m_diagnostics.error(decl->location, "objects requiring finalization currently require a local, specific declaration");
+        if (needsFinalization(type) && type->m_classRoot != nullptr) {
+            m_diagnostics.error(decl->location, "objects requiring finalization currently require a specific declaration");
         }
         if (hasLimitedControlledParts(type) && decl->initializer
             && !isAggregateExpression(decl->initializer.get())) {

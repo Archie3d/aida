@@ -661,8 +661,16 @@ Limited controlled values can be built from aggregates but cannot be copied.
 Finalization runs the enclosing object's hook before its components. Failed
 adjustment reports `Program_Error` and retains cleanup for successful parts.
 
+Library-level objects, including controlled record and array components, remain
+alive after elaboration and finalize in reverse creation order at program
+shutdown. This applies across separately compiled package specifications and
+bodies, private parts, and nested packages. Shutdown also runs after failed
+elaboration or an unhandled exception in main, cleaning up successfully
+initialized objects and components. Successful finalizers preserve the pending
+exception; failing finalizers do not stop cleanup and report `Program_Error`.
+
 Controlled function results, owned class-wide objects, allocators/deallocation,
-library-level objects, streaming, private controlled completions, variant records
+streaming, private controlled completions, variant records
 with controlled components, array conversions with controlled components, and
 assignment through ancestor views remain unsupported. Statically visible cases
 are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a

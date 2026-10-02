@@ -108,7 +108,7 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
         context.propagateLabel = newLabel("propagate");
         FunctionContext* saved = m_context;
         m_context = &context;
-        if (m_sema.usesFinalization(part)) {
+        if (m_sema.usesFinalization(part) || hasControlledObjects(part->units)) {
             initializeFinalization();
         }
         emitElaborationDeclarations(part->units);

@@ -474,7 +474,18 @@ add_determinism_test(controlledlifetimes SOURCE controlledlifetimes.adb)
 add_ada_test(controlledlibrary SOURCES controlled_model.ads controlled_model.adb controlledlibrary.adb)
 add_determinism_test(controlledlibrary SOURCE controlledlibrary.adb)
 add_ada_error_test(controllederrors SOURCES controllederrors.adb)
-add_ada_error_test(controlledglobalerrors SOURCES controlledglobalerrors.ads)
+add_ada_test(controlledglobals SOURCES controlled_shutdown_model.ads controlled_shutdown_model.adb
+    controlled_globals.ads controlled_globals.adb controlledglobals.adb)
+add_determinism_test(controlledglobals SOURCE controlledglobals.adb)
+add_ada_test(controlledshutdownfailure SOURCES controlled_shutdown_model.ads controlled_shutdown_model.adb
+    controlled_globals.ads controlled_globals.adb controlledshutdownfailure.adb
+    EXIT_CODE 1 STDERR controlledshutdownfailure.stderr)
+add_ada_test(controlledmainfailure SOURCES controlled_shutdown_model.ads controlled_shutdown_model.adb
+    controlled_globals.ads controlled_globals.adb controlledmainfailure.adb
+    EXIT_CODE 1 STDERR controlledmainfailure.stderr)
+add_ada_test(controlledelaborationfailure SOURCES controlled_shutdown_model.ads controlled_shutdown_model.adb
+    controlled_failed_globals.ads controlled_failed_globals.adb controlledelaborationfailure.adb
+    EXIT_CODE 1 STDERR controlledelaborationfailure.stderr)
 add_ada_test(controlledcopies SOURCES controlledcopies.adb)
 add_ada_test(controlledparts SOURCES controlledparts.adb)
 add_determinism_test(controlledcopies SOURCE controlledcopies.adb)

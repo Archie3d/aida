@@ -1,1 +1,0 @@
-controlledglobalerrors.ads:4:5: error: objects requiring finalization currently require a local, specific declaration

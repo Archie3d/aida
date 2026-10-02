@@ -33,13 +33,16 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
         out << "    call $" << elaborationName(unit) << "()\n";
         out << "    " << pending << " =l loadl $__ada_exception\n";
         out << "    " << raised << " =w cnel " << pending << ", 0\n";
-        out << "    jnz " << raised << ", " << unhandled << ", " << next << "\n";
+        out << "    jnz " << raised << ", @shutdown, " << next << "\n";
         out << next << "\n";
     }
 
     if (!mainName.empty()) {
         out << "    call " << mainName << "()\n";
     }
+
+    out << "    jmp @shutdown\n@shutdown\n";
+    out << "    call $__ada_library_finalize()\n";
 
     std::string pending = "%.t" + std::to_string(temp++);
     std::string raised = "%.t" + std::to_string(temp++);

@@ -554,15 +554,22 @@ operations, interfaces, and wider tagged forms remain extensions below.
   separate compilation, inherited hooks, and recursive static links in
   `controlledcopies`, `controlledparts`, `controlledaggregates`, `controlledarrays`,
   and `controlledcopylibrary`, plus rejection and runtime allocation tests.
-- [ ] Stage 4c: controlled function results and escaping temporaries, owned class-wide
-  objects, allocators/deallocation and collections, library-level finalization,
+- [x] Stage 4c, library finalization milestone: retain controlled library objects
+  across elaboration calls with an environment-level finalization chain. Finalize
+  in reverse creation order before reporting an unhandled exception or returning
+  the process exit status, including failed elaboration and partial initialization.
+  Cover separate specs/bodies, private and nested package objects, copies,
+  assignment, record/array components, limited controlled objects, failed hooks,
+  and registration allocation failures. The full suite passes all 280 tests.
+- [ ] Finish stage 4c: controlled function results and escaping temporaries, owned class-wide
+  objects, allocators/deallocation and collections,
   private controlled completions, and streaming. Also extend variant components,
   array conversions, and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
 controlled returns and escaping temporaries, and finalization
-on deallocation and library shutdown. Extend the tagged regressions alongside
+on deallocation. Extend the tagged regressions alongside
 discriminants, interfaces, private extensions, and wide-character support.
 
 ## 6. Larger runtime and library extensions

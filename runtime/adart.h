@@ -182,6 +182,8 @@ void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
 void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
 
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*));
+void __ada_library_reserve(void* object, void (*finalize)(void*));
+void __ada_library_finalize(void);
 void __ada_controlled_activate(void* object, void (*finalize)(void*));
 int __ada_controlled_finalize(void* object);
 int __ada_controlled_adjust(void* object, void (*adjust)(void*));

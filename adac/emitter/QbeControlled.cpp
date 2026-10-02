@@ -62,9 +62,14 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     }
 }
 
-void QbeEmitter::prepareControlledObject(const Value& object, Type* type)
+void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool library)
 {
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
+        if (library) {
+            line("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->m_tagName + ".finalize)");
+            emitExceptionCheck();
+            return;
+        }
         bool temporary = m_context->m_initializingTemporary;
         std::string owner = temporary ? m_context->m_temporaryFinalizationChain : m_context->m_finalizationChain;
         line("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)

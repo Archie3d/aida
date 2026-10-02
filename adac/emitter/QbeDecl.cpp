@@ -138,6 +138,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     continue;
                 }
                 Value address { symbol->qbeName, 'l' };
+                if (!symbol->m_objectReference && !symbol->m_classWideObject) {
+                    prepareControlledObject(address, symbol->type, true);
+                }
                 if (symbol->m_classWideObject) {
                     emitClassWideObject(object, symbol);
                 } else if (symbol->m_objectReference) {

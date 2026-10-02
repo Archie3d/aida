@@ -246,6 +246,39 @@ int main(void)
     CHECK(finalizationOrder == 1 && registeredFinalizations == NULL);
     __ada_array_release(&owner);
     CHECK(liveAllocations == 0);
+    /* Library registrations outlive elaboration arenas. Shutdown must skip
+       failed construction, preserve pending occurrences, and release all
+       registration storage even when a finalizer fails. */
+    finalizationOrder = 0;
+    failNext = 1;
+    __ada_library_reserve(&firstObject, finalizeValue);
+    CHECK(libraryFinalizations == NULL && liveAllocations == 0 && __ada_exception == ADA_STORAGE_ERROR);
+    __ada_exception = NULL;
+    __ada_library_reserve(&firstObject, finalizeValue);
+    __ada_controlled_activate(&firstObject, finalizeValue);
+    __ada_library_reserve(&secondObject, finalizeValue);
+    CHECK(liveAllocations == 4);
+    __ada_raise_message(ADA_STORAGE_ERROR, "library failure", 15);
+    __ada_library_finalize();
+    CHECK(finalizationOrder == 1 && registeredFinalizations == NULL && libraryFinalizations == NULL);
+    CHECK(libraryFinalizationArena == NULL && __ada_exception == ADA_STORAGE_ERROR);
+    __ada_exception_capture(&occurrence, &owner);
+    CHECK(occurrence.length == 15 && memcmp(occurrence.message, "library failure", 15) == 0);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0);
+    __ada_library_finalize();
+    CHECK(finalizationOrder == 1 && liveAllocations == 0 && __ada_exception == NULL);
+    finalizationOrder = 0;
+    __ada_library_reserve(&firstObject, finalizeValue);
+    __ada_controlled_activate(&firstObject, finalizeValue);
+    __ada_library_reserve(&secondObject, finalizeValue);
+    __ada_controlled_activate(&secondObject, finalizeValue);
+    failNext = 1;
+    __ada_library_finalize();
+    CHECK(finalizationOrder == 21 && liveAllocations == 0 && failNext == 1);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR && registeredFinalizations == NULL);
+    failNext = 0;
+    __ada_exception = NULL;
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };
     AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1, 0, 0 };

@@ -138,7 +138,7 @@ private:
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);
     void emitControlledCall(const Value& object, Type* type, const std::string& operation);
     void initializeFinalization();
-    void prepareControlledObject(const Value& object, Type* type);
+    void prepareControlledObject(const Value& object, Type* type, bool library = false);
     void activateControlledObject(const Value& object, Type* type);
     void walkControlled(const Value& object, Type* type, bool parentFirst,
                         const std::function<void(const Value&, Type*)>& action);

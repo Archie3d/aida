@@ -1,0 +1,21 @@
+initialize 1
+adjust 1
+initialize 2
+initialize 3
+initialize 4
+initialize 5
+initialize 6
+initialize 7
+initialize 8
+globals ready 9
+main done
+finalize 8
+finalize 7
+finalize 6
+finalize 5
+finalize 4
+finalize 3
+finalize 2
+finalize 1
+finalize 1
+shutdown clean

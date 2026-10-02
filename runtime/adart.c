@@ -948,6 +948,8 @@ _Static_assert(sizeof(AdaFinalization) == 40, "finalization record ABI");
    registry lets assignment through borrowed parameters find the caller's
    lifetime record without putting hidden fields in Ada object layouts. */
 static AdaFinalization* registeredFinalizations;
+static AdaFinalization* libraryFinalizations;
+static void* libraryFinalizationArena;
 
 static AdaFinalization* findFinalization(void* object)
 {
@@ -1048,6 +1050,20 @@ void __ada_controlled_activate(void* object, void (*finalize)(void*))
         record->m_finalize = finalize;
         record->m_active = 1;
     }
+}
+
+/* Library objects share the environment task's master across separately
+   compiled units. Keep registrations alive until the binder shuts it down,
+   including the successfully constructed parts of a failed elaboration. */
+void __ada_library_reserve(void* object, void (*finalize)(void*))
+{
+    __ada_finalization_reserve(&libraryFinalizations, &libraryFinalizationArena, object, finalize);
+}
+
+void __ada_library_finalize(void)
+{
+    __ada_finalize_to(&libraryFinalizations, NULL);
+    __ada_array_release(&libraryFinalizationArena);
 }
 
 int __ada_controlled_finalize(void* object)
