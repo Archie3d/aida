@@ -481,6 +481,17 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
     }
     type->m_declarationScope = scope;
+    if (type->kind == TypeKind::Access && type->m_accessProfile == nullptr) {
+        type->m_collectionOwner = m_currentSubprogram;
+        std::string name = "$" + mangle(decl->lower) + "__collection";
+        std::size_t ordinal = ++m_tagNames[name];
+        type->m_collectionName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        type->m_collectionOffset = -1;
+        if (m_currentSubprogram != nullptr && type->target != nullptr
+            && (needsFinalization(type->target) || type->target->isIncomplete)) {
+            m_currentSubprogram->needsFrame = true;
+        }
+    }
     if (type->m_tagged) {
         type->m_tagOwner = m_currentSubprogram;
         type->m_tagOffset = -1;

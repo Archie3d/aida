@@ -11,9 +11,9 @@ procedure ControlledErrors is
     type Holder is record
         Item : Guard;
     end record;
-    type Link is access Guard;
-    P : Link := new Guard;
-    procedure Free is new Ada.Unchecked_Deallocation (Guard, Link);
+    type Link is access Guard'Class;
+    P : Link := new Guard'Class'(A);
+    procedure Free is new Ada.Unchecked_Deallocation (Guard'Class, Link);
     function Make return Guard'Class;
     package Hidden is
         type Private_Guard is tagged private;

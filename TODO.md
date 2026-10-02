@@ -570,15 +570,25 @@ operations, interfaces, and wider tagged forms remain extensions below.
   returns, failing hooks, global initialization/shutdown, and deterministic IR
   in `controlledresults`, `controlledresultfailures`, `controlledresultdispatch`,
   and `controlledresultglobals`. All 286 tests pass.
+- [x] Stage 4c, specific controlled allocation milestone: register each allocation
+  in its access type's collection. Finalize active parts on explicit deallocation
+  and reclaim remaining collection members at the type's master boundary,
+  including library shutdown. Support default/aggregate/copy initialization,
+  limited default allocation, controlled record and fixed-array components,
+  access subtypes/derivation, incomplete designated types, recursive masters,
+  and separate compilation. Failed construction cleans up partial objects;
+  failed finalizers do not prevent storage release or remaining collection cleanup.
+  Cover resource accounting, failed initialization/adjustment/finalization, and
+  allocation failure at every bookkeeping step. All 291 tests pass.
 - [ ] Finish stage 4c: limited controlled results, class-wide results and owned
-  objects, imported controlled results, allocators/deallocation and collections,
+  objects, imported controlled results, class-wide allocation/deallocation,
   private controlled completions, and streaming. Also extend variant components,
   array conversions, and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
-limited and class-wide controlled returns, escaping ownership, and finalization
-on deallocation. Extend the tagged regressions alongside
+limited and class-wide controlled returns, escaping ownership, and class-wide
+finalization on deallocation. Extend the tagged regressions alongside
 discriminants, interfaces, private extensions, and wide-character support.
 
 ## 6. Larger runtime and library extensions

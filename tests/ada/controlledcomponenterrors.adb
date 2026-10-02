@@ -15,7 +15,7 @@ procedure ControlledComponentErrors is
     X, Y : Holder;
     Z : Holder := X;
     type Link is access Holder;
-    P : Link := new Holder;
+    P : Link := new Holder'(X);
     procedure Free is new Ada.Unchecked_Deallocation (Holder, Link);
     function Make return Holder;
     type Callback is access function return Holder;

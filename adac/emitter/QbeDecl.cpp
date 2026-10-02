@@ -73,9 +73,16 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
-        case DeclKind::Type:
-            emitTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
+        case DeclKind::Type: {
+            Type* type = static_cast<TypeDecl*>(decl.get())->declaredType;
+            emitTypeTag(type);
+            if (needsCollection(type) && type->m_collectionOwner == nullptr
+                && !m_emittedCollections.contains(type)) {
+                m_emittedCollections[type] = true;
+                m_data << "export data " << type->m_collectionName << " = align 8 { l 0 }\n";
+            }
             break;
+        }
         case DeclKind::SubprogramDeclaration:
             collectGlobals(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
             break;
@@ -128,6 +135,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             }
         } else if (decl->kind == DeclKind::Type) {
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
+            initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
         } else if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -224,6 +232,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             emitTypeTag(typeDecl->declaredType);
             initializeTypeTag(typeDecl->declaredType);
+            initializeCollection(typeDecl->declaredType);
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }

@@ -5,11 +5,16 @@
 #include <stddef.h>
 static int liveAllocations;
 static int failNext;
+static int failAfter = -1;
 static void* testMalloc(size_t size)
 {
-    if (failNext) {
+    if (failNext || failAfter == 0) {
         failNext = 0;
+        failAfter = -1;
         return NULL;
+    }
+    if (failAfter > 0) {
+        --failAfter;
     }
     void* result = malloc(size);
     if (result != NULL) {
@@ -19,9 +24,13 @@ static void* testMalloc(size_t size)
 }
 static void* testCalloc(size_t count, size_t size)
 {
-    if (failNext) {
+    if (failNext || failAfter == 0) {
         failNext = 0;
+        failAfter = -1;
         return NULL;
+    }
+    if (failAfter > 0) {
+        --failAfter;
     }
     void* result = calloc(count, size);
     if (result != NULL) {
@@ -278,6 +287,47 @@ int main(void)
     CHECK(finalizationOrder == 21 && liveAllocations == 0 && failNext == 1);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR && registeredFinalizations == NULL);
     failNext = 0;
+    __ada_exception = NULL;
+    /* Every allocation point in collection creation, object allocation and
+       part registration must unwind without leaving registry or heap nodes. */
+    for (int failure = 0; failure <= 8; ++failure) {
+        failAfter = failure;
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        if (collection != NULL) {
+            int* object = __ada_collection_allocate(collection, sizeof *object);
+            if (object != NULL) {
+                *object = 1;
+                __ada_allocation_reserve(object, object, finalizeValue);
+                if (__ada_exception == NULL) {
+                    __ada_controlled_activate(object, finalizeValue);
+                }
+            }
+        }
+        CHECK(failure == 8 || __ada_exception == ADA_STORAGE_ERROR);
+        failAfter = -1;
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(liveAllocations == 0 && registeredAllocations == NULL && registeredFinalizations == NULL);
+        __ada_exception = NULL;
+    }
+    void* collection = __ada_collection_create(&finalizations, &owner);
+    CHECK(collection != NULL);
+    int* allocatedFirst = __ada_collection_allocate(collection, sizeof *allocatedFirst);
+    int* allocatedSecond = __ada_collection_allocate(collection, sizeof *allocatedSecond);
+    CHECK(allocatedFirst != NULL && allocatedSecond != NULL);
+    *allocatedFirst = 1;
+    *allocatedSecond = 2;
+    __ada_allocation_reserve(allocatedFirst, allocatedFirst, finalizeValue);
+    __ada_allocation_reserve(allocatedSecond, allocatedSecond, finalizeValue);
+    __ada_controlled_activate(allocatedFirst, finalizeValue);
+    __ada_controlled_activate(allocatedSecond, finalizeValue);
+    finalizationOrder = 0;
+    __ada_deallocate(allocatedSecond);
+    CHECK(finalizationOrder == 2 && __ada_exception == ADA_PROGRAM_ERROR);
+    __ada_finalize_to(&finalizations, NULL);
+    __ada_array_release(&owner);
+    CHECK(finalizationOrder == 21 && __ada_exception == ADA_PROGRAM_ERROR);
+    CHECK(liveAllocations == 0 && registeredAllocations == NULL && registeredFinalizations == NULL);
     __ada_exception = NULL;
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };

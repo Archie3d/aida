@@ -84,6 +84,9 @@ public:
     // Class-wide identity is distinct from subtype identity and derivation.
     bool m_dispatchFrozen = false;
     Symbol* m_tagOwner = nullptr;
+    Symbol* m_collectionOwner = nullptr;
+    std::string m_collectionName;
+    long long m_collectionOffset = -1;
     long long m_tagOffset = -1;
     int m_accessLevel = 0;
     Type* m_classRoot = nullptr;
@@ -184,6 +187,7 @@ public:
 // True when an object of this type, or one holding it, must be cleared.
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
+bool needsCollection(const Type* type);
 bool hasLimitedControlledParts(const Type* type);
 
 // The type identity at the root of a subtype chain.

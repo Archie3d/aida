@@ -35,6 +35,10 @@ bool hasControlledObjects(DeclList& declarations)
                     return true;
                 }
             }
+        } else if (decl->kind == DeclKind::Type) {
+            if (needsCollection(static_cast<TypeDecl*>(decl.get())->declaredType)) {
+                return true;
+            }
         } else if (decl->kind == DeclKind::PackageSpecification) {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
             if (hasControlledObjects(package->publicPart) || hasControlledObjects(package->privatePart)) {

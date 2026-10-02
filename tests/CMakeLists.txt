@@ -502,3 +502,11 @@ add_ada_error_test(controlledresulterrors SOURCES controlledresulterrors.adb)
 add_ada_test(controlledresultdispatch SOURCES controlled_result_model.ads controlled_result_model.adb controlledresultdispatch.adb)
 add_ada_test(controlledresultglobals SOURCES controlled_result_model.ads controlled_result_model.adb
     controlled_result_globals.ads controlled_result_globals.adb controlledresultglobals.adb)
+add_ada_test(controlledallocations SOURCES controlled_result_model.ads controlled_result_model.adb controlledallocations.adb)
+add_determinism_test(controlledallocations SOURCE controlledallocations.adb)
+add_ada_test(controlledallocationfailures SOURCES controlled_result_model.ads controlled_result_model.adb controlledallocationfailures.adb)
+add_ada_test(controlledallocationglobals SOURCES controlled_result_model.ads controlled_result_model.adb
+    controlled_allocation_globals.ads controlled_allocation_globals.adb controlledallocationglobals.adb)
+add_ada_test(controlledallocationglobalfailure SOURCES controlled_result_model.ads controlled_result_model.adb
+    controlled_allocation_globals.ads controlled_allocation_globals.adb controlledallocationglobalfailure.adb
+    EXIT_CODE 1 STDERR controlledallocationglobalfailure.stderr)

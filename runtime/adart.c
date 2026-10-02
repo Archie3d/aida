@@ -335,9 +335,13 @@ void* __ada_allocate(long size)
     return address;
 }
 
+static int releaseControlledAllocation(void* address);
+
 void __ada_deallocate(void* address)
 {
-    free(address);
+    if (!releaseControlledAllocation(address)) {
+        free(address);
+    }
 }
 
 /* Integer'Image renders a leading space in front of non-negative values.  The
@@ -1064,6 +1068,124 @@ void __ada_library_finalize(void)
 {
     __ada_finalize_to(&libraryFinalizations, NULL);
     __ada_array_release(&libraryFinalizationArena);
+}
+
+typedef struct AdaCollection AdaCollection;
+typedef struct AdaAllocation
+{
+    struct AdaAllocation* m_next;
+    struct AdaAllocation* m_registeredNext;
+    AdaCollection* m_collection;
+    void* m_object;
+    AdaFinalization* m_finalizations;
+    void* m_arena;
+} AdaAllocation;
+
+struct AdaCollection
+{
+    AdaAllocation* m_allocations;
+    int m_closing;
+};
+
+static AdaAllocation* registeredAllocations;
+
+static AdaAllocation* findAllocation(void* address)
+{
+    for (AdaAllocation* allocation = registeredAllocations; allocation != NULL;
+         allocation = allocation->m_registeredNext) {
+        if (allocation->m_object == address) {
+            return allocation;
+        }
+    }
+    return NULL;
+}
+
+static int releaseControlledAllocation(void* address)
+{
+    AdaAllocation* allocation = findAllocation(address);
+    if (allocation == NULL) {
+        return 0;
+    }
+    // Unlink before calling user code: a finalizer may deallocate another
+    // member of this collection. Keep the object alive until all parts finish.
+    AdaAllocation** link = &allocation->m_collection->m_allocations;
+    while (*link != allocation) {
+        link = &(*link)->m_next;
+    }
+    *link = allocation->m_next;
+    link = &registeredAllocations;
+    while (*link != allocation) {
+        link = &(*link)->m_registeredNext;
+    }
+    *link = allocation->m_registeredNext;
+    __ada_finalize_to(&allocation->m_finalizations, NULL);
+    __ada_array_release(&allocation->m_arena);
+    free(allocation->m_object);
+    free(allocation);
+    return 1;
+}
+
+static void finalizeCollection(void* object)
+{
+    AdaCollection* collection = object;
+    collection->m_closing = 1;
+    while (collection->m_allocations != NULL) {
+        __ada_deallocate(collection->m_allocations->m_object);
+    }
+}
+
+void* __ada_collection_create(AdaFinalization** owner, void** arena)
+{
+    if (owner == NULL) {
+        owner = &libraryFinalizations;
+        arena = &libraryFinalizationArena;
+    }
+    AdaCollection* collection = __ada_array_local(arena, 1, 1, sizeof *collection);
+    if (collection == NULL) {
+        return NULL;
+    }
+    memset(collection, 0, sizeof *collection);
+    __ada_finalization_reserve(owner, arena, collection, finalizeCollection);
+    if (__ada_exception != NULL) {
+        return NULL;
+    }
+    __ada_controlled_activate(collection, finalizeCollection);
+    return collection;
+}
+
+void* __ada_collection_allocate(void* owner, long size)
+{
+    AdaCollection* collection = owner;
+    if (collection == NULL || collection->m_closing) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    AdaAllocation* allocation = calloc(1, sizeof *allocation);
+    if (allocation == NULL) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return NULL;
+    }
+    allocation->m_object = __ada_allocate(size);
+    if (allocation->m_object == NULL) {
+        free(allocation);
+        return NULL;
+    }
+    allocation->m_collection = collection;
+    allocation->m_next = collection->m_allocations;
+    collection->m_allocations = allocation;
+    allocation->m_registeredNext = registeredAllocations;
+    registeredAllocations = allocation;
+    return allocation->m_object;
+}
+
+void __ada_allocation_reserve(void* object, void* part, void (*finalize)(void*))
+{
+    AdaAllocation* allocation = findAllocation(object);
+    if (allocation == NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    __ada_finalization_reserve(&allocation->m_finalizations, &allocation->m_arena, part, finalize);
 }
 
 int __ada_controlled_finalize(void* object)

@@ -29,7 +29,7 @@ bool isCharacterLiteralExpression(const Expr* expr)
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
     Type* result = analyzeExprValue(expr, scope, expected);
-    if (needsFinalization(result)) {
+    if (needsFinalization(result) || needsCollection(result)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->m_usesFinalization = true;
         } else {
@@ -172,8 +172,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if (needsFinalization(designated) || (designated->m_abstract && designated->m_classRoot == nullptr)) {
-        m_diagnostics.error(expr->location, "controlled or abstract allocators are not yet supported");
+    if ((needsFinalization(designated) && (designated->m_classRoot != nullptr
+            || access->target->m_classRoot != nullptr))
+        || (designated->m_abstract && designated->m_classRoot == nullptr)) {
+        m_diagnostics.error(expr->location, "class-wide controlled or abstract allocators are not yet supported");
         return nullptr;
     }
     if (designated->m_classRoot != nullptr && expr->value == nullptr) {
@@ -197,8 +199,11 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
-        if (needsFinalization(value)) {
-            m_diagnostics.error(expr->location, "allocators with controlled parts are not yet supported");
+        if (needsFinalization(value) && designated->m_classRoot != nullptr) {
+            m_diagnostics.error(expr->location, "class-wide allocators with controlled parts are not yet supported");
+        }
+        if (hasLimitedControlledParts(designated) && !isAggregateExpression(expr->value.get())) {
+            m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
         }
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");

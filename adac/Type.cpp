@@ -438,6 +438,12 @@ bool needsFinalization(const Type* type)
     return false;
 }
 
+bool needsCollection(const Type* type)
+{
+    return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
+        && type->target->m_classRoot == nullptr && needsFinalization(type->target);
+}
+
 bool hasLimitedControlledParts(const Type* type)
 {
     if (type == nullptr) {

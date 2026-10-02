@@ -108,7 +108,8 @@ void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, 
 /* The storage an allocator takes from and Ada.Unchecked_Deallocation gives
    back.  Every allocation comes out cleared, so that an access component of
    the new object starts as null.  Storage_Error is raised when the request
-   cannot be met, and freeing null does nothing. */
+   cannot be met, and freeing null does nothing. Deallocation of a collection
+   member finalizes its active controlled parts before releasing storage. */
 void* __ada_allocate(long size);
 void __ada_deallocate(void* address);
 void* __ada_array_local(void** owner, int first, int last, int64_t elementSize);
@@ -184,6 +185,9 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*));
 void __ada_library_reserve(void* object, void (*finalize)(void*));
 void __ada_library_finalize(void);
+void* __ada_collection_create(AdaFinalization** owner, void** arena);
+void* __ada_collection_allocate(void* collection, long size);
+void __ada_allocation_reserve(void* allocation, void* part, void (*finalize)(void*));
 void __ada_controlled_activate(void* object, void (*finalize)(void*));
 int __ada_controlled_finalize(void* object);
 int __ada_controlled_adjust(void* object, void (*adjust)(void*));

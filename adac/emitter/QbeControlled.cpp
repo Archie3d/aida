@@ -1,6 +1,45 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+void QbeEmitter::initializeCollection(Type* type)
+{
+    if (!needsCollection(type) || m_initializedCollections.contains(type)) {
+        return;
+    }
+    m_initializedCollections[type] = true;
+    std::string slot = type->m_collectionName;
+    std::string owner = "0";
+    std::string arena = "0";
+    if (type->m_collectionOwner != nullptr) {
+        m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
+        type->m_collectionOffset = m_context->frameSize;
+        m_context->frameSize += 8;
+        slot = newTemp();
+        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->m_collectionOffset));
+        owner = m_context->m_finalizationChain;
+        arena = storageArena(false, true);
+    }
+    std::string collection = newTemp();
+    line(collection + " =l call $__ada_collection_create(l " + owner + ", l " + arena + ")");
+    emitExceptionCheck();
+    line("storel " + collection + ", " + slot);
+}
+
+Value QbeEmitter::collectionFor(Type* type)
+{
+    type = rootType(type);
+    std::string slot = type->m_collectionName;
+    if (type->m_collectionOwner != nullptr) {
+        Value frame = type->m_collectionOwner == m_context->symbol
+            ? Value { m_context->frameTemp, 'l' } : staticLinkFor(type->m_collectionOwner->level);
+        slot = newTemp();
+        line(slot + " =l add " + frame.name + ", " + std::to_string(type->m_collectionOffset));
+    }
+    Value collection { newTemp(), 'l' };
+    line(collection.name + " =l loadl " + slot);
+    return collection;
+}
+
 void QbeEmitter::emitControlledResult(Expr* expression)
 {
     Type* type = m_context->symbol->returnType;

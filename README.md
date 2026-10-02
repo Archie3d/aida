@@ -680,8 +680,19 @@ A failed result construction cleans up its successful parts before a function
 handler retries the return; failed callee cleanup leaves the result owned by
 the caller for exception cleanup.
 
+Allocators support specific controlled objects and records or fixed-size arrays
+containing controlled parts. Default initialization, aggregates, and nonlimited
+copy initialization use the same hooks and partial-failure cleanup as local
+objects. `Unchecked_Deallocation` finalizes active parts before releasing their
+storage. Each access type owns a collection: objects remain alive across helper
+calls and after access values are discarded, then finalize when the access type's
+scope ends. Library collections finalize at shutdown. Failed finalizers do not
+stop collection cleanup; allocated storage is released before `Program_Error`
+propagates. Limited controlled objects support default and aggregate allocation,
+but still cannot be copied.
+
 Limited controlled results, class-wide controlled results and owned objects,
-imported controlled results, allocators/deallocation,
+imported controlled results, class-wide controlled allocation/deallocation,
 streaming, private controlled completions, variant records
 with controlled components, array conversions with controlled components, and
 assignment through ancestor views remain unsupported. Statically visible cases

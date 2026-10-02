@@ -470,6 +470,39 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
     long long size = typeSize(designated);
+    if (needsFinalization(designated) && designated->m_classRoot == nullptr
+        && expr->type->target->m_classRoot == nullptr) {
+        Value collection = collectionFor(expr->type);
+        Value object { newTemp(), 'l' };
+        line(object.name + " =l call $__ada_collection_allocate(l " + collection.name
+             + ", l " + std::to_string(size) + ")");
+        emitExceptionCheck();
+        std::string failed = newLabel("allocationfailed");
+        std::string ready = newLabel("allocationready");
+        m_context->handlerLabels.push_back(failed);
+        walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
+            line("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
+                 + ", l " + rootType(partType)->m_tagName + ".finalize)");
+            emitExceptionCheck();
+        });
+        if (expr->value != nullptr) {
+            assignInto(object, designated, expr->value.get(), true);
+        } else {
+            emitDefaultInit(object, designated);
+        }
+        m_context->handlerLabels.pop_back();
+        jump(ready);
+        label(failed);
+        line("call $__ada_deallocate(l " + object.name + ")");
+        if (!m_context->handlerLabels.empty()) {
+            jump(m_context->handlerLabels.back());
+        } else {
+            m_context->usesPropagate = true;
+            jump(m_context->propagateLabel);
+        }
+        label(ready);
+        return object;
+    }
     if (designated->m_classRoot != nullptr || (expr->type->target != nullptr && expr->type->target->m_classRoot != nullptr)) {
         Value source;
         if (designated->m_classRoot != nullptr) {

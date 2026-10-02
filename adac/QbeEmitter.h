@@ -138,6 +138,8 @@ private:
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);
     void emitControlledCall(const Value& object, Type* type, const std::string& operation);
     void initializeFinalization();
+    void initializeCollection(Type* type);
+    Value collectionFor(Type* type);
     void emitControlledResult(Expr* expression);
     void prepareControlledObject(const Value& object, Type* type, bool library = false);
     void activateControlledObject(const Value& object, Type* type);
@@ -220,6 +222,8 @@ private:
     std::unordered_map<std::string, std::string> m_stringPool;
     std::unordered_map<const Type*, std::string> m_enumTables;
     std::unordered_map<Type*, bool> m_emittedTags;
+    std::unordered_map<Type*, bool> m_emittedCollections;
+    std::unordered_map<Type*, bool> m_initializedCollections;
     FunctionContext* m_context = nullptr;
 
     // Strings and tables are private to the object they end up in, so their
