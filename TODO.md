@@ -36,31 +36,42 @@ language extensions, and the full tasking model follows them.
 
 ## Phase 1 — Stop silent acceptance
 
-Highest priority: these constructs are accepted today and behave differently
-from what the source asks for.
+Highest priority: constructs that were accepted while their meaning was dropped.
+The main items are done; the follow-ups below close the remaining silent paths.
 
-- [x] **Pragmas.** `Parser::parsePragma` keeps only `pragma Import` and discards
-  every other pragma without a diagnostic. Define a policy: honor or explicitly
-  accept harmless pragmas (for example `Inline`, `Pure`, `Preelaborate`), and
-  reject the ones whose semantics are missing (for example `Pack`, `Export`,
-  `Convention`, `Elaborate_All`, `Restrictions`, and the tasking pragmas
-  `Atomic`, `Volatile`, `Priority` and `Storage_Size`) until they are
-  implemented. Report unknown pragmas.
-- [x] **Representation clauses.** `Parser::parseRepresentationClause` honors only
-  `'Size`; other clauses are read and ignored. Reject unsupported clauses, and
-  validate `'Size` against the chosen representation and the type's range.
-- [x] **Import conventions.** `pragma Import` ignores its convention argument.
-  Reject conventions other than C and Ada.
-- [x] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
-  declaration and its body is never loaded. Diagnose stubs until subunits exist
-  (Phase 6).
-- [x] **Reserved words.** The lexer does not reserve `aliased`, `protected`,
-  `requeue`, `until`, `interface` or `synchronized`, so programs can use them as
-  identifiers today and would break when the features arrive. Reserve them now
-  and reject the constructs they introduce. No bundled unit or test uses them.
+- [x] **Pragmas.** `Parser::parsePragma` accepts `Import`, plus `Inline`, `Pure`
+  and `Preelaborate` as advisory, and rejects every other or unknown pragma in
+  context clauses, declarative parts and statements. Covered by `pragmas` and
+  the `pragma*errors` tests (syntax, unknown, representation, elaboration,
+  checks, tasking).
+- [x] **Representation clauses.** Only `'Size` clauses are accepted, and they
+  are validated against the representation and range. Other attribute,
+  enumeration, record and address clauses are rejected. Covered by
+  `sizeclauses`, `representationerrors` and `size{layout,range,value}errors`.
+- [x] **Import conventions.** Only C and Ada are accepted. Covered by
+  `importconventions`, `importconventionerrors` and
+  `importconventionsyntaxerrors`.
+- [x] **Subprogram stubs.** `is separate` on a subprogram is rejected. Covered
+  by `subprogramstuberrors` and `subprogramcompletions`.
+- [x] **Reserved words.** `aliased`, `protected`, `requeue`, `until`,
+  `interface` and `synchronized` are reserved, and the constructs they introduce
+  are rejected (including inside generic formal type definitions). Covered by
+  `reservedworderrors`, `reservedconstructerrors`, `reservedgenericerrors` and
+  `reservedwordboundaries`.
+- [ ] **Import without an external name.** `pragma Import (C, Foo);` is
+  dropped without a diagnostic, and the program then fails to link on an
+  undefined Ada-mangled symbol. Either default the external name as Ada
+  requires (the lower-case entity name for convention C) or reject the pragma.
+- [ ] **Remaining `Import` arguments.** Arguments after the external name, such
+  as a fourth argument or `Link_Name => ...`, are skipped without a diagnostic.
+  Named associations (`Convention => C, ...`) are misreported as an unknown
+  convention. Parse or reject both.
+- [ ] **Package body stubs.** `package body P is separate;` fails with cascading
+  parse errors ("expected a declaration", closing-name mismatch). Report a
+  single clear diagnostic, as for subprogram stubs.
 
-Tests: one rejection test per category, plus acceptance tests for the pragmas
-that are deliberately accepted.
+Tests: extend `importconventionerrors` and `subprogramstuberrors`, plus an
+executable test if `Import` defaults the external name.
 
 ## Phase 2 — Tasking foundations
 
@@ -117,8 +128,8 @@ Audits of supported features. Write a focused reproduction before choosing a fix
 - [ ] **Unit loading and elaboration.** Dependency cycles, explicit-source and
   spec/body loading, and elaboration-before-use checks. The binder currently
   trusts the manifest's order; make it check that order against `with`
-  dependencies. Add `Elaborate`, `Elaborate_All` and `Elaborate_Body` after
-  Phase 1's pragma policy. Code: `adac/UnitLoader.cpp`, `adac/Binder.cpp`.
+  dependencies. Then implement `Elaborate`, `Elaborate_All` and `Elaborate_Body`,
+  which Phase 1 currently rejects. Code: `adac/UnitLoader.cpp`, `adac/Binder.cpp`.
 - [ ] **Library-level statement blocks.** Support declarations inside them,
   including object storage, nested subprogram emission and package elaboration.
 - [ ] **Aggregates.** Completeness, duplicate choices, record defaults, array
@@ -184,8 +195,10 @@ These unblock several Phase 6 features, especially wider arrays.
   dynamic subtype bounds, remaining attributes and streaming.
 - [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
   rounding and checks.
-- [ ] **Representation clauses.** After Phase 1, add alignment, enumeration
-  representation and record representation clauses, one at a time.
+- [ ] **Representation clauses.** Implement alignment, enumeration
+  representation and record representation clauses, one at a time, replacing
+  their Phase 1 rejections. Also let `'Size` change subtype storage and
+  composite layouts.
 - [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
   helpers, keeping the same failure behavior.
 
