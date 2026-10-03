@@ -320,8 +320,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
-        if (completing != nullptr && parent->m_controlled) {
-            m_diagnostics.error(decl->location, "private controlled completions are not yet supported");
+        if (completing != nullptr && parent->m_controlled && !completing->m_tagged) {
+            m_diagnostics.error(decl->location, "a controlled completion requires a tagged private view");
+            return;
+        }
+        if (completing != nullptr && parent->m_controlled && parent->isLimited && !completing->isLimited) {
+            m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
         }
         if (parent->m_classRoot != nullptr) {
@@ -339,7 +343,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
             return;
         }
-        if (parent->m_tagged && ((!representationVisible(parent) && !parent->m_controlled) || parent->isIncomplete)) {
+        bool finalizationRoot = parent->m_controlled && parent->m_parentType == nullptr;
+        if (parent->m_tagged && ((!representationVisible(parent) && !finalizationRoot) || parent->isIncomplete)) {
             m_diagnostics.error(decl->location, "extension of a private or incomplete tagged view is not yet supported");
             return;
         }
@@ -414,6 +419,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             SubprogramSpec& spec = *definition->m_accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+            profile->location = decl->location;
+            profile->m_pendingControlledResult = profile->returnType != nullptr
+                && rootType(profile->returnType)->isIncomplete;
             if (hasLimitedControlledParts(profile->returnType)
                 || (needsFinalization(profile->returnType) && profile->returnType->m_classRoot != nullptr)) {
                 m_diagnostics.error(decl->location, "limited or class-wide controlled function results are not yet supported");
@@ -510,6 +518,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         wide->m_classRoot = type;
         wide->m_primitives.clear();
         wide->m_declarationScope = nullptr;
+        m_types.refreshRecordSubtypes(wide);
+    }
+    if (completing != nullptr && type->kind == TypeKind::Record) {
+        m_types.refreshRecordSubtypes(type);
     }
     decl->declaredType = type;
     Symbol* symbol = nullptr;

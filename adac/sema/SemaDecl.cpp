@@ -422,6 +422,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Subprogram, spec.lower, spec.name);
     symbol->location = spec.location;
     symbol->returnType = returnType;
+    symbol->m_pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
     symbol->m_overrides = overrides;
     symbol->m_pendingOverride = pendingOverride ? spec.m_overriding : 0;

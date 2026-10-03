@@ -698,11 +698,19 @@ against target index subtypes. Multidimensional conversions, overlapping slice
 assignment, and cleanup after failed adjustment are supported. Conversions of
 arrays with limited controlled components remain rejected.
 
+Tagged private types can complete as controlled extensions, including limited
+controlled extensions when the private view is also limited. Initialization,
+copying, results, allocation, and finalization use the full type's hooks while
+fields and private operations remain hidden from clients. Subtype aliases
+declared before completion acquire the full type's lifetime properties. Private
+records containing controlled components are also supported. Tests cover separate
+compilation and recursive local packages with captured hook state.
+
 Limited controlled results, class-wide controlled results and owned objects,
 imported controlled results, class-wide controlled allocation/deallocation,
-streaming, private controlled completions, variant records
-with controlled components, and
-assignment through ancestor views remain unsupported. Statically visible cases
+streaming, untagged private views with tagged controlled full definitions,
+variant records with controlled components, and assignment through ancestor
+views remain unsupported. Statically visible cases
 are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a
 controlled value behind a parameter raises `Program_Error`. These remaining
 stage 4 forms are needed before enabling `Unbounded_String` or containers.

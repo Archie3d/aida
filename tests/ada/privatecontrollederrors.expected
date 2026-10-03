@@ -1,0 +1,11 @@
+privatecontrollederrors.adb:6:5: error: extension of a private or incomplete tagged view is not yet supported
+privatecontrollederrors.adb:9:9: error: limited or class-wide controlled function results are not yet supported
+privatecontrollederrors.adb:10:9: error: limited or class-wide controlled function results are not yet supported
+privatecontrollederrors.adb:16:9: error: limited or class-wide controlled function results are not yet supported
+privatecontrollederrors.adb:17:9: error: imported controlled function results are not yet supported
+privatecontrollederrors.adb:25:9: error: a limited controlled completion requires a limited private view
+privatecontrollederrors.adb:23:9: error: 'Item' is never described
+privatecontrollederrors.adb:28:6: error: '.' reaches inside a value of 'Hidden', whose representation 'Private_Controlled_Model' keeps to itself
+privatecontrollederrors.adb:29:5: error: 'Adjust' is not declared
+privatecontrollederrors.adb:30:5: error: 'Limited_Hidden' is limited private, so a value of it cannot be assigned outside 'Private_Controlled_Model'
+privatecontrollederrors.adb:30:5: error: limited controlled objects cannot be assigned

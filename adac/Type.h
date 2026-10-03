@@ -230,6 +230,7 @@ public:
 
     Type* create(TypeKind kind, const std::string& name);
     Type* makeSubtype(const std::string& name, Type* parent, long long low, long long high);
+    void refreshRecordSubtypes(Type* completed);
 
     Type* scalarBaseType(Type* type);
 

@@ -76,6 +76,7 @@ struct Symbol
     Type* m_controllingType = nullptr;
     int m_dispatchSlot = -1;
     int m_pendingOverride = 0;
+    bool m_pendingControlledResult = false;
     Symbol* m_renamedSubprogram = nullptr;
     Symbol* m_renamedAccess = nullptr;
     bool m_intrinsicRenaming = false;

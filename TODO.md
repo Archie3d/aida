@@ -586,9 +586,18 @@ operations, interfaces, and wider tagged forms remain extensions below.
   multidimensional arrays, null ranges, nested conversions, overlapping slices,
   resource accounting, and deterministic IR in `controlledconversions`.
   Limited controlled component copies remain rejected. All 293 tests pass.
+- [x] Stage 4c, tagged private controlled completions: retain hooks and lifetime
+  properties across completion, including previously declared subtype aliases.
+  Support hidden hooks and visible overrides, limited private controlled types,
+  private records containing controlled components, function results, allocation,
+  separate compilation, and recursive local packages. Recheck incomplete result
+  profiles after completion; preserve field/operation visibility and reject
+  unsupported external extensions. `privatecontrolled` and rejection/determinism
+  tests bring the full suite to 296 passing tests.
 - [ ] Finish stage 4c: limited controlled results, class-wide results and owned
   objects, imported controlled results, class-wide allocation/deallocation,
-  private controlled completions, and streaming. Also extend variant components
+  untagged private views with tagged controlled full definitions, and streaming.
+  Also extend variant components
   and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 

@@ -16,7 +16,7 @@ procedure ControlledErrors is
     procedure Free is new Ada.Unchecked_Deallocation (Guard'Class, Link);
     function Make return Guard'Class;
     package Hidden is
-        type Private_Guard is tagged private;
+        type Private_Guard is private;
     private
         type Private_Guard is new Guard with null record;
     end Hidden;

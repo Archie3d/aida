@@ -512,3 +512,7 @@ add_ada_test(controlledallocationglobalfailure SOURCES controlled_result_model.a
     EXIT_CODE 1 STDERR controlledallocationglobalfailure.stderr)
 add_ada_test(controlledconversions SOURCES controlled_result_model.ads controlled_result_model.adb controlledconversions.adb)
 add_determinism_test(controlledconversions SOURCE controlledconversions.adb)
+add_ada_test(privatecontrolled SOURCES controlled_result_model.ads controlled_result_model.adb
+    private_controlled_model.ads private_controlled_model.adb privatecontrolled.adb)
+add_determinism_test(privatecontrolled SOURCE privatecontrolled.adb)
+add_ada_error_test(privatecontrollederrors SOURCES privatecontrollederrors.adb)

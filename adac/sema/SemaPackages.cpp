@@ -63,15 +63,31 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     m_inVisiblePart = false;
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
     // A private type can acquire inherited operations only at its completion.
-    // Check indicators on its earlier declarations once that ancestry is known.
+    // Check indicators and result restrictions on earlier declarations once
+    // the ancestry and controlled lifetime requirements are known.
     for (DeclList* part : { &decl->publicPart, &decl->privatePart }) {
         for (const DeclPtr& item : *part) {
-            if (item->kind != DeclKind::SubprogramDeclaration) {
-                continue;
+            Symbol* operation = nullptr;
+            if (item->kind == DeclKind::SubprogramDeclaration) {
+                operation = static_cast<SubprogramDecl*>(item.get())->symbol;
+            } else if (item->kind == DeclKind::Type) {
+                Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
+                operation = type != nullptr ? type->m_accessProfile : nullptr;
             }
-            Symbol* operation = static_cast<SubprogramDecl*>(item.get())->symbol;
             if (operation == nullptr) {
                 continue;
+            }
+            if (operation->m_pendingControlledResult) {
+                Type* result = operation->returnType;
+                if (hasLimitedControlledParts(result)
+                    || (needsFinalization(result) && result->m_classRoot != nullptr)) {
+                    m_diagnostics.error(operation->location,
+                        "limited or class-wide controlled function results are not yet supported");
+                }
+                if (needsFinalization(result) && operation->builtin == BuiltinKind::Runtime) {
+                    m_diagnostics.error(operation->location, "imported controlled function results are not yet supported");
+                }
+                operation->m_pendingControlledResult = false;
             }
             if (operation->m_pendingOverride == 1 && !operation->m_overrides) {
                 m_diagnostics.error(operation->location, "subprogram marked overriding does not override an inherited operation");

@@ -344,6 +344,24 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     return subtype;
 }
 
+// Subtypes declared against a private view keep that view's identity, but
+// their cached representation and lifetime properties must follow completion.
+void TypeTable::refreshRecordSubtypes(Type* completed)
+{
+    for (const auto& stored : m_types) {
+        Type* subtype = stored.get();
+        if (!subtype->isSubtype || rootType(subtype) != completed) {
+            continue;
+        }
+        subtype->m_tagged = completed->m_tagged;
+        subtype->m_controlled = completed->m_controlled;
+        subtype->m_tagName = completed->m_tagName;
+        subtype->m_parentFieldCount = completed->m_parentFieldCount;
+        subtype->isLimited = subtype->isLimited || completed->isLimited;
+        subtype->fields = completed->fields;
+    }
+}
+
 bool discriminantValueOf(const Type* type, int index, long long& value)
 {
     for (const Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
