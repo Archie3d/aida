@@ -1,0 +1,4 @@
+pragmacheckerrors.adb:1:8: error: unsupported or unknown pragma 'Restrictions'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmacheckerrors.adb:2:8: error: unsupported or unknown pragma 'Suppress'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmacheckerrors.adb:3:8: error: unsupported or unknown pragma 'Assert'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmacheckerrors.adb:4:8: error: unsupported or unknown pragma 'Assertion_Policy'; supported pragmas are Import, Inline, Pure and Preelaborate

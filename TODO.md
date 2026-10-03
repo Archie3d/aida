@@ -39,7 +39,7 @@ language extensions, and the full tasking model follows them.
 Highest priority: these constructs are accepted today and behave differently
 from what the source asks for.
 
-- [ ] **Pragmas.** `Parser::parsePragma` keeps only `pragma Import` and discards
+- [x] **Pragmas.** `Parser::parsePragma` keeps only `pragma Import` and discards
   every other pragma without a diagnostic. Define a policy: honor or explicitly
   accept harmless pragmas (for example `Inline`, `Pure`, `Preelaborate`), and
   reject the ones whose semantics are missing (for example `Pack`, `Export`,

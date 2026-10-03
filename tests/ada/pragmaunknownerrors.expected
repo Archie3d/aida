@@ -1,0 +1,3 @@
+pragmaunknownerrors.adb:2:12: error: unsupported or unknown pragma 'Typo_Pragma'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmaunknownerrors.adb:3:12: error: unsupported or unknown pragma 'Inlien'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmaunknownerrors.adb:5:12: error: unsupported or unknown pragma 'Unknown_Statement'; supported pragmas are Import, Inline, Pure and Preelaborate

@@ -1,0 +1,3 @@
+pragmaelaborationerrors.adb:1:8: error: unsupported or unknown pragma 'Elaborate'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmaelaborationerrors.adb:2:8: error: unsupported or unknown pragma 'Elaborate_All'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmaelaborationerrors.adb:3:8: error: unsupported or unknown pragma 'Elaborate_Body'; supported pragmas are Import, Inline, Pure and Preelaborate

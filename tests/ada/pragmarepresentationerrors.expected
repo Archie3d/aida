@@ -1,0 +1,3 @@
+pragmarepresentationerrors.adb:2:12: error: unsupported or unknown pragma 'Pack'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmarepresentationerrors.adb:3:12: error: unsupported or unknown pragma 'Export'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmarepresentationerrors.adb:4:12: error: unsupported or unknown pragma 'Convention'; supported pragmas are Import, Inline, Pure and Preelaborate

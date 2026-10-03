@@ -134,37 +134,57 @@ DeclPtr Parser::parseUseClause()
     return decl;
 }
 
-// A pragma the compiler has nothing to say about is read through and dropped.
-// Import is kept, because it is what ties a declaration in the predefined
-// environment to the C entry point that carries it out.
+// Keep Import for semantic analysis. Inline, Pure and Preelaborate are
+// explicitly accepted as advisory only; reject every other pragma rather than
+// silently losing requirements on representation, checks or execution.
 DeclPtr Parser::parsePragma()
 {
     SourceLocation location = current().location;
     expect(TokenKind::KwPragma, "in pragma");
 
-    std::unique_ptr<PragmaDecl> pragma;
-    if (check(TokenKind::Identifier)) {
-        pragma = std::make_unique<PragmaDecl>();
-        pragma->location = location;
-        pragma->name = current().text;
-        pragma->lower = current().lower;
-        advance();
+    const Token& name = expect(TokenKind::Identifier, "as pragma name");
+    if (name.lower == "inline" || name.lower == "pure" || name.lower == "preelaborate") {
+        if (match(TokenKind::LeftParen)) {
+            do {
+                if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+                    advance();
+                    advance();
+                }
+                parseExpression();
+            } while (match(TokenKind::Comma));
+            expect(TokenKind::RightParen, "after pragma arguments");
+        } else if (name.lower == "inline") {
+            fail("expected arguments for pragma Inline");
+        }
+        expect(TokenKind::Semicolon, "after pragma");
+        return nullptr;
+    }
+    if (name.lower != "import") {
+        m_diagnostics.error(name.location, "unsupported or unknown pragma '" + name.text
+            + "'; supported pragmas are Import, Inline, Pure and Preelaborate");
+        skipToSemicolon();
+        return nullptr;
+    }
 
-        if (pragma->lower == "import" && match(TokenKind::LeftParen)) {
-            // The convention is read and let go: C is the only one there is.
-            if (check(TokenKind::Identifier)) {
-                advance();
-            }
-            if (match(TokenKind::Comma) && (check(TokenKind::Identifier)
-                || (check(TokenKind::StringLiteral) && current().text == "**"))) {
-                pragma->entity = current().text;
-                pragma->entityLower = toLower(current().text);
-                advance();
-            }
-            if (match(TokenKind::Comma) && check(TokenKind::StringLiteral)) {
-                pragma->linkName = current().text;
-                advance();
-            }
+    auto pragma = std::make_unique<PragmaDecl>();
+    pragma->location = location;
+    pragma->name = name.text;
+    pragma->lower = name.lower;
+
+    if (match(TokenKind::LeftParen)) {
+        // Convention validation is a separate roadmap step.
+        if (check(TokenKind::Identifier)) {
+            advance();
+        }
+        if (match(TokenKind::Comma) && (check(TokenKind::Identifier)
+            || (check(TokenKind::StringLiteral) && current().text == "**"))) {
+            pragma->entity = current().text;
+            pragma->entityLower = toLower(current().text);
+            advance();
+        }
+        if (match(TokenKind::Comma) && check(TokenKind::StringLiteral)) {
+            pragma->linkName = current().text;
+            advance();
         }
     }
 
@@ -173,8 +193,7 @@ DeclPtr Parser::parsePragma()
     }
     expect(TokenKind::Semicolon, "after pragma");
 
-    if (pragma != nullptr && pragma->lower == "import" && !pragma->entityLower.empty()
-        && !pragma->linkName.empty()) {
+    if (!pragma->entityLower.empty() && !pragma->linkName.empty()) {
         return pragma;
     }
     return nullptr;

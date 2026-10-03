@@ -1,0 +1,5 @@
+pragmasyntaxerrors.adb:2:18: error: expected arguments for pragma Inline
+pragmasyntaxerrors.adb:3:18: error: expected an expression
+pragmasyntaxerrors.adb:4:44: error: expected ')' after pragma arguments, found ';'
+pragmasyntaxerrors.adb:5:30: error: expected an expression
+pragmasyntaxerrors.adb:6:12: error: expected 'identifier' as pragma name, found ';'

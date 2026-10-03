@@ -228,6 +228,12 @@ tests. The sections below describe each feature and its limits.
   `'Address`, `'Size`, `'Access`, `'Tag`, `'Class`, `'Identity`, and the
   stream attributes; `'Size` representation clauses; `pragma Import` of C
   routines.
+- **Pragma policy:** `Import` retains its existing foreign-call behavior.
+  `Inline`, `Pure`, and `Preelaborate` are explicitly accepted as advisory
+  pragmas: arguments are parsed, but inlining is not promised and package
+  categorization legality is not checked. All other pragma names, including
+  unknown names, produce an error. This policy applies in context clauses,
+  declarative parts, and statement sequences.
 - **Run time checks:** range, index, length, discriminant, tag, overflow,
   division and null-access checks raising `Constraint_Error`; storage
   exhaustion raising `Storage_Error`; function fall-through and finalization
@@ -252,8 +258,11 @@ tests. The sections below describe each feature and its limits.
 - Library-level arrays and scalar subtypes with runtime bounds,
   runtime-constrained array components and allocators, and array indices or
   lengths beyond 32 bits.
-- Representation clauses other than `'Size`, which are read and ignored, and
-  pragmas other than `Import`, which are ignored without a diagnostic.
+- Representation clauses other than `'Size`, which are read and ignored.
+- Pragmas other than `Import`, `Inline`, `Pure`, and `Preelaborate` are rejected,
+  including `Pack`, `Export`, `Convention`, `Elaborate_All`, `Restrictions`,
+  `Atomic`, `Volatile`, `Priority`, and `Storage_Size`. Enforcement of `Pure`
+  and `Preelaborate` categorization rules is not yet supported.
 - Type-aware streaming: streams mostly copy object representation; controlled
   and class-wide streaming are rejected.
 - `Wide_Character` and `Wide_String`, `Ada.Strings.Unbounded`,

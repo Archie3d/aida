@@ -1,0 +1,4 @@
+pragmataskingerrors.adb:2:12: error: unsupported or unknown pragma 'Atomic'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmataskingerrors.adb:3:12: error: unsupported or unknown pragma 'Volatile'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmataskingerrors.adb:4:12: error: unsupported or unknown pragma 'Priority'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmataskingerrors.adb:5:12: error: unsupported or unknown pragma 'Storage_Size'; supported pragmas are Import, Inline, Pure and Preelaborate
