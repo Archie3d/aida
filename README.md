@@ -691,10 +691,17 @@ stop collection cleanup; allocated storage is released before `Program_Error`
 propagates. Limited controlled objects support default and aggregate allocation,
 but still cannot be copied.
 
+Array value conversions with nonlimited controlled components create an adjusted
+temporary copy. Conversions preserve bounds for unconstrained targets, slide to
+constrained target bounds after checking lengths, and check non-null bounds
+against target index subtypes. Multidimensional conversions, overlapping slice
+assignment, and cleanup after failed adjustment are supported. Conversions of
+arrays with limited controlled components remain rejected.
+
 Limited controlled results, class-wide controlled results and owned objects,
 imported controlled results, class-wide controlled allocation/deallocation,
 streaming, private controlled completions, variant records
-with controlled components, array conversions with controlled components, and
+with controlled components, and
 assignment through ancestor views remain unsupported. Statically visible cases
 are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a
 controlled value behind a parameter raises `Program_Error`. These remaining

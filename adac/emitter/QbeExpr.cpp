@@ -153,6 +153,40 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (call->form == CallForm::Conversion) {
             Expr* operand = call->resolvedArguments.front();
             Value value = emitExpr(operand);
+            if (expr->type->kind == TypeKind::Array && needsFinalization(expr->type)) {
+                Value converted = withBounds(value, operand->type, nullptr);
+                if (expr->type->constrained || expr->type->m_boundsSymbol != nullptr) {
+                    converted = withBounds(Value {}, expr->type, nullptr);
+                    checkArrayShape(converted, expr->type, value, operand->type);
+                }
+                Type* axis = expr->type;
+                for (int dimension = 0; dimension < expr->type->arrayRank; ++dimension) {
+                    const std::string& first = dimension == 0 ? converted.first : converted.innerBounds[dimension - 1].first;
+                    const std::string& last = dimension == 0 ? converted.last : converted.innerBounds[dimension - 1].second;
+                    std::string nonNull = newTemp();
+                    std::string check = newLabel("conversionbounds");
+                    std::string ready = newLabel("conversionboundsready");
+                    line(nonNull + " =w csgew " + last + ", " + first);
+                    branch(Value { nonNull, 'w' }, check, ready);
+                    label(check);
+                    emitRangeCheck(Value { first, 'w' }, axis->index, expr->location);
+                    emitRangeCheck(Value { last, 'w' }, axis->index, expr->location);
+                    jump(ready);
+                    label(ready);
+                    axis = axis->element;
+                }
+                std::string bytes = objectBytes(converted, expr->type);
+                converted.name = newTemp();
+                line(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+                     + ", w 1, w 1, l " + bytes + ")");
+                emitExceptionCheck();
+                bool saved = m_context->m_initializingTemporary;
+                m_context->m_initializingTemporary = true;
+                prepareControlledObject(converted, expr->type);
+                m_context->m_initializingTemporary = saved;
+                copyControlledObject(converted, value, expr->type, true);
+                return converted;
+            }
             if (operand->type->m_classRoot != nullptr && expr->type->m_tagged) {
                 Value valid = taggedMembership(value, expr->type);
                 std::string good = newLabel("tagvalid");

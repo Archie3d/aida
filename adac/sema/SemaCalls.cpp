@@ -208,8 +208,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(operand, expr->type);
         }
 
-        if (expr->type->kind == TypeKind::Array && needsFinalization(expr->type)) {
-            m_diagnostics.error(expr->location, "array conversions with controlled components are not yet supported");
+        if (expr->type->kind == TypeKind::Array && hasLimitedControlledParts(expr->type)) {
+            m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
         }
         bool numeric = isNumeric(baseType(expr->type)) && isNumeric(baseType(operand->type));
         // Explicit array conversions are separate from implicit compatibility.

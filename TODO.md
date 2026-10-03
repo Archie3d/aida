@@ -580,10 +580,16 @@ operations, interfaces, and wider tagged forms remain extensions below.
   failed finalizers do not prevent storage release or remaining collection cleanup.
   Cover resource accounting, failed initialization/adjustment/finalization, and
   allocation failure at every bookkeeping step. All 291 tests pass.
+- [x] Stage 4c, controlled array value conversions: create caller-owned adjusted
+  temporaries, preserve or slide bounds, check lengths and non-null index bounds,
+  and clean up successful parts after failed adjustment. Cover dynamic and
+  multidimensional arrays, null ranges, nested conversions, overlapping slices,
+  resource accounting, and deterministic IR in `controlledconversions`.
+  Limited controlled component copies remain rejected. All 293 tests pass.
 - [ ] Finish stage 4c: limited controlled results, class-wide results and owned
   objects, imported controlled results, class-wide allocation/deallocation,
-  private controlled completions, and streaming. Also extend variant components,
-  array conversions, and ancestor-view assignment. Unsupported static forms are
+  private controlled completions, and streaming. Also extend variant components
+  and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
