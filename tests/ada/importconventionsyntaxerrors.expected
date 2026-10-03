@@ -1,0 +1,4 @@
+importconventionsyntaxerrors.adb:3:18: error: expected '(' after pragma Import, found ';'
+importconventionsyntaxerrors.adb:4:20: error: expected 'identifier' as Import convention, found ','
+importconventionsyntaxerrors.adb:5:20: error: expected 'identifier' as Import convention, found 'C'
+importconventionsyntaxerrors.adb:6:22: error: expected ',' after Import convention, found 'Foreign_Routine'

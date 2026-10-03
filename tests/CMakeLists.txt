@@ -89,6 +89,10 @@ function(add_ada_ir_test name)
     )
 endfunction()
 
+add_ada_test(importconventions SOURCES importconventions.adb)
+add_ada_error_test(importconventionerrors SOURCES importconventionerrors.adb)
+add_ada_error_test(importconventionsyntaxerrors SOURCES importconventionsyntaxerrors.adb)
+
 add_ada_test(sizeclauses SOURCES sizeclauses.adb)
 add_ada_error_test(sizevalueerrors SOURCES sizevalueerrors.adb)
 add_ada_error_test(sizerangeerrors SOURCES sizerangeerrors.adb)

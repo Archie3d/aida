@@ -49,7 +49,7 @@ from what the source asks for.
 - [x] **Representation clauses.** `Parser::parseRepresentationClause` honors only
   `'Size`; other clauses are read and ignored. Reject unsupported clauses, and
   validate `'Size` against the chosen representation and the type's range.
-- [ ] **Import conventions.** `pragma Import` ignores its convention argument.
+- [x] **Import conventions.** `pragma Import` ignores its convention argument.
   Reject conventions other than C and Ada.
 - [ ] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
   declaration and its body is never loaded. Diagnose stubs until subunits exist

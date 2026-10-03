@@ -1,0 +1,14 @@
+pragma Import (Fortran, Context_Routine, "context_routine");
+procedure ImportConventionErrors is
+    procedure Foreign_Routine;
+    pragma Import (Intrinsic, Foreign_Routine, "intrinsic_routine");
+    pragma Import (Assembler, Foreign_Routine, "assembler_routine");
+    pragma Import (COBOL, Foreign_Routine, "cobol_routine");
+    pragma Import (CPP, Foreign_Routine, "cpp_routine");
+    pragma Import (Stdcall, Foreign_Routine, "stdcall_routine");
+    pragma Import (Java, Foreign_Routine, "java_routine");
+    pragma Import (Unknown_Convention, Foreign_Routine, "unknown_routine");
+begin
+    pragma Import (fOrTrAn, Foreign_Routine, "statement_routine");
+    null;
+end ImportConventionErrors;

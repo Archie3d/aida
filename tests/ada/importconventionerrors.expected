@@ -1,0 +1,9 @@
+importconventionerrors.adb:1:16: error: unsupported Import convention 'Fortran'; only C and Ada are supported
+importconventionerrors.adb:4:20: error: unsupported Import convention 'Intrinsic'; only C and Ada are supported
+importconventionerrors.adb:5:20: error: unsupported Import convention 'Assembler'; only C and Ada are supported
+importconventionerrors.adb:6:20: error: unsupported Import convention 'COBOL'; only C and Ada are supported
+importconventionerrors.adb:7:20: error: unsupported Import convention 'CPP'; only C and Ada are supported
+importconventionerrors.adb:8:20: error: unsupported Import convention 'Stdcall'; only C and Ada are supported
+importconventionerrors.adb:9:20: error: unsupported Import convention 'Java'; only C and Ada are supported
+importconventionerrors.adb:10:20: error: unsupported Import convention 'Unknown_Convention'; only C and Ada are supported
+importconventionerrors.adb:12:20: error: unsupported Import convention 'fOrTrAn'; only C and Ada are supported

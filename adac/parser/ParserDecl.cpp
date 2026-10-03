@@ -171,21 +171,24 @@ DeclPtr Parser::parsePragma()
     pragma->name = name.text;
     pragma->lower = name.lower;
 
-    if (match(TokenKind::LeftParen)) {
-        // Convention validation is a separate roadmap step.
-        if (check(TokenKind::Identifier)) {
-            advance();
-        }
-        if (match(TokenKind::Comma) && (check(TokenKind::Identifier)
-            || (check(TokenKind::StringLiteral) && current().text == "**"))) {
-            pragma->entity = current().text;
-            pragma->entityLower = toLower(current().text);
-            advance();
-        }
-        if (match(TokenKind::Comma) && check(TokenKind::StringLiteral)) {
-            pragma->linkName = current().text;
-            advance();
-        }
+    expect(TokenKind::LeftParen, "after pragma Import");
+    const Token& convention = expect(TokenKind::Identifier, "as Import convention");
+    if (convention.lower != "c" && convention.lower != "ada") {
+        m_diagnostics.error(convention.location, "unsupported Import convention '" + convention.text
+            + "'; only C and Ada are supported");
+        skipToSemicolon();
+        return nullptr;
+    }
+    expect(TokenKind::Comma, "after Import convention");
+    if (check(TokenKind::Identifier)
+        || (check(TokenKind::StringLiteral) && current().text == "**")) {
+        pragma->entity = current().text;
+        pragma->entityLower = toLower(current().text);
+        advance();
+    }
+    if (match(TokenKind::Comma) && check(TokenKind::StringLiteral)) {
+        pragma->linkName = current().text;
+        advance();
     }
 
     while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
