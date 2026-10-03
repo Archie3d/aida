@@ -106,10 +106,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || field.variant == variant);
         };
         auto analyzeComponent = [&](Expr* value, Type* fieldType) {
-            if (hasLimitedControlledParts(fieldType) && !isAggregateExpression(value)) {
+            Type* valueType = analyzeExpr(value, scope, fieldType);
+            if (hasLimitedControlledParts(fieldType) && !buildsLimitedResult(value)) {
                 m_diagnostics.error(value->location, "limited controlled components cannot be copied");
             }
-            Type* valueType = analyzeExpr(value, scope, fieldType);
             if (!typesCompatible(fieldType, valueType)) {
                 m_diagnostics.error(value->location, "the record component has an incompatible type");
             }
@@ -211,10 +211,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         if (invalidRow) {
             m_diagnostics.error(component.value->location, "multidimensional aggregate requires nested subaggregates");
         }
-        if (hasLimitedControlledParts(target->element) && !isAggregateExpression(component.value.get())) {
+        Type* valueType = analyzeExpr(component.value.get(), scope, target->element);
+        if (hasLimitedControlledParts(target->element) && !buildsLimitedResult(component.value.get())) {
             m_diagnostics.error(component.value->location, "limited controlled components cannot be copied");
         }
-        Type* valueType = analyzeExpr(component.value.get(), scope, target->element);
         if (!invalidRow && !typesCompatible(target->element, valueType)) {
             m_diagnostics.error(component.value->location, "aggregate component has an incompatible type");
         }

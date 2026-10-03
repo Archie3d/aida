@@ -1,2 +1,1 @@
 controlledresulterrors.adb:4:5: error: imported controlled function results are not yet supported
-controlledresulterrors.adb:5:5: error: limited or class-wide controlled function results are not yet supported

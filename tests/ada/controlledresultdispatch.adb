@@ -46,9 +46,7 @@ procedure ControlledResultDispatch is
     procedure Hidden (Object : Root'Class) is
     begin
         Borrow (Clone (Object));
-        raise Constraint_Error;
-    exception
-        when Program_Error => Put_Line ("hidden result guarded");
+        Put_Line ("hidden result owned");
     end Hidden;
     procedure Borrow (Object : Managed'Class) is
     begin

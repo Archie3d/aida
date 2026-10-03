@@ -79,11 +79,6 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             }
             if (operation->m_pendingControlledResult) {
                 Type* result = operation->returnType;
-                if (hasLimitedControlledParts(result)
-                    || (needsFinalization(result) && result->m_classRoot != nullptr)) {
-                    m_diagnostics.error(operation->location,
-                        "limited or class-wide controlled function results are not yet supported");
-                }
                 if (needsFinalization(result) && operation->builtin == BuiltinKind::Runtime) {
                     m_diagnostics.error(operation->location, "imported controlled function results are not yet supported");
                 }

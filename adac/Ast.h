@@ -607,12 +607,13 @@ struct ExitStmt : Stmt
 
 struct ReturnStmt : Stmt
 {
-    ReturnStmt()
-        : Stmt(StmtKind::Return)
-    {
-    }
+    ReturnStmt();
+    ~ReturnStmt() override;
 
     ExprPtr value;
+    DeclPtr m_object;
+    StmtList m_body;
+    std::vector<ExceptionHandler> m_handlers;
 };
 
 struct CaseAlternative

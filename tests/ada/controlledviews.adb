@@ -27,7 +27,7 @@ procedure ControlledViews is
     procedure Own (Source : Root'Class) is
         Local : Root'Class := Source;
     begin
-        raise Constraint_Error;
+        null;
     end Own;
     procedure Copy_Ancestor (Target : in out Guard; Source : Guard) is
     begin
@@ -40,21 +40,15 @@ begin
     begin
         begin
             Copy (A, B);
-            raise Constraint_Error;
-        exception
-            when Program_Error => Put_Line ("class-wide assignment guarded");
+            Put_Line ("class-wide assignment managed");
         end;
         begin
             Own (A);
-            raise Constraint_Error;
-        exception
-            when Program_Error => Put_Line ("class-wide ownership guarded");
+            Put_Line ("class-wide ownership managed");
         end;
         begin
             Copy_Ancestor (Guard (C), Guard (D));
-            raise Constraint_Error;
-        exception
-            when Program_Error => Put_Line ("ancestor assignment guarded");
+            Put_Line ("ancestor assignment managed");
         end;
         if Live /= 4 then
             raise Constraint_Error;

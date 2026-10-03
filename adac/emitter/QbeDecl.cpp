@@ -27,7 +27,9 @@ void QbeEmitter::emitTypeTag(Type* type)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
            << ", l " << type->m_tagName << ".slots, l " << type->m_tagName << ".equal, l 0, l "
            << expanded << ", l " << type->m_accessLevel
-           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << ", l " << needsFinalization(type) << " }\n";
+           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << ", l " << needsFinalization(type) << ", l "
+           << (needsFinalization(type) ? type->m_tagName + ".parts" : "0")
+           << ", l " << hasLimitedControlledParts(type) << " }\n";
     m_data << "export data " << type->m_tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->m_dispatchSlots) {
@@ -66,6 +68,9 @@ void QbeEmitter::emitTypeTag(Type* type)
     m_context = saved;
     if (type->m_controlled) {
         emitFinalizer(type);
+    }
+    if (needsFinalization(type)) {
+        emitControlledParts(type);
     }
 }
 
@@ -400,6 +405,14 @@ Value QbeEmitter::scalarBounds(Type* type)
 void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* initializer)
 {
     Type* type = symbol->type;
+    std::string savedOwner = m_context->m_constructionOwner;
+    std::string savedArena = m_context->m_constructionArena;
+    if (symbol->isGlobal && hasLimitedControlledParts(type)) {
+        m_context->m_constructionOwner = newTemp();
+        m_context->m_constructionArena = newTemp();
+        line(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)");
+        line(m_context->m_constructionArena + " =l call $__ada_construction_arena(l 0)");
+    }
     if (!needsFinalization(type) && symbol->m_genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
         Value source = emitExpr(initializer);
@@ -409,6 +422,8 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
     } else {
         assignInto(address, type, initializer, true);
     }
+    m_context->m_constructionOwner = savedOwner;
+    m_context->m_constructionArena = savedArena;
 }
 
 // A reference owns only an address and, for dynamic arrays, saved bounds. No
@@ -512,18 +527,27 @@ void QbeEmitter::initializeTypeTag(Type* type)
 
 void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
 {
-    Value source = emitExpr(object->initializer.get());
-    checkTagLevel(source, symbol->m_accessibilityLevel);
-    Value size = taggedSize(source);
-    std::string pointer = newTemp();
-    if (symbol->isGlobal) {
-        line(pointer + " =l call $__ada_allocate(l " + size.name + ")");
-    } else {
-        line(pointer + " =l call $__ada_array_local(l " + storageArena(false, true)
-             + ", w 1, w 1, l " + size.name + ")");
+    bool limited = hasLimitedControlledParts(symbol->type) || hasLimitedControlledParts(object->initializer->type);
+    std::string owner = symbol->isGlobal ? "0" : m_context->m_finalizationChain;
+    std::string arena = symbol->isGlobal ? "0" : storageArena(false, true);
+    if (limited) {
+        if (symbol->isGlobal) {
+            owner = newTemp();
+            arena = newTemp();
+            line(owner + " =l call $__ada_construction_owner(l 0)");
+            line(arena + " =l call $__ada_construction_arena(l 0)");
+        }
+        m_context->m_resultTargetOwner = owner;
+        m_context->m_resultTargetArena = arena;
     }
+    Value source = emitExpr(object->initializer.get());
+    line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->m_accessibilityLevel) + ")");
     emitExceptionCheck();
-    line("call $memmove(l " + pointer + ", l " + source.name + ", l " + size.name + ")");
+    std::string pointer = limited ? source.name : newTemp();
+    if (!limited) {
+        line(pointer + " =l call $__ada_tagged_owned_copy(l " + owner + ", l " + arena + ", l " + source.name + ")");
+        emitExceptionCheck();
+    }
     std::string slot;
     if (symbol->isGlobal) {
         slot = symbol->qbeName;

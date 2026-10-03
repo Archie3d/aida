@@ -158,16 +158,6 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (hasLimitedControlledParts(targetType)) {
             m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
         }
-        if (needsFinalization(targetType) && targetType->m_classRoot != nullptr) {
-            m_diagnostics.error(assign->location, "class-wide controlled assignment is not yet supported");
-        }
-        if (needsFinalization(targetType) && assign->target->kind == ExprKind::Call) {
-            auto* target = static_cast<CallExpr*>(assign->target.get());
-            if (target->form == CallForm::Conversion
-                && rootType(target->resolvedArguments.front()->type) != rootType(targetType)) {
-                m_diagnostics.error(assign->location, "controlled assignment through an ancestor view is not yet supported");
-            }
-        }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);
         if (targetType != nullptr && targetType->m_classRoot != nullptr
             && needsFinalization(valueType) && !needsFinalization(targetType)) {
@@ -326,11 +316,46 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(returnStatement->location, "a return statement must appear within a subprogram");
             break;
         }
+        if (!m_extendedReturns.empty() && m_extendedReturns.back() == m_currentSubprogram) {
+            if (returnStatement->value != nullptr || returnStatement->m_object != nullptr) {
+                m_diagnostics.error(returnStatement->location, "a return inside an extended return cannot have a value");
+            }
+            break;
+        }
+        if (returnStatement->m_object != nullptr) {
+            auto* object = static_cast<ObjectDecl*>(returnStatement->m_object.get());
+            Scope* inner = m_symbolTable.createScope(scope);
+            analyzeObjectDecl(object, inner);
+            Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
+            if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
+                || !needsFinalization(expected) || actual->m_classRoot != nullptr) {
+                m_diagnostics.error(returnStatement->location,
+                    "extended return requires the specific controlled result subtype");
+            }
+            if (expected != nullptr && actual != nullptr
+                && ((expected->kind == TypeKind::Array && expected->constrained)
+                    || (expected->kind == TypeKind::Record && hasKnownDiscriminants(expected)))
+                && !SemaSupport::staticallyMatches(actual, expected)) {
+                m_diagnostics.error(returnStatement->location, "extended return subtype must statically match the result subtype");
+            }
+            if (!object->symbols.empty()) {
+                object->symbols.front()->m_objectReference = true;
+            }
+            m_extendedReturns.push_back(m_currentSubprogram);
+            analyzeStatements(returnStatement->m_body, inner);
+            analyzeHandlers(returnStatement->m_handlers, inner);
+            m_extendedReturns.pop_back();
+            break;
+        }
         if (returnStatement->value) {
             if (baseType(expected) == m_exceptionOccurrenceType) {
                 m_diagnostics.error(returnStatement->location, "exception occurrence results are not yet supported");
             }
             Type* valueType = analyzeExpr(returnStatement->value.get(), scope, expected);
+            if ((hasLimitedControlledParts(expected) || hasLimitedControlledParts(valueType))
+                && !buildsLimitedResult(returnStatement->value.get())) {
+                m_diagnostics.error(returnStatement->location, "a limited result must be built in place");
+            }
             if (needsFinalization(valueType) && !needsFinalization(expected)) {
                 m_diagnostics.error(returnStatement->location, "function results with controlled parts are not yet supported");
             }

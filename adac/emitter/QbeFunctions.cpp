@@ -63,6 +63,13 @@ bool hasControlledObjects(StmtList& statements)
 {
     for (auto& statement : statements) {
         switch (statement->kind) {
+        case StmtKind::Return: {
+            auto* result = static_cast<ReturnStmt*>(statement.get());
+            if (result->m_object != nullptr || hasControlledObjects(result->m_body)) {
+                return true;
+            }
+            break;
+        }
         case StmtKind::Block: {
             auto* block = static_cast<BlockStmt*>(statement.get());
             if (hasControlledObjects(block->declarations) || hasControlledObjects(block->body)
@@ -188,8 +195,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     bool first = true;
     if (isComposite(symbol->returnType)) {
         signature += "l %.result";
-        if (needsFinalization(symbol->returnType)) {
+        if (needsFinalization(symbol->returnType) || symbol->returnType->m_tagged) {
             signature += ", l %.resultOwner, l %.resultArena";
+            if (symbol->returnType->m_tagged || hasLimitedControlledParts(symbol->returnType)) {
+                signature += ", w %.resultProvided";
+            }
         }
         first = false;
     }

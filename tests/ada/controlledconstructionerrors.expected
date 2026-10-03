@@ -1,0 +1,4 @@
+controlledconstructionerrors.adb:7:9: error: a limited result must be built in place
+controlledconstructionerrors.adb:13:9: error: extended return subtype must statically match the result subtype
+controlledconstructionerrors.adb:18:13: error: a return inside an extended return cannot have a value
+controlledconstructionerrors.adb:22:5: error: limited controlled objects cannot be copied

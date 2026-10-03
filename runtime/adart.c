@@ -1079,6 +1079,7 @@ typedef struct AdaAllocation
     void* m_object;
     AdaFinalization* m_finalizations;
     void* m_arena;
+    int m_arenaOwnsObject;
 } AdaAllocation;
 
 struct AdaCollection
@@ -1100,12 +1101,8 @@ static AdaAllocation* findAllocation(void* address)
     return NULL;
 }
 
-static int releaseControlledAllocation(void* address)
+static void releaseAllocation(AdaAllocation* allocation)
 {
-    AdaAllocation* allocation = findAllocation(address);
-    if (allocation == NULL) {
-        return 0;
-    }
     // Unlink before calling user code: a finalizer may deallocate another
     // member of this collection. Keep the object alive until all parts finish.
     AdaAllocation** link = &allocation->m_collection->m_allocations;
@@ -1120,8 +1117,19 @@ static int releaseControlledAllocation(void* address)
     *link = allocation->m_registeredNext;
     __ada_finalize_to(&allocation->m_finalizations, NULL);
     __ada_array_release(&allocation->m_arena);
-    free(allocation->m_object);
+    if (!allocation->m_arenaOwnsObject) {
+        free(allocation->m_object);
+    }
     free(allocation);
+}
+
+static int releaseControlledAllocation(void* address)
+{
+    AdaAllocation* allocation = findAllocation(address);
+    if (allocation == NULL) {
+        return 0;
+    }
+    releaseAllocation(allocation);
     return 1;
 }
 
@@ -1130,7 +1138,7 @@ static void finalizeCollection(void* object)
     AdaCollection* collection = object;
     collection->m_closing = 1;
     while (collection->m_allocations != NULL) {
-        __ada_deallocate(collection->m_allocations->m_object);
+        releaseAllocation(collection->m_allocations);
     }
 }
 
@@ -1227,4 +1235,206 @@ int __ada_controlled_adjust(void* object, void (*adjust)(void*))
     }
     record->m_active = 1;
     return 0;
+}
+
+/* Dynamic ownership uses the concrete tag's component walk. Records remain
+   inactive until each adjustment succeeds, just as for statically typed copies. */
+typedef struct TaggedCopyContext
+{
+    AdaFinalization** m_owner;
+    void** m_arena;
+    int m_failed;
+} TaggedCopyContext;
+
+static void reserveTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
+{
+    (void)adjust;
+    TaggedCopyContext* copy = context;
+    __ada_finalization_reserve(copy->m_owner, copy->m_arena, part, finalize);
+}
+
+static void adjustTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
+{
+    (void)finalize;
+    TaggedCopyContext* copy = context;
+    copy->m_failed |= __ada_controlled_adjust(part, adjust);
+}
+
+static void finalizeTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
+{
+    (void)finalize;
+    (void)adjust;
+    TaggedCopyContext* copy = context;
+    copy->m_failed |= __ada_controlled_finalize(part);
+}
+
+static void copyTaggedObject(void* target, const void* source, TaggedCopyContext* copy, int reserve)
+{
+    const AdaTag* tag = *(const AdaTag* const*)source;
+    if (tag->m_hasLimitedParts) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    if (reserve && tag->m_parts != NULL) {
+        tag->m_parts(target, reserveTaggedPart, copy, 0);
+        if (__ada_exception != NULL) {
+            return;
+        }
+    }
+    memcpy(target, source, tag->size);
+    if (tag->m_parts != NULL) {
+        tag->m_parts(target, adjustTaggedPart, copy, 0);
+        if (copy->m_failed) {
+            __ada_raise(ADA_PROGRAM_ERROR);
+        }
+    }
+}
+
+void* __ada_tagged_owned_copy(AdaFinalization** owner, void** arena, const void* source)
+{
+    if (owner == NULL) {
+        owner = &libraryFinalizations;
+        arena = &libraryFinalizationArena;
+    }
+    const AdaTag* tag = *(const AdaTag* const*)source;
+    AdaFinalization* mark = *owner;
+    void* arenaMark = *arena;
+    void* target = __ada_array_local(arena, 1, 1, tag->size);
+    if (target != NULL) {
+        TaggedCopyContext copy = { owner, arena, 0 };
+        copyTaggedObject(target, source, &copy, 1);
+    }
+    if (__ada_exception != NULL) {
+        __ada_finalize_to(owner, mark);
+        __ada_array_rewind(arena, arenaMark);
+        return NULL;
+    }
+    return target;
+}
+
+void* __ada_tagged_allocation(void* collection, const void* source)
+{
+    const AdaTag* tag = *(const AdaTag* const*)source;
+    void* target = __ada_collection_allocate(collection, tag->size);
+    if (target == NULL) {
+        return NULL;
+    }
+    AdaAllocation* allocation = findAllocation(target);
+    TaggedCopyContext copy = { &allocation->m_finalizations, &allocation->m_arena, 0 };
+    copyTaggedObject(target, source, &copy, 1);
+    if (__ada_exception != NULL) {
+        __ada_deallocate(target);
+        return NULL;
+    }
+    return target;
+}
+
+void __ada_tagged_assign(void* target, const void* source, AdaFinalization** owner, void** arena)
+{
+    const AdaTag* tag = *(const AdaTag* const*)target;
+    if (tag != *(const AdaTag* const*)source) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    if (target == source) {
+        return;
+    }
+    void* snapshot = __ada_tagged_owned_copy(owner, arena, source);
+    if (snapshot == NULL) {
+        return;
+    }
+    TaggedCopyContext copy = { owner, arena, 0 };
+    if (tag->m_parts != NULL) {
+        tag->m_parts(target, finalizeTaggedPart, &copy, 1);
+        if (copy.m_failed) {
+            __ada_raise(ADA_PROGRAM_ERROR);
+            return;
+        }
+    }
+    copyTaggedObject(target, snapshot, &copy, 0);
+}
+
+void* __ada_construction_owner(void* allocation)
+{
+    return allocation == NULL ? (void*)&libraryFinalizations
+        : (void*)&findAllocation(allocation)->m_finalizations;
+}
+
+void* __ada_construction_arena(void* allocation)
+{
+    return allocation == NULL ? (void*)&libraryFinalizationArena
+        : (void*)&findAllocation(allocation)->m_arena;
+}
+
+int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), void* tag)
+{
+    AdaFinalization* record = findFinalization(object);
+    if (record == NULL) {
+        return 1;
+    }
+    record->m_active = 0;
+    adjust(object, tag);
+    int failed = __ada_exception != NULL;
+    __ada_exception = NULL;
+    record->m_active = !failed;
+    return failed;
+}
+
+int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*), void* tag)
+{
+    AdaFinalization* record = findFinalization(object);
+    if (record == NULL) {
+        return 1;
+    }
+    if (!record->m_active) {
+        return 0;
+    }
+    record->m_active = 0;
+    finalize(object, tag);
+    int failed = __ada_exception != NULL;
+    __ada_exception = NULL;
+    return failed;
+}
+
+// A limited class-wide constructor determines its concrete size. Give it an
+// allocation-owned arena before calling it, then publish its resulting address.
+void* __ada_collection_begin(void* owner)
+{
+    AdaCollection* collection = owner;
+    if (collection == NULL || collection->m_closing) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    AdaAllocation* allocation = calloc(1, sizeof *allocation);
+    if (allocation == NULL) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return NULL;
+    }
+    allocation->m_arenaOwnsObject = 1;
+    allocation->m_collection = collection;
+    allocation->m_next = collection->m_allocations;
+    collection->m_allocations = allocation;
+    allocation->m_registeredNext = registeredAllocations;
+    registeredAllocations = allocation;
+    return allocation;
+}
+
+void* __ada_collection_result_owner(void* pending)
+{
+    return &((AdaAllocation*)pending)->m_finalizations;
+}
+
+void* __ada_collection_result_arena(void* pending)
+{
+    return &((AdaAllocation*)pending)->m_arena;
+}
+
+void __ada_collection_finish(void* pending, void* object)
+{
+    ((AdaAllocation*)pending)->m_object = object;
+}
+
+void __ada_collection_abort(void* pending)
+{
+    releaseAllocation(pending);
 }

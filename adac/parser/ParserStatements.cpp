@@ -277,6 +277,30 @@ StmtPtr Parser::parseReturnStatement()
     auto statement = std::make_unique<ReturnStmt>();
     statement->location = current().location;
     expect(TokenKind::KwReturn, "in return statement");
+    if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Colon) {
+        auto object = std::make_unique<ObjectDecl>();
+        object->location = current().location;
+        object->names.push_back(current().text);
+        object->namesLower.push_back(current().lower);
+        advance();
+        expect(TokenKind::Colon, "in extended return");
+        object->isConstant = match(TokenKind::KwConstant);
+        object->subtype = parseSubtypeIndication();
+        if (match(TokenKind::Assign)) {
+            object->initializer = parseExpression();
+        }
+        statement->m_object = std::move(object);
+        if (match(TokenKind::KwDo)) {
+            statement->m_body = parseSequenceOfStatements();
+            if (check(TokenKind::KwException)) {
+                statement->m_handlers = parseExceptionHandlers();
+            }
+            expect(TokenKind::KwEnd, "after extended return body");
+            expect(TokenKind::KwReturn, "after end");
+        }
+        expect(TokenKind::Semicolon, "after extended return");
+        return statement;
+    }
     if (!check(TokenKind::Semicolon)) {
         statement->value = parseExpression();
     }

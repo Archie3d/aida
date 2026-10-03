@@ -93,7 +93,12 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         Value context = withBounds(Value {}, object->initializer->type, nullptr);
         bounds = prepareArrayAggregate(aggregateExpr, context, type, aggregatePlan);
     }
+    bool constructedResult = object->initializer && !aggregate && hasLimitedControlledParts(type);
     if (object->initializer && !aggregate) {
+        if (constructedResult) {
+            m_context->m_resultTargetOwner = m_context->m_finalizationChain;
+            m_context->m_resultTargetArena = storageArena(false, true);
+        }
         source = emitExpr(object->initializer.get());
         if (!explicitBounds) {
             bounds.first = source.first;
@@ -111,10 +116,12 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         m_context->prologue << "    storel 0, " << m_context->arrayArena << "\n";
     }
     std::string elementSize = arrayElementSize(bounds, type);
-    std::string pointer = newTemp();
-    line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", w " + bounds.first
-         + ", w " + bounds.last + ", l " + elementSize + ")");
-    emitExceptionCheck();
+    std::string pointer = constructedResult ? source.name : newTemp();
+    if (!constructedResult) {
+        line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", w " + bounds.first
+             + ", w " + bounds.last + ", l " + elementSize + ")");
+        emitExceptionCheck();
+    }
     Value address = bounds;
     address.name = pointer;
     address.type = 'l';
@@ -142,6 +149,10 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     } else {
         m_context->locals[symbol] = pointer;
         m_context->bounds[symbol] = bounds;
+    }
+    if (constructedResult) {
+        checkArrayShape(address, type, source, object->initializer->type);
+        return;
     }
     prepareControlledObject(address, type);
     if (preparedAggregate) {

@@ -7,6 +7,31 @@
 #include <stdint.h>
 #include "../common/Modular.h"
 
+typedef struct AdaDispatchEntry
+{
+    void* code;
+    void* link;
+} AdaDispatchEntry;
+
+typedef struct AdaTag
+{
+    struct AdaTag* parent;
+    int64_t size;
+    int64_t alignment;
+    AdaDispatchEntry* slots;
+    void* equality;
+    void* equalityLink;
+    const char* name;
+    int64_t level;
+    void* master;
+    int64_t slotCount;
+    int64_t m_isAbstract;
+    int64_t m_needsFinalization;
+    void (*m_parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
+    int64_t m_hasLimitedParts;
+} AdaTag;
+
+
 /* An exception is identified by the address of its object, so that units
    compiled apart still agree on what a handler catches.  The run time owns the
    predefined ones; any other exception has an object emitted by the unit that
@@ -128,6 +153,17 @@ void __ada_tag_register(void* tag);
 void* __ada_tag_create(const void* templateTag, void* parent, void* master);
 void __ada_tag_check_level(const void* object, int level);
 void __ada_tag_check_accessibility(const void* object, int level);
+void* __ada_collection_begin(void* collection);
+void* __ada_collection_result_owner(void* pending);
+void* __ada_collection_result_arena(void* pending);
+void __ada_collection_finish(void* pending, void* object);
+void __ada_collection_abort(void* pending);
+void* __ada_construction_owner(void* allocation);
+void* __ada_construction_arena(void* allocation);
+struct AdaFinalization;
+void* __ada_tagged_owned_copy(struct AdaFinalization** owner, void** arena, const void* source);
+void* __ada_tagged_allocation(void* collection, const void* source);
+void __ada_tagged_assign(void* target, const void* source, struct AdaFinalization** owner, void** arena);
 void __ada_tagged_result(void** result, const void* object);
 int __ada_tagged_equal(const void* left, const void* right);
 const char* __ada_tag_name(const void* tag);
@@ -192,5 +228,7 @@ void __ada_allocation_reserve(void* allocation, void* part, void (*finalize)(voi
 void __ada_controlled_activate(void* object, void (*finalize)(void*));
 int __ada_controlled_finalize(void* object);
 int __ada_controlled_adjust(void* object, void (*adjust)(void*));
+int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), void* tag);
+int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*), void* tag);
 
 #endif

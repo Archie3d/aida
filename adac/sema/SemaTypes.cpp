@@ -422,10 +422,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             profile->location = decl->location;
             profile->m_pendingControlledResult = profile->returnType != nullptr
                 && rootType(profile->returnType)->isIncomplete;
-            if (hasLimitedControlledParts(profile->returnType)
-                || (needsFinalization(profile->returnType) && profile->returnType->m_classRoot != nullptr)) {
-                m_diagnostics.error(decl->location, "limited or class-wide controlled function results are not yet supported");
-            }
             for (ParameterDecl& declaration : spec.parameters) {
                 Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
                 parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
@@ -481,7 +477,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
         type->m_controlled = true;
     }
-    if (definition->kind == TypeDefKind::Record && definition->isLimited && !type->m_controlled) {
+    if (definition->kind == TypeDefKind::Record && definition->isLimited && !needsFinalization(type)) {
         m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
     }
     if (type->m_tagged && type->m_tagName.empty()) {
@@ -634,10 +630,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.variant = variantIndex;
         info.isDiscriminant = isDiscriminant;
         if (field.defaultValue) {
-            if (hasLimitedControlledParts(info.type) && !isAggregateExpression(field.defaultValue.get())) {
+            Type* valueType = analyzeExpr(field.defaultValue.get(), scope, info.type);
+            if (hasLimitedControlledParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");
             }
-            Type* valueType = analyzeExpr(field.defaultValue.get(), scope, info.type);
             if (!typesCompatible(info.type, valueType)) {
                 m_diagnostics.error(field.defaultValue->location, "the component default has an incompatible type");
             }

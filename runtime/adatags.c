@@ -6,29 +6,7 @@
 
 /* The first three words are the published object layout descriptor prefix.
    Entries pair code with its enclosing activation, independently of callers. */
-typedef struct AdaDispatchEntry
-{
-    void* code;
-    void* link;
-} AdaDispatchEntry;
-
-typedef struct AdaTag
-{
-    struct AdaTag* parent;
-    int64_t size;
-    int64_t alignment;
-    AdaDispatchEntry* slots;
-    void* equality;
-    void* equalityLink;
-    const char* name;
-    int64_t level;
-    void* master;
-    int64_t slotCount;
-    int64_t m_isAbstract;
-    int64_t m_needsFinalization;
-} AdaTag;
-
-_Static_assert(sizeof(AdaTag) == 96, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 112, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");

@@ -7,6 +7,13 @@ BlockStmt::BlockStmt()
 
 BlockStmt::~BlockStmt() = default;
 
+ReturnStmt::ReturnStmt()
+    : Stmt(StmtKind::Return)
+{
+}
+
+ReturnStmt::~ReturnStmt() = default;
+
 const char* operatorName(BinaryOp op)
 {
     switch (op) {

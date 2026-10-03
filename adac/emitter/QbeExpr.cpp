@@ -504,6 +504,45 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
     long long size = typeSize(designated);
+    if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
+        Value collection = collectionFor(expr->type);
+        std::string pending = newTemp();
+        line(pending + " =l call $__ada_collection_begin(l " + collection.name + ")");
+        emitExceptionCheck();
+        std::string failed = newLabel("limitedallocationfailed");
+        std::string ready = newLabel("limitedallocationready");
+        m_context->handlerLabels.push_back(failed);
+        m_context->m_resultTargetOwner = newTemp();
+        m_context->m_resultTargetArena = newTemp();
+        line(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")");
+        line(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")");
+        Value source = emitExpr(expr->value.get());
+        line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")");
+        emitExceptionCheck();
+        line("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")");
+        m_context->handlerLabels.pop_back();
+        jump(ready);
+        label(failed);
+        line("call $__ada_collection_abort(l " + pending + ")");
+        if (!m_context->handlerLabels.empty()) {
+            jump(m_context->handlerLabels.back());
+        } else {
+            m_context->usesPropagate = true;
+            jump(m_context->propagateLabel);
+        }
+        label(ready);
+        return source;
+    }
+    if (designated->m_classRoot != nullptr) {
+        Value source = emitExpr(expr->value.get());
+        line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")");
+        emitExceptionCheck();
+        Value collection = collectionFor(expr->type);
+        Value object { newTemp(), 'l' };
+        line(object.name + " =l call $__ada_tagged_allocation(l " + collection.name + ", l " + source.name + ")");
+        emitExceptionCheck();
+        return object;
+    }
     if (needsFinalization(designated) && designated->m_classRoot == nullptr) {
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
@@ -518,11 +557,21 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
                  + ", l " + rootType(partType)->m_tagName + ".finalize)");
             emitExceptionCheck();
         });
+        std::string savedOwner = m_context->m_constructionOwner;
+        std::string savedArena = m_context->m_constructionArena;
+        if (hasLimitedControlledParts(designated)) {
+            m_context->m_constructionOwner = newTemp();
+            m_context->m_constructionArena = newTemp();
+            line(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")");
+            line(m_context->m_constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")");
+        }
         if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
         } else {
             emitDefaultInit(object, designated);
         }
+        m_context->m_constructionOwner = savedOwner;
+        m_context->m_constructionArena = savedArena;
         if (expr->type->target->m_classRoot != nullptr) {
             // Ownership is already recorded; only accessibility remains to check.
             line("call $__ada_tag_check_accessibility(l " + object.name + ", w "

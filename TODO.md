@@ -607,17 +607,32 @@ operations, interfaces, and wider tagged forms remain extensions below.
   ordinary roots, nested hooks, library collections, and failure cleanup.
   Separate accessibility checking from the unsupported unowned-copy guard.
   Runtime, failure, library, and determinism tests bring the suite to 303 tests.
-- [ ] Finish stage 4c: limited controlled results, class-wide results and owned
-  objects, imported controlled results, dynamically sized class-wide allocators,
-  and streaming.
-  Also extend variant components
-  and ancestor-view assignment. Unsupported static forms are
-  rejected; hidden dynamic ownership transfers are guarded at runtime.
+- [x] Complete stage 4c's original ownership scope: escaping results, class-wide
+  ownership, allocation/deallocation, and library finalization. Concrete tag
+  descriptors enumerate controlled parts for dynamic copies, assignment, and
+  allocation. Use a uniform owned-result ABI for tagged dispatch and callbacks.
+  Support limited results built in place, extended returns with handlers and
+  early return, recursive forwarding, fixed/dynamic array results and bounds
+  checks, limited class-wide allocation, and library-initialized results.
+  Ancestor-view assignment preserves the dynamic tag and extension fields while
+  invoking the parent hooks. Address-identity, resource-accounting, failure,
+  separate-compilation, rejection, and determinism tests cover the combined
+  behavior; runtime instrumentation fails each dynamic allocation/bookkeeping
+  step and verifies release. The full suite passes 311 tests.
 
-Remaining acceptance tests for later stages: abstract-operation rejection,
-limited and class-wide controlled returns, escaping ownership, and dynamically
-sized controlled allocation. Extend the tagged regressions alongside
-discriminants, interfaces, private extensions, and wide-character support.
+The following items had accumulated in the 4c checklist but are separate
+extensions to the supported language/ABI subset, not unfinished ownership paths:
+
+- [ ] Define controlled streaming and class-wide tag-aware stream formats.
+- [ ] Define the foreign ABI and ownership contract for imported controlled
+  results; continue rejecting these imports until that contract is implemented.
+- [ ] Extend variant record layout/active-component handling to controlled fields.
+- [ ] Complete abstract-operation legality, general limited record definitions,
+  tagged discriminants, interfaces, private extensions, and wide-character
+  support as described above. Extended returns currently target concrete
+  controlled result subtypes, including concrete results of class-wide functions.
+
+Stage 5 can now start against the supported nonvariant controlled type subset.
 
 ## 6. Larger runtime and library extensions
 

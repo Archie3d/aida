@@ -124,13 +124,6 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (type->m_abstract && type->m_classRoot == nullptr) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
-        if (needsFinalization(type) && type->m_classRoot != nullptr) {
-            m_diagnostics.error(decl->location, "objects requiring finalization currently require a specific declaration");
-        }
-        if (hasLimitedControlledParts(type) && decl->initializer
-            && !isAggregateExpression(decl->initializer.get())) {
-            m_diagnostics.error(decl->location, "limited controlled objects cannot be copied");
-        }
     }
 
     if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
@@ -174,9 +167,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
-        if (type != nullptr && type->m_classRoot != nullptr && needsFinalization(valueType)
-            && !needsFinalization(type)) {
-            m_diagnostics.error(decl->location, "owned class-wide objects with controlled parts are not yet supported");
+        if ((hasLimitedControlledParts(type) || hasLimitedControlledParts(valueType))
+            && !buildsLimitedResult(decl->initializer.get())) {
+            m_diagnostics.error(decl->location, "limited controlled objects cannot be copied");
         }
         if (!typesCompatible(type, valueType)) {
             m_diagnostics.error(decl->initializer->location,
@@ -297,11 +290,6 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
-
-    if (hasLimitedControlledParts(returnType)
-        || (needsFinalization(returnType) && returnType->m_classRoot != nullptr)) {
-        m_diagnostics.error(spec.location, "limited or class-wide controlled function results are not yet supported");
-    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";

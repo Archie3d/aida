@@ -442,7 +442,7 @@ bool needsFinalization(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_controlled) {
+    if (type->m_controlled || type->m_classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -470,7 +470,7 @@ bool hasLimitedControlledParts(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_controlled && type->isLimited) {
+    if (type->isLimited && needsFinalization(type)) {
         return true;
     }
     if (type->kind == TypeKind::Array) {

@@ -29,7 +29,7 @@ bool isCharacterLiteralExpression(const Expr* expr)
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
     Type* result = analyzeExprValue(expr, scope, expected);
-    if (needsFinalization(result) || needsCollection(result)) {
+    if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->m_tagged)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->m_usesFinalization = true;
         } else {
@@ -172,8 +172,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if ((needsFinalization(designated) && designated->m_classRoot != nullptr)
-        || (designated->m_abstract && designated->m_classRoot == nullptr)) {
+    if (designated->m_abstract && designated->m_classRoot == nullptr) {
         m_diagnostics.error(expr->location, "class-wide controlled or abstract allocators are not yet supported");
         return nullptr;
     }
@@ -198,16 +197,17 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
-        if (needsFinalization(value) && designated->m_classRoot != nullptr) {
-            m_diagnostics.error(expr->location, "class-wide allocators with controlled parts are not yet supported");
-        }
-        if (hasLimitedControlledParts(designated) && !isAggregateExpression(expr->value.get())) {
+        if (hasLimitedControlledParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
         }
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");
         }
         adaptUniversal(expr->value.get(), designated);
+        if (designated->m_classRoot != nullptr && hasLimitedControlledParts(value)
+            && value->m_classRoot == nullptr && buildsLimitedResult(expr->value.get())) {
+            expr->designated = value;
+        }
     }
 
     expr->type = expected;
@@ -577,4 +577,30 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 
     expr->type = m_types.booleanType();
     return expr->type;
+}
+
+bool Sema::buildsLimitedResult(Expr* expression) const
+{
+    if (expression->m_implicitCall != nullptr) {
+        return buildsLimitedResult(expression->m_implicitCall.get());
+    }
+    if (expression->kind == ExprKind::Qualified) {
+        return buildsLimitedResult(static_cast<QualifiedExpr*>(expression)->operand.get());
+    }
+    if (expression->kind == ExprKind::Aggregate) {
+        return true;
+    }
+    if (expression->kind == ExprKind::Identifier) {
+        Symbol* symbol = static_cast<IdentifierExpr*>(expression)->symbol;
+        return symbol != nullptr && symbol->kind == SymbolKind::Subprogram;
+    }
+    if (expression->kind == ExprKind::Selected) {
+        Symbol* symbol = static_cast<SelectedExpr*>(expression)->symbol;
+        return symbol != nullptr && symbol->kind == SymbolKind::Subprogram;
+    }
+    if (expression->kind == ExprKind::Call) {
+        auto* call = static_cast<CallExpr*>(expression);
+        return call->form == CallForm::Subprogram;
+    }
+    return false;
 }

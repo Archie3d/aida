@@ -321,12 +321,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
-        if (needsFinalization(base)) {
-            m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
-            return nullptr;
-        }
         if (base != nullptr && base->m_classRoot != nullptr) {
             m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
+            return nullptr;
+        }
+        if (needsFinalization(base)) {
+            m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;
         }
         if (base != nullptr && base->m_scalarBoundsSymbol != nullptr) {

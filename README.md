@@ -688,8 +688,8 @@ storage. Each access type owns a collection: objects remain alive across helper
 calls and after access values are discarded, then finalize when the access type's
 scope ends. Library collections finalize at shutdown. Failed finalizers do not
 stop collection cleanup; allocated storage is released before `Program_Error`
-propagates. Limited controlled objects support default and aggregate allocation,
-but still cannot be copied.
+propagates. Limited controlled objects support default, aggregate, and constructor-call
+allocation, but still cannot be copied.
 
 Array value conversions with nonlimited controlled components create an adjusted
 temporary copy. Conversions preserve bounds for unconstrained targets, slide to
@@ -717,14 +717,32 @@ descendants with controlled fields. Accessibility checks reject shorter-lived
 tags and clean up the failed allocation. Local and library collections retain
 ownership even when the access value is discarded.
 
-Limited controlled results, class-wide controlled results and owned objects,
-imported controlled results, allocators copying dynamically sized controlled
-class-wide values,
-streaming, variant records with controlled components, and assignment through ancestor
-views remain unsupported. Statically visible cases
-are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a
-controlled value behind a parameter raises `Program_Error`. These remaining
-stage 4 forms are needed before enabling `Unbounded_String` or containers.
+Stage 4c's ownership work is complete for the supported type subset: escaping
+results, class-wide ownership, allocation/deallocation, and library finalization
+share the same lifetime rules. Class-wide objects, assignments, results, and
+allocators use the concrete tag's controlled-component walk, including descendants
+of ordinary tagged roots. All tagged result profiles share an ownership ABI, so
+dispatch and callbacks can return descendants with controlled fields. Assignment
+through an ancestor view adjusts and finalizes the parent part while preserving
+the object's tag and extension fields.
+
+Limited controlled results are constructed in place. Extended returns such as
+`return Result : Guard do ... end return;` support initialization, handlers, and
+early `return;`. Calls, recursive forwarding, callbacks, record/array aggregates,
+and allocators pass the final destination or its owning arena to the constructor.
+Unconstrained array results retain bounds, check constrained destinations, and
+preserve component addresses. Limited class-wide constructors determine their
+concrete size inside an allocation-owned arena; deallocation and failed
+construction release that arena after finalizing active parts. Library-initialized
+limited and class-wide results remain alive until shutdown. Copying an existing
+limited object remains illegal. The construction and cleanup model follows
+[Ada's assignment and finalization rules](https://ada-rapporteur-group.github.io/ARM/Ada_2012/RM-7-6.html).
+
+Controlled streaming, imported controlled function results, and variant records
+with controlled components remain explicitly diagnosed follow-up work. They need
+stream-format, foreign-ABI, or variant-layout support beyond the original 4c
+ownership scope. Other tagged-language restrictions listed above still apply;
+completion of the lifetime stage does not imply full Ada tagged-type support.
 
 Strings are arrays of characters and carry their bounds along with the data, so
 an unconstrained `String` parameter answers `'First`, `'Last` and `'Length` at

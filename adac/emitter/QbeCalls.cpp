@@ -2,11 +2,27 @@
 #include "QbeSupport.h"
 
 #include <algorithm>
+#include <utility>
 
 using QbeSupport::isUnconstrainedArray;
 
 Value QbeEmitter::emitCall(CallExpr* expr)
 {
+    // Constructor arguments own their temporaries independently of the
+    // destination being constructed by this call.
+    struct ConstructionContext
+    {
+        std::string& m_owner;
+        std::string& m_arena;
+        std::string m_savedOwner;
+        std::string m_savedArena;
+        ~ConstructionContext()
+        {
+            m_owner = m_savedOwner;
+            m_arena = m_savedArena;
+        }
+    } construction { m_context->m_constructionOwner, m_context->m_constructionArena,
+        std::exchange(m_context->m_constructionOwner, ""), std::exchange(m_context->m_constructionArena, "") };
     Symbol* subprogram = expr->subprogram;
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
@@ -79,6 +95,18 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         return result;
     }
 
+    std::string resultTarget = std::move(m_context->m_resultTarget);
+    Value resultShape = m_context->m_resultTargetShape;
+    std::string resultDescriptor = std::move(m_context->m_resultDescriptor);
+    std::string resultProvided = std::move(m_context->m_resultProvided);
+    m_context->m_resultDescriptor.clear();
+    m_context->m_resultProvided.clear();
+    std::string resultOwner = std::move(m_context->m_resultTargetOwner);
+    std::string resultArena = std::move(m_context->m_resultTargetArena);
+    m_context->m_resultTarget.clear();
+    m_context->m_resultTargetOwner.clear();
+    m_context->m_resultTargetArena.clear();
+
     bool dispatchEquality = expr->m_dispatching && (subprogram->name == "=" || subprogram->name == "/=")
         && subprogram->parameters.size() == 2
         && rootType(subprogram->parameters[0]->type) == subprogram->m_controllingType
@@ -106,16 +134,44 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::vector<ScalarCopyBack> copyBacks;
     std::vector<std::string> arguments;
     bool compositeResult = isComposite(subprogram->returnType);
-    bool controlledResult = needsFinalization(subprogram->returnType);
+    bool controlledResult = needsFinalization(subprogram->returnType)
+        || (subprogram->returnType != nullptr && subprogram->returnType->m_tagged);
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
     bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->m_tagged;
     std::string resultStorage;
+    bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
     if (compositeResult) {
         resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? 24 + 8 * (subprogram->returnType->arrayRank - 1) : std::max(1LL, typeSize(subprogram->returnType)));
+        if (!resultTarget.empty() && !taggedResult && !dynamicResult) {
+            resultStorage = resultTarget;
+        }
+        if (limitedResult && taggedResult) {
+            line("storel " + (resultTarget.empty() ? "0" : resultTarget) + ", " + resultStorage);
+        }
+        if (limitedResult && dynamicResult && !resultTarget.empty()) {
+            line("storel " + resultTarget + ", " + resultStorage);
+            for (int dimension = 0; dimension < subprogram->returnType->arrayRank; ++dimension) {
+                std::string first = dimension == 0 ? resultShape.first : resultShape.innerBounds[dimension - 1].first;
+                std::string last = dimension == 0 ? resultShape.last : resultShape.innerBounds[dimension - 1].second;
+                std::string firstSlot = newTemp();
+                std::string lastSlot = newTemp();
+                int offset = dimension == 0 ? 8 : 16 + dimension * 8;
+                line(firstSlot + " =l add " + resultStorage + ", " + std::to_string(offset));
+                line(lastSlot + " =l add " + firstSlot + ", 4");
+                line("storew " + first + ", " + firstSlot);
+                line("storew " + last + ", " + lastSlot);
+            }
+        }
+        if (!resultDescriptor.empty()) {
+            resultStorage = resultDescriptor;
+        }
         arguments.push_back("l " + resultStorage);
         if (controlledResult) {
-            arguments.push_back("l " + m_context->m_temporaryFinalizationChain);
-            arguments.push_back("l " + storageArena(true, true));
+            arguments.push_back("l " + (resultOwner.empty() ? m_context->m_temporaryFinalizationChain : resultOwner));
+            arguments.push_back("l " + (resultArena.empty() ? storageArena(true, true) : resultArena));
+            if (taggedResult || limitedResult) {
+                arguments.push_back("w " + (resultProvided.empty() ? (resultTarget.empty() ? "0" : "1") : resultProvided));
+            }
         }
     }
     if (subprogram->level > 0 && !expr->m_dispatching) {
@@ -226,16 +282,6 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             m_diagnostics.error(expr->location, "a dispatching result requires a controlling tag");
             return Value { "0", 'l' };
         }
-        if (taggedResult && !controlledResult
-            && rootType(subprogram->returnType) == subprogram->m_controllingType) {
-            // A descendant can add controlled components to a plain root.
-            // Its result needs the ownership ABI; reject this hidden transfer
-            // before dispatching through a noncontrolled result profile.
-            std::string tagView = allocScratch(8);
-            line("storel " + controllingTag + ", " + tagView);
-            line("call $__ada_tag_check_copy(l " + tagView + ")");
-            emitExceptionCheck();
-        }
         std::string tableSlot = newTemp();
         std::string table = newTemp();
         std::string slot = newTemp();
@@ -285,7 +331,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         branch(Value { hasLink, 'w' }, nested, library);
         label(nested);
         std::vector<std::string> linked = arguments;
-        linked.insert(linked.begin() + (controlledResult ? 3 : compositeResult ? 1 : 0), "l " + indirectLink);
+        linked.insert(linked.begin() + (controlledResult ? ((taggedResult || limitedResult) ? 4 : 3) : compositeResult ? 1 : 0), "l " + indirectLink);
         std::string linkedArguments;
         for (const std::string& argument : linked) {
             linkedArguments += (linkedArguments.empty() ? "" : ", ") + argument;
@@ -314,10 +360,6 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (taggedResult) {
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + resultStorage);
-        if (!controlledResult) {
-            line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
-            emitExceptionCheck();
-        }
         result = Value { pointer, 'l' };
         if (expr->m_dispatching && rootType(subprogram->returnType) == subprogram->m_controllingType) {
             line("storel " + controllingTag + ", " + pointer);

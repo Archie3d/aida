@@ -57,6 +57,7 @@ private:
     bool withinPackage(Symbol* package) const;
     bool representationVisible(Type* type) const;
     bool taggedViewVisible(Type* type) const;
+    bool buildsLimitedResult(Expr* expression) const;
     bool checkNotPrivate(Type* type, const SourceLocation& location, const char* what);
 
     // SemaGenerics.cpp
@@ -234,6 +235,7 @@ private:
     Symbol* m_currentSubprogram = nullptr;
     int m_accessibilityLevel = 0;
     int m_handlerDepth = 0;
+    std::vector<Symbol*> m_extendedReturns;
     std::vector<LoopStmt*> m_loops;
     std::vector<std::string> m_namePrefix;
     std::unordered_map<std::string, std::size_t> m_subprogramNames;

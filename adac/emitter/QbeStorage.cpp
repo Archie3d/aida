@@ -181,6 +181,18 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     if (value == nullptr) {
         return;
     }
+    if (type->m_classRoot != nullptr) {
+        std::string saved = m_context->m_controllingTag;
+        std::string tag = newTemp();
+        line(tag + " =l loadl " + address.name);
+        m_context->m_controllingTag = tag;
+        Value source = emitExpr(value);
+        m_context->m_controllingTag = saved;
+        line("call $__ada_tagged_assign(l " + address.name + ", l " + source.name
+             + ", l " + m_context->m_temporaryFinalizationChain + ", l " + storageArena(true, true) + ")");
+        emitExceptionCheck();
+        return;
+    }
     if (needsFinalization(type)) {
         Expr* operand = value;
         while (operand->kind == ExprKind::Qualified) {
@@ -196,7 +208,15 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             return;
         }
         if (hasLimitedControlledParts(type)) {
-            m_diagnostics.error(value->location, "limited controlled objects cannot be copied");
+            bool temporary = m_context->m_initializingTemporary;
+            m_context->m_resultTarget = address.name;
+            m_context->m_resultTargetShape = type->kind == TypeKind::Array ? withBounds(address, type, nullptr) : address;
+            m_context->m_resultTargetOwner = m_context->m_constructionOwner.empty()
+                ? (temporary ? m_context->m_temporaryFinalizationChain : m_context->m_finalizationChain)
+                : m_context->m_constructionOwner;
+            m_context->m_resultTargetArena = m_context->m_constructionArena.empty()
+                ? storageArena(temporary, true) : m_context->m_constructionArena;
+            emitExpr(value);
             return;
         }
         Value source = emitExpr(value);
@@ -396,7 +416,7 @@ void QbeEmitter::checkTagLevel(const Value& object, int level)
     emitExceptionCheck();
 }
 
-void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::string& operation)
+void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::string& operation, const std::string& explicitTag)
 {
     type = rootType(type);
     Symbol* primitive = nullptr;
@@ -421,7 +441,11 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
     std::string table = newTemp();
     std::string entry = newTemp();
     std::string code = newTemp();
-    line(tag + " =l loadl " + object.name);
+    if (explicitTag.empty()) {
+        line(tag + " =l loadl " + object.name);
+    } else {
+        line(tag + " =l copy " + explicitTag);
+    }
     line(tableSlot + " =l add " + tag + ", 24");
     line(table + " =l loadl " + tableSlot);
     line(entry + " =l add " + table + ", " + std::to_string(primitive->m_dispatchSlot * 16));
@@ -457,6 +481,19 @@ void QbeEmitter::emitFinalizer(Type* type)
         line("ret");
         adjust.terminated = true;
         finishFunction("export function " + type->m_tagName + ".adjust(l %object)");
+    }
+    for (const std::string& operation : { std::string("finalize"), std::string("adjust") }) {
+        if (operation == "adjust" && type->isLimited) {
+            continue;
+        }
+        FunctionContext view;
+        view.traceName = type->name + " view " + operation;
+        view.propagateLabel = newLabel("viewpropagate");
+        m_context = &view;
+        emitControlledCall(Value { "%object", 'l' }, type, operation, "%tag");
+        line("ret");
+        view.terminated = true;
+        finishFunction("export function " + type->m_tagName + ".view_" + operation + "(l %object, l %tag)");
     }
     m_context = saved;
 }

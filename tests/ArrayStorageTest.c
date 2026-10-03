@@ -54,6 +54,32 @@ static void testFree(void* pointer)
 #undef calloc
 #undef free
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "line %d\n", __LINE__); return 1; } } while (0)
+static int managedLive;
+static int managedFail;
+static void managedFinalize(void* object)
+{
+    (void)object;
+    --managedLive;
+}
+static void managedAdjust(void* object)
+{
+    (void)object;
+    if (managedFail > 0 && --managedFail == 0) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    ++managedLive;
+}
+static void managedParts(void* object,
+                         void (*visit)(void*, void (*)(void*), void (*)(void*), void*),
+                         void* context, int parentFirst)
+{
+    (void)parentFirst;
+    visit((char*)object + 8, managedFinalize, managedAdjust, context);
+    if (__ada_exception == NULL) {
+        visit((char*)object + 16, managedFinalize, managedAdjust, context);
+    }
+}
 static int finalizationOrder;
 static void finalizeValue(void* object)
 {
@@ -374,6 +400,56 @@ int main(void)
     transfer = NULL;
     __ada_tagged_result(&transfer, &object);
     CHECK(transfer == NULL && __ada_exception == ADA_PROGRAM_ERROR && liveAllocations == 3);
+    __ada_exception = NULL;
+    tag->m_parts = managedParts;
+    for (int failure = 0; failure < 10; ++failure) {
+        failAfter = failure;
+        void* copy = __ada_tagged_owned_copy(&finalizations, &owner, &object);
+        failAfter = -1;
+        CHECK(copy != NULL || __ada_exception == ADA_STORAGE_ERROR);
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(managedLive == 0 && liveAllocations == 3 && registeredFinalizations == NULL);
+        __ada_exception = NULL;
+    }
+    for (int failure = 0; failure < 10; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        failAfter = failure;
+        void* copy = __ada_tagged_allocation(collection, &object);
+        failAfter = -1;
+        CHECK(copy != NULL || __ada_exception == ADA_STORAGE_ERROR);
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(managedLive == 0 && liveAllocations == 3 && registeredFinalizations == NULL);
+        CHECK(registeredAllocations == NULL);
+        __ada_exception = NULL;
+    }
+    for (int failure = 0; failure < 12; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        failAfter = failure;
+        void* pending = __ada_collection_begin(collection);
+        if (pending != NULL) {
+            void* copy = __ada_tagged_owned_copy(__ada_collection_result_owner(pending),
+                                                __ada_collection_result_arena(pending), &object);
+            if (copy != NULL) {
+                __ada_collection_finish(pending, copy);
+                __ada_deallocate(copy);
+            } else {
+                __ada_collection_abort(pending);
+            }
+        }
+        failAfter = -1;
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(managedLive == 0 && liveAllocations == 3 && registeredFinalizations == NULL);
+        CHECK(registeredAllocations == NULL);
+        __ada_exception = NULL;
+    }
+    managedFail = 2;
+    CHECK(__ada_tagged_owned_copy(&finalizations, &owner, &object) == NULL);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR && managedLive == 0 && liveAllocations == 3);
+    CHECK(finalizations == NULL && owner == NULL && registeredFinalizations == NULL);
+    __ada_exception = NULL;
     releaseTags();
     CHECK(liveAllocations == 0);
     return 0;

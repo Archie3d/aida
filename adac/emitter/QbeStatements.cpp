@@ -180,20 +180,17 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Return: {
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* resultType = m_context->symbol == nullptr ? nullptr : m_context->symbol->returnType;
-        if (returnStatement->value && isComposite(resultType)) {
-            if (needsFinalization(resultType)) {
+        if (returnStatement->value == nullptr && returnStatement->m_object == nullptr
+            && !m_context->m_extendedReturnLabel.empty()) {
+            jump(m_context->m_extendedReturnLabel);
+            break;
+        }
+        if (returnStatement->m_object != nullptr) {
+            emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->m_object.get()), returnStatement);
+            line("ret");
+        } else if (returnStatement->value && isComposite(resultType)) {
+            if (needsFinalization(resultType) || resultType->m_tagged) {
                 emitControlledResult(returnStatement->value.get());
-            } else if (resultType->m_tagged) {
-                Value value;
-                if (resultType->m_classRoot != nullptr) {
-                    value = emitExpr(returnStatement->value.get());
-                    checkTagLevel(value, m_context->symbol->m_accessibilityLevel);
-                } else {
-                    value = Value { allocScratch(typeSize(resultType)), 'l' };
-                    assignInto(value, resultType, returnStatement->value.get(), true);
-                }
-                line("call $__ada_tagged_result(l %.result, l " + value.name + ")");
-                emitExceptionCheck();
             } else if (isUnconstrainedArray(resultType)) {
                 Value value = emitExpr(returnStatement->value.get());
                 value = withBounds(value, returnStatement->value->type, nullptr);
