@@ -497,7 +497,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->m_collectionName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
         type->m_collectionOffset = -1;
         if (m_currentSubprogram != nullptr && type->target != nullptr
-            && (needsFinalization(type->target) || type->target->isIncomplete)) {
+            && (needsCollection(type) || type->target->isIncomplete)) {
             m_currentSubprogram->needsFrame = true;
         }
     }

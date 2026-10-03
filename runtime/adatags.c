@@ -112,6 +112,14 @@ void* __ada_tag_create(const void* templateTag, void* parent, void* master)
     return tag;
 }
 
+void __ada_tag_check_accessibility(const void* object, int level)
+{
+    const AdaTag* tag = *(const AdaTag* const*)object;
+    if (tag->level > level) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+    }
+}
+
 void __ada_tag_check_level(const void* object, int level)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;

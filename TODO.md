@@ -601,16 +601,22 @@ operations, interfaces, and wider tagged forms remain extensions below.
   Keep tag attributes, class-wide types, fields, and private hooks hidden from
   clients. `opaquecontrolled` and rejection/determinism tests bring the suite
   to 299 passing tests.
+- [x] Stage 4c, specific allocations through class-wide access types: use the
+  access type's collection and record the concrete object's controlled parts.
+  Support deallocation, limited objects, controlled extension fields beneath
+  ordinary roots, nested hooks, library collections, and failure cleanup.
+  Separate accessibility checking from the unsupported unowned-copy guard.
+  Runtime, failure, library, and determinism tests bring the suite to 303 tests.
 - [ ] Finish stage 4c: limited controlled results, class-wide results and owned
-  objects, imported controlled results, class-wide allocation/deallocation,
+  objects, imported controlled results, dynamically sized class-wide allocators,
   and streaming.
   Also extend variant components
   and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.
 
 Remaining acceptance tests for later stages: abstract-operation rejection,
-limited and class-wide controlled returns, escaping ownership, and class-wide
-finalization on deallocation. Extend the tagged regressions alongside
+limited and class-wide controlled returns, escaping ownership, and dynamically
+sized controlled allocation. Extend the tagged regressions alongside
 discriminants, interfaces, private extensions, and wide-character support.
 
 ## 6. Larger runtime and library extensions

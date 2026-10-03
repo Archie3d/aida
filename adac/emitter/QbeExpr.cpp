@@ -504,8 +504,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
     long long size = typeSize(designated);
-    if (needsFinalization(designated) && designated->m_classRoot == nullptr
-        && expr->type->target->m_classRoot == nullptr) {
+    if (needsFinalization(designated) && designated->m_classRoot == nullptr) {
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
         line(object.name + " =l call $__ada_collection_allocate(l " + collection.name
@@ -523,6 +522,12 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             assignInto(object, designated, expr->value.get(), true);
         } else {
             emitDefaultInit(object, designated);
+        }
+        if (expr->type->target->m_classRoot != nullptr) {
+            // Ownership is already recorded; only accessibility remains to check.
+            line("call $__ada_tag_check_accessibility(l " + object.name + ", w "
+                 + std::to_string(expr->type->m_accessLevel) + ")");
+            emitExceptionCheck();
         }
         m_context->handlerLabels.pop_back();
         jump(ready);

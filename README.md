@@ -709,8 +709,17 @@ views keep `'Class`, `'Tag`, and `'External_Tag` hidden from clients while allow
 tagged operations within the package's full view. Failed copies and allocations
 clean up without leaking controlled resources.
 
+Class-wide access types can own allocations of specific controlled types (for
+example, `new Child` or `new Child'(Value)`). Deallocation and collection cleanup
+finalize the concrete object's controlled parts, including extension fields and
+limited controlled objects. This also works when an ordinary tagged root has
+descendants with controlled fields. Accessibility checks reject shorter-lived
+tags and clean up the failed allocation. Local and library collections retain
+ownership even when the access value is discarded.
+
 Limited controlled results, class-wide controlled results and owned objects,
-imported controlled results, class-wide controlled allocation/deallocation,
+imported controlled results, allocators copying dynamically sized controlled
+class-wide values,
 streaming, variant records with controlled components, and assignment through ancestor
 views remain unsupported. Statically visible cases
 are diagnosed; a class-wide ownership transfer or ancestor assignment hiding a

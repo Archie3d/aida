@@ -127,6 +127,7 @@ void __ada_array_result(void* descriptor, const void* source, int first, int las
 void __ada_tag_register(void* tag);
 void* __ada_tag_create(const void* templateTag, void* parent, void* master);
 void __ada_tag_check_level(const void* object, int level);
+void __ada_tag_check_accessibility(const void* object, int level);
 void __ada_tagged_result(void** result, const void* object);
 int __ada_tagged_equal(const void* left, const void* right);
 const char* __ada_tag_name(const void* tag);

@@ -461,7 +461,8 @@ bool needsFinalization(const Type* type)
 bool needsCollection(const Type* type)
 {
     return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
-        && type->target->m_classRoot == nullptr && needsFinalization(type->target);
+        // An uncontrolled root may have descendants with controlled fields.
+        && (type->target->m_classRoot != nullptr || needsFinalization(type->target));
 }
 
 bool hasLimitedControlledParts(const Type* type)

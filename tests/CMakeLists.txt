@@ -521,3 +521,9 @@ add_ada_test(opaquecontrolled SOURCES controlled_result_model.ads controlled_res
     opaque_controlled_model.ads opaque_controlled_model.adb opaquecontrolled.adb)
 add_determinism_test(opaquecontrolled SOURCE opaquecontrolled.adb)
 add_ada_error_test(opaquecontrollederrors SOURCES opaquecontrollederrors.adb)
+
+add_ada_test(controlledwideallocations SOURCES controlled_result_model.ads controlled_result_model.adb controlledwideallocations.adb)
+add_determinism_test(controlledwideallocations SOURCE controlledwideallocations.adb)
+add_ada_test(controlledwideallocationfailures SOURCES controlled_result_model.ads controlled_result_model.adb controlledwideallocationfailures.adb)
+add_ada_test(controlledwideallocationglobals SOURCES controlled_result_model.ads controlled_result_model.adb
+    controlled_wide_allocation_globals.ads controlled_wide_allocation_globals.adb controlledwideallocationglobals.adb)

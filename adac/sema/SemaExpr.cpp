@@ -172,8 +172,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if ((needsFinalization(designated) && (designated->m_classRoot != nullptr
-            || access->target->m_classRoot != nullptr))
+    if ((needsFinalization(designated) && designated->m_classRoot != nullptr)
         || (designated->m_abstract && designated->m_classRoot == nullptr)) {
         m_diagnostics.error(expr->location, "class-wide controlled or abstract allocators are not yet supported");
         return nullptr;

@@ -706,11 +706,6 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (type == nullptr) {
                 return false;
             }
-            if (generic->generic->lower == "ada.unchecked_deallocation" && needsFinalization(type)
-                && type->m_classRoot != nullptr) {
-                m_diagnostics.error(actual->location, "class-wide controlled deallocation is not yet supported");
-                return false;
-            }
             if (!acceptsFormalType(formal, type, decl->genericName, actual->location)) {
                 return false;
             }
