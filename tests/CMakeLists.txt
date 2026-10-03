@@ -89,6 +89,9 @@ function(add_ada_ir_test name)
     )
 endfunction()
 
+add_ada_test(subprogramcompletions SOURCES subprogramcompletions.adb)
+add_ada_error_test(subprogramstuberrors SOURCES subprogramstuberrors.adb)
+
 add_ada_test(importconventions SOURCES importconventions.adb)
 add_ada_error_test(importconventionerrors SOURCES importconventionerrors.adb)
 add_ada_error_test(importconventionsyntaxerrors SOURCES importconventionsyntaxerrors.adb)

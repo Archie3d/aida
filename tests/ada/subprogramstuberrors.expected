@@ -1,0 +1,10 @@
+subprogramstuberrors.adb:2:23: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:3:56: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:5:28: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:6:60: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:13:27: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:14:42: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:24:27: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:30:61: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:33:33: error: subprogram stubs ('is separate') are not yet supported
+subprogramstuberrors.adb:34:48: error: subprogram stubs ('is separate') are not yet supported

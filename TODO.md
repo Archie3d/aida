@@ -51,7 +51,7 @@ from what the source asks for.
   validate `'Size` against the chosen representation and the type's range.
 - [x] **Import conventions.** `pragma Import` ignores its convention argument.
   Reject conventions other than C and Ada.
-- [ ] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
+- [x] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
   declaration and its body is never loaded. Diagnose stubs until subunits exist
   (Phase 6).
 - [ ] **Reserved words.** The lexer does not reserve `aliased`, `protected`,

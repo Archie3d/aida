@@ -249,8 +249,8 @@ tests. The sections below describe each feature and its limits.
   and components whose bounds depend on discriminants.
 - General access types: `aliased` objects, `access all`, `'Access` of objects,
   access-to-constant, anonymous access types and general accessibility checks.
-- Package and generic renaming, `separate` subunits, and `goto`. A subprogram
-  stub (`is separate`) is parsed, but its body is never loaded.
+- Package and generic renaming, `separate` subunits, and `goto`. Subprogram
+  stubs (`is separate`) are rejected with an explicit diagnostic.
 - Extended return statements for results that are not controlled types.
 - Decimal fixed point, modular types above `2 ** 32`, and floating-point
   `'Value`.

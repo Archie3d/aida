@@ -110,12 +110,8 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     if (match(TokenKind::KwNew)) {
         return parseGenericInstantiation(location, spec.name, spec.lower, false);
     }
-    if (match(TokenKind::KwSeparate)) {
-        expect(TokenKind::Semicolon, "after separate");
-        auto decl = std::make_unique<SubprogramDecl>();
-        decl->location = location;
-        decl->spec = std::move(spec);
-        return decl;
+    if (check(TokenKind::KwSeparate)) {
+        fail("subprogram stubs ('is separate') are not yet supported");
     }
 
     auto body = std::make_unique<SubprogramBody>();
