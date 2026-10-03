@@ -79,6 +79,8 @@ public:
     Type* m_parentType = nullptr;
     // Tagged records reserve the leading pointer and retain a parent prefix.
     bool m_tagged = false;
+    // The partial view can hide tagging while the full layout remains tagged.
+    bool m_privateViewTagged = false;
     bool m_abstract = false;
     bool m_controlled = false;
     // Class-wide identity is distinct from subtype identity and derivation.

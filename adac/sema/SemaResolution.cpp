@@ -391,7 +391,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.stringType());
         } else if (name == "class") {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
-                if (prefix->m_tagged && prefix->m_classRoot == nullptr) {
+                if (taggedViewVisible(prefix) && prefix->m_classRoot == nullptr) {
                     add(classWideType(prefix));
                 }
             }

@@ -594,9 +594,16 @@ operations, interfaces, and wider tagged forms remain extensions below.
   profiles after completion; preserve field/operation visibility and reject
   unsupported external extensions. `privatecontrolled` and rejection/determinism
   tests bring the full suite to 296 passing tests.
+- [x] Stage 4c, untagged private controlled completions: preserve partial-view
+  tagging separately from the full layout and lifetime properties. Support
+  opaque controlled and limited controlled types, aliases, results, allocation,
+  deallocation, nested hooks, and cleanup after failed copies and allocations.
+  Keep tag attributes, class-wide types, fields, and private hooks hidden from
+  clients. `opaquecontrolled` and rejection/determinism tests bring the suite
+  to 299 passing tests.
 - [ ] Finish stage 4c: limited controlled results, class-wide results and owned
   objects, imported controlled results, class-wide allocation/deallocation,
-  untagged private views with tagged controlled full definitions, and streaming.
+  and streaming.
   Also extend variant components
   and ancestor-view assignment. Unsupported static forms are
   rejected; hidden dynamic ownership transfers are guarded at runtime.

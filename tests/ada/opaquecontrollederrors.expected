@@ -1,0 +1,8 @@
+opaquecontrollederrors.adb:5:25: error: 'Class requires a specific tagged type
+opaquecontrollederrors.adb:7:30: error: tag attributes require a specific tagged subtype or a tagged object
+opaquecontrollederrors.adb:8:26: error: tag attributes require a specific tagged subtype or a tagged object
+opaquecontrollederrors.adb:9:27: error: tag attributes require a specific tagged subtype or a tagged object
+opaquecontrollederrors.adb:10:5: error: extension of a private or incomplete tagged view is not yet supported
+opaquecontrollederrors.adb:12:6: error: '.' reaches inside a value of 'Hidden', whose representation 'Opaque_Controlled_Model' keeps to itself
+opaquecontrollederrors.adb:13:28: error: 'Adjust' is not declared in 'Opaque_Controlled_Model'
+opaquecontrollederrors.adb:14:10: error: membership subtype must match the operand's discrete type

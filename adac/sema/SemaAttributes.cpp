@@ -197,7 +197,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "class") {
-        if (!prefixIsType || prefixType == nullptr || !prefixType->m_tagged || prefixType->m_classRoot != nullptr) {
+        if (!prefixIsType || !taggedViewVisible(prefixType) || prefixType->m_classRoot != nullptr) {
             m_diagnostics.error(expr->location, "'Class requires a specific tagged type");
             return nullptr;
         }
@@ -205,7 +205,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "tag" || expr->lower == "external_tag") {
-        if (prefixType == nullptr || !prefixType->m_tagged || !expr->arguments.empty()
+        if (!taggedViewVisible(prefixType) || !expr->arguments.empty()
             || (prefixIsType && prefixType->m_classRoot != nullptr)
             || (expr->lower == "external_tag" && !prefixIsType)) {
             m_diagnostics.error(expr->location, "tag attributes require a specific tagged subtype or a tagged object");

@@ -56,6 +56,7 @@ private:
     void analyzeUseClause(UseDecl& decl, Scope* scope);
     bool withinPackage(Symbol* package) const;
     bool representationVisible(Type* type) const;
+    bool taggedViewVisible(Type* type) const;
     bool checkNotPrivate(Type* type, const SourceLocation& location, const char* what);
 
     // SemaGenerics.cpp

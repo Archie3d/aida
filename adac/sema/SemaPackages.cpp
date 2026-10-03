@@ -199,6 +199,13 @@ bool Sema::representationVisible(Type* type) const
     return base == nullptr || base->privateTo == nullptr || withinPackage(base->privateTo);
 }
 
+bool Sema::taggedViewVisible(Type* type) const
+{
+    Type* base = baseType(type);
+    return base != nullptr && base->m_tagged
+        && (base->m_privateViewTagged || representationVisible(base));
+}
+
 bool Sema::checkNotPrivate(Type* type, const SourceLocation& location, const char* what)
 {
     Type* base = baseType(type);

@@ -543,8 +543,8 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 {
     Type* mark = expr->typeLower.empty() ? nullptr
         : resolveTypeName(expr->typeLower, scope, expr->location);
-    Type* operand = analyzeExpr(expr->operand.get(), scope, mark != nullptr && mark->m_tagged ? nullptr : mark);
-    if (mark != nullptr && mark->m_tagged && operand != nullptr && operand->m_tagged) {
+    Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
+    if (taggedViewVisible(mark) && taggedViewVisible(operand)) {
         Type* target = mark->m_classRoot != nullptr ? mark->m_classRoot : mark;
         Type* source = operand->m_classRoot != nullptr ? operand->m_classRoot : operand;
         if (!isTaggedAncestor(target, source)

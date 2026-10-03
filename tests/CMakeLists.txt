@@ -516,3 +516,8 @@ add_ada_test(privatecontrolled SOURCES controlled_result_model.ads controlled_re
     private_controlled_model.ads private_controlled_model.adb privatecontrolled.adb)
 add_determinism_test(privatecontrolled SOURCE privatecontrolled.adb)
 add_ada_error_test(privatecontrollederrors SOURCES privatecontrollederrors.adb)
+
+add_ada_test(opaquecontrolled SOURCES controlled_result_model.ads controlled_result_model.adb
+    opaque_controlled_model.ads opaque_controlled_model.adb opaquecontrolled.adb)
+add_determinism_test(opaquecontrolled SOURCE opaquecontrolled.adb)
+add_ada_error_test(opaquecontrollederrors SOURCES opaquecontrollederrors.adb)

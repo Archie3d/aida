@@ -63,6 +63,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Symbol* privateTo = completing->privateTo;
         bool isLimited = completing->isLimited;
         bool tagged = completing->m_tagged;
+        bool privateViewTagged = completing->m_privateViewTagged;
         bool controlled = completing->m_controlled;
         std::string tagName = completing->m_tagName;
         auto slots = std::move(completing->m_dispatchSlots);
@@ -75,6 +76,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
         completing->m_tagged = tagged;
+        completing->m_privateViewTagged = privateViewTagged;
         completing->m_controlled = controlled;
         completing->m_tagName = tagName;
         return completing;
@@ -320,10 +322,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
-        if (completing != nullptr && parent->m_controlled && !completing->m_tagged) {
-            m_diagnostics.error(decl->location, "a controlled completion requires a tagged private view");
-            return;
-        }
         if (completing != nullptr && parent->m_controlled && parent->isLimited && !completing->isLimited) {
             m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
@@ -362,9 +360,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* classWide = type->m_classWide;
         Symbol* privateTo = type->privateTo;
         bool isLimited = type->isLimited;
+        bool privateViewTagged = type->m_privateViewTagged;
         *type = *built;
         if (completing != nullptr) {
             type->privateTo = privateTo;
+            type->m_privateViewTagged = privateViewTagged;
             type->isLimited = isLimited;
         }
         if (completing == nullptr && parent->m_controlled) {
@@ -459,6 +459,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Record);
         type->isIncomplete = true;
         type->m_tagged = definition->m_tagged;
+        type->m_privateViewTagged = definition->m_tagged;
         type->privateTo = m_packages.back();
         type->isLimited = definition->isLimited;
         break;

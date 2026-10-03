@@ -46,7 +46,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         if (specific == nullptr) {
             return nullptr;
         }
-        if (!specific->m_tagged || specific->m_classRoot != nullptr) {
+        if (!taggedViewVisible(specific) || specific->m_classRoot != nullptr) {
             m_diagnostics.error(location, "'Class requires a specific tagged type");
             return nullptr;
         }
