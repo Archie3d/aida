@@ -1,0 +1,15 @@
+sizelayouterrors.adb:3:5: error: floating-point size must match the representation selected by digits
+sizelayouterrors.adb:4:5: error: floating-point size must match the representation selected by digits
+sizelayouterrors.adb:6:5: error: floating-point size must match the representation selected by digits
+sizelayouterrors.adb:8:5: error: fixed-point storage currently requires 64 bits
+sizelayouterrors.adb:10:5: error: access storage currently requires 64 bits
+sizelayouterrors.adb:12:5: error: enumeration storage supports only 8, 16 or 32 bits
+sizelayouterrors.adb:16:5: error: composite size clauses must match the existing static layout
+sizelayouterrors.adb:17:5: error: composite size clauses must match the existing static layout
+sizelayouterrors.adb:19:5: error: composite size clauses must match the existing static layout
+sizelayouterrors.adb:21:5: error: composite size clauses must match the existing static layout
+sizelayouterrors.adb:23:5: error: size clauses cannot change subtype storage
+sizelayouterrors.adb:25:5: error: a size clause requires a complete, visible representation
+sizelayouterrors.adb:31:5: error: a size-changing clause must immediately follow its type declaration, before representation use
+sizelayouterrors.adb:37:5: error: a size-changing clause must immediately follow its type declaration, before representation use
+sizelayouterrors.adb:39:5: error: a size-changing clause must immediately follow its type declaration, before representation use

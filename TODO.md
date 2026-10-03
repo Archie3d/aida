@@ -46,7 +46,7 @@ from what the source asks for.
   `Convention`, `Elaborate_All`, `Restrictions`, and the tasking pragmas
   `Atomic`, `Volatile`, `Priority` and `Storage_Size`) until they are
   implemented. Report unknown pragmas.
-- [ ] **Representation clauses.** `Parser::parseRepresentationClause` honors only
+- [x] **Representation clauses.** `Parser::parseRepresentationClause` honors only
   `'Size`; other clauses are read and ignored. Reject unsupported clauses, and
   validate `'Size` against the chosen representation and the type's range.
 - [ ] **Import conventions.** `pragma Import` ignores its convention argument.

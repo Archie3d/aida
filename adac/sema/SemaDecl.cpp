@@ -5,8 +5,16 @@ using SemaSupport::adaptUniversal;
 
 void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete)
 {
+    Type* precedingType = nullptr;
     for (const DeclPtr& decl : declarations) {
+        if (decl->kind == DeclKind::Representation) {
+            analyzeRepresentation(static_cast<RepresentationDecl*>(decl.get()), scope, precedingType);
+            precedingType = nullptr;
+            continue;
+        }
         analyzeDecl(decl.get(), scope);
+        precedingType = decl->kind == DeclKind::Type
+            ? static_cast<TypeDecl*>(decl.get())->declaredType : nullptr;
     }
     if (reportIncomplete) {
         reportIncompleteTypes(declarations);

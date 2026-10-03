@@ -762,10 +762,12 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
 // A size clause settles how wide a type is laid out, which is the only way to
 // say that a stream element occupies one byte rather than the four an integer
 // type would otherwise take.
-void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope)
+void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType)
 {
     Symbol* symbol = lookupName(decl->lower, scope);
-    if (symbol == nullptr || symbol->kind != SymbolKind::TypeName || symbol->type == nullptr) {
+    auto localSymbols = scope->lookupLocal(decl->lower);
+    if (symbol == nullptr || symbol->kind != SymbolKind::TypeName || symbol->type == nullptr
+        || std::find(localSymbols.begin(), localSymbols.end(), symbol) == localSymbols.end()) {
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
         return;
     }
@@ -774,36 +776,114 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope)
         return;
     }
 
-    if (symbol->type->m_tagged) {
+    Type* type = symbol->type;
+    if (type->m_tagged) {
         m_diagnostics.error(decl->location, "size clauses for tagged types are not yet supported");
         return;
     }
-    analyzeExpr(decl->value.get(), scope, m_types.integerType());
-    if (!decl->value->isStatic) {
+    if (type->isIncomplete || !representationVisible(type)) {
+        m_diagnostics.error(decl->location, "a size clause requires a complete, visible representation");
+        return;
+    }
+    Type* valueType = analyzeExpr(decl->value.get(), scope, nullptr);
+    if (valueType == nullptr) {
+        return;
+    }
+    if (valueType->kind != TypeKind::Integer && valueType->kind != TypeKind::UniversalInteger) {
+        m_diagnostics.error(decl->location, "a size clause needs an integer number of bits");
+        return;
+    }
+    long long bits = 0;
+    if (!foldStatic(decl->value.get(), bits)) {
         m_diagnostics.error(decl->location, "a size clause needs a static number of bits");
         return;
     }
-
-    long long bits = decl->value->staticValue;
-    if (bits <= 0 || bits % 8 != 0 || bits > 64) {
-        m_diagnostics.error(decl->location, "a size of " + std::to_string(bits)
-                                                + " bits is not a whole number of storage units this machine can "
-                                                  "address");
+    if (bits <= 0 || bits % 8 != 0) {
+        m_diagnostics.error(decl->location, "a size clause requires a positive multiple of 8 bits");
         return;
     }
-    if (symbol->type->m_modulus != 0) {
-        long long modulus = symbol->type->m_modulus;
-        if ((bits != 8 && bits != 16 && bits != 32 && bits != 64)
-            || (bits < 64 && modulus > (1LL << (bits == 32 ? 31 : bits)))) {
+
+    long long bytes = bits / 8;
+    if (type->kind == TypeKind::Array || type->kind == TypeKind::Record) {
+        if ((type->kind == TypeKind::Array && !type->constrained) || bytes != typeSize(type)) {
+            m_diagnostics.error(decl->location,
+                "composite size clauses must match the existing static layout");
+        }
+        return;
+    }
+    if (bits != 8 && bits != 16 && bits != 32 && bits != 64) {
+        m_diagnostics.error(decl->location, "scalar size clauses support only 8, 16, 32 or 64 bits");
+        return;
+    }
+    switch (type->kind) {
+    case TypeKind::Integer:
+    case TypeKind::Enumeration: {
+        // Byte and halfword loads can be unsigned. Word arithmetic and loads
+        // are signed; types needing the full unsigned word range use 64 bits.
+        long long low = 0;
+        long long high = std::numeric_limits<long long>::max();
+        if (bits == 64) {
+            low = std::numeric_limits<long long>::min();
+        } else if (bits == 32 || type->low < 0) {
+            low = -(1LL << (bits - 1));
+            high = (1LL << (bits - 1)) - 1;
+        } else {
+            high = (1LL << bits) - 1;
+        }
+        if (type->m_modulus != 0 && type->m_modulus - 1 > high) {
             m_diagnostics.error(decl->location, "unsupported representation size for this modular type");
             return;
         }
+        if (type->kind == TypeKind::Enumeration && bits == 64) {
+            m_diagnostics.error(decl->location, "enumeration storage supports only 8, 16 or 32 bits");
+            return;
+        }
+        if (type->low < low || type->high > high) {
+            m_diagnostics.error(decl->location, "the range of '" + decl->name
+                + "' does not fit in " + std::to_string(bits) + " bits");
+            return;
+        }
+        break;
     }
-    if (symbol->type->kind == TypeKind::Fixed && bits != 64) {
-        m_diagnostics.error(decl->location, "fixed-point storage currently requires 64 bits");
+    case TypeKind::Float:
+        if (bits != (type->digits > 6 ? 64 : 32)) {
+            m_diagnostics.error(decl->location,
+                "floating-point size must match the representation selected by digits");
+            return;
+        }
+        break;
+    case TypeKind::Fixed:
+        if (bits != 64) {
+            m_diagnostics.error(decl->location, "fixed-point storage currently requires 64 bits");
+            return;
+        }
+        break;
+    case TypeKind::Access:
+        if (bits != 64) {
+            m_diagnostics.error(decl->location, "access storage currently requires 64 bits");
+            return;
+        }
+        break;
+    default:
+        m_diagnostics.error(decl->location, "size clauses for this type are not yet supported");
         return;
     }
-    symbol->type->byteSize = static_cast<int>(bits / 8);
+    if (bytes == typeSize(type)) {
+        return;
+    }
+    // Subtypes, field offsets and folded attributes can already contain the
+    // old width. Until full freezing is implemented, change storage only at
+    // the declaration, before another declaration can depend on its layout.
+    if (type->isSubtype) {
+        m_diagnostics.error(decl->location, "size clauses cannot change subtype storage");
+        return;
+    }
+    if (type != precedingType || type->m_scalarBase != nullptr) {
+        m_diagnostics.error(decl->location,
+            "a size-changing clause must immediately follow its type declaration, before representation use");
+        return;
+    }
+    type->byteSize = bytes;
 }
 
 Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic, bool allowDynamicScalar)

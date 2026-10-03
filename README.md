@@ -258,7 +258,9 @@ tests. The sections below describe each feature and its limits.
 - Library-level arrays and scalar subtypes with runtime bounds,
   runtime-constrained array components and allocators, and array indices or
   lengths beyond 32 bits.
-- Representation clauses other than `'Size`, which are read and ignored.
+- Representation clauses other than `'Size` are rejected, including attribute,
+  enumeration, record, and address clauses. Size clauses cannot change subtype
+  storage or composite layouts, or specify tagged layouts.
 - Pragmas other than `Import`, `Inline`, `Pure`, and `Preelaborate` are rejected,
   including `Pack`, `Export`, `Convention`, `Elaborate_All`, `Restrictions`,
   `Atomic`, `Volatile`, `Priority`, and `Storage_Size`. Enforcement of `Pure`
@@ -1275,6 +1277,25 @@ laid out, which is how `Ada.Streams` says that a stream element is a byte:
 type Stream_Element is range 0 .. 255;
 for Stream_Element'Size use 8;
 ```
+
+Size clauses require a locally declared type with a complete, visible
+representation and a static integer bit count that is a positive multiple of
+eight. Integer storage supports 8, 16, 32, or 64 bits, provided the declared
+range fits. Byte and halfword storage can be unsigned for nonnegative ranges;
+32-bit storage is signed, so the full `mod 2 ** 32` range needs 64 bits.
+Enumeration storage supports 8, 16, or 32 bits and must hold every ordinal.
+Floating-point sizes must match the representation selected by `digits`;
+fixed-point and access types require 64 bits. Composite clauses may only
+confirm the existing static layout, including layouts larger than 64 bits.
+Tagged size clauses remain unsupported.
+
+A clause that changes storage must immediately follow its type declaration,
+before another declaration or a use of its base representation. This
+conservative restriction prevents stale subtype widths and field offsets
+until full Ada freezing rules are implemented. A subtype's storage cannot be
+changed independently. Clauses that confirm the existing size may appear
+later in the same declarative part. Other representation clauses are diagnosed
+as unsupported.
 
 ### Input and output
 

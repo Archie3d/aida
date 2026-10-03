@@ -108,7 +108,7 @@ private:
     void analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope);
     void layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope);
     void reportIncompleteTypes(DeclList& declarations);
-    void analyzeRepresentation(RepresentationDecl* decl, Scope* scope);
+    void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,
                                   bool allowDynamicScalar = false);
     Type* constrainDiscriminants(SubtypeIndication* indication, Type* base, Scope* scope);

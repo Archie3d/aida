@@ -1,0 +1,11 @@
+sizerangeerrors.adb:3:5: error: the range of 'Low_Byte' does not fit in 8 bits
+sizerangeerrors.adb:5:5: error: the range of 'High_Byte' does not fit in 8 bits
+sizerangeerrors.adb:7:5: error: the range of 'Unsigned_Byte' does not fit in 8 bits
+sizerangeerrors.adb:9:5: error: the range of 'Low_Half' does not fit in 16 bits
+sizerangeerrors.adb:11:5: error: the range of 'High_Half' does not fit in 16 bits
+sizerangeerrors.adb:13:5: error: the range of 'Low_Word' does not fit in 32 bits
+sizerangeerrors.adb:15:5: error: the range of 'High_Word' does not fit in 32 bits
+sizerangeerrors.adb:17:5: error: unsupported representation size for this modular type
+sizerangeerrors.adb:19:5: error: unsupported representation size for this modular type
+sizerangeerrors.adb:21:5: error: unsupported representation size for this modular type
+sizerangeerrors.adb:56:5: error: the range of 'Many' does not fit in 8 bits

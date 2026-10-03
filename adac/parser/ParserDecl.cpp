@@ -199,9 +199,9 @@ DeclPtr Parser::parsePragma()
     return nullptr;
 }
 
-// A representation clause says how a declaration is to be laid out rather than
-// what it means.  Only 'Size is honoured; anything else is read through and
-// left to the machine's own judgement.
+// Only Size attribute definition clauses are implemented. Diagnose other
+// forms here, including record clauses whose internal semicolons need special
+// recovery, instead of dropping their requested layout.
 DeclPtr Parser::parseRepresentationClause()
 {
     SourceLocation location = current().location;
@@ -210,10 +210,35 @@ DeclPtr Parser::parseRepresentationClause()
     auto decl = std::make_unique<RepresentationDecl>();
     decl->location = location;
     decl->name = parseCompoundName(decl->lower);
+    if (match(TokenKind::KwUse)) {
+        if (match(TokenKind::KwRecord)) {
+            m_diagnostics.error(location, "record representation clauses are not yet supported");
+            while (!check(TokenKind::EndOfFile)) {
+                if (check(TokenKind::KwEnd) && peek(1).kind == TokenKind::KwRecord) {
+                    advance();
+                    advance();
+                    break;
+                }
+                advance();
+            }
+        } else {
+            m_diagnostics.error(location, check(TokenKind::KwAt)
+                ? "address clauses are not yet supported"
+                : "enumeration representation clauses are not yet supported");
+        }
+        skipToSemicolon();
+        return nullptr;
+    }
     expect(TokenKind::Tick, "in representation clause");
 
     const Token& attribute = expect(TokenKind::Identifier, "in representation clause");
     decl->attribute = attribute.lower;
+    if (decl->attribute != "size") {
+        m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text
+            + "'; only 'Size clauses are supported");
+        skipToSemicolon();
+        return nullptr;
+    }
 
     expect(TokenKind::KwUse, "in representation clause");
     decl->value = parseExpression();

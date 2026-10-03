@@ -1,0 +1,11 @@
+sizevalueerrors.adb:5:5: error: a size clause requires a positive multiple of 8 bits
+sizevalueerrors.adb:6:5: error: a size clause requires a positive multiple of 8 bits
+sizevalueerrors.adb:7:5: error: a size clause requires a positive multiple of 8 bits
+sizevalueerrors.adb:8:5: error: scalar size clauses support only 8, 16, 32 or 64 bits
+sizevalueerrors.adb:9:5: error: scalar size clauses support only 8, 16, 32 or 64 bits
+sizevalueerrors.adb:10:5: error: a size clause needs an integer number of bits
+sizevalueerrors.adb:11:5: error: a size clause needs an integer number of bits
+sizevalueerrors.adb:12:5: error: a size clause needs a static number of bits
+sizevalueerrors.adb:13:5: error: 'Object' is not a type declared here
+sizevalueerrors.adb:14:5: error: 'Missing' is not a type declared here
+sizevalueerrors.adb:15:5: error: 'Integer' is not a type declared here

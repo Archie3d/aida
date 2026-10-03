@@ -1,0 +1,7 @@
+representationerrors.adb:3:5: error: unsupported representation attribute 'Alignment'; only 'Size clauses are supported
+representationerrors.adb:4:5: error: unsupported representation attribute 'Unknown_Attribute'; only 'Size clauses are supported
+representationerrors.adb:6:5: error: enumeration representation clauses are not yet supported
+representationerrors.adb:10:5: error: record representation clauses are not yet supported
+representationerrors.adb:15:5: error: unsupported representation attribute 'Address'; only 'Size clauses are supported
+representationerrors.adb:16:5: error: address clauses are not yet supported
+representationerrors.adb:17:5: error: unsupported representation attribute 'Bit_Order'; only 'Size clauses are supported
