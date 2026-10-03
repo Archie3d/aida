@@ -54,7 +54,7 @@ from what the source asks for.
 - [x] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
   declaration and its body is never loaded. Diagnose stubs until subunits exist
   (Phase 6).
-- [ ] **Reserved words.** The lexer does not reserve `aliased`, `protected`,
+- [x] **Reserved words.** The lexer does not reserve `aliased`, `protected`,
   `requeue`, `until`, `interface` or `synchronized`, so programs can use them as
   identifiers today and would break when the features arrive. Reserve them now
   and reject the constructs they introduce. No bundled unit or test uses them.

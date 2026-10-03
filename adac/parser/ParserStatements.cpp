@@ -74,6 +74,13 @@ StmtPtr Parser::parseStatement()
     SourceLocation location = current().location;
 
     switch (current().kind) {
+    case TokenKind::KwRequeue:
+        fail("requeue statements are not yet supported");
+    case TokenKind::KwDelay:
+        if (peek(1).kind == TokenKind::KwUntil) {
+            fail("delay until statements are not yet supported");
+        }
+        fail("delay statements are not yet supported");
     case TokenKind::KwNull: {
         advance();
         expect(TokenKind::Semicolon, "after null statement");

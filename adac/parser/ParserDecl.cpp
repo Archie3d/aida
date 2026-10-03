@@ -33,6 +33,8 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
 DeclPtr Parser::parseDeclarativeItem()
 {
     switch (current().kind) {
+    case TokenKind::KwProtected:
+        fail("protected declarations are not yet supported");
     case TokenKind::KwGeneric:
         return parseGenericDeclaration();
     case TokenKind::KwType:

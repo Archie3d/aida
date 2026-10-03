@@ -67,6 +67,19 @@ DeclPtr Parser::parseGenericDeclaration()
                 formal.typeClass = FormalTypeClass::Discrete;
             }
             while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
+                // Formal definitions are not fully parsed yet. Do not let
+                // their token capture silently accept unsupported constructs.
+                switch (current().kind) {
+                case TokenKind::KwAliased:
+                case TokenKind::KwProtected:
+                case TokenKind::KwRequeue:
+                case TokenKind::KwUntil:
+                case TokenKind::KwInterface:
+                case TokenKind::KwSynchronized:
+                    fail("unsupported reserved word '" + current().text + "' in generic formal type definition");
+                default:
+                    break;
+                }
                 advance();
             }
         } else if (match(TokenKind::KwWith)) {

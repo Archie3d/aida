@@ -271,6 +271,11 @@ tests. The sections below describe each feature and its limits.
 - `Wide_Character` and `Wide_String`, `Ada.Strings.Unbounded`,
   `Ada.Containers`, and `Ada.Calendar`.
 
+`aliased`, `protected`, `requeue`, `until`, `interface`, and `synchronized`
+are reserved words, case-insensitively, even though their constructs are not
+yet supported. They cannot be used as identifiers. Longer identifiers such as
+`Interface_Name` remain valid; comments and string literals are unaffected.
+
 `TODO.md` sets out the order in which these gaps are to be addressed.
 
 Object renaming gives an existing object another name, including record fields:

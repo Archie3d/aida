@@ -1,0 +1,5 @@
+reservedgenericerrors.adb:3:24: error: unsupported reserved word 'interface' in generic formal type definition
+reservedgenericerrors.adb:7:32: error: unsupported reserved word 'interface' in generic formal type definition
+reservedgenericerrors.adb:11:24: error: unsupported reserved word 'synchronized' in generic formal type definition
+reservedgenericerrors.adb:15:24: error: unsupported reserved word 'protected' in generic formal type definition
+reservedgenericerrors.adb:19:31: error: unsupported reserved word 'protected' in generic formal type definition

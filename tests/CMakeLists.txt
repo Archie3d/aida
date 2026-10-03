@@ -89,6 +89,11 @@ function(add_ada_ir_test name)
     )
 endfunction()
 
+add_ada_test(reservedwordboundaries SOURCES reservedwordboundaries.adb)
+add_ada_error_test(reservedworderrors SOURCES reservedworderrors.adb)
+add_ada_error_test(reservedconstructerrors SOURCES reservedconstructerrors.adb)
+add_ada_error_test(reservedgenericerrors SOURCES reservedgenericerrors.adb)
+
 add_ada_test(subprogramcompletions SOURCES subprogramcompletions.adb)
 add_ada_error_test(subprogramstuberrors SOURCES subprogramstuberrors.adb)
 

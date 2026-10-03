@@ -47,6 +47,12 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
 {
     SourceLocation location = current().location;
 
+    if (check(TokenKind::KwInterface) || check(TokenKind::KwSynchronized)
+        || ((check(TokenKind::KwLimited) || check(TokenKind::KwTask)
+             || check(TokenKind::KwProtected)) && peek(1).kind == TokenKind::KwInterface)) {
+        fail("interface types are not yet supported");
+    }
+
     if (match(TokenKind::KwAbstract)) {
         auto definition = parseTypeDefinition();
         definition->m_abstract = true;
@@ -231,6 +237,9 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Access);
         definition->location = location;
         advance();
+        if (check(TokenKind::KwProtected)) {
+            fail("access-to-protected-subprogram types are not yet supported");
+        }
         if (check(TokenKind::KwFunction) || check(TokenKind::KwProcedure)) {
             definition->m_accessProfile = std::make_unique<SubprogramSpec>();
             SubprogramSpec& profile = *definition->m_accessProfile;
@@ -371,6 +380,9 @@ VariantPartPtr Parser::parseVariantPart()
 
 SubtypeIndicationPtr Parser::parseSubtypeIndication()
 {
+    if (check(TokenKind::KwAliased)) {
+        fail("aliased declarations are not yet supported");
+    }
     auto indication = std::make_unique<SubtypeIndication>();
     indication->location = current().location;
     indication->name = parseSubtypeMark(indication->lower);
