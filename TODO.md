@@ -1,735 +1,340 @@
-# Compiler implementation roadmap
+# Compiler improvement strategy
 
-This is an incremental roadmap for the existing Ada subset, not a claim of full
-Ada conformance. Keep `qbe/` unchanged. Add a small Ada regression program for
-each behavior, plus a rejection test where a legality rule is involved.
+AIDA compiles a substantial, regression-tested Ada subset (see the README's
+"Supported language" section). This roadmap sets out how to grow it into a
+dependable compiler. It is ordered by risk: first remove ways a program can be
+silently miscompiled, then lay the foundations tasking needs, harden what
+already works, deliver a first tasking subset, and only then widen the language
+and library.
 
-The order below prioritizes correctness in supported constructs before larger
-language extensions. Items labelled **audit** need focused reproductions before
-choosing a fix. Other implementation observations come from the current source;
-the suggested tests are acceptance criteria, not tests already run.
+Tasking is not left until last. It touches the run time, masters, elaboration,
+exception state and the generated code's access to global state, and every
+feature built on single-threaded assumptions makes it harder to retrofit.
+The foundations and a minimal tasking slice therefore come before the large
+language extensions, and the full tasking model follows them.
 
-## Baseline already implemented
+## Guiding principles
 
-Do not restart these features from scratch; extend their existing support.
+1. **Reject what is not implemented.** Accepting a construct and quietly
+   dropping its meaning is worse than refusing it. Every unsupported construct
+   gets a clear diagnostic until it is implemented.
+2. **Prove every change.** Each behavior lands with a focused executable test in
+   `tests/ada/`, a rejection test for each legality rule, and a determinism test
+   when code generation changes. The full suite stays green.
+3. **Extend existing mechanisms.** Build on the array descriptors, owned-result
+   ABI, finalization chains, tag descriptors and token-based generic instantiation
+   rather than adding parallel paths.
+4. **Correctness before speed.** Optimize only once tests pin down the existing
+   failure behavior.
+5. **Keep the README truthful.** Update its supported and unsupported lists in the
+   same change that alters them.
+6. **Design for tasking.** New run-time state belongs to the per-task context
+   (Phase 2), never to a new C global. Generated code reaches mutable run-time
+   state only through that context. Once Phase 4 lands, a feature that
+   interacts with tasks gets a test that runs it from several tasks.
+7. **Leave `qbe/` unchanged.**
 
-- [x] 32-bit `Integer` and 64-bit `Long_Integer`, integer range checks, checked
-  integer arithmetic, zero-divisor checks, narrowing conversions, and loop
-  termination at integer limits.
-- [x] Integer `'Image`, `'Value`, and generic integer I/O support for 64-bit values.
-- [x] Expected-result filtering and ambiguity diagnostics for calls with argument
-  lists; named-argument validation and hiding of outer matching profiles.
-- [x] Runtime tests reject a nonzero exit status even when stdout matches.
-- [x] Basic packages, nested subprograms, generic types/objects and instantiation,
-  private types, access-to-object types, exception handlers, and file I/O.
-- [x] One-dimensional arrays, strings, slices, records, and a restricted form of
-  discriminants and variant records.
+## Phase 1 — Stop silent acceptance
 
-These checkmarks describe tested subsets, not completion of every related Ada rule.
+Highest priority: these constructs are accepted today and behave differently
+from what the source asks for.
 
-## 1. Correctness and semantic completeness
+- [ ] **Pragmas.** `Parser::parsePragma` keeps only `pragma Import` and discards
+  every other pragma without a diagnostic. Define a policy: honor or explicitly
+  accept harmless pragmas (for example `Inline`, `Pure`, `Preelaborate`), and
+  reject the ones whose semantics are missing (for example `Pack`, `Export`,
+  `Convention`, `Elaborate_All`, `Restrictions`, and the tasking pragmas
+  `Atomic`, `Volatile`, `Priority` and `Storage_Size`) until they are
+  implemented. Report unknown pragmas.
+- [ ] **Representation clauses.** `Parser::parseRepresentationClause` honors only
+  `'Size`; other clauses are read and ignored. Reject unsupported clauses, and
+  validate `'Size` against the chosen representation and the type's range.
+- [ ] **Import conventions.** `pragma Import` ignores its convention argument.
+  Reject conventions other than C and Ada.
+- [ ] **Subprogram stubs.** `procedure P is separate;` is parsed as a plain
+  declaration and its body is never loaded. Diagnose stubs until subunits exist
+  (Phase 6).
+- [ ] **Reserved words.** The lexer does not reserve `aliased`, `protected`,
+  `requeue`, `until`, `interface` or `synchronized`, so programs can use them as
+  identifiers today and would break when the features arrive. Reserve them now
+  and reject the constructs they introduce. No bundled unit or test uses them.
 
-### Fuller overload resolution
+Tests: one rejection test per category, plus acceptance tests for the pragmas
+that are deliberately accepted.
 
-Primary code: `adac/sema/SemaCalls.cpp`, `adac/sema/SemaNames.cpp`,
-`adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
+## Phase 2 — Tasking foundations
 
-- [x] Resolve nested calls using candidate type sets and surrounding context,
-  checking every actual, named association, omitted default, and result type
-  before binding arguments. Propagate operand context through arithmetic,
-  comparisons, unary operators, indexing, record selection, and supported
-  user-defined exponentiation. Covered by `nestedoverloads.adb` and
-  `nestedoverloaderrors.adb`, including same-result ambiguity, package-selected
-  names, enumeration literals, and single evaluation of actuals.
-- [x] Apply result-context selection and ambiguity checks to parameterless
-  functions, package-selected names, enumeration literals, and calls using only
-  defaults. Procedure statements select procedures, not functions whose values
-  would be discarded. Covered by `parameterless.adb` and `parameterlesserrors.adb`.
-- [x] Evaluate omitted defaults for supported Ada and imported call forms at each
-  call, using declaration-scope bindings. Preserve grouped parameter defaults,
-  captured environments, subtype checks, and exception propagation. Covered by
-  `defaultcalls.adb` and `defaulterrors.adb`; composite-valued defaults are also
-  covered by `compositereturns.adb`.
-- [x] Generalize unary/binary operator declarations, infix/prefix use, and explicit
-  calls, including package-selected and named calls to declared operators.
-  Share candidate resolution with predefined profiles; retain result context,
-  homograph replacement, ambiguity checks, and root numeric preference.
-  Boolean equality declares complementary inequality; validate operator arity,
-  modes, defaults, designators, and closing names. Covered by `operators.adb`,
-  `operatorprofiles.adb`, `operatorunits.adb`, and the operator rejection tests.
-  Derived primitive inheritance and `use type` are covered in section 5.
-- [ ] **Audit** visibility, `use` clauses, homographs, duplicate declarations, and
-  specification/body conformance. Validate parameter modes, names, defaults, and
-  return profiles where applicable; do not defer missing bodies to linker errors.
+Prepare the run time and code generator for several threads of control before
+more features depend on single-threaded behavior. Nothing here adds Ada syntax;
+the existing suite must pass unchanged, with no measurable slowdown.
 
-Tests: an overloaded inner call resolved by an outer formal; ambiguous zero-argument
-functions; qualified enumeration literals; a default expression with a side effect;
-operator overloads; nested hiding and invalid specification/body pairs.
+Current state: generated code loads one run-time global directly
+(`$__ada_exception`, in `QbeEmitter::emitExceptionCheck` and handler dispatch).
+Finalization chains and storage checkpoints already live in stack frames, and
+exceptions propagate by explicit checks rather than unwinding, so neither needs
+redesigning. The shared state is in the C run time.
 
-### Composite values and returns
+- [ ] **Per-task context.** Gather the mutable run-time state into one context
+  record: pending exception, message and trace (`adart.c`), the current trace
+  frame, and the registries of finalizations and allocations. The main program
+  owns the first context; each task will own another.
+- [ ] **Generated access to the context.** QBE's `thread` data cannot serve
+  every target: it is rejected for extern symbols on arm64 Linux and entirely on
+  Windows amd64 (`qbe/arm64/emit.c`, `qbe/amd64/emit.c`). Have each subprogram
+  fetch the context pointer once on entry (a run-time call or a hidden
+  parameter), and load the pending exception at a fixed offset from it. Measure
+  the cost and pick one ABI before more emitter code reads run-time state.
+- [ ] **Result buffers.** `'Image`, fixed-point text and stream helpers return
+  pointers into rotating static buffers (`IMAGE_BUFFERS`,
+  `ADA_STREAM_BUFFERS`). They are not task-safe, and they limit how many results
+  one expression can combine. Return the results in caller-owned temporary
+  storage, as unconstrained function results already are.
+- [ ] **Shared run-time tables.** Protect the file table and current input/output
+  (`adaio.c`), tag registrations (`adatags.c`) and library finalization with a
+  run-time lock, or give them a single owner.
+- [ ] **Threading layer.** Put a thin C layer over POSIX threads (winpthreads on
+  MSYS2) for threads, mutexes, condition variables and monotonic clocks. It also
+  supplies the atomic loads and stores that QBE lacks, for `Atomic` and
+  `Volatile` objects.
+- [ ] **Masters and activation hooks.** Every master (subprogram, block, library
+  level, access-type collection) gets an exit point that will wait for its
+  dependent tasks before finalizing objects, in the same place the finalization
+  chain is unwound. Elaboration gets the matching activation point. These hooks
+  do nothing until Phase 4, but later features are built around them.
 
-Primary code: `adac/emitter/QbeEmitter.cpp`, `adac/Type.cpp`,
-`adac/sema/SemaTypes.cpp`, `adac/sema/SemaAggregates.cpp`.
+Tests: the existing suite; a C test that runs run-time helpers (images,
+exceptions, allocation) from several threads at once; IR golden updates for the
+new context access.
 
-- [x] Give array/record results caller-owned storage. Fixed-size results use a
-  hidden destination pointer. Unconstrained array results transfer a heap copy
-  plus bounds; the caller adopts the transfer buffer into its temporary
-  allocation list. Exceptions skip unfinished results. Covered by `compositereturns.adb`.
-- [x] Preserve bounds of unconstrained array results through constrained-object
-  initialization, assignment with sliding/length checks, indexing, attributes,
-  and nested calls, including null ranges. Covered by `compositereturns.adb`.
-- [x] Reclaim variable-size array results and concatenation temporaries at
-  statement boundaries, declaration-list completion, aggregate fill iterations,
-  and while-condition evaluation. Exception handlers rewind abandoned storage;
-  function exits release remaining allocations. Covered by `arraylifetimes.adb`
-  and the instrumented `runtime.array_storage` allocation/free test.
-- [x] Infer array aggregate bounds in unconstrained contexts: positional values
-  start at the index subtype's lower bound; named choices supply their bounds.
-  Includes local initialization, arguments, returns, single dynamic choices,
-  and null ranges (`inferredaggregates.adb`, `inferredaggregatechecks.adb`).
-  `others` without contextual bounds remains illegal (`returnerrors.adb`).
-- [x] Compare non-character arrays element by element, recursively for composite
-  elements. Discrete-element array ordering is lexicographic; arrays of other
-  element types support equality only. Covered by `arraycompare.adb` and
-  `comparisonerrors.adb`, including runtime null ranges and non-1 lower bounds.
-- [x] Compare only the active components of variant records, after checking common
-  fields and discriminants. Covered by `recordcompare.adb`, including deterministic
-  differences in inactive storage and nested variant records.
-- [x] Enforce array type identity independently of element-type equality.
-  Subtypes and slices retain their declared array identity; distinct declarations
-  are incompatible in assignments, calls, returns, comparisons, qualifications,
-  and initializers. String literals, character concatenations, and aggregates
-  use contextual types. Covered by `arrayidentity.adb`, `arrayidentityerrors.adb`,
-  and `arrayliteralambiguity.adb`, including overload selection and ambiguity.
-- [ ] Audit explicit array conversions for static component-subtype matching,
-  index conversions, bound sliding, view conversions, and runtime checks.
-  The current supported cross-type conversion requires identical component
-  subtype objects and compatible index types (or two integer index types).
-- [x] Preserve overlapping string slice assignments using `memmove`, with length
-  checks before copying. Covered by `sliceassignment.adb`: left/right overlap,
-  runtime bounds, self-assignment, and failed assignment preserving the target.
-- [ ] **Audit** remaining aggregate completeness, duplicate choices, record defaults,
-  array sliding, and component subtype checks beyond the existing regression cases.
-- [x] Preserve constraints and defaults for every name in a grouped component
-  declaration, including variant alternatives. Each field owns its complete
-  subtype/default syntax, and each object evaluates defaults separately for
-  its active fields. Inactive variant defaults are skipped. Covered by
-  `groupedfields.adb`, `groupedfieldchecks.adb`, and `groupedfielderrors.adb`:
-  scalar ranges, constrained strings/matrices, nested discriminant constraints,
-  default side effects, exception propagation, and invalid defaults.
+## Phase 3 — Harden the existing subset
 
-Tests: a function returning a local record; two live string results from different
-calls; integer arrays differing beyond their first bytes; equal variants with
-irrelevant storage differences; distinct array types; grouped field defaults;
-self-overlapping slice assignment.
+Audits of supported features. Write a focused reproduction before choosing a fix.
 
-### Calls, exceptions, and elaboration
+- [ ] **Visibility and conformance.** Visibility, `use` clauses, homographs,
+  duplicate declarations, and specification/body conformance (parameter modes,
+  names, defaults, return profiles). Report missing bodies before linking.
+  Code: `adac/sema/SemaNames.cpp`, `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
+- [ ] **Unit loading and elaboration.** Dependency cycles, explicit-source and
+  spec/body loading, and elaboration-before-use checks. The binder currently
+  trusts the manifest's order; make it check that order against `with`
+  dependencies. Add `Elaborate`, `Elaborate_All` and `Elaborate_Body` after
+  Phase 1's pragma policy. Code: `adac/UnitLoader.cpp`, `adac/Binder.cpp`.
+- [ ] **Library-level statement blocks.** Support declarations inside them,
+  including object storage, nested subprogram emission and package elaboration.
+- [ ] **Aggregates.** Completeness, duplicate choices, record defaults, array
+  sliding and component subtype checks beyond the existing regressions.
+- [ ] **Array conversions.** Static component-subtype matching, index conversions,
+  bound sliding, view conversions and runtime checks. The supported cross-type
+  subset requires identical component subtype objects.
+- [ ] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
+  `'Range`: base versus subtype rules, operand types, arity and result width.
+- [ ] **Derived types.** Remaining derivation legality and conversion rules.
+- [ ] **Primitive operations.** Wider visibility and legality audit for tagged and
+  untagged primitives.
+- [ ] **Variant records.** Confirm that nested variant parts get correct layout,
+  initialization and selection checks at every level (equality is covered).
 
-Primary code: `adac/emitter/QbeCalls.cpp`, `adac/emitter/QbeFunctions.cpp`,
-`adac/emitter/QbeStatements.cpp`, `adac/sema/SemaCalls.cpp`,
-`adac/sema/SemaDecl.cpp`, `adac/sema/SemaPackages.cpp`, `adac/UnitLoader.cpp`.
+Tests: invalid specification/body pairs, mutually dependent units, initializers
+depending on an unelaborated body, duplicate aggregate choices, invalid
+attribute arguments.
 
-- [x] Implement Ada scalar `out`/`in out` copy-in/copy-out behavior. Each formal
-  has separate storage, initialized according to its mode. Normal return checks
-  the actual object's subtype before copy-back; propagated exceptions skip it.
-  Copy-back uses formal declaration order, and actual addresses are evaluated
-  once. Imported C conventions and composite parameter mechanisms stay separate.
-  Covered by `scalarcopy.adb`, `scalarcopychecks.adb`, and `scalarcopyerrors.adb`:
-  static/runtime subtypes, failed copy-in/copy-back, nested calls and captures,
-  aliased actuals, handlers, exceptional/early returns, component actuals,
-  recursion, 64-bit integers, enumeration, real and access values.
-- [x] Diagnose value returns from procedures, bare returns from functions, and
-  returns outside subprograms. Every result representation now raises
-  `Program_Error` on fallthrough, including after a handled exception. Covered
-  by `functionfallthrough.adb`, `exceptionusageerrors.adb`, and `compositereturns.adb`.
-- [x] Implement bare `raise;` in block/subprogram handlers by preserving the
-  handled exception's identity and name, including across nested handlers and
-  calls. Reject bare raises outside handlers or inside bodies enclosed by a
-  handler. Covered by `reraise.adb`, `unhandledreraise.adb`, and
-  `exceptionusageerrors.adb`.
-- [x] Retain exception occurrence bindings (`when E : ...`) as handler-local
-  constants of the limited private `Ada.Exceptions.Exception_Occurrence` type.
-  Snapshot exception identity on handler entry, including captured bindings.
-  Covered by `occurrencebindings.adb`, `occurrencenowith.adb`, and
-  `occurrencebindingerrors.adb`: scope, shadowing, nested handlers, recursion,
-  typed parameters, re-raising, and rejected assignment/equality.
-- [x] Add `Exception_Identity`, `Exception_Name`, `Exception_Message`, and
-  `Exception_Information`, exception `'Identity`, null IDs/occurrences,
-  `Raise_Exception`, `Reraise_Occurrence`, and `raise E with Message`.
-  Pending messages own their bytes; handler snapshots use managed local storage.
-  Messages survive nested handlers, calls, and re-raising without truncation,
-  including embedded NUL characters. Unhandled reports include the message.
-  Covered by `exceptionmessages.adb`, `exceptionmessageerrors.adb`,
-  `unhandledmessage.adb`, package-handler coverage, and instrumented allocation
-  and failure checks in `runtime.array_storage`.
-- [x] Add both `Save_Occurrence` overloads and `Exception_Occurrence_Access`.
-  Procedure saves own up to 200 message bytes inside the target; function saves
-  preserve the full message in one allocation, released with an instance of
-  `Ada.Unchecked_Deallocation`. Saved occurrences outlive the source handler.
-  Covered by `savedoccurrences.adb`, `savedoccurrenceerrors.adb`, and instrumented
-  runtime tests: truncation boundaries, embedded NULs, replacement, self-save,
-  null occurrences, re-raising, allocation failure, and deallocation.
-- [ ] Extend `Ada.Exceptions` with occurrence stream operations and wide names.
-  The occurrence access type currently uses the supported pool-specific access
-  subset; general access/accessibility rules remain in section 3.
-  Occurrence-valued function results remain diagnosed.
-  Names currently use uppercase defining identifiers rather than expanded names.
-- [x] Include the original source location and a portable Ada call traceback
-  in `Exception_Information`. Snapshot up to 32 compiled Ada frames, including
-  package elaboration; source locations use file basenames, lines, and columns.
-  Saves and re-raises preserve the snapshot. Message-copy allocation failure
-  instead records the new `Storage_Error` site. Trace frames are removed on every
-  return and propagation exit. Covered by `exceptiondiagnostics.adb`, library
-  handler coverage, and instrumented runtime tests. Native/foreign frames are
-  outside this supported trace format.
-- [x] Audit supported handler choices and propagation from declarations, package
-  bodies, called routines, and handlers themselves. Reject duplicate coverage
-  across handlers, including aliases; permit repeated choices within one handler.
-  Require `others` to be the sole choice of the final handler and reject empty
-  exception parts/handlers. `Numeric_Error` shares `Constraint_Error`'s identity.
-  Covered by `handlerchoiceerrors.adb`, `handleremptyerrors.adb`,
-  `handlerparterrors.adb`, `handlerothererrors.adb`, `exceptiondiagnostics.adb`,
-  and the existing re-raise/package/declaration-failure regressions. Generic
-  formal-package exception rules await formal-package support (section 4).
-- [x] Emit library/nested package-body handlers, including recovery and re-raise.
-  Declaration failures bypass that package's handlers; failures within a handler
-  propagate outward. Covered by `packagehandlers.adb`,
-  `packagedeclarationfailure.adb`, and `packagehandlerfailure.adb`.
-- [x] Preserve declaration/body execution order within the loader's unit order,
-  including public/private parts, nested packages, component defaults, and
-  library generic instances. Covered by `elaborationorder.adb` and
-  `genericelaborationorder.adb`. Separate specification/body elaboration across
-  units is covered by `separate.order`; general elaboration-before-use and
-  dependency-cycle handling remain audits.
-- [x] Stop before calling the main procedure when library elaboration fails;
-  report the exception and exit with status 1. Covered by `elaborationfailure.adb`
-  and `elaborationbodyfailure.adb` (stdout, stderr, and exit status).
-- [x] Elaborate ordinary packages and generic package instances declared inside
-  subprograms and their blocks when execution reaches the declaration. Objects
-  belong to the enclosing activation; package routines use its static link.
-  Covered by `localpackages.adb`, `localgenericstate.adb`,
-  `localpackagestartup.adb`, and `localpackagefailure.adb`: repeated calls, block
-  re-entry, independent instances, recursion, captures, startup calls, recovery,
-  and failure propagation.
-- [ ] Support declarations inside library-level statement blocks, including
-  object storage, nested subprogram emission, and package elaboration.
-- [ ] **Audit** unit visibility, dependency cycles, explicit-source/spec/body
-  loading, and elaboration-before-use checks.
+## Phase 4 — Minimal tasking
 
-Tests: a constrained actual passed to an unconstrained scalar formal; a function
-falling through; re-raising a user exception; a library initializer that raises;
-initializers depending on a package body; two calls to a procedure containing a
-local generic instance; mutually dependent unit specifications/bodies.
+A working subset, close to the Ravenscar profile, that makes tasking a tested
+part of the compiler early. Later phases must keep it working.
 
-### Numeric, bounds, and representation follow-up
+- [ ] **Tasks.** Task types and single task objects without entries; activation
+  at the end of the declarative part or library elaboration; masters awaiting
+  termination; an unhandled exception terminating only its task. Includes
+  task objects as record components and allocated tasks.
+- [ ] **Protected objects.** Protected types and single protected objects with
+  procedures and functions, under one lock per object.
+- [ ] **Protected entries.** Entries with barriers, re-evaluated when a
+  protected procedure or entry completes.
+- [ ] **Time.** `Duration` (an ordinary fixed-point type), `delay`,
+  `delay until`, and `Ada.Real_Time`.
+- [ ] **Shared variables.** `pragma Atomic` and `pragma Volatile` through the
+  Phase 2 threading layer.
+- [ ] **Task identity.** `Ada.Task_Identification`, `'Terminated` and
+  `'Callable`.
 
-- [ ] **Audit** remaining attributes (`'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`,
-  `'Last`, `'Range`) for base/subtype rules, operand types, arity, and width.
-- [ ] Support the full signed literal boundary, including the most-negative
-  64-bit decimal literal, without overflowing the lexer or static evaluator.
-- [ ] Separate universal/static arithmetic from machine arithmetic where needed;
-  diagnose invalid static expressions without host overflow or premature narrowing.
-- [ ] Complete real arithmetic edge cases, including negative exponents and
-  zero divisors; define the supported floating-point model and its checks.
-- [ ] **Audit** size calculations, array bounds/offset arithmetic, allocation
-  overflow, and 64-bit indices. Array descriptors and several offset paths still
-  use 32-bit bounds even though scalar `Long_Integer` now works.
-- [ ] Validate `'Size` against supported representations and the represented range;
-  add alignment, enumeration representation, and record representation clauses
-  in separate steps. Reject unsupported clauses/conventions clearly.
-- [ ] Give ignored pragmas an explicit diagnostic policy. Required semantics must
-  not silently disappear; distinguish unsupported standard pragmas from optional
-  implementation-defined ones.
+Tests: producer/consumer through a protected entry, tasks inside a subprogram
+and a block, a library-level task, task failure, finalization ordered after
+task termination, periodic tasks with `delay until`.
 
-Tests: literal endpoints, invalid attribute arguments, `2.0 ** (-3)`, huge array
-sizes, signed small representations, invalid size clauses, and unsupported imports.
+## Phase 5 — Numeric and representation foundations
 
-## 2. Arrays and records
+These unblock several Phase 6 features, especially wider arrays.
 
-### Dynamic arrays and constraints
+- [ ] **Static arithmetic.** Separate universal/static arithmetic from machine
+  arithmetic. Diagnose invalid static expressions without host overflow or
+  premature narrowing; accept the most negative 64-bit literal.
+- [ ] **Real edge cases.** Negative exponents and zero divisors. Document the
+  supported floating-point model and its checks.
+- [ ] **Floating-point `'Value`.** `Sema` rejects real prefixes, although the run
+  time already has `__ada_real_value` for `Float_IO`.
+- [ ] **Array descriptors.** Widen bounds and lengths beyond 32 bits, add
+  per-dimension strides, and audit size, offset and allocation-overflow
+  arithmetic. Lengths are limited to `Integer'Last` today.
+- [ ] **Concatenation.** General one-dimensional `&` with element/array
+  combinations; it is currently specialized to character arrays.
+- [ ] **Modular types.** Unsigned 64-bit storage and `mod 2 ** 64`, modular
+  generic formals and `Ada.Text_IO.Modular_IO`.
+- [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,
+  dynamic subtype bounds, remaining attributes and streaming.
+- [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
+  rounding and checks.
+- [ ] **Representation clauses.** After Phase 1, add alignment, enumeration
+  representation and record representation clauses, one at a time.
+- [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
+  helpers, keeping the same failure behavior.
 
-- [x] Runtime one-dimensional constraints on local objects, such as
-  `Buffer : String (1 .. N)`, and initializer-constrained local objects such as
-  `Text : String := Make_Text`. Includes null ranges, `others` aggregates,
-  component defaults, grouped initialization, assignment, and indexing checks.
-  Covered by `dynamicarrays.adb`, `dynamicarrayvalues.adb`, and
-  `dynamicarrayfailures.adb`.
-- [x] Local arrays carry a data pointer and signed 32-bit bounds, matching
-  unconstrained parameters and captured frame slots. Length is derived and
-  element stride is static; descriptors survive calls, slices, results, and
-  attributes. Captured reference parameters now load their pointer in their
-  owning function as well as nested functions.
-- [x] Allocate local array data with checked sizes and release all allocations
-  on every enclosing function exit, including exception propagation. Reject
-  lengths beyond `Integer'Last` with `Storage_Error`.
-- [x] Reclaim local arrays at block exit, including labelled loop exits and
-  exception propagation, while preserving enclosing objects and a block's
-  locals during its own handler. Local arrays and temporaries use separate
-  checkpointed allocation lists (`arraylifetimes.adb`).
-- [x] Local named runtime discrete scalar subtype bounds, including `Integer`,
-  `Long_Integer`, and enumeration subtypes. Save checked bounds once per
-  elaboration; preserve them through aliases, nested routines/packages,
-  recursion, and block re-entry. Apply them to initialization, assignment,
-  conversions/qualification, input parameters/defaults, results, attributes
-  (`'First`/`'Last`/`'Range`), membership, loops, and array index subtypes.
-  Array aggregate inference uses the saved index lower bound. Non-null ranges
-  check compatibility with the parent subtype; null ranges are allowed.
-  Covered by `runtimescalars.adb` and `runtimescalarchecks.adb`; static-context,
-  type, and unsupported-context diagnostics are in `runtimescalarerrors.adb`
-  and `runtimescalarlibraryerrors.ads`.
-- [ ] Extend runtime scalar constraints to anonymous subtype indications,
-  library declarations, real subtypes, `'Width`, and streaming. These cases
-  remain diagnosed. Scalar `out`/`in out` copy-back now checks saved runtime
-  bounds, as listed under Calls, exceptions, and elaboration.
-- [ ] Library-level dynamic arrays/types. Unsupported cases have diagnostics in
-  `runtimearraylibraryerrors.ads`; local named array constraints are implemented
-  below.
-- [x] Positional/named aggregates with runtime target bounds, including a final
-  `others`, static choice lists/ranges, and a single dynamic choice/range.
-  Check lengths and choices; slide named aggregates without `others`; evaluate
-  components into temporary storage before replacing the target. Dynamic choices
-  also work with static target constraints. Covered by `runtimeaggregates.adb`,
-  `runtimeaggregatechecks.adb`, and `dynamicaggregateerrors.adb`.
-- [x] Infer bounds from unconstrained aggregates, including returned aggregates
-  and initializer-constrained objects. Bounds are evaluated once; invalid index
-  constraints precede component evaluation, and null ranges skip components.
-  Covered by `inferredaggregates.adb` and `inferredaggregatechecks.adb`.
-- [ ] Generalize descriptors to wider indices and per-dimension strides before
-  extending the remaining array operations.
-- [ ] General one-dimensional array concatenation, including element/array
-  combinations. Concatenation is currently specialized to character arrays.
+Tests: literal endpoints, `2.0 ** (-3)`, huge array sizes, integer array
+concatenation, signed small representations, invalid size clauses.
 
-Tests: varying lengths across calls, null arrays, non-1 lower bounds, descriptor
-passing through nested calls, length mismatch, and concatenating integer arrays.
+## Phase 6 — Complete the core language
 
-### Multidimensional arrays
+Grouped by dependency. Within a group, work top to bottom.
 
-- [x] Statically constrained multidimensional types, represented internally as
-  nested rows with separate index types and bounds. Storage is row-major.
-- [x] Checked indexing on every axis and static dimension arguments to `First`,
-  `Last`, `Length`, and `Range`. Index bounds currently must fit 32 bits.
-- [x] Nested aggregates, assignment, equality, and parameters/results for fixed
-  shapes, including null dimensions, enum indices, and record components.
-  Covered by `matrices.adb`, `matrixshapes.adb`, and `matrixerrors.adb`.
-- [x] Unconstrained multidimensional types, static subtype constraints, and
-  runtime constraints on local objects. Carry per-dimension bounds through
-  captured objects, parameters, and results; compute checked row strides.
-- [x] Shape checks and bound sliding for assignment and constrained parameters
-  and results, shape-aware equality, and contextual runtime aggregates.
-  Initializer-constrained objects inherit all bounds from existing array values.
-  Covered by `runtimematrices.adb`, `runtimematrixchecks.adb`, and
-  `runtimematrixerrors.adb`.
-- [x] Infer multidimensional aggregate bounds without an explicit target shape,
-  including aggregates passed to unconstrained formals and returned directly.
-  Prepare index choices once before component evaluation; require identical
-  corresponding subaggregate bounds, including null ranges. Support positional,
-  named, and string-literal rows. Covered by `inferredmatrices.adb` and
-  `inferredmatrixchecks.adb`; reject unbounded `others` and non-subaggregate rows
-  in `inferredmatrixerrors.adb` and `matrixaggregateerrors.adb`.
-- [x] Local runtime array subtype declarations and runtime bounds in array type
-  declarations, for one or multiple dimensions. Save checked bounds once per
-  elaboration in the owning activation; preserve them through aliases, nested
-  routines/packages, recursion, block re-entry, attributes, aggregates, objects,
-  and sliding/checks for parameters and returns. Covered by `runtimearraytypes.adb`
-  and `runtimearraytypechecks.adb`, with legality/unsupported-context diagnostics
-  in `runtimearraytypeerrors.adb` and `runtimearraylibraryerrors.ads`.
-- [ ] Runtime-constrained array components, allocators, `'Size`, and streaming.
-  These uses remain diagnosed rather than using an incorrect static layout.
-- [ ] Stream attributes for unconstrained multidimensional arrays.
-- [ ] Wider descriptor indices and lengths; runtime lengths currently cannot
-  exceed `Integer'Last`.
+### Dynamic data
 
-Tests: constrained and unconstrained matrices, different lower bounds per axis,
-empty dimensions, and out-of-range indices in each dimension.
+- [ ] Runtime scalar constraints in anonymous subtype indications, library
+  declarations, real subtypes, `'Width` and streaming.
+- [ ] Library-level arrays and types with runtime bounds, including runtime-bound
+  generic array objects (`runtimearraylibraryerrors.ads` lists the cases).
+- [ ] Runtime-constrained array components and allocators, with `'Size` and
+  streaming.
 
 ### Discriminated records
 
-- [ ] Default discriminants and the distinction between constrained and
-  unconstrained objects; support assignments that legally change discriminants.
-- [ ] Runtime discriminant constraints and components whose bounds depend on them.
-- [ ] Nested variant parts, with layout, initialization, selection checks, and
-  equality respecting every active variant level.
+- [ ] Default discriminants, constrained versus unconstrained objects, and
+  assignments that legally change discriminants.
+- [ ] Runtime discriminant constraints and components whose bounds depend on
+  discriminants, such as `String (1 .. Length)`.
+- [ ] Controlled components in variant records.
 
-Tests: defaulted discriminants, a record containing `String (1 .. Length)`, variant
-changes on an unconstrained object, and nested alternatives.
+### Access types
 
-## 3. Additional types, access values, and declarations
+- [ ] General access types: `aliased` objects, `access all`, `'Access` of
+  objects, access-to-constant, and accessibility checks.
+- [ ] Anonymous access types, including anonymous access-to-subprogram.
+- [ ] `'Access` of imported subprograms and of inherited tagged operations.
 
-- [x] Modular integer types with moduli from 1 through `2 ** 32`: wraparound
-  arithmetic, logical operations, checked conversions/subtypes, `'Modulus`, and
-  boundary behavior. Static folding and runtime evaluation share safe arithmetic.
-  Covered by `modular.adb`, `modularchecks.adb`, and `modularerrors.adb`.
-- [ ] Extend modular representations to unsigned machine-width storage and
-  `mod 2 ** 64`; add modular generic formals and `Ada.Text_IO.Modular_IO`.
-- [x] Initial ordinary fixed-point support (`delta` and range): 64-bit scaled
-  integers, binary Small with 0..30 fractional bits, checked exact static real
-  evaluation, arithmetic, conversions, static subtypes, and basic attributes.
-  Shared compiler/runtime rounding and overflow checks; covered by `fixedpoint`,
-  `fixedchecks`, `fixedrounding`, and fixed-point diagnostic tests.
-- [x] Ordinary fixed-point generic formals (`type T is delta <>`): contract
-  checking, actual matching, and per-instance scales, conversions, and ranges.
-- [x] Ordinary fixed-point text: `'Fore`, `'Aft`, `'Image`, `'Value`, and
-  `Ada.Text_IO.Fixed_IO` file/current-file/string overloads, exact decimal and
-  based input, formatting, rounding, field widths, and exception checks.
-  Covered by `fixedtext`, `fixedtextchecks`, `fixedtexterrors`, and runtime
-  full-width round trips over every supported scale.
-- [ ] Extend ordinary fixed point to wider scale choices, explicit Small clauses,
-  dynamic subtype bounds, remaining attributes, and streaming.
-- [ ] Decimal fixed-point types (`delta` and `digits`), with decimal scaling,
-  rounding, and checks.
-- [x] Inherit user-defined primitive operations for derived types, preserving
-  distinct type identity, substituted profiles, and static overriding (section 5).
-- [ ] Audit remaining derived-type legality and conversion rules beyond the
-  supported explicit conversions and tagged ancestor views.
-- [ ] General access types, `aliased` objects, `'Access`, access-to-constant, and
-  accessibility checks. Existing named access types and allocators are a starting point.
-- [ ] Access-to-subprogram types and indirect calls. Nested subprogram values need
-  both a code pointer and the appropriate environment/static link lifetime.
-- [ ] Object, package, and subprogram renaming. Exception renaming already exists.
-- [ ] Separate subunit loading and parent-scope analysis. An `is separate` stub is
-  parsed today, but that is not an implementation of separate bodies.
-- [ ] Labels and `goto`, with legality checks for transfers across scopes.
+### Program structure
 
-Tests: modular wraparound, fixed-point rounding, derived operations, access to a
-local object escaping its lifetime, callback invocation, renaming identity, and
-subunits referring to enclosing declarations.
+- [ ] Separate subunits for subprogram and package bodies: loading, and
+  analysis in the parent's scope. Replaces the Phase 1 diagnostic.
+- [ ] Package and generic renaming (object, subprogram and exception renaming
+  exist).
+- [ ] Labels and `goto`, with legality checks for transfers between scopes.
+- [ ] Extended return statements for results that are not controlled types.
 
-## 4. Generic completeness
+### Object orientation
 
-Primary code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`, and
+- [ ] Abstract subprograms and their full legality rules.
+- [ ] Discriminated tagged types, private extensions, extensions of private
+  views, general limited record definitions, and tagged size clauses.
+- [ ] Interfaces, after abstract subprograms. Leave room in the dispatch tables
+  for synchronized, task and protected interfaces (Phase 9).
+
+### Generics
+
+Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
 
-- [ ] Parse and enforce formal type categories fully: private/limited private,
-  derived, access, modular, and decimal fixed-point formals as their types
-  become available. Ordinary fixed-point formals are supported; the parser
-  still skips much of the other formal type definitions.
-- [x] Formal functions/procedures, named and operator actuals, and named/box
-  defaults (`<>`), with profile matching, instance-owned parameter defaults,
-  declaration-site named defaults and instantiation-site box defaults.
-  Covered by `generic_subprograms.adb`, `generic_defaults.adb`,
-  `generic_library.adb`, and `generic_subprogram_errors.adb`.
-- [x] Formal arrays with rank, constrainedness, index and component subtype
-  matching for static constraints.
-- [ ] Extend formal subprograms to abstract formals, null procedure defaults,
-  and attribute/enumeration-literal actuals; match dynamic array constraints.
+- [ ] Parse and enforce all formal type categories. The parser still skips much
+  of the formal type definitions; add derived, access, modular and decimal
+  formals as those types become available.
+- [ ] Abstract formal subprograms, null procedure defaults, attribute and
+  enumeration-literal actuals, and matching of runtime array constraints.
 - [ ] Formal packages and matching of their generic contracts.
-- [x] Nonstatic scalar formal objects with `in` and `in out` modes. Evaluate
-  values or actual object addresses once at instance elaboration; preserve
-  actual subtype checks for references and instance-owned defaults referring
-  to earlier formals. Covered by `generic_objects`, `generic_object_checks`,
-  `generic_object_library`, `generic_object_nested`, and object error tests.
-- [x] Nonlimited record and array `in` objects, composite `in out` references,
-  and local runtime array bounds, including slices and multidimensional arrays.
-  Check array shapes and record discriminants before copying; preserve actual
-  bounds and read-only component legality. Covered by `generic_composites`,
-  `generic_dynamic_objects`, `generic_composite_checks`, and library/error tests.
-- [ ] Access formal objects, limited `in` build-in-place initialization, and
+- [ ] Access formal objects, limited `in` objects built in place, and
   library-level runtime-bound array formals.
-- [x] Qualified type actuals, duplicate/named-argument validation, and default
-  expressions that refer to earlier formals.
-- [x] Check generic bodies against their declared contracts for the supported
-  private, discrete, integer, floating-point, array, and subprogram formals.
-  Preserve resolved names/operators through token-based instantiation; reject
-  invalid unused bodies, including separate bodies. Covered by
-  `generic_contracts.adb`, `generic_contract_errors.adb`, the separate
-  `contract_bad` fixture, and the shared Integer index/element sorting regression.
-- [ ] Extend contract checking alongside additional formal categories and
-  access/limited objects; remove remaining instance-time body legality rechecks.
-- [x] Keep the `Enumeration_IO` Character limitation out of general discrete
-  formal matching, so ordinary generics accept Character index types.
+- [ ] Extend contract checking to each new formal category, and remove the
+  remaining legality rechecks done at instantiation.
 
-Tests: generic sorting with a formal comparison function, a formal array type,
-a formal package, a dynamic capacity actual, and an illegal generic body that
-happens to work for one instantiation.
+Tests: defaulted discriminants with variant changes, a callback capturing an
+`aliased` local, an access value escaping its scope, subunits using enclosing
+declarations, a formal package, an interface hierarchy with dispatch.
 
-## 5. Tagged records and object-oriented features
+## Phase 7 — Predefined library
 
-Stages 1 through 3 are complete for the supported fixed-size, nondiscriminated,
-single-inheritance tagged subset. Class-wide storage, results, dispatch, operators,
-and the narrow-string tag API are implemented. Stage 4 now covers local controlled lifetimes, copying, assignment, and
-controlled components. Escaping lifetimes, abstract
-operations, interfaces, and wider tagged forms remain extensions below.
+- [ ] `Ada.Strings.Unbounded`, written in Ada on the controlled-type support.
+  Then a basic `Ada.Containers.Vectors`. Cover copying, growth, element
+  lifetime, bounds and exception cleanup.
+- [ ] Type-aware streaming: components, bounds and discriminants, user-defined
+  stream attributes and a real stream abstraction. Streams mostly copy object
+  representation today. Then add controlled and tag-aware class-wide streaming.
+- [ ] `Ada.Exceptions`: expanded names (now uppercase defining identifiers),
+  wide names, occurrence streaming and occurrence-valued function results.
+- [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
+  access-to-subprogram support now permits.
+- [ ] Remaining `Text_IO` and numeric input grammar cases.
+- [ ] `Ada.Calendar`, on the Phase 4 `Duration`.
+- [ ] Enforcement of package categorization (`Pure`, `Preelaborate`).
+- [ ] `Wide_Character` and `Wide_String`, and a documented source encoding policy.
+- [ ] A foreign ABI and ownership contract for imported controlled results.
 
-- [x] Stage 1: collect user-defined primitives declared in the type's package
-  specification and inherit visible operations into derived types. Substitute
-  parameter/result types while preserving constraints, names, and defaults;
-  forward calls to the parent implementation and support further derivation.
-- [x] Static overriding and checked `overriding`/`not overriding` indicators,
-  including bodies, renamings, and private completions. Support `use type` for
-  primitive operators and `use all type` for named primitives and enumeration
-  literals, including subtype marks and private-operation visibility.
-  Covered by `primitives.adb`, `primitivevisibility.adb`, `primitivechecks.adb`,
-  `primitiveerrors.adb`, and `primitiveseparate.adb`.
-- [x] Stage 2: fixed-size, nondiscriminated tagged records, `tagged null record`,
-  `with record`/`with null record` extensions, and tagged private types with
-  tagged record completions. Put the tag pointer at offset zero and append
-  extension fields after the complete aligned parent layout. Emit descriptors
-  containing parent tag, size, and alignment, with stable separate-unit identity
-  and distinct generic-instance identity.
-- [x] Ancestor conversions as views, including renaming and variable actuals;
-  assignment through an ancestor view updates only the parent payload, preserving
-  the tag and extension fields. Establish specific tags for new objects,
-  allocators, nested components, arrays, and function results.
-- [x] Extension aggregates with an ancestor expression or subtype mark, ancestor
-  defaults, positional/named extension fields, and `null record`. Predefined
-  extension equality uses the parent's primitive equality. Require overriding
-  inherited controlling-result functions for non-null extensions; support
-  inherited constructors for null extensions.
-  Covered by `taggedrecords.adb`, `taggedequality.adb`, `taggederrors.adb`, and
-  `taggedlayout.adb`, including C layout checks, separate compilation, and
-  determinism. The complete suite passed all 251 tests after stage 2.
-- [x] Stage 3, parameter milestone: distinct class-wide types (`T'Class`) and
-  class-wide parameters. Preserve the parent/size/alignment descriptor prefix;
-  its dispatch table now pairs each code pointer with the implementation's enclosing
-  frame. Preserve inherited slot numbers, including hidden slots, and replace slots
-  on overriding. Preserve slots and class-wide identity through
-  tagged private completions. Diagnose new primitives or overrides after derivation.
-- [x] Dispatch calls with class-wide controlling operands while retaining static
-  calls for specific operands and explicit ancestor views. Share ordinary argument
-  marshalling and lexical static links. Check matching tags for multiple controlling
-  operands before invocation, raising `Constraint_Error` on mismatch.
-- [x] Checked conversions from class-wide values to specific descendant views;
-  membership tests using exact tags for specific tested types and ancestry for
-  class-wide tested types. Read object `'Size` from the dynamic descriptor.
-- [x] Assignment through class-wide parameters checks equal tags and copies the
-  full dynamic object, including extension fields; support self-assignment and
-  preserve existing ancestor-part assignment behavior.
-  Covered by `classwidedispatch.adb`, `classwideerrors.adb`, and
-  `classwidelibrary.adb` with `dispatch_model.ads`/`.adb`: inherited and overridden
-  dispatch, static calls, captured variables, private completions, separate
-  compilation, tag mismatches, failed conversions, dynamic size/copying, and
-  determinism. The complete suite passed all 255 tests after this milestone.
-- [x] Finish stage 3 storage: initialized class-wide owned objects and allocators,
-  with dynamic size and independent copies. Local objects use the existing arena
-  cleanup boundaries; allocated objects support `Unchecked_Deallocation`.
-  Access-to-class-wide components are supported. Direct class-wide array/record
-  components remain illegal because their subtype is indefinite, rather than a
-  missing storage feature. Uninitialized class-wide objects/allocators are rejected.
-- [x] Class-wide function results and dispatching tagged results transfer a heap
-  copy into the caller's temporary arena. Preserve extension payloads and tags,
-  support controlling-result calls whose tag comes from an assignment or another
-  controlling operand, and reclaim transfers on normal and exceptional exits.
-- [x] Class-wide primitive operators and equality. Equal tags select the complete
-  specific equality implementation, including user-defined parent equality and
-  extension fields; different tags compare unequal. Preserve single evaluation
-  and propagate exceptions from equality implementations.
-- [x] Implement `Ada.Tags.Tag`, `No_Tag`, `Tag_Error`, `'Tag`, `'External_Tag`,
-  `Expanded_Name`, `External_Tag`, `Internal_Tag`, `Descendant_Tag`,
-  `Is_Descendant_At_Same_Level`, `Parent_Tag`, `Is_Abstract`, and
-  `Interface_Ancestor_Tags`. The supported concrete, interface-free subset returns
-  an empty interface-tag array. Stage 4 adds the descriptor flag for `Is_Abstract`.
-  Wide-name variants follow wide-character/string support in section 6.
-- [x] Dispatch across lexical owners using the selected implementation's saved
-  frame, including local overrides of library primitives and recursive activations.
-  Local type elaborations receive distinct tags; metadata remains available for
-  tag queries until program exit. Accessibility checks reject class-wide results
-  and allocations that would escape their type's subprogram or block master.
-  Covered by `classwideobjects.adb`, `classwideframes.adb`, and
-  `classwidechecks.adb`, plus separate compilation and determinism tests.
-  `runtime.array_storage` instruments tagged-result allocation, adoption, failure,
-  rewind, and tag-metadata cleanup. The complete suite passed all 260 tests.
-- [ ] Extend tagged support to discriminants, private extensions and extensions
-  of private views, limited definitions, and inherited tagged subprogram
-  `'Access`. Tagged size clauses are currently rejected. Complete the wider
-  primitive visibility and legality audit.
-- [x] Abstract tagged declarations and null procedures needed by `Ada.Finalization`;
-  reject direct abstract objects and report the descriptor flag through `Is_Abstract`.
-- [ ] Abstract operations and their full legality rules; interfaces as a later extension.
-- [x] Stage 4a: `Ada.Finalization.Controlled` and `Limited_Controlled`, default
-  initialization and finalization of specific local objects, inherited/overridden
-  hooks, subtype aliases, local packages, and separate compilation. Keep a
-  finalization chain separate from storage arenas. Activate entries only
-  after successful initialization; finalize in reverse creation order before
-  releasing storage on block exit, return, loop exit, and exception propagation.
-  Preserve pending exception occurrences across successful finalizers; continue
-  cleanup and report `Program_Error` when a finalizer fails. Covered by
-  `controlledlifetimes.adb`, `controlledexceptions.adb`, `controlledlibrary.adb`,
-  rejection and determinism tests, and allocation instrumentation in
-  `runtime.array_storage`.
-- [x] Stage 4b: controlled assignment and `Adjust`, explicit initialization,
-  controlled components/aggregates, and partial component initialization cleanup.
-  Reserve inactive component entries before construction; track active parts
-  across failed hooks. Adjusted assignment snapshots handle aliases and overlapping
-  slices. Cover dynamic multidimensional arrays, component expression temporaries,
-  separate compilation, inherited hooks, and recursive static links in
-  `controlledcopies`, `controlledparts`, `controlledaggregates`, `controlledarrays`,
-  and `controlledcopylibrary`, plus rejection and runtime allocation tests.
-- [x] Stage 4c, library finalization milestone: retain controlled library objects
-  across elaboration calls with an environment-level finalization chain. Finalize
-  in reverse creation order before reporting an unhandled exception or returning
-  the process exit status, including failed elaboration and partial initialization.
-  Cover separate specs/bodies, private and nested package objects, copies,
-  assignment, record/array components, limited controlled objects, failed hooks,
-  and registration allocation failures. The full suite passes all 280 tests.
-- [x] Stage 4c, specific nonlimited results milestone: construct controlled
-  function results in caller-owned storage with caller-owned cleanup records.
-  Support records, fixed/dynamic arrays and multidimensional bounds, aggregate
-  returns, recursive forwarding, callbacks, dispatch, and separate compilation.
-  Clean up partial results before a function handler retries; retain ownership
-  when callee finalization fails. Cover reference-counted resources, missing
-  returns, failing hooks, global initialization/shutdown, and deterministic IR
-  in `controlledresults`, `controlledresultfailures`, `controlledresultdispatch`,
-  and `controlledresultglobals`. All 286 tests pass.
-- [x] Stage 4c, specific controlled allocation milestone: register each allocation
-  in its access type's collection. Finalize active parts on explicit deallocation
-  and reclaim remaining collection members at the type's master boundary,
-  including library shutdown. Support default/aggregate/copy initialization,
-  limited default allocation, controlled record and fixed-array components,
-  access subtypes/derivation, incomplete designated types, recursive masters,
-  and separate compilation. Failed construction cleans up partial objects;
-  failed finalizers do not prevent storage release or remaining collection cleanup.
-  Cover resource accounting, failed initialization/adjustment/finalization, and
-  allocation failure at every bookkeeping step. All 291 tests pass.
-- [x] Stage 4c, controlled array value conversions: create caller-owned adjusted
-  temporaries, preserve or slide bounds, check lengths and non-null index bounds,
-  and clean up successful parts after failed adjustment. Cover dynamic and
-  multidimensional arrays, null ranges, nested conversions, overlapping slices,
-  resource accounting, and deterministic IR in `controlledconversions`.
-  Limited controlled component copies remain rejected. All 293 tests pass.
-- [x] Stage 4c, tagged private controlled completions: retain hooks and lifetime
-  properties across completion, including previously declared subtype aliases.
-  Support hidden hooks and visible overrides, limited private controlled types,
-  private records containing controlled components, function results, allocation,
-  separate compilation, and recursive local packages. Recheck incomplete result
-  profiles after completion; preserve field/operation visibility and reject
-  unsupported external extensions. `privatecontrolled` and rejection/determinism
-  tests bring the full suite to 296 passing tests.
-- [x] Stage 4c, untagged private controlled completions: preserve partial-view
-  tagging separately from the full layout and lifetime properties. Support
-  opaque controlled and limited controlled types, aliases, results, allocation,
-  deallocation, nested hooks, and cleanup after failed copies and allocations.
-  Keep tag attributes, class-wide types, fields, and private hooks hidden from
-  clients. `opaquecontrolled` and rejection/determinism tests bring the suite
-  to 299 passing tests.
-- [x] Stage 4c, specific allocations through class-wide access types: use the
-  access type's collection and record the concrete object's controlled parts.
-  Support deallocation, limited objects, controlled extension fields beneath
-  ordinary roots, nested hooks, library collections, and failure cleanup.
-  Separate accessibility checking from the unsupported unowned-copy guard.
-  Runtime, failure, library, and determinism tests bring the suite to 303 tests.
-- [x] Complete stage 4c's original ownership scope: escaping results, class-wide
-  ownership, allocation/deallocation, and library finalization. Concrete tag
-  descriptors enumerate controlled parts for dynamic copies, assignment, and
-  allocation. Use a uniform owned-result ABI for tagged dispatch and callbacks.
-  Support limited results built in place, extended returns with handlers and
-  early return, recursive forwarding, fixed/dynamic array results and bounds
-  checks, limited class-wide allocation, and library-initialized results.
-  Ancestor-view assignment preserves the dynamic tag and extension fields while
-  invoking the parent hooks. Address-identity, resource-accounting, failure,
-  separate-compilation, rejection, and determinism tests cover the combined
-  behavior; runtime instrumentation fails each dynamic allocation/bookkeeping
-  step and verifies release. The full suite passes 311 tests.
+## Phase 8 — Tooling and validation (alongside the phases above)
 
-The following items had accumulated in the 4c checklist but are separate
-extensions to the supported language/ABI subset, not unfinished ownership paths:
+- [ ] Choose the target language version. Keep a support matrix separating
+  parsed, semantically checked and correctly emitted constructs.
+- [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
+  sanitizer builds. Bound the run time of the compiler and of test programs.
+  From Phase 4, run the tasking tests under ThreadSanitizer.
+- [ ] Compare shared programs with GNAT, and adopt relevant conformance tests,
+  allowing for implementation-defined differences.
+- [ ] Validate supported hosts and targets: ABI widths, installation and
+  relocation, library lookup, paths with spaces.
+- [ ] Serialized semantic interfaces, so clients compile without dependency
+  sources. `.ali` files hold only build metadata today.
+- [ ] Robust artifact publication and concurrent builds: interrupted writes,
+  dependency changes or removal, search-path shadowing.
+- [ ] Driver: skip scan, bind and link when nothing changed; let `--clean` work
+  without a source argument.
+- [ ] Consider a lowering layer between semantic analysis and QBE emission once
+  descriptors, cleanup and dispatch make direct AST emission too cumbersome.
 
-- [ ] Define controlled streaming and class-wide tag-aware stream formats.
-- [ ] Define the foreign ABI and ownership contract for imported controlled
-  results; continue rejecting these imports until that contract is implemented.
-- [ ] Extend variant record layout/active-component handling to controlled fields.
-- [ ] Complete abstract-operation legality, general limited record definitions,
-  tagged discriminants, interfaces, private extensions, and wide-character
-  support as described above. Extended returns currently target concrete
-  controlled result subtypes, including concrete results of class-wide functions.
+## Phase 9 — Full tasking
 
-Stage 5 can now start against the supported nonvariant controlled type subset.
+Completes the model on top of Phases 4 and 6.
 
-## 6. Larger runtime and library extensions
+- [ ] Task entries, `accept` statements and rendezvous, including entry
+  families and parameters of every supported mode and type.
+- [ ] Selective accept, with guards, `terminate` and `delay` alternatives;
+  timed and conditional entry calls; asynchronous `select`.
+- [ ] `requeue`, `abort`, and abort-deferred regions (protected actions,
+  finalization).
+- [ ] Task and protected discriminants, access-to-protected-subprogram types,
+  and synchronized, task and protected interfaces.
+- [ ] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
+  `Ada.Synchronous_Task_Control`.
 
-These are later projects with substantial runtime requirements.
+## Completed groundwork
 
-- [ ] Stage 5, after controlled lifetime support: implement `Ada.Strings.Unbounded`
-  in Ada, followed by a basic `Ada.Containers.Vectors`. Cover copying, growth,
-  element lifetime, bounds, and exception cleanup.
-- [ ] Task types/objects, activation, entries, rendezvous, and termination.
-- [ ] Protected objects, protected procedures/functions/entries, and synchronization.
-- [ ] Delay/select/abort semantics and task-local exception state. The current
-  exception globals and rotating image buffers are not a concurrent runtime.
-- [ ] Complete streaming by type/components, including bounds and discriminants,
-  user-defined stream operations, and a real stream abstraction. Current stream
-  support largely transfers object bytes rather than implementing all type semantics.
-  Class-wide streaming is explicitly rejected until tag-aware streams are implemented.
-- [x] Integer `'Value` accepts based literals, underscores and nonnegative
-  exponents, with malformed-input, overflow and range checks. `Integer_IO.Get`
-  uses this parser. Covered by `valuebased.adb`, `valueparsing.adb`, and
-  `longintegerio.adb` for 64-bit I/O.
-- [ ] Add floating-point `'Value` and audit remaining numeric input grammar/I/O cases.
-- [x] Add `Ada.Numerics`, generic elementary functions, and predefined `Float` and
-  `Long_Float` instances, with domain checks and precision-specific C helpers.
-  Covered by the numerics, precision, base-power, and imported-float ABI tests.
-  This is a supported subset, not full Numerics Annex conformance.
-- [x] Add `Ada.Characters.Latin_1`, Character/String handling, `Ada.Strings`,
-  value-based `Maps`, `Fixed`, and `Bounded.Generic_Bounded_Length`. Cover
-  Latin-1 classification/conversion, set algebra, searching, transformations,
-  truncation, bounds, copying, and exceptions. Static generic capacities use
-  symbolic subtype/component bounds during contract analysis and concrete
-  layouts at instantiation. Mapping callbacks and wide overloads remain omitted.
-- [x] Add `Ada.Command_Line`, including startup argument capture before library
-  elaboration and normal exit status through both binder paths. Cover empty
-  arguments, spaces, invalid indices, repeated status updates, and exceptions.
-- [ ] Fill remaining I/O and exception API gaps; add `Ada.Strings.Maps.Constants`,
-  mapping callbacks after access-to-subprogram support, and calendar/time support
-  after fixed-point `Duration`. Enforce package categorization requirements.
-- [ ] Wide characters, wide strings, and a documented source-encoding policy.
+For orientation; extend these rather than restart them. Details are in the README.
 
-## 7. Separate compilation and binding
-
-Primary code: `ada/main.cpp`, `ada/Cache.cpp`, `adac/main.cpp`,
-`adac/UnitLoader.cpp`, `adac/UnitManifest.cpp`, and `adac/Binder.cpp`.
-
-- [x] Emit one IR/object per library unit, with exported cross-unit symbols and
-  address-based exception identity. The driver invokes `adac -c` for changed
-  units, reading dependency specifications and bodies needed for instantiation.
-- [x] Scan the source closure into `units.manifest`; record each compiled unit's
-  source/dependency digests, front-end digest, IR digest and main symbol in `.ali`.
-  Ordinary dependency bodies do not invalidate clients; generic bodies read by
-  clients do. Missing/modified IR and changed front-end binaries invalidate records.
-- [x] Cache object files by IR content and backend/C-compiler stamps. Unchanged
-  builds reuse objects; removed units are omitted from the next link. The driver
-  still scans and binds on each executable build and invokes the linker each time.
-- [x] Generate `__ada_binder.ssa` through `adac --bind <unit> -D <dir>`, validating
-  compiled records against the manifest and rejecting missing/stale units or a
-  missing main procedure. Binding uses the manifest's order; it does not rescan
-  source files or independently determine an elaboration order.
-- [x] Emit specification/body elaboration entry points separately, allowing
-  A's spec → B's spec → A's body while A still occupies one object file.
-- [x] Preserve the scan's source search directories in per-unit invocations.
-  Regression coverage includes distinct directories and paths containing spaces.
-- [x] Cover whole-program/per-unit determinism, ordinary-body incremental builds,
-  generic-body invalidation, compiler-record invalidation, elaboration order,
-  source paths, and bind failures (`determinism.*`, `ada.incremental`, `separate.*`).
-- [ ] Serialized semantic interfaces or another mechanism for compiling clients
-  without dependency sources. Current `.ali` files only contain build metadata.
-- [ ] Complete the loading/visibility/cycle and elaboration-before-use audits
-  listed under Calls, exceptions, and elaboration. Separate subunits remain a
-  distinct unimplemented language feature (section 3).
-- [ ] Harden artifact publication and concurrent builds, and add focused coverage
-  for interrupted writes, dependency changes/removal, and search-path shadowing.
-
-## 8. Development and validation infrastructure
-
-- [ ] Choose and document the intended language-version baseline and optional
-  later-version features. Keep a support matrix that distinguishes parsed,
-  semantically checked, and correctly emitted constructs.
-- [ ] For every implemented item, add focused execution and diagnostic tests;
-  include boundary cases and interactions with existing features.
-- [ ] Add crash, timeout, malformed-source, and sanitizer coverage; ensure both
-  compiler subprocesses and generated programs have bounded test execution.
-- [ ] Optionally compare shared supported programs with GNAT and introduce
-  relevant conformance tests. Account for implementation-defined differences.
-- [ ] Validate supported host/target combinations, ABI widths, installation and
-  relocation, library lookup, and paths containing spaces. Track portability
-  separately from language support.
-- [ ] Consider a small lowering layer between semantic analysis and QBE emission
-  when descriptors, cleanup, and dispatch make direct AST emission cumbersome.
-  This is an architectural option, not a prerequisite for every small fix.
-- [ ] Optimize checked arithmetic only after preserving its failure behavior in
-  tests; the current runtime helpers provide a correctness baseline.
-
-Separate compilation, incremental artifacts, and explicit binding now have a
-working implementation and focused regressions, alongside scalar copy-in/copy-out,
-runtime local subtype bounds, array identity and grouped field defaults. Remaining
-near-term audits include unit loading/elaboration-before-use, artifact robustness,
-and aggregate/array semantics beyond existing overlap and sliding tests.
-Library-level dynamic arrays, runtime-constrained components, wider descriptor
-indices/lengths, and full-width unsigned modular representations remain later extensions.
+- Scalars: checked 32/64-bit integers, modular types up to `2 ** 32`, floating
+  point, ordinary fixed point, and local runtime subtype bounds.
+- Arrays: one- and multi-dimensional, runtime-bounded locals, aggregate bound
+  inference, sliding, identity rules, overlap-safe slice assignment, scoped
+  storage reclamation.
+- Records: grouped field defaults, discriminant-constrained variants, and
+  active-component equality.
+- Calls: context-driven overload resolution, user operators, defaults,
+  copy-in/copy-out, caller-owned composite results, fall-through checks.
+- Exceptions: occurrences, messages, saved occurrences, re-raise, tracebacks,
+  package-body handlers.
+- Packages: local packages and generic instances, elaboration order and
+  failure reporting.
+- Access: object allocators with collections, and named access-to-subprogram
+  types with nested callbacks.
+- Renaming: objects, components, subprograms, operators, attributes, exceptions.
+- Generics: private, discrete, numeric, fixed and array formals, formal
+  subprograms and objects, contract checking.
+- Tagged and controlled types (stages 1–4c): inheritance, class-wide values,
+  dispatching, `Ada.Tags`, full controlled lifetimes and ownership.
+- Library: `Text_IO` and its generics, sequential, direct and stream I/O,
+  numerics, Latin-1 characters, fixed and bounded strings, command line.
+- Toolchain: per-unit compilation, manifest binding, incremental caching,
+  deterministic output.

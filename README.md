@@ -23,7 +23,8 @@ The build also compiles the vendored `qbe` submodule into `build/qbe/qbe`, and
 the C run time into `build/runtime/libadart.a`.
 
 The main CTest suite includes executable Ada regressions, compiler diagnostic
-checks, a QBE IR comparison, and runtime and driver checks. Ada fixtures and
+checks, a QBE IR comparison, determinism, incremental-build and separate
+compilation checks, and C-level runtime and driver checks. Ada fixtures and
 their `.expected` files live in `tests/ada/` and are registered in
 `tests/CMakeLists.txt`. To run a single case, use, for example,
 `ctest --test-dir build -R '^ada.sliceassignment$' --output-on-failure`.
@@ -169,28 +170,96 @@ requires a source argument even with `--clean`.
 | `ada/` | The driver, dependency checks and object cache that coordinate `adac`, `qbe` and `cc` |
 | `common/` | Shared content-digest support |
 | `runtime/ada/` | The predefined environment, written in Ada |
-| `runtime/adart.c` | Run time support (`'Image`, `'Value`, real number formatting, array comparison, raising and reporting exceptions) |
+| `runtime/adart.c` | Run time support (`'Image`, `'Value`, real number formatting, array comparison, storage, raising and reporting exceptions, finalization) |
 | `runtime/adaio.c` | The file layer behind `Text_IO`, `Sequential_IO`, `Direct_IO` and `Stream_IO`; compiled into `libadart.a` |
+| `runtime/adafixed.c` | Exact fixed-point text conversion |
+| `runtime/adatags.c` | Tag descriptors and the `Ada.Tags` queries |
 | `runtime/adanumerics.c` | Floating-point numerics helpers, also compiled into `libadart.a` |
-| `tests/ada/` | Ada test programs with their expected output |
+| `tests/ada/` | Ada test programs with their expected output or diagnostics |
 | `tests/golden/` | Recorded QBE IL used to notice code generation changes |
 | `qbe/` | The QBE backend, as a submodule |
 
 ## Supported language
 
-Objects, constants and named numbers; integer, floating point, Boolean,
-character, enumeration, array, record, access and private types; discriminants
-and variant records; subtypes with range and discriminant constraints;
-expressions including `mod`, `rem`, `**`, `&` and
-short circuit operators; `if`, `case`, `while`, `for`, plain loops with `exit`,
-blocks; procedures and functions with `in`, `out` and `in out` parameters,
-recursion and nested subprograms with up level references; package
-specifications and bodies with elaboration code; the `'First`, `'Last`,
-`'Length`, `'Range`, `'Pos`, `'Val`, `'Succ`, `'Pred`, `'Digits`, `'Width`,
-`'Image`, `'Value`, `'Address`, `'Size`, `'Read`, `'Write`, `'Input` and
-`'Output` attributes; a `'Size` representation clause; `pragma Import`; generic
-packages and subprograms with their instantiations; run time range checks
-raising `Constraint_Error`, `raise` statements and exception handlers.
+AIDA compiles a substantial subset of Ada. It does not claim conformance to
+any Ada standard, and no language-version baseline has been fixed yet. The
+regression suite in `tests/` is the authoritative record of what works: each
+supported construct has an executable test, and legality rules have rejection
+tests. The sections below describe each feature and its limits.
+
+- **Program structure:** library and child units; package specifications,
+  private parts and bodies with elaboration code and handlers; packages and
+  generic instances local to subprograms and blocks; procedures and functions
+  with `in`, `out` and `in out` parameters, defaults, named associations,
+  recursion and nested subprograms with up-level references.
+- **Statements:** assignment, `if`, `case`, `while`, `for` (including
+  `reverse`), plain loops with `exit`, labelled loops and blocks, `return`
+  (extended returns for controlled results), `raise` and exception handlers.
+- **Scalar types:** 32-bit `Integer`, 64-bit `Long_Integer` and user ranges
+  with checked arithmetic; enumeration, `Boolean` and `Character`; modular
+  types with moduli up to `2 ** 32`; floating-point types of up to 15 digits;
+  ordinary fixed-point types; local subtypes with runtime bounds.
+- **Composite types:** constrained and unconstrained arrays of any rank,
+  slices, aggregates with bound inference, local arrays with runtime bounds;
+  records with defaults, discriminants and variant parts; private and limited
+  private types.
+- **Access types:** access-to-object types with allocators, collections and
+  `Ada.Unchecked_Deallocation`; named access-to-subprogram types, including
+  nested callbacks.
+- **Overloading and derivation:** context-driven overload resolution,
+  user-defined operators, `use`, `use type` and `use all type`, derived types
+  inheriting primitive operations, `overriding` indicators.
+- **Object orientation:** single-inheritance tagged records, extension
+  aggregates, class-wide objects, results and access types, dispatching,
+  abstract tagged types, `Ada.Tags`, and `Ada.Finalization` controlled types
+  across local, component, result, allocated and library lifetimes.
+- **Generics:** generic packages and subprograms with private, limited private,
+  discrete, integer, floating-point, ordinary fixed-point and array formal
+  types; formal subprograms with defaults; scalar and composite formal objects.
+  Generic bodies are checked against their contracts.
+- **Exceptions:** handler occurrence bindings, `raise E with Message`,
+  re-raising, the main `Ada.Exceptions` inspection and saving operations, and
+  source locations with an Ada call traceback in `Exception_Information`.
+- **Renaming:** objects (including components), subprograms, operators,
+  enumeration literals, callable attributes and exceptions.
+- **Attributes and representation:** including `'First`, `'Last`, `'Length`,
+  `'Range`, `'Pos`, `'Val`, `'Succ`, `'Pred`, `'Base`, `'Digits`, `'Width`,
+  `'Image`, `'Value`, `'Modulus`, `'Small`, `'Delta`, `'Fore`, `'Aft`,
+  `'Address`, `'Size`, `'Access`, `'Tag`, `'Class`, `'Identity`, and the
+  stream attributes; `'Size` representation clauses; `pragma Import` of C
+  routines.
+- **Run time checks:** range, index, length, discriminant, tag, overflow,
+  division and null-access checks raising `Constraint_Error`; storage
+  exhaustion raising `Storage_Error`; function fall-through and finalization
+  failures raising `Program_Error`.
+
+### Not yet supported
+
+- Tasking: task and protected types, entries, `delay`, `select`, `abort`.
+- Interfaces, abstract subprograms, discriminated tagged types, private
+  extensions and general limited record definitions.
+- Default discriminants, unconstrained objects whose discriminants can change,
+  and components whose bounds depend on discriminants.
+- General access types: `aliased` objects, `access all`, `'Access` of objects,
+  access-to-constant, anonymous access types and general accessibility checks.
+- Package and generic renaming, `separate` subunits, and `goto`. A subprogram
+  stub (`is separate`) is parsed, but its body is never loaded.
+- Extended return statements for results that are not controlled types.
+- Decimal fixed point, modular types above `2 ** 32`, and floating-point
+  `'Value`.
+- Formal packages; formal derived, access, modular and decimal types; access
+  formal objects.
+- Library-level arrays and scalar subtypes with runtime bounds,
+  runtime-constrained array components and allocators, and array indices or
+  lengths beyond 32 bits.
+- Representation clauses other than `'Size`, which are read and ignored, and
+  pragmas other than `Import`, which are ignored without a diagnostic.
+- Type-aware streaming: streams mostly copy object representation; controlled
+  and class-wide streaming are rejected.
+- `Wide_Character` and `Wide_String`, `Ada.Strings.Unbounded`,
+  `Ada.Containers`, and `Ada.Calendar`.
+
+`TODO.md` sets out the order in which these gaps are to be addressed.
 
 Object renaming gives an existing object another name, including record fields:
 
@@ -1075,6 +1144,8 @@ own may write.
 | `Ada.Command_Line` | `ada-command_line.ads` |
 | `Ada.IO_Exceptions` | `ada-io_exceptions.ads` |
 | `Ada.Exceptions` (inspection and raising subset) | `ada-exceptions.ads`, `ada-exceptions.adb` |
+| `Ada.Finalization` | `ada-finalization.ads` |
+| `Ada.Tags` | `ada-tags.ads`, `ada-tags.adb` |
 | `Ada.Text_IO` | `ada-text_io.ads` |
 | `Ada.Text_IO.Integer_IO` | `ada-text_io-integer_io.ads`, `.adb` |
 | `Ada.Text_IO.Float_IO` | `ada-text_io-float_io.ads`, `.adb` |
@@ -1085,7 +1156,7 @@ own may write.
 | `Ada.Sequential_IO` | `ada-sequential_io.ads`, `.adb` |
 | `Ada.Direct_IO` | `ada-direct_io.ads`, `.adb` |
 | `Ada.Streams` | `ada-streams.ads` |
-| `Ada.Streams.Stream_IO` | `ada-streams-stream_io.ads` |
+| `Ada.Streams.Stream_IO` | `ada-streams-stream_io.ads`, `.adb` |
 | `Ada.Unchecked_Deallocation` | `ada-unchecked_deallocation.ads`, `.adb` |
 | `Ada.Numerics` | `ada-numerics.ads` |
 | `Ada.Numerics.Generic_Elementary_Functions` | `ada-numerics-generic_elementary_functions.ads`, `.adb` |
