@@ -7,3 +7,8 @@ importconventionsyntaxerrors.adb:8:42: error: pragma Import requires a nonempty 
 importconventionsyntaxerrors.adb:9:40: error: expected 'string literal' as Import external name, found ')'
 importconventionsyntaxerrors.adb:10:42: error: expected 'string literal' as Import external name, found '123'
 importconventionsyntaxerrors.adb:11:23: error: expected a subprogram name in pragma Import
+importconventionsyntaxerrors.adb:12:57: error: expected ')' after Import arguments, found ';'
+importconventionsyntaxerrors.adb:13:58: error: expected ';' after pragma, found ')'
+importconventionsyntaxerrors.adb:14:50: error: expected ')' after Import arguments, found '&'
+importconventionsyntaxerrors.adb:15:59: error: expected ';' after pragma, found 'Extra'
+importconventionsyntaxerrors.adb:16:59: error: pragma Import supports only three positional arguments

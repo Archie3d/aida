@@ -63,10 +63,11 @@ The main items are done; the follow-ups below close the remaining silent paths.
   of silently dropping the pragma. Covered by `importconventionerrors` and
   `importconventionsyntaxerrors`; explicit-name calls remain covered by
   `importconventions`.
-- [ ] **Remaining `Import` arguments.** Arguments after the external name, such
-  as a fourth argument or `Link_Name => ...`, are skipped without a diagnostic.
-  Named associations (`Convention => C, ...`) are misreported as an unknown
-  convention. Parse or reject both.
+- [x] **Remaining `Import` arguments.** Only three positional arguments are
+  accepted. Named associations (including `Convention => ...` and
+  `Link_Name => ...`) and extra arguments receive explicit diagnostics.
+  Closing delimiters are required and trailing tokens are rejected. Covered
+  by `importconventionerrors` and `importconventionsyntaxerrors`.
 - [ ] **Package body stubs.** `package body P is separate;` fails with cascading
   parse errors ("expected a declaration", closing-name mismatch). Report a
   single clear diagnostic, as for subprogram stubs.

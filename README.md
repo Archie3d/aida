@@ -230,7 +230,8 @@ tests. The sections below describe each feature and its limits.
   and Ada conventions.
 - **Pragma policy:** `Import` accepts only C and Ada conventions (case-insensitive);
   other convention names are rejected. An explicit, nonempty external name
-  string is required; imports without one are rejected.
+  string is required; imports without one are rejected. Only three positional
+  arguments are supported; named associations and extra arguments are rejected.
   `Inline`, `Pure`, and `Preelaborate` are explicitly accepted as advisory
   pragmas: arguments are parsed, but inlining is not promised and package
   categorization legality is not checked. All other pragma names, including
@@ -1276,6 +1277,12 @@ convention; `pragma Import (C, Foo);` is rejected rather than defaulting the
 name. This validation preserves the existing imported-call ABI and explicit
 external symbol naming; it does not add compatibility with other Ada compilers'
 ABIs.
+
+Only the three positional arguments shown above are supported. Named
+associations, including `Convention => ...`, `External_Name => ...`, and
+`Link_Name => ...`, are explicitly rejected, as is a fourth positional
+argument. The closing parenthesis and semicolon are required; trailing tokens
+and external-name expressions beyond a string literal are rejected.
 
 The pragma applies to the declaration just given, so each overload names the
 routine that carries it out. Anything a package can write for itself it writes

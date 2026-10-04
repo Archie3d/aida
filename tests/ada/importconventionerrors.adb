@@ -14,6 +14,15 @@ procedure ImportConventionErrors is
     pragma Import (c, Foreign_Function);
     function "**" (Left, Right : Integer) return Integer;
     pragma Import (Ada, "**");
+    pragma Import (C, Foreign_Routine, "foreign_routine", "link_name");
+    pragma Import (Ada, Foreign_Routine, "foreign_routine", "link_name");
+    pragma Import (C, Foreign_Routine, "foreign_routine", Link_Name => "link_name");
+    pragma Import (Convention => C, Entity => Foreign_Routine, External_Name => "foreign_routine");
+    pragma Import (cOnVeNtIoN => Ada, Entity => Foreign_Routine, External_Name => "foreign_routine");
+    pragma Import (C, Entity => Foreign_Routine, External_Name => "foreign_routine");
+    pragma Import (C, Foreign_Routine, External_Name => "foreign_routine");
+    pragma Import (Ada, Foreign_Routine, Link_Name => "link_name");
+    pragma Import (Unknown_Argument => C, Foreign_Routine, "foreign_routine");
 begin
     pragma Import (fOrTrAn, Foreign_Routine, "statement_routine");
     null;

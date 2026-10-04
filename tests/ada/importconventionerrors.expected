@@ -10,4 +10,13 @@ importconventionerrors.adb:11:38: error: pragma Import requires an explicit exte
 importconventionerrors.adb:12:40: error: pragma Import requires an explicit external name
 importconventionerrors.adb:14:39: error: pragma Import requires an explicit external name
 importconventionerrors.adb:16:29: error: pragma Import requires an explicit external name
-importconventionerrors.adb:18:20: error: unsupported Import convention 'fOrTrAn'; only C and Ada are supported
+importconventionerrors.adb:17:59: error: pragma Import supports only three positional arguments
+importconventionerrors.adb:18:61: error: pragma Import supports only three positional arguments
+importconventionerrors.adb:19:59: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:20:20: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:21:20: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:22:23: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:23:40: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:24:42: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:25:20: error: named arguments in pragma Import are not yet supported
+importconventionerrors.adb:27:20: error: unsupported Import convention 'fOrTrAn'; only C and Ada are supported

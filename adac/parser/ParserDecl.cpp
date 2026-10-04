@@ -173,7 +173,14 @@ DeclPtr Parser::parsePragma()
     pragma->name = name.text;
     pragma->lower = name.lower;
 
+    auto rejectNamedArgument = [&]() {
+        if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+            fail("named arguments in pragma Import are not yet supported");
+        }
+    };
+
     expect(TokenKind::LeftParen, "after pragma Import");
+    rejectNamedArgument();
     const Token& convention = expect(TokenKind::Identifier, "as Import convention");
     if (convention.lower != "c" && convention.lower != "ada") {
         m_diagnostics.error(convention.location, "unsupported Import convention '" + convention.text
@@ -182,6 +189,7 @@ DeclPtr Parser::parsePragma()
         return nullptr;
     }
     expect(TokenKind::Comma, "after Import convention");
+    rejectNamedArgument();
     if (check(TokenKind::Identifier)
         || (check(TokenKind::StringLiteral) && current().text == "**")) {
         pragma->entity = current().text;
@@ -193,6 +201,7 @@ DeclPtr Parser::parsePragma()
     if (!match(TokenKind::Comma)) {
         fail("pragma Import requires an explicit external name");
     }
+    rejectNamedArgument();
     const Token& externalName = expect(TokenKind::StringLiteral, "as Import external name");
     if (externalName.text.empty()) {
         m_diagnostics.error(externalName.location, "pragma Import requires a nonempty external name");
@@ -201,9 +210,11 @@ DeclPtr Parser::parsePragma()
     }
     pragma->linkName = externalName.text;
 
-    while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
-        advance();
+    if (match(TokenKind::Comma)) {
+        rejectNamedArgument();
+        fail("pragma Import supports only three positional arguments");
     }
+    expect(TokenKind::RightParen, "after Import arguments");
     expect(TokenKind::Semicolon, "after pragma");
 
     return pragma;
