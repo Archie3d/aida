@@ -37,7 +37,8 @@ language extensions, and the full tasking model follows them.
 ## Phase 1 — Stop silent acceptance
 
 Highest priority: constructs that were accepted while their meaning was dropped.
-The main items are done; the follow-ups below close the remaining silent paths.
+The original items and the `Import` and stub follow-ups are done. Generic formal
+type definitions are the last silent path; the diagnostics item is polish.
 
 - [x] **Pragmas.** `Parser::parsePragma` accepts `Import`, plus `Inline`, `Pure`
   and `Preelaborate` as advisory, and rejects every other or unknown pragma in
@@ -72,9 +73,25 @@ The main items are done; the follow-ups below close the remaining silent paths.
   single clear diagnostic at `separate`, without cascading parse errors.
   Covered by `subprogramstuberrors` in local, nested-package, block and
   uninstantiated-generic contexts.
+- [ ] **Generic formal type definitions.** The formal type parser recognizes
+  only the first token of a definition (`array`, `range`, `delta`, `digits`,
+  `(<>)`) and skips the rest, so other forms fall back to private-type
+  semantics. `type T is mod <>`, `new Integer`, `access E`, `tagged private`
+  and `abstract tagged limited private` all compile, and mismatched
+  instantiations such as `mod <>` with `Float` or `new Integer` with `Boolean`
+  build and run. Reject every formal type definition other than the supported
+  private, limited private, discrete, integer, floating-point, ordinary
+  fixed-point and array forms, and check that `range <>` and `digits <>` end
+  at the box. Phase 6 implements the rejected categories.
+- [ ] **Clear diagnostics for unsupported syntax.** Abstract subprograms, `goto`
+  and labels, `select`, task declarations, `limited with` and `private with`
+  are rejected, but only by generic messages ("expected a declaration",
+  "expected an expression") followed by cascades. Report one message naming the
+  unsupported construct, as for `protected` and `requeue`. Lower priority: none
+  of these is silently accepted.
 
-Tests: extend `importconventionerrors` and `subprogramstuberrors`, plus an
-executable test if `Import` defaults the external name.
+Tests: a rejection test for each unsupported formal type form, and one per
+construct in the diagnostics item.
 
 ## Phase 2 — Tasking foundations
 
