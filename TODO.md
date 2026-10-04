@@ -58,10 +58,11 @@ The main items are done; the follow-ups below close the remaining silent paths.
   are rejected (including inside generic formal type definitions). Covered by
   `reservedworderrors`, `reservedconstructerrors`, `reservedgenericerrors` and
   `reservedwordboundaries`.
-- [ ] **Import without an external name.** `pragma Import (C, Foo);` is
-  dropped without a diagnostic, and the program then fails to link on an
-  undefined Ada-mangled symbol. Either default the external name as Ada
-  requires (the lower-case entity name for convention C) or reject the pragma.
+- [x] **Import without an external name.** Both C and Ada imports require an
+  explicit, nonempty external name string. Missing names are diagnosed instead
+  of silently dropping the pragma. Covered by `importconventionerrors` and
+  `importconventionsyntaxerrors`; explicit-name calls remain covered by
+  `importconventions`.
 - [ ] **Remaining `Import` arguments.** Arguments after the external name, such
   as a fourth argument or `Link_Name => ...`, are skipped without a diagnostic.
   Named associations (`Convention => C, ...`) are misreported as an unknown

@@ -6,4 +6,8 @@ importconventionerrors.adb:7:20: error: unsupported Import convention 'CPP'; onl
 importconventionerrors.adb:8:20: error: unsupported Import convention 'Stdcall'; only C and Ada are supported
 importconventionerrors.adb:9:20: error: unsupported Import convention 'Java'; only C and Ada are supported
 importconventionerrors.adb:10:20: error: unsupported Import convention 'Unknown_Convention'; only C and Ada are supported
-importconventionerrors.adb:12:20: error: unsupported Import convention 'fOrTrAn'; only C and Ada are supported
+importconventionerrors.adb:11:38: error: pragma Import requires an explicit external name
+importconventionerrors.adb:12:40: error: pragma Import requires an explicit external name
+importconventionerrors.adb:14:39: error: pragma Import requires an explicit external name
+importconventionerrors.adb:16:29: error: pragma Import requires an explicit external name
+importconventionerrors.adb:18:20: error: unsupported Import convention 'fOrTrAn'; only C and Ada are supported

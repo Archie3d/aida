@@ -8,6 +8,12 @@ procedure ImportConventionErrors is
     pragma Import (Stdcall, Foreign_Routine, "stdcall_routine");
     pragma Import (Java, Foreign_Routine, "java_routine");
     pragma Import (Unknown_Convention, Foreign_Routine, "unknown_routine");
+    pragma Import (C, Foreign_Routine);
+    pragma Import (aDa, Foreign_Routine);
+    function Foreign_Function return Integer;
+    pragma Import (c, Foreign_Function);
+    function "**" (Left, Right : Integer) return Integer;
+    pragma Import (Ada, "**");
 begin
     pragma Import (fOrTrAn, Foreign_Routine, "statement_routine");
     null;

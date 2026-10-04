@@ -187,21 +187,26 @@ DeclPtr Parser::parsePragma()
         pragma->entity = current().text;
         pragma->entityLower = toLower(current().text);
         advance();
+    } else {
+        fail("expected a subprogram name in pragma Import");
     }
-    if (match(TokenKind::Comma) && check(TokenKind::StringLiteral)) {
-        pragma->linkName = current().text;
-        advance();
+    if (!match(TokenKind::Comma)) {
+        fail("pragma Import requires an explicit external name");
     }
+    const Token& externalName = expect(TokenKind::StringLiteral, "as Import external name");
+    if (externalName.text.empty()) {
+        m_diagnostics.error(externalName.location, "pragma Import requires a nonempty external name");
+        skipToSemicolon();
+        return nullptr;
+    }
+    pragma->linkName = externalName.text;
 
     while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
         advance();
     }
     expect(TokenKind::Semicolon, "after pragma");
 
-    if (!pragma->entityLower.empty() && !pragma->linkName.empty()) {
-        return pragma;
-    }
-    return nullptr;
+    return pragma;
 }
 
 // Only Size attribute definition clauses are implemented. Diagnose other

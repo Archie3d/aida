@@ -229,7 +229,8 @@ tests. The sections below describe each feature and its limits.
   stream attributes; `'Size` representation clauses; `pragma Import` with C
   and Ada conventions.
 - **Pragma policy:** `Import` accepts only C and Ada conventions (case-insensitive);
-  other convention names are rejected.
+  other convention names are rejected. An explicit, nonempty external name
+  string is required; imports without one are rejected.
   `Inline`, `Pure`, and `Preelaborate` are explicitly accepted as advisory
   pragmas: arguments are parsed, but inlining is not promised and package
   categorization legality is not checked. All other pragma names, including
@@ -1269,9 +1270,12 @@ pragma Import (C, Put_Line, "__ada_put_line");
 ```
 
 The convention argument is required and must be `C` or `Ada`, ignoring case.
-All other convention names, including unknown names, are diagnosed. This
-validation preserves the existing imported-call ABI and explicit external
-symbol naming; it does not add compatibility with other Ada compilers' ABIs.
+All other convention names, including unknown names, are diagnosed. The third
+argument must be an explicit, nonempty external name string for either
+convention; `pragma Import (C, Foo);` is rejected rather than defaulting the
+name. This validation preserves the existing imported-call ABI and explicit
+external symbol naming; it does not add compatibility with other Ada compilers'
+ABIs.
 
 The pragma applies to the declaration just given, so each overload names the
 routine that carries it out. Anything a package can write for itself it writes

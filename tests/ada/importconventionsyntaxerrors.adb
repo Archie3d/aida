@@ -4,6 +4,11 @@ procedure ImportConventionSyntaxErrors is
     pragma Import (, Foreign_Routine, "foreign_routine");
     pragma Import ("C", Foreign_Routine, "foreign_routine");
     pragma Import (C Foreign_Routine, "foreign_routine");
+    pragma Import (C, Foreign_Routine, "");
+    pragma Import (Ada, Foreign_Routine, "");
+    pragma Import (C, Foreign_Routine, );
+    pragma Import (Ada, Foreign_Routine, 123);
+    pragma Import (C, , "foreign_routine");
 begin
     null;
 end ImportConventionSyntaxErrors;
