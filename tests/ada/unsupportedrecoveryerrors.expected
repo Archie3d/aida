@@ -1,0 +1,9 @@
+unsupportedrecoveryerrors.adb:1:1: error: limited with clauses are not yet supported
+unsupportedrecoveryerrors.adb:3:50: error: abstract subprogram declarations are not yet supported
+unsupportedrecoveryerrors.adb:4:5: error: task declarations are not yet supported
+unsupportedrecoveryerrors.adb:7:5: error: task declarations are not yet supported
+unsupportedrecoveryerrors.adb:12:5: error: statement labels are not yet supported
+unsupportedrecoveryerrors.adb:13:5: error: statement labels are not yet supported
+unsupportedrecoveryerrors.adb:14:5: error: goto statements are not yet supported
+unsupportedrecoveryerrors.adb:15:5: error: select statements are not yet supported
+unsupportedrecoveryerrors.adb:24:5: error: goto statements are not yet supported

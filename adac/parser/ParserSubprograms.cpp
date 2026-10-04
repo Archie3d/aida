@@ -107,6 +107,9 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     }
 
     expect(TokenKind::KwIs, "in subprogram body");
+    if (check(TokenKind::KwAbstract)) {
+        fail("abstract subprogram declarations are not yet supported");
+    }
     if (match(TokenKind::KwNew)) {
         return parseGenericInstantiation(location, spec.name, spec.lower, false);
     }

@@ -1,0 +1,8 @@
+genericformalsyntaxerrors.adb:2:20: error: expected '<>' after range in generic formal type, found ';'
+genericformalsyntaxerrors.adb:7:22: error: expected '<>' after digits in generic formal type, found '6'
+genericformalsyntaxerrors.adb:12:16: error: expected '<>' in discrete generic formal type, found 'Red'
+genericformalsyntaxerrors.adb:17:20: error: expected ';' after generic formal parameter, found 'range'
+genericformalsyntaxerrors.adb:22:23: error: expected ';' after generic formal parameter, found 'new'
+genericformalsyntaxerrors.adb:27:23: error: generic formal type definition 'tagged' is not yet supported
+genericformalsyntaxerrors.adb:32:24: error: decimal fixed-point generic formal types are not yet supported
+genericformalsyntaxerrors.adb:37:57: error: expected an expression

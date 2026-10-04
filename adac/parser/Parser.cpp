@@ -113,6 +113,14 @@ DeclList Parser::parseDeclarations()
 void Parser::parseContextClause(CompilationUnit& unit)
 {
     while (true) {
+        if (check(TokenKind::KwLimited)
+            && (peek(1).kind == TokenKind::KwWith
+                || (peek(1).kind == TokenKind::KwPrivate && peek(2).kind == TokenKind::KwWith))) {
+            fail("limited with clauses are not yet supported");
+        }
+        if (check(TokenKind::KwPrivate) && peek(1).kind == TokenKind::KwWith) {
+            fail("private with clauses are not yet supported");
+        }
         if (check(TokenKind::KwWith)) {
             WithClause clause;
             clause.location = current().location;

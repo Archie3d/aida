@@ -1,0 +1,3 @@
+deallocationformalerrors.adb:6:5: error: Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object
+deallocationformalerrors.adb:7:5: error: Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object
+deallocationformalerrors.adb:8:5: error: Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object

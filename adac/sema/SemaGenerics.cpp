@@ -833,6 +833,22 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         decl->expansion.push_back(std::move(objects.front()));
     }
 
+    // The predefined deallocator uses a private formal in its source until
+    // general formal access types are implemented. Preserve its actual access
+    // contract rather than accepting arbitrary private types as pointers.
+    if (generic->generic->lower == "ada.unchecked_deallocation") {
+        Symbol* object = lookupName("object", bindings);
+        Symbol* name = lookupName("name", bindings);
+        Type* access = name != nullptr ? baseType(name->type) : nullptr;
+        if (object == nullptr || access == nullptr || access->kind != TypeKind::Access
+            || access->m_accessProfile != nullptr
+            || !SemaSupport::staticallyMatches(access->target, object->type)) {
+            m_diagnostics.error(decl->location,
+                "Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object");
+            return false;
+        }
+    }
+
     return true;
 }
 

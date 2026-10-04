@@ -27,9 +27,21 @@ DeclPtr Parser::parseGenericDeclaration()
             formal.lower = name.lower;
             expect(TokenKind::KwIs, "in generic formal type");
             formal.m_limited = check(TokenKind::KwLimited);
-            // What follows says which types the instantiation may supply.  Only
-            // the first word of it is telling: 'range', 'digits', and 'delta'
-            // each name a family, and '(<>)' asks for a discrete type.
+            // Parse the entire supported definition. Never infer private-type
+            // semantics from an unrecognized or partially consumed form.
+            auto rejectUnsupportedFormal = [&]() {
+                switch (current().kind) {
+                case TokenKind::KwAliased:
+                case TokenKind::KwProtected:
+                case TokenKind::KwRequeue:
+                case TokenKind::KwUntil:
+                case TokenKind::KwInterface:
+                case TokenKind::KwSynchronized:
+                    fail("unsupported reserved word '" + current().text + "' in generic formal type definition");
+                default:
+                    fail("generic formal type definition '" + current().text + "' is not yet supported");
+                }
+            };
             if (check(TokenKind::KwArray)) {
                 formal.typeClass = FormalTypeClass::ArrayType;
                 std::size_t start = m_position;
@@ -49,8 +61,12 @@ DeclPtr Parser::parseGenericDeclaration()
                 if (!check(TokenKind::Semicolon)) {
                     fail("expected ';' after formal array type");
                 }
-            } else if (check(TokenKind::KwRange)) {
+            } else if (match(TokenKind::KwRange)) {
                 formal.typeClass = FormalTypeClass::IntegerType;
+                expect(TokenKind::Box, "after range in generic formal type");
+                if (!check(TokenKind::Semicolon)) {
+                    fail("generic formal range definition must end after '<>'");
+                }
             } else if (check(TokenKind::KwDelta)) {
                 advance();
                 formal.typeClass = FormalTypeClass::FixedType;
@@ -61,26 +77,23 @@ DeclPtr Parser::parseGenericDeclaration()
                 if (!check(TokenKind::Semicolon)) {
                     fail("expected ';' after ordinary fixed-point formal type");
                 }
-            } else if (check(TokenKind::KwDigits)) {
+            } else if (match(TokenKind::KwDigits)) {
                 formal.typeClass = FormalTypeClass::FloatType;
-            } else if (check(TokenKind::LeftParen)) {
+                expect(TokenKind::Box, "after digits in generic formal type");
+                if (!check(TokenKind::Semicolon)) {
+                    fail("generic formal digits definition must end after '<>'");
+                }
+            } else if (match(TokenKind::LeftParen)) {
                 formal.typeClass = FormalTypeClass::Discrete;
-            }
-            while (!check(TokenKind::Semicolon) && !check(TokenKind::EndOfFile)) {
-                // Formal definitions are not fully parsed yet. Do not let
-                // their token capture silently accept unsupported constructs.
-                switch (current().kind) {
-                case TokenKind::KwAliased:
-                case TokenKind::KwProtected:
-                case TokenKind::KwRequeue:
-                case TokenKind::KwUntil:
-                case TokenKind::KwInterface:
-                case TokenKind::KwSynchronized:
-                    fail("unsupported reserved word '" + current().text + "' in generic formal type definition");
-                default:
-                    break;
+                expect(TokenKind::Box, "in discrete generic formal type");
+                expect(TokenKind::RightParen, "after discrete generic formal type");
+            } else if (match(TokenKind::KwLimited)) {
+                if (!check(TokenKind::KwPrivate)) {
+                    rejectUnsupportedFormal();
                 }
                 advance();
+            } else if (!match(TokenKind::KwPrivate)) {
+                rejectUnsupportedFormal();
             }
         } else if (match(TokenKind::KwWith)) {
             formal.kind = GenericFormalKind::SubprogramFormal;

@@ -1,0 +1,2 @@
+unsupportedcontexterrors.adb:1:1: error: limited with clauses are not yet supported
+unsupportedcontexterrors.adb:5:1: error: private with clauses are not yet supported

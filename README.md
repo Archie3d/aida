@@ -216,7 +216,13 @@ tests. The sections below describe each feature and its limits.
 - **Generics:** generic packages and subprograms with private, limited private,
   discrete, integer, floating-point, ordinary fixed-point and array formal
   types; formal subprograms with defaults; scalar and composite formal objects.
-  Generic bodies are checked against their contracts.
+  Generic bodies are checked against their contracts. Formal type definitions
+  are parsed completely: `private`, `limited private`, `(<>)`, `range <>`,
+  `digits <>`, `delta <>`, and array definitions are accepted. Unsupported
+  categories and trailing definition tokens are rejected.
+  The predefined `Ada.Unchecked_Deallocation` template uses a private formal
+  internally; the compiler explicitly checks that its `Name` actual is an
+  access-to-object type whose designated subtype matches `Object`.
 - **Exceptions:** handler occurrence bindings, `raise E with Message`,
   re-raising, the main `Ada.Exceptions` inspection and saving operations, and
   source locations with an Ada call traceback in `Exception_Information`.
@@ -257,8 +263,8 @@ tests. The sections below describe each feature and its limits.
 - Extended return statements for results that are not controlled types.
 - Decimal fixed point, modular types above `2 ** 32`, and floating-point
   `'Value`.
-- Formal packages; formal derived, access, modular and decimal types; access
-  formal objects.
+- Formal packages; formal derived, access, modular, decimal, tagged and abstract
+  types; access formal objects.
 - Library-level arrays and scalar subtypes with runtime bounds,
   runtime-constrained array components and allocators, and array indices or
   lengths beyond 32 bits.
@@ -278,6 +284,11 @@ tests. The sections below describe each feature and its limits.
 are reserved words, case-insensitively, even though their constructs are not
 yet supported. They cannot be used as identifiers. Longer identifiers such as
 `Interface_Name` remain valid; comments and string literals are unaffected.
+
+Abstract subprogram declarations, task declarations, `goto`, statement labels,
+`select`, and limited/private `with` clauses receive diagnostics naming the
+unsupported construct. Recovery skips task definitions and complete select
+blocks, and preserves the statement following a label.
 
 `TODO.md` sets out the order in which these gaps are to be addressed.
 

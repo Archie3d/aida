@@ -1,0 +1,6 @@
+unsupportedconstructerrors.adb:4:46: error: abstract subprogram declarations are not yet supported
+unsupportedconstructerrors.adb:6:5: error: task declarations are not yet supported
+unsupportedconstructerrors.adb:7:5: error: task declarations are not yet supported
+unsupportedconstructerrors.adb:9:5: error: goto statements are not yet supported
+unsupportedconstructerrors.adb:10:5: error: statement labels are not yet supported
+unsupportedconstructerrors.adb:12:5: error: select statements are not yet supported

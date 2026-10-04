@@ -74,6 +74,37 @@ StmtPtr Parser::parseStatement()
     SourceLocation location = current().location;
 
     switch (current().kind) {
+    case TokenKind::KwGoto:
+        fail("goto statements are not yet supported");
+    case TokenKind::LeftLabel:
+        m_diagnostics.error(location, "statement labels are not yet supported");
+        // A label has no semicolon; leave its following statement intact.
+        advance();
+        while (!check(TokenKind::RightLabel) && !check(TokenKind::Semicolon)
+            && !check(TokenKind::EndOfFile)) {
+            advance();
+        }
+        match(TokenKind::RightLabel);
+        return nullptr;
+    case TokenKind::KwSelect: {
+        m_diagnostics.error(location, "select statements are not yet supported");
+        advance();
+        int depth = 1;
+        while (!check(TokenKind::EndOfFile) && depth > 0) {
+            if (check(TokenKind::KwEnd) && peek(1).kind == TokenKind::KwSelect) {
+                advance();
+                advance();
+                --depth;
+            } else {
+                if (check(TokenKind::KwSelect)) {
+                    ++depth;
+                }
+                advance();
+            }
+        }
+        match(TokenKind::Semicolon);
+        return nullptr;
+    }
     case TokenKind::KwRequeue:
         fail("requeue statements are not yet supported");
     case TokenKind::KwDelay:

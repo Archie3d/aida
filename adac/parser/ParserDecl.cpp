@@ -33,6 +33,46 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
 DeclPtr Parser::parseDeclarativeItem()
 {
     switch (current().kind) {
+    case TokenKind::KwTask: {
+        m_diagnostics.error(current().location, "task declarations are not yet supported");
+        advance();
+        if (check(TokenKind::KwType) || check(TokenKind::KwBody)) {
+            advance();
+        }
+        std::string name = current().lower;
+        int parentheses = 0;
+        // Discriminants and entry profiles can contain internal semicolons.
+        while (!check(TokenKind::EndOfFile)) {
+            if (parentheses == 0 && match(TokenKind::Semicolon)) {
+                return nullptr;
+            }
+            if (parentheses == 0 && match(TokenKind::KwIs)) {
+                break;
+            }
+            if (match(TokenKind::LeftParen)) {
+                ++parentheses;
+            } else if (match(TokenKind::RightParen)) {
+                --parentheses;
+            } else {
+                advance();
+            }
+        }
+        if (check(TokenKind::KwSeparate)) {
+            skipToSemicolon();
+            return nullptr;
+        }
+        while (!check(TokenKind::EndOfFile)) {
+            if (check(TokenKind::KwEnd)
+                && (peek(1).kind == TokenKind::Semicolon
+                    || (peek(1).kind == TokenKind::Identifier && peek(1).lower == name))) {
+                advance();
+                skipToSemicolon();
+                break;
+            }
+            advance();
+        }
+        return nullptr;
+    }
     case TokenKind::KwProtected:
         fail("protected declarations are not yet supported");
     case TokenKind::KwGeneric:
