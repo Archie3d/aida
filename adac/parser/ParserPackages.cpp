@@ -13,6 +13,9 @@ DeclPtr Parser::parsePackage()
         std::size_t start = m_position - 2;
         body->name = parseCompoundName(body->lower);
         expect(TokenKind::KwIs, "in package body");
+        if (check(TokenKind::KwSeparate)) {
+            fail("package body stubs ('is separate') are not yet supported");
+        }
         body->declarations = parseDeclarativePart();
         if (match(TokenKind::KwBegin)) {
             body->body = parseSequenceOfStatements();

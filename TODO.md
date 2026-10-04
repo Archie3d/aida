@@ -68,9 +68,10 @@ The main items are done; the follow-ups below close the remaining silent paths.
   `Link_Name => ...`) and extra arguments receive explicit diagnostics.
   Closing delimiters are required and trailing tokens are rejected. Covered
   by `importconventionerrors` and `importconventionsyntaxerrors`.
-- [ ] **Package body stubs.** `package body P is separate;` fails with cascading
-  parse errors ("expected a declaration", closing-name mismatch). Report a
-  single clear diagnostic, as for subprogram stubs.
+- [x] **Package body stubs.** `package body P is separate;` is rejected with a
+  single clear diagnostic at `separate`, without cascading parse errors.
+  Covered by `subprogramstuberrors` in local, nested-package, block and
+  uninstantiated-generic contexts.
 
 Tests: extend `importconventionerrors` and `subprogramstuberrors`, plus an
 executable test if `Import` defaults the external name.

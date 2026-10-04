@@ -28,10 +28,31 @@ procedure SubprogramStubErrors is
         type Item is private;
     function Generic_Function (Input : Item) return Item;
     function Generic_Function (Input : Item) return Item is separate;
+
+    package Stubbed is
+    end Stubbed;
+    package body Stubbed is SePaRaTe;
+
+    package Container is
+    end Container;
+    package body Container is
+        package Child is
+        end Child;
+        package body Child is separate;
+    end Container;
+
+    generic
+        type Item is private;
+    package Generic_Stubbed is
+    end Generic_Stubbed;
+    package body Generic_Stubbed is separate;
 begin
     declare
         procedure Block_Work is separate;
         function Block_Value return Integer is separate;
+        package Block_Package is
+        end Block_Package;
+        package body Block_Package is separate;
     begin
         null;
     end;
