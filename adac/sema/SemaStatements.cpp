@@ -380,6 +380,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         ++m_accessibilityLevel;
         Scope* inner = m_symbolTable.createScope(scope);
         analyzeDeclarativePart(block->declarations, inner);
+        reportMissingBodies(block->declarations);
         analyzeStatements(block->body, inner);
         analyzeHandlers(block->handlers, inner);
         --m_accessibilityLevel;

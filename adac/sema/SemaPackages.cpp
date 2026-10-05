@@ -141,6 +141,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     m_handlerDepth = 0;
     m_packages.push_back(symbol);
     analyzeDeclarativePart(decl->declarations, symbol->scope);
+    reportMissingBodies(decl->declarations);
     analyzeStatements(decl->body, symbol->scope);
     analyzeHandlers(decl->handlers, symbol->scope);
     m_packages.pop_back();

@@ -1,0 +1,7 @@
+integerliteralerrors.adb:2:33: error: integer literal is too large
+integerliteralerrors.adb:3:40: error: integer literal is too large
+integerliteralerrors.adb:4:42: error: based literal exponent is too large
+integerliteralerrors.adb:5:40: error: integer literal is too large
+integerliteralerrors.adb:6:37: error: based literal exponent is too large
+integerliteralerrors.adb:7:38: error: based literal is too large
+integerliteralerrors.adb:8:36: error: based literal is too large

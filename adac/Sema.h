@@ -37,6 +37,7 @@ private:
 
     // SemaDecl.cpp
     void analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete = true);
+    void reportMissingBodies(const DeclList& declarations);
     void analyzeDecl(Decl* decl, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);

@@ -21,6 +21,22 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
     }
 }
 
+// Call only for declarative parts whose bodies must be provided locally.
+// Package specifications and generic contracts can be completed later.
+void Sema::reportMissingBodies(const DeclList& declarations)
+{
+    for (const DeclPtr& decl : declarations) {
+        if (decl->kind != DeclKind::SubprogramDeclaration) {
+            continue;
+        }
+        Symbol* symbol = static_cast<SubprogramDecl*>(decl.get())->symbol;
+        if (symbol != nullptr && !symbol->hasBody) {
+            m_diagnostics.error(decl->location,
+                "subprogram '" + symbol->displayName + "' has no body");
+        }
+    }
+}
+
 void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
     switch (decl->kind) {
@@ -527,6 +543,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     m_namePrefix.push_back(symbol->name);
 
     analyzeDeclarativePart(body->declarations, inner);
+    reportMissingBodies(body->declarations);
     analyzeStatements(body->body, inner);
     analyzeHandlers(body->handlers, inner);
 

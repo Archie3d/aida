@@ -101,6 +101,10 @@ add_ada_error_test(unsupportedconstructerrors SOURCES unsupportedconstructerrors
 add_ada_error_test(unsupportedcontexterrors SOURCES unsupportedcontexterrors.adb)
 
 add_ada_test(subprogramcompletions SOURCES subprogramcompletions.adb)
+add_ada_error_test(missingbodyerrors SOURCES missingbodyerrors.adb)
+add_ada_error_test(integerliteralerrors SOURCES integerliteralerrors.adb)
+add_ada_test(integerliteralbounds SOURCES integerliteralbounds.adb)
+set_tests_properties(error.integerliteralerrors ada.integerliteralbounds PROPERTIES TIMEOUT 10)
 add_ada_error_test(subprogramstuberrors SOURCES subprogramstuberrors.adb)
 
 add_ada_test(importconventions SOURCES importconventions.adb)

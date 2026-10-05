@@ -1,5 +1,6 @@
 controllederrors.adb:9:5: error: an abstract type cannot be used to create an object
 controllederrors.adb:26:9: error: a private type and its completion must agree on abstractness
 controllederrors.adb:24:9: error: 'Root' is never described
+controllederrors.adb:17:5: error: subprogram 'Make' has no body
 controllederrors.adb:31:5: error: limited controlled objects cannot be assigned
 controllederrors.adb:32:10: error: a limited controlled type has no predefined equality

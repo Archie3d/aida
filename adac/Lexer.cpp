@@ -1,5 +1,6 @@
 #include "Lexer.h"
 
+#include <cerrno>
 #include <cctype>
 #include <climits>
 #include <cmath>
@@ -227,6 +228,29 @@ Token Lexer::lexNumericLiteral()
         return lexBasedLiteral(location, integerPart);
     }
 
+    auto integerToken = [&](const std::string& digits) {
+        errno = 0;
+        long long power = std::strtoll(digits.c_str(), nullptr, 10);
+        bool overflowed = errno == ERANGE;
+        errno = 0;
+        long long value = std::strtoll(integerPart.c_str(), nullptr, 10);
+        overflowed = overflowed || errno == ERANGE;
+        for (long long i = 0; value != 0 && i < power && !overflowed; ++i) {
+            if (value > LLONG_MAX / 10) {
+                overflowed = true;
+            } else {
+                value *= 10;
+            }
+        }
+        if (overflowed) {
+            m_diagnostics.error(location, "integer literal is too large");
+            value = 0;
+        }
+        Token token = makeToken(TokenKind::IntegerLiteral, location, text);
+        token.intValue = value;
+        return token;
+    };
+
     bool isReal = false;
     if (peek() == '.' && isDigit(peek(1))) {
         isReal = true;
@@ -252,14 +276,7 @@ Token Lexer::lexNumericLiteral()
                 m_diagnostics.error(location, "integer literal cannot have a negative exponent");
             }
             if (!isReal) {
-                long long power = std::strtoll(digits.c_str(), nullptr, 10);
-                long long value = std::strtoll(integerPart.c_str(), nullptr, 10);
-                for (long long i = 0; i < power; ++i) {
-                    value *= 10;
-                }
-                Token token = makeToken(TokenKind::IntegerLiteral, location, text);
-                token.intValue = value;
-                return token;
+                return integerToken(digits);
             }
         }
     }
@@ -270,9 +287,7 @@ Token Lexer::lexNumericLiteral()
         return token;
     }
 
-    Token token = makeToken(TokenKind::IntegerLiteral, location, text);
-    token.intValue = std::strtoll(text.c_str(), nullptr, 10);
-    return token;
+    return integerToken("0");
 }
 
 // A based literal spells its value in a base from 2 to 16.  It may carry a
@@ -378,7 +393,12 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
                     spelling.push_back(c);
                 }
             }
+            errno = 0;
             power = std::strtoll(digits.c_str(), nullptr, 10);
+            if (errno == ERANGE) {
+                m_diagnostics.error(location, "based literal exponent is too large");
+                power = 0;
+            }
             if (negativePower && !isReal) {
                 m_diagnostics.error(location, "integer literal cannot have a negative exponent");
                 negativePower = false;
@@ -393,7 +413,7 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
         return token;
     }
 
-    for (long long i = 0; i < power && !overflowed; ++i) {
+    for (long long i = 0; wholeValue != 0 && i < power && !overflowed; ++i) {
         if (wholeValue > LLONG_MAX / base) {
             overflowed = true;
         } else {

@@ -285,6 +285,11 @@ are reserved words, case-insensitively, even though their constructs are not
 yet supported. They cannot be used as identifiers. Longer identifiers such as
 `Interface_Name` remain valid; comments and string literals are unaffected.
 
+Local procedure and function declarations in subprogram bodies, blocks, and
+package bodies must have a completion or an import; missing bodies are diagnosed
+even when the subprogram is never called. Checking missing completions across
+package specifications and separately compiled library units remains incomplete.
+
 Abstract subprogram declarations, task declarations, `goto`, statement labels,
 `select`, and limited/private `with` clauses receive diagnostics naming the
 unsupported construct. Recovery skips task definitions and complete select
@@ -317,6 +322,11 @@ addition, subtraction, multiplication, division, negation, `abs`, and `**`
 for machine-range overflow. Division, `rem`, and `mod` check zero divisors.
 These failures raise `Constraint_Error`, as do out-of-range numeric conversions.
 The checked operations currently call C runtime helpers, which adds call overhead.
+
+Integer literals are limited to `0 .. 9223372036854775807`, including exponent
+scaling; larger decimal and based values are diagnosed during lexing. Integer
+exponents must also fit a signed 64-bit value. Unary minus is applied after
+lexing, so the most negative 64-bit literal remains unsupported.
 
 Modular integer declarations (`type Byte is mod 256;`) support static integer
 moduli from 1 through `2 ** 32`, including nonbinary moduli. Addition,
