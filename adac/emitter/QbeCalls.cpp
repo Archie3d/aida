@@ -365,33 +365,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             line("storel " + controllingTag + ", " + pointer);
         }
     } else if (dynamicResult) {
-        // Adopt the transfer buffer into the caller's expression lifetime.
-        std::string pointer = newTemp();
-        line(pointer + " =l loadl " + resultStorage);
-        std::string firstAddress = newTemp();
-        std::string lastAddress = newTemp();
-        line(firstAddress + " =l add " + resultStorage + ", 8");
-        line(lastAddress + " =l add " + resultStorage + ", 12");
-        std::string first = newTemp();
-        std::string last = newTemp();
-        line(first + " =w loadw " + firstAddress);
-        line(last + " =w loadw " + lastAddress);
-        if (!controlledResult) {
-            line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
-            emitExceptionCheck();
-        }
-        result = Value { pointer, 'l', first, last };
-        for (int dimension = 1; dimension < subprogram->returnType->arrayRank; ++dimension) {
-            std::string firstSlot = newTemp();
-            std::string lastSlot = newTemp();
-            std::string rowFirst = newTemp();
-            std::string rowLast = newTemp();
-            line(firstSlot + " =l add " + resultStorage + ", " + std::to_string(16 + dimension * 8));
-            line(lastSlot + " =l add " + firstSlot + ", 4");
-            line(rowFirst + " =w loadsw " + firstSlot);
-            line(rowLast + " =w loadsw " + lastSlot);
-            result.innerBounds.push_back({ rowFirst, rowLast });
-        }
+        result = consumeArrayResult(resultStorage, subprogram->returnType->arrayRank, !controlledResult);
     } else if (compositeResult) {
         result = withBounds(Value { resultStorage, 'l' }, subprogram->returnType, nullptr);
     }
@@ -469,4 +443,36 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     std::string temp = newTemp();
     line(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
     return Value { temp, type };
+}
+
+Value QbeEmitter::consumeArrayResult(const std::string& resultStorage, int rank, bool adopt)
+{
+    // Adopt the transfer buffer into the caller's expression lifetime.
+    std::string pointer = newTemp();
+    line(pointer + " =l loadl " + resultStorage);
+    std::string firstAddress = newTemp();
+    std::string lastAddress = newTemp();
+    line(firstAddress + " =l add " + resultStorage + ", 8");
+    line(lastAddress + " =l add " + resultStorage + ", 12");
+    std::string first = newTemp();
+    std::string last = newTemp();
+    line(first + " =w loadw " + firstAddress);
+    line(last + " =w loadw " + lastAddress);
+    if (adopt) {
+        line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
+        emitExceptionCheck();
+    }
+    Value result { pointer, 'l', first, last };
+    for (int dimension = 1; dimension < rank; ++dimension) {
+        std::string firstSlot = newTemp();
+        std::string lastSlot = newTemp();
+        std::string rowFirst = newTemp();
+        std::string rowLast = newTemp();
+        line(firstSlot + " =l add " + resultStorage + ", " + std::to_string(16 + dimension * 8));
+        line(lastSlot + " =l add " + firstSlot + ", 4");
+        line(rowFirst + " =w loadsw " + firstSlot);
+        line(rowLast + " =w loadsw " + lastSlot);
+        result.innerBounds.push_back({ rowFirst, rowLast });
+    }
+    return result;
 }

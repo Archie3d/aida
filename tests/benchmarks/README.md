@@ -86,3 +86,25 @@ Step 1 also measured 500,000 C-only exception raise-message/capture/arena-releas
 cycles at 0.0460 seconds before contexts and 0.0496 after contexts. This change
 does not optimize those C-only helpers. The phase-wide no-slowdown target still
 requires broader workloads and other target measurements.
+
+## Caller-owned image results
+
+`imagecalls.adb` performs 200,000 integer images and 200,000 fixed-point images,
+passes each to a nested consumer, and checks the total length. Compile it with
+the compiler/runtime revision being measured, then time alternating executions
+of the resulting binaries. For the current version:
+
+```sh
+build/ada/ada -o build/imagecalls tests/benchmarks/imagecalls.adb
+time build/imagecalls
+```
+
+On macOS arm64, using the default unoptimized CMake runtime and eleven
+alternating runs, median process wall time was 0.03447 seconds with rotating
+buffers and 0.03083 seconds with caller-owned buffers. The new path removes
+fixed-point image allocation and uses returned lengths instead of generated
+`strlen` calls. Scalar image storage is reserved in the caller's stack frame;
+unconstrained stream results separately use the existing heap-transfer ABI.
+This benchmark covers image generation, not stream allocation throughput, and
+the short timings include process startup. The phase-wide performance caveats
+above still apply.

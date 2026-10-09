@@ -598,3 +598,13 @@ add_determinism_test(generatedcontexts SOURCE generatedcontexts.adb)
 add_executable(context_access_benchmark EXCLUDE_FROM_ALL
     benchmarks/ContextAccess.c benchmarks/ContextProbe.c)
 target_link_libraries(context_access_benchmark PRIVATE adart)
+
+add_ada_test(imageresults SOURCES imageresults.adb)
+add_determinism_test(imageresults SOURCE imageresults.adb)
+add_ada_test(streamresults SOURCES streamresults.adb)
+add_determinism_test(streamresults SOURCE streamresults.adb)
+
+add_executable(result_buffers_test ResultBuffersTest.c)
+target_link_libraries(result_buffers_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.result_buffers COMMAND result_buffers_test)
+set_tests_properties(runtime.result_buffers PROPERTIES TIMEOUT 30)

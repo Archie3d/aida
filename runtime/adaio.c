@@ -8,6 +8,7 @@
 #include "adart.h"
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -1048,9 +1049,6 @@ int __ada_direct_size(AdaFileRef handle, int size)
 /* Stream_IO                                                                 */
 /* ------------------------------------------------------------------------ */
 
-#define ADA_STREAM_BUFFERS 4
-#define ADA_STREAM_BUFFER_SIZE 4096
-
 AdaFile* __ada_stream_of(AdaFileRef handle)
 {
     return __ada_file_checked(handle, ADA_MODE_ANY);
@@ -1092,40 +1090,42 @@ void __ada_stream_write_bounds(AdaFile* stream, int first, int last)
     __ada_stream_write(stream, &last, (int)sizeof last);
 }
 
-/* The value 'Input yields has nowhere to live in the compiled code, so the
-   buffers here hold it.  They rotate so that a few reads can be combined in
-   one expression. */
-void* __ada_stream_read_array(AdaFile* stream, int elementSize, int* first, int* last)
+/* Transfer a successful read using the ordinary unconstrained-result ABI.
+   Until publication, this helper owns the buffer and frees it on failure. */
+void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize)
 {
-    static char buffers[ADA_STREAM_BUFFERS][ADA_STREAM_BUFFER_SIZE];
-    static int next = 0;
-
-    char* buffer = buffers[next];
-    long count;
-
-    next = (next + 1) % ADA_STREAM_BUFFERS;
-    *first = 1;
-    *last = 0;
-
-    __ada_stream_read(stream, first, (int)sizeof *first);
-    __ada_stream_read(stream, last, (int)sizeof *last);
-    if (__ada_exception != 0) {
-        return buffer;
+    AdaArrayResult* result = descriptor;
+    *result = (AdaArrayResult) { NULL, 1, 0, 0 };
+    int first = 1, last = 0;
+    __ada_stream_read(stream, &first, sizeof first);
+    if (__ada_exception != NULL) {
+        return;
     }
-
-    count = (long)*last - (long)*first + 1;
-    if (count < 0) {
-        count = 0;
+    __ada_stream_read(stream, &last, sizeof last);
+    if (__ada_exception != NULL) {
+        return;
     }
-    if (count * elementSize > ADA_STREAM_BUFFER_SIZE) {
+    int64_t size = __ada_array_size(first, last, elementSize);
+    if (__ada_exception != NULL) {
+        return;
+    }
+    /* The stream helper's byte count is still a signed 32-bit integer. */
+    if (size > INT_MAX) {
         __ada_raise(ADA_STORAGE_ERROR);
-        *last = *first - 1;
-        return buffer;
+        return;
     }
-    if (count > 0) {
-        __ada_stream_read(stream, buffer, (int)(count * elementSize));
+    void* buffer = __ada_allocate(size == 0 ? 1 : (long)size);
+    if (buffer == NULL) {
+        return;
     }
-    return buffer;
+    if (size != 0) {
+        __ada_stream_read(stream, buffer, (int)size);
+        if (__ada_exception != NULL) {
+            free(buffer);
+            return;
+        }
+    }
+    *result = (AdaArrayResult) { buffer, first, last, size == 0 ? 1 : size };
 }
 
 /* Read and Write over a Stream_Element_Array work in bytes, since a stream

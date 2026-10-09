@@ -194,6 +194,7 @@ private:
 
     // Calls (QbeCalls.cpp).
     Value emitCall(CallExpr* expr);
+    Value consumeArrayResult(const std::string& resultStorage, int rank, bool adopt);
     Value emitRuntimeCall(CallExpr* expr, Symbol* subprogram);
 
     // Operators (QbeOperators.cpp).

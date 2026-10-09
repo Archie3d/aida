@@ -311,9 +311,10 @@ layouts are unchanged; C code must bind a context before entering Ada from a
 worker and restore any temporary binding before returning to an Ada caller.
 Generated-code tests exercise concurrent nested calls, callbacks, handlers,
 re-raises and worker-local uncaught exceptions. Ada tasking remains unsupported:
-shared file/tag/library-finalization state and result buffers still need their
-later Phase 2 work. Rebuild existing Ada objects with the matching compiler and
-runtime after this internal ABI change. ABI timing probes and the rationale
+shared file/tag/library-finalization state still needs its later Phase 2 work.
+Image and stream results now use caller-owned storage. Rebuild existing Ada
+objects with the matching compiler and runtime after this internal ABI change.
+ABI timing probes and the rationale
 are in [tests/benchmarks/README.md](tests/benchmarks/README.md).
 
 Object renaming gives an existing object another name, including record fields:
@@ -1404,7 +1405,12 @@ These interfaces follow Ada RM
 [3.5](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-3-5.html)
 and [A.10.9](https://www.adaic.org/resources/add_content/standards/12rm/html/RM-A-10-9.html).
 
-`'Image` on an enumeration value gives the literal in upper case.
+`'Image` on an enumeration value gives the complete literal in upper case,
+including names longer than 63 characters. Image helpers write into a separate
+caller-owned stack buffer for each expression and return an explicit length;
+there is no rotating buffer limit on simultaneously live images. Character
+images preserve embedded zero bytes. Fixed-point images also use this storage
+directly, without heap allocation.
 
 `Text_IO` works on files as well as on the standard ones. `File_Type`,
 `File_Mode`, `Create`, `Open`, `Close`, `Delete`, `Reset`, `Is_Open`, `Mode`,
@@ -1447,6 +1453,14 @@ the bounds of an array whose type does not fix them, which is what makes
 `String'Input` give back the string that `String'Output` wrote. `Read`, `Write`,
 `Index`, `Set_Index` and `Size` work on the file directly in terms of
 `Stream_Element_Array`.
+
+Unconstrained `'Input` results use the same caller-owned transfer descriptor and
+temporary cleanup list as unconstrained function results. Several reads in one
+expression remain independent, and payloads larger than 4 KiB are supported.
+Lengths and byte counts are still limited to signed 32-bit values. Truncated
+reads free their partial result before propagating the exception. Concurrent
+runtime tests use independently owned streams; the shared file table still
+requires the later tasking-foundation work.
 
 ```ada
 Create (Archive, Out_File, "state.dat");

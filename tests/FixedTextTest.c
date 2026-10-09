@@ -76,8 +76,9 @@ int main(void)
             long long value;
             memcpy(&value, &state, sizeof value);
             __ada_exception = NULL;
-            const char* image = __ada_image_fixed(value, bits, 30);
-            long long restored = __ada_value_fixed(image, (int)strlen(image), bits, LLONG_MIN, LLONG_MAX);
+            char image[80];
+            int length = __ada_image_fixed(image, sizeof image, value, bits, 30);
+            long long restored = __ada_value_fixed(image, length, bits, LLONG_MIN, LLONG_MAX);
             check(__ada_exception == NULL && restored == value, "exact fixed-point round trip");
         }
     }

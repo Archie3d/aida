@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define IMAGE_BUFFERS 8
 #define IMAGE_BUFFER_SIZE 64
 
 const AdaException __ada_exc_constraint_error = { "CONSTRAINT_ERROR" };
@@ -380,61 +379,56 @@ void __ada_deallocate(void* address)
     }
 }
 
-/* Integer'Image renders a leading space in front of non-negative values.  The
-   buffers rotate so that a few images can be combined in one expression. */
-const char* __ada_image_integer(int value)
+/* Images belong to the caller. Return a length as well as a C terminator so
+   Character'Image can contain a zero byte without losing its closing quote. */
+static int imageLength(int length, int capacity)
 {
-    static char buffers[IMAGE_BUFFERS][IMAGE_BUFFER_SIZE];
-    static int next = 0;
-
-    char* buffer = buffers[next];
-    next = (next + 1) % IMAGE_BUFFERS;
-
-    if (value < 0) {
-        snprintf(buffer, IMAGE_BUFFER_SIZE, "%d", value);
-    } else {
-        snprintf(buffer, IMAGE_BUFFER_SIZE, " %d", value);
+    if (length < 0 || length >= capacity) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
     }
-    return buffer;
+    return length;
+}
+
+/* Integer'Image renders a leading space in front of non-negative values. */
+int __ada_image_integer(char* buffer, int capacity, int value)
+{
+    return imageLength(snprintf(buffer, capacity > 0 ? (size_t)capacity : 0,
+                                value < 0 ? "%d" : " %d", value), capacity);
 }
 
 /* The image of an enumeration value is its literal in upper case, and the image
    of a character is the literal between its quotes. */
-const char* __ada_image_enum(int value, const char** names, int count)
+int __ada_image_enum(char* buffer, int capacity, int value, const char** names, int count)
 {
-    static char buffers[IMAGE_BUFFERS][IMAGE_BUFFER_SIZE];
-    static int next = 0;
-
-    char* buffer = buffers[next];
-    const char* name;
-    int i;
-
-    next = (next + 1) % IMAGE_BUFFERS;
-
     if (value < 0 || value >= count) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
-        buffer[0] = '\0';
-        return buffer;
+        return 0;
     }
-
-    name = names[value];
-    for (i = 0; name[i] != '\0' && i < IMAGE_BUFFER_SIZE - 1; ++i) {
+    const char* name = names[value];
+    size_t length = strlen(name);
+    if (capacity <= 0 || length >= (size_t)capacity) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    for (size_t i = 0; i < length; ++i) {
         buffer[i] = (char)toupper((unsigned char)name[i]);
     }
-    buffer[i] = '\0';
-    return buffer;
+    buffer[length] = '\0';
+    return (int)length;
 }
 
-const char* __ada_image_character(int value)
+int __ada_image_character(char* buffer, int capacity, int value)
 {
-    static char buffers[IMAGE_BUFFERS][IMAGE_BUFFER_SIZE];
-    static int next = 0;
-
-    char* buffer = buffers[next];
-    next = (next + 1) % IMAGE_BUFFERS;
-
-    snprintf(buffer, IMAGE_BUFFER_SIZE, "'%c'", value);
-    return buffer;
+    if (capacity < 4) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    buffer[0] = '\'';
+    buffer[1] = (char)value;
+    buffer[2] = '\'';
+    buffer[3] = '\0';
+    return 3;
 }
 
 /* 'Value ignores the blanks around what it is given, so both ends are trimmed
@@ -578,14 +572,10 @@ int __ada_value_integer(const char* text, int length, int low, int high)
     return (int)__ada_value_long_integer(text, length, low, high);
 }
 
-const char* __ada_image_long_integer(long long value)
+int __ada_image_long_integer(char* buffer, int capacity, long long value)
 {
-    static char buffers[IMAGE_BUFFERS][IMAGE_BUFFER_SIZE];
-    static int next = 0;
-    char* buffer = buffers[next];
-    next = (next + 1) % IMAGE_BUFFERS;
-    snprintf(buffer, IMAGE_BUFFER_SIZE, value < 0 ? "%lld" : " %lld", value);
-    return buffer;
+    return imageLength(snprintf(buffer, capacity > 0 ? (size_t)capacity : 0,
+                                value < 0 ? "%lld" : " %lld", value), capacity);
 }
 
 long long __ada_modular_operation(ModularOperation operation, long long modulus, long long left, long long right)
@@ -786,16 +776,16 @@ void __ada_put_float(double value, int fore, int aft, int exponent)
     fputs(buffer, __ada_output_stream());
 }
 
-const char* __ada_image_float(double value, int aft, int exponent)
+int __ada_image_float(char* buffer, int capacity, double value, int aft, int exponent)
 {
-    static char buffers[IMAGE_BUFFERS][IMAGE_BUFFER_SIZE];
-    static int next = 0;
-
-    char* buffer = buffers[next];
-    next = (next + 1) % IMAGE_BUFFERS;
-
-    __ada_format_float(buffer, IMAGE_BUFFER_SIZE, value, 2, aft, exponent);
-    return buffer;
+    char text[IMAGE_BUFFER_SIZE];
+    __ada_format_float(text, sizeof text, value, 2, aft, exponent);
+    int length = (int)strlen(text);
+    if (imageLength(length, capacity) == 0) {
+        return 0;
+    }
+    memcpy(buffer, text, (size_t)length + 1);
+    return length;
 }
 
 /* Ada rounds away from zero when a real value becomes an integer, while a cast
@@ -834,6 +824,11 @@ void __ada_unhandled(const AdaException* exception)
     context->m_pendingMessage = NULL;
     context->m_pendingMessageLength = 0;
 }
+
+_Static_assert(sizeof(AdaArrayResult) == 24, "array result ABI");
+_Static_assert(offsetof(AdaArrayResult, m_first) == 8, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, m_last) == 12, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, m_size) == 16, "array result size ABI");
 
 /* Internal Ada ABI: an unconstrained result carries a transfer buffer, its
    first dimension's bounds, and the buffer size. The emitter appends any

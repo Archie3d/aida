@@ -97,7 +97,7 @@ void __ada_stream_write(AdaFile* stream, const void* item, int size);
 /* 'Output writes the bounds of an array ahead of its elements, and 'Input
    reads them back into a buffer the run time owns. */
 void __ada_stream_write_bounds(AdaFile* stream, int first, int last);
-void* __ada_stream_read_array(AdaFile* stream, int elementSize, int* first, int* last);
+void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize);
 
 void __ada_stream_elements_read(AdaFileRef handle, void* item, int length, int first, int* last);
 void __ada_stream_elements_write(AdaFileRef handle, const void* item, int length);

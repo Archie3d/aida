@@ -101,7 +101,8 @@ Current state: the C run time has a bindable per-task context. Each generated
 subprogram caches the context returned by traceback entry; exception checks
 and handlers load the pending exception at offset zero from that pointer. The
 binder fetches its context once as well. C workers can call the tested Ada
-subset under separate contexts; shared tables and result buffers remain below.
+subset under separate contexts. Image and stream results are caller-owned;
+shared tables remain below.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
@@ -131,11 +132,15 @@ redesigning. The shared state is in the C run time.
   structure checks, `determinism.generatedcontexts`, and updated IR goldens.
   The phase-wide no-slowdown goal still needs broader/other-target validation;
   Step 1's exception-helper-only overhead is not removed by this emitter ABI.
-- [ ] **Result buffers.** `'Image`, fixed-point text and stream helpers return
-  pointers into rotating static buffers (`IMAGE_BUFFERS`,
-  `ADA_STREAM_BUFFERS`). They are not task-safe, and they limit how many results
-  one expression can combine. Return the results in caller-owned temporary
-  storage, as unconstrained function results already are.
+- [x] **Result buffers.** Removed rotating static image, fixed-point text and
+  stream-result buffers. Images write into per-expression caller stack storage
+  sized from the type, returning explicit lengths; fixed-point images no longer
+  allocate. Unconstrained stream input uses the existing owned-array descriptor
+  and shared caller-adoption path, releasing partial reads on failure. The 4 KiB
+  stream cap is gone; signed 32-bit length/byte-count limits remain. Covered by
+  `imageresults`, `streamresults`, their determinism tests and
+  `runtime.result_buffers` (four workers, allocation/adoption failure and
+  truncated input). The image benchmark is recorded in `tests/benchmarks/README.md`.
 - [ ] **Shared run-time tables.** Protect the file table and current input/output
   (`adaio.c`), tag registrations (`adatags.c`) and library finalization with a
   run-time lock, or give them a single owner.

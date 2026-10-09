@@ -173,6 +173,7 @@ void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, 
    member finalizes its active controlled parts before releasing storage. */
 void* __ada_allocate(long size);
 void __ada_deallocate(void* address);
+int64_t __ada_array_size(int first, int last, int64_t elementSize);
 void* __ada_array_local(void** owner, int first, int last, int64_t elementSize);
 void __ada_array_release(void** owner);
 void __ada_array_rewind(void** owner, void* checkpoint);
@@ -180,6 +181,14 @@ void __ada_array_adopt(void** owner, void* data);
 
 /* Internal unconstrained-array return descriptor: pointer, two 32-bit bounds,
    and a 64-bit transfer size. The caller owns and releases the buffer. */
+typedef struct AdaArrayResult
+{
+    void* m_data;
+    int32_t m_first;
+    int32_t m_last;
+    int64_t m_size;
+} AdaArrayResult;
+
 void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize);
 
 /* Tagged descriptors preserve their first three layout words. Local tag
@@ -211,7 +220,7 @@ int __ada_tag_is_abstract(void* tag);
 void __ada_tag_check_copy(const void* object);
 
 /* Exact fixed-point text conversion; values use signed scaled counts. */
-const char* __ada_image_fixed(long long value, int bits, int aft);
+int __ada_image_fixed(char* buffer, int capacity, long long value, int bits, int aft);
 long long __ada_value_fixed(const char* text, int length, int bits, long long low, long long high);
 int __ada_fixed_scale(double small);
 void __ada_fixed_put_string(char* to, int length, long long value, int bits, int aft, int exponent);
@@ -223,12 +232,16 @@ long long __ada_fixed_get_string(const char* from, int length, int bits, long lo
    for plain decimal notation. */
 void __ada_format_float(char* buffer, int size, double value, int fore, int aft, int exponent);
 
-/* 'Image, whose enumeration form needs the literal names the emitter records
-   for the type. */
-const char* __ada_image_integer(int value);
-const char* __ada_image_long_integer(long long value);
-const char* __ada_image_enum(int value, const char** names, int count);
-const char* __ada_image_character(int value);
+/* Images write into caller-owned storage, including a trailing C zero, and
+   return the Ada length (which may include an embedded zero). The emitter
+   reserves 64 bytes for numeric images, at least max literal length + 1 for enums,
+   and at least max(aft, 1) + 24 bytes for fixed-point images. A short buffer
+   raises Storage_Error. No pointer to runtime scratch storage escapes. */
+int __ada_image_float(char* buffer, int capacity, double value, int aft, int exponent);
+int __ada_image_integer(char* buffer, int capacity, int value);
+int __ada_image_long_integer(char* buffer, int capacity, long long value);
+int __ada_image_enum(char* buffer, int capacity, int value, const char** names, int count);
+int __ada_image_character(char* buffer, int capacity, int value);
 
 /* 'Value, which reads back what 'Image wrote.  Surrounding blanks are ignored,
    and anything else raises Constraint_Error. */

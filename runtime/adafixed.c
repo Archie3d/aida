@@ -239,7 +239,8 @@ int __ada_fixed_scale(double small)
 
 /* Produce exact terminating decimal digits (at most 19+30), then round in
    decimal. Requested padding never changes which digits are significant. */
-static char* formatFixed(long long value, int bits, int fore, int aft, int exponent, int image)
+static char* formatFixed(long long value, int bits, int fore, int aft, int exponent, int image,
+                         char* target, int capacity)
 {
     char digits[80], rounded[80], exponentDigits[24];
     uint64_t magnitude = value < 0 ? (uint64_t)(-(value + 1)) + 1 : (uint64_t)value;
@@ -286,7 +287,8 @@ static char* formatFixed(long long value, int bits, int fore, int aft, int expon
     long long length = padding + sign + before + 1LL + aft
         + (exponent != 0 ? 2 + exponentPadding + exponentCount : 0);
     if (length >= INT_MAX) { __ada_raise(ADA_LAYOUT_ERROR); return NULL; }
-    char* result = malloc((size_t)length + 1);
+    if (target != NULL && length >= capacity) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
+    char* result = target != NULL ? target : malloc((size_t)length + 1);
     if (result == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
     size_t cursor = 0;
     memset(result, ' ', (size_t)padding);
@@ -307,21 +309,18 @@ static char* formatFixed(long long value, int bits, int fore, int aft, int expon
     return result;
 }
 
-const char* __ada_image_fixed(long long value, int bits, int aft)
+int __ada_image_fixed(char* buffer, int capacity, long long value, int bits, int aft)
 {
-    static char* buffers[8];
-    static unsigned int next;
-    unsigned int slot = next++ % 8;
-    free(buffers[slot]);
-    buffers[slot] = formatFixed(value, bits, 0, aft, 0, 1);
-    return buffers[slot] != NULL ? buffers[slot] : "";
+    if (capacity <= 0) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+    char* text = formatFixed(value, bits, 0, aft, 0, 1, buffer, capacity);
+    return text != NULL ? (int)strlen(text) : 0;
 }
 
 void __ada_fixed_put(AdaFileRef handle, long long value, int bits, int fore, int aft, int exponent)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     if (file == NULL) { return; }
-    char* text = formatFixed(value, bits, fore, aft, exponent, 0);
+    char* text = formatFixed(value, bits, fore, aft, exponent, 0, NULL, 0);
     if (text != NULL) {
         if (fputs(text, file->stream) == EOF) { __ada_raise(ADA_DEVICE_ERROR); }
         free(text);
@@ -330,7 +329,7 @@ void __ada_fixed_put(AdaFileRef handle, long long value, int bits, int fore, int
 
 void __ada_fixed_put_string(char* to, int length, long long value, int bits, int aft, int exponent)
 {
-    char* text = formatFixed(value, bits, 0, aft, exponent, 0);
+    char* text = formatFixed(value, bits, 0, aft, exponent, 0, NULL, 0);
     if (text == NULL) { return; }
     size_t size = strlen(text);
     if (size > (size_t)length) { __ada_raise(ADA_LAYOUT_ERROR); }

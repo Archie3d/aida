@@ -1,6 +1,8 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+#include <algorithm>
+
 using QbeSupport::constantValue;
 using QbeSupport::isFloatClass;
 using QbeSupport::isUnconstrainedArray;
@@ -56,33 +58,38 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "image") {
         Value value = emitExpr(expr->arguments.front().get());
-        std::string temp = newTemp();
         Type* base = baseType(prefixType);
+        long long capacity = 64;
         if (base != nullptr && base->kind == TypeKind::Fixed) {
-            line(temp + " =l call $__ada_image_fixed(l " + value.name + ", w "
+            capacity = std::max(64LL, (long long)base->m_fixedAft + 24);
+        } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
+            for (const std::string& literal : base->literals) {
+                capacity = std::max(capacity, (long long)literal.size() + 1);
+            }
+        }
+        std::string buffer = allocScratch(capacity);
+        std::string length = newTemp();
+        std::string destination = "l " + buffer + ", w " + std::to_string(capacity) + ", ";
+        if (base != nullptr && base->kind == TypeKind::Fixed) {
+            line(length + " =w call $__ada_image_fixed(" + destination + "l " + value.name + ", w "
                  + std::to_string(base->m_fixedBits) + ", w " + std::to_string(base->m_fixedAft) + ")");
-            emitExceptionCheck();
         } else if (isFloatClass(value.type)) {
             std::string wide = widenToDouble(value);
-            line(temp + " =l call $__ada_image_float(d " + wide + ", w " + std::to_string(defaultAft(prefixType))
-                 + ", w 3)");
+            line(length + " =w call $__ada_image_float(" + destination + "d " + wide + ", w "
+                 + std::to_string(defaultAft(prefixType)) + ", w 3)");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
-            // Ada spells the image of an enumeration value in upper case.
-            line(temp + " =l call $__ada_image_enum(w " + value.name + ", l " + enumTableFor(base) + ", w "
-                 + std::to_string(base->literals.size()) + ")");
+            line(length + " =w call $__ada_image_enum(" + destination + "w " + value.name + ", l "
+                 + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
-            // Character, whose image is the literal in its quotes.
-            line(temp + " =l call $__ada_image_character(w " + value.name + ")");
+            line(length + " =w call $__ada_image_character(" + destination + "w " + value.name + ")");
         } else {
-            line(temp + " =l call $" + (value.type == 'l' ? "__ada_image_long_integer(l " : "__ada_image_integer(w ")
-                 + value.name + ")");
+            line(length + " =w call $" + (value.type == 'l' ? "__ada_image_long_integer(" : "__ada_image_integer(")
+                 + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")");
         }
-        std::string size = newTemp();
-        line(size + " =l call $strlen(l " + temp + ")");
-        std::string length = newTemp();
-        line(length + " =w copy " + size);
-        return Value { temp, 'l', "1", length };
+        emitExceptionCheck();
+        return Value { buffer, 'l', "1", length };
     }
+
     if (name == "tag" || name == "external_tag") {
         Symbol* symbol = nullptr;
         if (expr->prefix->kind == ExprKind::Identifier) {
@@ -202,18 +209,11 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 
     if (name == "input") {
         if (isUnconstrainedArray(prefixType)) {
-            std::string firstSlot = allocScratch(4);
-            std::string lastSlot = allocScratch(4);
-            std::string buffer = newTemp();
-            line(buffer + " =l call $__ada_stream_read_array(l " + stream.name + ", w "
-                 + std::to_string(typeSize(prefixType->element)) + ", l " + firstSlot + ", l " + lastSlot + ")");
+            std::string descriptor = allocScratch(24);
+            line("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", w "
+                 + std::to_string(typeSize(prefixType->element)) + ")");
             emitExceptionCheck();
-
-            std::string first = newTemp();
-            line(first + " =w loadsw " + firstSlot);
-            std::string last = newTemp();
-            line(last + " =w loadsw " + lastSlot);
-            return Value { buffer, 'l', first, last };
+            return consumeArrayResult(descriptor, 1, true);
         }
 
         long long size = typeSize(prefixType);
