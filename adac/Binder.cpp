@@ -22,6 +22,7 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     std::string unhandled = "@unhandled";
 
     out << "\nexport function w $main(w %argc, l %argv) {\n@start\n";
+    out << "    %.taskContext =l call $__ada_task_context()\n";
     out << "    call $__ada_command_line_init(w %argc, l %argv)\n";
 
     // A unit whose elaboration failed leaves the ones after it unelaborated, so
@@ -31,7 +32,7 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
         std::string raised = "%.t" + std::to_string(temp++);
         std::string next = "@elaborated." + std::to_string(label++);
         out << "    call $" << elaborationName(unit) << "()\n";
-        out << "    " << pending << " =l loadl $__ada_main_context\n";
+        out << "    " << pending << " =l loadl %.taskContext\n";
         out << "    " << raised << " =w cnel " << pending << ", 0\n";
         out << "    jnz " << raised << ", @shutdown, " << next << "\n";
         out << next << "\n";
@@ -46,13 +47,13 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
 
     std::string pending = "%.t" + std::to_string(temp++);
     std::string raised = "%.t" + std::to_string(temp++);
-    out << "    " << pending << " =l loadl $__ada_main_context\n";
+    out << "    " << pending << " =l loadl %.taskContext\n";
     out << "    " << raised << " =w cnel " << pending << ", 0\n";
     out << "    jnz " << raised << ", " << unhandled << ", @done\n";
 
     std::string occurrence = "%.t" + std::to_string(temp++);
     out << unhandled << "\n";
-    out << "    " << occurrence << " =l loadl $__ada_main_context\n";
+    out << "    " << occurrence << " =l loadl %.taskContext\n";
     out << "    call $__ada_unhandled(l " << occurrence << ")\n";
     out << "    ret 1\n";
 

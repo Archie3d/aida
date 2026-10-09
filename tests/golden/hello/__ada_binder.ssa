@@ -1,24 +1,25 @@
 
 export function w $main(w %argc, l %argv) {
 @start
+    %.taskContext =l call $__ada_task_context()
     call $__ada_command_line_init(w %argc, l %argv)
     call $ada_elab.ada_spec()
-    %.t0 =l loadl $__ada_main_context
+    %.t0 =l loadl %.taskContext
     %.t1 =w cnel %.t0, 0
     jnz %.t1, @shutdown, @elaborated.0
 @elaborated.0
     call $ada_elab.ada_io_exceptions_spec()
-    %.t2 =l loadl $__ada_main_context
+    %.t2 =l loadl %.taskContext
     %.t3 =w cnel %.t2, 0
     jnz %.t3, @shutdown, @elaborated.1
 @elaborated.1
     call $ada_elab.ada_text_io_spec()
-    %.t4 =l loadl $__ada_main_context
+    %.t4 =l loadl %.taskContext
     %.t5 =w cnel %.t4, 0
     jnz %.t5, @shutdown, @elaborated.2
 @elaborated.2
     call $ada_elab.hello_body()
-    %.t6 =l loadl $__ada_main_context
+    %.t6 =l loadl %.taskContext
     %.t7 =w cnel %.t6, 0
     jnz %.t7, @shutdown, @elaborated.3
 @elaborated.3
@@ -26,11 +27,11 @@ export function w $main(w %argc, l %argv) {
     jmp @shutdown
 @shutdown
     call $__ada_library_finalize()
-    %.t8 =l loadl $__ada_main_context
+    %.t8 =l loadl %.taskContext
     %.t9 =w cnel %.t8, 0
     jnz %.t9, @unhandled, @done
 @unhandled
-    %.t10 =l loadl $__ada_main_context
+    %.t10 =l loadl %.taskContext
     call $__ada_unhandled(l %.t10)
     ret 1
 @done

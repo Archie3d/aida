@@ -362,11 +362,13 @@ void QbeEmitter::finishFunction(const std::string& signature)
     }
     text += context.prologue.str();
     text += "    %.trace =l alloc8 24\n";
+    text += "    %.traceLocation =l add %.trace, 16\n";
     // Intern in a fixed order: string concatenation does not sequence its
     // operands, and both helpers assign IDs in the shared string pool.
     std::string traceName = stringData(context.traceName);
     std::string traceLocation = sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {});
-    text += "    call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
+    // Trace entry fetches the bound task context once without an extra call.
+    text += "    %.taskContext =l call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
     // Allocations may occur in a branch emitted after an early return. Once
     // the whole body is known, release the activation's list at every exit.
     std::istringstream bodyLines(context.body.str());
@@ -383,7 +385,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
             text += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
         }
         if (bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_trace_leave(l %.trace)\n";
+            text += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
         }
         text += bodyLine + "\n";
     }

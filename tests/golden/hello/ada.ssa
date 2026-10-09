@@ -4,8 +4,9 @@ data $.ada.str.1 = { b "<unknown>" 0 }
 export function $ada_elab.ada_spec() {
 @start
     %.trace =l alloc8 24
-    call $__ada_trace_enter(l %.trace, l $.ada.str.0, l $.ada.str.1)
-    call $__ada_trace_leave(l %.trace)
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada.str.0, l $.ada.str.1)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }
 

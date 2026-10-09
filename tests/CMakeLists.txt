@@ -579,3 +579,22 @@ add_ada_test(controlledcompletion SOURCES controlled_result_model.ads controlled
     controlled_completion_model.ads controlled_completion_model.adb controlledcompletion.adb)
 add_determinism_test(controlledcompletion SOURCE controlledcompletion.adb)
 add_ada_error_test(controlledconstructionerrors SOURCES controlledconstructionerrors.adb)
+
+add_test(NAME runtime.generated_contexts
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/generatedcontexts.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/GeneratedContexts.c
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/generatedcontexts
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunGeneratedContexts.cmake
+)
+set_tests_properties(runtime.generated_contexts PROPERTIES TIMEOUT 30)
+add_determinism_test(generatedcontexts SOURCE generatedcontexts.adb)
+
+# Timing is opt-in, never a noisy pass/fail threshold in the regression suite.
+add_executable(context_access_benchmark EXCLUDE_FROM_ALL
+    benchmarks/ContextAccess.c benchmarks/ContextProbe.c)
+target_link_libraries(context_access_benchmark PRIVATE adart)

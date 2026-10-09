@@ -118,8 +118,8 @@ void QbeEmitter::line(const std::string& text)
     bool cleanup = text.find("$__ada_array_rewind(") != std::string::npos
         || text.find("$__ada_array_release(") != std::string::npos;
     if (call && !cleanup && m_context->sourceLocation.line > 0) {
-        m_context->body << "    call $__ada_trace_location(l "
-                        << sourceLocationData(m_context->sourceLocation) << ")\n";
+        m_context->body << "    storel " << sourceLocationData(m_context->sourceLocation)
+                        << ", %.traceLocation\n";
     }
     m_context->body << "    " << text << "\n";
 }

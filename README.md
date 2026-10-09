@@ -303,11 +303,18 @@ exceptions, messages, tracebacks, trace frames, and allocation/finalization
 registries. C workers can bind separate caller-owned contexts; each context
 must outlive its masters and be disposed after cleanup. Allocation and
 finalization registry operations must run in the owning context. Concurrent
-runtime tests cover these operations, but Ada tasking remains unsupported:
-generated Ada code still reads the main context directly, pending the next
-context-access ABI step. Shared file/tag/library-finalization state and result
-buffers still need their later Phase 2 work. Rebuild existing Ada objects with
-the matching compiler and runtime after this internal ABI change.
+runtime tests cover these operations. Generated subprograms cache the context
+returned by traceback entry, read pending exceptions at offset zero, update
+their own trace frame directly, and pass the cached context to traceback exit.
+The binder fetches its context once. Ada/C parameter lists and nested callback
+layouts are unchanged; C code must bind a context before entering Ada from a
+worker and restore any temporary binding before returning to an Ada caller.
+Generated-code tests exercise concurrent nested calls, callbacks, handlers,
+re-raises and worker-local uncaught exceptions. Ada tasking remains unsupported:
+shared file/tag/library-finalization state and result buffers still need their
+later Phase 2 work. Rebuild existing Ada objects with the matching compiler and
+runtime after this internal ABI change. ABI timing probes and the rationale
+are in [tests/benchmarks/README.md](tests/benchmarks/README.md).
 
 Object renaming gives an existing object another name, including record fields:
 

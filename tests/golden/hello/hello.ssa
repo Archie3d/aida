@@ -9,25 +9,27 @@ data $.hello.str.5 = { b "hello.adb:4:1" 0 }
 export function $ada_elab.hello_body() {
 @start
     %.trace =l alloc8 24
-    call $__ada_trace_enter(l %.trace, l $.hello.str.0, l $.hello.str.1)
-    call $__ada_trace_leave(l %.trace)
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.hello.str.0, l $.hello.str.1)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }
 
 export function $hello() {
 @start
     %.trace =l alloc8 24
-    call $__ada_trace_enter(l %.trace, l $.hello.str.4, l $.hello.str.5)
-    call $__ada_trace_location(l $.hello.str.3)
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.hello.str.4, l $.hello.str.5)
+    storel $.hello.str.3, %.traceLocation
     call $__ada_put_line(l $.hello.str.2, w 13)
-    %.t5 =l loadl $__ada_main_context
+    %.t5 =l loadl %.taskContext
     %.t6 =w cnel %.t5, 0
     jnz %.t6, @propagate.1, @nothrow.2
 @nothrow.2
-    call $__ada_trace_leave(l %.trace)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 @propagate.1
-    call $__ada_trace_leave(l %.trace)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }
 

@@ -116,16 +116,15 @@ typedef struct AdaTaskContext
     struct AdaAllocation* m_registeredAllocations;
 } AdaTaskContext;
 
-/* Transitional generated-code ABI: the environment task's pending exception
-   is at offset zero. Phase 2's next step replaces direct access to this object
-   with a context pointer fetched at subprogram entry. */
+/* Generated-code ABI: pending exception at offset zero. Subprograms cache the
+   context returned by trace entry; binder entry uses __ada_task_context. */
 extern AdaTaskContext __ada_main_context;
 AdaTaskContext* __ada_task_context(void);
 
 /* Bind before using runtime helpers on a worker thread. NULL selects the main
    context; the returned previous binding must be restored before it expires.
-   Do not switch contexts across a generated Ada call. Unbound threads default
-   to the main context for the existing single-threaded entry points. */
+   Restore the binding before returning to an existing generated Ada activation.
+   Unbound threads default to the main context for single-threaded entry points. */
 AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context);
 
 /* After all masters and trace frames have exited, free a pending message and
@@ -136,9 +135,13 @@ int __ada_task_context_dispose(AdaTaskContext* context);
 /* C helpers use the bound context; there is no separate exception global. */
 #define __ada_exception (__ada_task_context()->m_exception)
 
-void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location);
+/* Entry returns the bound context for generated code to cache. Its binding
+   must stay the same until return (a C callback may switch and restore it).
+   Generated code updates its stack frame's location directly at offset 16. */
+AdaTaskContext* __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location);
 void __ada_trace_location(const char* location);
 void __ada_trace_leave(AdaTraceFrame* frame);
+void __ada_trace_leave_context(AdaTaskContext* context, AdaTraceFrame* frame);
 
 typedef struct AdaExceptionOccurrence
 {

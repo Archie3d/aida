@@ -33,6 +33,8 @@ AdaTaskContext __ada_main_context;
 static _Thread_local AdaTaskContext* currentTaskContext = &__ada_main_context;
 
 _Static_assert(offsetof(AdaTaskContext, m_exception) == 0, "pending exception context ABI");
+_Static_assert(sizeof(AdaTraceFrame) == 24, "trace frame ABI");
+_Static_assert(offsetof(AdaTraceFrame, location) == 16, "trace location ABI");
 
 AdaTaskContext* __ada_task_context(void)
 {
@@ -109,13 +111,14 @@ int __ada_get_exit_status(void)
     return exitStatus;
 }
 
-void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
+AdaTaskContext* __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
 {
     AdaTaskContext* context = __ada_task_context();
     frame->previous = context->m_currentTrace;
     frame->routine = routine;
     frame->location = location;
     context->m_currentTrace = frame;
+    return context;
 }
 
 void __ada_trace_location(const char* location)
@@ -126,10 +129,14 @@ void __ada_trace_location(const char* location)
     }
 }
 
+void __ada_trace_leave_context(AdaTaskContext* context, AdaTraceFrame* frame)
+{
+    context->m_currentTrace = frame->previous;
+}
+
 void __ada_trace_leave(AdaTraceFrame* frame)
 {
-    AdaTaskContext* context = __ada_task_context();
-    context->m_currentTrace = frame->previous;
+    __ada_trace_leave_context(__ada_task_context(), frame);
 }
 
 static void copyTrace(AdaExceptionOccurrence* target, const AdaExceptionOccurrence* source)
