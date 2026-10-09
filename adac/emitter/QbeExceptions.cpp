@@ -60,7 +60,7 @@ void QbeEmitter::emitExceptionCheck()
     std::string pending = newTemp();
     std::string raised = newTemp();
     std::string next = newLabel("nothrow");
-    line(pending + " =l loadl $__ada_exception");
+    line(pending + " =l loadl $__ada_main_context");
     line(raised + " =w cnel " + pending + ", 0");
     if (!m_context->handlerLabels.empty()) {
         branch(Value { raised, 'w' }, m_context->handlerLabels.back(), next);
@@ -78,9 +78,9 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
     rewindStorage(m_context->handlerStorage.at(dispatchLabel), false);
 
     // Save the occurrence before clearing the pending status. Nested handlers
-    // and calls may replace the global while this handler remains active.
+    // and calls may replace the context's exception while this handler is active.
     std::string pending = newTemp();
-    line(pending + " =l loadl $__ada_exception");
+    line(pending + " =l loadl $__ada_main_context");
     std::vector<std::string> bodyLabels;
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         bodyLabels.push_back(newLabel("handle"));

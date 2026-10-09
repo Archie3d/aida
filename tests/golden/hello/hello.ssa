@@ -20,7 +20,7 @@ export function $hello() {
     call $__ada_trace_enter(l %.trace, l $.hello.str.4, l $.hello.str.5)
     call $__ada_trace_location(l $.hello.str.3)
     call $__ada_put_line(l $.hello.str.2, w 13)
-    %.t5 =l loadl $__ada_exception
+    %.t5 =l loadl $__ada_main_context
     %.t6 =w cnel %.t5, 0
     jnz %.t6, @propagate.1, @nothrow.2
 @nothrow.2

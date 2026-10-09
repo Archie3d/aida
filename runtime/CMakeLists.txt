@@ -4,6 +4,7 @@ set(TARGET adart)
 # rather than a pair of sources handed to the C compiler each time, so that an
 # installed compiler carries it the way it carries anything else.
 add_library(${TARGET} STATIC)
+target_compile_features(${TARGET} PUBLIC c_std_11)
 
 if(UNIX AND NOT APPLE)
     target_link_libraries(${TARGET} PUBLIC m)

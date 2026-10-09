@@ -31,7 +31,7 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
         std::string raised = "%.t" + std::to_string(temp++);
         std::string next = "@elaborated." + std::to_string(label++);
         out << "    call $" << elaborationName(unit) << "()\n";
-        out << "    " << pending << " =l loadl $__ada_exception\n";
+        out << "    " << pending << " =l loadl $__ada_main_context\n";
         out << "    " << raised << " =w cnel " << pending << ", 0\n";
         out << "    jnz " << raised << ", @shutdown, " << next << "\n";
         out << next << "\n";
@@ -46,13 +46,13 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
 
     std::string pending = "%.t" + std::to_string(temp++);
     std::string raised = "%.t" + std::to_string(temp++);
-    out << "    " << pending << " =l loadl $__ada_exception\n";
+    out << "    " << pending << " =l loadl $__ada_main_context\n";
     out << "    " << raised << " =w cnel " << pending << ", 0\n";
     out << "    jnz " << raised << ", " << unhandled << ", @done\n";
 
     std::string occurrence = "%.t" + std::to_string(temp++);
     out << unhandled << "\n";
-    out << "    " << occurrence << " =l loadl $__ada_exception\n";
+    out << "    " << occurrence << " =l loadl $__ada_main_context\n";
     out << "    call $__ada_unhandled(l " << occurrence << ")\n";
     out << "    ret 1\n";
 

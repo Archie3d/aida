@@ -69,10 +69,6 @@ extern const AdaException __ada_exc_layout_error;
 #define ADA_DATA_ERROR (&__ada_exc_data_error)
 #define ADA_LAYOUT_ERROR (&__ada_exc_layout_error)
 
-/* The pending exception, null when there is none.  Generated code reads it
-   after every call, and writes it to raise one of its own. */
-extern const AdaException* __ada_exception;
-
 /* The binder captures the host arguments before library elaboration. */
 void __ada_command_line_init(int argc, char** argv);
 int __ada_argument_count(void);
@@ -81,7 +77,7 @@ const char* __ada_command_name(void);
 void __ada_set_exit_status(int code);
 int __ada_get_exit_status(void);
 
-/* Marks an exception as pending.  The generated code inspects the global after
+/* Marks an exception as pending.  The generated code inspects the context after
    every call and jumps to the applicable handler. */
 void __ada_raise(const AdaException* exception);
 
@@ -102,6 +98,43 @@ typedef struct AdaTraceFrame
     const char* routine;
     const char* location;
 } AdaTraceFrame;
+
+/* One context belongs to one task and may be used by only one thread at a
+   time. Zero initialization creates an empty context. Chains and arenas still
+   belong to generated stack frames; these registries only index their records.
+   Allocation/finalization operations must run in the owning context. */
+typedef struct AdaTaskContext
+{
+    const AdaException* m_exception;
+    char* m_pendingMessage;
+    int m_pendingMessageLength;
+    AdaTraceFrame* m_currentTrace;
+    const char* m_pendingOrigin;
+    int m_pendingTraceCount;
+    AdaTraceEntry m_pendingTrace[ADA_TRACE_CAPACITY];
+    struct AdaFinalization* m_registeredFinalizations;
+    struct AdaAllocation* m_registeredAllocations;
+} AdaTaskContext;
+
+/* Transitional generated-code ABI: the environment task's pending exception
+   is at offset zero. Phase 2's next step replaces direct access to this object
+   with a context pointer fetched at subprogram entry. */
+extern AdaTaskContext __ada_main_context;
+AdaTaskContext* __ada_task_context(void);
+
+/* Bind before using runtime helpers on a worker thread. NULL selects the main
+   context; the returned previous binding must be restored before it expires.
+   Do not switch contexts across a generated Ada call. Unbound threads default
+   to the main context for the existing single-threaded entry points. */
+AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context);
+
+/* After all masters and trace frames have exited, free a pending message and
+   reset the context. Returns zero without changing it if records remain live.
+   This does not unwind stacks or finalize objects on the caller's behalf. */
+int __ada_task_context_dispose(AdaTaskContext* context);
+
+/* C helpers use the bound context; there is no separate exception global. */
+#define __ada_exception (__ada_task_context()->m_exception)
 
 void __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location);
 void __ada_trace_location(const char* location);

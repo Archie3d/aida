@@ -97,22 +97,37 @@ Prepare the run time and code generator for several threads of control before
 more features depend on single-threaded behavior. Nothing here adds Ada syntax;
 the existing suite must pass unchanged, with no measurable slowdown.
 
-Current state: generated code loads one run-time global directly
-(`$__ada_exception`, in `QbeEmitter::emitExceptionCheck` and handler dispatch).
+Current state: the C run time has a bindable per-task context. Generated code
+still loads the environment task's pending exception directly from offset zero
+of `$__ada_main_context` (exception checks, handler dispatch and the binder).
+The next item replaces this transitional access with a per-subprogram context
+pointer; generated Ada code cannot yet run under a worker context.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
 
-- [ ] **Per-task context.** Gather the mutable run-time state into one context
+- [x] **Per-task context.** Gather the mutable run-time state into one context
   record: pending exception, message and trace (`adart.c`), the current trace
   frame, and the registries of finalizations and allocations. The main program
-  owns the first context; each task will own another.
+  owns the first context; each task will own another. C helpers use a C11
+  thread-local binding, with zero-initialized caller-owned contexts and checked
+  disposal after masters exit. Registry operations require the owning context.
+  Covered by `runtime.task_context` (four concurrent workers, context switching,
+  trace/message isolation and cleanup) and `runtime.array_storage` (allocation
+  failure and pending-message disposal). Library finalization and process-wide
+  command-line state remain shared; result buffers are addressed below.
 - [ ] **Generated access to the context.** QBE's `thread` data cannot serve
   every target: it is rejected for extern symbols on arm64 Linux and entirely on
   Windows amd64 (`qbe/arm64/emit.c`, `qbe/amd64/emit.c`). Have each subprogram
   fetch the context pointer once on entry (a run-time call or a hidden
   parameter), and load the pending exception at a fixed offset from it. Measure
   the cost and pick one ABI before more emitter code reads run-time state.
+  Initial context-only measurements on macOS arm64 (`cc -O2`, median of nine
+  alternating runs): 10 million trace enter/location/leave cycles increased
+  from 38.5 ms to 53.4 ms; 500,000 exception raise-message/capture/arena-release
+  cycles increased from 46.0 ms to 49.6 ms. Account for C context lookup as well
+  as generated access when evaluating the ABI; the phase's no-slowdown target
+  is not yet met.
 - [ ] **Result buffers.** `'Image`, fixed-point text and stream helpers return
   pointers into rotating static buffers (`IMAGE_BUFFERS`,
   `ADA_STREAM_BUFFERS`). They are not task-safe, and they limit how many results

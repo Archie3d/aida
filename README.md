@@ -20,7 +20,8 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 The build also compiles the vendored `qbe` submodule into `build/qbe/qbe`, and
-the C run time into `build/runtime/libadart.a`.
+the C11 run time into `build/runtime/libadart.a`. The runtime context isolation
+test requires POSIX threads (winpthreads on MSYS2).
 
 The main CTest suite includes executable Ada regressions, compiler diagnostic
 checks, a QBE IR comparison, determinism, incremental-build and separate
@@ -296,6 +297,17 @@ unsupported construct. Recovery skips task definitions and complete select
 blocks, and preserves the statement following a label.
 
 `TODO.md` sets out the order in which these gaps are to be addressed.
+
+The first tasking foundation is a per-task C runtime context holding pending
+exceptions, messages, tracebacks, trace frames, and allocation/finalization
+registries. C workers can bind separate caller-owned contexts; each context
+must outlive its masters and be disposed after cleanup. Allocation and
+finalization registry operations must run in the owning context. Concurrent
+runtime tests cover these operations, but Ada tasking remains unsupported:
+generated Ada code still reads the main context directly, pending the next
+context-access ABI step. Shared file/tag/library-finalization state and result
+buffers still need their later Phase 2 work. Rebuild existing Ada objects with
+the matching compiler and runtime after this internal ABI change.
 
 Object renaming gives an existing object another name, including record fields:
 
