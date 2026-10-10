@@ -1,6 +1,6 @@
 /* Track runtime allocation failures and leaks independently on each worker.
    libc FILE storage is deliberately outside the runtime allocation counter. */
-#include <pthread.h>
+#include "../runtime/adathread.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -162,7 +162,7 @@ static void checkStreams(void)
         __ada_exception = NULL;
         fclose(file.stream);
     }
-    CHECK(pthread_mutex_destroy(&file.m_mutex) == 0);
+    CHECK(__ada_mutex_destroy(&file.m_mutex) == 0);
 }
 
 static void* worker(void* argument)
@@ -181,12 +181,12 @@ static void* worker(void* argument)
 
 int main(void)
 {
-    pthread_t workers[4];
+    AdaThread workers[4];
     for (int i = 0; i < 4; ++i) {
-        CHECK(pthread_create(&workers[i], NULL, worker, NULL) == 0);
+        CHECK(__ada_thread_create(&workers[i], worker, NULL) == 0);
     }
     for (int i = 0; i < 4; ++i) {
-        CHECK(pthread_join(workers[i], NULL) == 0);
+        CHECK(__ada_thread_join(workers[i], NULL) == 0);
     }
     return 0;
 }

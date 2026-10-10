@@ -1,6 +1,6 @@
 #include "../runtime/adart.h"
 
-#include <pthread.h>
+#include "../runtime/adathread.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,28 +15,28 @@ enum { workerCount = 4, iterations = 200 };
    pthread hosts (macOS does not provide pthread_barrier_t). */
 typedef struct Rendezvous
 {
-    pthread_mutex_t m_mutex;
-    pthread_cond_t m_condition;
+    AdaMutex m_mutex;
+    AdaCondition m_condition;
     int m_arrived;
     int m_generation;
 } Rendezvous;
 
-static Rendezvous rendezvous = { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0, 0 };
+static Rendezvous rendezvous;
 
 static void meet(void)
 {
-    CHECK(pthread_mutex_lock(&rendezvous.m_mutex) == 0);
+    __ada_mutex_lock(&rendezvous.m_mutex);
     int generation = rendezvous.m_generation;
     if (++rendezvous.m_arrived == workerCount) {
         rendezvous.m_arrived = 0;
         ++rendezvous.m_generation;
-        CHECK(pthread_cond_broadcast(&rendezvous.m_condition) == 0);
+        CHECK(__ada_condition_broadcast(&rendezvous.m_condition) == 0);
     } else {
         while (generation == rendezvous.m_generation) {
-            CHECK(pthread_cond_wait(&rendezvous.m_condition, &rendezvous.m_mutex) == 0);
+            CHECK(__ada_condition_wait(&rendezvous.m_condition, &rendezvous.m_mutex) == 0);
         }
     }
-    CHECK(pthread_mutex_unlock(&rendezvous.m_mutex) == 0);
+    __ada_mutex_unlock(&rendezvous.m_mutex);
 }
 
 typedef struct Object
@@ -172,21 +172,23 @@ static void* runWorker(void* argument)
 
 int main(void)
 {
+    CHECK(__ada_mutex_init(&rendezvous.m_mutex) == 0);
+    CHECK(__ada_condition_init(&rendezvous.m_condition) == 0);
     testBindings();
     __ada_raise_message(ADA_TASKING_ERROR, "main", 4);
-    pthread_t workers[workerCount];
+    AdaThread workers[workerCount];
     char* names[workerCount] = { "one", "two", "three", "four" };
     for (int i = 0; i < workerCount; ++i) {
-        CHECK(pthread_create(&workers[i], NULL, runWorker, names[i]) == 0);
+        CHECK(__ada_thread_create(&workers[i], runWorker, names[i]) == 0);
     }
     for (int i = 0; i < workerCount; ++i) {
-        CHECK(pthread_join(workers[i], NULL) == 0);
+        CHECK(__ada_thread_join(workers[i], NULL) == 0);
     }
     CHECK(__ada_exception == ADA_TASKING_ERROR);
     CHECK(__ada_main_context.m_pendingMessageLength == 4);
     CHECK(memcmp(__ada_main_context.m_pendingMessage, "main", 4) == 0);
     CHECK(__ada_task_context_dispose(&__ada_main_context));
-    CHECK(pthread_cond_destroy(&rendezvous.m_condition) == 0);
-    CHECK(pthread_mutex_destroy(&rendezvous.m_mutex) == 0);
+    CHECK(__ada_condition_destroy(&rendezvous.m_condition) == 0);
+    CHECK(__ada_mutex_destroy(&rendezvous.m_mutex) == 0);
     return 0;
 }

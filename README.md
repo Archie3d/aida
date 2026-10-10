@@ -312,7 +312,27 @@ layouts are unchanged; C code must bind a context before entering Ada from a
 worker and restore any temporary binding before returning to an Ada caller.
 Generated-code tests exercise concurrent nested calls, callbacks, handlers,
 re-raises and worker-local uncaught exceptions. Ada tasking remains unsupported:
-the general threading layer, masters and task syntax remain later work.
+masters, activation and task syntax remain later work.
+
+The internal C threading API in `runtime/adathread.h` provides joinable threads,
+mutex initialization/destruction/try-lock (extending `adalock`), condition
+variables, and monotonic nanosecond clocks and deadlines. Timed waits use
+`CLOCK_MONOTONIC` condition attributes on POSIX/winpthreads and relative waits
+on macOS, without a wall-clock fallback. Callers own synchronization objects,
+join their threads, and bind/dispose task contexts explicitly. Waiters recheck
+predicates under the mutex; status functions return POSIX error numbers.
+The existing runtime lock/unlock helpers still abort on invariant violations.
+
+Atomic load/store helpers cover naturally aligned 8-, 16-, 32- and 64-bit
+scalar bit patterns with sequential consistency. GCC/Clang native atomics are
+required at build time; no additional `libatomic` link dependency is introduced.
+All concurrent accesses to an object must use the helpers. These will also serve
+future scalar `Volatile` lowering with stronger atomicity; composite objects,
+unaligned storage and device memory are outside this ABI. `Atomic` and `Volatile`
+pragmas remain rejected until Phase 4. `runtime.threading` tests synchronization,
+deadlines and atomic publication; context and result-buffer tests exercise the
+layer while running runtime helpers from multiple workers. Existing generated
+code and runtime lock/unlock paths gain no additional calls.
 File operations use per-file mutexes across validation and use. The table lock
 protects pool reservations and current selections, and is released before
 waiting for a file lock or performing blocking I/O. Pins prevent slot reuse

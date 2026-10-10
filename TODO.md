@@ -103,7 +103,8 @@ and handlers load the pending exception at offset zero from that pointer. The
 binder fetches its context once as well. C workers can call the tested Ada
 subset under separate contexts. Image and stream results are caller-owned;
 file and tag tables are locked, and library lifetime storage belongs to the
-environment task. General threading primitives and master hooks remain below.
+environment task. The C threading layer provides joinable threads, mutexes,
+monotonic condition waits and scalar atomic access; master hooks remain below.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
@@ -153,14 +154,23 @@ redesigning. The shared state is in the C run time.
   Collections reject allocation from a different context. No generated callback
   runs under a runtime mutex. Covered by `runtime.shared_tables`, `filesnapshots`
   and its determinism test, including concurrent first use and slot reuse.
-  `adalock` supplies only the private mutex operations needed here; the general
-  threading layer remains next. `runtime.blocking_io` verifies unrelated file
+  `adalock` supplies the private mutex operations needed here, extended by the
+  threading layer below. `runtime.blocking_io` verifies unrelated file
   progress during blocked text, stream and fixed reads, including Close/Reset
   waiters; the table lock is never held across blocking I/O or file-lock waits.
-- [ ] **Threading layer.** Put a thin C layer over POSIX threads (winpthreads on
-  MSYS2) for threads, mutexes, condition variables and monotonic clocks. It also
-  supplies the atomic loads and stores that QBE lacks, for `Atomic` and
-  `Volatile` objects.
+- [x] **Threading layer.** `adathread` provides a thin C layer over POSIX threads
+  (winpthreads on MSYS2): joinable threads, mutex lifecycle/try-lock, condition
+  variables and monotonic nanosecond clocks/deadlines. macOS uses relative
+  condition waits; other hosts select `CLOCK_MONOTONIC` explicitly. Status
+  functions return POSIX errors; callers own thread/context lifetimes.
+  Sequentially consistent 8/16/32/64-bit atomic loads/stores operate on naturally
+  aligned scalar storage, ready for Phase 4 `Atomic`/`Volatile` lowering.
+  Native lock-free support is required, avoiding a new linker dependency.
+  Covered by `runtime.threading` (contention, signal/broadcast, timeout,
+  thread results and atomic publication), plus `runtime.task_context` and
+  `runtime.result_buffers` using the layer. All 355 tests and a focused
+  ThreadSanitizer run pass on macOS; Linux/MSYS2 execution remains host
+  validation work. No generated code or existing lock/unlock path is changed.
 - [ ] **Masters and activation hooks.** Every master (subprogram, block, library
   level, access-type collection) gets an exit point that will wait for its
   dependent tasks before finalizing objects, in the same place the finalization
