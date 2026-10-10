@@ -427,6 +427,13 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { "0", 'w' };
     }
 
+    if (subprogram->runtimeSymbol == "$__ada_file_name") {
+        std::string descriptor = allocScratch(24);
+        line("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")");
+        emitExceptionCheck();
+        return consumeArrayResult(descriptor, 1, true);
+    }
+
     if (isUnconstrainedArray(subprogram->returnType)) {
         // A run time function that yields a string hands back a C string, so
         // its bounds are recovered here.

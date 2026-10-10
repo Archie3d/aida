@@ -50,7 +50,9 @@ AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context)
 int __ada_task_context_dispose(AdaTaskContext* context)
 {
     if (context == NULL || context->m_currentTrace != NULL
-        || context->m_registeredFinalizations != NULL || context->m_registeredAllocations != NULL) {
+        || context->m_registeredFinalizations != NULL || context->m_registeredAllocations != NULL
+        || context->m_libraryFinalizations != NULL || context->m_libraryFinalizationArena != NULL
+        || context->m_libraryFinalizing) {
         return 0;
     }
     free(context->m_pendingMessage);
@@ -773,7 +775,7 @@ void __ada_put_float(double value, int fore, int aft, int exponent)
     char buffer[128];
 
     __ada_format_float(buffer, (int)sizeof buffer, value, fore, aft, exponent);
-    fputs(buffer, __ada_output_stream());
+    __ada_put(buffer, (int)strlen(buffer));
 }
 
 int __ada_image_float(char* buffer, int capacity, double value, int aft, int exponent)
@@ -980,10 +982,16 @@ long long __ada_float_to_fixed(double value, int bits)
 
 _Static_assert(sizeof(AdaFinalization) == 40, "finalization record ABI");
 
-/* Library lifetime storage remains shared until the shared-table phase. Only
-   the environment task may register or finalize library objects for now. */
-static AdaFinalization* libraryFinalizations;
-static void* libraryFinalizationArena;
+/* Library masters belong to the environment task. Reject foreign-context
+   access before touching the chain; callbacks run without a global lock. */
+static int requireLibraryOwner(void)
+{
+    if (__ada_task_context() != &__ada_main_context) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return 0;
+    }
+    return 1;
+}
 
 static AdaFinalization* findFinalization(void* object)
 {
@@ -1096,13 +1104,25 @@ void __ada_controlled_activate(void* object, void (*finalize)(void*))
    including the successfully constructed parts of a failed elaboration. */
 void __ada_library_reserve(void* object, void (*finalize)(void*))
 {
-    __ada_finalization_reserve(&libraryFinalizations, &libraryFinalizationArena, object, finalize);
+    if (!requireLibraryOwner()) {
+        return;
+    }
+    __ada_finalization_reserve(&__ada_main_context.m_libraryFinalizations, &__ada_main_context.m_libraryFinalizationArena, object, finalize);
 }
 
 void __ada_library_finalize(void)
 {
-    __ada_finalize_to(&libraryFinalizations, NULL);
-    __ada_array_release(&libraryFinalizationArena);
+    if (!requireLibraryOwner()) {
+        return;
+    }
+    if (__ada_main_context.m_libraryFinalizing) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    __ada_main_context.m_libraryFinalizing = 1;
+    __ada_finalize_to(&__ada_main_context.m_libraryFinalizations, NULL);
+    __ada_array_release(&__ada_main_context.m_libraryFinalizationArena);
+    __ada_main_context.m_libraryFinalizing = 0;
 }
 
 typedef struct AdaCollection AdaCollection;
@@ -1119,6 +1139,7 @@ typedef struct AdaAllocation
 
 struct AdaCollection
 {
+    AdaTaskContext* m_context;
     AdaAllocation* m_allocations;
     int m_closing;
 };
@@ -1182,14 +1203,18 @@ void* __ada_collection_create(AdaFinalization** owner, void** arena)
 {
     AdaTaskContext* context = __ada_task_context();
     if (owner == NULL) {
-        owner = &libraryFinalizations;
-        arena = &libraryFinalizationArena;
+        if (!requireLibraryOwner()) {
+            return NULL;
+        }
+        owner = &__ada_main_context.m_libraryFinalizations;
+        arena = &__ada_main_context.m_libraryFinalizationArena;
     }
     AdaCollection* collection = __ada_array_local(arena, 1, 1, sizeof *collection);
     if (collection == NULL) {
         return NULL;
     }
     memset(collection, 0, sizeof *collection);
+    collection->m_context = context;
     __ada_finalization_reserve(owner, arena, collection, finalizeCollection);
     if (context->m_exception != NULL) {
         return NULL;
@@ -1202,7 +1227,7 @@ void* __ada_collection_allocate(void* owner, long size)
 {
     AdaTaskContext* context = __ada_task_context();
     AdaCollection* collection = owner;
-    if (collection == NULL || collection->m_closing) {
+    if (collection == NULL || collection->m_context != context || collection->m_closing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return NULL;
     }
@@ -1335,8 +1360,11 @@ void* __ada_tagged_owned_copy(AdaFinalization** owner, void** arena, const void*
 {
     AdaTaskContext* context = __ada_task_context();
     if (owner == NULL) {
-        owner = &libraryFinalizations;
-        arena = &libraryFinalizationArena;
+        if (!requireLibraryOwner()) {
+            return NULL;
+        }
+        owner = &__ada_main_context.m_libraryFinalizations;
+        arena = &__ada_main_context.m_libraryFinalizationArena;
     }
     const AdaTag* tag = *(const AdaTag* const*)source;
     AdaFinalization* mark = *owner;
@@ -1399,13 +1427,19 @@ void __ada_tagged_assign(void* target, const void* source, AdaFinalization** own
 
 void* __ada_construction_owner(void* allocation)
 {
-    return allocation == NULL ? (void*)&libraryFinalizations
+    if (allocation == NULL && !requireLibraryOwner()) {
+        return NULL;
+    }
+    return allocation == NULL ? (void*)&__ada_main_context.m_libraryFinalizations
         : (void*)&findAllocation(allocation)->m_finalizations;
 }
 
 void* __ada_construction_arena(void* allocation)
 {
-    return allocation == NULL ? (void*)&libraryFinalizationArena
+    if (allocation == NULL && !requireLibraryOwner()) {
+        return NULL;
+    }
+    return allocation == NULL ? (void*)&__ada_main_context.m_libraryFinalizationArena
         : (void*)&findAllocation(allocation)->m_arena;
 }
 
@@ -1447,7 +1481,7 @@ void* __ada_collection_begin(void* owner)
 {
     AdaTaskContext* context = __ada_task_context();
     AdaCollection* collection = owner;
-    if (collection == NULL || collection->m_closing) {
+    if (collection == NULL || collection->m_context != context || collection->m_closing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return NULL;
     }

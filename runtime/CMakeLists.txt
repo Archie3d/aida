@@ -5,6 +5,8 @@ set(TARGET adart)
 # installed compiler carries it the way it carries anything else.
 add_library(${TARGET} STATIC)
 target_compile_features(${TARGET} PUBLIC c_std_11)
+find_package(Threads REQUIRED)
+target_link_libraries(${TARGET} PUBLIC Threads::Threads)
 
 if(UNIX AND NOT APPLE)
     target_link_libraries(${TARGET} PUBLIC m)
@@ -12,6 +14,7 @@ endif()
 
 target_sources(${TARGET}
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/adalock.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adatags.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adaio.c

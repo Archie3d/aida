@@ -114,6 +114,10 @@ typedef struct AdaTaskContext
     AdaTraceEntry m_pendingTrace[ADA_TRACE_CAPACITY];
     struct AdaFinalization* m_registeredFinalizations;
     struct AdaAllocation* m_registeredAllocations;
+    /* Only the environment task may use library lifetime storage. */
+    struct AdaFinalization* m_libraryFinalizations;
+    void* m_libraryFinalizationArena;
+    int m_libraryFinalizing;
 } AdaTaskContext;
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the

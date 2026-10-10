@@ -20,8 +20,9 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 The build also compiles the vendored `qbe` submodule into `build/qbe/qbe`, and
-the C11 run time into `build/runtime/libadart.a`. The runtime context isolation
-test requires POSIX threads (winpthreads on MSYS2).
+the C11 run time into `build/runtime/libadart.a`. The runtime requires POSIX
+threads (winpthreads on MSYS2). The driver links this dependency automatically;
+manual links against the static runtime must include `-pthread`.
 
 The main CTest suite includes executable Ada regressions, compiler diagnostic
 checks, a QBE IR comparison, determinism, incremental-build and separate
@@ -311,8 +312,18 @@ layouts are unchanged; C code must bind a context before entering Ada from a
 worker and restore any temporary binding before returning to an Ada caller.
 Generated-code tests exercise concurrent nested calls, callbacks, handlers,
 re-raises and worker-local uncaught exceptions. Ada tasking remains unsupported:
-shared file/tag/library-finalization state still needs its later Phase 2 work.
-Image and stream results now use caller-owned storage. Rebuild existing Ada
+the general threading layer, masters and task syntax remain later work.
+File operations use per-file mutexes across validation and use. The table lock
+protects pool reservations and current selections, and is released before
+waiting for a file lock or performing blocking I/O. Pins prevent slot reuse
+while operations are active or waiting. Close and Reset wait only for operations
+on their own file. Tag registrations use a separate runtime mutex. Current-file getters return stable handle
+snapshots, and file names use caller-owned string results. Library lifetime
+storage belongs to the environment context: worker access and recursive library
+shutdown raise `Program_Error`, and collection allocation requires its owning
+context. Finalizer callbacks run without runtime mutexes. Workers must finish
+before process-exit file/tag cleanup; task masters will enforce this in Phase 4.
+Image and stream results also use caller-owned storage. Rebuild existing Ada
 objects with the matching compiler and runtime after this internal ABI change.
 ABI timing probes and the rationale
 are in [tests/benchmarks/README.md](tests/benchmarks/README.md).
@@ -1178,7 +1189,7 @@ Compatibility with this compiler:
   this is not a claim of conformance to the accuracy requirements of the
   optional Numerics Annex.
 - On Linux and other systems with a separate libm, link generated assembly
-  with `cc program.s /path/to/libadart.a -lm -o program`. The Ada driver
+  with `cc -pthread program.s /path/to/libadart.a -lm -o program`. The Ada driver
   adds `-lm` automatically on these systems.
 
 The C mappings are private implementation support: Ada wrappers validate domains
@@ -1459,8 +1470,10 @@ temporary cleanup list as unconstrained function results. Several reads in one
 expression remain independent, and payloads larger than 4 KiB are supported.
 Lengths and byte counts are still limited to signed 32-bit values. Truncated
 reads free their partial result before propagating the exception. Concurrent
-runtime tests use independently owned streams; the shared file table still
-requires the later tasking-foundation work.
+runtime tests cover independently owned streams and shared file/current-output
+operations under per-file runtime mutexes. A sequence of separate calls, such as
+`Set_Output` followed by `Put_Line`, is not one atomic operation; use an explicit
+file argument when another task may change the current selection.
 
 ```ada
 Create (Archive, Out_File, "state.dat");

@@ -25,7 +25,7 @@ set(math_library)
 if(SEPARATE_LIBM)
     set(math_library -lm)
 endif()
-execute_process(COMMAND "${CC}" "${program}.s" "${HELPERS}" "${RUNTIME}" ${math_library} -o "${program}"
+execute_process(COMMAND "${CC}" -pthread "${program}.s" "${HELPERS}" "${RUNTIME}" ${math_library} -o "${program}"
     RESULT_VARIABLE status)
 if(NOT status EQUAL 0)
     message(FATAL_ERROR "Imported float ABI link failed")

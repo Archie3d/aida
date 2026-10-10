@@ -1,4 +1,5 @@
 #include "adart.h"
+#include "adalock.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -19,11 +20,13 @@ typedef struct TagRegistration
 } TagRegistration;
 
 static TagRegistration* registrations;
+static AdaMutex tagMutex = ADA_MUTEX_INITIALIZER;
 static int cleanupRegistered;
 const AdaException __ada_exc_tag_error = { "ADA.TAGS.TAG_ERROR" };
 
 static void releaseTags(void)
 {
+    __ada_mutex_lock(&tagMutex);
     while (registrations != NULL) {
         TagRegistration* registration = registrations;
         registrations = registration->next;
@@ -33,9 +36,10 @@ static void releaseTags(void)
         }
         free(registration);
     }
+    __ada_mutex_unlock(&tagMutex);
 }
 
-static int registerTag(AdaTag* tag, int owned)
+static int registerTagImpl(AdaTag* tag, int owned)
 {
     TagRegistration* registration;
     for (registration = registrations; registration != NULL; registration = registration->next) {
@@ -53,10 +57,23 @@ static int registerTag(AdaTag* tag, int owned)
     registration->owned = owned;
     registrations = registration;
     if (!cleanupRegistered) {
-        atexit(releaseTags);
+        if (atexit(releaseTags) != 0) {
+            registrations = registration->next;
+            free(registration);
+            __ada_raise(ADA_STORAGE_ERROR);
+            return 0;
+        }
         cleanupRegistered = 1;
     }
     return 1;
+}
+
+static int registerTag(AdaTag* tag, int owned)
+{
+    __ada_mutex_lock(&tagMutex);
+    int result = registerTagImpl(tag, owned);
+    __ada_mutex_unlock(&tagMutex);
+    return result;
 }
 
 void __ada_tag_register(void* value)
@@ -79,7 +96,9 @@ void* __ada_tag_create(const void* templateTag, void* parent, void* master)
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    memcpy(tag->slots, source->slots, source->slotCount * sizeof *tag->slots);
+    if (source->slotCount != 0) {
+        memcpy(tag->slots, source->slots, source->slotCount * sizeof *tag->slots);
+    }
     tag->parent = parent;
     tag->master = tag->equalityLink = master;
     if (!registerTag(tag, 1)) {
@@ -157,7 +176,7 @@ int __ada_tag_is_descendant(void* value, void* ancestorValue)
     return 0;
 }
 
-void* __ada_tag_internal(const char* name, int length)
+static void* tagInternal(const char* name, int length)
 {
     TagRegistration* entry;
     for (entry = registrations; entry != NULL; entry = entry->next) {
@@ -169,7 +188,7 @@ void* __ada_tag_internal(const char* name, int length)
     return NULL;
 }
 
-void* __ada_tag_descendant(const char* name, int length, void* ancestor)
+static void* tagDescendant(const char* name, int length, void* ancestor)
 {
     TagRegistration* entry;
     void* result = NULL;
@@ -214,4 +233,20 @@ void __ada_tag_check_copy(const void* object)
     if (tag->m_needsFinalization) {
         __ada_raise(ADA_PROGRAM_ERROR);
     }
+}
+
+void* __ada_tag_internal(const char* name, int length)
+{
+    __ada_mutex_lock(&tagMutex);
+    void* result = tagInternal(name, length);
+    __ada_mutex_unlock(&tagMutex);
+    return result;
+}
+
+void* __ada_tag_descendant(const char* name, int length, void* ancestor)
+{
+    __ada_mutex_lock(&tagMutex);
+    void* result = tagDescendant(name, length, ancestor);
+    __ada_mutex_unlock(&tagMutex);
+    return result;
 }

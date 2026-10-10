@@ -10,7 +10,7 @@ foreach(mode IN ITEMS separate whole)
         execute_process(COMMAND "${ADA}" -S -o "${program}.s" "${SOURCE}"
             RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
         if(status EQUAL 0)
-            execute_process(COMMAND "${CC}" "${program}.s" "${RUNTIME}" -lm -o "${program}"
+            execute_process(COMMAND "${CC}" -pthread "${program}.s" "${RUNTIME}" -lm -o "${program}"
                 RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
         endif()
     endif()

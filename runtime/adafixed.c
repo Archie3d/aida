@@ -316,7 +316,7 @@ int __ada_image_fixed(char* buffer, int capacity, long long value, int bits, int
     return text != NULL ? (int)strlen(text) : 0;
 }
 
-void __ada_fixed_put(AdaFileRef handle, long long value, int bits, int fore, int aft, int exponent)
+static void fixedPut(AdaFileRef handle, long long value, int bits, int fore, int aft, int exponent)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     if (file == NULL) { return; }
@@ -372,7 +372,7 @@ static int numericCharacter(int c, int position, int* hashes, int* exponent, int
     return 0;
 }
 
-long long __ada_fixed_get(AdaFileRef handle, int bits, long long low, long long high, int width)
+static long long fixedGet(AdaFileRef handle, int bits, long long low, long long high, int width)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     if (file == NULL) { return 0; }
@@ -412,5 +412,24 @@ long long __ada_fixed_get(AdaFileRef handle, int bits, long long low, long long 
         }
     }
     free(text);
+    return result;
+}
+
+void __ada_fixed_put(AdaFileRef handle, long long value, int bits, int fore, int aft, int exponent)
+{
+    __ada_io_begin(handle);
+    __ada_io_unlock();
+    fixedPut(handle, value, bits, fore, aft, exponent);
+    __ada_io_lock();
+    __ada_io_end();
+}
+
+long long __ada_fixed_get(AdaFileRef handle, int bits, long long low, long long high, int width)
+{
+    __ada_io_begin(handle);
+    __ada_io_unlock();
+    long long result = fixedGet(handle, bits, low, high, width);
+    __ada_io_lock();
+    __ada_io_end();
     return result;
 }

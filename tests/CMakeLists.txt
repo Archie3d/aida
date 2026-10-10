@@ -608,3 +608,22 @@ add_executable(result_buffers_test ResultBuffersTest.c)
 target_link_libraries(result_buffers_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.result_buffers COMMAND result_buffers_test)
 set_tests_properties(runtime.result_buffers PROPERTIES TIMEOUT 30)
+
+add_executable(shared_tables_test SharedTablesTest.c)
+target_link_libraries(shared_tables_test PRIVATE adart Threads::Threads)
+file(MAKE_DIRECTORY ${ADA_TEST_WORK_DIR}/shared_tables)
+add_test(NAME runtime.shared_tables COMMAND shared_tables_test)
+set_tests_properties(runtime.shared_tables PROPERTIES
+    TIMEOUT 30 WORKING_DIRECTORY ${ADA_TEST_WORK_DIR}/shared_tables)
+add_ada_test(filesnapshots SOURCES filesnapshots.adb)
+add_determinism_test(filesnapshots SOURCE filesnapshots.adb)
+
+add_executable(shared_tables_benchmark EXCLUDE_FROM_ALL benchmarks/SharedTables.c)
+target_link_libraries(shared_tables_benchmark PRIVATE adart)
+
+if(UNIX)
+    add_executable(blocking_io_test BlockingIoTest.c)
+    target_link_libraries(blocking_io_test PRIVATE adart Threads::Threads)
+    add_test(NAME runtime.blocking_io COMMAND blocking_io_test)
+    set_tests_properties(runtime.blocking_io PROPERTIES TIMEOUT 15)
+endif()

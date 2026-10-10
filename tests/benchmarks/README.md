@@ -108,3 +108,44 @@ unconstrained stream results separately use the existing heap-transfer ABI.
 This benchmark covers image generation, not stream allocation throughput, and
 the short timings include process startup. The phase-wide performance caveats
 above still apply.
+
+## Shared-table locking
+
+`SharedTables.c` measures 20,000 scratch-file write/reset/read/reset cycles,
+then one million duplicate-tag registration/name-lookup pairs. It validates
+the read data and lookup results. The optional target is built with:
+
+```sh
+cmake -S . -B build
+cmake --build build --target shared_tables_benchmark
+build/tests/shared_tables_benchmark
+```
+
+The two output columns are elapsed seconds for I/O and tags. On macOS arm64,
+with the benchmark compiled at `-O2`, the default unoptimized CMake runtime,
+and eleven alternating runs against the saved runtime from before locking:
+
+| Workload | Before locks | With locks |
+| --- | ---: | ---: |
+| 20,000 I/O cycles | 0.05969 s | 0.06097 s |
+| 1,000,000 tag register/lookup pairs | 0.00872 s | 0.01998 s |
+
+This quantifies uncontended locking cost, not concurrent throughput. Tag lookup
+cost rises measurably; the phase-wide no-slowdown goal is still open.
+
+The blocking-I/O follow-up replaces the coarse I/O lock with per-file locks,
+short table-lock intervals, and pins that protect slots while callers wait.
+Eleven alternating runs under the same build settings compared the saved
+coarse-lock binary with the new runtime:
+
+| Workload | Coarse I/O lock | Per-file locks |
+| --- | ---: | ---: |
+| 20,000 I/O cycles | 0.06499 s | 0.06852 s |
+| 1,000,000 tag register/lookup pairs | 0.01995 s | 0.01968 s |
+
+Uncontended I/O costs about 5.4% more in this run; the tag implementation is
+unchanged. The benefit is independent progress: `runtime.blocking_io` keeps
+text, stream, and fixed-point readers blocked on pipes, queues Close or Reset
+on that same file, and completes unrelated file operations before releasing
+the reader. Same-file operations still serialize. These timings do not measure
+contended throughput.

@@ -6,6 +6,7 @@
 
 #include "adaio.h"
 #include "adart.h"
+#include "adalock.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -14,11 +15,93 @@
 
 #define ADA_MAX_FILES 32
 
+/* Public operations pin a file and hold its mutex for validation and use.
+   Only table/selection mutations retain the table lock; their blocking system
+   calls drop it. Impl calls preserve the enclosing operation's ownership. */
+#define ADA_IO_VOID(name, parameters, arguments, handle, shared) static void name##Impl parameters;
+#define ADA_IO_VALUE(type, name, parameters, arguments, handle, shared) static type name##Impl parameters;
+#include "adaio_entries.h"
+#undef ADA_IO_VOID
+#undef ADA_IO_VALUE
+
 static AdaFile filePool[ADA_MAX_FILES];
 static AdaFile standardInput;
 static AdaFile standardOutput;
 static AdaFile standardError;
 static int poolPrepared = 0;
+static AdaMutex ioMutex = ADA_MUTEX_INITIALIZER;
+static _Thread_local AdaFile* activeFile;
+static void prepare(void);
+
+void __ada_io_lock(void)
+{
+    __ada_mutex_lock(&ioMutex);
+}
+
+void __ada_io_unlock(void)
+{
+    __ada_mutex_unlock(&ioMutex);
+}
+
+/* Begin returns with the table held; End requires it held. Never wait for
+   a file mutex while holding it. Pins keep a closed pool slot unavailable until every waiter has left. */
+void __ada_io_begin(AdaFileRef handle)
+{
+    __ada_io_lock();
+    prepare();
+    for (;;) {
+        AdaFile* file = handle != NULL ? *handle : NULL;
+        activeFile = file;
+        if (file == NULL) { return; }
+        if (!file->m_mutexReady) {
+            if (pthread_mutex_init(&file->m_mutex, NULL) != 0) { abort(); }
+            file->m_mutexReady = 1;
+        }
+        ++file->m_users;
+        __ada_io_unlock();
+        __ada_mutex_lock(&file->m_mutex);
+        __ada_io_lock();
+        if (*handle == file) { return; }
+        --file->m_users;
+        __ada_mutex_unlock(&file->m_mutex);
+    }
+}
+
+void __ada_io_end(void)
+{
+    if (activeFile != NULL) {
+        --activeFile->m_users;
+        __ada_mutex_unlock(&activeFile->m_mutex);
+        activeFile = NULL;
+    }
+    __ada_io_unlock();
+}
+
+/* Table-changing operations use these adapters for potentially blocking
+   system calls. The file mutex and pin remain held. Ordinary reads/writes
+   release the table lock for their entire implementation. */
+#define IO_CALL(type, name, parameters, arguments) \
+static type io##name parameters \
+{ \
+    __ada_io_unlock(); \
+    type result = name arguments; \
+    __ada_io_lock(); \
+    return result; \
+}
+IO_CALL(int, fclose, (FILE* file), (file))
+IO_CALL(int, fflush, (FILE* file), (file))
+IO_CALL(FILE*, tmpfile, (void), ())
+IO_CALL(FILE*, fopen, (const char* path, const char* mode), (path, mode))
+IO_CALL(FILE*, freopen, (const char* path, const char* mode, FILE* file), (path, mode, file))
+IO_CALL(int, remove, (const char* path), (path))
+#undef IO_CALL
+
+static void iorewind(FILE* file)
+{
+    __ada_io_unlock();
+    rewind(file);
+    __ada_io_lock();
+}
 
 /* Each of these is the single component of a File_Type record, which is why
    their addresses can be handed straight to the generated code. */
@@ -32,18 +115,21 @@ static void closeEverything(void)
 {
     int i;
 
-    fflush(stdout);
+    __ada_io_lock();
+    iofflush(stdout);
     for (i = 0; i < ADA_MAX_FILES; ++i) {
         if (filePool[i].isOpen && filePool[i].stream != 0) {
-            fclose(filePool[i].stream);
+            iofclose(filePool[i].stream);
             filePool[i].isOpen = 0;
             filePool[i].stream = 0;
         }
     }
+    __ada_io_unlock();
 }
 
 static void openStandard(AdaFile* file, FILE* stream, int mode)
 {
+    file->m_self = file;
     file->stream = stream;
     file->mode = mode;
     file->isOpen = 1;
@@ -57,6 +143,9 @@ static void prepare(void)
         return;
     }
     poolPrepared = 1;
+    for (int i = 0; i < ADA_MAX_FILES; ++i) {
+        filePool[i].m_self = &filePool[i];
+    }
 
     openStandard(&standardInput, stdin, ADA_MODE_IN);
     openStandard(&standardOutput, stdout, ADA_MODE_OUT);
@@ -71,37 +160,37 @@ static void prepare(void)
     atexit(closeEverything);
 }
 
-AdaFileRef __ada_standard_input(void)
+static AdaFileRef __ada_standard_inputImpl(void)
 {
     prepare();
     return &standardInputHandle;
 }
 
-AdaFileRef __ada_standard_output(void)
+static AdaFileRef __ada_standard_outputImpl(void)
 {
     prepare();
     return &standardOutputHandle;
 }
 
-AdaFileRef __ada_standard_error(void)
+static AdaFileRef __ada_standard_errorImpl(void)
 {
     prepare();
     return &standardErrorHandle;
 }
 
-AdaFileRef __ada_current_input(void)
+static AdaFileRef __ada_current_inputImpl(void)
 {
-    prepare();
-    return &currentInputHandle;
+    if (activeFile == NULL) { prepare(); }
+    return activeFile != NULL ? &activeFile->m_self : &currentInputHandle->m_self;
 }
 
-AdaFileRef __ada_current_output(void)
+static AdaFileRef __ada_current_outputImpl(void)
 {
-    prepare();
-    return &currentOutputHandle;
+    if (activeFile == NULL) { prepare(); }
+    return activeFile != NULL ? &activeFile->m_self : &currentOutputHandle->m_self;
 }
 
-void __ada_set_input(AdaFileRef handle)
+static void __ada_set_inputImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -110,7 +199,7 @@ void __ada_set_input(AdaFileRef handle)
     }
 }
 
-void __ada_set_output(AdaFileRef handle)
+static void __ada_set_outputImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -119,25 +208,12 @@ void __ada_set_output(AdaFileRef handle)
     }
 }
 
-FILE* __ada_input_stream(void)
-{
-    prepare();
-    return currentInputHandle != 0 ? currentInputHandle->stream : stdin;
-}
-
-FILE* __ada_output_stream(void)
-{
-    prepare();
-    return currentOutputHandle != 0 ? currentOutputHandle->stream : stdout;
-}
-
 /* An unopened File_Type is a null handle, which every operation but Is_Open
    rejects with Status_Error. */
 AdaFile* __ada_file_checked(AdaFileRef handle, int requiredMode)
 {
     AdaFile* file = handle != 0 ? *handle : 0;
 
-    prepare();
     if (file == 0 || !file->isOpen) {
         __ada_raise(ADA_STATUS_ERROR);
         return 0;
@@ -164,8 +240,21 @@ static AdaFile* takeFreeEntry(void)
     int i;
 
     for (i = 0; i < ADA_MAX_FILES; ++i) {
-        if (!filePool[i].isOpen) {
-            return &filePool[i];
+        if (!filePool[i].isOpen && filePool[i].m_users == 0) {
+            AdaFile* file = &filePool[i];
+            if (!file->m_mutexReady) {
+                if (pthread_mutex_init(&file->m_mutex, NULL) != 0) { abort(); }
+                file->m_mutexReady = 1;
+            }
+            /* No pins and a closed slot: acquiring this mutex cannot wait. */
+            __ada_mutex_lock(&file->m_mutex);
+            if (activeFile != NULL) {
+                --activeFile->m_users;
+                __ada_mutex_unlock(&activeFile->m_mutex);
+            }
+            activeFile = file;
+            ++file->m_users;
+            return file;
         }
     }
     __ada_raise(ADA_STORAGE_ERROR);
@@ -197,7 +286,7 @@ static const char* modeString(int mode, int create)
 /* Create truncates or makes the file, Open insists that it is already there.
    An empty name asks for a scratch file that lives only as long as it is
    open, which is what Ada does for an anonymous file. */
-void __ada_file_open(AdaFileRef handle, int mode, const char* name, int length, int create)
+static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, int length, int create)
 {
     AdaFile* file;
 
@@ -223,6 +312,7 @@ void __ada_file_open(AdaFileRef handle, int mode, const char* name, int length, 
         return;
     }
 
+    *handle = file;
     if (length > 0) {
         memcpy(file->name, name, (size_t)length);
     }
@@ -231,13 +321,14 @@ void __ada_file_open(AdaFileRef handle, int mode, const char* name, int length, 
     file->isStandard = 0;
 
     if (length == 0) {
-        file->stream = tmpfile();
+        file->stream = iotmpfile();
     } else {
-        file->stream = fopen(file->name, modeString(mode, create));
+        file->stream = iofopen(file->name, modeString(mode, create));
     }
     if (file->stream == 0) {
         /* Opening something that is not there is Name_Error; failing to make
            it is the environment refusing the request. */
+        *handle = NULL;
         __ada_raise(create ? ADA_USE_ERROR : ADA_NAME_ERROR);
         return;
     }
@@ -246,7 +337,7 @@ void __ada_file_open(AdaFileRef handle, int mode, const char* name, int length, 
     *handle = file;
 }
 
-void __ada_file_close(AdaFileRef handle)
+static void __ada_file_closeImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
@@ -257,13 +348,15 @@ void __ada_file_close(AdaFileRef handle)
         __ada_raise(ADA_MODE_ERROR);
         return;
     }
-    fclose(file->stream);
+    if (currentInputHandle == file) { currentInputHandle = &standardInput; }
+    if (currentOutputHandle == file) { currentOutputHandle = &standardOutput; }
+    iofclose(file->stream);
     file->stream = 0;
     file->isOpen = 0;
     *handle = 0;
 }
 
-void __ada_file_delete(AdaFileRef handle)
+static void __ada_file_deleteImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
     char name[sizeof filePool[0].name];
@@ -276,18 +369,20 @@ void __ada_file_delete(AdaFileRef handle)
         return;
     }
     strcpy(name, file->name);
-    fclose(file->stream);
+    if (currentInputHandle == file) { currentInputHandle = &standardInput; }
+    if (currentOutputHandle == file) { currentOutputHandle = &standardOutput; }
+    iofclose(file->stream);
     file->stream = 0;
     file->isOpen = 0;
     *handle = 0;
     if (name[0] != '\0') {
-        remove(name);
+        ioremove(name);
     }
 }
 
 /* Reset rewinds the file, optionally in a new mode.  A mode of ADA_MODE_ANY
    keeps the one the file already has. */
-void __ada_file_reset(AdaFileRef handle, int mode)
+static void __ada_file_resetImpl(AdaFileRef handle, int mode)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
@@ -301,15 +396,17 @@ void __ada_file_reset(AdaFileRef handle, int mode)
     if (mode == ADA_MODE_ANY) {
         mode = file->mode;
     }
-    fflush(file->stream);
+    iofflush(file->stream);
     if (file->name[0] == '\0') {
         /* A scratch file has no name to reopen, so it is only rewound. */
-        rewind(file->stream);
+        iorewind(file->stream);
         file->mode = mode;
         return;
     }
-    file->stream = freopen(file->name, modeString(mode, 0), file->stream);
+    file->stream = iofreopen(file->name, modeString(mode, 0), file->stream);
     if (file->stream == 0) {
+        if (currentInputHandle == file) { currentInputHandle = &standardInput; }
+        if (currentOutputHandle == file) { currentOutputHandle = &standardOutput; }
         file->isOpen = 0;
         *handle = 0;
         __ada_raise(ADA_USE_ERROR);
@@ -320,42 +417,43 @@ void __ada_file_reset(AdaFileRef handle, int mode)
 
 /* Reset without a mode, which Ada declares as a profile of its own rather than
    as a default, keeps whatever mode the file was opened with. */
-void __ada_file_reset_same(AdaFileRef handle)
+static void __ada_file_reset_sameImpl(AdaFileRef handle)
 {
-    __ada_file_reset(handle, ADA_MODE_ANY);
+    __ada_file_resetImpl(handle, ADA_MODE_ANY);
 }
 
-int __ada_file_is_open(AdaFileRef handle)
+static int __ada_file_is_openImpl(AdaFileRef handle)
 {
     AdaFile* file = handle != 0 ? *handle : 0;
 
-    prepare();
     return file != 0 && file->isOpen ? 1 : 0;
 }
 
-int __ada_file_mode(AdaFileRef handle)
+static int __ada_file_modeImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
     return file != 0 ? file->mode : ADA_MODE_IN;
 }
 
-const char* __ada_file_name(AdaFileRef handle)
+static void __ada_file_nameImpl(void* descriptor, AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
-    return file != 0 ? file->name : "";
+    if (file != NULL) {
+        __ada_array_result(descriptor, file->name, 1, (int)strlen(file->name), 1);
+    }
 }
 
 /* Nothing in this run time reads the form string, so a file always reports
    the default one. */
-const char* __ada_file_form(AdaFileRef handle)
+static const char* __ada_file_formImpl(AdaFileRef handle)
 {
     __ada_file_checked(handle, ADA_MODE_ANY);
     return "";
 }
 
-int __ada_file_end_of_file(AdaFileRef handle)
+static int __ada_file_end_of_fileImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     int c;
@@ -375,18 +473,18 @@ int __ada_file_end_of_file(AdaFileRef handle)
 /* Text_IO                                                                   */
 /* ------------------------------------------------------------------------ */
 
-void __ada_create(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
+static void __ada_createImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
 {
     (void)form;
     (void)formLength;
-    __ada_file_open(handle, mode, name, length, 1);
+    __ada_file_openImpl(handle, mode, name, length, 1);
 }
 
-void __ada_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
+static void __ada_openImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
 {
     (void)form;
     (void)formLength;
-    __ada_file_open(handle, mode, name, length, 0);
+    __ada_file_openImpl(handle, mode, name, length, 0);
 }
 
 static void writeInteger(FILE* stream, int value, int width, int base)
@@ -417,7 +515,7 @@ static void writeInteger(FILE* stream, int value, int width, int base)
     fprintf(stream, "%*s", width, text);
 }
 
-void __ada_text_put(AdaFileRef handle, const char* item, int length)
+static void __ada_text_putImpl(AdaFileRef handle, const char* item, int length)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -426,7 +524,7 @@ void __ada_text_put(AdaFileRef handle, const char* item, int length)
     }
 }
 
-void __ada_text_put_line(AdaFileRef handle, const char* item, int length)
+static void __ada_text_put_lineImpl(AdaFileRef handle, const char* item, int length)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -439,7 +537,7 @@ void __ada_text_put_line(AdaFileRef handle, const char* item, int length)
     fputc('\n', file->stream);
 }
 
-void __ada_text_put_character(AdaFileRef handle, int item)
+static void __ada_text_put_characterImpl(AdaFileRef handle, int item)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -448,7 +546,7 @@ void __ada_text_put_character(AdaFileRef handle, int item)
     }
 }
 
-void __ada_text_put_integer(AdaFileRef handle, int item, int width, int base)
+static void __ada_text_put_integerImpl(AdaFileRef handle, int item, int width, int base)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -457,7 +555,7 @@ void __ada_text_put_integer(AdaFileRef handle, int item, int width, int base)
     }
 }
 
-void __ada_text_put_float(AdaFileRef handle, double item, int fore, int aft, int exponent)
+static void __ada_text_put_floatImpl(AdaFileRef handle, double item, int fore, int aft, int exponent)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     char buffer[128];
@@ -468,7 +566,7 @@ void __ada_text_put_float(AdaFileRef handle, double item, int fore, int aft, int
     }
 }
 
-void __ada_text_new_line(AdaFileRef handle, int spacing)
+static void __ada_text_new_lineImpl(AdaFileRef handle, int spacing)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     int i;
@@ -497,7 +595,7 @@ static void skipLines(AdaFile* file, int spacing)
     }
 }
 
-void __ada_text_skip_line(AdaFileRef handle, int spacing)
+static void __ada_text_skip_lineImpl(AdaFileRef handle, int spacing)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -517,7 +615,7 @@ static int atEndOfLine(AdaFile* file)
     return c == '\n' ? 1 : 0;
 }
 
-int __ada_text_end_of_line(AdaFileRef handle)
+static int __ada_text_end_of_lineImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -540,7 +638,7 @@ static void readCharacter(AdaFile* file, char* item)
     *item = (char)c;
 }
 
-void __ada_text_get(AdaFileRef handle, char* item)
+static void __ada_text_getImpl(AdaFileRef handle, char* item)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -576,7 +674,7 @@ static void readLine(AdaFile* file, char* item, int length, int* last)
     *last = count;
 }
 
-void __ada_text_get_line(AdaFileRef handle, char* item, int length, int* last)
+static void __ada_text_get_lineImpl(AdaFileRef handle, char* item, int length, int* last)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -621,7 +719,7 @@ static void readInteger(AdaFile* file, void* item, int size, int low, int high)
     storeInteger(item, size, value);
 }
 
-void __ada_text_get_integer(AdaFileRef handle, void* item, int size, int low, int high)
+static void __ada_text_get_integerImpl(AdaFileRef handle, void* item, int size, int low, int high)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -633,7 +731,7 @@ void __ada_text_get_integer(AdaFileRef handle, void* item, int size, int low, in
 /* The word the input is looking at, read up to the first character that cannot
    be part of one.  Recognising what the word means is the business of the Ada
    generic that asked for it, which is the only side that knows the type. */
-void __ada_text_get_word(AdaFileRef handle, char* item, int length, int* last)
+static void __ada_text_get_wordImpl(AdaFileRef handle, char* item, int length, int* last)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     int written = 0;
@@ -664,9 +762,9 @@ void __ada_text_get_word(AdaFileRef handle, char* item, int length, int* last)
     *last = written;
 }
 
-void __ada_get_word(char* item, int length, int* last)
+static void __ada_get_wordImpl(char* item, int length, int* last)
 {
-    __ada_text_get_word(__ada_current_input(), item, length, last);
+    __ada_text_get_wordImpl(__ada_current_inputImpl(), item, length, last);
 }
 
 /* Float_IO.Get reports input that is not a number as Data_Error, so that is
@@ -713,7 +811,7 @@ static void readReal(AdaFile* file, void* item, int size)
     storeReal(item, size, value);
 }
 
-void __ada_text_get_float(AdaFileRef handle, void* item, int size)
+static void __ada_text_get_floatImpl(AdaFileRef handle, void* item, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -724,7 +822,7 @@ void __ada_text_get_float(AdaFileRef handle, void* item, int size)
 
 /* The compiler records the literals of an enumeration type in lower case, which
    is the spelling Lower_Case asks for; Upper_Case is the Ada default. */
-void __ada_text_put_enum(AdaFileRef handle, int item, int width, int set, const char** names, int count)
+static void __ada_text_put_enumImpl(AdaFileRef handle, int item, int width, int set, const char** names, int count)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     const char* name;
@@ -786,7 +884,7 @@ static void readEnum(AdaFile* file, void* item, int size, const char** names, in
     storeInteger(item, size, 0);
 }
 
-void __ada_text_get_enum(AdaFileRef handle, void* item, int size, const char** names, int count)
+static void __ada_text_get_enumImpl(AdaFileRef handle, void* item, int size, const char** names, int count)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -799,81 +897,81 @@ void __ada_text_get_enum(AdaFileRef handle, void* item, int size, const char** n
 /* Text_IO on the current input and output                                   */
 /* ------------------------------------------------------------------------ */
 
-void __ada_put(const char* item, int length)
+static void __ada_putImpl(const char* item, int length)
 {
-    __ada_text_put(__ada_current_output(), item, length);
+    __ada_text_putImpl(__ada_current_outputImpl(), item, length);
 }
 
-void __ada_put_line(const char* item, int length)
+static void __ada_put_lineImpl(const char* item, int length)
 {
-    __ada_text_put_line(__ada_current_output(), item, length);
+    __ada_text_put_lineImpl(__ada_current_outputImpl(), item, length);
 }
 
-void __ada_put_character(int item)
+static void __ada_put_characterImpl(int item)
 {
-    __ada_text_put_character(__ada_current_output(), item);
+    __ada_text_put_characterImpl(__ada_current_outputImpl(), item);
 }
 
-void __ada_put_integer(int item, int width, int base)
+static void __ada_put_integerImpl(int item, int width, int base)
 {
-    __ada_text_put_integer(__ada_current_output(), item, width, base);
+    __ada_text_put_integerImpl(__ada_current_outputImpl(), item, width, base);
 }
 
-void __ada_new_line(int spacing)
+static void __ada_new_lineImpl(int spacing)
 {
-    __ada_text_new_line(__ada_current_output(), spacing);
+    __ada_text_new_lineImpl(__ada_current_outputImpl(), spacing);
 }
 
-void __ada_skip_line(int spacing)
+static void __ada_skip_lineImpl(int spacing)
 {
-    __ada_text_skip_line(__ada_current_input(), spacing);
+    __ada_text_skip_lineImpl(__ada_current_inputImpl(), spacing);
 }
 
-int __ada_end_of_file(void)
+static int __ada_end_of_fileImpl(void)
 {
-    return __ada_file_end_of_file(__ada_current_input());
+    return __ada_file_end_of_fileImpl(__ada_current_inputImpl());
 }
 
-int __ada_end_of_line(void)
+static int __ada_end_of_lineImpl(void)
 {
-    return __ada_text_end_of_line(__ada_current_input());
+    return __ada_text_end_of_lineImpl(__ada_current_inputImpl());
 }
 
-void __ada_get(char* item)
+static void __ada_getImpl(char* item)
 {
-    __ada_text_get(__ada_current_input(), item);
+    __ada_text_getImpl(__ada_current_inputImpl(), item);
 }
 
-void __ada_get_line(char* item, int length, int* last)
+static void __ada_get_lineImpl(char* item, int length, int* last)
 {
-    __ada_text_get_line(__ada_current_input(), item, length, last);
+    __ada_text_get_lineImpl(__ada_current_inputImpl(), item, length, last);
 }
 
-void __ada_get_integer(void* item, int size, int low, int high)
+static void __ada_get_integerImpl(void* item, int size, int low, int high)
 {
-    __ada_text_get_integer(__ada_current_input(), item, size, low, high);
+    __ada_text_get_integerImpl(__ada_current_inputImpl(), item, size, low, high);
 }
 
-void __ada_get_float(void* item, int size)
+static void __ada_get_floatImpl(void* item, int size)
 {
-    __ada_text_get_float(__ada_current_input(), item, size);
+    __ada_text_get_floatImpl(__ada_current_inputImpl(), item, size);
 }
 
-void __ada_put_enum(int item, int width, int set, const char** names, int count)
+static void __ada_put_enumImpl(int item, int width, int set, const char** names, int count)
 {
-    __ada_text_put_enum(__ada_current_output(), item, width, set, names, count);
+    __ada_text_put_enumImpl(__ada_current_outputImpl(), item, width, set, names, count);
 }
 
-void __ada_get_enum(void* item, int size, const char** names, int count)
+static void __ada_get_enumImpl(void* item, int size, const char** names, int count)
 {
-    __ada_text_get_enum(__ada_current_input(), item, size, names, count);
+    __ada_text_get_enumImpl(__ada_current_inputImpl(), item, size, names, count);
 }
 
 /* ------------------------------------------------------------------------ */
 /* Sequential_IO                                                             */
 /* ------------------------------------------------------------------------ */
 
-void __ada_read_element(AdaFileRef handle, void* item, int size)
+static void __ada_read_elementImpl(AdaFileRef handle, void* item, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -885,7 +983,7 @@ void __ada_read_element(AdaFileRef handle, void* item, int size)
     }
 }
 
-void __ada_write_element(AdaFileRef handle, const void* item, int size)
+static void __ada_write_elementImpl(AdaFileRef handle, const void* item, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -928,32 +1026,32 @@ static int adaDirectMode(int mode)
     }
 }
 
-void __ada_direct_create(AdaFileRef handle, int mode, const char* name, int length, const char* form,
+static void __ada_direct_createImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form,
                          int formLength)
 {
     (void)form;
     (void)formLength;
-    __ada_file_open(handle, directMode(mode), name, length, 1);
+    __ada_file_openImpl(handle, directMode(mode), name, length, 1);
 }
 
-void __ada_direct_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
+static void __ada_direct_openImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
 {
     (void)form;
     (void)formLength;
-    __ada_file_open(handle, directMode(mode), name, length, 0);
+    __ada_file_openImpl(handle, directMode(mode), name, length, 0);
 }
 
-void __ada_direct_reset(AdaFileRef handle, int mode)
+static void __ada_direct_resetImpl(AdaFileRef handle, int mode)
 {
-    __ada_file_reset(handle, mode < 0 ? ADA_MODE_ANY : directMode(mode));
+    __ada_file_resetImpl(handle, mode < 0 ? ADA_MODE_ANY : directMode(mode));
 }
 
-void __ada_direct_reset_same(AdaFileRef handle)
+static void __ada_direct_reset_sameImpl(AdaFileRef handle)
 {
-    __ada_file_reset_same(handle);
+    __ada_file_reset_sameImpl(handle);
 }
 
-int __ada_direct_mode(AdaFileRef handle)
+static int __ada_direct_modeImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
@@ -966,7 +1064,7 @@ static long offsetOf(int index, int size)
     return (long)(index - 1) * (long)size;
 }
 
-void __ada_direct_read_at(AdaFileRef handle, void* item, int size, int index)
+static void __ada_direct_read_atImpl(AdaFileRef handle, void* item, int size, int index)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
 
@@ -982,7 +1080,7 @@ void __ada_direct_read_at(AdaFileRef handle, void* item, int size, int index)
     }
 }
 
-void __ada_direct_write_at(AdaFileRef handle, const void* item, int size, int index)
+static void __ada_direct_write_atImpl(AdaFileRef handle, const void* item, int size, int index)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -998,7 +1096,7 @@ void __ada_direct_write_at(AdaFileRef handle, const void* item, int size, int in
     }
 }
 
-void __ada_direct_set_index(AdaFileRef handle, int index, int size)
+static void __ada_direct_set_indexImpl(AdaFileRef handle, int index, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
@@ -1010,7 +1108,7 @@ void __ada_direct_set_index(AdaFileRef handle, int index, int size)
     }
 }
 
-int __ada_direct_index(AdaFileRef handle, int size)
+static int __ada_direct_indexImpl(AdaFileRef handle, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
     long position;
@@ -1026,7 +1124,7 @@ int __ada_direct_index(AdaFileRef handle, int size)
     return (int)(position / size) + 1;
 }
 
-int __ada_direct_size(AdaFileRef handle, int size)
+static int __ada_direct_sizeImpl(AdaFileRef handle, int size)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
     long here;
@@ -1049,12 +1147,12 @@ int __ada_direct_size(AdaFileRef handle, int size)
 /* Stream_IO                                                                 */
 /* ------------------------------------------------------------------------ */
 
-AdaFile* __ada_stream_of(AdaFileRef handle)
+static AdaFile* __ada_stream_ofImpl(AdaFileRef handle)
 {
     return __ada_file_checked(handle, ADA_MODE_ANY);
 }
 
-void __ada_stream_read(AdaFile* stream, void* item, int size)
+static void __ada_stream_readImpl(AdaFile* stream, void* item, int size)
 {
     if (stream == 0 || !stream->isOpen) {
         __ada_raise(ADA_STATUS_ERROR);
@@ -1069,7 +1167,7 @@ void __ada_stream_read(AdaFile* stream, void* item, int size)
     }
 }
 
-void __ada_stream_write(AdaFile* stream, const void* item, int size)
+static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int size)
 {
     if (stream == 0 || !stream->isOpen) {
         __ada_raise(ADA_STATUS_ERROR);
@@ -1084,24 +1182,24 @@ void __ada_stream_write(AdaFile* stream, const void* item, int size)
     }
 }
 
-void __ada_stream_write_bounds(AdaFile* stream, int first, int last)
+static void __ada_stream_write_boundsImpl(AdaFile* stream, int first, int last)
 {
-    __ada_stream_write(stream, &first, (int)sizeof first);
-    __ada_stream_write(stream, &last, (int)sizeof last);
+    __ada_stream_writeImpl(stream, &first, (int)sizeof first);
+    __ada_stream_writeImpl(stream, &last, (int)sizeof last);
 }
 
 /* Transfer a successful read using the ordinary unconstrained-result ABI.
    Until publication, this helper owns the buffer and frees it on failure. */
-void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize)
+static void __ada_stream_read_arrayImpl(void* descriptor, AdaFile* stream, int elementSize)
 {
     AdaArrayResult* result = descriptor;
     *result = (AdaArrayResult) { NULL, 1, 0, 0 };
     int first = 1, last = 0;
-    __ada_stream_read(stream, &first, sizeof first);
+    __ada_stream_readImpl(stream, &first, sizeof first);
     if (__ada_exception != NULL) {
         return;
     }
-    __ada_stream_read(stream, &last, sizeof last);
+    __ada_stream_readImpl(stream, &last, sizeof last);
     if (__ada_exception != NULL) {
         return;
     }
@@ -1119,7 +1217,7 @@ void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize)
         return;
     }
     if (size != 0) {
-        __ada_stream_read(stream, buffer, (int)size);
+        __ada_stream_readImpl(stream, buffer, (int)size);
         if (__ada_exception != NULL) {
             free(buffer);
             return;
@@ -1130,7 +1228,7 @@ void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize)
 
 /* Read and Write over a Stream_Element_Array work in bytes, since a stream
    element is one byte wide. */
-void __ada_stream_elements_read(AdaFileRef handle, void* item, int length, int first, int* last)
+static void __ada_stream_elements_readImpl(AdaFileRef handle, void* item, int length, int first, int* last)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     size_t got;
@@ -1146,7 +1244,7 @@ void __ada_stream_elements_read(AdaFileRef handle, void* item, int length, int f
     }
 }
 
-void __ada_stream_elements_write(AdaFileRef handle, const void* item, int length)
+static void __ada_stream_elements_writeImpl(AdaFileRef handle, const void* item, int length)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
 
@@ -1158,7 +1256,7 @@ void __ada_stream_elements_write(AdaFileRef handle, const void* item, int length
     }
 }
 
-void __ada_stream_set_index(AdaFileRef handle, int index)
+static void __ada_stream_set_indexImpl(AdaFileRef handle, int index)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
 
@@ -1167,7 +1265,7 @@ void __ada_stream_set_index(AdaFileRef handle, int index)
     }
 }
 
-int __ada_stream_index(AdaFileRef handle)
+static int __ada_stream_indexImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
     long position;
@@ -1179,7 +1277,7 @@ int __ada_stream_index(AdaFileRef handle)
     return position < 0 ? 1 : (int)position + 1;
 }
 
-int __ada_stream_size(AdaFileRef handle)
+static int __ada_stream_sizeImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
     long here;
@@ -1197,3 +1295,27 @@ int __ada_stream_size(AdaFileRef handle)
     fseek(file->stream, here, SEEK_SET);
     return end < 0 ? 0 : (int)end;
 }
+
+/* Public operations pin and lock one file; Impl calls retain that ownership. */
+#define ADA_IO_VOID(name, parameters, arguments, handle, shared) \
+void name parameters \
+{ \
+    __ada_io_begin(handle); \
+    if (!shared) { __ada_io_unlock(); } \
+    name##Impl arguments; \
+    if (!shared) { __ada_io_lock(); } \
+    __ada_io_end(); \
+}
+#define ADA_IO_VALUE(type, name, parameters, arguments, handle, shared) \
+type name parameters \
+{ \
+    __ada_io_begin(handle); \
+    if (!shared) { __ada_io_unlock(); } \
+    type result = name##Impl arguments; \
+    if (!shared) { __ada_io_lock(); } \
+    __ada_io_end(); \
+    return result; \
+}
+#include "adaio_entries.h"
+#undef ADA_IO_VOID
+#undef ADA_IO_VALUE

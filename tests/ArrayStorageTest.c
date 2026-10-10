@@ -287,7 +287,7 @@ int main(void)
     finalizationOrder = 0;
     failNext = 1;
     __ada_library_reserve(&firstObject, finalizeValue);
-    CHECK(libraryFinalizations == NULL && liveAllocations == 0 && __ada_exception == ADA_STORAGE_ERROR);
+    CHECK(__ada_main_context.m_libraryFinalizations == NULL && liveAllocations == 0 && __ada_exception == ADA_STORAGE_ERROR);
     __ada_exception = NULL;
     __ada_library_reserve(&firstObject, finalizeValue);
     __ada_controlled_activate(&firstObject, finalizeValue);
@@ -295,8 +295,8 @@ int main(void)
     CHECK(liveAllocations == 4);
     __ada_raise_message(ADA_STORAGE_ERROR, "library failure", 15);
     __ada_library_finalize();
-    CHECK(finalizationOrder == 1 && __ada_task_context()->m_registeredFinalizations == NULL && libraryFinalizations == NULL);
-    CHECK(libraryFinalizationArena == NULL && __ada_exception == ADA_STORAGE_ERROR);
+    CHECK(finalizationOrder == 1 && __ada_task_context()->m_registeredFinalizations == NULL && __ada_main_context.m_libraryFinalizations == NULL);
+    CHECK(__ada_main_context.m_libraryFinalizationArena == NULL && __ada_exception == ADA_STORAGE_ERROR);
     __ada_exception_capture(&occurrence, &owner);
     CHECK(occurrence.length == 15 && memcmp(occurrence.message, "library failure", 15) == 0);
     __ada_array_release(&owner);

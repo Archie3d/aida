@@ -4,6 +4,7 @@
 #define ADAIO_H
 
 #include <stdio.h>
+#include "adalock.h"
 
 /* Modes as the run time understands them.  Each package numbers its own
    File_Mode enumeration differently, so its entry points translate before
@@ -21,13 +22,29 @@ typedef struct AdaFile
     int isOpen;
     int isStandard; /* The standard files are never closed or deleted. */
     char name[1024];
+    AdaMutex m_mutex;
+    unsigned m_users; /* Table lock: pins include callers waiting on m_mutex. */
+    int m_mutexReady;
+    struct AdaFile* m_self; /* Immutable handle snapshot, initialized before publication. */
 } AdaFile;
 
 /* An Ada File_Type is a one component record holding one of these pointers, so
    every entry point receives the address of that record. */
 typedef AdaFile** AdaFileRef;
 
-/* Returns the file behind a File_Type, or null after raising Status_Error for
+/* Internal, non-nesting operation scope. Begin pins/locks the selected file
+   and returns with the table lock held. Drop the table lock for file-only
+   work; reacquire it before End. Never wait or call Ada while holding it.
+   File_Type variables must be changed through runtime entry points, not raw
+   concurrent C stores. Stack-allocated C AdaFile records must start zeroed
+   and have their lazily initialized m_mutex destroyed after the last use. */
+void __ada_io_begin(AdaFileRef handle);
+void __ada_io_end(void);
+void __ada_io_lock(void);
+void __ada_io_unlock(void);
+
+/* Requires an operation scope owning the file mutex.
+   Returns the file behind a File_Type, or null after raising Status_Error for
    a file that is not open and Mode_Error for one open the wrong way round. */
 AdaFile* __ada_file_checked(AdaFileRef handle, int requiredMode);
 
@@ -46,10 +63,12 @@ void __ada_file_reset(AdaFileRef handle, int mode);
 void __ada_file_reset_same(AdaFileRef handle);
 int __ada_file_is_open(AdaFileRef handle);
 int __ada_file_mode(AdaFileRef handle);
-const char* __ada_file_name(AdaFileRef handle);
+void __ada_file_name(void* descriptor, AdaFileRef handle);
 const char* __ada_file_form(AdaFileRef handle);
 int __ada_file_end_of_file(AdaFileRef handle);
 
+/* Returned handle snapshots are read-only; copy their value into an Ada file
+   object before operations that replace a handle (Open/Close/Delete/Reset). */
 AdaFileRef __ada_standard_input(void);
 AdaFileRef __ada_standard_output(void);
 AdaFileRef __ada_standard_error(void);
@@ -57,10 +76,6 @@ AdaFileRef __ada_current_input(void);
 AdaFileRef __ada_current_output(void);
 void __ada_set_input(AdaFileRef handle);
 void __ada_set_output(AdaFileRef handle);
-
-/* Where the parameterless Text_IO profiles read and write. */
-FILE* __ada_input_stream(void);
-FILE* __ada_output_stream(void);
 
 /* Opening a named file.  Text_IO, Sequential_IO and Stream_IO all number their
    modes the way the run time does and share these.  The form string is
@@ -95,7 +110,7 @@ void __ada_stream_read(AdaFile* stream, void* item, int size);
 void __ada_stream_write(AdaFile* stream, const void* item, int size);
 
 /* 'Output writes the bounds of an array ahead of its elements, and 'Input
-   reads them back into a buffer the run time owns. */
+   reads them back into a caller-owned result descriptor. */
 void __ada_stream_write_bounds(AdaFile* stream, int first, int last);
 void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize);
 

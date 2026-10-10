@@ -102,7 +102,8 @@ subprogram caches the context returned by traceback entry; exception checks
 and handlers load the pending exception at offset zero from that pointer. The
 binder fetches its context once as well. C workers can call the tested Ada
 subset under separate contexts. Image and stream results are caller-owned;
-shared tables remain below.
+file and tag tables are locked, and library lifetime storage belongs to the
+environment task. General threading primitives and master hooks remain below.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
@@ -115,8 +116,8 @@ redesigning. The shared state is in the C run time.
   disposal after masters exit. Registry operations require the owning context.
   Covered by `runtime.task_context` (four concurrent workers, context switching,
   trace/message isolation and cleanup) and `runtime.array_storage` (allocation
-  failure and pending-message disposal). Library finalization and process-wide
-  command-line state remain shared; result buffers are addressed below.
+  failure and pending-message disposal). Library lifetime storage now belongs
+  to the environment context; process-wide command-line state remains separate.
 - [x] **Generated access to the context.** QBE's `thread` data cannot serve
   every target: it is rejected for extern symbols on arm64 Linux and entirely on
   Windows amd64 (`qbe/arm64/emit.c`, `qbe/amd64/emit.c`). Have each subprogram
@@ -141,9 +142,21 @@ redesigning. The shared state is in the C run time.
   `imageresults`, `streamresults`, their determinism tests and
   `runtime.result_buffers` (four workers, allocation/adoption failure and
   truncated input). The image benchmark is recorded in `tests/benchmarks/README.md`.
-- [ ] **Shared run-time tables.** Protect the file table and current input/output
+- [x] **Shared run-time tables.** Protect the file table and current input/output
   (`adaio.c`), tag registrations (`adatags.c`) and library finalization with a
-  run-time lock, or give them a single owner.
+  run-time lock, or give them a single owner. File operations use per-file mutexes
+  across validation and use, with a short table lock and pins preventing reuse; current-file getters return stable handle snapshots
+  and file names use caller-owned array results. Tag registration and lookup
+  use a separate mutex; descriptors survive until process shutdown after worker
+  termination. Library lifetime storage is owned by the environment context;
+  foreign-context operations and recursive library shutdown raise Program_Error.
+  Collections reject allocation from a different context. No generated callback
+  runs under a runtime mutex. Covered by `runtime.shared_tables`, `filesnapshots`
+  and its determinism test, including concurrent first use and slot reuse.
+  `adalock` supplies only the private mutex operations needed here; the general
+  threading layer remains next. `runtime.blocking_io` verifies unrelated file
+  progress during blocked text, stream and fixed reads, including Close/Reset
+  waiters; the table lock is never held across blocking I/O or file-lock waits.
 - [ ] **Threading layer.** Put a thin C layer over POSIX threads (winpthreads on
   MSYS2) for threads, mutexes, condition variables and monotonic clocks. It also
   supplies the atomic loads and stores that QBE lacks, for `Atomic` and

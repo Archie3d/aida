@@ -162,6 +162,7 @@ static void checkStreams(void)
         __ada_exception = NULL;
         fclose(file.stream);
     }
+    CHECK(pthread_mutex_destroy(&file.m_mutex) == 0);
 }
 
 static void* worker(void* argument)
