@@ -173,6 +173,14 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     FunctionContext context;
     context.symbol = symbol;
+    bool usesFinalization = symbol->m_usesFinalization || hasControlledObjects(body->declarations)
+        || hasControlledObjects(body->body) || hasControlledObjects(body->handlers);
+    // Elide a statically empty boundary: no declarations, collections or
+    // owned temporaries. Nested blocks carry their own masters, and allocators
+    // depend on their access type's collection. Scalar leaf calls thus keep
+    // their existing entry/exit cost. Task-valued temporaries must participate
+    // in this lifetime analysis when task types are added.
+    context.m_hasMaster = !body->declarations.empty() || usesFinalization;
     context.traceName = symbol->displayName;
     context.sourceLocation = symbol->location;
     context.hasFrame = symbol->needsFrame;
@@ -180,8 +188,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     context.propagateLabel = newLabel("propagate");
     FunctionContext* saved = m_context;
     m_context = &context;
-    if (symbol->m_usesFinalization || hasControlledObjects(body->declarations)
-        || hasControlledObjects(body->body) || hasControlledObjects(body->handlers)) {
+    if (usesFinalization) {
         initializeFinalization();
     }
 
@@ -286,6 +293,10 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     }
 
     emitLocalDeclarations(body->declarations);
+    if (context.m_hasMaster) {
+        line("call $__ada_master_activate(l %.taskContext, l %.master)");
+        emitExceptionCheck();
+    }
 
     if (body->handlers.empty()) {
         emitStatements(body->body);
@@ -293,7 +304,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         std::string dispatch = newLabel("handler");
         std::string after = newLabel("handled");
         context.handlerStorage[dispatch] = storageCheckpoint();
-        context.handlerLabels.push_back(dispatch);
+        pushHandler(dispatch);
         emitStatements(body->body);
         context.handlerLabels.pop_back();
         jump(after);
@@ -369,11 +380,18 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::string traceLocation = sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {});
     // Trace entry fetches the bound task context once without an extra call.
     text += "    %.taskContext =l call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
+    if (context.m_hasMaster) {
+        text += "    %.master =l alloc8 8\n";
+        text += "    call $__ada_master_enter(l %.taskContext, l %.master, w 0)\n";
+    }
     // Allocations may occur in a branch emitted after an early return. Once
     // the whole body is known, release the activation's list at every exit.
     std::istringstream bodyLines(context.body.str());
     std::string bodyLine;
     while (std::getline(bodyLines, bodyLine)) {
+        if (context.m_hasMaster && bodyLine.compare(0, 7, "    ret") == 0) {
+            text += "    call $__ada_master_await(l %.taskContext, l %.master)\n";
+        }
         if (!context.m_finalizationChain.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_finalize_to(l " + context.m_temporaryFinalizationChain + ", l 0)\n";
             text += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
@@ -385,6 +403,9 @@ void QbeEmitter::finishFunction(const std::string& signature)
             text += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
         }
         if (bodyLine.compare(0, 7, "    ret") == 0) {
+            if (context.m_hasMaster) {
+                text += "    call $__ada_master_leave(l %.taskContext, l %.master)\n";
+            }
             text += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
         }
         text += bodyLine + "\n";

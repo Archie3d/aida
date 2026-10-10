@@ -24,6 +24,7 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     out << "\nexport function w $main(w %argc, l %argv) {\n@start\n";
     out << "    %.taskContext =l call $__ada_task_context()\n";
     out << "    call $__ada_command_line_init(w %argc, l %argv)\n";
+    out << "    call $__ada_library_enter()\n";
 
     // A unit whose elaboration failed leaves the ones after it unelaborated, so
     // the program stops at the first failure rather than running on.
@@ -38,6 +39,10 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
         out << next << "\n";
     }
 
+    out << "    call $__ada_library_activate()\n";
+    out << "    %.activationException =l loadl %.taskContext\n";
+    out << "    %.activationFailed =w cnel %.activationException, 0\n";
+    out << "    jnz %.activationFailed, @shutdown, @activated\n@activated\n";
     if (!mainName.empty()) {
         out << "    call " << mainName << "()\n";
     }

@@ -631,3 +631,27 @@ if(UNIX)
     add_test(NAME runtime.blocking_io COMMAND blocking_io_test)
     set_tests_properties(runtime.blocking_io PROPERTIES TIMEOUT 15)
 endif()
+
+foreach(master_case masterhooks masterfailure masterlibraryfailure)
+    set(master_status 0)
+    set(master_failure OFF)
+    if(NOT master_case STREQUAL "masterhooks")
+        set(master_status 1)
+        set(master_failure ON)
+    endif()
+    add_test(NAME runtime.${master_case}
+        COMMAND ${CMAKE_COMMAND}
+            -DNAME=${master_case}
+            -DADA=$<TARGET_FILE:ada>
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${master_case}.adb
+            -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/MasterHooks.c
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${master_case}
+            -DEXPECT_STATUS=${master_status}
+            -DEXPECT_FAILURE=${master_failure}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunMasterHooks.cmake)
+    set_tests_properties(runtime.${master_case} PROPERTIES TIMEOUT 30)
+endforeach()
+add_determinism_test(masterhooks SOURCE masterhooks.adb)

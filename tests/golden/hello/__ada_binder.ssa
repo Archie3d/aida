@@ -3,6 +3,7 @@ export function w $main(w %argc, l %argv) {
 @start
     %.taskContext =l call $__ada_task_context()
     call $__ada_command_line_init(w %argc, l %argv)
+    call $__ada_library_enter()
     call $ada_elab.ada_spec()
     %.t0 =l loadl %.taskContext
     %.t1 =w cnel %.t0, 0
@@ -23,6 +24,11 @@ export function w $main(w %argc, l %argv) {
     %.t7 =w cnel %.t6, 0
     jnz %.t7, @shutdown, @elaborated.3
 @elaborated.3
+    call $__ada_library_activate()
+    %.activationException =l loadl %.taskContext
+    %.activationFailed =w cnel %.activationException, 0
+    jnz %.activationFailed, @shutdown, @activated
+@activated
     call $hello()
     jmp @shutdown
 @shutdown

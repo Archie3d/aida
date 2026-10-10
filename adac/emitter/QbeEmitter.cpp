@@ -108,6 +108,9 @@ std::string QbeEmitter::newLabel(const char* prefix)
 
 void QbeEmitter::line(const std::string& text)
 {
+    if (text == "ret" || text.starts_with("ret ")) {
+        emitBlockExits(0);
+    }
     if (m_context->terminated) {
         m_context->body << newLabel("unreachable") << "\n";
         m_context->terminated = false;
@@ -116,7 +119,8 @@ void QbeEmitter::line(const std::string& text)
     // this also covers imported routines and compiler-generated check helpers.
     bool call = text.starts_with("call ") || text.find(" call ") != std::string::npos;
     bool cleanup = text.find("$__ada_array_rewind(") != std::string::npos
-        || text.find("$__ada_array_release(") != std::string::npos;
+        || text.find("$__ada_array_release(") != std::string::npos
+        || text.find("$__ada_master_") != std::string::npos;
     if (call && !cleanup && m_context->sourceLocation.line > 0) {
         m_context->body << "    storel " << sourceLocationData(m_context->sourceLocation)
                         << ", %.traceLocation\n";
@@ -149,6 +153,12 @@ void QbeEmitter::label(const std::string& name)
 void QbeEmitter::jump(const std::string& target)
 {
     if (!m_context->terminated) {
+        auto found = m_context->m_transferMasterDepth.find(target);
+        if (target == m_context->propagateLabel) {
+            emitBlockExits(0);
+        } else if (found != m_context->m_transferMasterDepth.end()) {
+            emitBlockExits(found->second);
+        }
         m_context->body << "    jmp " << target << "\n";
         m_context->terminated = true;
     }
@@ -156,8 +166,25 @@ void QbeEmitter::jump(const std::string& target)
 
 void QbeEmitter::branch(const Value& condition, const std::string& ifTrue, const std::string& ifFalse)
 {
-    line("jnz " + condition.name + ", " + ifTrue + ", " + ifFalse);
+    auto needsCleanup = [&](const std::string& target) {
+        auto found = m_context->m_transferMasterDepth.find(target);
+        return !m_context->m_blockMasters.empty()
+            && (target == m_context->propagateLabel
+                || (found != m_context->m_transferMasterDepth.end()
+                    && found->second < m_context->m_blockMasters.size()));
+    };
+    std::string trueEdge = needsCleanup(ifTrue) ? newLabel("mastercleanup") : ifTrue;
+    std::string falseEdge = needsCleanup(ifFalse) ? newLabel("mastercleanup") : ifFalse;
+    line("jnz " + condition.name + ", " + trueEdge + ", " + falseEdge);
     m_context->terminated = true;
+    if (trueEdge != ifTrue) {
+        label(trueEdge);
+        jump(ifTrue);
+    }
+    if (falseEdge != ifFalse) {
+        label(falseEdge);
+        jump(ifFalse);
+    }
 }
 
 std::string QbeEmitter::stringData(const std::string& text)

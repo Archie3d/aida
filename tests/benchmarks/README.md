@@ -87,6 +87,32 @@ cycles at 0.0460 seconds before contexts and 0.0496 after contexts. This change
 does not optimize those C-only helpers. The phase-wide no-slowdown target still
 requires broader workloads and other target measurements.
 
+## Master and activation boundaries
+
+The Phase 2 hooks reserve an eight-byte identity per emitted master and use
+the already-cached task context. Empty subprogram boundaries are elided when
+there are no declarations or owned temporaries; nested blocks still carry
+their own hooks. This avoids extra calls on scalar leaf routines such as
+`Next` in `contextcalls.adb`. Scopes with declarations do execute no-op hook
+calls, so these measurements are not a claim of zero cost for every workload.
+
+Compared with the pre-hook revision `ba9054c`, 21 alternating process runs on
+macOS arm64 gave these wall-time medians, in seconds:
+
+| Workload | Before master hooks | With master hooks |
+| --- | ---: | ---: |
+| `contextcalls.adb` | 0.02536 | 0.02547 |
+| `imagecalls.adb` | 0.03939 | 0.03935 |
+
+Both revisions used the default CMake build (no build type/optimization flags),
+the same QBE executable and C linker, and their matching static runtimes. To
+reproduce, build `adac` and `adart` at each revision, compile each benchmark
+with `adac -o program.ssa source.adb`, run QBE on that IR, and link the assembly
+with the corresponding `libadart.a` and `-pthread` (plus `-lm` on Linux).
+Alternate binary execution order and compare medians; startup is included.
+The sub-percent differences show no material regression in these probes.
+Block-heavy, allocation-heavy and other-target measurements remain open.
+
 ## Caller-owned image results
 
 `imagecalls.adb` performs 200,000 integer images and 200,000 fixed-point images,

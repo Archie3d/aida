@@ -5,6 +5,7 @@
 #define ADART_H
 
 #include <stdint.h>
+#include "adamaster.h"
 #include "../common/Modular.h"
 
 typedef struct AdaDispatchEntry
@@ -118,6 +119,7 @@ typedef struct AdaTaskContext
     struct AdaFinalization* m_libraryFinalizations;
     void* m_libraryFinalizationArena;
     int m_libraryFinalizing;
+    AdaMaster m_libraryMaster;
 } AdaTaskContext;
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the
@@ -275,8 +277,12 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*));
 void __ada_library_reserve(void* object, void (*finalize)(void*));
 void __ada_library_finalize(void);
+void __ada_library_enter(void);
+void __ada_library_activate(void);
 void* __ada_collection_create(AdaFinalization** owner, void** arena);
 void* __ada_collection_allocate(void* collection, long size);
+/* Called after successful allocator initialization, never on a partial object. */
+void __ada_collection_activate(void* collection);
 void __ada_allocation_reserve(void* allocation, void* part, void (*finalize)(void*));
 void __ada_controlled_activate(void* object, void (*finalize)(void*));
 int __ada_controlled_finalize(void* object);

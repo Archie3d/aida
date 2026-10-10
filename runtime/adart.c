@@ -1120,9 +1120,25 @@ void __ada_library_finalize(void)
         return;
     }
     __ada_main_context.m_libraryFinalizing = 1;
+    __ada_master_await(&__ada_main_context, &__ada_main_context.m_libraryMaster);
     __ada_finalize_to(&__ada_main_context.m_libraryFinalizations, NULL);
     __ada_array_release(&__ada_main_context.m_libraryFinalizationArena);
+    __ada_master_leave(&__ada_main_context, &__ada_main_context.m_libraryMaster);
     __ada_main_context.m_libraryFinalizing = 0;
+}
+
+void __ada_library_enter(void)
+{
+    if (requireLibraryOwner()) {
+        __ada_master_enter(&__ada_main_context, &__ada_main_context.m_libraryMaster, ADA_MASTER_LIBRARY);
+    }
+}
+
+void __ada_library_activate(void)
+{
+    if (requireLibraryOwner()) {
+        __ada_master_activate(&__ada_main_context, &__ada_main_context.m_libraryMaster);
+    }
 }
 
 typedef struct AdaCollection AdaCollection;
@@ -1139,6 +1155,7 @@ typedef struct AdaAllocation
 
 struct AdaCollection
 {
+    AdaMaster m_master;
     AdaTaskContext* m_context;
     AdaAllocation* m_allocations;
     int m_closing;
@@ -1155,6 +1172,17 @@ static AdaAllocation* findAllocation(void* address)
         }
     }
     return NULL;
+}
+
+void __ada_collection_activate(void* owner)
+{
+    AdaCollection* collection = owner;
+    AdaTaskContext* context = __ada_task_context();
+    if (collection == NULL || collection->m_context != context || collection->m_closing) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    __ada_master_activate(context, &collection->m_master);
 }
 
 static void releaseAllocation(AdaAllocation* allocation)
@@ -1194,9 +1222,11 @@ static void finalizeCollection(void* object)
 {
     AdaCollection* collection = object;
     collection->m_closing = 1;
+    __ada_master_await(collection->m_context, &collection->m_master);
     while (collection->m_allocations != NULL) {
         releaseAllocation(collection->m_allocations);
     }
+    __ada_master_leave(collection->m_context, &collection->m_master);
 }
 
 void* __ada_collection_create(AdaFinalization** owner, void** arena)
@@ -1220,6 +1250,7 @@ void* __ada_collection_create(AdaFinalization** owner, void** arena)
         return NULL;
     }
     __ada_controlled_activate(collection, finalizeCollection);
+    __ada_master_enter(context, &collection->m_master, ADA_MASTER_COLLECTION);
     return collection;
 }
 
@@ -1512,6 +1543,7 @@ void* __ada_collection_result_arena(void* pending)
 void __ada_collection_finish(void* pending, void* object)
 {
     ((AdaAllocation*)pending)->m_object = object;
+    __ada_collection_activate(((AdaAllocation*)pending)->m_collection);
 }
 
 void __ada_collection_abort(void* pending)

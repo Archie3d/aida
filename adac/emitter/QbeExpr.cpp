@@ -511,7 +511,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         emitExceptionCheck();
         std::string failed = newLabel("limitedallocationfailed");
         std::string ready = newLabel("limitedallocationready");
-        m_context->handlerLabels.push_back(failed);
+        pushHandler(failed);
         m_context->m_resultTargetOwner = newTemp();
         m_context->m_resultTargetArena = newTemp();
         line(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")");
@@ -520,6 +520,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")");
         emitExceptionCheck();
         line("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")");
+        emitExceptionCheck();
         m_context->handlerLabels.pop_back();
         jump(ready);
         label(failed);
@@ -541,6 +542,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         Value object { newTemp(), 'l' };
         line(object.name + " =l call $__ada_tagged_allocation(l " + collection.name + ", l " + source.name + ")");
         emitExceptionCheck();
+        line("call $__ada_collection_activate(l " + collection.name + ")");
+        emitExceptionCheck();
         return object;
     }
     if (needsFinalization(designated) && designated->m_classRoot == nullptr) {
@@ -551,7 +554,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         emitExceptionCheck();
         std::string failed = newLabel("allocationfailed");
         std::string ready = newLabel("allocationready");
-        m_context->handlerLabels.push_back(failed);
+        pushHandler(failed);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
             line("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->m_tagName + ".finalize)");
@@ -572,6 +575,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         }
         m_context->m_constructionOwner = savedOwner;
         m_context->m_constructionArena = savedArena;
+        line("call $__ada_collection_activate(l " + collection.name + ")");
+        emitExceptionCheck();
         if (expr->type->target->m_classRoot != nullptr) {
             // Ownership is already recorded; only accessibility remains to check.
             line("call $__ada_tag_check_accessibility(l " + object.name + ", w "

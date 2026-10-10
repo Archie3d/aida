@@ -64,10 +64,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
         std::string bodyLabel = newLabel("loopbody");
         std::string exit = newLabel("endloop");
         m_context->loopExits[loop] = exit;
-        if (!m_context->m_finalizationChain.empty()) {
-            m_context->m_loopStorage[loop] = storageCheckpoint();
-            m_context->m_loopHandlerDepth[loop] = m_context->handlerLabels.size();
-        }
+        m_context->m_loopStorage[loop] = storageCheckpoint();
+        m_context->m_loopHandlerDepth[loop] = m_context->handlerLabels.size();
+        m_context->m_transferMasterDepth[exit] = m_context->m_blockMasters.size();
 
         if (loop->loopKind == LoopKind::For) {
             Symbol* variable = loop->variableSymbol;
@@ -152,7 +151,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             break;
         }
         std::string cleanup;
-        if (!m_context->m_finalizationChain.empty()) {
+        if (!m_context->m_finalizationChain.empty() || !m_context->m_blockMasters.empty()) {
             cleanup = newLabel("exitcleanup");
         }
         std::string destination = cleanup.empty() ? it->second : cleanup;
@@ -166,10 +165,15 @@ void QbeEmitter::emitStatement(Stmt* statement)
         if (!cleanup.empty()) {
             label(cleanup);
             auto handlers = m_context->handlerLabels;
+            auto masters = m_context->m_blockMasters;
+            std::size_t depth = m_context->m_transferMasterDepth.at(it->second);
+            emitBlockExits(depth);
+            m_context->m_blockMasters.resize(depth);
             m_context->handlerLabels.resize(m_context->m_loopHandlerDepth.at(exitStatement->target));
             rewindStorage(m_context->m_loopStorage.at(exitStatement->target));
             m_context->handlerLabels = std::move(handlers);
             jump(it->second);
+            m_context->m_blockMasters = std::move(masters);
         }
         if (exitStatement->condition) {
             label(next);
@@ -289,20 +293,33 @@ void QbeEmitter::emitStatement(Stmt* statement)
 
     case StmtKind::Block: {
         auto* block = static_cast<BlockStmt*>(statement);
+        auto checkpoint = storageCheckpoint();
+        std::string master = allocScratch(8);
+        line("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)");
+        m_context->m_blockMasters.push_back({ master, checkpoint });
         emitLocalDeclarations(block->declarations);
+        line("call $__ada_master_activate(l %.taskContext, l " + master + ")");
+        emitExceptionCheck();
         if (block->handlers.empty()) {
             emitStatements(block->body);
-            break;
+        } else {
+            std::string dispatch = newLabel("handler");
+            std::string after = newLabel("handled");
+            m_context->handlerStorage[dispatch] = storageCheckpoint();
+            pushHandler(dispatch);
+            emitStatements(block->body);
+            m_context->handlerLabels.pop_back();
+            jump(after);
+            emitHandlers(block->handlers, after, dispatch);
+            label(after);
         }
-        std::string dispatch = newLabel("handler");
-        std::string after = newLabel("handled");
-        m_context->handlerStorage[dispatch] = storageCheckpoint();
-        m_context->handlerLabels.push_back(dispatch);
-        emitStatements(block->body);
-        m_context->handlerLabels.pop_back();
-        jump(after);
-        emitHandlers(block->handlers, after, dispatch);
-        label(after);
+        if (!m_context->terminated) {
+            emitBlockExits(m_context->m_blockMasters.size() - 1);
+        }
+        m_context->m_blockMasters.pop_back();
+        if (!m_context->terminated && !checkpoint.m_finalization.empty()) {
+            emitExceptionCheck();
+        }
         break;
     }
 

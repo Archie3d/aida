@@ -53,7 +53,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         line(arenaMark + " =l loadl %.resultArena");
         std::string failed = newLabel("wideresultfailed");
         std::string ready = newLabel("wideresultready");
-        m_context->handlerLabels.push_back(failed);
+        pushHandler(failed);
         if (limited) {
             m_context->m_resultTargetOwner = "%.resultOwner";
             m_context->m_resultTargetArena = "%.resultArena";
@@ -101,7 +101,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     line(arenaMark + " =l loadl %.resultArena");
     std::string failed = newLabel("resultfailed");
     std::string ready = newLabel("resultready");
-    m_context->handlerLabels.push_back(failed);
+    pushHandler(failed);
 
     Value destination { "%.result", 'l' };
     Value source;
@@ -289,6 +289,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         m_context->m_constructionArena = savedArena;
         std::string savedReturn = m_context->m_extendedReturnLabel;
         std::string bodyDone = newLabel("returnbodydone");
+        m_context->m_transferMasterDepth[bodyDone] = m_context->m_blockMasters.size();
         m_context->m_extendedReturnLabel = bodyDone;
         if (extended->m_handlers.empty()) {
             emitStatements(extended->m_body);
@@ -296,7 +297,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             std::string dispatch = newLabel("returnhandler");
             std::string handled = newLabel("returnhandled");
             m_context->handlerStorage[dispatch] = storageCheckpoint();
-            m_context->handlerLabels.push_back(dispatch);
+            pushHandler(dispatch);
             emitStatements(extended->m_body);
             m_context->handlerLabels.pop_back();
             jump(handled);

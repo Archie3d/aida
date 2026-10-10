@@ -60,6 +60,25 @@ void QbeEmitter::rewindStorage(const StorageCheckpoint& checkpoint, bool checkEx
     }
 }
 
+void QbeEmitter::emitBlockExits(std::size_t depth)
+{
+    // Emit cleanup for this control-flow edge without changing lexical state:
+    // another branch may still execute inside these masters. Finalize each
+    // inner scope before awaiting the next outer scope.
+    for (std::size_t i = m_context->m_blockMasters.size(); i > depth; --i) {
+        const auto& master = m_context->m_blockMasters[i - 1];
+        line("call $__ada_master_await(l %.taskContext, l " + master.m_record + ")");
+        rewindStorage(master.m_storage, false);
+        line("call $__ada_master_leave(l %.taskContext, l " + master.m_record + ")");
+    }
+}
+
+void QbeEmitter::pushHandler(const std::string& label)
+{
+    m_context->handlerLabels.push_back(label);
+    m_context->m_transferMasterDepth[label] = m_context->m_blockMasters.size();
+}
+
 Value QbeEmitter::staticLinkFor(int targetLevel)
 {
     Symbol* current = m_context->symbol;

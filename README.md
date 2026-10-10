@@ -311,8 +311,8 @@ The binder fetches its context once. Ada/C parameter lists and nested callback
 layouts are unchanged; C code must bind a context before entering Ada from a
 worker and restore any temporary binding before returning to an Ada caller.
 Generated-code tests exercise concurrent nested calls, callbacks, handlers,
-re-raises and worker-local uncaught exceptions. Ada tasking remains unsupported:
-masters, activation and task syntax remain later work.
+re-raises and worker-local uncaught exceptions. Ada tasking syntax and scheduling
+remain unsupported; the master/activation boundaries are now in place.
 
 The internal C threading API in `runtime/adathread.h` provides joinable threads,
 mutex initialization/destruction/try-lock (extending `adalock`), condition
@@ -332,7 +332,24 @@ unaligned storage and device memory are outside this ABI. `Atomic` and `Volatile
 pragmas remain rejected until Phase 4. `runtime.threading` tests synchronization,
 deadlines and atomic publication; context and result-buffer tests exercise the
 layer while running runtime helpers from multiple workers. Existing generated
-code and runtime lock/unlock paths gain no additional calls.
+code and runtime lock/unlock paths gain no additional calls from the threading
+layer itself.
+
+`runtime/adamaster.h` defines no-op entry, activation, await and exit hooks for
+subprogram/block scopes, the library lifetime, and existing managed access-type
+collections. Scope activation follows successful declarations; library
+activation follows all library elaboration. Allocator completion activates its
+collection. On exit, each nested master is awaited before its objects are
+finalized and storage released, then left before its enclosing scope is awaited.
+This ordering also covers return, loop exit, failed declarations and exception
+propagation; a handler keeps its own scope alive. Statically empty subprogram
+masters (no declarations or owned temporaries) are elided. The hooks carry an
+explicit task context, allocate nothing, change no exception state and perform
+no actual task activation or waiting yet. Phase 4 will supply those operations.
+Observer-based runtime tests check the boundaries against actual finalizer
+execution, including injected activation failure. Rebuild existing Ada objects
+against the matching compiler/runtime after this internal ABI change.
+
 File operations use per-file mutexes across validation and use. The table lock
 protects pool reservations and current selections, and is released before
 waiting for a file lock or performing blocking I/O. Pins prevent slot reuse

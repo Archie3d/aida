@@ -62,6 +62,14 @@ private:
         std::string arrayArena;
         std::string temporaryArena;
         std::string m_finalizationChain;
+        bool m_hasMaster = false;
+        struct BlockMaster
+        {
+            std::string m_record;
+            StorageCheckpoint m_storage;
+        };
+        std::vector<BlockMaster> m_blockMasters;
+        std::unordered_map<std::string, std::size_t> m_transferMasterDepth;
         std::string m_temporaryFinalizationChain;
         bool m_initializingTemporary = false;
         std::string m_extendedReturnLabel;
@@ -145,6 +153,8 @@ private:
     std::string storageArena(bool temporary, bool allocate = false);
     StorageCheckpoint storageCheckpoint();
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);
+    void emitBlockExits(std::size_t depth);
+    void pushHandler(const std::string& label);
     void emitControlledCall(const Value& object, Type* type, const std::string& operation, const std::string& explicitTag = "");
     void initializeFinalization();
     void initializeCollection(Type* type);

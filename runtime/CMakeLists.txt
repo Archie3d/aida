@@ -16,6 +16,7 @@ target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/adalock.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adathread.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/adamaster.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adatags.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adaio.c

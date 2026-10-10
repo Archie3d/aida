@@ -104,7 +104,10 @@ binder fetches its context once as well. C workers can call the tested Ada
 subset under separate contexts. Image and stream results are caller-owned;
 file and tag tables are locked, and library lifetime storage belongs to the
 environment task. The C threading layer provides joinable threads, mutexes,
-monotonic condition waits and scalar atomic access; master hooks remain below.
+monotonic condition waits and scalar atomic access. Master entry, activation,
+await and exit hooks now bracket scoped cleanup; they remain task-free until
+Phase 4. Empty subprogram masters are elided when the lifetime analysis proves
+they have no declarations or owned temporaries.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
@@ -169,13 +172,26 @@ redesigning. The shared state is in the C run time.
   Covered by `runtime.threading` (contention, signal/broadcast, timeout,
   thread results and atomic publication), plus `runtime.task_context` and
   `runtime.result_buffers` using the layer. All 355 tests and a focused
-  ThreadSanitizer run pass on macOS; Linux/MSYS2 execution remains host
-  validation work. No generated code or existing lock/unlock path is changed.
-- [ ] **Masters and activation hooks.** Every master (subprogram, block, library
-  level, access-type collection) gets an exit point that will wait for its
-  dependent tasks before finalizing objects, in the same place the finalization
-  chain is unwound. Elaboration gets the matching activation point. These hooks
-  do nothing until Phase 4, but later features are built around them.
+  ThreadSanitizer run pass on macOS; the user also verified the suite on Linux.
+  MSYS2 execution remains host validation work. No generated code or existing
+  lock/unlock path is changed by this step.
+- [x] **Masters and activation hooks.** `adamaster` supplies task-free entry,
+  activation, await and exit hooks with explicit contexts and caller-owned
+  identities. Subprograms and blocks activate after successful declarations;
+  the binder activates the library master only after all elaborations succeed.
+  Existing managed access-type collections activate after allocator completion
+  and await before any member is finalized. Nested scopes await, finalize and
+  release storage inside-out on normal completion, return, loop exit and
+  exception transfer; handlers retain their own scope until it exits.
+  Statically empty subprogram boundaries are elided to preserve scalar leaf
+  call cost. Task-valued temporaries must join lifetime analysis in Phase 4.
+  Covered by `runtime.masterhooks`, `runtime.masterfailure`,
+  `runtime.masterlibraryfailure` and `determinism.masterhooks`, including
+  observed finalization order, failed declarations/activation, re-raise,
+  missing returns, extended returns, finalizer failure and collection variants.
+  The binder IR golden is updated. The existing call/image benchmarks showed
+  no material regression on macOS (see `tests/benchmarks/README.md`); broader
+  and cross-target performance validation remains open.
 
 Tests: the existing suite; a C test that runs run-time helpers (images,
 exceptions, allocation) from several threads at once; IR golden updates for the

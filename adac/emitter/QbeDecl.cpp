@@ -175,7 +175,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 std::string dispatch = newLabel("packagehandler");
                 std::string after = newLabel("packagehandled");
                 m_context->handlerStorage[dispatch] = storageCheckpoint();
-                m_context->handlerLabels.push_back(dispatch);
+                pushHandler(dispatch);
                 emitStatements(package->body);
                 m_context->handlerLabels.pop_back();
                 jump(after);
@@ -316,7 +316,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 std::string dispatch = newLabel("packagehandler");
                 std::string after = newLabel("packagehandled");
                 m_context->handlerStorage[dispatch] = storageCheckpoint();
-                m_context->handlerLabels.push_back(dispatch);
+                pushHandler(dispatch);
                 emitStatements(package->body);
                 m_context->handlerLabels.pop_back();
                 jump(after);
