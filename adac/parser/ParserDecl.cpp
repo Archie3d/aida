@@ -17,12 +17,22 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
             break;
         }
 
+        std::size_t declarationStart = m_position;
         try {
             DeclPtr decl = parseDeclarativeItem();
             if (decl) {
                 declarations.push_back(std::move(decl));
             }
         } catch (const ParseError&) {
+            // A missing delimiter can leave us at the next declaration. Keep
+            // its introducer instead of consuming its first internal semicolon.
+            // Require progress so a rejected introducer cannot loop forever.
+            if (m_position > declarationStart
+                && (check(TokenKind::KwType) || check(TokenKind::KwSubtype)
+                    || check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)
+                    || check(TokenKind::KwPackage) || check(TokenKind::KwGeneric))) {
+                continue;
+            }
             skipToSemicolon();
         }
     }

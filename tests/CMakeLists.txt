@@ -677,3 +677,12 @@ add_test(NAME binding.elaboration_order
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckElaborationOrder.cmake)
 set_tests_properties(binding.elaboration_order PROPERTIES TIMEOUT 60)
+
+add_ada_error_test(duplicatetypeerrors SOURCES duplicatetypeerrors.adb)
+add_ada_test(typedeclarations SOURCES typedeclarations.adb)
+
+add_ada_error_test(recordrecoveryaccess SOURCES recordrecoveryaccess.adb)
+add_ada_error_test(recordrecoverymissingsemicolon SOURCES recordrecoverymissingsemicolon.adb)
+add_ada_error_test(recordrecoveryerrors SOURCES recordrecoveryerrors.adb)
+set_tests_properties(error.recordrecoveryaccess error.recordrecoverymissingsemicolon
+    error.recordrecoveryerrors PROPERTIES TIMEOUT 10)

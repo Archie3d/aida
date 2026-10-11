@@ -261,6 +261,9 @@ there; this phase does not introduce an anonymous library-block extension.
   units, reporting them before linking while allowing declarations that do not
   require bodies. Code:
   `adac/sema/SemaNames.cpp`, `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
+  - [x] Reject type and subtype declarations that conflict with existing local
+    names, preserving incomplete/private type completions and nested-scope
+    shadowing. Covered by `duplicatetypeerrors` and `typedeclarations`.
 - [ ] **Blocks executed during package-body elaboration.** Audit ordinary
   `declare ... begin ... end` and `begin ... end` statements inside package
   bodies' executable parts. Cover local declarations, object storage, nested
@@ -462,6 +465,10 @@ declarations, a formal package, an interface hierarchy with dispatch.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer.
+  - [x] Record-component syntax recovery preserves record/variant boundaries;
+    declaration recovery preserves the next declaration's introducer after a
+    missing delimiter. Covered by `recordrecoveryaccess`,
+    `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
 - [ ] Compare shared programs with GNAT, and adopt relevant conformance tests,
   allowing for implementation-defined differences.
 - [ ] Validate supported hosts and targets: ABI widths, installation and

@@ -18,6 +18,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (candidate->kind == SymbolKind::TypeName && candidate->type != nullptr
             && candidate->type->isIncomplete) {
             completing = candidate->type;
+        } else {
+            m_diagnostics.error(decl->location, "'" + decl->name + "' has already been declared in this scope");
+            return;
         }
     }
 
@@ -548,6 +551,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
 void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 {
+    if (!scope->lookupLocal(decl->lower).empty()) {
+        m_diagnostics.error(decl->location, "'" + decl->name + "' has already been declared in this scope");
+        return;
+    }
+
     // Generic formal objects are unknown while checking the contract. Keep
     // symbolic constraints here; instantiation resolves the actual layout.
     bool symbolicBounds = m_currentSubprogram != nullptr || m_recordContract != nullptr;

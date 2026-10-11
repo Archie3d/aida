@@ -1,0 +1,7 @@
+duplicatetypeerrors.adb:3:5: error: 'S' has already been declared in this scope
+duplicatetypeerrors.adb:8:5: error: 'cOuNt' has already been declared in this scope
+duplicatetypeerrors.adb:11:5: error: 'Index' has already been declared in this scope
+duplicatetypeerrors.adb:14:5: error: 'Item' has already been declared in this scope
+duplicatetypeerrors.adb:17:5: error: 'Value' has already been declared in this scope
+duplicatetypeerrors.adb:20:5: error: 'Position' has already been declared in this scope
+duplicatetypeerrors.adb:23:5: error: 'Action' has already been declared in this scope

@@ -1,0 +1,2 @@
+recordrecoverymissingsemicolon.adb:4:5: error: expected 'is' in type declaration, found 'type'
+recordrecoverymissingsemicolon.adb:6:16: error: expected 'identifier' in name, found 'access'

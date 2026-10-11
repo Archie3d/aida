@@ -232,6 +232,8 @@ tests. The sections below describe each feature and its limits.
 - **Overloading and derivation:** context-driven overload resolution,
   user-defined operators, `use`, `use type` and `use all type`, derived types
   inheriting primitive operations, `overriding` indicators.
+  Type and subtype declarations check for existing names in the same scope;
+  incomplete/private type completions and nested-scope shadowing are supported.
 - **Object orientation:** single-inheritance tagged records, extension
   aggregates, class-wide objects, results and access types, dispatching,
   abstract tagged types, `Ada.Tags`, and `Ada.Finalization` controlled types
@@ -317,6 +319,8 @@ Abstract subprogram declarations, task declarations, `goto`, statement labels,
 `select`, and limited/private `with` clauses receive diagnostics naming the
 unsupported construct. Recovery skips task definitions and complete select
 blocks, and preserves the statement following a label.
+Record-component errors recover at the next component separator or record/variant
+boundary, preserving the enclosing declaration and subsequent diagnostics.
 
 `TODO.md` sets out the order in which these gaps are to be addressed.
 

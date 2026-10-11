@@ -309,31 +309,45 @@ void Parser::parseDiscriminantPart(std::vector<RecordField>& discriminants)
 void Parser::parseRecordComponents(std::vector<RecordField>& fields)
 {
     while (!check(TokenKind::KwEnd) && !check(TokenKind::KwWhen) && !check(TokenKind::KwCase)
+           && !check(TokenKind::KwBegin) && !check(TokenKind::KwException)
            && !check(TokenKind::EndOfFile)) {
-        if (match(TokenKind::KwNull)) {
-            expect(TokenKind::Semicolon, "after null component");
-            continue;
-        }
-        SourceLocation fieldLocation = current().location;
-        std::vector<std::string> lowered;
-        std::vector<std::string> names = parseIdentifierList(lowered);
-        expect(TokenKind::Colon, "in record component");
-        // As with grouped parameters, retain a complete owned syntax tree for
-        // every name. Semantic analysis may annotate each subtree separately.
-        std::size_t subtypeStart = m_position;
-        for (std::size_t i = 0; i < names.size(); ++i) {
-            RecordField field;
-            field.name = names[i];
-            field.lower = lowered[i];
-            field.location = fieldLocation;
-            m_position = subtypeStart;
-            field.subtype = parseSubtypeIndication();
-            if (match(TokenKind::Assign)) {
-                field.defaultValue = parseExpression();
+        try {
+            if (match(TokenKind::KwNull)) {
+                expect(TokenKind::Semicolon, "after null component");
+                continue;
             }
-            fields.push_back(std::move(field));
+            SourceLocation fieldLocation = current().location;
+            std::vector<std::string> lowered;
+            std::vector<std::string> names = parseIdentifierList(lowered);
+            expect(TokenKind::Colon, "in record component");
+            // As with grouped parameters, retain a complete owned syntax tree for
+            // every name. Semantic analysis may annotate each subtree separately.
+            std::size_t subtypeStart = m_position;
+            for (std::size_t i = 0; i < names.size(); ++i) {
+                RecordField field;
+                field.name = names[i];
+                field.lower = lowered[i];
+                field.location = fieldLocation;
+                m_position = subtypeStart;
+                field.subtype = parseSubtypeIndication();
+                if (match(TokenKind::Assign)) {
+                    field.defaultValue = parseExpression();
+                }
+                fields.push_back(std::move(field));
+            }
+            expect(TokenKind::Semicolon, "after record component");
+        } catch (const ParseError&) {
+            // Recover inside the record. Letting this escape would make its
+            // end record look like the end of the enclosing subprogram.
+            while (!check(TokenKind::KwEnd) && !check(TokenKind::KwWhen)
+                && !check(TokenKind::KwCase) && !check(TokenKind::KwBegin)
+                && !check(TokenKind::KwException) && !check(TokenKind::EndOfFile)) {
+                if (match(TokenKind::Semicolon)) {
+                    break;
+                }
+                advance();
+            }
         }
-        expect(TokenKind::Semicolon, "after record component");
     }
 }
 
