@@ -154,6 +154,9 @@ redesigning. The shared state is in the C run time.
   use a separate mutex; descriptors survive until process shutdown after worker
   termination. Library lifetime storage is owned by the environment context;
   foreign-context operations and recursive library shutdown raise Program_Error.
+  Process-wide exit status uses relaxed C11 atomic loads/stores, including its
+  startup reset; concurrent access and post-join visibility are covered by
+  `runtime.task_context`.
   Collections reject allocation from a different context. No generated callback
   runs under a runtime mutex. Covered by `runtime.shared_tables`, `filesnapshots`
   and its determinism test, including concurrent first use and slot reuse.

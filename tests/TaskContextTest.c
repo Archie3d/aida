@@ -1,6 +1,7 @@
 #include "../runtime/adart.h"
 
 #include "../runtime/adathread.h"
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -140,6 +141,11 @@ static void* runWorker(void* argument)
         CHECK(__ada_exception == NULL);
         __ada_raise_message(&exception, name, (int)strlen(name));
         meet();
+        /* Concurrent status access is process-wide, independent of context.
+           Another worker may overwrite our value before the read. */
+        __ada_set_exit_status(i);
+        int status = __ada_get_exit_status();
+        CHECK(status >= 0 && status < iterations);
         CHECK(__ada_task_context() == &context && context.m_currentTrace == &frame);
         AdaExceptionOccurrence occurrence;
         __ada_exception_capture(&occurrence, &arena);
@@ -172,6 +178,13 @@ static void* runWorker(void* argument)
 
 int main(void)
 {
+    CHECK(__ada_get_exit_status() == 0);
+    __ada_set_exit_status(INT_MIN);
+    CHECK(__ada_get_exit_status() == INT_MIN);
+    __ada_set_exit_status(INT_MAX);
+    CHECK(__ada_get_exit_status() == INT_MAX);
+    __ada_command_line_init(0, NULL);
+    CHECK(__ada_get_exit_status() == 0);
     CHECK(__ada_mutex_init(&rendezvous.m_mutex) == 0);
     CHECK(__ada_condition_init(&rendezvous.m_condition) == 0);
     testBindings();
@@ -184,6 +197,7 @@ int main(void)
     for (int i = 0; i < workerCount; ++i) {
         CHECK(__ada_thread_join(workers[i], NULL) == 0);
     }
+    CHECK(__ada_get_exit_status() == iterations - 1);
     CHECK(__ada_exception == ADA_TASKING_ERROR);
     CHECK(__ada_main_context.m_pendingMessageLength == 4);
     CHECK(memcmp(__ada_main_context.m_pendingMessage, "main", 4) == 0);

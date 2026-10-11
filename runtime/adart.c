@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,13 +63,14 @@ int __ada_task_context_dispose(AdaTaskContext* context)
 
 static int argumentCount;
 static char** argumentValues;
-static int exitStatus;
+/* Process-wide status; it does not publish or synchronize other task state. */
+static atomic_int exitStatus;
 
 void __ada_command_line_init(int argc, char** argv)
 {
     argumentCount = argc > 0 && argv != NULL ? argc - 1 : 0;
     argumentValues = argc > 0 ? argv : NULL;
-    exitStatus = 0;
+    atomic_store_explicit(&exitStatus, 0, memory_order_relaxed);
 }
 
 int __ada_argument_count(void)
@@ -104,12 +106,12 @@ const char* __ada_command_name(void)
 
 void __ada_set_exit_status(int code)
 {
-    exitStatus = code;
+    atomic_store_explicit(&exitStatus, code, memory_order_relaxed);
 }
 
 int __ada_get_exit_status(void)
 {
-    return exitStatus;
+    return atomic_load_explicit(&exitStatus, memory_order_relaxed);
 }
 
 AdaTaskContext* __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
