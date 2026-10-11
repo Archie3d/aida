@@ -1000,6 +1000,9 @@ struct CompilationUnit
     // lower cased with each dot written as a dash.
     std::string unitKey;
     bool isSpec = false;
+
+    // Required source-part elaborations, kept separate for specs and bodies.
+    std::vector<std::string> dependencies;
 };
 
 using CompilationUnitPtr = std::unique_ptr<CompilationUnit>;

@@ -655,3 +655,25 @@ foreach(master_case masterhooks masterfailure masterlibraryfailure)
     set_tests_properties(runtime.${master_case} PROPERTIES TIMEOUT 30)
 endforeach()
 add_determinism_test(masterhooks SOURCE masterhooks.adb)
+
+foreach(loading_case cycles identity sources child)
+    add_test(NAME loading.${loading_case}
+        COMMAND ${CMAKE_COMMAND}
+            -DCASE=${loading_case}
+            -DADAC=$<TARGET_FILE:adac>
+            -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada/unitloading
+            -DWORKDIR=${ADA_TEST_WORK_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnitLoading.cmake)
+    set_tests_properties(loading.${loading_case} PROPERTIES TIMEOUT 30)
+endforeach()
+add_ada_test(load_main SOURCES unitloading/load_main.adb)
+add_ada_test(child_main SOURCES unitloading/load_parent-child.ads unitloading/child_main.adb)
+add_determinism_test(load_main SOURCE unitloading/load_main.adb)
+add_test(NAME binding.elaboration_order
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/unitloading/load_main.adb
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckElaborationOrder.cmake)
+set_tests_properties(binding.elaboration_order PROPERTIES TIMEOUT 60)

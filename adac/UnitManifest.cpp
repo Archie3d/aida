@@ -24,7 +24,7 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     if (!out) {
         return false;
     }
-    out << "format 2\n";
+    out << "format 3\n";
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
     }
@@ -40,9 +40,15 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
         for (const std::string& key : unit.withKeys) {
             out << "with " << key << "\n";
         }
+        for (const UnitPartRecord& part : unit.parts) {
+            out << "part " << part.key << "\n";
+            for (const std::string& dependency : part.dependencies) {
+                out << "requires " << dependency << "\n";
+            }
+        }
         out << "end\n";
     }
-    return true;
+    return static_cast<bool>(out);
 }
 
 bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations)
@@ -52,35 +58,52 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
         return false;
     }
     std::string line;
-    if (!std::getline(in, line) || line != "format 2") {
+    if (!std::getline(in, line) || line != "format 3") {
         return false;
     }
+    bool inUnit = false;
     while (std::getline(in, line)) {
         std::string keyword;
         std::string rest;
         if (!split(line, keyword, rest)) {
             continue;
         }
-        if (keyword == "elaborate") {
+        if (keyword == "end") {
+            if (!inUnit || !rest.empty() || units.back().digest.empty()
+                || units.back().specDigest.empty() || units.back().sources.empty()
+                || units.back().parts.empty()) {
+                return false;
+            }
+            inUnit = false;
+        } else if (rest.empty()) {
+            return false;
+        } else if (keyword == "elaborate" && !inUnit) {
             if (elaborations != nullptr) {
                 elaborations->push_back(rest);
             }
-        } else if (keyword == "unit") {
+        } else if (keyword == "unit" && !inUnit) {
             units.push_back(UnitRecord {});
             units.back().key = rest;
-        } else if (units.empty()) {
-            continue;
-        } else if (keyword == "digest") {
+            inUnit = true;
+        } else if (!inUnit) {
+            return false;
+        } else if (keyword == "digest" && units.back().digest.empty()) {
             units.back().digest = rest;
-        } else if (keyword == "spec") {
+        } else if (keyword == "spec" && units.back().specDigest.empty()) {
             units.back().specDigest = rest;
         } else if (keyword == "source") {
             units.back().sources.push_back(rest);
         } else if (keyword == "with") {
             units.back().withKeys.push_back(rest);
+        } else if (keyword == "part") {
+            units.back().parts.push_back(UnitPartRecord { rest, {} });
+        } else if (keyword == "requires" && !units.back().parts.empty()) {
+            units.back().parts.back().dependencies.push_back(rest);
+        } else {
+            return false;
         }
     }
-    return true;
+    return !inUnit && !in.bad();
 }
 
 bool writeUnitRecord(const std::string& path, const UnitRecordFile& record)

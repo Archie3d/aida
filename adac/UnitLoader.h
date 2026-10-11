@@ -31,11 +31,18 @@ public:
 
     void addSearchPath(const std::string& directory);
 
+    // Register explicit paths before following dependencies, so command-line
+    // order cannot select a different copy of a specification or body.
+    bool addSource(const std::string& path);
+
     // Reads a file named on the command line along with everything it withs.
     bool loadSource(const std::string& path);
 
     // Reads a unit by name, doing nothing if it has already been read.
     bool loadUnit(const std::string& name, const SourceLocation& from);
+
+    // Validate and order the discovered specification/body dependency graph.
+    bool orderUnits();
 
     // The units in the order they have to be analysed: whatever a unit draws on
     // comes before it, and the library comes before the program.
@@ -47,12 +54,6 @@ public:
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
-    enum class State
-    {
-        Loading,
-        Loaded
-    };
-
     bool readFile(const std::string& path, std::string& contents) const;
     std::string findUnit(const std::string& key, const char* extension) const;
     bool parseInto(const std::string& path, const std::string& contents, const std::string& key, bool isSpec);
@@ -60,7 +61,9 @@ private:
     Diagnostics& m_diagnostics;
     std::vector<std::string> m_searchPaths;
     std::vector<CompilationUnitPtr> m_units;
-    std::unordered_map<std::string, State> m_states;
+    std::unordered_map<std::string, std::string> m_explicitPaths;
+    std::unordered_map<std::string, CompilationUnit*> m_sources;
+    std::unordered_map<std::string, CompilationUnit*> m_parts;
     bool m_specificationsOnly = false;
     std::string m_targetKey;
 };

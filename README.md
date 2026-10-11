@@ -86,9 +86,14 @@ missing or modified IR files. Older record formats are rebuilt automatically.
 
 Specifications and bodies have separate elaboration entry points, so another
 unit can elaborate between them while their code still shares one object file.
-The binder uses the elaboration order recorded by the loader in the scan
-manifest; it does not independently solve elaboration constraints. It checks
-compiled records against that manifest and rejects missing or stale units and a main unit without a main procedure. When invoking the front
+The loader orders source parts using separate specification/body dependencies,
+including parent specifications, and diagnoses dependency cycles. Legal body
+dependencies back to an available specification are permitted. The binder
+validates the recorded order against that graph and rejects missing, duplicate
+or unknown elaboration entries and dependencies. It also checks compiled records
+against the manifest and rejects missing or stale units and a main unit without
+a main procedure. Runtime elaboration-before-use checks and the elaboration
+pragmas remain unimplemented. When invoking the front
 end manually, run `--scan` again after source changes before binding.
 
 The driver tells `adac` where the predefined environment is, so nothing needs
@@ -125,6 +130,22 @@ is looked for on the library path and compiled along with it, so a package
 specification and its body are found by their file names rather than listed.
 Several sources may still be given at once. For executable builds, the last
 source names the unit containing the parameterless main procedure.
+
+All explicit source paths are registered before following dependencies. Explicit
+paths take precedence over library search for the same filename; conflicting
+explicit paths for one filename and duplicate declarations of a library-unit
+part in different files are errors. Repeated paths and symlink aliases of the
+same file are loaded once. Explicit bodies load their corresponding `.ads`
+files, and explicit specifications load available bodies for executable builds.
+Library lookup verifies that the selected file declares the requested unit.
+For compatibility, explicitly supplied files may have custom names or contain
+several library items; those files retain one elaboration entry per source part
+and file-based artifact names. Per-item context-clause isolation in such bundles
+remains part of the visibility audit.
+
+Scan manifests use format 3, retaining each source part's dependencies separately.
+Older manifests must be regenerated with `--scan`; normal driver builds do this
+automatically.
 
 ### Separate compilation and binding
 

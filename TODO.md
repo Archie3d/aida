@@ -219,6 +219,16 @@ there; this phase does not introduce an anonymous library-block extension.
   legal dependencies between bodies and already available specifications.
   Code: `adac/UnitLoader.cpp`, `adac/UnitManifest.h`, `adac/UnitManifest.cpp`,
   `adac/main.cpp`.
+  - [x] Source-file foundation: declaration-based part identities, preregistered
+    explicit paths, canonical-path deduplication, conflicting-source diagnostics,
+    automatic spec/body loading, parent dependencies, and separate source-part
+    graph ordering with cycle diagnostics. Format 3 manifests preserve that graph.
+    Covered by `loading.{cycles,identity,sources,child}`, `ada.load_main`,
+    `ada.child_main` and `determinism.load_main`. Explicit custom filenames and
+    multi-item source bundles remain supported extensions; library-path lookup
+    diagnoses filename/declaration mismatches.
+  - [ ] Complete per-library-item identity/context handling within multi-item
+    bundles rather than treating an entire source file as one dependency node.
 - [ ] **Elaboration order and checks.** Build elaboration constraints from the
   per-part dependency graph, including specification-before-body and parent/child
   requirements. Have binding validate manifest order and reject missing,
@@ -230,6 +240,10 @@ there; this phase does not introduce an anonymous library-block extension.
   Apply the same rules to whole-program and separate compilation.
   Code: `adac/main.cpp`, `adac/Binder.cpp`, `adac/UnitManifest.cpp`,
   `adac/sema/`, `adac/emitter/`.
+  - [x] Binder graph validation, covered by `binding.elaboration_order`: missing,
+    duplicate and unknown entries, unknown dependencies, duplicate part metadata,
+    invalid ordering and truncated manifests.
+  - [ ] Runtime elaboration-before-use checks and their cleanup regressions.
 - [ ] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
   `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
   arguments and named-unit legality. Test each pragma separately: body-before-

@@ -99,6 +99,8 @@ UnitRecord describe(const LibraryUnit& unit)
     std::string text;
     for (CompilationUnit* part : unit.parts) {
         record.sources.push_back(part->fileName);
+        record.parts.push_back(UnitPartRecord {
+            part->unitKey + (part->isSpec ? ".spec" : ".body"), part->dependencies });
         std::string contents = digestOfFile(part->fileName);
         text += contents;
         if (part->isSpec) {
@@ -305,6 +307,11 @@ int main(int argc, char** argv)
             std::cerr << "adac: error: cannot read '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
+        std::string orderError = validateElaborationOrder(units, keys);
+        if (!orderError.empty()) {
+            std::cerr << "adac: error: " << orderError << "\n";
+            return 1;
+        }
 
         UnitRecordFile record;
         bool foundMain = false;
@@ -383,6 +390,12 @@ int main(int argc, char** argv)
     // declarations, so the bodies of its dependencies stay unread.
     loader.setSpecificationsOnly(singleUnit);
 
+    for (const std::string& path : inputs) {
+        if (!loader.addSource(path)) {
+            return 1;
+        }
+    }
+
     // The run time raises its exceptions by number, so the package declaring
     // them is part of every program whether or not it was asked for.
     loader.loadUnit("Ada.IO_Exceptions", SourceLocation {});
@@ -410,6 +423,10 @@ int main(int argc, char** argv)
         }
     }
     if (diagnostics.hasErrors()) {
+        return 1;
+    }
+
+    if (!loader.orderUnits()) {
         return 1;
     }
 

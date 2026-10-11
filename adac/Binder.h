@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UnitManifest.h"
+
 #include <ostream>
 #include <string>
 #include <vector>
@@ -11,6 +13,10 @@ std::string unitTag(const std::string& key);
 // The symbol elaborating a library unit.  The dot keeps it clear of both
 // mangled Ada names and run time symbols.
 std::string elaborationName(const std::string& key);
+
+// Returns an empty string for a complete ordering satisfying every part edge.
+std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
+    const std::vector<std::string>& elaborations);
 
 // Writes the entry point: every unit is elaborated in turn, and the main
 // subprogram runs once they all succeeded.  This belongs to no unit, and needs

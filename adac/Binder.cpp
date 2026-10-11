@@ -1,5 +1,62 @@
 #include "Binder.h"
 
+#include <unordered_map>
+#include <unordered_set>
+
+std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
+    const std::vector<std::string>& elaborations)
+{
+    std::unordered_set<std::string> unitKeys;
+    std::unordered_map<std::string, const UnitPartRecord*> parts;
+    for (const UnitRecord& unit : units) {
+        if (unit.key.empty() || !unitKeys.insert(unit.key).second) {
+            return "invalid or duplicate unit '" + unit.key + "' in manifest";
+        }
+        if (unit.parts.empty()) {
+            return "missing elaboration parts for unit '" + unit.key + "'";
+        }
+        for (const UnitPartRecord& part : unit.parts) {
+            if (part.key != unit.key + ".spec" && part.key != unit.key + ".body") {
+                return "invalid elaboration part '" + part.key + "' for unit '" + unit.key + "'";
+            }
+            if (!parts.emplace(part.key, &part).second) {
+                return "duplicate elaboration part '" + part.key + "'";
+            }
+        }
+    }
+    std::unordered_map<std::string, std::size_t> positions;
+    for (std::size_t i = 0; i < elaborations.size(); ++i) {
+        const std::string& key = elaborations[i];
+        if (!parts.contains(key)) {
+            return "unknown elaboration entry '" + key + "'";
+        }
+        if (!positions.emplace(key, i).second) {
+            return "duplicate elaboration entry '" + key + "'";
+        }
+    }
+    // Traverse in manifest order so diagnostics never depend on hash order.
+    for (const UnitRecord& unit : units) {
+        for (const UnitPartRecord& part : unit.parts) {
+            if (!positions.contains(part.key)) {
+                return "missing elaboration entry '" + part.key + "'";
+            }
+        }
+    }
+    for (const UnitRecord& unit : units) {
+        for (const UnitPartRecord& part : unit.parts) {
+            for (const std::string& dependency : part.dependencies) {
+                if (!positions.contains(dependency)) {
+                    return "unknown elaboration dependency '" + dependency + "' of '" + part.key + "'";
+                }
+                if (positions.at(dependency) >= positions.at(part.key)) {
+                    return "invalid elaboration order: '" + dependency + "' must precede '" + part.key + "'";
+                }
+            }
+        }
+    }
+    return {};
+}
+
 std::string unitTag(const std::string& key)
 {
     std::string tag;

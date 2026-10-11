@@ -7,6 +7,12 @@
 // records about the sources it was built from.  Between them the driver can
 // tell which units a change has reached without analysing anything itself.
 
+struct UnitPartRecord
+{
+    std::string key;
+    std::vector<std::string> dependencies;
+};
+
 struct UnitRecord
 {
     std::string key;
@@ -14,6 +20,7 @@ struct UnitRecord
     std::string specDigest;   // Over the specification, or the whole unit if no spec exists.
     std::vector<std::string> sources;
     std::vector<std::string> withKeys;
+    std::vector<UnitPartRecord> parts;
 };
 
 // Unit metadata plus the independent specification/body elaboration sequence.
