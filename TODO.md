@@ -400,6 +400,8 @@ Grouped by dependency. Within a group, work top to bottom.
 
 - [ ] General access types: `aliased` objects, `access all`, `'Access` of
   objects, access-to-constant, and accessibility checks.
+  `access all` and `access constant` currently receive explicit unsupported-type
+  diagnostics, covered by `generalaccesserrors`.
 - [ ] Anonymous access types, including anonymous access-to-subprogram.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
 

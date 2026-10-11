@@ -686,3 +686,5 @@ add_ada_error_test(recordrecoverymissingsemicolon SOURCES recordrecoverymissings
 add_ada_error_test(recordrecoveryerrors SOURCES recordrecoveryerrors.adb)
 set_tests_properties(error.recordrecoveryaccess error.recordrecoverymissingsemicolon
     error.recordrecoveryerrors PROPERTIES TIMEOUT 10)
+
+add_ada_error_test(generalaccesserrors SOURCES generalaccesserrors.adb)

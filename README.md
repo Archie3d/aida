@@ -282,6 +282,8 @@ tests. The sections below describe each feature and its limits.
   and components whose bounds depend on discriminants.
 - General access types: `aliased` objects, `access all`, `'Access` of objects,
   access-to-constant, anonymous access types and general accessibility checks.
+  Named `access all` and `access constant` declarations receive explicit
+  diagnostics identifying the unsupported type category.
 - Package and generic renaming, `separate` subunits, and `goto`. Subprogram
   and package body stubs (`is separate`) are rejected with a single explicit
   diagnostic per stub.

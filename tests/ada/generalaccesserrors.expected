@@ -1,0 +1,2 @@
+generalaccesserrors.adb:3:32: error: general access types ('access all') are not yet supported
+generalaccesserrors.adb:4:34: error: access-to-constant types are not yet supported
