@@ -202,44 +202,114 @@ new context access.
 
 ## Phase 3 — Harden the existing subset
 
-Audits of supported features. Write a focused reproduction before choosing a fix.
+Audits of supported features, in the order below. Write a focused reproduction
+before choosing a fix. Apply Phase 8's language-version decision and support
+matrix alongside this phase, recording deliberate subset restrictions and
+using focused GNAT comparisons for the supported cases. Wider numeric support,
+new access forms and other features explicitly deferred to later phases stay
+there; this phase does not introduce an anonymous library-block extension.
 
-- [ ] **Visibility and conformance.** Visibility, `use` clauses, homographs,
-  duplicate declarations, and specification/body conformance (parameter modes,
-  names, defaults, return profiles). Report missing bodies before linking.
-  Code: `adac/sema/SemaNames.cpp`, `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
-- [ ] **Unit loading and elaboration.** Dependency cycles, explicit-source and
-  spec/body loading, and elaboration-before-use checks. The binder currently
-  trusts the manifest's order; make it check that order against `with`
-  dependencies. Then implement `Elaborate`, `Elaborate_All` and `Elaborate_Body`,
-  which Phase 1 currently rejects. Code: `adac/UnitLoader.cpp`, `adac/Binder.cpp`.
-- [ ] **Library-level statement blocks.** Support declarations inside them,
-  including object storage, nested subprogram emission and package elaboration.
-- [ ] **Aggregates.** Completeness, duplicate choices, record defaults, array
-  sliding and component subtype checks beyond the existing regressions.
+- [ ] **Unit identity and loading.** Establish specification/body identity from
+  declarations and define the source naming policy. Diagnose filename/unit-name
+  mismatches and conflicting or duplicate definitions; handle repeated references
+  to the same source consistently. Cover explicit sources, automatic spec/body
+  loading, source argument order, and parent/child dependencies. Represent
+  specifications and bodies as separate dependency nodes, preserving each
+  part's context clauses. Diagnose illegal dependency cycles without rejecting
+  legal dependencies between bodies and already available specifications.
+  Code: `adac/UnitLoader.cpp`, `adac/UnitManifest.h`, `adac/UnitManifest.cpp`,
+  `adac/main.cpp`.
+- [ ] **Elaboration order and checks.** Build elaboration constraints from the
+  per-part dependency graph, including specification-before-body and parent/child
+  requirements. Have binding validate manifest order and reject missing,
+  duplicate and unknown elaboration entries, as well as unsatisfiable ordering
+  constraints. Define and implement elaboration-before-use checks that raise
+  `Program_Error` where required, covering direct and indirect calls, local
+  bodies and generic instantiations as well as library initializers. Preserve
+  failure propagation and cleanup when elaboration stops partway through.
+  Apply the same rules to whole-program and separate compilation.
+  Code: `adac/main.cpp`, `adac/Binder.cpp`, `adac/UnitManifest.cpp`,
+  `adac/sema/`, `adac/emitter/`.
+- [ ] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
+  `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
+  arguments and named-unit legality. Test each pragma separately: body-before-
+  client ordering for `Elaborate`, the required transitive closure for
+  `Elaborate_All`, and a required body immediately following its specification
+  for `Elaborate_Body`. Diagnose conflicting constraints and carry the pragma
+  requirements through scan metadata, binding and incremental rebuilds.
+- [ ] **Visibility and conformance.** Audit visibility, `use` clauses,
+  homographs, duplicate declarations, overload ambiguity, private views,
+  parent/child visibility and context-clause isolation between compilation
+  units. Check specification/body conformance, including parameter modes,
+  names, defaults, subtype constraints and return profiles. Distinguish valid
+  overloads from mismatched or duplicate completions. Extend existing local
+  missing-body checks to required package and subprogram completions across
+  units, reporting them before linking while allowing declarations that do not
+  require bodies. Code:
+  `adac/sema/SemaNames.cpp`, `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
+- [ ] **Blocks executed during package-body elaboration.** Audit ordinary
+  `declare ... begin ... end` and `begin ... end` statements inside package
+  bodies' executable parts. Cover local declarations, object storage, nested
+  subprogram emission and captures, local package elaboration, handlers and
+  cleanup on both normal and exceptional exits. Check that local storage and
+  controlled lifetimes end with the block rather than library shutdown.
+- [ ] **Aggregates.** Completeness, duplicate and overlapping choices, `others`,
+  record defaults, array sliding and component subtype checks beyond the
+  existing regressions. Include null and multidimensional arrays, inferred
+  bounds, default-expression evaluation counts and failure during component
+  initialization.
 - [ ] **Array conversions.** Static component-subtype matching, index conversions,
-  bound sliding, view conversions and runtime checks. The supported cross-type
-  subset requires identical component subtype objects.
+  bound sliding, view conversions and runtime checks. Include null arrays,
+  multidimensional bounds and converted actuals for `out`/`in out` parameters,
+  including copy-back checks. Retain and explicitly test the current cross-type
+  restriction requiring identical component subtype objects; document any
+  proposed relaxation as a separate scope decision before implementing it.
+- [ ] **Derived types.** Audit derivation legality, inherited constraints and
+  primitive operations, type identity and explicit conversion rules. Cover
+  accepted and rejected conversions and runtime range, discriminant and tag
+  checks where applicable to the supported subset.
 - [ ] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
-  `'Range`: base versus subtype rules, operand types, arity and result width.
-- [ ] **Derived types.** Remaining derivation legality and conversion rules.
-- [ ] **Primitive operations.** Wider visibility and legality audit for tagged and
-  untagged primitives.
+  `'Range`: base versus subtype rules, valid type/object prefixes, operand
+  types, arity and result width. Include scalar endpoints, null ranges,
+  multidimensional array dimension arguments, and static versus runtime
+  failures within the existing numeric model.
+- [ ] **Primitive operations.** Wider visibility and legality audit for tagged
+  and untagged primitives: declaration placement, inheritance, hiding,
+  overriding indicators, controlling profiles and dispatch through supported
+  class-wide views. Include private views and separate compilation.
 - [ ] **Variant records.** Confirm that nested variant parts get correct layout,
-  initialization and selection checks at every level (equality is covered).
+  initialization and selection checks at every level. Cover assignment,
+  copying, aggregates and discriminant mismatches for supported constrained
+  objects, retaining active-component equality regressions. Mutable
+  discriminants and controlled variant components remain in Phase 6.
+- [ ] **Feature interactions.** Add focused combinations of the audited features
+  with existing overload resolution, named/defaulted arguments, generic
+  instantiation, renaming, controlled ownership and exception handling. Check
+  copy-in/copy-out behavior, owned results and partial initialization cleanup;
+  preserve the Phase 2 master/context boundaries on normal and exceptional
+  exits. Reuse existing regression coverage and add cases for uncovered
+  interactions rather than duplicating entire feature suites.
 
-Tests: invalid specification/body pairs, mutually dependent units, initializers
-depending on an unelaborated body, duplicate aggregate choices, invalid
-attribute arguments.
+Completion criteria for every item: record the supported behavior and any
+remaining restrictions; add positive executable tests, legality rejection
+tests and runtime-failure tests as applicable. Cover the cases named above,
+including valid dependency patterns alongside cycle failures, malformed
+elaboration manifests, each pragma's ordering and legality, calls before body
+elaboration, and valid completions alongside each conformance mismatch.
+Exercise whole-program and separate compilation for cross-unit behavior,
+including rebuilds after changes to dependencies or elaboration pragmas.
+Use GNAT comparisons where semantics are shared, accounting for documented
+implementation-defined behavior. Add determinism tests whenever a change
+affects generated code, update the README/support matrix with changed behavior,
+and keep the full suite green. Mark an item complete only when its audit and
+applicable regression coverage are complete.
 
 ## Phase 4 — Minimal tasking
-
 A working subset, close to the Ravenscar profile, that makes tasking a tested
 part of the compiler early. Later phases must keep it working.
 
 - [ ] **Tasks.** Task types and single task objects without entries; activation
   at the end of the declarative part or library elaboration; masters awaiting
-  termination; an unhandled exception terminating only its task. Includes
   task objects as record components and allocated tasks.
 - [ ] **Protected objects.** Protected types and single protected objects with
   procedures and functions, under one lock per object.
