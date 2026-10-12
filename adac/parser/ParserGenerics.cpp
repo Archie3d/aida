@@ -160,10 +160,14 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         decl->lower = static_cast<PackageSpecDecl*>(unit.get())->lower;
         break;
     case DeclKind::SubprogramDeclaration:
+        decl->m_isFunction = static_cast<SubprogramDecl*>(unit.get())->spec.isFunction;
+        decl->m_hasBody = static_cast<SubprogramDecl*>(unit.get())->m_renamedName != nullptr;
         decl->name = static_cast<SubprogramDecl*>(unit.get())->spec.name;
         decl->lower = static_cast<SubprogramDecl*>(unit.get())->spec.lower;
         break;
     case DeclKind::SubprogramBody:
+        decl->m_isFunction = static_cast<SubprogramBody*>(unit.get())->spec.isFunction;
+        decl->m_hasBody = true;
         decl->name = static_cast<SubprogramBody*>(unit.get())->spec.name;
         decl->lower = static_cast<SubprogramBody*>(unit.get())->spec.lower;
         break;

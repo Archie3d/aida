@@ -203,13 +203,13 @@ new context access.
 ## Phase 3 — Harden the existing subset
 
 Audits of supported features, in the order below. Write a focused reproduction
-before choosing a fix. Apply Phase 8's language-version decision and support
-matrix alongside this phase, recording deliberate subset restrictions and
+before choosing a fix. Follow the language target recorded in Phase 8 and keep
+README.md current alongside this phase, recording deliberate subset restrictions and
 validating supported cases with focused regression tests. Wider numeric support,
 new access forms and other features explicitly deferred to later phases stay
 there; this phase does not introduce an anonymous library-block extension.
 
-- [ ] **Unit identity and loading.** Establish specification/body identity from
+- [x] **Unit identity and loading.** Establish specification/body identity from
   declarations and define the source naming policy. Diagnose filename/unit-name
   mismatches and conflicting or duplicate definitions; handle repeated references
   to the same source consistently. Cover explicit sources, automatic spec/body
@@ -237,9 +237,17 @@ there; this phase does not introduce an anonymous library-block extension.
     `determinism.genericelaborationorder`; existing elaboration-failure tests
     cover stopping within a bundle. Generic template bodies have no standalone
     elaboration effects.
-  - [ ] Finish the audit of declaration/completion identity edge cases.
-    Full semantic context isolation belongs to the visibility audit;
-    the loader now preserves the per-item context needed there.
+  - [x] Declaration/completion identity audit: null procedures and renamings
+    are classified as standalone declarations or completions from the discovered
+    declarations, independent of source order. Reject orphan package bodies,
+    incompatible package/procedure/function kinds, duplicate completions, bodies
+    for already-complete declarations, and non-package parents. Automatic lookup
+    validates source-part roles; explicit targets and main selection use source
+    identity, including aliases. Covered by `loading.completions`,
+    `ada.completion_main` and `determinism.completion_main`, including spec
+    addition/removal rebuilds. Generic renaming completions remain explicitly
+    unsupported. Parameter-profile conformance and full semantic context
+    isolation remain in the existing visibility/conformance audit.
 - [ ] **Elaboration order and checks.** Build elaboration constraints from the
   per-part dependency graph, including specification-before-body and parent/child
   requirements. Have binding validate manifest order and reject missing,
@@ -327,8 +335,8 @@ elaboration, and valid completions alongside each conformance mismatch.
 Exercise whole-program and separate compilation for cross-unit behavior,
 including rebuilds after changes to dependencies or elaboration pragmas.
 Validate behavior against the Ada 95 baseline and selected Ada 2005 features,
-accounting for documented implementation-defined behavior. Add determinism tests whenever a change
-affects generated code, update the README/support matrix with changed behavior,
+accounting for documented implementation-defined behavior. Add determinism tests
+whenever a change affects generated code, update README.md with changed behavior,
 and keep the full suite green. Mark an item complete only when its audit and
 applicable regression coverage are complete.
 
@@ -474,8 +482,8 @@ declarations, a formal package, an interface hierarchy with dispatch.
 ## Phase 8 — Tooling and validation (alongside the phases above)
 
 - [x] Record the existing language target: Ada 95 with selected Ada 2005
-  features, without claiming full conformance or widening the scope. `SUPPORT.md`
-  separates parsing, semantic checks and emission; update it alongside audits.
+  features, without claiming full conformance or widening the scope. Track
+  supported behavior and restrictions in README.md and progress in this roadmap.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer.

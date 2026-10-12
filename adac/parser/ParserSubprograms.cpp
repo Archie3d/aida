@@ -111,7 +111,9 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
         fail("abstract subprogram declarations are not yet supported");
     }
     if (match(TokenKind::KwNew)) {
-        return parseGenericInstantiation(location, spec.name, spec.lower, false);
+        DeclPtr instance = parseGenericInstantiation(location, spec.name, spec.lower, false);
+        static_cast<GenericInstantiationDecl*>(instance.get())->m_isFunction = spec.isFunction;
+        return instance;
     }
     if (check(TokenKind::KwSeparate)) {
         fail("subprogram stubs ('is separate') are not yet supported");
@@ -121,6 +123,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     body->location = location;
     body->spec = std::move(spec);
     if (match(TokenKind::KwNull)) {
+        body->m_isNull = true;
         if (body->spec.isFunction) {
             fail("only a procedure can have a null body");
         }

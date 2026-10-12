@@ -205,6 +205,17 @@ int main(int argc, char** argv)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
 
+    // Repeated paths and symlinks retain the first registered source group's
+    // artifact name, even when an alias names the main source last.
+    for (const UnitRecord& unit : scanned) {
+        for (const std::string& source : unit.sources) {
+            std::error_code error;
+            if (std::filesystem::equivalent(source, sources.back(), error) && !error) {
+                mainUnit = unit.key;
+            }
+        }
+    }
+
     // Track specifications and any bodies read for instantiation separately:
     // changes to an ordinary dependency body do not invalidate its clients.
     const std::string compilerDigest = programDigest(toolchain.adac());

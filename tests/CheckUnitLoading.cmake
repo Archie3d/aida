@@ -177,6 +177,178 @@ elseif(CASE STREQUAL "bundles")
         "generic\npackage Generic_Item is end Generic_Item;\npackage body Generic_Item is end Generic_Item;\npackage body Generic_Item is end Generic_Item;\n")
     scan("${work}/generic_duplicate.adb")
     require_error("duplicate library unit part 'generic_item.body'")
+elseif(CASE STREQUAL "completions")
+    # Completions must have the same identities however they are discovered.
+    foreach(sources IN ITEMS "completion_alias.adb" "completion_alias.ads|completion_alias.adb"
+        "completion_alias.adb|completion_alias.ads")
+        string(REPLACE "|" ";" source_list "${sources}")
+        list(TRANSFORM source_list PREPEND "${work}/")
+        scan(${source_list})
+        require_success()
+        file(READ "${work}/objects/units.manifest" manifest)
+        if(NOT manifest MATCHES "part completion_alias.body\nrequires completion_alias.spec\nrequires completion_ops.spec")
+            message(FATAL_ERROR "lost renaming completion identity: ${manifest}")
+        endif()
+    endforeach()
+    scan("${work}/completion_null.ads" "${work}/completion_empty.adb")
+    require_success()
+    file(READ "${work}/objects/units.manifest" manifest)
+    if(NOT manifest MATCHES "part completion_null.spec"
+        OR manifest MATCHES "part completion_null.body"
+        OR NOT manifest MATCHES "part completion_empty.body\nrequires completion_empty.spec")
+        message(FATAL_ERROR "incorrect null-procedure identities: ${manifest}")
+    endif()
+    # Identity is case-insensitive and independent of physical bundle order.
+    file(WRITE "${work}/reverse_completion.adb"
+        "with Completion_Ops;\nfunction Mixed (Value : Integer) return Integer renames Completion_Ops.Double;\nfunction MIXED (Value : Integer) return Integer;\n")
+    scan("${work}/reverse_completion.adb")
+    require_success()
+    file(READ "${work}/objects/units.manifest" manifest)
+    if(NOT manifest MATCHES "part mixed.body\nrequires mixed.spec")
+        message(FATAL_ERROR "lost bundled renaming completion")
+    endif()
+    file(WRITE "${work}/orphan.adb" "package body Orphan is end Orphan;\n")
+    scan("${work}/orphan.adb")
+    require_error("package body 'Orphan' has no specification")
+    file(WRITE "${work}/kind_mismatch.adb"
+        "package Kind_Mismatch is end Kind_Mismatch;\nprocedure Kind_Mismatch is begin null; end Kind_Mismatch;\n")
+    scan("${work}/kind_mismatch.adb")
+    require_error("library unit kind mismatch")
+    file(WRITE "${work}/function_mismatch.adb"
+        "procedure Function_Mismatch;\nfunction Function_Mismatch return Integer is begin return 1; end Function_Mismatch;\n")
+    scan("${work}/function_mismatch.adb")
+    require_error("library unit kind mismatch")
+    file(WRITE "${work}/generic_mismatch.adb"
+        "generic\nprocedure Generic_Mismatch;\nfunction Generic_Mismatch return Integer is begin return 1; end Generic_Mismatch;\n")
+    scan("${work}/generic_mismatch.adb")
+    require_error("library unit kind mismatch")
+    file(WRITE "${work}/closed_null.adb"
+        "procedure Closed_Null is null;\nprocedure Closed_Null is begin null; end Closed_Null;\n")
+    scan("${work}/closed_null.adb")
+    require_error("already complete; a body is not allowed")
+    file(WRITE "${work}/closed_alias.adb"
+        "with Completion_Ops;\nfunction Closed_Alias (Value : Integer) return Integer renames Completion_Ops.Double;\nfunction Closed_Alias (Value : Integer) return Integer is begin return Value; end Closed_Alias;\n")
+    scan("${work}/closed_alias.adb")
+    require_error("already complete; a body is not allowed")
+    file(WRITE "${work}/closed_instance.adb"
+        "with Completion_Generic;\nfunction Closed_Instance is new Completion_Generic (1);\nfunction Closed_Instance (Value : Integer) return Integer is begin return Value; end Closed_Instance;\n")
+    scan("${work}/closed_instance.adb")
+    require_error("already complete; a body is not allowed")
+    file(WRITE "${work}/closed_generic.adb"
+        "generic\nprocedure Closed_Generic is begin null; end Closed_Generic;\nprocedure Closed_Generic is begin null; end Closed_Generic;\n")
+    scan("${work}/closed_generic.adb")
+    require_error("already complete; a body is not allowed")
+    file(WRITE "${work}/double_completion.adb"
+        "procedure Double_Completion;\nprocedure Double_Completion is null;\nprocedure Double_Completion is begin null; end Double_Completion;\n")
+    scan("${work}/double_completion.adb")
+    require_error("duplicate library unit part 'double_completion.body'")
+    file(WRITE "${work}/bad_parent.adb"
+        "procedure Bad_Parent is null;\npackage Bad_Parent.Child is end Bad_Parent.Child;\n")
+    scan("${work}/bad_parent.adb")
+    require_error("parent unit 'Bad_Parent' is not a package")
+    file(WRITE "${work}/double_alias.adb"
+        "with Completion_Ops;\nfunction Double_Alias (Value : Integer) return Integer;\nwith Completion_Ops;\nfunction Double_Alias (Value : Integer) return Integer renames Completion_Ops.Double;\nwith Completion_Ops;\nfunction Double_Alias (Value : Integer) return Integer renames Completion_Ops.Double;\n")
+    scan("${work}/double_alias.adb")
+    require_error("duplicate library unit part 'double_alias.body'")
+    file(WRITE "${work}/generic_alias.adb"
+        "generic\nfunction Generic_Alias (Value : Integer) return Integer;\nwith Completion_Ops;\nfunction Generic_Alias (Value : Integer) return Integer renames Completion_Ops.Double;\n")
+    scan("${work}/generic_alias.adb")
+    require_error("renaming completion of a generic library unit is not supported")
+    # An instance is a complete declaration, not a completion of a previous spec.
+    file(WRITE "${work}/instance_spec.ads" "procedure Instance_Spec;\n")
+    file(WRITE "${work}/instance_spec.adb"
+        "generic\nprocedure Template_Proc is begin null; end Template_Proc;\nprocedure Instance_Spec is new Template_Proc;\n")
+    scan("${work}/instance_spec.adb")
+    require_error("does not declare library unit part 'instance_spec.body'")
+    scan("${work}/instance_spec.ads" "${work}/instance_spec.adb")
+    require_error("does not declare library unit part 'instance_spec.body'")
+    # Automatically selected suffixes must agree with declaration roles.
+    file(WRITE "${work}/wrong_role.ads" "procedure Wrong_Role is begin null; end Wrong_Role;\n")
+    file(WRITE "${work}/role_client.adb"
+        "with Wrong_Role;\nprocedure Role_Client is begin null; end Role_Client;\n")
+    scan("${work}/role_client.adb")
+    require_error("does not declare library unit part 'wrong_role.spec'")
+    file(WRITE "${work}/wrong_body.adb" "package Wrong_Body is end Wrong_Body;\n")
+    file(WRITE "${work}/body_client.adb"
+        "with Wrong_Body;\nprocedure Body_Client is begin null; end Body_Client;\n")
+    scan("${work}/body_client.adb")
+    require_error("does not declare library unit part 'wrong_body.body'")
+    # Explicit sources retain the custom-filename extension in -c mode, even
+    # when another unit's declaration happens to match the target's filename.
+    file(WRITE "${work}/custom_target.adb" "procedure Actual_Target is begin null; end Actual_Target;\n")
+    file(WRITE "${work}/other_source.ads" "package Custom_Target is end Custom_Target;\n")
+    execute_process(COMMAND "${ADAC}" -c -D "${work}/custom"
+        "${work}/other_source.ads" "${work}/custom_target.adb"
+        RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+    require_success()
+    file(READ "${work}/custom/custom_target.ssa" ir)
+    string(FIND "${ir}" "export function $actual_target(" target_function)
+    if(target_function LESS 0)
+        message(FATAL_ERROR "custom target selected by filename instead of source identity")
+    endif()
+    # Check the entry point in both whole-program output forms. A null
+    # procedure in a dependency must not replace the requested main.
+    execute_process(COMMAND "${ADAC}" -D "${work}/whole_completion" "${work}/completion_main.adb"
+        RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+    require_success()
+    file(READ "${work}/whole_completion/__ada_binder.ssa" binder)
+    string(FIND "${binder}" "call $completion_main()" main_call)
+    if(main_call LESS 0)
+        message(FATAL_ERROR "whole-program binder selected a dependency as main")
+    endif()
+    execute_process(COMMAND "${ADAC}" -o "${work}/whole_completion.ssa" "${work}/completion_main.adb"
+        RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+    require_success()
+    file(READ "${work}/whole_completion.ssa" ir)
+    string(FIND "${ir}" "call $completion_main()" main_call)
+    if(main_call LESS 0)
+        message(FATAL_ERROR "combined IR selected a dependency as main")
+    endif()
+    # Canonical deduplication must also preserve the requested target in -c
+    # and driver builds when a repeated main source is supplied by symlink.
+    file(CREATE_LINK "${work}/completion_main.adb" "${work}/main_alias.adb" SYMBOLIC RESULT link_status)
+    if(link_status STREQUAL "0")
+        execute_process(COMMAND "${ADAC}" -c -D "${work}/alias_objects"
+            "${work}/completion_main.adb" "${work}/main_alias.adb"
+            RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+        require_success()
+        execute_process(COMMAND "${ADA}" -D "${work}/alias_build" -o "${work}/alias_program"
+            "${work}/completion_main.adb" "${work}/main_alias.adb"
+            RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+        require_success()
+        execute_process(COMMAND "${work}/alias_program" RESULT_VARIABLE status
+            OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 10)
+        if(NOT status EQUAL 0 OR NOT output STREQUAL " 42\n 42\n")
+            message(FATAL_ERROR "aliased-main executable failed: ${status}: ${output}${errors}")
+        endif()
+    endif()
+    # Adding/removing a separate declaration changes a renaming's part role;
+    # scan metadata, cached compilation and binding must change together.
+    function(build_completion)
+        execute_process(COMMAND "${ADA}" -D "${work}/transition" -o "${work}/transition_program"
+            "${work}/completion_main.adb" RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 10)
+        if(NOT status EQUAL 0)
+            message(FATAL_ERROR "completion rebuild failed: ${errors}")
+        endif()
+        execute_process(COMMAND "${work}/transition_program" RESULT_VARIABLE status
+            OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 10)
+        if(NOT status EQUAL 0 OR NOT output STREQUAL " 42\n 42\n")
+            message(FATAL_ERROR "completion rebuild output failed: ${status}: ${output}${errors}")
+        endif()
+    endfunction()
+    build_completion()
+    file(RENAME "${work}/completion_alias.ads" "${work}/saved_alias.ads")
+    build_completion()
+    file(READ "${work}/transition/units.manifest" manifest)
+    if(NOT manifest MATCHES "part completion_alias.spec" OR manifest MATCHES "part completion_alias.body")
+        message(FATAL_ERROR "removing the declaration retained completion metadata")
+    endif()
+    file(RENAME "${work}/saved_alias.ads" "${work}/completion_alias.ads")
+    build_completion()
+    file(READ "${work}/transition/units.manifest" manifest)
+    if(NOT manifest MATCHES "part completion_alias.body\nrequires completion_alias.spec")
+        message(FATAL_ERROR "restoring the declaration lost completion metadata")
+    endif()
 else()
     message(FATAL_ERROR "unknown unit loading case '${CASE}'")
 endif()

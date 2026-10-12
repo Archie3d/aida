@@ -81,14 +81,28 @@ std::string defaultOutputName(const std::string& path)
     return path + ".ssa";
 }
 
-// The loader names a unit after its file, so a source on the command line says
-// which unit it belongs to without anything having been read.
-std::string unitKeyOf(const std::string& path)
+// Select the entry point from the requested object group, never from a
+// dependency that happens to contain a parameterless procedure.
+Symbol* mainIn(const LibraryUnit& unit)
 {
-    std::size_t slash = path.find_last_of("/\\");
-    std::string base = slash == std::string::npos ? path : path.substr(slash + 1);
-    std::size_t dot = base.find_last_of('.');
-    return toLower(dot == std::string::npos ? base : base.substr(0, dot));
+    Symbol* main = nullptr;
+    for (CompilationUnit* part : unit.parts) {
+        for (const DeclPtr& declaration : part->units) {
+            Symbol* candidate = nullptr;
+            if (declaration->kind == DeclKind::SubprogramBody) {
+                candidate = static_cast<SubprogramBody*>(declaration.get())->symbol;
+            } else if (declaration->kind == DeclKind::SubprogramDeclaration) {
+                auto* renaming = static_cast<SubprogramDecl*>(declaration.get());
+                if (!renaming->m_renamingExpansion.empty()) {
+                    candidate = renaming->symbol;
+                }
+            }
+            if (candidate != nullptr && candidate->returnType == nullptr && candidate->parameters.empty()) {
+                main = candidate;
+            }
+        }
+    }
+    return main;
 }
 
 // What the driver has to know about a unit to tell whether anything has
@@ -419,18 +433,10 @@ int main(int argc, char** argv)
     loader.loadUnit("Ada.IO_Exceptions", SourceLocation {});
 
     if (singleUnit) {
-        // The unit is read by name rather than by file, so that a body arrives
-        // together with the specification it completes.
-        std::string key = unitKeyOf(inputs.back());
-        std::string name = key;
-        for (char& c : name) {
-            if (c == '-') {
-                c = '.';
-            }
-        }
-        loader.setTargetUnit(key);
-        if (!loader.loadUnit(name, SourceLocation {})) {
-            std::cerr << "adac: error: cannot find the unit '" << inputs.back() << "'\n";
+        // The target is an explicit source, not necessarily a conventionally
+        // named library unit. Its declarations drive counterpart discovery.
+        loader.setTargetUnit(loader.sourceKey(inputs.back()));
+        if (!loader.loadSource(inputs.back())) {
             return 2;
         }
     } else {
@@ -480,6 +486,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    Symbol* main = nullptr;
+    for (const LibraryUnit& unit : libraryUnits) {
+        if (unit.key == loader.sourceKey(inputs.back())) {
+            main = mainIn(unit);
+        }
+    }
+
     QbeEmitter emitter(sema, diagnostics);
 
     // Compiling one unit emits that unit and nothing else: whatever it draws on
@@ -487,7 +500,7 @@ int main(int argc, char** argv)
     if (singleUnit) {
         const LibraryUnit* target = nullptr;
         for (const LibraryUnit& unit : libraryUnits) {
-            if (unit.key == unitKeyOf(inputs.back())) {
+            if (unit.key == loader.sourceKey(inputs.back())) {
                 target = &unit;
             }
         }
@@ -530,22 +543,8 @@ int main(int argc, char** argv)
                 }
             }
         }
-        // Only a main declared by this unit belongs in its record.
-        for (CompilationUnit* part : target->parts) {
-            for (const DeclPtr& declaration : part->units) {
-                Symbol* candidate = nullptr;
-                if (declaration->kind == DeclKind::SubprogramBody) {
-                    candidate = static_cast<SubprogramBody*>(declaration.get())->symbol;
-                } else if (declaration->kind == DeclKind::SubprogramDeclaration) {
-                    auto* renaming = static_cast<SubprogramDecl*>(declaration.get());
-                    if (!renaming->m_renamingExpansion.empty()) {
-                        candidate = renaming->symbol;
-                    }
-                }
-                if (candidate != nullptr && candidate->returnType == nullptr && candidate->parameters.empty()) {
-                    record.mainName = candidate->qbeName;
-                }
-            }
+        if (Symbol* main = mainIn(*target)) {
+            record.mainName = main->qbeName;
         }
         if (!writeUnitRecord(artifacts + "/" + target->key + ".ali", record)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << target->key << ".ali'\n";
@@ -578,7 +577,6 @@ int main(int argc, char** argv)
             std::cerr << "adac: error: cannot write '" << binderPath << "'\n";
             return 2;
         }
-        Symbol* main = sema.mainSubprogram();
         emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder);
 
         // The driver reads this rather than guessing what was produced, so a
@@ -601,7 +599,6 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) {
             emitter.emitUnit(unit, *stream);
         }
-        Symbol* main = sema.mainSubprogram();
         emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream);
     }
 

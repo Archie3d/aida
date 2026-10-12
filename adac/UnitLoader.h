@@ -39,6 +39,9 @@ public:
     // Reads a file named on the command line along with everything it withs.
     bool loadSource(const std::string& path);
 
+    // Object-group identity of a registered source, including path aliases.
+    std::string sourceKey(const std::string& path) const;
+
     // Reads a unit by name, doing nothing if it has already been read.
     bool loadUnit(const std::string& name, const SourceLocation& from);
 
@@ -55,6 +58,8 @@ public:
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
+    void registerParts(const std::string& key);
+    bool validateParts();
     bool readFile(const std::string& path, std::string& contents) const;
     std::string findUnit(const std::string& key, const char* extension) const;
     bool loadPart(const std::string& path, const std::string& identity, const SourceLocation& from);
@@ -69,6 +74,7 @@ private:
     std::unordered_map<std::string, std::vector<CompilationUnit*>> m_sources;
     std::unordered_set<std::string> m_loadedSources;
     std::unordered_map<std::string, CompilationUnit*> m_parts;
+    std::unordered_map<std::string, std::vector<CompilationUnit*>> m_items;
     bool m_specificationsOnly = false;
     std::string m_targetKey;
 };

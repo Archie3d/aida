@@ -780,6 +780,7 @@ struct SubprogramBody : Decl
     }
 
     SubprogramSpec spec;
+    bool m_isNull = false;
     DeclList declarations;
     StmtList body;
     std::vector<ExceptionHandler> handlers;
@@ -915,6 +916,8 @@ struct GenericDecl : Decl
     std::string name;
     std::string lower;
     bool isPackage = true;
+    bool m_isFunction = false;
+    bool m_hasBody = false;
     std::vector<GenericFormal> formals;
     std::vector<Token> tokens;
     Symbol* symbol = nullptr;
@@ -932,6 +935,7 @@ struct GenericInstantiationDecl : Decl
     std::string genericName;
     std::string genericLower;
     bool isPackage = true;
+    bool m_isFunction = false;
     std::vector<Association> arguments;
     Symbol* symbol = nullptr;
 

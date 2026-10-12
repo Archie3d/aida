@@ -72,9 +72,55 @@ std::string declarationName(const Decl& decl)
     }
 }
 
+bool isOptionalCompletion(const Decl& decl)
+{
+    return (decl.kind == DeclKind::SubprogramDeclaration
+            && static_cast<const SubprogramDecl&>(decl).m_renamedName != nullptr)
+        || (decl.kind == DeclKind::SubprogramBody
+            && static_cast<const SubprogramBody&>(decl).m_isNull);
+}
+
 bool isBody(const Decl& decl)
 {
-    return decl.kind == DeclKind::PackageBody || decl.kind == DeclKind::SubprogramBody;
+    return decl.kind == DeclKind::PackageBody
+        || (decl.kind == DeclKind::SubprogramBody && !isOptionalCompletion(decl));
+}
+
+bool allowsBody(const Decl& decl)
+{
+    return decl.kind == DeclKind::PackageSpecification
+        || (decl.kind == DeclKind::SubprogramDeclaration && !isOptionalCompletion(decl))
+        || (decl.kind == DeclKind::GenericDeclaration
+            && !static_cast<const GenericDecl&>(decl).m_hasBody);
+}
+
+enum class LibraryKind
+{
+    Package,
+    Procedure,
+    Function
+};
+
+LibraryKind libraryKind(const Decl& decl)
+{
+    switch (decl.kind) {
+    case DeclKind::SubprogramDeclaration:
+        return static_cast<const SubprogramDecl&>(decl).spec.isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+    case DeclKind::SubprogramBody:
+        return static_cast<const SubprogramBody&>(decl).spec.isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+    case DeclKind::GenericDeclaration: {
+        const auto& generic = static_cast<const GenericDecl&>(decl);
+        return generic.isPackage ? LibraryKind::Package
+            : generic.m_isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+    }
+    case DeclKind::GenericInstantiation: {
+        const auto& instance = static_cast<const GenericInstantiationDecl&>(decl);
+        return instance.isPackage ? LibraryKind::Package
+            : instance.m_isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+    }
+    default:
+        return LibraryKind::Package;
+    }
 }
 
 std::string partKey(const CompilationUnit& unit)
@@ -180,17 +226,81 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
         unit->fileName = path;
         unit->unitKey = key;
         const Decl& decl = *unit->units.front();
-        unit->isSpec = !isBody(decl);
-        unit->partKey = fileKey(declarationName(decl)) + (unit->isSpec ? ".spec" : ".body");
-        auto [entry, inserted] = m_parts.emplace(unit->partKey, unit.get());
-        if (!inserted) {
-            m_diagnostics.error(decl.location, "duplicate library unit part '" + unit->partKey
-                + "' (already declared in '" + entry->second->fileName + "')");
-        }
+        std::string nameKey = fileKey(declarationName(decl));
+        m_items[nameKey].push_back(unit.get());
+        registerParts(nameKey);
         source.push_back(unit.get());
         m_units.push_back(std::move(unit));
     }
     return true;
+}
+
+void UnitLoader::registerParts(const std::string& key)
+{
+    const auto& items = m_items.at(key);
+    bool hasDeclaration = std::any_of(items.begin(), items.end(), [](const CompilationUnit* unit) {
+        const Decl& decl = *unit->units.front();
+        return !isBody(decl) && !isOptionalCompletion(decl);
+    });
+    m_parts.erase(key + ".spec");
+    m_parts.erase(key + ".body");
+    for (CompilationUnit* unit : items) {
+        const Decl& decl = *unit->units.front();
+        // A renaming or null procedure is a declaration by itself, but can
+        // complete a separate declaration regardless of source argument order.
+        unit->isSpec = !isBody(decl) && !(hasDeclaration && isOptionalCompletion(decl));
+        unit->partKey = key + (unit->isSpec ? ".spec" : ".body");
+        m_parts.emplace(unit->partKey, unit);
+    }
+}
+
+bool UnitLoader::validateParts()
+{
+    std::unordered_map<std::string, CompilationUnit*> seen;
+    for (const auto& unit : m_units) {
+        auto [entry, inserted] = seen.emplace(unit->partKey, unit.get());
+        if (!inserted) {
+            m_diagnostics.error(unit->units.front()->location, "duplicate library unit part '" + unit->partKey
+                + "' (already declared in '" + entry->second->fileName + "')");
+            return false;
+        }
+    }
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        if (unit->isSpec) {
+            continue;
+        }
+        const Decl& body = *unit->units.front();
+        std::string name = declarationName(body);
+        auto found = m_parts.find(fileKey(name) + ".spec");
+        if (found == m_parts.end()) {
+            if (body.kind == DeclKind::PackageBody) {
+                m_diagnostics.error(body.location, "package body '" + name + "' has no specification");
+                return false;
+            }
+            continue; // A subprogram body can declare its library unit.
+        }
+        const Decl& spec = *found->second->units.front();
+        if (libraryKind(body) != libraryKind(spec)) {
+            m_diagnostics.error(body.location, "library unit kind mismatch for '" + name + "'");
+            return false;
+        }
+        if (!allowsBody(spec)) {
+            m_diagnostics.error(body.location, "library unit '" + name + "' is already complete; a body is not allowed");
+            return false;
+        }
+        if (spec.kind == DeclKind::GenericDeclaration && body.kind == DeclKind::SubprogramDeclaration) {
+            m_diagnostics.error(body.location, "renaming completion of a generic library unit is not supported");
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string UnitLoader::sourceKey(const std::string& path) const
+{
+    auto found = m_sources.find(sourceIdentity(path));
+    return found != m_sources.end() && !found->second.empty()
+        ? found->second.front()->unitKey : toLower(std::filesystem::path(path).stem().string());
 }
 
 bool UnitLoader::loadSource(const std::string& path)
@@ -214,10 +324,12 @@ bool UnitLoader::loadSource(const std::string& path)
         const Decl& decl = *unit->units.front();
         std::string name = declarationName(decl);
         std::string key = fileKey(name);
-        if (!unit->isSpec) {
+        if (!unit->isSpec || isOptionalCompletion(decl)
+            || toLower(std::filesystem::path(path).extension().string()) != ".ads") {
             auto spec = m_parts.find(key + ".spec");
-            std::string specPath = spec == m_parts.end() ? findUnit(key, ".ads") : spec->second->fileName;
-            if (!specPath.empty()) {
+            std::string specPath = spec == m_parts.end() || spec->second == unit
+                ? findUnit(key, ".ads") : spec->second->fileName;
+            if (!specPath.empty() && sourceIdentity(specPath) != identity) {
                 loadPart(specPath, key + ".spec", decl.location);
             }
         }
@@ -288,22 +400,42 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
     if (!bodyPath.empty() && bodyWanted && !loadSource(bodyPath)) {
         return false;
     }
-    // Explicit multi-unit source files keep their historical file-based object
-    // names. Library lookup must nevertheless find the declaration requested.
-    std::string selected = specPath.empty() ? bodyPath : specPath;
-    const auto& source = m_sources.at(sourceIdentity(selected));
-    bool namesUnit = std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
-        return fileKey(declarationName(*unit->units.front())) == key;
-    });
-    if (!namesUnit && key != m_targetKey && !m_diagnostics.hasErrors()) {
-        m_diagnostics.error(from, "source '" + selected + "' does not declare library unit '" + name + "'");
-        return false;
+    // Every automatically selected source must name the requested unit, even
+    // when a valid specification was already found in another file.
+    for (const std::string& selected : { specPath, bodyWanted ? bodyPath : std::string() }) {
+        if (selected.empty()) {
+            continue;
+        }
+        const auto& source = m_sources.at(sourceIdentity(selected));
+        bool namesUnit = std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
+            return fileKey(declarationName(*unit->units.front())) == key;
+        });
+        if (!namesUnit && !m_diagnostics.hasErrors()) {
+            m_diagnostics.error(from, "source '" + selected + "' does not declare library unit '" + name + "'");
+            return false;
+        }
+        bool explicitSource = std::any_of(m_explicitPaths.begin(), m_explicitPaths.end(), [&](const auto& entry) {
+            return sourceIdentity(entry.second) == sourceIdentity(selected);
+        });
+        bool specification = selected == specPath;
+        bool matchesRole = std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
+            return fileKey(declarationName(*unit->units.front())) == key
+                && (specification ? unit->isSpec : !unit->isSpec || !allowsBody(*unit->units.front()));
+        });
+        if (namesUnit && !explicitSource && !matchesRole && !m_diagnostics.hasErrors()) {
+            m_diagnostics.error(from, "source '" + selected + "' does not declare library unit part '"
+                + key + (specification ? ".spec" : ".body") + "'");
+            return false;
+        }
     }
     return true;
 }
 
 bool UnitLoader::orderUnits()
 {
+    if (!validateParts()) {
+        return false;
+    }
     // Explicit files are parsed up front for identity lookup; only reached
     // sources participate in semantic analysis and emission.
     std::unordered_map<CompilationUnit*, std::vector<CompilationUnit*>> dependencies;
@@ -326,7 +458,7 @@ bool UnitLoader::orderUnits()
         };
         for (const DeclPtr& decl : unit->units) {
             std::string name = declarationName(*decl);
-            if (isBody(*decl)) {
+            if (!unit->isSpec) {
                 add(name, true, true);
             }
             std::string parent = parentOf(name);
@@ -334,6 +466,11 @@ bool UnitLoader::orderUnits()
                 std::string parentKey = fileKey(parent);
                 if (!m_parts.contains(parentKey + ".spec")) {
                     m_diagnostics.error(decl->location, "cannot find parent unit '" + parent + "'");
+                    return false;
+                }
+                const Decl& parentDecl = *m_parts.at(parentKey + ".spec")->units.front();
+                if (libraryKind(parentDecl) != LibraryKind::Package) {
+                    m_diagnostics.error(decl->location, "parent unit '" + parent + "' is not a package");
                     return false;
                 }
                 add(parent, false, true);

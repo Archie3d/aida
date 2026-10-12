@@ -657,7 +657,7 @@ foreach(master_case masterhooks masterfailure masterlibraryfailure)
 endforeach()
 add_determinism_test(masterhooks SOURCE masterhooks.adb)
 
-foreach(loading_case cycles identity sources child bundles)
+foreach(loading_case cycles identity sources child bundles completions)
     add_test(NAME loading.${loading_case}
         COMMAND ${CMAKE_COMMAND}
             -DCASE=${loading_case}
@@ -674,6 +674,8 @@ add_determinism_test(load_main SOURCE unitloading/load_main.adb)
 add_ada_test(bundle_main SOURCES unitloading/bundle_main.adb)
 add_determinism_test(bundle_main SOURCE unitloading/bundle_main.adb)
 add_ada_test(bundle_client SOURCES unitloading/bundle_parts.adb unitloading/bundle_client.adb)
+add_ada_test(completion_main SOURCES unitloading/completion_main.adb)
+add_determinism_test(completion_main SOURCE unitloading/completion_main.adb)
 add_test(NAME binding.elaboration_order
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada>

@@ -134,10 +134,12 @@ source names the unit containing the parameterless main procedure.
 All explicit source paths are registered before following dependencies. Explicit
 paths take precedence over library search for the same filename; conflicting
 explicit paths for one filename and duplicate declarations of a library-unit
-part, including duplicates within a bundle, are errors. Repeated paths and symlink aliases of the
-same file are loaded once. Explicit bodies load their corresponding `.ads`
+part, including duplicates within a bundle, are errors. Repeated paths and
+symlink aliases of the same file are loaded once. Explicit bodies load their corresponding `.ads`
 files, and explicit specifications load available bodies for executable builds.
-Library lookup verifies that the selected file declares the requested unit.
+Automatic library lookup verifies both the requested name and the part role:
+`.ads` provides a declaration, while `.adb` provides a body or a complete
+standalone declaration such as a renaming, null procedure or instance.
 For compatibility, explicitly supplied files may have custom names or contain
 several library items. Each item retains its own context clauses, declaration
 identity and dependency node; specification and body elaboration can interleave
@@ -147,6 +149,26 @@ Object and cache filenames remain file-based. Explicit bundle registrations are
 passed through separate compilation, and edits invalidate dependent clients.
 Semantic enforcement of context-clause visibility remains part of the visibility
 audit; preserving the clauses does not yet prevent all cross-unit name leakage.
+
+Standalone null procedures and subprogram renamings are complete declarations.
+When a separate subprogram declaration exists, a null procedure or renaming is
+recorded as its completion, independent of source argument order. Package bodies
+require a specification; declarations and bodies must agree on package,
+procedure or function identity. Extra bodies for already-complete declarations
+(including generic instances and inline generic subprogram templates), duplicate
+completions and non-package parents are rejected during loading. Renaming
+completions of generic library units remain unsupported and receive an explicit
+diagnostic. Parameter-profile conformance and broader visibility rules remain
+in the later conformance audit.
+
+Explicit compile targets and executable entry points are selected by source
+identity, including repeated symlink aliases, rather than by a coincidentally
+matching declaration name in another file. Custom-named counterpart sources
+must be supplied explicitly unless discoverable by the declared unit's name.
+The last explicit source selects the main's object group in both whole-program
+and separate compilation. `loading.completions`, `ada.completion_main` and
+`determinism.completion_main` cover these cases, including rebuilds after adding
+or removing a renaming's separate declaration.
 
 Scan manifests use format 4, retaining each library item's dependencies separately
 from its object-producing source group.
@@ -214,11 +236,9 @@ AIDA compiles a substantial subset of Ada. It does not claim conformance to
 the full standard. The target is Ada 95 with selected Ada 2005 features.
 Audits and extensions should stay within that scope; later Ada revisions are
 not a language target.
-The [support matrix](SUPPORT.md) separates parsing, semantic checks and emission,
-including known audit gaps and deliberate extensions. The regression suite in
-`tests/` is the authoritative record of what works: each
-supported construct has an executable test, and legality rules have rejection
-tests. The sections below describe each feature and its limits.
+The regression suite in `tests/` records supported behavior with executable
+and legality-rejection tests. The sections below describe each feature and its
+limits; TODO.md tracks the remaining audits.
 
 - **Program structure:** library and child units; package specifications,
   private parts and bodies with elaboration code and handlers; packages and
