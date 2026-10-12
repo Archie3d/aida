@@ -8,7 +8,9 @@
 
 #include "Digest.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -98,14 +100,11 @@ UnitRecord describe(const LibraryUnit& unit)
 
     std::string text;
     for (CompilationUnit* part : unit.parts) {
-        record.sources.push_back(part->fileName);
-        record.parts.push_back(UnitPartRecord {
-            part->unitKey + (part->isSpec ? ".spec" : ".body"), part->dependencies });
-        std::string contents = digestOfFile(part->fileName);
-        text += contents;
-        if (part->isSpec) {
-            record.specDigest = contents;
+        if (std::find(record.sources.begin(), record.sources.end(), part->fileName) == record.sources.end()) {
+            record.sources.push_back(part->fileName);
         }
+        record.parts.push_back(UnitPartRecord {
+            part->partKey, part->dependencies });
         for (const WithClause& clause : part->withClauses) {
             for (const std::string& name : clause.names) {
                 std::string key = toLower(name);
@@ -118,7 +117,26 @@ UnitRecord describe(const LibraryUnit& unit)
             }
         }
     }
+    // Source digests must be independent of how many items a file contains
+    // and of interleaving with dependency bodies during graph traversal.
+    std::stable_sort(record.sources.begin(), record.sources.end(), [](const auto& left, const auto& right) {
+        return toLower(std::filesystem::path(left).extension().string()) == ".ads"
+            && toLower(std::filesystem::path(right).extension().string()) != ".ads";
+    });
+    std::string specText;
+    for (const std::string& source : record.sources) {
+        std::string contents = digestOfFile(source);
+        text += contents;
+        if (std::any_of(unit.parts.begin(), unit.parts.end(), [&](const CompilationUnit* part) {
+            return part->fileName == source && part->isSpec;
+        })) {
+            specText += contents;
+        }
+    }
     record.digest = digestOf(text);
+    if (!specText.empty()) {
+        record.specDigest = digestOf(specText);
+    }
 
     // A unit with no specification is compiled against its body, so that is
     // what a change to it has to be measured against.
@@ -433,7 +451,7 @@ int main(int argc, char** argv)
     std::vector<LibraryUnit> libraryUnits = loader.libraryUnits();
     std::vector<std::string> elaborations;
     for (CompilationUnit* part : loader.units()) {
-        elaborations.push_back(part->unitKey + (part->isSpec ? ".spec" : ".body"));
+        elaborations.push_back(part->partKey);
     }
 
     if (scanOnly) {

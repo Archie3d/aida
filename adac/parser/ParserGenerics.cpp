@@ -5,7 +5,7 @@
 // A generic unit is remembered as the tokens it was written with.  It is parsed
 // once here so that its name is known and its syntax is checked, and then again
 // for each instantiation with the formals bound to actuals.
-DeclPtr Parser::parseGenericDeclaration()
+DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
 {
     SourceLocation location = current().location;
     expect(TokenKind::KwGeneric, "in generic declaration");
@@ -171,9 +171,9 @@ DeclPtr Parser::parseGenericDeclaration()
         fail("a generic declaration must name a package or a subprogram");
     }
 
-    // The body carries no 'generic' of its own, so it is swallowed here and
-    // becomes part of what an instantiation parses.
-    while (true) {
+    // Local generic bodies are retained with their declaration for expansion.
+    // Library bodies remain distinct items with their own context and identity.
+    while (includeFollowingBody) {
         bool packageBody = check(TokenKind::KwPackage) && peek(1).kind == TokenKind::KwBody
             && peek(2).lower == decl->lower;
         bool subprogramBody = (check(TokenKind::KwProcedure) || check(TokenKind::KwFunction))

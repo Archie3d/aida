@@ -224,6 +224,11 @@ int main(int argc, char** argv)
             auto directory = std::filesystem::path(source).parent_path();
             compile.push_back(directory.empty() ? "." : directory.string());
         }
+        // Register explicit bundles too: their declared units need not have
+        // filenames that library-path lookup can discover.
+        for (const std::string& source : sources) {
+            compile.push_back(source);
+        }
         compile.push_back(unit.sources.back());
         if (toolchain.run(compile) != 0) {
             return 1;

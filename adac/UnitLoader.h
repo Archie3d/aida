@@ -5,6 +5,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Finds the Ada source of a library unit and reads in everything a program
@@ -31,8 +32,8 @@ public:
 
     void addSearchPath(const std::string& directory);
 
-    // Register explicit paths before following dependencies, so command-line
-    // order cannot select a different copy of a specification or body.
+    // Parse and register explicit paths and item identities before following
+    // dependencies, so source argument order cannot hide bundled declarations.
     bool addSource(const std::string& path);
 
     // Reads a file named on the command line along with everything it withs.
@@ -56,13 +57,17 @@ public:
 private:
     bool readFile(const std::string& path, std::string& contents) const;
     std::string findUnit(const std::string& key, const char* extension) const;
-    bool parseInto(const std::string& path, const std::string& contents, const std::string& key, bool isSpec);
+    bool loadPart(const std::string& path, const std::string& identity, const SourceLocation& from);
+    bool parseInto(const std::string& path, const std::string& contents, const std::string& key);
 
     Diagnostics& m_diagnostics;
     std::vector<std::string> m_searchPaths;
     std::vector<CompilationUnitPtr> m_units;
+    std::vector<CompilationUnit*> m_discoveredUnits;
+    std::vector<CompilationUnit*> m_orderedUnits;
     std::unordered_map<std::string, std::string> m_explicitPaths;
-    std::unordered_map<std::string, CompilationUnit*> m_sources;
+    std::unordered_map<std::string, std::vector<CompilationUnit*>> m_sources;
+    std::unordered_set<std::string> m_loadedSources;
     std::unordered_map<std::string, CompilationUnit*> m_parts;
     bool m_specificationsOnly = false;
     std::string m_targetKey;

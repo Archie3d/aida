@@ -292,6 +292,7 @@ add_ada_test(packagedeclarationfailure SOURCES packagedeclarationfailure.adb
 add_ada_test(packagehandlerfailure SOURCES packagehandlerfailure.adb
     EXIT_CODE 1 STDERR packagehandlerfailure.stderr)
 add_ada_test(genericelaborationorder SOURCES genericelaborationorder.adb)
+add_determinism_test(genericelaborationorder SOURCE genericelaborationorder.adb)
 
 add_ada_test(localpackages SOURCES localpackages.adb)
 add_ada_test(localgenericstate SOURCES localgenericstate.adb)
@@ -656,10 +657,11 @@ foreach(master_case masterhooks masterfailure masterlibraryfailure)
 endforeach()
 add_determinism_test(masterhooks SOURCE masterhooks.adb)
 
-foreach(loading_case cycles identity sources child)
+foreach(loading_case cycles identity sources child bundles)
     add_test(NAME loading.${loading_case}
         COMMAND ${CMAKE_COMMAND}
             -DCASE=${loading_case}
+            -DADA=$<TARGET_FILE:ada>
             -DADAC=$<TARGET_FILE:adac>
             -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada/unitloading
             -DWORKDIR=${ADA_TEST_WORK_DIR}
@@ -669,6 +671,9 @@ endforeach()
 add_ada_test(load_main SOURCES unitloading/load_main.adb)
 add_ada_test(child_main SOURCES unitloading/load_parent-child.ads unitloading/child_main.adb)
 add_determinism_test(load_main SOURCE unitloading/load_main.adb)
+add_ada_test(bundle_main SOURCES unitloading/bundle_main.adb)
+add_determinism_test(bundle_main SOURCE unitloading/bundle_main.adb)
+add_ada_test(bundle_client SOURCES unitloading/bundle_parts.adb unitloading/bundle_client.adb)
 add_test(NAME binding.elaboration_order
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada>

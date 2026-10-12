@@ -16,7 +16,7 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
             return "missing elaboration parts for unit '" + unit.key + "'";
         }
         for (const UnitPartRecord& part : unit.parts) {
-            if (part.key != unit.key + ".spec" && part.key != unit.key + ".body") {
+            if (part.key.empty() || (!part.key.ends_with(".spec") && !part.key.ends_with(".body"))) {
                 return "invalid elaboration part '" + part.key + "' for unit '" + unit.key + "'";
             }
             if (!parts.emplace(part.key, &part).second) {

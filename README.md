@@ -134,16 +134,22 @@ source names the unit containing the parameterless main procedure.
 All explicit source paths are registered before following dependencies. Explicit
 paths take precedence over library search for the same filename; conflicting
 explicit paths for one filename and duplicate declarations of a library-unit
-part in different files are errors. Repeated paths and symlink aliases of the
+part, including duplicates within a bundle, are errors. Repeated paths and symlink aliases of the
 same file are loaded once. Explicit bodies load their corresponding `.ads`
 files, and explicit specifications load available bodies for executable builds.
 Library lookup verifies that the selected file declares the requested unit.
 For compatibility, explicitly supplied files may have custom names or contain
-several library items; those files retain one elaboration entry per source part
-and file-based artifact names. Per-item context-clause isolation in such bundles
-remains part of the visibility audit.
+several library items. Each item retains its own context clauses, declaration
+identity and dependency node; specification and body elaboration can interleave
+with other items, including items in the same source. Adjacent generic library
+bodies are separate items too, and template bodies execute only in instances.
+Object and cache filenames remain file-based. Explicit bundle registrations are
+passed through separate compilation, and edits invalidate dependent clients.
+Semantic enforcement of context-clause visibility remains part of the visibility
+audit; preserving the clauses does not yet prevent all cross-unit name leakage.
 
-Scan manifests use format 3, retaining each source part's dependencies separately.
+Scan manifests use format 4, retaining each library item's dependencies separately
+from its object-producing source group.
 Older manifests must be regenerated with `--scan`; normal driver builds do this
 automatically.
 
@@ -205,8 +211,12 @@ requires a source argument even with `--clean`.
 ## Supported language
 
 AIDA compiles a substantial subset of Ada. It does not claim conformance to
-any Ada standard, and no language-version baseline has been fixed yet. The
-regression suite in `tests/` is the authoritative record of what works: each
+the full standard. The target is Ada 95 with selected Ada 2005 features.
+Audits and extensions should stay within that scope; later Ada revisions are
+not a language target.
+The [support matrix](SUPPORT.md) separates parsing, semantic checks and emission,
+including known audit gaps and deliberate extensions. The regression suite in
+`tests/` is the authoritative record of what works: each
 supported construct has an executable test, and legality rules have rejection
 tests. The sections below describe each feature and its limits.
 

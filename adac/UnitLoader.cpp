@@ -79,7 +79,7 @@ bool isBody(const Decl& decl)
 
 std::string partKey(const CompilationUnit& unit)
 {
-    return unit.unitKey + (unit.isSpec ? ".spec" : ".body");
+    return unit.partKey;
 }
 
 bool declaresGeneric(const DeclList& declarations)
@@ -156,82 +156,104 @@ bool UnitLoader::addSource(const std::string& path)
             + "': '" + entry->second + "' and '" + path + "'");
         return false;
     }
+    if (!m_sources.contains(sourceIdentity(path))) {
+        std::string contents;
+        if (!readFile(path, contents)) {
+            m_diagnostics.error(SourceLocation {}, "cannot read '" + path + "'");
+            return false;
+        }
+        parseInto(path, contents, toLower(std::filesystem::path(path).stem().string()));
+    }
     return true;
 }
 
-bool UnitLoader::parseInto(const std::string& path, const std::string& contents, const std::string& key, bool spec)
+bool UnitLoader::parseInto(const std::string& path, const std::string& contents, const std::string& key)
 {
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
     Parser parser(lexer.tokenize(), m_diagnostics);
-    CompilationUnitPtr unit = parser.parseCompilation();
-    unit->fileName = path;
-    unit->unitKey = key;
-    unit->isSpec = spec;
-    CompilationUnit* current = unit.get();
-    m_sources.emplace(sourceIdentity(path), current);
-
-    // Publish identities before reading dependencies. Discovery can encounter a
-    // back edge; orderUnits distinguishes legal body edges from spec cycles.
-    for (const DeclPtr& decl : current->units) {
-        std::string name = declarationName(*decl);
-        if (name.empty()) {
-            continue;
-        }
-        std::string identity = fileKey(name) + (isBody(*decl) ? ".body" : ".spec");
-        auto [entry, inserted] = m_parts.emplace(identity, current);
-        if (!inserted && entry->second != current) {
-            m_diagnostics.error(decl->location, "duplicate library unit part '" + identity
+    auto units = parser.parseCompilation();
+    auto& source = m_sources[sourceIdentity(path)];
+    // Publish every item before following any edge, including forward
+    // references within a bundle and references from other explicit sources.
+    for (auto& unit : units) {
+        unit->fileName = path;
+        unit->unitKey = key;
+        const Decl& decl = *unit->units.front();
+        unit->isSpec = !isBody(decl);
+        unit->partKey = fileKey(declarationName(decl)) + (unit->isSpec ? ".spec" : ".body");
+        auto [entry, inserted] = m_parts.emplace(unit->partKey, unit.get());
+        if (!inserted) {
+            m_diagnostics.error(decl.location, "duplicate library unit part '" + unit->partKey
                 + "' (already declared in '" + entry->second->fileName + "')");
         }
+        source.push_back(unit.get());
+        m_units.push_back(std::move(unit));
     }
-
-    // An explicit body needs its own spec even if no with clause mentions it.
-    if (!spec) {
-        std::string specPath = findUnit(key, ".ads");
-        if (!specPath.empty()) {
-            loadSource(specPath);
-        }
-    }
-    for (const DeclPtr& decl : current->units) {
-        std::string parent = parentOf(declarationName(*decl));
-        if (!parent.empty()) {
-            loadUnit(parent, decl->location);
-        }
-    }
-    for (const WithClause& clause : current->withClauses) {
-        for (const std::string& name : clause.names) {
-            loadUnit(name, clause.location);
-        }
-    }
-    m_units.push_back(std::move(unit));
     return true;
 }
 
 bool UnitLoader::loadSource(const std::string& path)
 {
     addSearchPath(directoryOf(path));
-    if (m_sources.contains(sourceIdentity(path))) {
+    std::string identity = sourceIdentity(path);
+    if (!m_loadedSources.insert(identity).second) {
         return true;
     }
-    std::string contents;
-    if (!readFile(path, contents)) {
-        m_diagnostics.error(SourceLocation {}, "cannot read '" + path + "'");
-        return false;
-    }
-    std::filesystem::path source(path);
-    std::string key = toLower(source.stem().string());
-    bool spec = toLower(source.extension().string()) == ".ads";
-    if (!parseInto(path, contents, key, spec)) {
-        return false;
-    }
-    if (spec && m_explicitPaths.contains(toLower(source.filename().string()))
-        && (!m_specificationsOnly || key == m_targetKey
-            || declaresGeneric(m_sources.at(sourceIdentity(path))->units))) {
-        std::string body = findUnit(key, ".adb");
-        if (!body.empty()) {
-            return loadSource(body);
+    if (!m_sources.contains(identity)) {
+        std::string contents;
+        if (!readFile(path, contents)) {
+            m_diagnostics.error(SourceLocation {}, "cannot read '" + path + "'");
+            return false;
         }
+        parseInto(path, contents, toLower(std::filesystem::path(path).stem().string()));
+    }
+    // Copy pointers: recursive discovery can grow the source table.
+    auto source = m_sources.at(identity);
+    for (CompilationUnit* unit : source) {
+        const Decl& decl = *unit->units.front();
+        std::string name = declarationName(decl);
+        std::string key = fileKey(name);
+        if (!unit->isSpec) {
+            auto spec = m_parts.find(key + ".spec");
+            std::string specPath = spec == m_parts.end() ? findUnit(key, ".ads") : spec->second->fileName;
+            if (!specPath.empty()) {
+                loadPart(specPath, key + ".spec", decl.location);
+            }
+        }
+        std::string parent = parentOf(name);
+        if (!parent.empty()) {
+            loadUnit(parent, decl.location);
+        }
+        for (const WithClause& clause : unit->withClauses) {
+            for (const std::string& dependency : clause.names) {
+                loadUnit(dependency, clause.location);
+            }
+        }
+        if (unit->isSpec && (!m_specificationsOnly || unit->unitKey == m_targetKey
+            || declaresGeneric(unit->units))) {
+            auto body = m_parts.find(key + ".body");
+            std::string bodyPath = body == m_parts.end() ? findUnit(key, ".adb") : body->second->fileName;
+            if (!bodyPath.empty() && (body != m_parts.end() || sourceIdentity(bodyPath) != identity)) {
+                loadPart(bodyPath, key + ".body", decl.location);
+            }
+        }
+    }
+    m_discoveredUnits.insert(m_discoveredUnits.end(), source.begin(), source.end());
+    return true;
+}
+
+bool UnitLoader::loadPart(const std::string& path, const std::string& identity, const SourceLocation& from)
+{
+    if (!loadSource(path)) {
+        return false;
+    }
+    const auto& source = m_sources.at(sourceIdentity(path));
+    if (std::none_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
+        return unit->partKey == identity;
+    }) && !m_diagnostics.hasErrors()) {
+        m_diagnostics.error(from, "source '" + path + "' does not declare library unit part '" + identity + "'");
+        return false;
     }
     return true;
 }
@@ -241,6 +263,14 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
     std::string key = fileKey(name);
     std::string specPath = findUnit(key, ".ads");
     std::string bodyPath = findUnit(key, ".adb");
+    auto specPart = m_parts.find(key + ".spec");
+    auto bodyPart = m_parts.find(key + ".body");
+    if (specPart != m_parts.end()) {
+        specPath = specPart->second->fileName;
+    }
+    if (bodyPart != m_parts.end()) {
+        bodyPath = bodyPart->second->fileName;
+    }
     if (specPath.empty() && bodyPath.empty()) {
         // Standard and System are compiler-defined. Sema diagnoses other
         // missing units after loading has completed.
@@ -251,7 +281,8 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
     }
     bool generic = false;
     if (!specPath.empty()) {
-        generic = declaresGeneric(m_sources.at(sourceIdentity(specPath))->units);
+        auto found = m_parts.find(key + ".spec");
+        generic = found != m_parts.end() && declaresGeneric(found->second->units);
     }
     bool bodyWanted = !m_specificationsOnly || key == m_targetKey || specPath.empty() || generic;
     if (!bodyPath.empty() && bodyWanted && !loadSource(bodyPath)) {
@@ -260,9 +291,9 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
     // Explicit multi-unit source files keep their historical file-based object
     // names. Library lookup must nevertheless find the declaration requested.
     std::string selected = specPath.empty() ? bodyPath : specPath;
-    const CompilationUnit* source = m_sources.at(sourceIdentity(selected));
-    bool namesUnit = std::any_of(source->units.begin(), source->units.end(), [&](const DeclPtr& decl) {
-        return fileKey(declarationName(*decl)) == key;
+    const auto& source = m_sources.at(sourceIdentity(selected));
+    bool namesUnit = std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
+        return fileKey(declarationName(*unit->units.front())) == key;
     });
     if (!namesUnit && key != m_targetKey && !m_diagnostics.hasErrors()) {
         m_diagnostics.error(from, "source '" + selected + "' does not declare library unit '" + name + "'");
@@ -273,8 +304,10 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
 
 bool UnitLoader::orderUnits()
 {
+    // Explicit files are parsed up front for identity lookup; only reached
+    // sources participate in semantic analysis and emission.
     std::unordered_map<CompilationUnit*, std::vector<CompilationUnit*>> dependencies;
-    for (const CompilationUnitPtr& unit : m_units) {
+    for (CompilationUnit* unit : m_discoveredUnits) {
         unit->dependencies.clear();
         auto add = [&](const std::string& name, bool ownBody, bool sameSourceAllowed) {
             std::string key = fileKey(name);
@@ -282,10 +315,10 @@ bool UnitLoader::orderUnits()
             if (found == m_parts.end() && !ownBody) {
                 found = m_parts.find(key + ".body");
             }
-            if (found == m_parts.end() || (sameSourceAllowed && found->second == unit.get())) {
+            if (found == m_parts.end() || (sameSourceAllowed && found->second == unit)) {
                 return;
             }
-            auto& edges = dependencies[unit.get()];
+            auto& edges = dependencies[unit];
             if (std::find(edges.begin(), edges.end(), found->second) == edges.end()) {
                 edges.push_back(found->second);
                 unit->dependencies.push_back(partKey(*found->second));
@@ -314,7 +347,7 @@ bool UnitLoader::orderUnits()
                     m_diagnostics.error(clause.location, "cannot find the unit '" + name + "'");
                     return false;
                 }
-                add(name, false, unit->units.size() > 1);
+                add(name, false, false);
             }
         }
     }
@@ -348,18 +381,12 @@ bool UnitLoader::orderUnits()
         ordered.push_back(unit);
         return true;
     };
-    for (const CompilationUnitPtr& unit : m_units) {
-        if (!visit(unit.get())) {
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        if (!visit(unit)) {
             return false;
         }
     }
-    std::unordered_map<CompilationUnit*, std::size_t> positions;
-    for (std::size_t i = 0; i < ordered.size(); ++i) {
-        positions.emplace(ordered[i], i);
-    }
-    std::sort(m_units.begin(), m_units.end(), [&](const auto& left, const auto& right) {
-        return positions.at(left.get()) < positions.at(right.get());
-    });
+    m_orderedUnits = std::move(ordered);
     return true;
 }
 
@@ -369,8 +396,8 @@ std::vector<LibraryUnit> UnitLoader::libraryUnits() const
     std::vector<std::size_t> lastFile;
     std::unordered_map<std::string, std::size_t> index;
 
-    for (std::size_t i = 0; i < m_units.size(); ++i) {
-        CompilationUnit* unit = m_units[i].get();
+    for (std::size_t i = 0; i < m_orderedUnits.size(); ++i) {
+        CompilationUnit* unit = m_orderedUnits[i];
         auto found = index.find(unit->unitKey);
         if (found == index.end()) {
             index.emplace(unit->unitKey, groups.size());
@@ -399,9 +426,5 @@ std::vector<LibraryUnit> UnitLoader::libraryUnits() const
 
 std::vector<CompilationUnit*> UnitLoader::units() const
 {
-    std::vector<CompilationUnit*> result;
-    for (const CompilationUnitPtr& unit : m_units) {
-        result.push_back(unit.get());
-    }
-    return result;
+    return m_orderedUnits;
 }

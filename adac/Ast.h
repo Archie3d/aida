@@ -996,23 +996,24 @@ struct CompilationUnit
     DeclList units;
     std::string fileName;
 
-    // The library unit this file belongs to, named the way the loader names it:
-    // lower cased with each dot written as a dash.
+    // File-based object group, retained for explicit custom names and bundles.
     std::string unitKey;
+    // Declaration identity, independent of the source/object filename.
+    std::string partKey;
     bool isSpec = false;
 
-    // Required source-part elaborations, kept separate for specs and bodies.
+    // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;
 };
 
 using CompilationUnitPtr = std::unique_ptr<CompilationUnit>;
 
-// A specification and the body completing it make one library unit, which is
-// what a single object file is generated from.
+// An object-producing source group. Conventional files contain one unit's
+// specification and body; an explicit bundle can contain several units.
 struct LibraryUnit
 {
     std::string key;
-    std::vector<CompilationUnit*> parts;   // The specification first, then the body.
+    std::vector<CompilationUnit*> parts;   // In library-item dependency order.
 };
 
 // Canonical operator spellings; short-circuit forms have no operator symbol.

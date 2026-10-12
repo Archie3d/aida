@@ -24,7 +24,7 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     if (!out) {
         return false;
     }
-    out << "format 3\n";
+    out << "format 4\n";
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
     }
@@ -58,7 +58,7 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
         return false;
     }
     std::string line;
-    if (!std::getline(in, line) || line != "format 3") {
+    if (!std::getline(in, line) || line != "format 4") {
         return false;
     }
     bool inUnit = false;

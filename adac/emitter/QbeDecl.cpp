@@ -116,6 +116,9 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
         }
         case DeclKind::PackageBody: {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
+            if (package->symbol == nullptr) {
+                break; // Generic template bodies are emitted only in instances.
+            }
             collectGlobals(package->declarations);
             break;
         }
@@ -166,6 +169,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             }
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
+            if (package->symbol == nullptr) {
+                continue; // Generic template bodies have no elaboration effects.
+            }
             // Declaration failures bypass this package's handlers, but may
             // reach a surrounding handled sequence containing the package.
             emitElaborationDeclarations(package->declarations);

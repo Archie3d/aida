@@ -205,7 +205,7 @@ new context access.
 Audits of supported features, in the order below. Write a focused reproduction
 before choosing a fix. Apply Phase 8's language-version decision and support
 matrix alongside this phase, recording deliberate subset restrictions and
-using focused GNAT comparisons for the supported cases. Wider numeric support,
+validating supported cases with focused regression tests. Wider numeric support,
 new access forms and other features explicitly deferred to later phases stay
 there; this phase does not introduce an anonymous library-block extension.
 
@@ -227,8 +227,19 @@ there; this phase does not introduce an anonymous library-block extension.
     `ada.child_main` and `determinism.load_main`. Explicit custom filenames and
     multi-item source bundles remain supported extensions; library-path lookup
     diagnoses filename/declaration mismatches.
-  - [ ] Complete per-library-item identity/context handling within multi-item
-    bundles rather than treating an entire source file as one dependency node.
+  - [x] Per-library-item identities, context-clause storage and dependency
+    ordering within multi-item bundles, including adjacent generic bodies.
+    Format 4 manifests and emitted elaborations use declaration identities while
+    object/cache names remain file-based. Explicit bundles are preregistered and
+    passed through separate compilation. Covered by `loading.bundles` (duplicate,
+    cycle, parent, source-order, whole/separate IR and incremental checks),
+    `ada.bundle_main`, `ada.bundle_client`, `determinism.bundle_main` and
+    `determinism.genericelaborationorder`; existing elaboration-failure tests
+    cover stopping within a bundle. Generic template bodies have no standalone
+    elaboration effects.
+  - [ ] Finish the audit of declaration/completion identity edge cases.
+    Full semantic context isolation belongs to the visibility audit;
+    the loader now preserves the per-item context needed there.
 - [ ] **Elaboration order and checks.** Build elaboration constraints from the
   per-part dependency graph, including specification-before-body and parent/child
   requirements. Have binding validate manifest order and reject missing,
@@ -315,8 +326,8 @@ elaboration manifests, each pragma's ordering and legality, calls before body
 elaboration, and valid completions alongside each conformance mismatch.
 Exercise whole-program and separate compilation for cross-unit behavior,
 including rebuilds after changes to dependencies or elaboration pragmas.
-Use GNAT comparisons where semantics are shared, accounting for documented
-implementation-defined behavior. Add determinism tests whenever a change
+Validate behavior against the Ada 95 baseline and selected Ada 2005 features,
+accounting for documented implementation-defined behavior. Add determinism tests whenever a change
 affects generated code, update the README/support matrix with changed behavior,
 and keep the full suite green. Mark an item complete only when its audit and
 applicable regression coverage are complete.
@@ -462,8 +473,9 @@ declarations, a formal package, an interface hierarchy with dispatch.
 
 ## Phase 8 — Tooling and validation (alongside the phases above)
 
-- [ ] Choose the target language version. Keep a support matrix separating
-  parsed, semantically checked and correctly emitted constructs.
+- [x] Record the existing language target: Ada 95 with selected Ada 2005
+  features, without claiming full conformance or widening the scope. `SUPPORT.md`
+  separates parsing, semantic checks and emission; update it alongside audits.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer.
@@ -471,8 +483,9 @@ declarations, a formal package, an interface hierarchy with dispatch.
     declaration recovery preserves the next declaration's introducer after a
     missing delimiter. Covered by `recordrecoveryaccess`,
     `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
-- [ ] Compare shared programs with GNAT, and adopt relevant conformance tests,
-  allowing for implementation-defined differences.
+- [ ] Adopt relevant Ada 95 and selected Ada 2005 conformance tests,
+  allowing for documented implementation-defined behavior. GNAT comparisons
+  are not a project requirement.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces.
 - [ ] Serialized semantic interfaces, so clients compile without dependency

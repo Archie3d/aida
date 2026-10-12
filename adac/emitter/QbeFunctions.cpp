@@ -46,8 +46,8 @@ bool hasControlledObjects(DeclList& declarations)
             }
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
-            if (hasControlledObjects(package->declarations) || hasControlledObjects(package->body)
-                || hasControlledObjects(package->handlers)) {
+            if (package->symbol != nullptr && (hasControlledObjects(package->declarations) || hasControlledObjects(package->body)
+                || hasControlledObjects(package->handlers))) {
                 return true;
             }
         } else if (decl->kind == DeclKind::GenericInstantiation) {
@@ -123,7 +123,7 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
             initializeFinalization();
         }
         emitElaborationDeclarations(part->units);
-        finishFunction("export function $" + elaborationName(unit.key + (part->isSpec ? ".spec" : ".body")) + "()");
+        finishFunction("export function $" + elaborationName(part->partKey) + "()");
         m_context = saved;
     }
 }
@@ -146,6 +146,9 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
         }
         case DeclKind::PackageBody: {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
+            if (package->symbol == nullptr) {
+                break;
+            }
             emitSubprogramsIn(package->declarations);
             break;
         }

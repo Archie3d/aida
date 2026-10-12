@@ -70,12 +70,13 @@ void Parser::skipToSemicolon()
     }
 }
 
-CompilationUnitPtr Parser::parseCompilation()
+std::vector<CompilationUnitPtr> Parser::parseCompilation()
 {
-    auto unit = std::make_unique<CompilationUnit>();
+    std::vector<CompilationUnitPtr> units;
 
     while (!check(TokenKind::EndOfFile)) {
         try {
+            auto unit = std::make_unique<CompilationUnit>();
             parseContextClause(*unit);
             if (check(TokenKind::EndOfFile)) {
                 break;
@@ -83,13 +84,14 @@ CompilationUnitPtr Parser::parseCompilation()
             DeclPtr decl = parseLibraryUnit();
             if (decl) {
                 unit->units.push_back(std::move(decl));
+                units.push_back(std::move(unit));
             }
         } catch (const ParseError&) {
             skipToSemicolon();
         }
     }
 
-    return unit;
+    return units;
 }
 
 DeclList Parser::parseDeclarations()
@@ -154,7 +156,7 @@ void Parser::parseContextClause(CompilationUnit& unit)
 DeclPtr Parser::parseLibraryUnit()
 {
     if (check(TokenKind::KwGeneric)) {
-        return parseGenericDeclaration();
+        return parseGenericDeclaration(false);
     }
     if (check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)
         || check(TokenKind::KwOverriding) || check(TokenKind::KwNot)) {

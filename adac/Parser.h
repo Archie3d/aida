@@ -11,7 +11,7 @@ class Parser
 public:
     Parser(std::vector<Token> tokens, Diagnostics& diagnostics);
 
-    CompilationUnitPtr parseCompilation();
+    std::vector<CompilationUnitPtr> parseCompilation();
 
     // Parses a run of declarations, which is how a generic unit is expanded
     // from the tokens it was written with.
@@ -61,7 +61,7 @@ private:
     DeclPtr parsePackage();
 
     // Generics (ParserGenerics.cpp).
-    DeclPtr parseGenericDeclaration();
+    DeclPtr parseGenericDeclaration(bool includeFollowingBody = true);
     DeclPtr parseGenericInstantiation(const SourceLocation& location, const std::string& name,
                                       const std::string& lower, bool isPackage);
 
