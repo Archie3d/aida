@@ -64,22 +64,27 @@ The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly ->
 
 ## Features and limits
 
-The implementation targets Ada 95 with selected Ada 2005 features. Supported
-areas include library and nested packages, procedures and functions, control
-flow and exceptions; integer, floating-point, fixed-point, modular, array and
-record types; generics; access types; tagged types and dispatch; controlled
-finalization; and text and stream I/O. Separate compilation and incremental
-builds are supported. The regression suite is the practical reference for
-implemented behavior. Calls before body elaboration raise `Program_Error`,
-including callbacks and renaming completions; failed elaboration runs cleanup.
-Generic instances retain their specification bindings while awaiting a later
-template body and check body elaboration before initializing the instance.
+AIDA targets Ada 95 with selected Ada 2005 features.
 
-It does not yet implement the full Ada standard. In particular, tasking and
-protected types, interfaces, `goto`, `separate` subunits, several access-type
-features, formal packages and many representation clauses and pragmas are
-unsupported. Newer standard features and libraries such as
-`Ada.Strings.Unbounded`, `Ada.Containers`, and `Ada.Calendar` are also absent.
-Unsupported constructs are intended to produce diagnostics rather than be
-silently ignored. See [TODO.md](TODO.md) for the development roadmap and
-`tests/` for executable examples and expected diagnostics.
+Supported:
+- Library and nested packages, procedures, functions
+- Control flow and exceptions
+- Integer, floating-point, fixed-point, modular, array and record types
+- Generics, access types, tagged types with dispatching
+- Controlled types and finalization
+- Text and stream I/O
+- Separate compilation and incremental builds
+
+Not supported yet:
+- Tasking and protected types
+- Interfaces, `goto`, `separate` subunits, formal packages
+- Several access-type features, many representation clauses and pragmas
+- Newer libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
+  `Ada.Calendar`
+
+Unsupported constructs should produce diagnostics rather than be silently
+ignored. Calling a subprogram before its body is elaborated raises
+`Program_Error`.
+
+See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
+and expected diagnostics.
