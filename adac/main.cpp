@@ -482,6 +482,7 @@ int main(int argc, char** argv)
     for (CompilationUnit* unit : units) {
         sema.analyze(*unit);
     }
+    sema.finishAnalysis();
     if (diagnostics.hasErrors()) {
         return 1;
     }

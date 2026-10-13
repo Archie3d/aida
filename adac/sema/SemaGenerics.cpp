@@ -107,6 +107,29 @@ bool isGenericVariable(Expr* expr)
     return false;
 }
 
+bool requiresGenericBody(const DeclList& declarations)
+{
+    for (const auto& declaration : declarations) {
+        if (declaration->kind == DeclKind::SubprogramDeclaration) {
+            Symbol* symbol = static_cast<SubprogramDecl*>(declaration.get())->symbol;
+            if (symbol != nullptr && !symbol->hasBody) {
+                return true;
+            }
+        } else if (declaration->kind == DeclKind::PackageSpecification) {
+            auto* package = static_cast<PackageSpecDecl*>(declaration.get());
+            if (requiresGenericBody(package->publicPart) || requiresGenericBody(package->privatePart)) {
+                return true;
+            }
+        } else if (declaration->kind == DeclKind::GenericDeclaration) {
+            auto* generic = static_cast<GenericDecl*>(declaration.get());
+            if (!generic->isPackage && generic->symbol != nullptr && !generic->symbol->hasBody) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // The symbol a unit declared, which is what makes an instance visible where it
 // was written.
 Symbol* declaredSymbol(Decl* decl)
@@ -870,14 +893,6 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");
         return;
     }
-    // The token-based expander cannot revisit an instance after a later local
-    // body appears. Reject that unsupported case instead of emitting an
-    // instance with no implementation and failing in the native linker.
-    if (!generic->generic->isPackage && !generic->hasBody) {
-        m_diagnostics.error(decl->location,
-            "instantiation before the generic subprogram body is available is not yet supported");
-        return;
-    }
     decl->m_generic = generic;
     if (m_instantiationDepth > 16) {
         m_diagnostics.error(decl->location, "generic instantiation nests too deeply");
@@ -925,6 +940,10 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
 
     auto* savedReplay = m_replayContract;
     auto* savedRecord = m_recordContract;
+    auto* savedOwnerContract = m_instanceOwnerContract;
+    if (savedRecord != nullptr) {
+        m_instanceOwnerContract = savedRecord;
+    }
     std::size_t savedFirst = m_instanceFirstSymbol;
     m_replayContract = contract;
     m_recordContract = nullptr;
@@ -933,10 +952,32 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     m_instanceCopies.clear();
     ++m_instantiationDepth;
     analyzeDeclarativePart(expansion, bindings);
+    if (!generic->hasBody) {
+        PendingGenericInstance pending;
+        pending.m_instance = decl;
+        pending.m_bindings = bindings;
+        pending.m_contract = contract;
+        pending.m_enclosingContract = m_instanceOwnerContract;
+        pending.m_tokenCount = generic->generic->tokens.size() - 1;
+        pending.m_copies = m_instanceCopies;
+        for (Symbol* original : contract->m_localSymbols) {
+            if (Symbol* copy = instanceSymbol(original)) {
+                pending.m_copies[original] = copy;
+            }
+        }
+        pending.m_owner = m_currentSubprogram;
+        pending.m_unit = m_currentUnit;
+        pending.m_packages = m_packages;
+        pending.m_prefix = m_namePrefix;
+        pending.m_accessibilityLevel = m_accessibilityLevel;
+        pending.m_depth = m_instantiationDepth;
+        m_pendingGenericInstances.push_back(std::move(pending));
+    }
     --m_instantiationDepth;
     m_replayContract = savedReplay;
     m_recordContract = savedRecord;
     m_instanceFirstSymbol = savedFirst;
+    m_instanceOwnerContract = savedOwnerContract;
     m_instanceCopies = std::move(savedCopies);
 
     // Distinguish multiple copies of the same nested template. Their source
@@ -986,5 +1027,105 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     }
     if (decl->symbol == nullptr) {
         m_diagnostics.error(decl->location, "generic '" + decl->genericName + "' produced no instance");
+    }
+}
+
+void Sema::completeGenericInstance(PendingGenericInstance pending)
+{
+    auto* instance = pending.m_instance;
+    Symbol* generic = instance->m_generic;
+    auto* contract = pending.m_contract;
+    if (!contract->m_valid) {
+        return;
+    }
+    const auto& source = generic->generic->tokens;
+    std::vector<Token> tokens(source.begin() + static_cast<std::ptrdiff_t>(pending.m_tokenCount), source.end());
+    Parser parser(tokens, m_diagnostics);
+    DeclList bodies = parser.parseDeclarations();
+    for (const DeclPtr& body : bodies) {
+        renameUnit(body.get(), instance->symbol->displayName, instance->symbol->name, generic->generic->lower);
+    }
+
+    // This runs after source analysis, so no caller's lexical or replay state
+    // is active. Body names were resolved at the template body's original
+    // position by checkGenericContract; replay maps them to this instance.
+    m_currentSubprogram = pending.m_owner;
+    m_currentUnit = pending.m_unit;
+    m_packages = std::move(pending.m_packages);
+    m_namePrefix = std::move(pending.m_prefix);
+    m_accessibilityLevel = pending.m_accessibilityLevel;
+    m_instantiationDepth = pending.m_depth;
+    m_recordContract = nullptr;
+    m_replayContract = contract;
+    m_instanceOwnerContract = pending.m_enclosingContract;
+    m_instanceCopies = std::move(pending.m_copies);
+    m_instanceFirstSymbol = m_symbolTable.symbols().size();
+    std::size_t firstSymbol = m_instanceFirstSymbol;
+    int errors = m_diagnostics.errorCount();
+    auto savedNames = m_subprogramNames;
+    auto savedTagNames = m_tagNames;
+    auto savedExceptions = m_unitExceptions;
+    analyzeDeclarativePart(bodies, pending.m_bindings);
+    for (DeclPtr& body : bodies) {
+        instance->expansion.push_back(std::move(body));
+    }
+    if (pending.m_enclosingContract != nullptr) {
+        // A deferred instance inside a template is still contract-only code.
+        // Keep its symbols available for later replay without consuming emitted
+        // names or exporting its exception objects.
+        auto* enclosing = pending.m_enclosingContract;
+        enclosing->m_valid = enclosing->m_valid && m_diagnostics.errorCount() == errors;
+        auto& copies = enclosing->m_instances[contractKey(instance->location)];
+        const auto& symbols = m_symbolTable.symbols();
+        for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
+            enclosing->m_localSymbols.insert(symbols[i].get());
+            copies.push_back(symbols[i].get());
+        }
+        m_subprogramNames = std::move(savedNames);
+        m_tagNames = std::move(savedTagNames);
+        m_unitExceptions = std::move(savedExceptions);
+    }
+    m_currentSubprogram = nullptr;
+    m_currentUnit = nullptr;
+    m_packages.clear();
+    m_namePrefix.clear();
+    m_accessibilityLevel = 0;
+    m_instantiationDepth = 0;
+    m_replayContract = nullptr;
+    m_instanceOwnerContract = nullptr;
+    m_instanceCopies.clear();
+}
+
+void Sema::finishAnalysis()
+{
+    if (m_diagnostics.hasErrors()) {
+        return;
+    }
+    // Completing one body can reveal another nested template body. Drain all
+    // ready instances before deciding whether any required bodies are missing.
+    bool progress = true;
+    while (progress && !m_diagnostics.hasErrors()) {
+        progress = false;
+        for (std::size_t i = 0; i < m_pendingGenericInstances.size() && !m_diagnostics.hasErrors();) {
+            if (!m_pendingGenericInstances[i].m_instance->m_generic->hasBody) {
+                ++i;
+                continue;
+            }
+            PendingGenericInstance pending = std::move(m_pendingGenericInstances[i]);
+            m_pendingGenericInstances.erase(m_pendingGenericInstances.begin() + static_cast<std::ptrdiff_t>(i));
+            completeGenericInstance(std::move(pending));
+            progress = true;
+        }
+    }
+    if (m_diagnostics.hasErrors()) {
+        return;
+    }
+    for (const auto& pending : m_pendingGenericInstances) {
+        Symbol* generic = pending.m_instance->m_generic;
+        if (!generic->generic->isPackage || requiresGenericBody(pending.m_instance->expansion)) {
+            m_diagnostics.error(pending.m_instance->location,
+                std::string(generic->generic->isPackage ? "generic package '" : "generic subprogram '")
+                + generic->displayName + "' has no body");
+        }
     }
 }

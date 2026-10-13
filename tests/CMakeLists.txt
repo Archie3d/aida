@@ -702,3 +702,20 @@ add_ada_test(elaborationlibrarycheck SOURCES elaborationlibrarycheck.adb
     EXIT_CODE 1 STDERR elaborationlibrarycheck.stderr)
 add_determinism_test(elaborationlibrarycheck SOURCE elaborationlibrarycheck.adb)
 add_ada_error_test(elaborationgenericerrors SOURCES elaborationgenericerrors.adb)
+
+add_ada_test(forwardelaboration SOURCES forwardelaboration.adb)
+add_determinism_test(forwardelaboration SOURCE forwardelaboration.adb)
+add_ada_test(forwardcontracts SOURCES forwardcontracts.adb)
+add_determinism_test(forwardcontracts SOURCE forwardcontracts.adb)
+add_ada_test(forwardlibrary SOURCES forwardlibrary.adb)
+add_determinism_test(forwardlibrary SOURCE forwardlibrary.adb)
+add_test(NAME elaboration.forward_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckForwardElaboration.cmake)
+set_tests_properties(elaboration.forward_modes PROPERTIES TIMEOUT 30)

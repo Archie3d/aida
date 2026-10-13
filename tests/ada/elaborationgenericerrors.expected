@@ -1,1 +1,2 @@
-elaborationgenericerrors.adb:6:9: error: instantiation before the generic subprogram body is available is not yet supported
+elaborationgenericerrors.adb:4:5: error: generic subprogram 'Missing' has no body
+elaborationgenericerrors.adb:9:5: error: generic package 'Missing_Package' has no body

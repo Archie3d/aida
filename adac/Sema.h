@@ -16,6 +16,7 @@ public:
     explicit Sema(Diagnostics& diagnostics);
 
     void analyze(CompilationUnit& unit);
+    void finishAnalysis();
 
     TypeTable& typeTable() { return m_types; }
     Type* exceptionOccurrenceType() const { return m_exceptionOccurrenceType; }
@@ -81,9 +82,30 @@ private:
         std::unordered_map<std::string, std::vector<Symbol*>> m_instances;
         bool m_valid = false;
     };
+    // An instance specification must remain visible while its template body
+    // is still unavailable. Resume in the original instance scope, retaining
+    // its formal bindings and all specification symbol/type identities.
+    struct PendingGenericInstance
+    {
+        GenericInstantiationDecl* m_instance = nullptr;
+        Scope* m_bindings = nullptr;
+        GenericContract* m_contract = nullptr;
+        GenericContract* m_enclosingContract = nullptr;
+        std::size_t m_tokenCount = 0;
+        std::unordered_map<Symbol*, Symbol*> m_copies;
+        Symbol* m_owner = nullptr;
+        const CompilationUnit* m_unit = nullptr;
+        std::vector<Symbol*> m_packages;
+        std::vector<std::string> m_prefix;
+        int m_accessibilityLevel = 0;
+        int m_depth = 0;
+    };
+    std::vector<PendingGenericInstance> m_pendingGenericInstances;
+    void completeGenericInstance(PendingGenericInstance pending);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
     GenericContract* m_replayContract = nullptr;
+    GenericContract* m_instanceOwnerContract = nullptr;
     std::size_t m_instanceFirstSymbol = 0;
     std::unordered_map<Symbol*, Symbol*> m_instanceCopies;
     static std::string contractKey(const SourceLocation& location);

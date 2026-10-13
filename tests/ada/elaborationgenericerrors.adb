@@ -1,19 +1,12 @@
-with Ada.Text_IO; use Ada.Text_IO;
 procedure Elaborationgenericerrors is
     generic
-    function G return Integer;
-    function Probe return Integer is
-        function Instance is new G;
-    begin
-        return 0;
-    exception
-        when Program_Error => return 0;
-    end Probe;
-    X : Integer := Probe;
-    function G return Integer is
-    begin
-        return 42;
-    end G;
+    function Missing return Integer;
+    function Instance is new Missing;
+    generic
+    package Missing_Package is
+        function Get return Integer;
+    end Missing_Package;
+    package Package_Instance is new Missing_Package;
 begin
-    Put_Line (Integer'Image (X));
+    null;
 end Elaborationgenericerrors;

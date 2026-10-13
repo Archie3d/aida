@@ -72,8 +72,8 @@ finalization; and text and stream I/O. Separate compilation and incremental
 builds are supported. The regression suite is the practical reference for
 implemented behavior. Calls before body elaboration raise `Program_Error`,
 including callbacks and renaming completions; failed elaboration runs cleanup.
-Generic instances check template-body elaboration, but instantiation before a
-local generic subprogram body is available to the compiler remains unsupported.
+Generic instances retain their specification bindings while awaiting a later
+template body and check body elaboration before initializing the instance.
 
 It does not yet implement the full Ada standard. In particular, tasking and
 protected types, interfaces, `goto`, `separate` subunits, several access-type

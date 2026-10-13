@@ -248,7 +248,7 @@ there; this phase does not introduce an anonymous library-block extension.
     addition/removal rebuilds. Generic renaming completions remain explicitly
     unsupported. Parameter-profile conformance and full semantic context
     isolation remain in the existing visibility/conformance audit.
-- [ ] **Elaboration order and checks.** Build elaboration constraints from the
+- [x] **Elaboration order and checks.** Build elaboration constraints from the
   per-part dependency graph, including specification-before-body and parent/child
   requirements. Have binding validate manifest order and reject missing,
   duplicate and unknown elaboration entries, as well as unsatisfiable ordering
@@ -261,7 +261,9 @@ there; this phase does not introduce an anonymous library-block extension.
   `adac/sema/`, `adac/emitter/`.
   - [x] Binder graph validation, covered by `binding.elaboration_order`: missing,
     duplicate and unknown entries, unknown dependencies, duplicate part metadata,
-    invalid ordering and truncated manifests.
+    invalid ordering and truncated manifests. Identity-derived specification/body
+    and parent/child constraints are enforced even when explicit edges are
+    omitted; self-dependencies and cyclic constraints are rejected.
   - [x] Subprogram elaboration-before-use checks at body entry, including
     indirect calls and renaming completions. Library flags are set in source
     order; nested flags belong to each activation and reset on block re-entry.
@@ -274,12 +276,18 @@ there; this phase does not introduce an anonymous library-block extension.
     available to the token-based expander, including separate library bodies.
     Existing generic executable and determinism suites cover successful
     elaboration; templates still have no instance initialization effects.
-  - [ ] Forward generic instantiation: defer expansion when a local generic
-    body is not yet available, then exercise early instantiation failure and
-    cleanup. Forward generic subprogram instances currently receive an explicit
-    unsupported diagnostic (`elaborationgenericerrors`) rather than reaching
-    the linker with an undefined instance. Audit forward package instances too.
-    Keep this parent item open until these runtime failure cases are covered.
+  - [x] Forward generic instantiation: publish the instance specification and
+    defer body expansion until its template body is available, preserving formal
+    bindings, type identity, lexical captures and contract resolution. Generic
+    subprograms and packages raise `Program_Error` on early execution, before
+    instance initialization; packages with no body remain valid. Covered by
+    `forwardelaboration` (required/optional bodies, cleanup and repeated calls),
+    `forwardcontracts` (nested deferred instances, distinct actual types and
+    declaration/body-site binding), `forwardlibrary` and their determinism tests.
+    Missing required bodies get semantic diagnostics (`elaborationgenericerrors`).
+    `elaboration.forward_modes` executes whole and separate builds, checks
+    template-body changes rebuild clients, and verifies whole-program partial
+    elaboration failure cleanup. Elaboration pragmas remain the next item.
 - [ ] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
   `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
   arguments and named-unit legality. Test each pragma separately: body-before-

@@ -44,6 +44,25 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
     }
     for (const UnitRecord& unit : units) {
         for (const UnitPartRecord& part : unit.parts) {
+            // These edges follow from unit identity, even if a malformed
+            // manifest omits them from its explicit dependency lists.
+            std::string name = part.key.substr(0, part.key.size() - 5);
+            std::vector<std::string> required;
+            if (part.key.ends_with(".body") && parts.contains(name + ".spec")) {
+                required.push_back(name + ".spec");
+            }
+            std::size_t parent = name.find_last_of('-');
+            if (parent != std::string::npos) {
+                required.push_back(name.substr(0, parent) + ".spec");
+            }
+            for (const std::string& dependency : required) {
+                if (!positions.contains(dependency)) {
+                    return "missing required elaboration part '" + dependency + "' for '" + part.key + "'";
+                }
+                if (positions.at(dependency) >= positions.at(part.key)) {
+                    return "invalid elaboration order: '" + dependency + "' must precede '" + part.key + "'";
+                }
+            }
             for (const std::string& dependency : part.dependencies) {
                 if (!positions.contains(dependency)) {
                     return "unknown elaboration dependency '" + dependency + "' of '" + part.key + "'";
