@@ -84,6 +84,8 @@ struct Symbol
     bool m_addressTaken = false;
     // Code pointer and static link, stored once in the enclosing frame.
     long long m_descriptorOffset = -1;
+    // Body readiness belongs to the enclosing activation, beside captures.
+    long long m_elaborationOffset = -1;
     Symbol* m_negatedEquality = nullptr; // Implicit Boolean "/=" delegates to "=".
 
 

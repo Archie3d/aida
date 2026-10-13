@@ -514,6 +514,8 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     Symbol* named = lookupName(body->spec.lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr
         && !named->generic->isPackage) {
+        body->m_genericBody = named;
+        named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
         Token endOfFile = tokens.back();
         tokens.pop_back();

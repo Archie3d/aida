@@ -88,6 +88,13 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             }
             break;
         }
+        case DeclKind::GenericDeclaration: {
+            Symbol* symbol = static_cast<GenericDecl*>(decl.get())->symbol;
+            if (symbol != nullptr && symbol->hasBody && symbol->level == 0) {
+                m_data << "export data " << symbol->qbeName << ".elaborated = align 4 { w 0 }\n";
+            }
+            break;
+        }
         case DeclKind::SubprogramDeclaration:
             collectGlobals(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
             break;
@@ -135,7 +142,18 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
-        if (decl->kind == DeclKind::SubprogramDeclaration) {
+        if (decl->kind == DeclKind::GenericDeclaration) {
+            auto* generic = static_cast<GenericDecl*>(decl.get());
+            if (generic->m_hasBody) {
+                line("storew 1, " + elaborationFlag(generic->symbol).name);
+            }
+        } else if (decl->kind == DeclKind::SubprogramBody) {
+            auto* body = static_cast<SubprogramBody*>(decl.get());
+            Symbol* symbol = body->symbol != nullptr ? body->symbol : body->m_genericBody;
+            if (symbol != nullptr) {
+                line("storew 1, " + elaborationFlag(symbol).name);
+            }
+        } else if (decl->kind == DeclKind::SubprogramDeclaration) {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
             emitElaborationDeclarations(renaming->m_renamingExpansion);
             if (renaming->m_callbackBinding != nullptr) {
@@ -170,7 +188,10 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
             if (package->symbol == nullptr) {
-                continue; // Generic template bodies have no elaboration effects.
+                if (package->m_genericBody != nullptr) {
+                    line("storew 1, " + elaborationFlag(package->m_genericBody).name);
+                }
+                continue;
             }
             // Declaration failures bypass this package's handlers, but may
             // reach a surrounding handled sequence containing the package.
@@ -193,13 +214,75 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             emitElaborationDeclarations(package->publicPart);
             emitElaborationDeclarations(package->privatePart);
         } else if (decl->kind == DeclKind::GenericInstantiation) {
-            emitElaborationDeclarations(static_cast<GenericInstantiationDecl*>(decl.get())->expansion);
+            auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
+            if (instance->m_generic != nullptr && instance->m_generic->hasBody) {
+                emitElaborationCheck(instance->m_generic);
+            }
+            emitElaborationDeclarations(instance->expansion);
         }
     }
 }
 
+// Reserve all flags before evaluating any initializer, including bodies in
+// later package declarations. Each activation owns its flags in its frame.
+void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
+{
+    for (const auto& decl : declarations) {
+        if (decl->kind == DeclKind::SubprogramBody || decl->kind == DeclKind::GenericDeclaration) {
+            Symbol* symbol = decl->kind == DeclKind::SubprogramBody
+                ? static_cast<SubprogramBody*>(decl.get())->symbol
+                : static_cast<GenericDecl*>(decl.get())->symbol;
+            if (symbol != nullptr && symbol->level > 0 && symbol->m_elaborationOffset < 0) {
+                m_context->hasFrame = true;
+                m_context->frameSize = (m_context->frameSize + 3) / 4 * 4;
+                symbol->m_elaborationOffset = m_context->frameSize;
+                m_context->frameSize += 4;
+                Value flag = elaborationFlag(symbol);
+                line("storew 0, " + flag.name);
+            }
+        } else if (decl->kind == DeclKind::PackageSpecification) {
+            auto* package = static_cast<PackageSpecDecl*>(decl.get());
+            prepareElaborationFlags(package->publicPart);
+            prepareElaborationFlags(package->privatePart);
+        } else if (decl->kind == DeclKind::PackageBody) {
+            prepareElaborationFlags(static_cast<PackageBodyDecl*>(decl.get())->declarations);
+        } else if (decl->kind == DeclKind::GenericInstantiation) {
+            prepareElaborationFlags(static_cast<GenericInstantiationDecl*>(decl.get())->expansion);
+        } else if (decl->kind == DeclKind::SubprogramDeclaration) {
+            prepareElaborationFlags(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+        }
+    }
+}
+
+void QbeEmitter::emitElaborationCheck(Symbol* symbol)
+{
+    Value flag = elaborationFlag(symbol);
+    std::string ready = newTemp();
+    line(ready + " =w loadw " + flag.name);
+    std::string elaborated = newLabel("elaborated");
+    std::string unelaborated = newLabel("unelaborated");
+    branch(Value { ready, 'w' }, elaborated, unelaborated);
+    label(unelaborated);
+    line("call $__ada_raise(l $__ada_exc_program_error)");
+    emitExceptionCheck();
+    jump(elaborated);
+    label(elaborated);
+}
+
+Value QbeEmitter::elaborationFlag(Symbol* symbol)
+{
+    if (symbol->level == 0) {
+        return Value { symbol->qbeName + ".elaborated", 'l' };
+    }
+    Value frame = staticLinkFor(symbol->level - 1);
+    Value flag { newTemp(), 'l' };
+    line(flag.name + " =l add " + frame.name + ", " + std::to_string(symbol->m_elaborationOffset));
+    return flag;
+}
+
 void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
 {
+    prepareElaborationFlags(declarations);
     std::string temporaryMark = newTemp();
     line(temporaryMark + " =l loadl " + storageArena(true));
     std::string finalizationMark;
@@ -304,9 +387,24 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             }
             break;
         }
-        case DeclKind::SubprogramBody:
-            m_context->nested.push_back(static_cast<SubprogramBody*>(decl.get()));
+        case DeclKind::GenericDeclaration: {
+            auto* generic = static_cast<GenericDecl*>(decl.get());
+            if (generic->m_hasBody) {
+                line("storew 1, " + elaborationFlag(generic->symbol).name);
+            }
             break;
+        }
+        case DeclKind::SubprogramBody: {
+            auto* body = static_cast<SubprogramBody*>(decl.get());
+            if (body->m_genericBody != nullptr) {
+                line("storew 1, " + elaborationFlag(body->m_genericBody).name);
+            }
+            if (body->symbol != nullptr) {
+                line("storew 1, " + elaborationFlag(body->symbol).name);
+                m_context->nested.push_back(body);
+            }
+            break;
+        }
         case DeclKind::PackageSpecification: {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
             emitLocalDeclarations(package->publicPart);
@@ -315,6 +413,10 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::PackageBody: {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
+            if (package->m_genericBody != nullptr) {
+                line("storew 1, " + elaborationFlag(package->m_genericBody).name);
+                break;
+            }
             emitLocalDeclarations(package->declarations);
             if (package->handlers.empty()) {
                 emitStatements(package->body);
@@ -331,9 +433,14 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             }
             break;
         }
-        case DeclKind::GenericInstantiation:
-            emitLocalDeclarations(static_cast<GenericInstantiationDecl*>(decl.get())->expansion);
+        case DeclKind::GenericInstantiation: {
+            auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
+            if (instance->m_generic != nullptr && instance->m_generic->hasBody) {
+                emitElaborationCheck(instance->m_generic);
+            }
+            emitLocalDeclarations(instance->expansion);
             break;
+        }
         default:
             break;
         }

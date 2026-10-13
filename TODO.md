@@ -262,7 +262,24 @@ there; this phase does not introduce an anonymous library-block extension.
   - [x] Binder graph validation, covered by `binding.elaboration_order`: missing,
     duplicate and unknown entries, unknown dependencies, duplicate part metadata,
     invalid ordering and truncated manifests.
-  - [ ] Runtime elaboration-before-use checks and their cleanup regressions.
+  - [x] Subprogram elaboration-before-use checks at body entry, including
+    indirect calls and renaming completions. Library flags are set in source
+    order; nested flags belong to each activation and reset on block re-entry.
+    `elaborationchecks` covers early/valid calls, repeated activation, generic
+    instances and controlled cleanup; `elaborationlibrarycheck` covers partial
+    library failure, finalization and skipped main execution. Both have
+    whole/separate determinism checks. The controlled-completion fixture now
+    initializes its objects in a client package, after the defining bodies.
+  - [x] Generic template-body flags and instantiation-site checks for bodies
+    available to the token-based expander, including separate library bodies.
+    Existing generic executable and determinism suites cover successful
+    elaboration; templates still have no instance initialization effects.
+  - [ ] Forward generic instantiation: defer expansion when a local generic
+    body is not yet available, then exercise early instantiation failure and
+    cleanup. Forward generic subprogram instances currently receive an explicit
+    unsupported diagnostic (`elaborationgenericerrors`) rather than reaching
+    the linker with an undefined instance. Audit forward package instances too.
+    Keep this parent item open until these runtime failure cases are covered.
 - [ ] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
   `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
   arguments and named-unit legality. Test each pragma separately: body-before-

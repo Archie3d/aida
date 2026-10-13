@@ -1,0 +1,1 @@
+elaborationgenericerrors.adb:6:9: error: instantiation before the generic subprogram body is available is not yet supported

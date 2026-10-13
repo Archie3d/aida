@@ -1,3 +1,4 @@
+with Controlled_Completion_Globals; use Controlled_Completion_Globals;
 with Controlled_Completion_Model; use Controlled_Completion_Model;
 with Controlled_Result_Model; use Controlled_Result_Model;
 with System;

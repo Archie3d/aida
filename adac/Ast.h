@@ -786,6 +786,8 @@ struct SubprogramBody : Decl
     std::vector<ExceptionHandler> handlers;
     Symbol* symbol = nullptr;
 
+    Symbol* m_genericBody = nullptr;
+
     // As for a package body: a generic subprogram declared in one file has its
     // body in another, and every instance parses that body again.
     std::vector<Token> tokens;
@@ -818,6 +820,8 @@ struct PackageBodyDecl : Decl
     StmtList body;
     std::vector<ExceptionHandler> handlers;
     Symbol* symbol = nullptr;
+
+    Symbol* m_genericBody = nullptr;
 
     // The tokens the body was written with.  They matter when the body belongs
     // to a generic declared in another file, since an instance has to parse the
@@ -934,6 +938,7 @@ struct GenericInstantiationDecl : Decl
     std::string lower;
     std::string genericName;
     std::string genericLower;
+    Symbol* m_generic = nullptr;
     bool isPackage = true;
     bool m_isFunction = false;
     std::vector<Association> arguments;

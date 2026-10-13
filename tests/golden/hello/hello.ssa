@@ -1,16 +1,18 @@
 data $.hello.str.0 = { b "hello (body elaboration)" 0 }
 data $.hello.str.1 = { b "<unknown>" 0 }
+export data $hello.elaborated = align 4 { w 0 }
 export data $hello.access = align 8 { l $hello, l 0 }
-data $.hello.str.2 = { b "Hello, world!" 0 }
-data $.hello.str.3 = { b "hello.adb:6:14" 0 }
-data $.hello.str.4 = { b "Hello" 0 }
-data $.hello.str.5 = { b "hello.adb:4:1" 0 }
+data $.hello.str.2 = { b "hello.adb:4:1" 0 }
+data $.hello.str.3 = { b "Hello, world!" 0 }
+data $.hello.str.4 = { b "hello.adb:6:14" 0 }
+data $.hello.str.5 = { b "Hello" 0 }
 
 export function $ada_elab.hello_body() {
 @start
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.hello.str.0, l $.hello.str.1)
+    storew 1, $hello.elaborated
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }
@@ -19,13 +21,24 @@ export function $hello() {
 @start
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
-    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.hello.str.4, l $.hello.str.5)
-    storel $.hello.str.3, %.traceLocation
-    call $__ada_put_line(l $.hello.str.2, w 13)
-    %.t5 =l loadl %.taskContext
-    %.t6 =w cnel %.t5, 0
-    jnz %.t6, @propagate.1, @nothrow.2
-@nothrow.2
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.hello.str.5, l $.hello.str.2)
+    %.t0 =w loadw $hello.elaborated
+    jnz %.t0, @elaborated.2, @unelaborated.3
+@unelaborated.3
+    storel $.hello.str.2, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t1 =l loadl %.taskContext
+    %.t2 =w cnel %.t1, 0
+    jnz %.t2, @propagate.1, @nothrow.4
+@nothrow.4
+    jmp @elaborated.2
+@elaborated.2
+    storel $.hello.str.4, %.traceLocation
+    call $__ada_put_line(l $.hello.str.3, w 13)
+    %.t8 =l loadl %.taskContext
+    %.t9 =w cnel %.t8, 0
+    jnz %.t9, @propagate.1, @nothrow.5
+@nothrow.5
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 @propagate.1

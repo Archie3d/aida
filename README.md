@@ -70,7 +70,10 @@ flow and exceptions; integer, floating-point, fixed-point, modular, array and
 record types; generics; access types; tagged types and dispatch; controlled
 finalization; and text and stream I/O. Separate compilation and incremental
 builds are supported. The regression suite is the practical reference for
-implemented behavior.
+implemented behavior. Calls before body elaboration raise `Program_Error`,
+including callbacks and renaming completions; failed elaboration runs cleanup.
+Generic instances check template-body elaboration, but instantiation before a
+local generic subprogram body is available to the compiler remains unsupported.
 
 It does not yet implement the full Ada standard. In particular, tasking and
 protected types, interfaces, `goto`, `separate` subunits, several access-type

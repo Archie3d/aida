@@ -171,6 +171,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // A separately compiled caller can take 'Access without recompiling this
     // body. Export one stable descriptor alongside every library subprogram.
     if (symbol->level == 0) {
+        m_data << "export data " << symbol->qbeName << ".elaborated = align 4 { w 0 }\n";
         m_data << "export data " << symbol->qbeName << ".access = align 8 { l " << symbol->qbeName << ", l 0 }\n";
     }
 
@@ -294,6 +295,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                          << "\n";
         context.locals[parameter] = slot;
     }
+
+    // Check at the shared entry so callbacks, dispatch and generated
+    // finalization calls obey the same rule as direct source-level calls.
+    // This precedes declarations and the subprogram's own handlers.
+    emitElaborationCheck(symbol);
 
     emitLocalDeclarations(body->declarations);
     if (context.m_hasMaster) {

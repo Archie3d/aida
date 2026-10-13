@@ -124,6 +124,8 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     // Attach a separate generic body and check its contract before any instance.
     Symbol* named = lookupName(decl->lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr) {
+        decl->m_genericBody = named;
+        named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
         Token endOfFile = tokens.back();
         tokens.pop_back();

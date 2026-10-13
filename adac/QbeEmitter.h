@@ -129,6 +129,9 @@ private:
     void emitElaboration(const LibraryUnit& unit);
     void emitSubprogramsIn(DeclList& declarations);
     void emitSubprogram(SubprogramBody* body);
+    void prepareElaborationFlags(DeclList& declarations);
+    Value elaborationFlag(Symbol* symbol);
+    void emitElaborationCheck(Symbol* symbol);
     void finishFunction(const std::string& signature);
 
     // Statements (QbeStatements.cpp).

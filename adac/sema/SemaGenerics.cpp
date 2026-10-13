@@ -171,6 +171,17 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Generic, lower, name);
     symbol->location = decl->location;
     symbol->generic = decl;
+    symbol->hasBody = decl->m_hasBody;
+    symbol->owner = m_currentSubprogram;
+    symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
+    symbol->qbeName = "$" + mangle(lower) + "__generic";
+    std::size_t ordinal = ++m_subprogramNames[symbol->qbeName];
+    if (ordinal > 1) {
+        symbol->qbeName += "__" + std::to_string(ordinal);
+    }
+    if (symbol->owner != nullptr) {
+        symbol->owner->needsFrame = true;
+    }
     decl->symbol = symbol;
     target->add(symbol);
     checkGenericContract(decl, target);
@@ -859,6 +870,15 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");
         return;
     }
+    // The token-based expander cannot revisit an instance after a later local
+    // body appears. Reject that unsupported case instead of emitting an
+    // instance with no implementation and failing in the native linker.
+    if (!generic->generic->isPackage && !generic->hasBody) {
+        m_diagnostics.error(decl->location,
+            "instantiation before the generic subprogram body is available is not yet supported");
+        return;
+    }
+    decl->m_generic = generic;
     if (m_instantiationDepth > 16) {
         m_diagnostics.error(decl->location, "generic instantiation nests too deeply");
         return;

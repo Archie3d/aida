@@ -185,6 +185,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         if (!packageBody && !subprogramBody) {
             break;
         }
+        decl->m_hasBody = true;
         if (packageBody) {
             parsePackage();
         } else {

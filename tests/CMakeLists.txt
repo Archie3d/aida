@@ -695,3 +695,10 @@ set_tests_properties(error.recordrecoveryaccess error.recordrecoverymissingsemic
     error.recordrecoveryerrors PROPERTIES TIMEOUT 10)
 
 add_ada_error_test(generalaccesserrors SOURCES generalaccesserrors.adb)
+
+add_ada_test(elaborationchecks SOURCES elaborationchecks.adb)
+add_determinism_test(elaborationchecks SOURCE elaborationchecks.adb)
+add_ada_test(elaborationlibrarycheck SOURCES elaborationlibrarycheck.adb
+    EXIT_CODE 1 STDERR elaborationlibrarycheck.stderr)
+add_determinism_test(elaborationlibrarycheck SOURCE elaborationlibrarycheck.adb)
+add_ada_error_test(elaborationgenericerrors SOURCES elaborationgenericerrors.adb)
