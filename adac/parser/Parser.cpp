@@ -83,6 +83,28 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
             }
             DeclPtr decl = parseLibraryUnit();
             if (decl) {
+                while (check(TokenKind::KwPragma) && peek(1).lower != "elaborate"
+                    && peek(1).lower != "elaborate_all") {
+                    if (peek(1).lower != "elaborate_body") {
+                        parsePragma();
+                        continue;
+                    }
+                    std::string name;
+                    if (decl->kind == DeclKind::SubprogramDeclaration) {
+                        name = static_cast<SubprogramDecl*>(decl.get())->spec.lower;
+                    } else if (decl->kind == DeclKind::GenericDeclaration
+                        && !static_cast<GenericDecl*>(decl.get())->isPackage) {
+                        name = static_cast<GenericDecl*>(decl.get())->lower;
+                    } else if (decl->kind == DeclKind::GenericInstantiation) {
+                        name = static_cast<GenericInstantiationDecl*>(decl.get())->lower;
+                    } else {
+                        fail("pragma Elaborate_Body after a library unit requires a subprogram declaration or generic instantiation");
+                    }
+                    if (peek(2).kind != TokenKind::LeftParen) {
+                        fail("pragma Elaborate_Body after a library unit requires its name");
+                    }
+                    parseElaborateBody(*decl, name);
+                }
                 unit->units.push_back(std::move(decl));
                 units.push_back(std::move(unit));
             }
@@ -146,7 +168,58 @@ void Parser::parseContextClause(CompilationUnit& unit)
             continue;
         }
         if (check(TokenKind::KwPragma)) {
-            parsePragma();
+            if (peek(1).lower == "elaborate" || peek(1).lower == "elaborate_all") {
+                ElaborationPragma pragma;
+                pragma.location = current().location;
+                advance();
+                pragma.all = advance().lower == "elaborate_all";
+                expect(TokenKind::LeftParen, "after elaboration pragma");
+                do {
+                    std::string lower;
+                    parseCompoundName(lower);
+                    bool withed = false;
+                    for (const WithClause& clause : unit.withClauses) {
+                        for (const std::string& name : clause.namesLower) {
+                            withed = withed || name == lower || name.starts_with(lower + ".");
+                        }
+                    }
+                    if (!withed) {
+                        std::string resolved;
+                        for (const UseDecl& use : unit.useClauses) {
+                            if (use.m_typeOnly) {
+                                continue;
+                            }
+                            for (const std::string& prefix : use.namesLower) {
+                                std::string candidate = prefix + "." + lower;
+                                for (const WithClause& clause : unit.withClauses) {
+                                    for (const std::string& name : clause.namesLower) {
+                                        if (name == candidate || name.starts_with(candidate + ".")) {
+                                            if (!resolved.empty() && resolved != candidate) {
+                                                fail("ambiguous library unit name in elaboration pragma");
+                                            }
+                                            resolved = candidate;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (!resolved.empty()) {
+                            lower = resolved;
+                            withed = true;
+                        }
+                    }
+                    if (!withed) {
+                        m_diagnostics.error(pragma.location,
+                            "elaboration pragma requires a preceding with clause for '" + lower + "'");
+                    }
+                    pragma.names.push_back(lower);
+                } while (match(TokenKind::Comma));
+                expect(TokenKind::RightParen, "after elaboration pragma arguments");
+                expect(TokenKind::Semicolon, "after elaboration pragma");
+                unit.elaborationPragmas.push_back(std::move(pragma));
+            } else {
+                parsePragma();
+            }
             continue;
         }
         break;
@@ -163,7 +236,7 @@ DeclPtr Parser::parseLibraryUnit()
         return parseSubprogramDeclOrBody();
     }
     if (check(TokenKind::KwPackage)) {
-        return parsePackage();
+        return parsePackage(true);
     }
     fail("expected a procedure, function or package declaration");
 }

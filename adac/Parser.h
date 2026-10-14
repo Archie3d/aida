@@ -58,7 +58,8 @@ private:
     DeclPtr parseSubprogramDeclOrBody();
 
     // Packages (ParserPackages.cpp).
-    DeclPtr parsePackage();
+    DeclPtr parsePackage(bool library = false);
+    void parseElaborateBody(Decl& decl, const std::string& name, bool inside = false);
 
     // Generics (ParserGenerics.cpp).
     DeclPtr parseGenericDeclaration(bool includeFollowingBody = true);

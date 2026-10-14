@@ -150,10 +150,11 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     decl->isPackage = check(TokenKind::KwPackage);
 
     std::size_t start = m_position;
-    DeclPtr unit = decl->isPackage ? parsePackage() : parseSubprogramDeclOrBody();
+    DeclPtr unit = decl->isPackage ? parsePackage(!includeFollowingBody) : parseSubprogramDeclOrBody();
     if (unit == nullptr) {
         fail("a generic declaration must name a unit");
     }
+    decl->m_elaborateBody = unit->m_elaborateBody;
     switch (unit->kind) {
     case DeclKind::PackageSpecification:
         decl->name = static_cast<PackageSpecDecl*>(unit.get())->name;
@@ -195,6 +196,19 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
 
     decl->tokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                         m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+    if (decl->m_elaborateBody) {
+        for (std::size_t i = 0; i + 1 < decl->tokens.size(); ++i) {
+            if (decl->tokens[i].kind == TokenKind::KwPragma
+                && decl->tokens[i + 1].lower == "elaborate_body") {
+                std::size_t end = i;
+                while (end < decl->tokens.size() && decl->tokens[end].kind != TokenKind::Semicolon) {
+                    ++end;
+                }
+                decl->tokens.erase(decl->tokens.begin() + i, decl->tokens.begin() + end + 1);
+                break;
+            }
+        }
+    }
     decl->tokens.push_back(m_tokens.back());   // The end of file the parser stops on.
     return decl;
 }

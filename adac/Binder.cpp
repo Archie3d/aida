@@ -47,6 +47,13 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
             // These edges follow from unit identity, even if a malformed
             // manifest omits them from its explicit dependency lists.
             std::string name = part.key.substr(0, part.key.size() - 5);
+            if (part.elaborateBody) {
+                std::string body = name + ".body";
+                if (!part.key.ends_with(".spec") || !positions.contains(body)
+                    || positions.at(body) != positions.at(part.key) + 1) {
+                    return "Elaborate_Body requires body immediately after '" + part.key + "'";
+                }
+            }
             std::vector<std::string> required;
             if (part.key.ends_with(".body") && parts.contains(name + ".spec")) {
                 required.push_back(name + ".spec");

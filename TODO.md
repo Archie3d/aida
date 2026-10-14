@@ -288,13 +288,28 @@ there; this phase does not introduce an anonymous library-block extension.
     `elaboration.forward_modes` executes whole and separate builds, checks
     template-body changes rebuild clients, and verifies whole-program partial
     elaboration failure cleanup. Elaboration pragmas remain the next item.
-- [ ] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
+- [x] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
   `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
   arguments and named-unit legality. Test each pragma separately: body-before-
   client ordering for `Elaborate`, the required transitive closure for
   `Elaborate_All`, and a required body immediately following its specification
   for `Elaborate_Body`. Diagnose conflicting constraints and carry the pragma
   requirements through scan metadata, binding and incremental rebuilds.
+  Context pragmas validate preceding with visibility (including ancestors),
+  retain per-item requirements and add body/transitive semantic-dependency
+  edges. `Elaborate_Body` accepts library package/generic specifications and
+  named pragmas following library subprogram declarations or instantiations;
+  instance bodies already elaborate with their specifications. Library generic
+  pragmas do not apply to instances. Format 5 manifests preserve expanded edges
+  and explicit immediate-body constraints, checked again by the binder.
+  Impossible constraints use deterministic dependency-cycle diagnostics.
+  Covered by `ada.ep_main`, `determinism.ep_main`, `elaboration.pragmas` and
+  updated `pragmaelaborationerrors`: whole/separate execution and IR, child
+  units, generics, bodyless units, bundles, placement/name/argument errors,
+  required bodies, direct/transitive/adjacency cycles, malformed metadata and
+  incremental changes to pragmas and transitive bodies. Specification-only
+  compilation defers unavailable dependency-body ordering to the full scan and
+  binder; source dependencies continue to use the existing digest cache.
 - [ ] **Visibility and conformance.** Audit visibility, `use` clauses,
   homographs, duplicate declarations, overload ambiguity, private views,
   parent/child visibility and context-clause isolation between compilation

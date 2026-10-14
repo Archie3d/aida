@@ -719,3 +719,17 @@ add_test(NAME elaboration.forward_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckForwardElaboration.cmake)
 set_tests_properties(elaboration.forward_modes PROPERTIES TIMEOUT 30)
+
+add_ada_test(ep_main SOURCES elaborationpragmas/ep_main.adb)
+add_determinism_test(ep_main SOURCE elaborationpragmas/ep_main.adb)
+add_test(NAME elaboration.pragmas
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada/elaborationpragmas
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckElaborationPragmas.cmake)
+set_tests_properties(elaboration.pragmas PROPERTIES TIMEOUT 60)

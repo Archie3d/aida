@@ -1,6 +1,6 @@
 #include "Parser.h"
 
-DeclPtr Parser::parsePackage()
+DeclPtr Parser::parsePackage(bool library)
 {
     SourceLocation location = current().location;
     expect(TokenKind::KwPackage, "in package declaration");
@@ -38,7 +38,20 @@ DeclPtr Parser::parsePackage()
     if (match(TokenKind::KwNew)) {
         return parseGenericInstantiation(location, spec->name, spec->lower, true);
     }
-    spec->publicPart = parseDeclarativePart(true);
+    while (library && check(TokenKind::KwPragma)) {
+        if (peek(1).lower == "elaborate_body") {
+            parseElaborateBody(*spec, spec->lower, true);
+        } else {
+            DeclPtr pragma = parsePragma();
+            if (pragma) {
+                spec->publicPart.push_back(std::move(pragma));
+            }
+        }
+    }
+    DeclList declarations = parseDeclarativePart(true);
+    for (DeclPtr& declaration : declarations) {
+        spec->publicPart.push_back(std::move(declaration));
+    }
     if (match(TokenKind::KwPrivate)) {
         spec->privatePart = parseDeclarativePart();
     }
@@ -46,4 +59,28 @@ DeclPtr Parser::parsePackage()
     parseClosingName(spec->lower, true);
     expect(TokenKind::Semicolon, "after package specification");
     return spec;
+}
+
+void Parser::parseElaborateBody(Decl& decl, const std::string& name, bool inside)
+{
+    if (decl.m_elaborateBody) {
+        m_diagnostics.error(current().location, "duplicate pragma Elaborate_Body");
+    }
+    advance();
+    advance();
+    if (match(TokenKind::LeftParen)) {
+        std::string lower;
+        if (inside) {
+            lower = expect(TokenKind::Identifier, "as Elaborate_Body unit name").lower;
+        } else {
+            parseCompoundName(lower);
+        }
+        std::string expected = inside ? name.substr(name.find_last_of('.') + 1) : name;
+        if (lower != expected) {
+            fail("pragma Elaborate_Body must name its own library unit");
+        }
+        expect(TokenKind::RightParen, "after Elaborate_Body unit name");
+    }
+    expect(TokenKind::Semicolon, "after Elaborate_Body");
+    decl.m_elaborateBody = true;
 }

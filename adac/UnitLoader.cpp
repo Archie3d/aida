@@ -441,6 +441,7 @@ bool UnitLoader::orderUnits()
     std::unordered_map<CompilationUnit*, std::vector<CompilationUnit*>> dependencies;
     for (CompilationUnit* unit : m_discoveredUnits) {
         unit->dependencies.clear();
+        dependencies[unit];
         auto add = [&](const std::string& name, bool ownBody, bool sameSourceAllowed) {
             std::string key = fileKey(name);
             auto found = m_parts.find(key + ".spec");
@@ -488,6 +489,102 @@ bool UnitLoader::orderUnits()
             }
         }
     }
+    // Keep semantic dependencies immutable while computing Elaborate_All's
+    // closure: pragma ordering edges are not semantic dependence edges.
+    const auto semanticDependencies = dependencies;
+    auto addEdge = [&](CompilationUnit* client, CompilationUnit* prerequisite) {
+        auto& edges = dependencies[client];
+        if (std::find(edges.begin(), edges.end(), prerequisite) == edges.end()) {
+            edges.push_back(prerequisite);
+            client->dependencies.push_back(partKey(*prerequisite));
+        }
+    };
+    auto bodyOf = [&](CompilationUnit* unit) -> CompilationUnit* {
+        std::string key = fileKey(declarationName(*unit->units.front()));
+        auto found = m_parts.find(key + ".body");
+        if (found == m_parts.end()
+            || std::find(m_discoveredUnits.begin(), m_discoveredUnits.end(), found->second) == m_discoveredUnits.end()) {
+            return nullptr;
+        }
+        return found->second;
+    };
+    std::vector<std::pair<CompilationUnit*, CompilationUnit*>> immediateBodies;
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        // An instance's spec and body already elaborate as one library item.
+        if (unit->units.front()->m_elaborateBody
+            && unit->units.front()->kind != DeclKind::GenericInstantiation) {
+            CompilationUnit* body = bodyOf(unit);
+            if (body == nullptr) {
+                if (!m_specificationsOnly || unit->unitKey == m_targetKey) {
+                    m_diagnostics.error(unit->units.front()->location,
+                        "pragma Elaborate_Body requires a body for '"
+                        + declarationName(*unit->units.front()) + "'");
+                    return false;
+                }
+            } else {
+                immediateBodies.emplace_back(unit, body);
+            }
+        }
+        for (const ElaborationPragma& pragma : unit->elaborationPragmas) {
+            for (const std::string& name : pragma.names) {
+                std::string key = fileKey(name);
+                auto found = m_parts.find(key + ".spec");
+                if (found == m_parts.end()) {
+                    found = m_parts.find(key + ".body");
+                }
+                if (found == m_parts.end()) {
+                    if (key == "standard" || key == "system") {
+                        continue;
+                    }
+                    m_diagnostics.error(pragma.location, "unknown elaboration pragma unit '" + name + "'");
+                    return false;
+                }
+                std::unordered_set<CompilationUnit*> seen;
+                std::function<void(CompilationUnit*)> require = [&](CompilationUnit* required) {
+                    if (!seen.insert(required).second) {
+                        return;
+                    }
+                    addEdge(unit, required);
+                    CompilationUnit* body = bodyOf(required);
+                    if (body != nullptr && body != required) {
+                        require(body);
+                    }
+                    if (pragma.all) {
+                        for (CompilationUnit* dependency : semanticDependencies.at(required)) {
+                            require(dependency);
+                        }
+                    }
+                };
+                require(found->second);
+            }
+        }
+    }
+    // Contract each immediate spec/body pair for ordering: all prerequisites
+    // of its body must precede its spec, and every client must follow its body.
+    // Iterate because immediate pairs may themselves depend on other pairs.
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (const auto& [spec, body] : immediateBodies) {
+            auto prerequisites = dependencies[body];
+            for (CompilationUnit* dependency : prerequisites) {
+                if (dependency != spec) {
+                    std::size_t before = dependencies[spec].size();
+                    addEdge(spec, dependency);
+                    changed = changed || dependencies[spec].size() != before;
+                }
+            }
+            for (CompilationUnit* client : m_discoveredUnits) {
+                if (client != body && client != spec
+                    && std::find(dependencies[client].begin(), dependencies[client].end(), spec)
+                        != dependencies[client].end()) {
+                    std::size_t before = dependencies[client].size();
+                    addEdge(client, body);
+                    changed = changed || dependencies[client].size() != before;
+                }
+            }
+        }
+    }
     std::unordered_map<CompilationUnit*, int> states;
     std::vector<CompilationUnit*> ordered;
     std::vector<CompilationUnit*> stack;
@@ -522,6 +619,10 @@ bool UnitLoader::orderUnits()
         if (!visit(unit)) {
             return false;
         }
+    }
+    for (const auto& [spec, body] : immediateBodies) {
+        ordered.erase(std::find(ordered.begin(), ordered.end(), body));
+        ordered.insert(std::find(ordered.begin(), ordered.end(), spec) + 1, body);
     }
     m_orderedUnits = std::move(ordered);
     return true;

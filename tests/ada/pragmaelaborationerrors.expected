@@ -1,3 +1,3 @@
-pragmaelaborationerrors.adb:1:8: error: unsupported or unknown pragma 'Elaborate'; supported pragmas are Import, Inline, Pure and Preelaborate
-pragmaelaborationerrors.adb:2:8: error: unsupported or unknown pragma 'Elaborate_All'; supported pragmas are Import, Inline, Pure and Preelaborate
-pragmaelaborationerrors.adb:3:8: error: unsupported or unknown pragma 'Elaborate_Body'; supported pragmas are Import, Inline, Pure and Preelaborate
+pragmaelaborationerrors.adb:1:1: error: elaboration pragma requires a preceding with clause for 'library_unit'
+pragmaelaborationerrors.adb:2:1: error: elaboration pragma requires a preceding with clause for 'library_unit'
+pragmaelaborationerrors.adb:3:8: error: pragma Elaborate_Body must appear at the start of a library package specification

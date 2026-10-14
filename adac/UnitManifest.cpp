@@ -24,7 +24,7 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     if (!out) {
         return false;
     }
-    out << "format 4\n";
+    out << "format 5\n";
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
     }
@@ -42,6 +42,9 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
         }
         for (const UnitPartRecord& part : unit.parts) {
             out << "part " << part.key << "\n";
+            if (part.elaborateBody) {
+                out << "immediate-body " << part.key << "\n";
+            }
             for (const std::string& dependency : part.dependencies) {
                 out << "requires " << dependency << "\n";
             }
@@ -58,7 +61,7 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
         return false;
     }
     std::string line;
-    if (!std::getline(in, line) || line != "format 4") {
+    if (!std::getline(in, line) || line != "format 5") {
         return false;
     }
     bool inUnit = false;
@@ -97,6 +100,9 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
             units.back().withKeys.push_back(rest);
         } else if (keyword == "part") {
             units.back().parts.push_back(UnitPartRecord { rest, {} });
+        } else if (keyword == "immediate-body" && !units.back().parts.empty()
+            && rest == units.back().parts.back().key && !units.back().parts.back().elaborateBody) {
+            units.back().parts.back().elaborateBody = true;
         } else if (keyword == "requires" && !units.back().parts.empty()) {
             units.back().parts.back().dependencies.push_back(rest);
         } else {

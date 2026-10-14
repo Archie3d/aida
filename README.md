@@ -74,6 +74,7 @@ Supported:
 - Controlled types and finalization
 - Text and stream I/O
 - Separate compilation and incremental builds
+- Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
 
 Not supported yet:
 - Tasking and protected types

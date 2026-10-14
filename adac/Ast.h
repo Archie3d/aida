@@ -694,6 +694,7 @@ struct Decl : Node
     }
 
     DeclKind kind;
+    bool m_elaborateBody = false;
 };
 
 struct ObjectDecl : Decl
@@ -998,8 +999,16 @@ struct WithClause
     SourceLocation location;
 };
 
+struct ElaborationPragma
+{
+    SourceLocation location;
+    std::vector<std::string> names;
+    bool all = false;
+};
+
 struct CompilationUnit
 {
+    std::vector<ElaborationPragma> elaborationPragmas;
     std::vector<WithClause> withClauses;
     std::vector<UseDecl> useClauses;
     DeclList units;

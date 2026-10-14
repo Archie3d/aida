@@ -195,6 +195,14 @@ DeclPtr Parser::parsePragma()
     expect(TokenKind::KwPragma, "in pragma");
 
     const Token& name = expect(TokenKind::Identifier, "as pragma name");
+    if (name.lower == "elaborate" || name.lower == "elaborate_all"
+        || name.lower == "elaborate_body") {
+        m_diagnostics.error(name.location, name.lower == "elaborate_body"
+            ? "pragma Elaborate_Body must appear at the start of a library package specification"
+            : "pragma " + name.text + " is only allowed in a context clause");
+        skipToSemicolon();
+        return nullptr;
+    }
     if (name.lower == "inline" || name.lower == "pure" || name.lower == "preelaborate") {
         if (match(TokenKind::LeftParen)) {
             do {
