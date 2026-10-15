@@ -49,4 +49,5 @@ if (condition) {
 - Gradually add support for more complex statements, data types, functions, procedures.
 - Add simle test Ada programs to test the compiler development stages.
 - Follow the roadmap in the order described in TODO.md, Mark completed steps as `[x]`.
+- Unsupported constructs should produce diagnostics rather than be silently ignored.
 - Keep README.md concise. It should remain brief and easily readable. Track the progress via TODO.md file.

@@ -8,8 +8,10 @@ package body Dynamic_Source is
         return (1, 2, 3);
     end Make;
 end Dynamic_Source;
+with Dynamic_Source;
 generic
     Value : Dynamic_Source.Vector;
 package Dynamic_Template is
 end Dynamic_Template;
+with Dynamic_Template, Dynamic_Source;
 package Unsupported is new Dynamic_Template (Dynamic_Source.Make);

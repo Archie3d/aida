@@ -1,3 +1,4 @@
+with System;
 with Ada.Text_IO; use Ada.Text_IO;
 with Tagged_Layout; use Tagged_Layout;
 procedure TaggedLayout is

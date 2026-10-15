@@ -1,0 +1,7 @@
+duplicatenumbererrors.adb:3:5: error: 'cOuNt' has already been declared in this scope
+duplicatenumbererrors.adb:4:5: error: 'Pair' has already been declared in this scope
+duplicatenumbererrors.adb:6:5: error: 'Value' has already been declared in this scope
+duplicatenumbererrors.adb:8:5: error: 'Item' has already been declared in this scope
+duplicatenumbererrors.adb:10:5: error: 'Action' has already been declared in this scope
+duplicatenumbererrors.adb:12:5: error: 'Failure' has already been declared in this scope
+duplicatenumbererrors.adb:14:5: error: 'Red' has already been declared in this scope

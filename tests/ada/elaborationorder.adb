@@ -16,6 +16,8 @@ begin
     Value := 2;
     Put_Line ("state body");
 end State;
+with State;
+with Ada.Text_IO; use Ada.Text_IO;
 package Later is
     Seen : Integer := State.Observe (2, "later specification");
 private
@@ -40,6 +42,8 @@ begin
     State.Value := 4;
     Put_Line ("later body");
 end Later;
+with State, Later;
+with Ada.Text_IO; use Ada.Text_IO;
 procedure ElaborationOrder is
 begin
     if State.Value /= 4 or Later.Seen /= 2 then

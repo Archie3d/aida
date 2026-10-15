@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Scope
@@ -16,20 +17,33 @@ public:
     }
 
     void add(Symbol* symbol);
-    void addUseScope(Scope* scope);
-    void addUseType(Type* type, bool all);
+    void addUseScope(Scope* scope, Symbol* privateTo = nullptr);
+    void addUseType(Type* type, bool all, Symbol* privateTo = nullptr);
     void remove(Symbol* symbol);
 
     std::vector<Symbol*> lookup(const std::string& name) const;
     std::vector<Symbol*> lookupLocal(const std::string& name) const;
     std::vector<Symbol*> lookupVisibleLocal(const std::string& name, const Scope* from) const;
 
+    void setParent(Scope* scope) { m_parent = scope; }
     Scope* parent() const { return m_parent; }
+    void addLibraryVisibility(const std::string& name) { m_visibleLibraries.insert(name); }
+    bool privateVisible(Symbol* package) const;
+    bool libraryVisible(const std::string& name) const;
+    void setCompletionScope(Scope* scope) { m_completionScope = scope; }
+    std::vector<Symbol*> lookupDeclaration(const std::string& name) const;
+    bool m_contextClause = false;
+    bool m_isLibraryRegistry = false;
+    bool m_publicChildPart = false;
 
 private:
     Scope* m_parent = nullptr;
+    Scope* m_completionScope = nullptr;
+    std::unordered_set<std::string> m_visibleLibraries;
     std::unordered_map<std::string, std::vector<Symbol*>> m_symbols;
     std::vector<Scope*> m_useScopes;
+    std::unordered_map<Scope*, Symbol*> m_privateUseScopes;
+    std::unordered_map<Type*, Symbol*> m_privateUseTypes;
     std::vector<std::pair<Type*, bool>> m_useTypes;
 };
 

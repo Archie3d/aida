@@ -12,13 +12,19 @@ void Scope::remove(Symbol* symbol)
     std::erase(m_symbols[symbol->name], symbol);
 }
 
-void Scope::addUseType(Type* type, bool all)
+void Scope::addUseType(Type* type, bool all, Symbol* privateTo)
 {
     m_useTypes.push_back({ rootType(type), all });
+    if (!m_privateUseTypes.contains(rootType(type)) || privateTo == nullptr) {
+        m_privateUseTypes[rootType(type)] = privateTo;
+    }
 }
 
-void Scope::addUseScope(Scope* scope)
+void Scope::addUseScope(Scope* scope, Symbol* privateTo)
 {
+    if (!m_privateUseScopes.contains(scope) || privateTo == nullptr) {
+        m_privateUseScopes[scope] = privateTo;
+    }
     for (Scope* existing : m_useScopes) {
         if (existing == scope) {
             return;
@@ -36,19 +42,50 @@ std::vector<Symbol*> Scope::lookupLocal(const std::string& name) const
     return it->second;
 }
 
+bool Scope::libraryVisible(const std::string& name) const
+{
+    for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
+        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<Symbol*> Scope::lookupDeclaration(const std::string& name) const
+{
+    auto result = lookupLocal(name);
+    if (m_completionScope != nullptr) {
+        auto spec = m_completionScope->lookupLocal(name);
+        result.insert(result.end(), spec.begin(), spec.end());
+    }
+    return result;
+}
+
+bool Scope::privateVisible(Symbol* package) const
+{
+    if (package == nullptr) {
+        return true;
+    }
+    for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
+        if (enclosing == package->scope) {
+            return true;
+        }
+        if (enclosing->m_publicChildPart) {
+            return false;
+        }
+    }
+    return false;
+}
+
 std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Scope* from) const
 {
     auto symbols = lookupLocal(name);
     std::erase_if(symbols, [&](Symbol* symbol) {
-        if (symbol->m_privatePrimitiveTo == nullptr) {
-            return false;
+        if (!symbol->m_libraryName.empty() && !from->libraryVisible(symbol->m_libraryName)) {
+            return true;
         }
-        for (const Scope* enclosing = from; enclosing != nullptr; enclosing = enclosing->m_parent) {
-            if (enclosing == symbol->m_privatePrimitiveTo->scope) {
-                return false;
-            }
-        }
-        return true;
+        return !from->privateVisible(symbol->m_privatePrimitiveTo);
     });
     return symbols;
 }
@@ -63,7 +100,10 @@ bool isOverloadable(const Symbol* symbol)
 bool sameProfile(const Symbol* left, const Symbol* right)
 {
     if (left->kind != right->kind) {
-        return false;
+        const Symbol* literal = left->kind == SymbolKind::EnumerationLiteral ? left : right;
+        const Symbol* subprogram = left->kind == SymbolKind::Subprogram ? left : right;
+        return literal->kind == SymbolKind::EnumerationLiteral && subprogram->kind == SymbolKind::Subprogram
+            && subprogram->parameters.empty() && rootType(literal->type) == rootType(subprogram->returnType);
     }
     if (left->kind == SymbolKind::EnumerationLiteral) {
         return rootType(left->type) == rootType(right->type);
@@ -88,73 +128,65 @@ bool sameProfile(const Symbol* left, const Symbol* right)
 std::vector<Symbol*> Scope::lookup(const std::string& name) const
 {
     std::vector<Symbol*> candidates;
-
+    std::vector<Symbol*> imported;
+    bool stopped = false;
+    bool allowUse = true;
+    for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
+        allowUse = allowUse && !enclosing->m_contextClause;
+    }
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
-        std::vector<Symbol*> level = scope->lookupLocal(name);
-        std::size_t localCount = level.size();
-        std::vector<Symbol*> imported;
-        for (const Scope* used : scope->m_useScopes) {
+        for (Scope* used : scope->m_useScopes) {
+            auto privacy = scope->m_privateUseScopes.find(used);
+            if (!allowUse || (privacy != scope->m_privateUseScopes.end() && !privateVisible(privacy->second))) {
+                continue;
+            }
             auto symbols = used->lookupVisibleLocal(name, this);
             imported.insert(imported.end(), symbols.begin(), symbols.end());
         }
         for (const auto& [type, all] : scope->m_useTypes) {
+            auto privacy = scope->m_privateUseTypes.find(type);
+            if (!allowUse || (privacy != scope->m_privateUseTypes.end() && !privateVisible(privacy->second))) {
+                continue;
+            }
             for (Symbol* symbol : type->m_primitives) {
                 if (symbol->name == name && (all || !operatorSymbol(name).empty())) {
-                    imported.push_back(symbol);
+                    if (privateVisible(symbol->m_privatePrimitiveTo)) {
+                        imported.push_back(symbol);
+                    }
                 }
             }
         }
-        for (Symbol* symbol : imported) {
-            if (symbol->m_privatePrimitiveTo != nullptr) {
-                bool visible = false;
-                for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
-                    visible = visible || enclosing == symbol->m_privatePrimitiveTo->scope;
-                }
-                if (!visible) {
-                    continue;
-                }
-            }
-            bool hidden = false;
-            for (std::size_t i = 0; i < localCount; ++i) {
-                if (!isOverloadable(level[i]) || sameProfile(level[i], symbol)) {
-                    hidden = true;
-                    break;
-                }
-            }
-            if (!hidden) {
-                level.push_back(symbol);
-            }
+        if (stopped) {
+            continue;
         }
-
-        bool hides = false;
+        auto level = scope->lookupVisibleLocal(name, this);
         std::size_t innerCount = candidates.size();
         for (Symbol* symbol : level) {
             bool hidden = false;
             for (std::size_t i = 0; i < innerCount; ++i) {
-                if (sameProfile(candidates[i], symbol)) {
+                if (!isOverloadable(candidates[i]) || !isOverloadable(symbol)
+                    || sameProfile(candidates[i], symbol)) {
                     hidden = true;
                     break;
                 }
             }
-            if (hidden) {
-                continue;
-            }
-            if (!isOverloadable(symbol)) {
-                hides = true;
-            }
-            bool seen = false;
-            for (Symbol* existing : candidates) {
-                if (existing == symbol) {
-                    seen = true;
-                    break;
-                }
-            }
-            if (!seen) {
+            if (!hidden && std::find(candidates.begin(), candidates.end(), symbol) == candidates.end()) {
                 candidates.push_back(symbol);
             }
+            stopped = stopped || !isOverloadable(symbol);
         }
-        if (hides && !candidates.empty()) {
-            break;
+    }
+    const auto direct = candidates;
+    for (Symbol* symbol : imported) {
+        bool hidden = false;
+        for (Symbol* local : direct) {
+            if (!isOverloadable(local) || !isOverloadable(symbol) || sameProfile(local, symbol)) {
+                hidden = true;
+                break;
+            }
+        }
+        if (!hidden && std::find(candidates.begin(), candidates.end(), symbol) == candidates.end()) {
+            candidates.push_back(symbol);
         }
     }
 

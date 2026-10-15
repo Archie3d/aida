@@ -67,7 +67,7 @@ begin
     begin
         Write (Table, (Key => 0, Score => 0), 1);
     exception
-        when Mode_Error =>
+        when Slot_IO.Mode_Error =>
             Put_Line ("mode_error");
     end;
 
@@ -75,7 +75,7 @@ begin
     begin
         Read (Table, Entry_Value, 99);
     exception
-        when End_Error =>
+        when Slot_IO.End_Error =>
             Put_Line ("end_error");
     end;
     Delete (Table);

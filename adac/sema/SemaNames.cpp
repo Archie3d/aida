@@ -13,6 +13,11 @@ Symbol* Sema::lookupName(const std::string& lower, Scope* scope)
     if (candidates.empty()) {
         return nullptr;
     }
+    if (candidates.size() > 1 && std::any_of(candidates.begin(), candidates.end(), [](Symbol* symbol) {
+            return symbol->kind != SymbolKind::Subprogram && symbol->kind != SymbolKind::EnumerationLiteral;
+        })) {
+        return nullptr;
+    }
     Symbol* symbol = candidates.front();
     for (Symbol* candidate : candidates) {
         if (names.size() > 1 && candidate->kind == SymbolKind::Package) {
@@ -118,6 +123,10 @@ Symbol* Sema::resolveBareName(const std::vector<Symbol*>& candidates, Type* expe
     // semantic paths. Overloadable names must have exactly one interpretation.
     for (Symbol* candidate : candidates) {
         if (candidate->kind != SymbolKind::Subprogram && candidate->kind != SymbolKind::EnumerationLiteral) {
+            if (candidates.size() != 1) {
+                m_diagnostics.error(location, "ambiguous name '" + name + "'");
+                return nullptr;
+            }
             return candidate;
         }
     }
@@ -210,6 +219,12 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     if (expr->prefix->kind == ExprKind::Identifier) {
         auto* identifier = static_cast<IdentifierExpr*>(expr->prefix.get());
         std::vector<Symbol*> candidates = scope->lookup(identifier->lower);
+        if (candidates.size() > 1 && std::any_of(candidates.begin(), candidates.end(), [](Symbol* symbol) {
+                return symbol->kind == SymbolKind::Package;
+            })) {
+            m_diagnostics.error(expr->location, "ambiguous name '" + identifier->name + "'");
+            return nullptr;
+        }
         for (Symbol* candidate : candidates) {
             if (candidate->kind == SymbolKind::Package) {
                 prefixSymbol = candidate;

@@ -105,6 +105,17 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->low = 0;
         type->high = static_cast<long long>(definition->literals.size()) - 1;
         for (std::size_t i = 0; i < definition->literals.size(); ++i) {
+            bool duplicate = definition->literalsLower[i] == decl->lower;
+            for (Symbol* existing : scope->lookupLocal(definition->literalsLower[i])) {
+                duplicate = duplicate || (existing->kind != SymbolKind::Subprogram
+                    && existing->kind != SymbolKind::EnumerationLiteral)
+                    || (existing->kind == SymbolKind::EnumerationLiteral && existing->type == type);
+            }
+            if (duplicate) {
+                m_diagnostics.error(definition->location, "'" + definition->literals[i]
+                    + "' has already been declared in this scope");
+                continue;
+            }
             type->literals.push_back(definition->literalsLower[i]);
             Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral,
                                                          definition->literalsLower[i], definition->literals[i]);

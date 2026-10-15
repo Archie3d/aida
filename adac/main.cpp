@@ -461,6 +461,17 @@ int main(int argc, char** argv)
         elaborations.push_back(part->partKey);
     }
 
+    std::vector<CompilationUnit*> units = loader.units();
+
+    Sema sema(diagnostics);
+    for (CompilationUnit* unit : units) {
+        sema.analyze(*unit);
+    }
+    sema.finishAnalysis(!singleUnit);
+    if (diagnostics.hasErrors()) {
+        return 1;
+    }
+
     if (scanOnly) {
         if (artifacts.empty() || !ensureDirectory(artifacts)) {
             std::cerr << "adac: error: '--scan' needs the directory named by '-D'\n";
@@ -475,17 +486,6 @@ int main(int argc, char** argv)
             return 2;
         }
         return 0;
-    }
-
-    std::vector<CompilationUnit*> units = loader.units();
-
-    Sema sema(diagnostics);
-    for (CompilationUnit* unit : units) {
-        sema.analyze(*unit);
-    }
-    sema.finishAnalysis();
-    if (diagnostics.hasErrors()) {
-        return 1;
     }
 
     Symbol* main = nullptr;

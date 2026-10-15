@@ -90,7 +90,7 @@ begin
         Channel := Stream (Archive);
         Integer'Read (Channel, Count);
     exception
-        when Mode_Error =>
+        when Ada.Streams.Stream_IO.Mode_Error =>
             Put_Line ("mode_error");
     end;
     Delete (Archive);

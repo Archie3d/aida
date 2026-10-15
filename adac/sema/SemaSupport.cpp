@@ -6,6 +6,167 @@
 namespace SemaSupport
 {
 
+bool conformingExpressions(const Expr* left, const Expr* right)
+{
+    if (left == nullptr || right == nullptr) {
+        return left == right;
+    }
+    auto normalized = [](const Expr* expression) -> const Expr* {
+        for (;;) {
+            const Expr* replacement = nullptr;
+            if (expression->kind == ExprKind::Call) {
+                replacement = static_cast<const CallExpr*>(expression)->operatorExpression.get();
+            } else if (expression->kind == ExprKind::Binary) {
+                replacement = static_cast<const BinaryExpr*>(expression)->operatorCall.get();
+            } else if (expression->kind == ExprKind::Unary) {
+                replacement = static_cast<const UnaryExpr*>(expression)->operatorCall.get();
+            }
+            if (replacement == nullptr) {
+                return expression;
+            }
+            expression = replacement;
+        }
+    };
+    left = normalized(left);
+    right = normalized(right);
+    auto named = [](const Expr* expression) -> Symbol* {
+        if (expression->kind == ExprKind::Identifier) {
+            return static_cast<const IdentifierExpr*>(expression)->symbol;
+        }
+        if (expression->kind == ExprKind::Selected) {
+            return static_cast<const SelectedExpr*>(expression)->symbol;
+        }
+        return nullptr;
+    };
+    if (Symbol* symbol = named(left)) {
+        return symbol == named(right);
+    }
+    if (left->kind != right->kind) {
+        return false;
+    }
+    auto sameList = [](const auto& a, const auto& b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (std::size_t i = 0; i < a.size(); ++i) {
+            if (!conformingExpressions(a[i].get(), b[i].get())) {
+                return false;
+            }
+        }
+        return true;
+    };
+    switch (left->kind) {
+    case ExprKind::IntegerLiteral:
+        return static_cast<const IntegerLiteralExpr*>(left)->value == static_cast<const IntegerLiteralExpr*>(right)->value;
+    case ExprKind::RealLiteral:
+        return static_cast<const RealLiteralExpr*>(left)->value == static_cast<const RealLiteralExpr*>(right)->value;
+    case ExprKind::StringLiteral:
+        return static_cast<const StringLiteralExpr*>(left)->value == static_cast<const StringLiteralExpr*>(right)->value;
+    case ExprKind::CharacterLiteral:
+        return left->type == right->type
+            && static_cast<const CharacterLiteralExpr*>(left)->value == static_cast<const CharacterLiteralExpr*>(right)->value;
+    case ExprKind::Null:
+        return true;
+    case ExprKind::Identifier:
+        return false;
+    case ExprKind::Selected: {
+        auto* a = static_cast<const SelectedExpr*>(left);
+        auto* b = static_cast<const SelectedExpr*>(right);
+        return a->selectorLower == b->selectorLower && conformingExpressions(a->prefix.get(), b->prefix.get());
+    }
+    case ExprKind::Binary: {
+        auto* a = static_cast<const BinaryExpr*>(left);
+        auto* b = static_cast<const BinaryExpr*>(right);
+        return a->op == b->op && conformingExpressions(a->operatorCall.get(), b->operatorCall.get())
+            && conformingExpressions(a->left.get(), b->left.get()) && conformingExpressions(a->right.get(), b->right.get());
+    }
+    case ExprKind::Unary: {
+        auto* a = static_cast<const UnaryExpr*>(left);
+        auto* b = static_cast<const UnaryExpr*>(right);
+        return a->op == b->op && conformingExpressions(a->operatorCall.get(), b->operatorCall.get())
+            && conformingExpressions(a->operand.get(), b->operand.get());
+    }
+    case ExprKind::Call: {
+        auto* a = static_cast<const CallExpr*>(left);
+        auto* b = static_cast<const CallExpr*>(right);
+        if (a->form != b->form || a->subprogram != b->subprogram || a->arguments.size() != b->arguments.size()
+            || (a->subprogram == nullptr && !conformingExpressions(a->callee.get(), b->callee.get()))) {
+            return false;
+        }
+        for (std::size_t i = 0; i < a->arguments.size(); ++i) {
+            if (a->arguments[i].nameLower != b->arguments[i].nameLower
+                || !conformingExpressions(a->arguments[i].value.get(), b->arguments[i].value.get())
+                || !conformingExpressions(a->arguments[i].high.get(), b->arguments[i].high.get())) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case ExprKind::Attribute: {
+        auto* a = static_cast<const AttributeExpr*>(left);
+        auto* b = static_cast<const AttributeExpr*>(right);
+        return a->lower == b->lower && a->prefixType == b->prefixType
+            && a->exceptionSymbol == b->exceptionSymbol && a->m_accessSubprogram == b->m_accessSubprogram
+            && (a->m_accessSubprogram != nullptr || a->exceptionSymbol != nullptr
+                || conformingExpressions(a->prefix.get(), b->prefix.get()))
+            && sameList(a->arguments, b->arguments);
+    }
+    case ExprKind::Qualified: {
+        auto* a = static_cast<const QualifiedExpr*>(left);
+        auto* b = static_cast<const QualifiedExpr*>(right);
+        return a->type == b->type && conformingExpressions(a->operand.get(), b->operand.get());
+    }
+    case ExprKind::Aggregate: {
+        auto* a = static_cast<const AggregateExpr*>(left);
+        auto* b = static_cast<const AggregateExpr*>(right);
+        bool ancestorMatches = a->m_ancestorIsType && b->m_ancestorIsType
+            ? a->m_ancestorType == b->m_ancestorType
+            : conformingExpressions(a->m_ancestor.get(), b->m_ancestor.get());
+        if (a->components.size() != b->components.size() || a->m_nullRecord != b->m_nullRecord
+            || a->m_ancestorIsType != b->m_ancestorIsType || !ancestorMatches) {
+            return false;
+        }
+        for (std::size_t i = 0; i < a->components.size(); ++i) {
+            const auto& x = a->components[i];
+            const auto& y = b->components[i];
+            bool record = left->type != nullptr && baseType(left->type)->kind == TypeKind::Record;
+            if ((record && x.names != y.names) || x.isOthers != y.isOthers
+                || (!record && (!sameList(x.choiceLows, y.choiceLows) || !sameList(x.choiceHighs, y.choiceHighs)))
+                || !conformingExpressions(x.value.get(), y.value.get())) {
+                return false;
+            }
+        }
+        return true;
+    }
+    case ExprKind::Membership: {
+        auto* a = static_cast<const MembershipExpr*>(left);
+        auto* b = static_cast<const MembershipExpr*>(right);
+        return a->negated == b->negated && a->m_membershipSubtype == b->m_membershipSubtype
+            && conformingExpressions(a->operand.get(), b->operand.get())
+            && conformingExpressions(a->low.get(), b->low.get()) && conformingExpressions(a->high.get(), b->high.get());
+    }
+    case ExprKind::Allocator: {
+        auto* a = static_cast<const AllocatorExpr*>(left);
+        auto* b = static_cast<const AllocatorExpr*>(right);
+        if (!staticallyMatches(a->designated, b->designated)
+            || !conformingExpressions(a->value.get(), b->value.get()) || bool(a->subtype) != bool(b->subtype)) {
+            return false;
+        }
+        if (a->subtype == nullptr) {
+            return true;
+        }
+        const auto& x = a->subtype;
+        const auto& y = b->subtype;
+        return conformingExpressions(x->digits.get(), y->digits.get())
+            && conformingExpressions(x->m_delta.get(), y->m_delta.get())
+            && conformingExpressions(x->rangeLow.get(), y->rangeLow.get())
+            && conformingExpressions(x->rangeHigh.get(), y->rangeHigh.get())
+            && sameList(x->indexLows, y->indexLows) && sameList(x->indexHighs, y->indexHighs);
+    }
+    }
+    return false;
+}
+
 // Subtype constraints are part of the contract for array indexes/components.
 bool staticallyMatches(Type* actual, Type* formal)
 {

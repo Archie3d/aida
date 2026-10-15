@@ -21,8 +21,16 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
     for (std::size_t i = 0; i < parts.size(); ++i) {
         // A parent is looked for wherever it may be, a child only in its parent.
         std::vector<Symbol*> candidates =
-            i == 0 ? enclosing->lookup(parts[i]) : enclosing->lookupLocal(parts[i]);
+            i == 0 && parts.size() > 1 ? enclosing->lookup(parts[i]) : enclosing->lookupDeclaration(parts[i]);
         symbol = nullptr;
+        if (i + 1 == parts.size()) {
+            for (Symbol* candidate : candidates) {
+                if (candidate->kind != SymbolKind::Package) {
+                    m_diagnostics.error(location, "'" + displayName + "' has already been declared in this scope");
+                    break;
+                }
+            }
+        }
         for (Symbol* candidate : candidates) {
             if (candidate->kind == SymbolKind::Package) {
                 symbol = candidate;
@@ -32,7 +40,7 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
         if (symbol == nullptr) {
             symbol = m_symbolTable.createSymbol(SymbolKind::Package, parts[i],
                                                 i < display.size() ? display[i] : parts[i]);
-            symbol->scope = m_symbolTable.createScope(enclosing);
+            symbol->scope = m_symbolTable.createScope(i + 1 == parts.size() && scope == m_unitScope ? scope : enclosing);
             symbol->location = location;
             symbol->parentPackage = parent;
             enclosing->add(symbol);
@@ -51,6 +59,15 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     std::size_t pushed = 0;
     Symbol* symbol = declarePackagePath(decl->lower, decl->name, scope, decl->location, pushed);
     decl->symbol = symbol;
+    if (symbol->m_hasSpecification) {
+        m_diagnostics.error(decl->location, "'" + decl->name + "' has already been declared in this scope");
+        for (std::size_t i = 0; i < pushed; ++i) {
+            m_namePrefix.pop_back();
+        }
+        return;
+    }
+    symbol->m_hasSpecification = true;
+    symbol->m_packageDeclaration = decl;
 
     // What a private type is made of is in reach from here down to the end of
     // the private part, and from the body, but nowhere else.
@@ -59,8 +76,10 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     bool savedVisiblePart = m_inVisiblePart;
     m_packageSpecScope = symbol->scope;
     m_inVisiblePart = true;
+    symbol->scope->m_publicChildPart = symbol->parentPackage != nullptr;
     analyzeDeclarativePart(decl->publicPart, symbol->scope, false);
     m_inVisiblePart = false;
+    symbol->scope->m_publicChildPart = false;
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
     // A private type can acquire inherited operations only at its completion.
     // Check indicators and result restrictions on earlier declarations once
@@ -124,6 +143,10 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     // Attach a separate generic body and check its contract before any instance.
     Symbol* named = lookupName(decl->lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr) {
+        if (named->hasBody) {
+            m_diagnostics.error(decl->location, "generic '" + named->displayName + "' already has a body");
+            return;
+        }
         decl->m_genericBody = named;
         named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
@@ -135,17 +158,36 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         return;
     }
 
-    std::size_t pushed = 0;
-    Symbol* symbol = declarePackagePath(decl->lower, decl->name, scope, decl->location, pushed);
+    Symbol* symbol = lookupName(decl->lower, scope);
+    if (symbol == nullptr || symbol->kind != SymbolKind::Package || !symbol->m_hasSpecification) {
+        m_diagnostics.error(decl->location, "package body '" + decl->name + "' has no specification");
+        return;
+    }
+    if (symbol->hasBody) {
+        m_diagnostics.error(decl->location, "package '" + decl->name + "' already has a body");
+        return;
+    }
+    symbol->hasBody = true;
     decl->symbol = symbol;
+    std::size_t pushed = 0;
+    for (const std::string& part : splitDottedName(decl->lower)) {
+        m_namePrefix.push_back(part);
+        ++pushed;
+    }
+    Scope* bodyScope = scope == m_unitScope ? scope : m_symbolTable.createScope(symbol->scope);
+    bodyScope->setCompletionScope(symbol->scope);
 
     int savedHandlerDepth = m_handlerDepth;
     m_handlerDepth = 0;
     m_packages.push_back(symbol);
-    analyzeDeclarativePart(decl->declarations, symbol->scope);
+    analyzeDeclarativePart(decl->declarations, bodyScope);
     reportMissingBodies(decl->declarations);
-    analyzeStatements(decl->body, symbol->scope);
-    analyzeHandlers(decl->handlers, symbol->scope);
+    if (symbol->m_packageDeclaration != nullptr) {
+        reportMissingBodies(symbol->m_packageDeclaration->publicPart);
+        reportMissingBodies(symbol->m_packageDeclaration->privatePart);
+    }
+    analyzeStatements(decl->body, bodyScope);
+    analyzeHandlers(decl->handlers, bodyScope);
     m_packages.pop_back();
     m_handlerDepth = savedHandlerDepth;
 
@@ -156,11 +198,13 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
 
 void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
 {
+    Symbol* privateTo = scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()
+        ? m_packages.back() : nullptr;
     for (std::size_t i = 0; i < decl.namesLower.size(); ++i) {
         if (decl.m_typeOnly) {
             Type* type = resolveTypeName(decl.namesLower[i], scope, decl.location);
             if (type != nullptr) {
-                scope->addUseType(type, decl.m_all);
+                scope->addUseType(type, decl.m_all, privateTo);
             }
             continue;
         }
@@ -170,7 +214,9 @@ void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
             continue;
         }
         if (symbol->kind == SymbolKind::Package && symbol->scope != nullptr) {
-            scope->addUseScope(symbol->scope);
+            scope->addUseScope(symbol->scope, privateTo);
+        } else {
+            m_diagnostics.error(decl.location, "'" + decl.names[i] + "' is not a package in use clause");
         }
     }
 }
@@ -179,11 +225,12 @@ void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
 // right now.  A child unit counts, since it is analysed inside its parent.
 bool Sema::withinPackage(Symbol* package) const
 {
+    if (m_unitScope != nullptr && m_unitScope->m_publicChildPart && !m_unitScope->privateVisible(package)) {
+        return false;
+    }
     for (Symbol* open : m_packages) {
-        for (Symbol* walk = open; walk != nullptr; walk = walk->parentPackage) {
-            if (walk == package) {
-                return true;
-            }
+        if (open->scope != nullptr && open->scope->privateVisible(package)) {
+            return true;
         }
     }
     return false;

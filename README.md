@@ -83,9 +83,5 @@ Not supported yet:
 - Newer libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`
 
-Unsupported constructs should produce diagnostics rather than be silently
-ignored. Calling a subprogram before its body is elaborated raises
-`Program_Error`.
-
 See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
 and expected diagnostics.

@@ -1,6 +1,8 @@
 #include "Sema.h"
 #include "SemaSupport.h"
 
+#include <algorithm>
+
 using SemaSupport::adaptUniversal;
 
 void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete)
@@ -12,7 +14,17 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
             precedingType = nullptr;
             continue;
         }
+        std::size_t firstSymbol = m_symbolTable.symbols().size();
         analyzeDecl(decl.get(), scope);
+        if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
+            for (std::size_t i = firstSymbol; i < m_symbolTable.symbols().size(); ++i) {
+                Symbol* symbol = m_symbolTable.symbols()[i].get();
+                auto locals = scope->lookupLocal(symbol->name);
+                if (std::find(locals.begin(), locals.end(), symbol) != locals.end()) {
+                    symbol->m_privatePrimitiveTo = m_packages.back();
+                }
+            }
+        }
         precedingType = decl->kind == DeclKind::Type
             ? static_cast<TypeDecl*>(decl.get())->declaredType : nullptr;
     }
@@ -26,11 +38,17 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
 void Sema::reportMissingBodies(const DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        if (decl->kind == DeclKind::PackageSpecification) {
+            auto* package = static_cast<PackageSpecDecl*>(decl.get());
+            reportMissingBodies(package->publicPart);
+            reportMissingBodies(package->privatePart);
+        }
         if (decl->kind != DeclKind::SubprogramDeclaration) {
             continue;
         }
         Symbol* symbol = static_cast<SubprogramDecl*>(decl.get())->symbol;
-        if (symbol != nullptr && !symbol->hasBody) {
+        if (symbol != nullptr && !symbol->hasBody && !symbol->m_missingBodyReported) {
+            symbol->m_missingBodyReported = true;
             m_diagnostics.error(decl->location,
                 "subprogram '" + symbol->displayName + "' has no body");
         }
@@ -294,6 +312,11 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
     }
 
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
+        if (!scope->lookupLocal(decl->namesLower[i]).empty()) {
+            m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been declared in this scope");
+            continue;
+        }
+
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
         exactValue(decl->value.get(), symbol->m_exactReal);
@@ -311,6 +334,15 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 {
     std::vector<Type*> parameterTypes;
     for (ParameterDecl& parameter : spec.parameters) {
+        for (const ParameterDecl& preceding : spec.parameters) {
+            if (&preceding == &parameter) {
+                break;
+            }
+            if (preceding.lower == parameter.lower) {
+                m_diagnostics.error(parameter.location, "duplicate parameter '" + parameter.name + "'");
+                break;
+            }
+        }
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
@@ -333,7 +365,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
     }
     bool overrides = false;
-    for (Symbol* candidate : scope->lookupLocal(spec.lower)) {
+    for (Symbol* candidate : scope->lookupDeclaration(spec.lower)) {
         if (candidate->kind != SymbolKind::Subprogram || candidate->parameters.size() != parameterTypes.size()
             || rootType(candidate->returnType) != rootType(returnType)) {
             continue;
@@ -395,40 +427,54 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             contractDeclaration = instanceSymbol(found->second);
         }
     }
-    if (isBody) {
-        for (Symbol* candidate : scope->lookupLocal(spec.lower)) {
-            if (contractDeclaration != nullptr && candidate != contractDeclaration) {
-                continue;
-            }
-            if (candidate->kind != SymbolKind::Subprogram || candidate->hasBody) {
-                continue;
-            }
-            if (candidate->parameters.size() != parameterTypes.size()) {
-                continue;
-            }
-            bool matches = rootType(candidate->returnType) == rootType(returnType);
+    for (Symbol* candidate : scope->lookupDeclaration(spec.lower)) {
+        if (candidate->m_inheritedFrom != nullptr || candidate->m_negatedEquality != nullptr
+            || (m_replayContract != nullptr && candidate != contractDeclaration)) {
+            continue;
+        }
+        bool matches = candidate->kind == SymbolKind::Subprogram
+            && candidate->parameters.size() == parameterTypes.size()
+            && rootType(candidate->returnType) == rootType(returnType);
+        for (std::size_t i = 0; matches && i < parameterTypes.size(); ++i) {
+            matches = rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i]);
+        }
+        bool literalHomograph = candidate->kind == SymbolKind::EnumerationLiteral && parameterTypes.empty()
+            && rootType(candidate->type) == rootType(returnType);
+        if (literalHomograph || (candidate->kind != SymbolKind::Subprogram && candidate->kind != SymbolKind::EnumerationLiteral)) {
+            m_diagnostics.error(spec.location, "'" + spec.name + "' has already been declared in this scope");
+            break;
+        }
+        if (!matches) {
+            continue;
+        }
+        if (!isBody || candidate->hasBody) {
+            m_diagnostics.error(spec.location, "'" + spec.name + "' has already been declared in this scope");
+        } else {
+            bool conforms = (returnType == nullptr && candidate->returnType == nullptr)
+                || SemaSupport::staticallyMatches(candidate->returnType, returnType);
             for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
-                if (rootType(candidate->parameters[i]->type) != rootType(parameterTypes[i])
-                    || candidate->parameters[i]->mode != spec.parameters[i].mode) {
-                    matches = false;
-                    break;
+                Symbol* parameter = candidate->parameters[i];
+                conforms = conforms && parameter->name == spec.parameters[i].lower
+                    && parameter->mode == spec.parameters[i].mode
+                    && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
+                if (spec.parameters[i].defaultValue != nullptr) {
+                    analyzeExpr(spec.parameters[i].defaultValue.get(), scope, parameterTypes[i]);
+                    conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
+                        spec.parameters[i].defaultValue.get());
                 }
             }
-            if (!matches) {
-                continue;
+            if (!conforms) {
+                m_diagnostics.error(spec.location, "subprogram body does not conform to the previous declaration");
             }
-            candidate->hasBody = true;
-            for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
-                Symbol* parameter = candidate->parameters[i];
-                parameter->name = spec.parameters[i].lower;
-                parameter->displayName = spec.parameters[i].name;
-                spec.parameters[i].symbol = parameter;
-            }
-            if (m_recordContract != nullptr) {
-                m_recordContract->m_subprograms[contractKey(spec.location)] = candidate;
-            }
-            return candidate;
         }
+        candidate->hasBody = candidate->hasBody || isBody;
+        for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
+            spec.parameters[i].symbol = candidate->parameters[i];
+        }
+        if (m_recordContract != nullptr) {
+            m_recordContract->m_subprograms[contractKey(spec.location)] = candidate;
+        }
+        return candidate;
     }
 
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Subprogram, spec.lower, spec.name);
@@ -436,6 +482,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->returnType = returnType;
     symbol->m_pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
+    symbol->m_requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->m_overrides = overrides;
     symbol->m_pendingOverride = pendingOverride ? spec.m_overriding : 0;
     symbol->m_declarationScope = scope;
@@ -514,6 +561,10 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     Symbol* named = lookupName(body->spec.lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr
         && !named->generic->isPackage) {
+        if (named->hasBody) {
+            m_diagnostics.error(body->location, "generic '" + named->displayName + "' already has a body");
+            return;
+        }
         body->m_genericBody = named;
         named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
@@ -526,6 +577,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     }
 
     Symbol* symbol = declareSubprogram(body->spec, scope, true);
+    scope->m_publicChildPart = false;
     symbol->hasBody = true;
     body->symbol = symbol;
 
@@ -574,6 +626,11 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
     bool predefined = m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && (m_namePrefix[1] == "io_exceptions" || m_namePrefix[1] == "tags");
 
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
+        if (!scope->lookupLocal(decl->namesLower[i]).empty()) {
+            m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been declared in this scope");
+            continue;
+        }
+
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, decl->namesLower[i], decl->names[i]);
         if (!renamed.empty()) {
             symbol->exceptionObject = renamed;

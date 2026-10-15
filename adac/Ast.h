@@ -295,6 +295,7 @@ struct MembershipExpr : Expr
     ExprPtr operand;
     bool negated = false;
     Type* m_testedTaggedType = nullptr;
+    Type* m_membershipSubtype = nullptr;
     std::string typeName;   // "X in Positive"
     std::string typeLower;
     ExprPtr low;            // "X in 1 .. 10"

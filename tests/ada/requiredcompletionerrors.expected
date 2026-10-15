@@ -1,0 +1,4 @@
+requiredcompletionerrors.adb:6:9: error: subprogram 'Action' has no body
+requiredcompletionerrors.adb:11:5: error: package body 'Orphan' has no specification
+requiredcompletionerrors.adb:15:5: error: package 'Twice' already has a body
+requiredcompletionerrors.adb:3:9: error: subprogram 'Action' has no body

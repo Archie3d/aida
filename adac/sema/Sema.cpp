@@ -1,6 +1,9 @@
 #include "Sema.h"
 
 #include "Lexer.h"
+#include "SemaSupport.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -27,6 +30,10 @@ void Sema::setupStandardScope()
 {
     m_standardScope = m_symbolTable.createScope(nullptr);
     m_globalScope = m_symbolTable.createScope(m_standardScope);
+    m_globalScope->m_isLibraryRegistry = true;
+    Symbol* standard = m_symbolTable.createSymbol(SymbolKind::Package, "standard", "Standard");
+    standard->scope = m_standardScope;
+    m_standardScope->add(standard);
 
     auto addType = [&](Type* type) {
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, toLower(type->name), type->name);
@@ -58,6 +65,7 @@ void Sema::setupStandardScope()
     // program ever names the package.
     Symbol* system = m_symbolTable.createSymbol(SymbolKind::Package, "system", "System");
     system->scope = m_symbolTable.createScope(nullptr);
+    system->m_libraryName = "system";
     m_standardScope->add(system);
 
     m_addressType = m_types.create(TypeKind::Access, "Address");
@@ -137,8 +145,46 @@ void Sema::analyze(CompilationUnit& unit)
 {
     m_currentUnit = &unit;
 
-    // The loader has already read whatever it could find, so a name still
-    // standing for nothing is one no unit answers to.
+    std::string name = unit.partKey.substr(0, unit.partKey.rfind('.'));
+    std::replace(name.begin(), name.end(), '-', '.');
+    Symbol* existing = lookupName(name, m_globalScope);
+    Scope* parent = m_standardScope;
+    if (!unit.isSpec && existing != nullptr) {
+        if (existing->kind == SymbolKind::Package) {
+            parent = existing->scope;
+        } else if (m_libraryContexts.contains(name)) {
+            parent = m_libraryContexts.at(name);
+        }
+    } else if (auto dot = name.rfind('.'); dot != std::string::npos) {
+        Symbol* enclosing = lookupName(name.substr(0, dot), m_globalScope);
+        if (enclosing != nullptr && enclosing->scope != nullptr) {
+            parent = enclosing->scope;
+        }
+    }
+    Scope* context = m_symbolTable.createScope(parent);
+    m_unitScope = context;
+    auto mention = [&](const std::string& fullName) {
+        std::size_t end = 0;
+        do {
+            end = fullName.find('.', end);
+            context->addLibraryVisibility(fullName.substr(0, end));
+            if (end != std::string::npos) {
+                ++end;
+            }
+        } while (end != std::string::npos);
+        std::string root = fullName.substr(0, fullName.find('.'));
+        auto symbols = m_globalScope->lookupLocal(root);
+        for (Symbol* symbol : symbols) {
+            auto local = context->lookupLocal(root);
+            if (std::find(local.begin(), local.end(), symbol) == local.end()) {
+                context->add(symbol);
+            }
+        }
+    };
+    mention(name);
+    if (existing != nullptr && existing->kind == SymbolKind::Subprogram && name.find('.') != std::string::npos) {
+        context->add(existing);
+    }
     for (const WithClause& clause : unit.withClauses) {
         for (std::size_t i = 0; i < clause.names.size(); ++i) {
             Symbol* symbol = lookupName(clause.namesLower[i], m_globalScope);
@@ -146,13 +192,81 @@ void Sema::analyze(CompilationUnit& unit)
                 && symbol->kind != SymbolKind::Subprogram)) {
                 m_diagnostics.error(clause.location, "cannot find the unit '" + clause.names[i] + "'");
             }
+            mention(clause.namesLower[i]);
+        }
+    }
+    context->m_contextClause = true;
+    for (UseDecl& use : unit.useClauses) {
+        analyzeUseClause(use, context);
+    }
+    context->m_contextClause = false;
+    // A child subprogram is declared in its parent's namespace, but its
+    // profile and body resolve in this compilation part's context.
+    SubprogramSpec* childSpec = nullptr;
+    Symbol* childParent = nullptr;
+    std::string savedLower;
+    std::string savedName;
+    if (name.find('.') != std::string::npos && unit.units.size() == 1) {
+        Decl* declaration = unit.units.front().get();
+        if (declaration->kind == DeclKind::SubprogramDeclaration) {
+            childSpec = &static_cast<SubprogramDecl*>(declaration)->spec;
+        } else if (declaration->kind == DeclKind::SubprogramBody) {
+            childSpec = &static_cast<SubprogramBody*>(declaration)->spec;
+        }
+        if (childSpec != nullptr) {
+            savedLower = childSpec->lower;
+            savedName = childSpec->name;
+            childSpec->lower = savedLower.substr(savedLower.rfind('.') + 1);
+            childSpec->name = savedName.substr(savedName.rfind('.') + 1);
+            std::string parentName = name.substr(0, name.rfind('.'));
+            childParent = lookupName(parentName, m_globalScope);
+            m_namePrefix = SemaSupport::splitDottedName(parentName);
+            if (childParent != nullptr) {
+                m_packages.push_back(childParent);
+            }
+            context->m_publicChildPart = unit.isSpec || existing == nullptr;
+        }
+    }
+    analyzeDeclarativePart(unit.units, context);
+    if (childSpec != nullptr) {
+        context->m_publicChildPart = false;
+        auto local = context->lookupLocal(childSpec->lower);
+        if (childParent != nullptr && !local.empty() && childParent->scope->lookupLocal(childSpec->lower).empty()) {
+            childParent->scope->add(local.back());
+        }
+        childSpec->lower = savedLower;
+        childSpec->name = savedName;
+        m_namePrefix.clear();
+        if (childParent != nullptr) {
+            m_packages.pop_back();
         }
     }
 
-    for (UseDecl& use : unit.useClauses) {
-        analyzeUseClause(use, m_globalScope);
+    auto parts = SemaSupport::splitDottedName(name);
+    Scope* target = context;
+    Symbol* declared = nullptr;
+    for (const std::string& part : parts) {
+        auto local = target->lookupLocal(part);
+        if (local.empty()) {
+            declared = nullptr;
+            break;
+        }
+        declared = local.back();
+        target = declared->scope;
+        if (target == nullptr && part != parts.back()) {
+            declared = nullptr;
+            break;
+        }
     }
-    analyzeDeclarativePart(unit.units, m_globalScope);
+    if (declared != nullptr) {
+        declared->m_libraryName = name;
+        if (parts.size() == 1 && m_globalScope->lookupLocal(name).empty()) {
+            m_globalScope->add(declared);
+        }
+        if (unit.isSpec || !m_libraryContexts.contains(name)) {
+            m_libraryContexts[name] = context;
+        }
+    }
 
     if (m_main == nullptr) {
         for (const DeclPtr& decl : unit.units) {

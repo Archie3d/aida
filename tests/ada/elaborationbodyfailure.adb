@@ -7,6 +7,8 @@ begin
     Put_Line ("package body entered");
     raise Startup_Failed;
 end Startup;
+with Ada.Text_IO; use Ada.Text_IO;
+with Startup;
 procedure ElaborationBodyFailure is
 begin
     Put_Line ("main must not run");

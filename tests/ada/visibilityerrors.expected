@@ -1,0 +1,8 @@
+visibilityerrors.adb:24:20: error: ambiguous name 'Value'
+visibilityerrors.adb:25:9: error: 'item' is not declared
+visibilityerrors.adb:26:20: error: ambiguous name 'Get'
+visibilityerrors.adb:27:31: error: 'Secret' is not declared in 'A'
+visibilityerrors.adb:28:20: error: 'a.private_item' is not declared
+visibilityerrors.adb:29:29: error: 'Body_Only' is not declared in 'A'
+visibilityerrors.adb:30:5: error: 'X' is not a package in use clause
+visibilityerrors.adb:32:5: error: unknown exception 'A.Hidden'

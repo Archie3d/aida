@@ -32,6 +32,8 @@ package body Values is
     end Action;
 end Values;
 
+with Ada.Text_IO; use Ada.Text_IO;
+with Values;
 procedure Parameterless is
     function Pick (Required : Integer) return Integer is
     begin

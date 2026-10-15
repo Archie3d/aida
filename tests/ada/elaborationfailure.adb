@@ -11,6 +11,8 @@ package body Initialization is
     end Fail;
     Value : Integer := Fail;
 end Initialization;
+with Ada.Text_IO; use Ada.Text_IO;
+with Initialization;
 procedure ElaborationFailure is
 begin
     Put_Line ("main must not run");

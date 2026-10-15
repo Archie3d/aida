@@ -172,6 +172,11 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
         name = decl->name.substr(dot + 1);
     }
 
+    if (!target->lookupLocal(lower).empty()) {
+        m_diagnostics.error(decl->location, "'" + name + "' has already been declared in this scope");
+        return;
+    }
+
     // Named defaults bind in the declaration environment. Retain the overload
     // set now so declarations encountered later cannot change their meaning.
     std::vector<std::string> preceding;
@@ -195,6 +200,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     symbol->location = decl->location;
     symbol->generic = decl;
     symbol->hasBody = decl->m_hasBody;
+    symbol->m_requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->owner = m_currentSubprogram;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->qbeName = "$" + mangle(lower) + "__generic";
@@ -207,7 +213,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     }
     decl->symbol = symbol;
     target->add(symbol);
-    checkGenericContract(decl, target);
+    checkGenericContract(decl, scope == m_unitScope ? scope : target);
 }
 
 std::string Sema::contractKey(const SourceLocation& location)
@@ -299,6 +305,10 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     GenericContract* contract = owned.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     Scope* bindings = contract->m_bindings;
+    if (continuation && scope != bindings) {
+        contract->m_environment = scope;
+        bindings->setParent(scope);
+    }
     auto* savedRecord = m_recordContract;
     auto* savedReplay = m_replayContract;
     auto savedNames = m_subprogramNames;
@@ -1065,6 +1075,7 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     auto savedNames = m_subprogramNames;
     auto savedTagNames = m_tagNames;
     auto savedExceptions = m_unitExceptions;
+    pending.m_bindings->setParent(contract->m_environment);
     analyzeDeclarativePart(bodies, pending.m_bindings);
     for (DeclPtr& body : bodies) {
         instance->expansion.push_back(std::move(body));
@@ -1096,7 +1107,7 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     m_instanceCopies.clear();
 }
 
-void Sema::finishAnalysis()
+void Sema::finishAnalysis(bool requireLibraryBodies)
 {
     if (m_diagnostics.hasErrors()) {
         return;
@@ -1128,4 +1139,20 @@ void Sema::finishAnalysis()
                 + generic->displayName + "' has no body");
         }
     }
+    if (requireLibraryBodies && !m_diagnostics.hasErrors()) {
+        for (const auto& symbol : m_symbolTable.symbols()) {
+            if (symbol->m_requiresBody && !symbol->hasBody && !symbol->m_missingBodyReported) {
+                if (symbol->kind == SymbolKind::Generic && symbol->generic->isPackage) {
+                    auto contract = m_genericContracts.find(symbol->generic);
+                    if (contract == m_genericContracts.end() || !requiresGenericBody(contract->second->m_declarations)) {
+                        continue;
+                    }
+                }
+                std::string kind = symbol->kind == SymbolKind::Generic
+                    ? (symbol->generic->isPackage ? "generic package" : "generic subprogram") : "subprogram";
+                m_diagnostics.error(symbol->location, kind + " '" + symbol->displayName + "' has no body");
+            }
+        }
+    }
+
 }

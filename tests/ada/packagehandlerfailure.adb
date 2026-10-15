@@ -11,12 +11,16 @@ exception
         raise Replacement;
     when Replacement => Put_Line ("unexpected sibling handler");
 end Handler_Failure;
+with Handler_Failure;
+with Ada.Text_IO; use Ada.Text_IO;
 package Later_Package is
 end Later_Package;
 package body Later_Package is
 begin
     Put_Line ("unexpected later package");
 end Later_Package;
+with Later_Package;
+with Ada.Text_IO; use Ada.Text_IO;
 procedure PackageHandlerFailure is
 begin
     Put_Line ("unexpected main");

@@ -16,7 +16,7 @@ public:
     explicit Sema(Diagnostics& diagnostics);
 
     void analyze(CompilationUnit& unit);
-    void finishAnalysis();
+    void finishAnalysis(bool requireLibraryBodies = true);
 
     TypeTable& typeTable() { return m_types; }
     Type* exceptionOccurrenceType() const { return m_exceptionOccurrenceType; }
@@ -231,6 +231,8 @@ private:
     SymbolTable m_symbolTable;
     Scope* m_standardScope = nullptr;
     Scope* m_globalScope = nullptr;
+    Scope* m_unitScope = nullptr;
+    std::unordered_map<std::string, Scope*> m_libraryContexts;
 
     // The exceptions each file declared, since the object standing for one
     // belongs to the unit it was written in and to no other.

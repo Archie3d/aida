@@ -1,0 +1,9 @@
+duplicateexceptionerrors.adb:3:5: error: 'fAiLuRe' has already been declared in this scope
+duplicateexceptionerrors.adb:4:5: error: 'Pair' has already been declared in this scope
+duplicateexceptionerrors.adb:6:5: error: 'Value' has already been declared in this scope
+duplicateexceptionerrors.adb:8:5: error: 'Item' has already been declared in this scope
+duplicateexceptionerrors.adb:10:5: error: 'Action' has already been declared in this scope
+duplicateexceptionerrors.adb:12:5: error: 'Count' has already been declared in this scope
+duplicateexceptionerrors.adb:14:5: error: 'Red' has already been declared in this scope
+duplicateexceptionerrors.adb:16:5: error: 'Alias' has already been declared in this scope
+duplicateexceptionerrors.adb:17:5: error: 'Count' has already been declared in this scope

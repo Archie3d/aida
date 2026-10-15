@@ -310,7 +310,7 @@ there; this phase does not introduce an anonymous library-block extension.
   incremental changes to pragmas and transitive bodies. Specification-only
   compilation defers unavailable dependency-body ordering to the full scan and
   binder; source dependencies continue to use the existing digest cache.
-- [ ] **Visibility and conformance.** Audit visibility, `use` clauses,
+- [x] **Visibility and conformance.** Audit visibility, `use` clauses,
   homographs, duplicate declarations, overload ambiguity, private views,
   parent/child visibility and context-clause isolation between compilation
   units. Check specification/body conformance, including parameter modes,
@@ -323,6 +323,47 @@ there; this phase does not introduce an anonymous library-block extension.
   - [x] Reject type and subtype declarations that conflict with existing local
     names, preserving incomplete/private type completions and nested-scope
     shadowing. Covered by `duplicatetypeerrors` and `typedeclarations`.
+  - [x] Reject named numbers and exceptions (including exception renamings)
+    that conflict with existing local declarations, including case-insensitive
+    duplicates and repeated names in grouped declarations. Preserve nested
+    shadowing, hiding of use-visible names and renamed exception identity.
+    Covered by `duplicatenumbererrors`, `duplicateexceptionerrors`,
+    `numberexceptiondeclarations` and its determinism test.
+  - [x] Subprogram homographs, duplicate profiles/completions and formal names;
+    package/generic declarations and enumeration literal conflicts. Completions
+    check names, modes, statically matching parameter/result subtypes and
+    structurally conforming defaults with resolved declaration identity.
+    Omitted body defaults remain valid; generic contract replay preserves
+    overloads that acquire identical actual types. Covered by
+    `duplicateprofileerrors`, `profileconformanceerrors`, `defaultbindingerrors`,
+    `profiledefaults`, their executable/determinism coverage and existing
+    generic, renaming and overload suites.
+  - [x] Direct visibility takes precedence over use visibility across enclosing
+    scopes; conflicting use-visible names are diagnosed. Private declarations,
+    private use clauses and package-body locals do not leak to clients or the
+    visible parts of public children. Package shadowing and child subprogram
+    namespaces preserve legal lookup and completion. Covered by
+    `visibilityerrors`, `visibilityconformance`, `profiledefaults`, existing
+    primitive/private-view tests and `semantics.visibility_conformance`.
+  - [x] Each library item has its own context, including items in source bundles.
+    Specifications pass their context to bodies and descendants; body imports
+    stay local. Library children require a mentioning with clause, `System`
+    requires a with clause, and `Standard` supports expanded names. Generic
+    contract/body environments preserve body-site captures. Updated older
+    fixtures to state their dependencies and qualify ambiguous exceptions.
+  - [x] Missing required local/library subprogram and generic bodies are
+    diagnosed before linking, including unresolved package members and
+    mismatched overload completions. Driver scanning now performs semantic
+    validation before publishing manifests or reusing objects; `adac -c` still
+    permits specification-only compilation. Covered by
+    `requiredcompletionerrors`, `semantics.visibility_conformance` (whole and
+    separate builds, child privacy, source-order/bundle isolation, dependency
+    edits, stale artifacts, valid bodyless/import/null declarations and IR
+    determinism), plus the full regression suite.
+    Audit baseline: Ada 95/2005 RM 6.3.1, 7.2, 8.3, 8.4 and 10.1.2. Existing
+    extensions remain: explicit source bundles/custom filenames and optional
+    library package bodies without `Elaborate_Body`. Wider primitive-operation
+    legality remains in its separate Phase 3 item.
 - [ ] **Blocks executed during package-body elaboration.** Audit ordinary
   `declare ... begin ... end` and `begin ... end` statements inside package
   bodies' executable parts. Cover local declarations, object storage, nested

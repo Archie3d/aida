@@ -15,6 +15,8 @@ begin
 exception
     when Constraint_Error => Put_Line ("unexpected package handler");
 end Declaration_Failure;
+with Declaration_Failure;
+with Ada.Text_IO; use Ada.Text_IO;
 procedure PackageDeclarationFailure is
 begin
     Put_Line ("unexpected main");

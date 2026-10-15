@@ -24,7 +24,11 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
     }
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
-        for (Symbol* prefix : expressionNames(selected->prefix.get(), scope)) {
+        auto prefixes = expressionNames(selected->prefix.get(), scope);
+        if (prefixes.size() != 1) {
+            return {};
+        }
+        for (Symbol* prefix : prefixes) {
             if (prefix->kind == SymbolKind::Package && prefix->scope != nullptr) {
                 return contractNames(expr, prefix->scope->lookupVisibleLocal(selected->selectorLower, scope));
             }

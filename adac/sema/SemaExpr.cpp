@@ -542,6 +542,7 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 {
     Type* mark = expr->typeLower.empty() ? nullptr
         : resolveTypeName(expr->typeLower, scope, expr->location);
+    expr->m_membershipSubtype = mark;
     Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
     if (taggedViewVisible(mark) && taggedViewVisible(operand)) {
         Type* target = mark->m_classRoot != nullptr ? mark->m_classRoot : mark;

@@ -11,6 +11,7 @@ taggederrors.adb:25:46: error: duplicate record aggregate component 'Y'
 taggederrors.adb:26:27: error: this type conversion is not allowed
 taggederrors.adb:27:21: error: an extension aggregate requires a record extension type
 taggederrors.adb:35:9: error: inherited function 'Make' returning the extended type must be overridden
+taggederrors.adb:34:9: error: subprogram 'Make' has no body
 taggederrors.adb:40:11: error: 'C' cannot be assigned to
 taggederrors.adb:41:11: error: 'C' cannot be assigned to
 taggederrors.adb:42:11: error: the target of an assignment must be a variable

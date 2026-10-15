@@ -29,9 +29,12 @@ exception
         Value := 7;
         Put_Line ("package recovered");
 end Recovery;
+with Recovery;
 package Following is
     Seen : Integer := Recovery.Value;
 end Following;
+with Following;
+with Ada.Text_IO; use Ada.Text_IO;
 procedure PackageHandlers is
 begin
     if Following.Seen /= 7 then

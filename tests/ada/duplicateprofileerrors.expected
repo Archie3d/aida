@@ -1,0 +1,10 @@
+duplicateprofileerrors.adb:3:5: error: 'Action' has already been declared in this scope
+duplicateprofileerrors.adb:5:5: error: 'Action' has already been declared in this scope
+duplicateprofileerrors.adb:6:40: error: duplicate parameter 'x'
+duplicateprofileerrors.adb:8:5: error: 'Value' has already been declared in this scope
+duplicateprofileerrors.adb:10:5: error: 'Red' has already been declared in this scope
+duplicateprofileerrors.adb:11:22: error: 'One' has already been declared in this scope
+duplicateprofileerrors.adb:12:25: error: 'Value' has already been declared in this scope
+duplicateprofileerrors.adb:14:5: error: 'P' has already been declared in this scope
+duplicateprofileerrors.adb:15:5: error: 'Value' has already been declared in this scope
+duplicateprofileerrors.adb:18:5: error: 'G' has already been declared in this scope

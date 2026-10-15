@@ -69,6 +69,8 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    bool m_requiresBody = false;
+    bool m_missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.
     Symbol* m_inheritedFrom = nullptr;
     Symbol* m_privatePrimitiveTo = nullptr;
@@ -98,6 +100,9 @@ struct Symbol
     // lets it see what its parent keeps private.
     Scope* scope = nullptr;
     Symbol* parentPackage = nullptr;
+    std::string m_libraryName;
+    bool m_hasSpecification = false;
+    PackageSpecDecl* m_packageDeclaration = nullptr;
 
     // Generic units, which keep the declaration they came from so that an
     // instantiation can read the tokens again.

@@ -733,3 +733,31 @@ add_test(NAME elaboration.pragmas
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckElaborationPragmas.cmake)
 set_tests_properties(elaboration.pragmas PROPERTIES TIMEOUT 60)
+
+add_ada_error_test(duplicatenumbererrors SOURCES duplicatenumbererrors.adb)
+add_ada_error_test(duplicateexceptionerrors SOURCES duplicateexceptionerrors.adb)
+add_ada_test(numberexceptiondeclarations SOURCES numberexceptiondeclarations.adb)
+add_determinism_test(numberexceptiondeclarations SOURCE numberexceptiondeclarations.adb)
+
+add_ada_error_test(profileconformanceerrors SOURCES profileconformanceerrors.adb)
+add_ada_error_test(duplicateprofileerrors SOURCES duplicateprofileerrors.adb)
+add_ada_error_test(visibilityerrors SOURCES visibilityerrors.adb)
+add_ada_error_test(requiredcompletionerrors SOURCES requiredcompletionerrors.adb)
+add_ada_test(visibilityconformance SOURCES visibilityconformance.adb)
+add_determinism_test(visibilityconformance SOURCE visibilityconformance.adb)
+
+add_test(NAME semantics.visibility_conformance
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${ADA_SEPARATE_LIBM}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckVisibilityConformance.cmake
+)
+set_tests_properties(semantics.visibility_conformance PROPERTIES TIMEOUT 90)
+
+add_ada_test(profiledefaults SOURCES profiledefaults.adb)
+add_determinism_test(profiledefaults SOURCE profiledefaults.adb)
+add_ada_error_test(defaultbindingerrors SOURCES defaultbindingerrors.adb)

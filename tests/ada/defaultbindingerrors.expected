@@ -1,0 +1,4 @@
+defaultbindingerrors.adb:4:5: error: subprogram body does not conform to the previous declaration
+defaultbindingerrors.adb:11:5: error: subprogram body does not conform to the previous declaration
+defaultbindingerrors.adb:13:5: error: subprogram body does not conform to the previous declaration
+defaultbindingerrors.adb:18:5: error: subprogram body does not conform to the previous declaration

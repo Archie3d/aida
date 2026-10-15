@@ -16,6 +16,7 @@ package body Composite_State is
         return Item;
     end Make;
 end Composite_State;
+with Composite_State;
 generic
     Initial : Composite_State.Vector;
     Target : in out Composite_State.Vector;
@@ -41,8 +42,12 @@ package body Composite_Template is
 begin
     Target (Target'First) := 9;
 end Composite_Template;
+with Composite_Template, Composite_State;
 package Composite_First is new Composite_Template (Composite_State.Data, Composite_State.Data);
+with Composite_Template, Composite_State;
 package Composite_Second is new Composite_Template (Composite_State.Data, Composite_State.Data);
+with Composite_State, Composite_First, Composite_Second;
+with Ada.Text_IO;
 procedure Generic_Composite_Library is
 begin
     Composite_State.Item.Value := 20;

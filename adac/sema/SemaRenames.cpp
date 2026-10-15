@@ -3,35 +3,6 @@
 
 #include <unordered_set>
 
-namespace
-{
-
-bool sameDefault(const std::vector<Token>& left, const std::vector<Token>& right)
-{
-    if (left.size() != right.size()) {
-        return false;
-    }
-    for (std::size_t i = 0; i < left.size(); ++i) {
-        if (left[i].kind != right[i].kind) {
-            return false;
-        }
-        if (left[i].kind == TokenKind::IntegerLiteral) {
-            if (left[i].intValue != right[i].intValue) {
-                return false;
-            }
-        } else if (left[i].kind == TokenKind::RealLiteral) {
-            if (left[i].realValue != right[i].realValue) {
-                return false;
-            }
-        } else if (left[i].kind == TokenKind::Identifier ? left[i].lower != right[i].lower : left[i].text != right[i].text) {
-            return false;
-        }
-    }
-    return true;
-}
-
-}
-
 void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 {
     SubprogramSpec& spec = decl->spec;
@@ -182,7 +153,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     }
 
     Symbol* completion = nullptr;
-    for (Symbol* existing : scope->lookupLocal(spec.lower)) {
+    for (Symbol* existing : scope->lookupDeclaration(spec.lower)) {
         if (existing->m_inheritedFrom != nullptr) {
             continue;
         }
@@ -208,7 +179,9 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
                 && parameter->mode == spec.parameters[i].mode
                 && SemaSupport::staticallyMatches(parameter->type, types[i]);
             if (spec.parameters[i].defaultValue != nullptr) {
-                conforms = conforms && sameDefault(parameter->m_defaultTokens, spec.parameters[i].m_defaultTokens);
+                analyzeExpr(spec.parameters[i].defaultValue.get(), scope, types[i]);
+                conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
+                    spec.parameters[i].defaultValue.get());
             }
         }
         if (!conforms) {
@@ -298,7 +271,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     if (completion == nullptr && !intrinsic && !enumeration && attributeType == nullptr) {
         alias->m_renamedSubprogram = access == nullptr ? chosen : nullptr;
         alias->m_renamedAccess = binding;
-        if (scope != m_globalScope) {
+        if (scope != m_unitScope) {
             return;
         }
     }

@@ -9,3 +9,10 @@ primitiveerrors.adb:26:16: error: initial value is not compatible with the decla
 primitiveerrors.adb:28:20: error: 'Secret' is not declared
 primitiveerrors.adb:30:25: error: 'Secret' is not declared
 primitiveerrors.adb:31:28: error: 'Secret' is not declared in 'P'
+primitiveerrors.adb:4:9: error: subprogram 'Read' has no body
+primitiveerrors.adb:5:9: error: subprogram 'Set' has no body
+primitiveerrors.adb:7:9: error: subprogram 'Late' has no body
+primitiveerrors.adb:9:9: error: subprogram 'Secret' has no body
+primitiveerrors.adb:13:9: error: subprogram 'Missing' has no body
+primitiveerrors.adb:14:9: error: subprogram 'Read' has no body
+primitiveerrors.adb:15:9: error: subprogram 'Set' has no body

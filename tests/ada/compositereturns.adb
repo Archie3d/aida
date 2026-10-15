@@ -11,6 +11,8 @@ package body Return_Values is
     end Text;
 end Return_Values;
 
+with Ada.Text_IO; use Ada.Text_IO;
+with Return_Values;
 procedure CompositeReturns is
     type Pair is record
         Number : Integer;

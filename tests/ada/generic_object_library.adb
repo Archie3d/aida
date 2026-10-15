@@ -11,6 +11,7 @@ package body Object_State is
         return Value;
     end Next_Value;
 end Object_State;
+with Object_State;
 generic
     Initial : Integer := Object_State.Next_Value;
     Target : in out Integer;
@@ -26,8 +27,12 @@ package body Object_Template is
 begin
     Target := Target + 1;
 end Object_Template;
+with Object_Template, Object_State;
 package Object_First is new Object_Template (Target => Object_State.Value);
+with Object_Template, Object_State;
 package Object_Second is new Object_Template (Target => Object_State.Value);
+with Object_State, Object_First, Object_Second;
+with Ada.Text_IO;
 procedure Generic_Object_Library is
 begin
     if Object_State.Calls /= 2 or Object_State.Value /= 8

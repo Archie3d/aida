@@ -19,3 +19,5 @@ generic_subprogram_errors.adb:82:73: error: actual array does not match generic 
 generic_subprogram_errors.adb:92:48: error: ambiguous actual for generic formal 'Test'
 generic_subprogram_errors.adb:95:63: error: no matching actual for generic formal 'Test'
 generic_subprogram_errors.adb:114:46: error: actual array does not match generic formal 'Array_Type'
+generic_subprogram_errors.adb:85:9: error: subprogram 'Test' has no body
+generic_subprogram_errors.adb:88:9: error: subprogram 'Test' has no body

@@ -10,6 +10,7 @@ class Type;
 namespace SemaSupport
 {
 
+bool conformingExpressions(const Expr* left, const Expr* right);
 bool staticallyMatches(Type* actual, Type* formal);
 bool isUniversal(const Type* type);
 void adaptUniversal(Expr* expr, Type* type);

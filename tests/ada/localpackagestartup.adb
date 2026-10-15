@@ -12,6 +12,8 @@ package body Counter_Template is
 begin
     Value := 4;
 end Counter_Template;
+with Counter_Template;
+with Ada.Text_IO; use Ada.Text_IO;
 package Startup_Check is
     procedure Run;
 end Startup_Check;
@@ -31,6 +33,7 @@ package body Startup_Check is
 begin
     Run;
 end Startup_Check;
+with Startup_Check;
 procedure LocalPackageStartup is
 begin
     Startup_Check.Run;
