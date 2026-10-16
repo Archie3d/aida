@@ -312,7 +312,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     case StmtKind::Return: {
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* expected = m_currentSubprogram != nullptr ? m_currentSubprogram->returnType : nullptr;
-        if (m_currentSubprogram == nullptr) {
+        if (m_currentSubprogram == nullptr || m_currentSubprogram == elaborationOwner(m_currentUnit)) {
             m_diagnostics.error(returnStatement->location, "a return statement must appear within a subprogram");
             break;
         }

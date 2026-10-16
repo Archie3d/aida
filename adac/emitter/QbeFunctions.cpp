@@ -115,16 +115,23 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {
     for (CompilationUnit* part : unit.parts) {
         FunctionContext context;
+        context.symbol = m_sema.elaborationOwner(part);
+        context.hasFrame = context.symbol->needsFrame;
+        context.frameTemp = "%.frame";
         context.traceName = unit.key + (part->isSpec ? " (spec elaboration)" : " (body elaboration)");
         context.propagateLabel = newLabel("propagate");
         FunctionContext* saved = m_context;
         m_context = &context;
-        if (m_sema.usesFinalization(part) || hasControlledObjects(part->units)) {
+        if (m_sema.usesFinalization(part) || context.symbol->m_usesFinalization
+            || hasControlledObjects(part->units)) {
             initializeFinalization();
         }
         emitElaborationDeclarations(part->units);
         finishFunction("export function $" + elaborationName(part->partKey) + "()");
         m_context = saved;
+        for (SubprogramBody* nested : context.nested) {
+            emitSubprogram(nested);
+        }
     }
 }
 

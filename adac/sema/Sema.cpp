@@ -144,6 +144,10 @@ void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 void Sema::analyze(CompilationUnit& unit)
 {
     m_currentUnit = &unit;
+    // Executable package parts need local ownership without changing the
+    // library lifetime of declarations in the package itself.
+    m_elaborationOwners[&unit] = m_symbolTable.createSymbol(SymbolKind::Subprogram,
+        unit.partKey + ".elaboration", unit.partKey + " elaboration");
 
     std::string name = unit.partKey.substr(0, unit.partKey.rfind('.'));
     std::replace(name.begin(), name.end(), '-', '.');

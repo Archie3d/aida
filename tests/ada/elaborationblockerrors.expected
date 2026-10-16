@@ -1,0 +1,3 @@
+elaborationblockerrors.adb:8:9: error: a return statement must appear within a subprogram
+elaborationblockerrors.adb:10:5: error: 'Local' is not declared
+elaborationblockerrors.adb:14:13: error: a return statement must appear within a subprogram

@@ -761,3 +761,9 @@ set_tests_properties(semantics.visibility_conformance PROPERTIES TIMEOUT 90)
 add_ada_test(profiledefaults SOURCES profiledefaults.adb)
 add_determinism_test(profiledefaults SOURCE profiledefaults.adb)
 add_ada_error_test(defaultbindingerrors SOURCES defaultbindingerrors.adb)
+
+add_ada_test(elaborationblocks SOURCES elaborationblocks.adb)
+add_determinism_test(elaborationblocks SOURCE elaborationblocks.adb)
+add_ada_error_test(elaborationblockerrors SOURCES elaborationblockerrors.adb)
+add_ada_test(elaborationblockfailure SOURCES elaborationblockfailure.adb
+    EXIT_CODE 1 STDERR elaborationblockfailure.stderr)

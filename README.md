@@ -68,6 +68,7 @@ AIDA targets Ada 95 with selected Ada 2005 features.
 
 Supported:
 - Library and nested packages, procedures, functions
+- Package elaboration blocks with local storage, captures and scoped cleanup
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
 - Generics, access types, tagged types with dispatching

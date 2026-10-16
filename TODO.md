@@ -364,12 +364,16 @@ there; this phase does not introduce an anonymous library-block extension.
     extensions remain: explicit source bundles/custom filenames and optional
     library package bodies without `Elaborate_Body`. Wider primitive-operation
     legality remains in its separate Phase 3 item.
-- [ ] **Blocks executed during package-body elaboration.** Audit ordinary
-  `declare ... begin ... end` and `begin ... end` statements inside package
-  bodies' executable parts. Cover local declarations, object storage, nested
-  subprogram emission and captures, local package elaboration, handlers and
-  cleanup on both normal and exceptional exits. Check that local storage and
-  controlled lifetimes end with the block rather than library shutdown.
+- [x] **Blocks executed during package-body elaboration.** Executable parts
+  and handlers use a per-unit elaboration frame for block locals, captured
+  objects, nested subprograms and local packages. Package declarations retain
+  their library lifetime. Blocks reuse scoped storage, masters, finalization
+  and access collections on normal completion, loop exit and exceptions;
+  declaration failures bypass the block's handlers. Covered by
+  `elaborationblocks` (including separate-compilation determinism),
+  `elaborationblockfailure` (cleanup before failed library startup) and
+  `elaborationblockerrors` (return legality and block visibility). Runtime-bound
+  block arrays are supported; library-level runtime bounds remain in Phase 6.
 - [ ] **Aggregates.** Completeness, duplicate and overlapping choices, `others`,
   record defaults, array sliding and component subtype checks beyond the
   existing regressions. Include null and multidimensional arrays, inferred

@@ -25,6 +25,7 @@ public:
     // The exceptions declared in one file, whose objects that file's unit is
     // the one to emit.
     const std::vector<Symbol*>& exceptionsIn(const CompilationUnit* unit) const;
+    Symbol* elaborationOwner(const CompilationUnit* unit) const { return m_elaborationOwners.at(unit); }
     bool usesFinalization(const CompilationUnit* unit) const { return m_finalizingUnits.contains(unit); }
 
 private:
@@ -237,6 +238,7 @@ private:
     // The exceptions each file declared, since the object standing for one
     // belongs to the unit it was written in and to no other.
     const CompilationUnit* m_currentUnit = nullptr;
+    std::unordered_map<const CompilationUnit*, Symbol*> m_elaborationOwners;
     std::unordered_set<const CompilationUnit*> m_finalizingUnits;
     std::unordered_map<const CompilationUnit*, std::vector<Symbol*>> m_unitExceptions;
 

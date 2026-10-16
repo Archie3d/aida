@@ -186,8 +186,13 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         reportMissingBodies(symbol->m_packageDeclaration->publicPart);
         reportMissingBodies(symbol->m_packageDeclaration->privatePart);
     }
+    Symbol* savedSubprogram = m_currentSubprogram;
+    if (m_currentSubprogram == nullptr) {
+        m_currentSubprogram = elaborationOwner(m_currentUnit);
+    }
     analyzeStatements(decl->body, bodyScope);
     analyzeHandlers(decl->handlers, bodyScope);
+    m_currentSubprogram = savedSubprogram;
     m_packages.pop_back();
     m_handlerDepth = savedHandlerDepth;
 
