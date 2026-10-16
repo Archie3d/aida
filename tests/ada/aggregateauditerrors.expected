@@ -1,0 +1,20 @@
+aggregateauditerrors.adb:15:23: error: component 'Right' has no value in the aggregate
+aggregateauditerrors.adb:16:45: error: duplicate record aggregate component 'Left'
+aggregateauditerrors.adb:17:33: error: positional record components must precede named associations
+aggregateauditerrors.adb:17:21: error: component 'Right' has no value in the aggregate
+aggregateauditerrors.adb:18:39: error: others must appear once, as the final aggregate association
+aggregateauditerrors.adb:18:51: error: duplicate record aggregate component 'Right'
+aggregateauditerrors.adb:19:42: error: others must appear once, as the final aggregate association
+aggregateauditerrors.adb:19:55: error: others must appear once, as the final aggregate association
+aggregateauditerrors.adb:19:55: error: record association has no components
+aggregateauditerrors.adb:20:62: error: record association has no components
+aggregateauditerrors.adb:21:36: error: record aggregate choices must be component names
+aggregateauditerrors.adb:21:30: error: component 'Left' has no value in the aggregate
+aggregateauditerrors.adb:22:46: error: record aggregate choices must be component names
+aggregateauditerrors.adb:22:28: error: component 'Left' has no value in the aggregate
+aggregateauditerrors.adb:22:28: error: component 'Right' has no value in the aggregate
+aggregateauditerrors.adb:23:41: error: components in one record association must have the same type
+aggregateauditerrors.adb:24:55: error: components in one record association must have the same type
+aggregateauditerrors.adb:25:25: error: array aggregate choices overlap
+aggregateauditerrors.adb:26:22: error: array aggregate choices must cover a contiguous range
+aggregateauditerrors.adb:27:40: error: others must appear once, as the final aggregate association

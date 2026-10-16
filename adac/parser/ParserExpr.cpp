@@ -292,6 +292,9 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
         if (match(TokenKind::KwOthers)) {
             component.isOthers = true;
             expect(TokenKind::Arrow, "in aggregate component");
+            if (check(TokenKind::Box)) {
+                fail("box aggregate defaults are not yet supported");
+            }
             component.value = parseExpression();
         } else {
             std::size_t start = m_position;
@@ -320,6 +323,9 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
                     }
                 }
                 expect(TokenKind::Arrow, "in aggregate component");
+                if (check(TokenKind::Box)) {
+                    fail("box aggregate defaults are not yet supported");
+                }
                 component.value = parseExpression();
             } else {
                 component.value = std::move(first);

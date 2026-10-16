@@ -285,22 +285,22 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     line(normalized + " =l mul " + count + ", " + flag);
     if (inferred) {
         wideLength = normalized;
-        // Descriptor bounds remain 32-bit. Check index subtype constraints
-        // only for non-null ranges, as for explicit runtime constraints.
-        emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().integerType(), expr->location);
-        emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().integerType(), expr->location);
-        std::string check = newLabel("aggregatebounds");
-        std::string ready = newLabel("aggregateboundsready");
-        branch(Value { nonNull, 'w' }, check, ready);
-        label(check);
-        emitRangeCheck(Value { first, 'l' }, type->index, expr->location);
-        emitRangeCheck(Value { last, 'l' }, type->index, expr->location);
-        jump(ready);
-        label(ready);
     } else {
         line(same + " =w ceql " + normalized + ", " + wideLength);
         require(same);
     }
+    // Source bounds must belong to the index subtype before sliding, even
+    // when the destination is constrained. Null ranges have no index check.
+    emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().integerType(), expr->location);
+    emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().integerType(), expr->location);
+    std::string check = newLabel("aggregatebounds");
+    std::string ready = newLabel("aggregateboundsready");
+    branch(Value { nonNull, 'w' }, check, ready);
+    label(check);
+    emitRangeCheck(Value { first, 'l' }, type->index, expr->location);
+    emitRangeCheck(Value { last, 'l' }, type->index, expr->location);
+    jump(ready);
+    label(ready);
     if (others != nullptr) {
         for (const Choice& choice : choices) {
             std::string low = newTemp();
@@ -442,83 +442,10 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
         return;
     }
 
-    long long elementSize = typeSize(target->element);
-    bool dynamicChoice = false;
-    for (const AggregateComponent& component : expr->components) {
-        for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
-            dynamicChoice = dynamicChoice || !component.choiceLows[i]->isStatic
-                || (component.choiceHighs[i] && !component.choiceHighs[i]->isStatic);
-        }
-    }
-    if (!target->constrained || dynamicChoice || target->arrayRank > 1 || target->isArrayRow) {
-        emitDynamicAggregateInto(expr, withBounds(address, target, nullptr), target);
-        return;
-    }
-
-    long long position = target->indexLow;
-    AggregateComponent* others = nullptr;
-
-    for (AggregateComponent& component : expr->components) {
-        if (component.isOthers) {
-            others = &component;
-            continue;
-        }
-        std::vector<long long> indexes;
-        if (component.choiceLows.empty()) {
-            indexes.push_back(position++);
-        } else {
-            for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
-                long long low = component.choiceLows[i]->staticValue;
-                long long high = component.choiceHighs[i] ? component.choiceHighs[i]->staticValue : low;
-                for (long long index = low; index <= high; ++index) {
-                    indexes.push_back(index);
-                }
-            }
-        }
-        for (long long index : indexes) {
-            long long offset = (index - target->indexLow) * elementSize;
-            Value elementAddress = address;
-            if (offset != 0) {
-                std::string temp = newTemp();
-                line(temp + " =l add " + address.name + ", " + std::to_string(offset));
-                elementAddress = Value { temp, 'l' };
-            }
-            assignInto(elementAddress, target->element, component.value.get(), true);
-        }
-    }
-
-    if (others == nullptr) {
-        return;
-    }
-
-    // Fill the remaining positions with a runtime loop.
-    std::string indexSlot = allocScratch(8);
-    line("storel " + std::to_string(position) + ", " + indexSlot);
-    std::string head = newLabel("fill");
-    std::string body = newLabel("fillbody");
-    std::string done = newLabel("filldone");
-
-    label(head);
-    std::string index = newTemp();
-    line(index + " =l loadl " + indexSlot);
-    std::string test = newTemp();
-    line(test + " =w cslel " + index + ", " + std::to_string(target->indexHigh));
-    branch(Value { test, 'w' }, body, done);
-
-    label(body);
-    std::string offset = newTemp();
-    line(offset + " =l sub " + index + ", " + std::to_string(target->indexLow));
-    std::string scaled = newTemp();
-    line(scaled + " =l mul " + offset + ", " + std::to_string(elementSize));
-    std::string elementAddress = newTemp();
-    line(elementAddress + " =l add " + address.name + ", " + scaled);
-    assignInto(Value { elementAddress, 'l' }, target->element, others->value.get(), true);
-    std::string next = newTemp();
-    line(next + " =l add " + index + ", 1");
-    line("storel " + next + ", " + indexSlot);
-    jump(head);
-
-    label(done);
+    // Static and dynamic targets share choice validation, sliding, and
+    // temporary construction. Never write unchecked source indexes directly
+    // into a constrained destination.
+    emitDynamicAggregateInto(expr, withBounds(address, target, nullptr), target);
 }
 
 Value QbeEmitter::emitAggregate(AggregateExpr* expr)

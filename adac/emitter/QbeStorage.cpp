@@ -281,7 +281,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     if (initialize && type != nullptr && type->m_tagged) {
         line("storel " + typeTag(type).name + ", " + address.name);
     }
-    if (value->kind == ExprKind::Aggregate && type != nullptr && type->m_tagged && !initialize) {
+    if (value->kind == ExprKind::Aggregate && type != nullptr && type->kind == TypeKind::Record && !initialize) {
         Value source = emitAggregate(static_cast<AggregateExpr*>(value));
         copyInto(address, source, type);
         return;

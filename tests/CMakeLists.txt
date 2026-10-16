@@ -767,3 +767,11 @@ add_determinism_test(elaborationblocks SOURCE elaborationblocks.adb)
 add_ada_error_test(elaborationblockerrors SOURCES elaborationblockerrors.adb)
 add_ada_test(elaborationblockfailure SOURCES elaborationblockfailure.adb
     EXIT_CODE 1 STDERR elaborationblockfailure.stderr)
+
+add_ada_test(aggregateaudit SOURCES aggregateaudit.adb)
+add_determinism_test(aggregateaudit SOURCE aggregateaudit.adb)
+add_ada_test(aggregateauditchecks SOURCES aggregateauditchecks.adb)
+add_ada_error_test(aggregateauditerrors SOURCES aggregateauditerrors.adb)
+add_ada_error_test(aggregateboxerrors SOURCES aggregateboxerrors.adb)
+add_ada_test(aggregatecleanup SOURCES aggregatecleanup.adb)
+add_determinism_test(aggregatecleanup SOURCE aggregatecleanup.adb)

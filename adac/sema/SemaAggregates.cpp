@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <unordered_map>
 
 using SemaSupport::adaptUniversal;
 
@@ -105,7 +106,18 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         auto present = [&](const FieldInfo& field) {
             return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || field.variant == variant);
         };
+        // A grouped association has one expected type, but its expression is
+        // evaluated separately for each field by the emitter.
+        std::unordered_map<Expr*, Type*> associationTypes;
         auto analyzeComponent = [&](Expr* value, Type* fieldType) {
+            auto [entry, inserted] = associationTypes.emplace(value, fieldType);
+            if (!inserted) {
+                if (baseType(entry->second) != baseType(fieldType)) {
+                    m_diagnostics.error(value->location,
+                        "components in one record association must have the same type");
+                }
+                return;
+            }
             Type* valueType = analyzeExpr(value, scope, fieldType);
             if (hasLimitedControlledParts(fieldType) && !buildsLimitedResult(value)) {
                 m_diagnostics.error(value->location, "limited controlled components cannot be copied");
@@ -119,17 +131,35 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
 
         expr->resolvedFields.assign(target->fields.size(), nullptr);
         std::size_t positional = firstField;
+        bool hasNamed = false;
+        bool hasOthers = false;
         for (AggregateComponent& component : expr->components) {
             if (component.isOthers) {
+                if (hasOthers || &component != &expr->components.back()) {
+                    m_diagnostics.error(component.value->location,
+                        "others must appear once, as the final aggregate association");
+                }
+                hasOthers = true;
+                hasNamed = true;
+                bool associated = false;
                 for (std::size_t i = 0; i < target->fields.size(); ++i) {
                     if (expr->resolvedFields[i] == nullptr && present(target->fields[i])) {
+                        associated = true;
                         analyzeComponent(component.value.get(), target->fields[i].type);
                         expr->resolvedFields[i] = component.value.get();
                     }
                 }
+                if (!associated) {
+                    m_diagnostics.error(component.value->location, "record association has no components");
+                }
                 continue;
             }
-            if (component.names.empty() || component.names.front().empty()) {
+            if (component.choiceLows.empty()) {
+                if (hasNamed) {
+                    m_diagnostics.error(component.value->location,
+                        "positional record components must precede named associations");
+                    continue;
+                }
                 while (positional < target->fields.size() && !present(target->fields[positional])) {
                     ++positional;
                 }
@@ -141,6 +171,13 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                 analyzeComponent(component.value.get(), fieldType);
                 expr->resolvedFields[positional] = component.value.get();
                 ++positional;
+                continue;
+            }
+            hasNamed = true;
+            if (std::any_of(component.names.begin(), component.names.end(),
+                    [](const std::string& name) { return name.empty(); })) {
+                m_diagnostics.error(component.value->location,
+                    "record aggregate choices must be component names");
                 continue;
             }
             for (const std::string& fieldName : component.names) {

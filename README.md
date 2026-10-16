@@ -71,6 +71,7 @@ Supported:
 - Package elaboration blocks with local storage, captures and scoped cleanup
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
+- Checked record and array aggregates, including sliding and inferred bounds
 - Generics, access types, tagged types with dispatching
 - Controlled types and finalization
 - Text and stream I/O
@@ -79,6 +80,7 @@ Supported:
 
 Not supported yet:
 - Tasking and protected types
+- Ada 2005 box defaults (`<>`) in aggregates
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Several access-type features, many representation clauses and pragmas
 - Newer libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and

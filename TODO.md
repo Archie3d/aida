@@ -374,11 +374,20 @@ there; this phase does not introduce an anonymous library-block extension.
   `elaborationblockfailure` (cleanup before failed library startup) and
   `elaborationblockerrors` (return legality and block visibility). Runtime-bound
   block arrays are supported; library-level runtime bounds remain in Phase 6.
-- [ ] **Aggregates.** Completeness, duplicate and overlapping choices, `others`,
-  record defaults, array sliding and component subtype checks beyond the
-  existing regressions. Include null and multidimensional arrays, inferred
-  bounds, default-expression evaluation counts and failure during component
-  initialization.
+- [x] **Aggregates.** Static and dynamic array targets share checked shape,
+  choice, index-subtype and sliding logic; `others` fills only unassociated
+  components. Ordinary record assignments build a temporary before copying,
+  preserving self-references and the destination on component failure. Record
+  associations enforce ordering, component names, coverage, duplicates and
+  a common type for grouped choices. Defaults in ancestor-type extension
+  aggregates and grouped expressions are evaluated per component.
+  Covered by `aggregateaudit`, `aggregateauditchecks`, `aggregateauditerrors`
+  and `aggregatecleanup`, with determinism tests, alongside existing inferred,
+  runtime, multidimensional and controlled aggregate regressions. Includes null
+  arrays, partial initialization cleanup and component subtype checks.
+  Ada 2005 box defaults (`<>`) remain unsupported with an explicit diagnostic
+  (`aggregateboxerrors`); variant/discriminant restrictions remain as documented
+  in their roadmap items. Audit baseline: Ada 95/2005 RM 4.3.1 and 4.3.3.
 - [ ] **Array conversions.** Static component-subtype matching, index conversions,
   bound sliding, view conversions and runtime checks. Include null arrays,
   multidimensional bounds and converted actuals for `out`/`in out` parameters,
