@@ -268,3 +268,6 @@ private:
     Type* m_longFloat = nullptr;
     Type* m_string = nullptr;
 };
+
+// Conservative by-reference components for array view conversions.
+bool hasPrivateOrTaggedParts(const Type* type);

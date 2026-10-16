@@ -485,3 +485,24 @@ bool hasLimitedControlledParts(const Type* type)
     }
     return false;
 }
+
+bool hasPrivateOrTaggedParts(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->m_tagged || type->privateTo != nullptr) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasPrivateOrTaggedParts(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasPrivateOrTaggedParts(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}

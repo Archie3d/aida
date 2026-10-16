@@ -132,6 +132,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         Expr* argument;
     };
     std::vector<ScalarCopyBack> copyBacks;
+    std::vector<ArrayCopyBack> arrayCopies;
     std::vector<std::string> arguments;
     bool compositeResult = isComposite(subprogram->returnType);
     bool controlledResult = needsFinalization(subprogram->returnType)
@@ -229,8 +230,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             }
             // Composite values are already addresses and carry their bounds.
             Value value = !controllingValues[i].name.empty() ? controllingValues[i]
+                : argument->type->kind == TypeKind::Array ? emitArrayArgument(argument, parameter->mode, arrayCopies)
                 : isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
-            if (parameter->type->m_boundsSymbol != nullptr) {
+            if (parameter->type->kind == TypeKind::Array
+                && (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr)) {
                 Value target = withBounds(Value {}, parameter->type, nullptr);
                 checkArrayShape(target, parameter->type, value, argument->type);
                 value.first = target.first;
@@ -264,8 +267,6 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                     arguments.push_back("w " + bounds.first);
                     arguments.push_back("w " + bounds.second);
                 }
-            } else if (parameter->type->kind == TypeKind::Array && parameter->type->arrayRank > 1) {
-                checkArrayShape(withBounds(Value {}, parameter->type, nullptr), parameter->type, value, argument->type);
             }
         } else {
             Value value = emitExpr(argument);
@@ -377,6 +378,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         emitRangeCheck(value, copy.argument->type, copy.argument->location);
         storeInto(copy.actual, value, copy.argument->type);
     }
+    emitArrayCopyBacks(arrayCopies);
     return result;
 }
 
@@ -386,6 +388,13 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
     std::vector<std::string> arguments;
+    std::vector<ArrayCopyBack> arrayCopies;
+    auto copyBack = [&]() {
+        if (!arrayCopies.empty()) {
+            emitExceptionCheck();
+            emitArrayCopyBacks(arrayCopies);
+        }
+    };
 
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
@@ -394,7 +403,10 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         char formalClass = qbeClass(parameter->type);
 
         if (formal != nullptr && formal->kind == TypeKind::Array) {
-            Value pointer = emitExpr(argument);
+            Value pointer = emitArrayArgument(argument, parameter->mode, arrayCopies);
+            if (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr) {
+                pointer = convertArrayBounds(pointer, argument->type, parameter->type, argument->location);
+            }
             Value length = lengthOf(pointer, argument->type);
             arguments.push_back("l " + pointer.name);
             arguments.push_back("w " + length.name);
@@ -424,6 +436,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
     if (subprogram->returnType == nullptr) {
         line("call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
+        copyBack();
         return Value { "0", 'w' };
     }
 
@@ -431,7 +444,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         std::string descriptor = allocScratch(24);
         line("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")");
         emitExceptionCheck();
-        return consumeArrayResult(descriptor, 1, true);
+        Value result = consumeArrayResult(descriptor, 1, true);
+        copyBack();
+        return result;
     }
 
     if (isUnconstrainedArray(subprogram->returnType)) {
@@ -443,12 +458,14 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         line(size + " =l call $strlen(l " + pointer + ")");
         std::string length = newTemp();
         line(length + " =w copy " + size);
+        copyBack();
         return Value { pointer, 'l', "1", length };
     }
 
     char type = qbeClass(subprogram->returnType);
     std::string temp = newTemp();
     line(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
+    copyBack();
     return Value { temp, type };
 }
 

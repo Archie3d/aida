@@ -470,3 +470,79 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
 
     return Value { buffer, 'l', "1", total };
 }
+
+// Conversion changes the descriptor's bounds, never the source descriptor.
+Value QbeEmitter::convertArrayBounds(Value value, Type* source, Type* target, const SourceLocation& location)
+{
+    value = withBounds(value, source, nullptr);
+    if (target->constrained || target->m_boundsSymbol != nullptr) {
+        Value shape = withBounds(Value {}, target, nullptr);
+        checkArrayShape(shape, target, value, source);
+        shape.name = value.name;
+        return shape;
+    }
+    Type* axis = target;
+    for (int dimension = 0; dimension < target->arrayRank; ++dimension) {
+        const auto& first = dimension == 0 ? value.first : value.innerBounds[dimension - 1].first;
+        const auto& last = dimension == 0 ? value.last : value.innerBounds[dimension - 1].second;
+        std::string wideFirst = newTemp();
+        std::string wideLast = newTemp();
+        line(wideFirst + " =l extsw " + first);
+        line(wideLast + " =l extsw " + last);
+        // Index subtypes can be 64-bit even though descriptor bounds are 32-bit.
+        // Null ranges skip subtype constraints, but their endpoints still
+        // must be representable values of the target index's base type.
+        if (axis->index->kind == TypeKind::Enumeration || axis->index->m_modulus != 0) {
+            emitRangeCheck(Value { wideFirst, 'l' }, rootType(axis->index), location);
+            emitRangeCheck(Value { wideLast, 'l' }, rootType(axis->index), location);
+        }
+        std::string nonNull = newTemp();
+        std::string check = newLabel("conversionbounds");
+        std::string ready = newLabel("conversionboundsready");
+        line(nonNull + " =w csgew " + last + ", " + first);
+        branch(Value { nonNull, 'w' }, check, ready);
+        label(check);
+        emitRangeCheck(Value { wideFirst, 'l' }, axis->index, location);
+        emitRangeCheck(Value { wideLast, 'l' }, axis->index, location);
+        jump(ready);
+        label(ready);
+        axis = axis->element;
+    }
+    return value;
+}
+
+Value QbeEmitter::emitArrayArgument(Expr* argument, ParameterMode mode, std::vector<ArrayCopyBack>& copies)
+{
+    if (mode == ParameterMode::In || argument->kind != ExprKind::Call
+        || static_cast<CallExpr*>(argument)->form != CallForm::Conversion) {
+        return emitExpr(argument);
+    }
+    auto* conversion = static_cast<CallExpr*>(argument);
+    Expr* operand = conversion->resolvedArguments.front();
+    Value actual = emitExpr(operand);
+    Value view = convertArrayBounds(actual, operand->type, argument->type, argument->location);
+    // Arrays with by-reference components keep the identity of their elements.
+    // Sema only permits these views within the same array type family.
+    if (hasPrivateOrTaggedParts(argument->type)) {
+        return view;
+    }
+    ArrayCopyBack copy { actual, view, argument->type, operand->type, argument->location };
+    std::string bytes = objectBytes(view, argument->type);
+    copy.temporary.name = newTemp();
+    line(copy.temporary.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+         + ", w 1, w 1, l " + bytes + ")");
+    emitExceptionCheck();
+    line("call $memmove(l " + copy.temporary.name + ", l " + actual.name + ", l " + bytes + ")");
+    copies.push_back(copy);
+    return copy.temporary;
+}
+
+void QbeEmitter::emitArrayCopyBacks(const std::vector<ArrayCopyBack>& copies)
+{
+    for (const ArrayCopyBack& copy : copies) {
+        Value value = convertArrayBounds(copy.temporary, copy.sourceType, copy.targetType, copy.location);
+        checkArrayShape(copy.actual, copy.targetType, value, copy.targetType);
+        std::string bytes = objectBytes(copy.actual, copy.targetType);
+        line("call $memmove(l " + copy.actual.name + ", l " + value.name + ", l " + bytes + ")");
+    }
+}

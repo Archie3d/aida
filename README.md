@@ -72,6 +72,7 @@ Supported:
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
 - Checked record and array aggregates, including sliding and inferred bounds
+- Array conversions and writable parameter views (identical component subtypes required)
 - Generics, access types, tagged types with dispatching
 - Controlled types and finalization
 - Text and stream I/O

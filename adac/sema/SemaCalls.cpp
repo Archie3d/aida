@@ -179,6 +179,12 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         Expr* source = expr->arguments.front().value.get();
+        if (candidates.front()->type->kind == TypeKind::Array
+            && (source->kind == ExprKind::Aggregate || source->kind == ExprKind::StringLiteral)) {
+            m_diagnostics.error(source->location,
+                "array conversion requires an independently typed operand; use a qualified expression");
+            return nullptr;
+        }
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
             Type* conversion = candidates.front()->type;
             Type* context = nullptr;
@@ -341,7 +347,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(argument, chosen->parameters[index]->type);
             if (chosen->parameters[index]->mode != ParameterMode::In) {
                 // Passing a variable by reference does not copy a limited value.
-                checkAssignable(argument, scope, true);
+                checkAssignable(argument, scope, true, true);
             }
             expr->resolvedArguments[index] = argument;
         }

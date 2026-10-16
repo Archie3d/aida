@@ -1,0 +1,13 @@
+arrayconversionerrors.adb:12:28: error: this type conversion is not allowed
+arrayconversionerrors.adb:13:23: error: this type conversion is not allowed
+arrayconversionerrors.adb:14:23: error: this type conversion is not allowed
+arrayconversionerrors.adb:15:24: error: this type conversion is not allowed
+arrayconversionerrors.adb:16:29: error: array conversion requires an independently typed operand; use a qualified expression
+arrayconversionerrors.adb:17:37: error: array conversion requires an independently typed operand; use a qualified expression
+arrayconversionerrors.adb:49:34: error: cross-type array views cannot have private or tagged components
+arrayconversionerrors.adb:50:16: error: 'Constant_Source' cannot be assigned to
+arrayconversionerrors.adb:51:16: error: the target of an assignment must be a variable
+arrayconversionerrors.adb:52:29: error: cross-type array views cannot have private or tagged components
+arrayconversionerrors.adb:53:7: error: an array conversion is writable only as an out or in out actual
+arrayconversionerrors.adb:54:7: error: an array conversion is writable only as an out or in out actual
+arrayconversionerrors.adb:55:18: error: an array conversion is writable only as an out or in out actual

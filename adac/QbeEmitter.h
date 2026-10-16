@@ -193,6 +193,17 @@ private:
     Value arrayRow(const Value& array, Type* type);
     std::string arrayElementSize(const Value& array, Type* type);
     void checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType);
+    Value convertArrayBounds(Value value, Type* source, Type* target, const SourceLocation& location);
+    struct ArrayCopyBack
+    {
+        Value actual;
+        Value temporary;
+        Type* sourceType;
+        Type* targetType;
+        SourceLocation location;
+    };
+    Value emitArrayArgument(Expr* argument, ParameterMode mode, std::vector<ArrayCopyBack>& copies);
+    void emitArrayCopyBacks(const std::vector<ArrayCopyBack>& copies);
     Value lengthOf(const Value& array, Type* type);
     Value emitSlice(CallExpr* expr);
     Value emitConcatenation(BinaryExpr* expr);

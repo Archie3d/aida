@@ -53,7 +53,7 @@ void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope
     }
 }
 
-void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
+void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool allowArrayView)
 {
     (void)scope;
 
@@ -99,7 +99,8 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
         if (symbol == nullptr) {
             return;
         }
-        if (target->type != nullptr && target->type->m_tagged && symbol->kind == SymbolKind::Subprogram) {
+        if (target->type != nullptr && (target->type->m_tagged || target->type->kind == TypeKind::Array)
+            && symbol->kind == SymbolKind::Subprogram) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
             return;
         }
@@ -113,7 +114,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
     case ExprKind::Selected: {
         auto* selected = static_cast<SelectedExpr*>(target);
         if (selected->symbol != nullptr && selected->symbol->kind == SymbolKind::Subprogram
-            && target->type != nullptr && target->type->m_tagged) {
+            && target->type != nullptr && (target->type->m_tagged || target->type->kind == TypeKind::Array)) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
             return;
         }
@@ -125,6 +126,22 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
     }
     case ExprKind::Call: {
         auto* call = static_cast<CallExpr*>(target);
+        if (call->form == CallForm::Conversion && call->type != nullptr
+            && call->type->kind == TypeKind::Array) {
+            if (!allowArrayView) {
+                m_diagnostics.error(target->location,
+                    "an array conversion is writable only as an out or in out actual");
+                return;
+            }
+            Expr* operand = call->resolvedArguments.front();
+            if (rootType(call->type) != rootType(operand->type)
+                && hasPrivateOrTaggedParts(operand->type)) {
+                m_diagnostics.error(target->location,
+                    "cross-type array views cannot have private or tagged components");
+            }
+            checkAssignable(operand, scope, true);
+            return;
+        }
         if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
             checkAssignable(call->resolvedArguments.front(), scope, allowLimited);
             return;
@@ -134,7 +151,8 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited)
             if (prefix != nullptr && prefix->kind != TypeKind::Access) {
                 checkAssignable(call->callee.get(), scope, true);
             }
-        } else if (target->type != nullptr && target->type->m_tagged) {
+        } else if (target->type != nullptr
+            && (target->type->m_tagged || target->type->kind == TypeKind::Array)) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
         }
         return;

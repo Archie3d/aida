@@ -388,12 +388,24 @@ there; this phase does not introduce an anonymous library-block extension.
   Ada 2005 box defaults (`<>`) remain unsupported with an explicit diagnostic
   (`aggregateboxerrors`); variant/discriminant restrictions remain as documented
   in their roadmap items. Audit baseline: Ada 95/2005 RM 4.3.1 and 4.3.3.
-- [ ] **Array conversions.** Static component-subtype matching, index conversions,
-  bound sliding, view conversions and runtime checks. Include null arrays,
-  multidimensional bounds and converted actuals for `out`/`in out` parameters,
-  including copy-back checks. Retain and explicitly test the current cross-type
-  restriction requiring identical component subtype objects; document any
-  proposed relaxation as a separate scope decision before implementing it.
+- [x] **Array conversions.** Ordinary and controlled value conversions check
+  every dimension, slide to constrained targets and check unconstrained index
+  subtypes. Null ranges skip subtype checks while enumeration/modular bounds
+  must still be representable. Writable converted actuals evaluate the operand
+  once, check entry constraints and convert back only after normal return;
+  same-family arrays with private or tagged components retain element identity.
+  Ada and imported calls share this handling. Value conversions, constants and
+  function results cannot be written through; cross-type views with private or
+  tagged components are rejected.
+  Covered by `arrayconversions`, `arrayconversionchecks`, `arrayconversionerrors`
+  and determinism tests, alongside `controlledconversions`. Includes 32/64-bit
+  integer and enumeration indexes, null/multidimensional shapes, runtime
+  constraints, out/in out calls, copy-back failure and exception propagation.
+  The cross-type restriction remains exact component subtype object identity:
+  distinct subtype declarations with equal constraints are still rejected.
+  No relaxation was made. Limited controlled array conversions and bounds
+  beyond the existing 32-bit descriptors remain unsupported. Audit baseline:
+  Ada 95/2005 RM 4.6 and 6.4.1.
 - [ ] **Derived types.** Audit derivation legality, inherited constraints and
   primitive operations, type identity and explicit conversion rules. Cover
   accepted and rejected conversions and runtime range, discriminant and tag
