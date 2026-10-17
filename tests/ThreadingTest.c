@@ -106,12 +106,15 @@ int main(void)
     }
 
     __ada_mutex_lock(&gate.m_mutex);
-    deadline = now() + INT64_C(20000000);
+    int64_t durations[] = { 1, 999999, 1000001, 20000000 };
     int status;
-    do {
-        status = __ada_condition_wait_until(&gate.m_ready, &gate.m_mutex, deadline);
-    } while (status == 0);
-    CHECK(status == ETIMEDOUT && now() >= deadline);
+    for (size_t index = 0; index < sizeof durations / sizeof durations[0]; ++index) {
+        deadline = now() + durations[index];
+        do {
+            status = __ada_condition_wait_until(&gate.m_ready, &gate.m_mutex, deadline);
+        } while (status == 0);
+        CHECK(status == ETIMEDOUT && now() >= deadline);
+    }
     CHECK(__ada_condition_wait_until(&gate.m_ready, &gate.m_mutex, -1) == EINVAL);
     do {
         status = __ada_condition_wait_until(&gate.m_ready, &gate.m_mutex, 0);

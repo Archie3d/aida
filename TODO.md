@@ -198,8 +198,8 @@ redesigning. The shared state is in the C run time.
   waiters; the table lock is never held across blocking I/O or file-lock waits.
 - [x] **Threading layer.** `adathread` provides a thin C layer over POSIX threads
   (winpthreads on MSYS2): joinable threads, mutex lifecycle/try-lock, condition
-  variables and monotonic nanosecond clocks/deadlines. macOS uses relative
-  condition waits; other hosts select `CLOCK_MONOTONIC` explicitly. Status
+  variables and monotonic nanosecond clocks/deadlines. macOS and winpthreads use
+  relative condition waits; other hosts select `CLOCK_MONOTONIC` explicitly. Status
   functions return POSIX errors; callers own thread/context lifetimes.
   Sequentially consistent 8/16/32/64-bit atomic loads/stores operate on naturally
   aligned scalar storage, ready for Phase 4 `Atomic`/`Volatile` lowering.

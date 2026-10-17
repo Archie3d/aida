@@ -21,7 +21,7 @@ typedef void* (*AdaThreadEntry)(void*);
 int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument);
 int __ada_thread_join(AdaThread thread, void** result);
 
-/* Conditions require explicit initialization to select the monotonic clock.
+/* Conditions require explicit initialization for monotonic deadline waits.
    Wait with the mutex locked, using the same mutex for concurrent waiters.
    Waits release it while blocked and reacquire it before returning. Always
    recheck the predicate in a loop, including on ETIMEDOUT. Signal/broadcast
@@ -36,7 +36,7 @@ int __ada_condition_broadcast(AdaCondition* condition);
 
 /* Nanoseconds from an unspecified monotonic epoch. Deadlines use this same
    clock; negative deadlines are invalid. Output is unchanged on failure.
-   macOS implements timed waits using its relative monotonic pthread API. */
+   macOS and winpthreads implement timed waits using relative pthread APIs. */
 int __ada_monotonic_clock(int64_t* nanoseconds);
 
 /* Generated-code ABI: naturally aligned scalar storage, widths in bits.

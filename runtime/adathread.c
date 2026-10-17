@@ -24,7 +24,7 @@ int __ada_thread_join(AdaThread thread, void** result)
 
 int __ada_condition_init(AdaCondition* condition)
 {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     return pthread_cond_init(condition, NULL);
 #else
     pthread_condattr_t attributes;
@@ -57,23 +57,41 @@ int __ada_condition_wait_until(AdaCondition* condition, AdaMutex* mutex,
     if (deadline < 0) {
         return EINVAL;
     }
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_WIN32)
     int64_t now;
     int status = __ada_monotonic_clock(&now);
     if (status != 0) {
         return status;
     }
     /* Even an expired deadline must release/reacquire the mutex. */
-    deadline = deadline > now ? deadline - now : 0;
+    int64_t remaining = deadline > now ? deadline - now : 0;
+#if defined(_WIN32)
+    if (remaining > INT64_C(86400000000000)) {
+        remaining = INT64_C(86400000000000);
+    }
+    remaining = ((remaining + 999999) / 1000000) * 1000000;
+#endif
+#else
+    int64_t remaining = deadline;
 #endif
     struct timespec timeout;
-    int64_t seconds = deadline / 1000000000;
+    int64_t seconds = remaining / 1000000000;
     timeout.tv_sec = (time_t)seconds;
     if ((int64_t)timeout.tv_sec != seconds) {
         return EOVERFLOW;
     }
-    timeout.tv_nsec = (long)(deadline % 1000000000);
-#if defined(__APPLE__)
+    timeout.tv_nsec = (long)(remaining % 1000000000);
+#if defined(_WIN32)
+    status = pthread_cond_timedwait_relative_np(condition, mutex, &timeout);
+    if (status == ETIMEDOUT) {
+        status = __ada_monotonic_clock(&now);
+        if (status != 0) {
+            return status;
+        }
+        return now >= deadline ? ETIMEDOUT : 0;
+    }
+    return status;
+#elif defined(__APPLE__)
     return pthread_cond_timedwait_relative_np(condition, mutex, &timeout);
 #else
     return pthread_cond_timedwait(condition, mutex, &timeout);
