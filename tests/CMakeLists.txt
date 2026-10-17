@@ -478,6 +478,11 @@ add_ada_test(renamelibrary SOURCES rename_library.ads rename_library.adb renamel
 add_ada_error_test(subprogramrenameerrors SOURCES subprogramrenameerrors.adb)
 add_ada_test(renamemain SOURCES rename_entry.adb renamemain.adb)
 
+add_ada_test(derivedcategories SOURCES derivedcategories.adb)
+add_determinism_test(derivedcategories SOURCE derivedcategories.adb)
+add_ada_test(derivedprofiles SOURCES derived_profile_model.ads derived_profile_model.adb derivedprofiles.adb)
+add_determinism_test(derivedprofiles SOURCE derivedprofiles.adb)
+add_ada_error_test(derivedcategoryerrors SOURCES derivedcategoryerrors.adb)
 add_ada_test(derivedtypes SOURCES derivedtypes.adb)
 add_determinism_test(derivedtypes SOURCE derivedtypes.adb)
 add_ada_test(derivedconstraints SOURCES derivedconstraints.adb)

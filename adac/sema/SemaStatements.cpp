@@ -169,6 +169,22 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
     }
 }
 
+Type* Sema::analyzeCondition(Expr* expr, Scope* scope)
+{
+    Type* context = nullptr;
+    for (Type* type : expressionTypes(expr, scope)) {
+        if (!m_types.isBoolean(type) || !representationVisible(type)) {
+            continue;
+        }
+        if (context != nullptr && rootType(context) != rootType(type)) {
+            m_diagnostics.error(expr->location, "ambiguous Boolean condition");
+            return nullptr;
+        }
+        context = type;
+    }
+    return analyzeExpr(expr, scope, context != nullptr ? context : m_types.booleanType());
+}
+
 void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 {
     switch (statement->kind) {
@@ -243,8 +259,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     case StmtKind::If: {
         auto* ifStatement = static_cast<IfStmt*>(statement);
         for (IfBranch& branch : ifStatement->branches) {
-            Type* conditionType = analyzeExpr(branch.condition.get(), scope, m_types.booleanType());
-            if (!m_types.isBoolean(conditionType)) {
+            Type* conditionType = analyzeCondition(branch.condition.get(), scope);
+            if (!m_types.isBoolean(conditionType) || !representationVisible(conditionType)) {
                 m_diagnostics.error(branch.condition->location, "condition must be of type Boolean");
             }
             analyzeStatements(branch.body, scope);
@@ -258,8 +274,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         Scope* inner = m_symbolTable.createScope(scope);
 
         if (loop->loopKind == LoopKind::While) {
-            Type* conditionType = analyzeExpr(loop->condition.get(), scope, m_types.booleanType());
-            if (!m_types.isBoolean(conditionType)) {
+            Type* conditionType = analyzeCondition(loop->condition.get(), scope);
+            if (!m_types.isBoolean(conditionType) || !representationVisible(conditionType)) {
                 m_diagnostics.error(loop->condition->location, "condition must be of type Boolean");
             }
         } else if (loop->loopKind == LoopKind::For) {
@@ -307,8 +323,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     case StmtKind::Exit: {
         auto* exitStatement = static_cast<ExitStmt*>(statement);
         if (exitStatement->condition) {
-            Type* conditionType = analyzeExpr(exitStatement->condition.get(), scope, m_types.booleanType());
-            if (!m_types.isBoolean(conditionType)) {
+            Type* conditionType = analyzeCondition(exitStatement->condition.get(), scope);
+            if (!m_types.isBoolean(conditionType) || !representationVisible(conditionType)) {
                 m_diagnostics.error(exitStatement->condition->location, "condition must be of type Boolean");
             }
         }

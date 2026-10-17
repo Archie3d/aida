@@ -123,6 +123,9 @@ public:
 
     // Set on a subtype whose discriminants a constraint has pinned down, as in
     // 'subtype Round is Shape (Circle)'.
+    // An inherited profile keeps the parent's constraint, independently of
+    // the derived first subtype reached through its type-identity base link.
+    Type* m_discriminantConstraintSource = nullptr;
     bool discriminantsKnown = false;
     std::vector<long long> discriminantValues;
 

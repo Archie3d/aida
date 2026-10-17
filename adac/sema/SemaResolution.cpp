@@ -136,10 +136,11 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         add(m_types.universalReal());
         break;
     case ExprKind::CharacterLiteral:
-        add(m_types.isCharacter(expected) ? expected : m_types.characterType());
+        add(m_types.isCharacter(expected) && representationVisible(expected) ? expected : m_types.characterType());
         break;
     case ExprKind::StringLiteral:
-        add(m_types.isString(expected) ? expected : m_types.stringType());
+        add(m_types.isString(expected) && representationVisible(expected)
+            && representationVisible(expected->element) ? expected : m_types.stringType());
         break;
     case ExprKind::Null:
         if (expected != nullptr && expected->kind == TypeKind::Access) {
@@ -345,9 +346,11 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         if (binary->operatorCall != nullptr) {
             add(expr->type);
         } else if (binary->op == BinaryOp::AndThen || binary->op == BinaryOp::OrElse) {
-            if (matchesExpression(binary->left.get(), scope, m_types.booleanType())
-                && matchesExpression(binary->right.get(), scope, m_types.booleanType())) {
-                add(m_types.booleanType());
+            for (Type* type : expressionTypes(binary->left.get(), scope, expected)) {
+                if (m_types.isBoolean(type) && representationVisible(type)
+                    && matchesExpression(binary->right.get(), scope, type)) {
+                    add(type);
+                }
             }
         } else {
             for (const OperatorCandidate& candidate : operatorCandidates(operatorName(binary->op),

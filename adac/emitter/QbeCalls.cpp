@@ -242,6 +242,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             Value value = !controllingValues[i].name.empty() ? controllingValues[i]
                 : argument->type->kind == TypeKind::Array ? emitArrayArgument(argument, parameter->mode, arrayCopies)
                 : isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
+            if (parameter->type->kind == TypeKind::Record) {
+                emitRecordConstraintCheck(value, parameter->type);
+            }
             if (parameter->type->kind == TypeKind::Array
                 && (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr)) {
                 Value target = withBounds(Value {}, parameter->type, nullptr);
@@ -425,6 +428,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
         if (parameter->byReference) {
             Value address = isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
+            if (parameter->type->kind == TypeKind::Record) {
+                emitRecordConstraintCheck(address, parameter->type);
+            }
             arguments.push_back("l " + address.name);
             continue;
         }

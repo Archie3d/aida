@@ -98,14 +98,22 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
     }
     case ExprKind::CharacterLiteral: {
         auto* literal = static_cast<CharacterLiteralExpr*>(expr);
-        expr->type = expected != nullptr && m_types.isCharacter(expected) ? expected : m_types.characterType();
+        expr->type = expected != nullptr && m_types.isCharacter(expected) && representationVisible(expected)
+            ? expected : m_types.characterType();
         expr->isStatic = true;
         expr->staticValue = static_cast<unsigned char>(literal->value);
         return expr->type;
     }
     case ExprKind::StringLiteral: {
         auto* literal = static_cast<StringLiteralExpr*>(expr);
-        Type* parent = m_types.isString(expected) ? expected : m_types.stringType();
+        Type* parent = m_types.isString(expected) && representationVisible(expected)
+            && representationVisible(expected->element) ? expected : m_types.stringType();
+        for (unsigned char character : literal->value) {
+            if (character < parent->element->low || character > parent->element->high) {
+                m_diagnostics.error(expr->location, "string literal element is outside the component subtype range");
+                break;
+            }
+        }
         Type* type = m_types.makeSubtype(anonymousTypeName(), rootType(parent), 0, 0);
         type->constrained = true;
         type->indexLow = 1;
@@ -247,6 +255,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     }
     std::string name = operatorName(expr->op);
     Type* operandContext = nullptr;
+    Type* rightContext = nullptr;
     if (!name.empty()) {
         auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected);
         if (expected != nullptr && expected->kind == TypeKind::Fixed
@@ -295,17 +304,18 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             operandContext = chosen.parameters.front();
+            rightContext = chosen.parameters.back();
             if (expected == nullptr) {
                 expected = chosen.result;
             }
         }
     }
-    Type* result = analyzeBinaryOperation(expr, scope, expected, operandContext);
+    Type* result = analyzeBinaryOperation(expr, scope, expected, operandContext, rightContext);
     checkPrivateOperands(expr);
     return result;
 }
 
-Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext)
+Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext, Type* rightContext)
 {
     switch (expr->op) {
     case BinaryOp::And:
@@ -324,12 +334,18 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             noteStaticValue(expr);
             return expr->type;
         }
-        Type* left = analyzeExpr(expr->left.get(), scope, m_types.booleanType());
-        Type* right = analyzeExpr(expr->right.get(), scope, m_types.booleanType());
-        if (!m_types.isBoolean(left) || !m_types.isBoolean(right)) {
-            m_diagnostics.error(expr->location, "logical operators require Boolean operands");
+        Type* context = operandContext != nullptr ? operandContext : expected;
+        if (context == nullptr || !m_types.isBoolean(context)) {
+            context = commonOperandType(expr->left.get(), expr->right.get(), scope, nullptr);
         }
-        expr->type = m_types.booleanType();
+        Type* left = analyzeExpr(expr->left.get(), scope, context);
+        Type* right = analyzeExpr(expr->right.get(), scope, left);
+        if (!m_types.isBoolean(left) || !m_types.isBoolean(right) || !typesCompatible(left, right)) {
+            m_diagnostics.error(expr->location, "logical operators require Boolean operands");
+            expr->type = m_types.booleanType();
+            return expr->type;
+        }
+        expr->type = left;
         return expr->type;
     }
 
@@ -376,8 +392,11 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
 
     case BinaryOp::Concatenate: {
         Type* context = m_types.isString(expected) ? expected : nullptr;
-        Type* left = analyzeExpr(expr->left.get(), scope, context);
-        Type* right = analyzeExpr(expr->right.get(), scope, context != nullptr ? context : left);
+        Type* left = analyzeExpr(expr->left.get(), scope, operandContext != nullptr ? operandContext
+            : expr->left->kind == ExprKind::CharacterLiteral && context != nullptr ? context->element : context);
+        Type* right = analyzeExpr(expr->right.get(), scope, rightContext != nullptr ? rightContext
+            : expr->right->kind == ExprKind::CharacterLiteral && context != nullptr ? context->element
+            : context != nullptr ? context : left);
         if (context == nullptr) {
             context = m_types.isString(left) ? left : right;
             if (isCharacterLiteralExpression(expr->left.get()) && m_types.isString(right)) {
@@ -386,7 +405,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             }
         }
         auto validOperand = [&](Type* type) {
-            return m_types.isCharacter(type)
+            return (m_types.isCharacter(type) && m_types.isString(context)
+                    && typesCompatible(context->element, type))
                 || (m_types.isString(type) && typesCompatible(context, type));
         };
         if (!validOperand(left) || !validOperand(right)) {
@@ -513,7 +533,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         }
     }
     Type* operand = analyzeExpr(expr->operand.get(), scope,
-                                expr->op == UnaryOp::Not && (expected == nullptr || expected->m_modulus == 0)
+                                expr->op == UnaryOp::Not && expected == nullptr
                                     ? m_types.booleanType() : expected);
     if (operand != nullptr && operand->m_modulus != 0) {
         if (expr->op == UnaryOp::Abs) {
@@ -526,8 +546,10 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
     if (expr->op == UnaryOp::Not) {
         if (!m_types.isBoolean(operand)) {
             m_diagnostics.error(expr->location, "'not' requires a Boolean operand");
+            expr->type = m_types.booleanType();
+            return expr->type;
         }
-        expr->type = m_types.booleanType();
+        expr->type = operand;
         return expr->type;
     }
     if (!isNumeric(baseType(operand))) {

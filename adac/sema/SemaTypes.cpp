@@ -1177,6 +1177,9 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
 bool Sema::hasKnownDiscriminants(Type* type) const
 {
     for (Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
+        if (walk->m_discriminantConstraintSource != nullptr) {
+            return hasKnownDiscriminants(walk->m_discriminantConstraintSource);
+        }
         if (walk->discriminantsKnown) {
             return true;
         }
@@ -1342,6 +1345,9 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         subtype->base = type;
         subtype->isSubtype = true;
         subtype->m_primitives.clear();
+        if (original->kind == TypeKind::Record) {
+            subtype->m_discriminantConstraintSource = original;
+        }
         return subtype;
     };
     for (Symbol* primitive : rootType(parent)->m_primitives) {

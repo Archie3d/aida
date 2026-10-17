@@ -175,12 +175,13 @@ private:
     ExprPtr explicitOperator(CallExpr* call);
 
     // SemaExpr.cpp
+    Type* analyzeCondition(Expr* expr, Scope* scope);
     Type* analyzeExpr(Expr* expr, Scope* scope, Type* expected = nullptr);
     Type* analyzeExprValue(Expr* expr, Scope* scope, Type* expected);
     Type* analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected);
     void checkPrivateOperands(BinaryExpr* expr);
     Type* analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected);
-    Type* analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext = nullptr);
+    Type* analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expected, Type* operandContext = nullptr, Type* rightContext = nullptr);
     Type* analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected);
     Type* analyzeMembership(MembershipExpr* expr, Scope* scope);
 

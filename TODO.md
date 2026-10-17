@@ -438,7 +438,7 @@ there; this phase does not introduce an anonymous library-block extension.
   No relaxation was made. Limited controlled array conversions and bounds
   beyond the existing 32-bit descriptors remain unsupported. Audit baseline:
   Ada 95/2005 RM 4.6 and 6.4.1.
-- [ ] **Derived types.** Audit derivation legality, inherited constraints and
+- [x] **Derived types.** Audit derivation legality, inherited constraints and
   primitive operations, type identity and explicit conversion rules. Cover
   accepted and rejected conversions and runtime range, discriminant and tag
   checks where applicable to the supported subset.
@@ -459,11 +459,25 @@ there; this phase does not introduce an anonymous library-block extension.
     `arrayconversion*` suites retain inheritance, tag-check and array coverage.
     Audit baseline: Ada 2005 RM 3.4, 3.4.1, 4.6 and 7.3.1. These are focused
     RM-based regressions, not imported ACATS cases.
-  - [ ] Finish Boolean/character derivation category behavior and inherited
-    record-profile constraint checks. Writable non-array untagged conversions
-    and derivation before private-view completion remain explicit subset
-    restrictions; review these alongside the primitive-operation audit before
-    closing this item.
+  - [x] Derived Boolean scalar conditions, logical operators and short-circuit
+    forms retain their type identity; overload resolution accepts any visible
+    Boolean type in conditions. Derived Character literals and byte-character
+    arrays retain element identity through concatenation; string literals check
+    constrained component ranges. Private completions
+    do not expose these categories outside their package. Inherited record
+    profiles retain the parent's discriminant constraints independently of the
+    derived first subtype, including unconstrained results through multiple
+    derivations. Constrained record formals check discriminants before entering
+    the callee for all parameter modes. Covered by `derivedcategories`,
+    `derivedcategoryerrors`, `derivedprofiles` and determinism tests, including
+    cross-library calls, failed checks without body execution or object mutation,
+    and constrained destinations receiving unconstrained inherited results.
+    Additional baseline: Ada 2005 RM 4.5.1, 5.3 and 6.4.1.
+    Writable non-array untagged conversions, new derived discriminant parts,
+    derivation before private-view completion, and string literals/concatenation
+    with character components wider than a byte remain diagnosed restrictions.
+    The wider primitive visibility/overriding and variant-record audits below
+    remain separate items; this completes derivation within the supported subset.
 - [ ] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
   `'Range`: base versus subtype rules, valid type/object prefixes, operand
   types, arity and result width. Include scalar endpoints, null ranges,

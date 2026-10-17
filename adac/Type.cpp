@@ -367,6 +367,9 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
 bool discriminantValueOf(const Type* type, int index, long long& value)
 {
     for (const Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
+        if (walk->m_discriminantConstraintSource != nullptr) {
+            return discriminantValueOf(walk->m_discriminantConstraintSource, index, value);
+        }
         if (!walk->discriminantsKnown || index < 0
             || static_cast<std::size_t>(index) >= walk->discriminantValues.size()) {
             continue;
@@ -396,18 +399,27 @@ int variantFor(const Type* record, long long discriminant)
 
 bool TypeTable::isBoolean(const Type* type) const
 {
-    return rootType(const_cast<Type*>(type)) == m_boolean;
+    type = rootType(const_cast<Type*>(type));
+    while (type != nullptr && type->m_parentType != nullptr) {
+        type = type->m_parentType;
+    }
+    return type == m_boolean;
 }
 
 bool TypeTable::isCharacter(const Type* type) const
 {
-    return rootType(const_cast<Type*>(type)) == m_character;
+    type = rootType(const_cast<Type*>(type));
+    while (type != nullptr && type->m_parentType != nullptr) {
+        type = type->m_parentType;
+    }
+    return type == m_character;
 }
 
 bool TypeTable::isString(const Type* type) const
 {
     const Type* root = rootType(const_cast<Type*>(type));
-    return root != nullptr && root->kind == TypeKind::Array && isCharacter(root->element);
+    return root != nullptr && root->kind == TypeKind::Array && isCharacter(root->element)
+        && typeSize(root->element) == 1;
 }
 
 // The base subtype keeps type identity and representation, but drops the

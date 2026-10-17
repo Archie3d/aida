@@ -74,7 +74,8 @@ Supported:
 - Integer, floating-point, fixed-point, modular, array and record types
 - Checked record and array aggregates, including sliding and inferred bounds
 - Array conversions and writable parameter views (identical component subtypes required)
-- Derived-type value conversions with inherited constraints and checked ranges
+- Derived-type conversions and inherited profiles with checked constraints
+- Derived Boolean operations and byte-character literals and strings
 - Generics, access types, tagged types with dispatching
 - Controlled types and finalization
 - Text and stream I/O
@@ -87,6 +88,7 @@ Not supported yet:
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
+- String literals and concatenation with character components wider than a byte
 - Several access-type features, many representation clauses and pragmas
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`
