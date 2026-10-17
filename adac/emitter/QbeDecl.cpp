@@ -81,7 +81,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
         case DeclKind::Type: {
             Type* type = static_cast<TypeDecl*>(decl.get())->declaredType;
             emitTypeTag(type);
-            if (needsCollection(type) && type->m_collectionOwner == nullptr
+            if (needsCollection(type) && type->m_parentType == nullptr && type->m_collectionOwner == nullptr
                 && !m_emittedCollections.contains(type)) {
                 m_emittedCollections[type] = true;
                 m_data << "export data " << type->m_collectionName << " = align 8 { l 0 }\n";

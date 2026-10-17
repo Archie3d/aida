@@ -146,6 +146,12 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
             checkAssignable(call->resolvedArguments.front(), scope, allowLimited);
             return;
         }
+        if (call->form == CallForm::Conversion) {
+            m_diagnostics.error(target->location, allowArrayView
+                ? "writable untagged non-array conversions are not yet supported"
+                : "the target of an assignment must be a variable");
+            return;
+        }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
             if (prefix != nullptr && prefix->kind != TypeKind::Access) {

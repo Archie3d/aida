@@ -423,7 +423,14 @@ Type* TypeTable::scalarBaseType(Type* type)
     }
     Type* result = makeSubtype(type->name + "'Base", type, type->low, type->high);
     result->m_scalarBoundsSymbol = nullptr;
-    if (type->m_modulus != 0) {
+    if (type->m_parentType != nullptr) {
+        Type* parentBase = scalarBaseType(type->m_parentType);
+        result->low = parentBase->low;
+        result->high = parentBase->high;
+        result->hasRealRange = parentBase->hasRealRange;
+        result->lowReal = parentBase->lowReal;
+        result->highReal = parentBase->highReal;
+    } else if (type->m_modulus != 0) {
         result->low = 0;
         result->high = type->m_modulus - 1;
     } else if (type->kind == TypeKind::Integer || type->kind == TypeKind::Fixed) {

@@ -336,6 +336,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
+        if (parent->isIncomplete && (!parent->m_tagged || parent->privateTo == nullptr)) {
+            m_diagnostics.error(decl->location, parent->privateTo == nullptr
+                ? "a derivation parent must be completely defined"
+                : "derivation from an uncompleted private view is not yet supported");
+            return;
+        }
+        if (!decl->discriminants.empty()) {
+            m_diagnostics.error(decl->location, "new discriminant parts on derived types are not yet supported");
+            return;
+        }
         if (completing != nullptr && parent->m_controlled && parent->isLimited && !completing->isLimited) {
             m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
@@ -365,6 +375,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         built->base = nullptr;
         built->kind = parent->kind;
         built->literals = parent->literals;
+        // A derivation severs the subtype chain, so retain inherited constraints.
+        for (int i = 0; i < parent->discriminantCount; ++i) {
+            long long value = 0;
+            if (discriminantValueOf(parent, i, value)) {
+                built->discriminantsKnown = true;
+                built->discriminantValues.push_back(value);
+            }
+        }
 
         // Settled before the literals are made, so that each of them names the
         // type this declaration ends up being.
@@ -386,6 +404,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type->m_primitives = std::move(primitives);
         type->m_parentType = rootType(parent);
+        type->m_parentVisible = completing == nullptr || privateTo == nullptr;
         type->m_classWide = completing != nullptr ? classWide : nullptr;
         type->m_dispatchSlots = parent->m_dispatchSlots;
         for (Symbol* primitive : type->m_primitives) {
@@ -519,7 +538,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
     }
     if (type->kind == TypeKind::Access || type->m_tagged) {
-        type->m_accessLevel = m_accessibilityLevel;
+        type->m_accessLevel = type->kind == TypeKind::Access && type->m_parentType != nullptr
+            ? type->m_parentType->m_accessLevel : m_accessibilityLevel;
     }
     if (type->m_classWide != nullptr) {
         Type* wide = type->m_classWide;
@@ -1111,6 +1131,10 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
     Type* record = baseType(base);
     if (record->discriminantCount == 0) {
         m_diagnostics.error(indication->location, "'" + record->name + "' has no discriminants to constrain");
+        return base;
+    }
+    if (hasKnownDiscriminants(base)) {
+        m_diagnostics.error(indication->location, "a constrained record subtype cannot be constrained again");
         return base;
     }
     if (static_cast<int>(indication->indexLows.size()) != record->discriminantCount) {

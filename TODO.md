@@ -442,6 +442,28 @@ there; this phase does not introduce an anonymous library-block extension.
   primitive operations, type identity and explicit conversion rules. Cover
   accepted and rejected conversions and runtime range, discriminant and tag
   checks where applicable to the supported subset.
+  - [x] Related untagged enumeration, record and access value conversions,
+    including siblings and multiple derivation levels; retain distinct implicit
+    type identity and hide ancestry introduced by private completions. Preserve
+    inherited scalar base ranges and constrained record discriminants. Check
+    explicit scalar/discriminant conversions even when nested or given static
+    operands. Derived access types share their parent's collection and lifetime.
+    Inherited calls through private scalar views initialize `in` temporaries
+    without copying them back. Reject incomplete parents, repeated discriminant
+    constraints, untyped conversion operands and writable non-array untagged
+    conversions; new discriminant parts and derivation before a private view's
+    completion receive explicit unsupported diagnostics.
+    Covered by `derivedtypes`, `derivedconstraints`, `derivedaccess`,
+    `derivedlibrary`, their whole/separate determinism tests and
+    `derivedtypeerrors`; existing `primitive*`, `tagged*`, `classwide*` and
+    `arrayconversion*` suites retain inheritance, tag-check and array coverage.
+    Audit baseline: Ada 2005 RM 3.4, 3.4.1, 4.6 and 7.3.1. These are focused
+    RM-based regressions, not imported ACATS cases.
+  - [ ] Finish Boolean/character derivation category behavior and inherited
+    record-profile constraint checks. Writable non-array untagged conversions
+    and derivation before private-view completion remain explicit subset
+    restrictions; review these alongside the primitive-operation audit before
+    closing this item.
 - [ ] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
   `'Range`: base versus subtype rules, valid type/object prefixes, operand
   types, arity and result width. Include scalar endpoints, null ranges,

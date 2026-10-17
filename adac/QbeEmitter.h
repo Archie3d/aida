@@ -144,6 +144,7 @@ private:
     void emitExceptionCheck();
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,
                       const std::string& dispatchLabel);
+    void emitRecordConstraintCheck(const Value& value, Type* type);
     void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location);
     void checkVariant(const Value& address, Type* record, int variant);
     std::string rangeTest(const Value& value, long long low, long long high);

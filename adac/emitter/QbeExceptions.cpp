@@ -303,3 +303,25 @@ void QbeEmitter::raiseConstraintError()
         jump(m_context->propagateLabel);
     }
 }
+
+void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
+{
+    for (int i = 0; i < type->discriminantCount; ++i) {
+        long long fixed = 0;
+        if (!discriminantValueOf(type, i, fixed)) {
+            continue;
+        }
+        const FieldInfo& field = type->fields[i];
+        std::string slot = newTemp();
+        line(slot + " =l add " + value.name + ", " + std::to_string(field.offset));
+        Value actual = loadFrom(Value { slot, 'l' }, field.type);
+        std::string same = newTemp();
+        line(same + " =w ceq" + actual.type + " " + actual.name + ", " + std::to_string(fixed));
+        std::string good = newLabel("conversionconstraint");
+        std::string bad = newLabel("conversionconstraintbad");
+        branch(Value { same, 'w' }, good, bad);
+        label(bad);
+        raiseConstraintError();
+        label(good);
+    }
+}

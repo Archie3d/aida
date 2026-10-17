@@ -180,6 +180,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 raiseConstraintError();
                 label(good);
             }
+            if (expr->type->kind == TypeKind::Record && !expr->type->m_tagged) {
+                emitRecordConstraintCheck(value, expr->type);
+                return value;
+            }
             char from = value.type;
             char to = qbeClass(expr->type);
             if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {

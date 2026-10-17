@@ -1,0 +1,11 @@
+ 9
+ 3
+ 12
+ 3
+integer constraint
+static integer constraint
+dynamic constraint
+real constraint
+fixed constraint
+modular constraint
+array constraint

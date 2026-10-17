@@ -3,7 +3,7 @@
 
 void QbeEmitter::initializeCollection(Type* type)
 {
-    if (!needsCollection(type) || m_initializedCollections.contains(type)) {
+    if (!needsCollection(type) || type->m_parentType != nullptr || m_initializedCollections.contains(type)) {
         return;
     }
     m_initializedCollections[type] = true;
@@ -28,6 +28,10 @@ void QbeEmitter::initializeCollection(Type* type)
 Value QbeEmitter::collectionFor(Type* type)
 {
     type = rootType(type);
+    // Derived access types share the parent's pool and collection lifetime.
+    while (type->m_parentType != nullptr) {
+        type = type->m_parentType;
+    }
     std::string slot = type->m_collectionName;
     if (type->m_collectionOwner != nullptr) {
         Value frame = type->m_collectionOwner == m_context->symbol

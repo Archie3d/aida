@@ -1,0 +1,13 @@
+derivedtypeerrors.adb:3:5: error: a derivation parent must be completely defined
+derivedtypeerrors.adb:6:5: error: new discriminant parts on derived types are not yet supported
+derivedtypeerrors.adb:9:24: error: a constrained record subtype cannot be constrained again
+derivedtypeerrors.adb:17:9: error: derivation from an uncompleted private view is not yet supported
+derivedtypeerrors.adb:23:34: error: this type conversion is not allowed
+derivedtypeerrors.adb:28:18: error: initial value is not compatible with the declared subtype
+derivedtypeerrors.adb:29:32: error: this type conversion is not allowed
+derivedtypeerrors.adb:37:32: error: this type conversion is not allowed
+derivedtypeerrors.adb:41:34: error: this type conversion is not allowed
+derivedtypeerrors.adb:43:33: error: type conversion requires an independently typed operand; use a qualified expression
+derivedtypeerrors.adb:49:11: error: the target of an assignment must be a variable
+derivedtypeerrors.adb:50:16: error: writable untagged non-array conversions are not yet supported
+derivedtypeerrors.adb:51:15: error: the target of an assignment must be a variable

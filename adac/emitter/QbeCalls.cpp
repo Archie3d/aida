@@ -211,6 +211,16 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         Expr* argument = expr->resolvedArguments[i];
         if (parameter->byReference) {
             if (isScalar(parameter->type)) {
+                // A private formal can retain the pointer ABI after its full
+                // view becomes scalar. An in actual may also be an expression.
+                if (parameter->mode == ParameterMode::In) {
+                    Value value = emitExpr(argument);
+                    emitRangeCheck(value, parameter->type, argument->location);
+                    Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type))), 'l' };
+                    storeInto(temporary, value, parameter->type);
+                    arguments.push_back("l " + temporary.name);
+                    continue;
+                }
                 // Keep the pointer ABI, but give each formal a distinct object.
                 // Evaluate the actual's address once, including indexed names.
                 Value actual = emitAddress(argument);

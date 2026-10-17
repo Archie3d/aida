@@ -185,6 +185,12 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 "array conversion requires an independently typed operand; use a qualified expression");
             return nullptr;
         }
+        if (source->kind == ExprKind::Aggregate || source->kind == ExprKind::Allocator
+            || source->kind == ExprKind::CharacterLiteral || source->kind == ExprKind::StringLiteral) {
+            m_diagnostics.error(source->location,
+                "type conversion requires an independently typed operand; use a qualified expression");
+            return nullptr;
+        }
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
             Type* conversion = candidates.front()->type;
             Type* context = nullptr;
@@ -217,7 +223,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         if (expr->type->kind == TypeKind::Array && hasLimitedControlledParts(expr->type)) {
             m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
         }
-        bool numeric = isNumeric(baseType(expr->type)) && isNumeric(baseType(operand->type));
+        bool numeric = isNumeric(baseType(expr->type)) && isNumeric(baseType(operand->type))
+            && representationVisible(expr->type) && representationVisible(operand->type);
         // Explicit array conversions are separate from implicit compatibility.
         // Retain the supported conversion between arrays with identical component
         // subtypes and corresponding compatible index types.
@@ -241,11 +248,25 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         Type* sourceRoot = operand->type == nullptr ? nullptr : operand->type->m_classRoot;
         Type* targetRoot = expr->type->m_classRoot != nullptr ? expr->type->m_classRoot : expr->type;
+        bool relatedUntagged = false;
+        if (operand->type != nullptr && !expr->type->m_tagged) {
+            Type* targetAncestor = rootType(expr->type);
+            Type* sourceAncestor = rootType(operand->type);
+            while (targetAncestor->m_parentType != nullptr
+                && (targetAncestor->m_parentVisible || representationVisible(targetAncestor))) {
+                targetAncestor = targetAncestor->m_parentType;
+            }
+            while (sourceAncestor->m_parentType != nullptr
+                && (sourceAncestor->m_parentVisible || representationVisible(sourceAncestor))) {
+                sourceAncestor = sourceAncestor->m_parentType;
+            }
+            relatedUntagged = targetAncestor == sourceAncestor;
+        }
         bool classConversion = sourceRoot != nullptr
             && (isTaggedAncestor(sourceRoot, targetRoot) || isTaggedAncestor(targetRoot, sourceRoot));
         bool ancestorView = isTaggedAncestor(expr->type, operand->type)
             && (rootType(expr->type) == rootType(operand->type) || representationVisible(operand->type));
-        if (!numeric && !arrayConversion && !classConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
+        if (!numeric && !arrayConversion && !relatedUntagged && !classConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {
@@ -268,6 +289,10 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         if (operand->isStatic && expr->type->m_scalarBoundsSymbol == nullptr
             && isReal(expr->type) == isReal(operand->type)
+            && (!isDiscrete(expr->type)
+                || (operand->staticValue >= expr->type->low && operand->staticValue <= expr->type->high))
+            && (!isReal(expr->type) || !expr->type->hasRealRange
+                || (operand->staticReal >= expr->type->lowReal && operand->staticReal <= expr->type->highReal))
             && (expr->type->m_modulus == 0
                 || (operand->staticValue >= expr->type->low && operand->staticValue <= expr->type->high))) {
             expr->isStatic = true;

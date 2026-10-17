@@ -77,6 +77,8 @@ public:
     bool isSubtype = false;
     // Derivation ancestry and primitive declarations are independent of layout.
     Type* m_parentType = nullptr;
+    // A private completion's derivation ancestry is hidden outside its package.
+    bool m_parentVisible = true;
     // Tagged records reserve the leading pointer and retain a parent prefix.
     bool m_tagged = false;
     // The partial view can hide tagging while the full layout remains tagged.
