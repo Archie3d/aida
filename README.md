@@ -64,7 +64,8 @@ The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly ->
 
 ## Features and limits
 
-AIDA targets Ada 95 with selected Ada 2005 features.
+AIDA targets Ada 2005 and currently implements a substantial subset. Full
+conformance and Specialized Needs Annex support are not claimed.
 
 Supported:
 - Library and nested packages, procedures, functions
@@ -84,7 +85,7 @@ Not supported yet:
 - Ada 2005 box defaults (`<>`) in aggregates
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Several access-type features, many representation clauses and pragmas
-- Newer libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
+- Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`
 
 See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples

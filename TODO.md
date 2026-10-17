@@ -1,9 +1,9 @@
 # Compiler improvement strategy
 
 AIDA compiles a substantial, regression-tested Ada subset (see the README's
-"Supported language" section). This roadmap sets out how to grow it into a
-dependable compiler. It is ordered by risk: first remove ways a program can be
-silently miscompiled, then lay the foundations tasking needs, harden what
+"Features and limits" section). This roadmap sets out how to grow it into a
+dependable Ada 2005 compiler. It is ordered by risk: first remove ways a program
+can be silently miscompiled, then lay the foundations tasking needs, harden what
 already works, deliver a first tasking subset, and only then widen the language
 and library.
 
@@ -12,6 +12,20 @@ exception state and the generated code's access to global state, and every
 feature built on single-threaded assumptions makes it harder to retrofit.
 The foundations and a minimal tasking slice therefore come before the large
 language extensions, and the full tasking model follows them.
+
+## Language target and scope
+
+Ada 2005 is the normative language target for new work and remaining audits,
+using the Ada 2005 Reference Manual for syntax, legality and dynamic semantics.
+The near-term milestone is a dependable Ada 2005 subset, not full conformance.
+The destination includes the unfinished Ada 95 foundations, Ada 2005 additions,
+the core predefined environment and full core tasking (Phase 9).
+
+Specialized Needs Annex support is tracked separately: individual facilities
+below are selected goals, not commitments to complete annexes or a certified
+Ravenscar implementation. Ada 2012 and later features are outside this target.
+Completed items retain their historical audit baselines and subset restrictions;
+they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
 
 ## Guiding principles
 
@@ -33,6 +47,24 @@ language extensions, and the full tasking model follows them.
    state only through that context. Once Phase 4 lands, a feature that
    interacts with tasks gets a test that runs it from several tasks.
 7. **Leave `qbe/` unchanged.**
+8. **Run validation alongside implementation.** Start Phase 8's coverage
+   inventory now and maintain it throughout the roadmap. Add relevant Ada 2005
+   ACATS coverage with each feature rather than waiting for the earlier phases
+   to finish.
+9. **Follow dependencies, not just bullet order.** Keep the phase sequence,
+   but resolve local prerequisites before their dependents. In Phase 6,
+   establish general limited-record semantics before generalizing limited
+   aggregates and build-in-place returns; ordinary noncontrolled extended
+   returns can proceed independently. In Phase 7, implement `Ada.Calendar`
+   before `Ada.Directories`, whose modification-time operations use
+   `Ada.Calendar.Time`, and wide character/string types before wide exception
+   names and related library APIs.
+10. **Establish tasking's limited-type rules early.** Phase 4 must enforce the
+  noncopying, lifetime and finalization rules needed by task/protected objects
+  and composites containing them, without waiting for Phase 6's general
+  limited-record support. Keep real concurrency in Phase 4 and full core
+  tasking in Phase 9; the latter remains a language requirement, not an
+  optional annex goal.
 
 ## Phase 1 — Stop silent acceptance
 
@@ -440,7 +472,7 @@ elaboration manifests, each pragma's ordering and legality, calls before body
 elaboration, and valid completions alongside each conformance mismatch.
 Exercise whole-program and separate compilation for cross-unit behavior,
 including rebuilds after changes to dependencies or elaboration pragmas.
-Validate behavior against the Ada 95 baseline and selected Ada 2005 features,
+Validate supported behavior against the Ada 2005 Reference Manual,
 accounting for documented implementation-defined behavior. Add determinism tests
 whenever a change affects generated code, update README.md with changed behavior,
 and keep the full suite green. Mark an item complete only when its audit and
@@ -448,7 +480,8 @@ applicable regression coverage are complete.
 
 ## Phase 4 — Minimal tasking
 A working subset, close to the Ravenscar profile, that makes tasking a tested
-part of the compiler early. Later phases must keep it working.
+part of the compiler early, without claiming Ravenscar compliance. Later phases
+must keep it working; Phase 9 completes core tasking.
 
 - [ ] **Tasks.** Task types and single task objects without entries; activation
   at the end of the declarative part or library elaboration; masters awaiting
@@ -485,9 +518,10 @@ These unblock several Phase 6 features, especially wider arrays.
 - [ ] **Concatenation.** General one-dimensional `&` with element/array
   combinations; it is currently specialized to character arrays.
 - [ ] **Modular types.** Unsigned 64-bit storage and `mod 2 ** 64`, modular
-  generic formals and `Ada.Text_IO.Modular_IO`.
+  generic formals, the Ada 2005 `'Mod` attribute and `Ada.Text_IO.Modular_IO`.
 - [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,
-  dynamic subtype bounds, remaining attributes and streaming.
+  dynamic subtype bounds, remaining attributes and streaming. Apply the Ada 2005
+  fixed-by-fixed multiplication and division rules.
 - [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
   rounding and checks.
 - [ ] **Representation clauses.** Implement alignment, enumeration
@@ -502,7 +536,9 @@ concatenation, signed small representations, invalid size clauses.
 
 ## Phase 6 — Complete the core language
 
-Grouped by dependency. Within a group, work top to bottom.
+Complete the remaining Ada 95 foundations and Ada 2005 additions together.
+Grouped by dependency. Within a group, work top to bottom. Reuse the existing
+controlled-result construction, cleanup and dispatch mechanisms.
 
 ### Dynamic data
 
@@ -512,6 +548,9 @@ Grouped by dependency. Within a group, work top to bottom.
   generic array objects (`runtimearraylibraryerrors.ads` lists the cases).
 - [ ] Runtime-constrained array components and allocators, with `'Size` and
   streaming.
+- [ ] Ada 2005 box defaults (`<>`) in record and array aggregates: component
+  default initialization, legality, per-component evaluation and partial-failure
+  cleanup. Replace the current `aggregateboxerrors` rejection coverage.
 
 ### Discriminated records
 
@@ -527,37 +566,54 @@ Grouped by dependency. Within a group, work top to bottom.
   objects, access-to-constant, and accessibility checks.
   `access all` and `access constant` currently receive explicit unsupported-type
   diagnostics, covered by `generalaccesserrors`.
-- [ ] Anonymous access types, including anonymous access-to-subprogram.
+- [ ] Anonymous access types in all Ada 2005 contexts, including access-to-constant
+  and anonymous access-to-subprogram parameters with nested callbacks. Enforce
+  accessibility on calls, conversions, assignments and returned access values.
+- [ ] Null exclusions (`not null`): profile conformance, initialization,
+  conversions, generic matching and required runtime checks.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
 
 ### Program structure
 
+- [ ] Limited and private `with` clauses, including `limited private with`:
+  incomplete and tagged incomplete views, visibility and completion rules.
+  Distinguish limited dependencies from ordinary semantic and elaboration edges
+  so legal mutual dependencies survive loading, binding and incremental builds.
 - [ ] Separate subunits for subprogram and package bodies: loading, and
   analysis in the parent's scope. Replaces the Phase 1 diagnostic.
 - [ ] Package and generic renaming (object, subprogram and exception renaming
   exist).
 - [ ] Labels and `goto`, with legality checks for transfers between scopes.
-- [ ] Extended return statements for results that are not controlled types.
+- [ ] Extended return statements for results that are not controlled types,
+  general limited aggregates and build-in-place results. Extend the existing
+  limited controlled-result support to all required Ada 2005 cases, preserving
+  object identity, accessibility, master lifetimes and failure cleanup.
 
 ### Object orientation
 
 - [ ] Abstract subprograms and their full legality rules.
+- [ ] Prefixed calls (`Object.Operation (...)`), including inherited primitives,
+  class-wide dispatch, access prefixes and overload resolution. Complete Ada
+  2005 overriding-indicator and null-procedure legality beyond the existing subset.
 - [ ] Discriminated tagged types, private extensions, extensions of private
   views, general limited record definitions, and tagged size clauses.
-- [ ] Interfaces, after abstract subprograms. Leave room in the dispatch tables
-  for synchronized, task and protected interfaces (Phase 9).
+- [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
+  operations, overriding, interface conversions and class-wide dispatch. Extend
+  the single-parent tag/dispatch model with a representation that also supports
+  synchronized, task and protected interfaces (Phase 9).
 
 ### Generics
 
 Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
 
-- [ ] Parse and enforce all formal type categories. The parser still skips much
-  of the formal type definitions; add derived, access, modular and decimal
-  formals as those types become available.
+- [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
+  Phase 1 rejections with derived, access, modular, decimal and interface formals
+  as those types become available.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
-- [ ] Formal packages and matching of their generic contracts.
+- [ ] Formal packages and matching of their generic contracts, including Ada
+  2005 partial actual parameter lists and box associations.
 - [ ] Access formal objects, limited `in` objects built in place, and
   library-level runtime-bound array formals.
 - [ ] Extend contract checking to each new formal category, and remove the
@@ -565,13 +621,31 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 
 Tests: defaulted discriminants with variant changes, a callback capturing an
 `aliased` local, an access value escaping its scope, subunits using enclosing
-declarations, a formal package, an interface hierarchy with dispatch.
+declarations, mutually dependent limited views, private context visibility,
+null-exclusion failures, defaulted aggregate components, noncontrolled extended
+returns, a formal package, an interface hierarchy with prefixed dispatch.
+
+### Pragmas and checks
+
+- [ ] Implement the remaining Ada 2005 core pragmas and check policies, including
+  `Assert`, `Assertion_Policy`, `Suppress`, `Unsuppress` and `No_Return`. Validate
+  placement and arguments, enabled/disabled behavior and failure propagation;
+  continue diagnosing unsupported pragmas until each is implemented.
 
 ## Phase 7 — Predefined library
+
+Inventory the Ada 2005 predefined environment in Phase 8. These are staged
+deliverables, not an exhaustive list; distinguish missing Ada 95 packages from
+Ada 2005 additions and track annex packages separately.
 
 - [ ] `Ada.Strings.Unbounded`, written in Ada on the controlled-type support.
   Then a basic `Ada.Containers.Vectors`. Cover copying, growth, element
   lifetime, bounds and exception cleanup.
+- [ ] Complete the Ada 2005 container families: definite and indefinite vectors,
+  lists, hashed/ordered maps and sets, plus sorting utilities. Test cursors,
+  tampering checks, copying, finalization and generic contract interactions.
+- [ ] `Ada.Directories` and `Ada.Environment_Variables`, with documented host
+  behavior and error handling.
 - [ ] Type-aware streaming: components, bounds and discriminants, user-defined
   stream attributes and a real stream abstraction. Streams mostly copy object
   representation today. Then add controlled and tag-aware class-wide streaming.
@@ -580,16 +654,25 @@ declarations, a formal package, an interface hierarchy with dispatch.
 - [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
   access-to-subprogram support now permits.
 - [ ] Remaining `Text_IO` and numeric input grammar cases.
-- [ ] `Ada.Calendar`, on the Phase 4 `Duration`.
-- [ ] Enforcement of package categorization (`Pure`, `Preelaborate`).
-- [ ] `Wide_Character` and `Wide_String`, and a documented source encoding policy.
+- [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
+  arithmetic, formatting and time-zone child packages.
+- [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
+  Ada 2005 rules and `Preelaborable_Initialization`.
+- [ ] `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and `Wide_Wide_String`,
+  their required I/O, string and character facilities, and Ada 2005 identifier
+  character rules with a documented source encoding policy.
 - [ ] A foreign ABI and ownership contract for imported controlled results.
 
 ## Phase 8 — Tooling and validation (alongside the phases above)
 
-- [x] Record the existing language target: Ada 95 with selected Ada 2005
-  features, without claiming full conformance or widening the scope. Track
+- [x] Establish Ada 2005 as the language target, distinguishing the currently
+  implemented subset from the goal without claiming full conformance. Track
   supported behavior and restrictions in README.md and progress in this roadmap.
+- [ ] Maintain an Ada 2005 coverage matrix by RM clause and predefined unit:
+  implemented behavior, restrictions, missing legality/runtime checks, regression
+  and ACATS coverage, and owning roadmap item. Include completed features in the
+  gap review; classify core requirements, implementation-defined choices,
+  extensions and selected Specialized Needs Annex facilities separately.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer.
@@ -597,9 +680,11 @@ declarations, a formal package, an interface hierarchy with dispatch.
     declaration recovery preserves the next declaration's introducer after a
     missing delimiter. Covered by `recordrecoveryaccess`,
     `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
-- [ ] Adopt relevant Ada 95 and selected Ada 2005 conformance tests,
-  allowing for documented implementation-defined behavior. GNAT comparisons
-  are not a project requirement.
+- [ ] Adopt relevant Ada 2005 ACATS conformance tests alongside each feature,
+  including inherited Ada 95 requirements and cross-feature legality/runtime
+  cases. Record unsupported cases and implementation-defined behavior; extend
+  coverage as the subset grows without treating a passing selection as full
+  conformance. GNAT comparisons are not a project requirement.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces.
 - [ ] Serialized semantic interfaces, so clients compile without dependency
@@ -613,7 +698,9 @@ declarations, a formal package, an interface hierarchy with dispatch.
 
 ## Phase 9 — Full tasking
 
-Completes the model on top of Phases 4 and 6.
+Completes Ada 2005 core tasking on top of Phases 4 and 6. Core tasking is part
+of the language goal, not an optional annex. Track annex-specific priorities,
+scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
 - [ ] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
@@ -625,6 +712,11 @@ Completes the model on top of Phases 4 and 6.
   and synchronized, task and protected interfaces.
 - [ ] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
   `Ada.Synchronous_Task_Control`.
+- [ ] Selected Systems Programming Annex support: Ada 2005 task termination
+  notification (`Ada.Task_Termination`). Define separate goals and tests for
+  selected Real-Time Systems Annex facilities
+  such as execution-time clocks, timers, timing events and Ravenscar restrictions;
+  do not infer annex or profile compliance from the minimal tasking subset.
 
 ## Completed groundwork
 
