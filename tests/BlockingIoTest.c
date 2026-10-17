@@ -6,7 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 
 #define CHECK(condition) do { if (!(condition)) { \
     fprintf(stderr, "blocking I/O check failed at line %d\n", __LINE__); exit(1); \
@@ -80,12 +85,20 @@ int main(void)
     for (profile = 0; profile < 3; ++profile) {
         for (resetFile = 0; resetFile < 2; ++resetFile) {
             int ends[2];
+#if defined(_WIN32)
+            CHECK(_pipe(ends, 4096, _O_BINARY) == 0);
+#else
             CHECK(pipe(ends) == 0);
+#endif
             input = NULL;
             __ada_file_open(&input, ADA_MODE_IN, "", 0, 1);
             CHECK(input != NULL && __ada_exception == NULL);
             CHECK(fclose(input->stream) == 0);
+#if defined(_WIN32)
+            input->stream = _fdopen(ends[0], "rb");
+#else
             input->stream = fdopen(ends[0], "r");
+#endif
             CHECK(input->stream != NULL);
             __ada_set_input(&input);
             pthread_t reader, changer;
@@ -109,8 +122,13 @@ int main(void)
             __ada_file_close(&other);
             CHECK(__ada_exception == NULL);
 
+#if defined(_WIN32)
+            CHECK(_write(ends[1], "7 ", 2) == 2);
+            CHECK(_close(ends[1]) == 0);
+#else
             CHECK(write(ends[1], "7 ", 2) == 2);
             CHECK(close(ends[1]) == 0);
+#endif
             CHECK(pthread_join(reader, NULL) == 0);
             CHECK(pthread_join(changer, NULL) == 0);
             if (resetFile) { __ada_file_close(&input); }

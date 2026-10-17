@@ -640,7 +640,7 @@ add_determinism_test(filesnapshots SOURCE filesnapshots.adb)
 add_executable(shared_tables_benchmark EXCLUDE_FROM_ALL benchmarks/SharedTables.c)
 target_link_libraries(shared_tables_benchmark PRIVATE adart)
 
-if(UNIX)
+if(UNIX OR MINGW)
     add_executable(blocking_io_test BlockingIoTest.c)
     target_link_libraries(blocking_io_test PRIVATE adart Threads::Threads)
     add_test(NAME runtime.blocking_io COMMAND blocking_io_test)
