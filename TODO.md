@@ -500,10 +500,32 @@ there; this phase does not introduce an anonymous library-block extension.
     32-bit array descriptor bounds and deferred static-arithmetic work remain
     unchanged; broader representation and streaming attributes remain separate
     roadmap items.
-- [ ] **Primitive operations.** Wider visibility and legality audit for tagged
+- [x] **Primitive operations.** Wider visibility and legality audit for tagged
   and untagged primitives: declaration placement, inheritance, hiding,
   overriding indicators, controlling profiles and dispatch through supported
   class-wide views. Include private views and separate compilation.
+  - Added primitive-indicator checks, distinguished inner operator hiding from
+    overriding, and enforced subtype conformance for tagged overrides, including
+    operations inherited at a private completion. Controlling defaults must be
+    tag indeterminate; new private controlling-result functions on visible
+    tagged types are rejected. Multiple controlling types are checked on both
+    new and overriding operations.
+  - Tagged objects and subprogram bodies now freeze primitive declarations,
+    alongside the existing derivation check. Older controlled-type fixtures now
+    declare their overriding profiles before the first body. Covered by
+    `primitiveauditerrors`, `primitiveplacementerrors`, and existing
+    `primitiveerrors`/`classwideerrors` legality tests.
+  - `primitiveaudit` and its whole/separate-compilation determinism test cover
+    private tagged completion, private overriding, class-wide dispatch with an
+    inherited controlling default, and local hiding. Existing `primitives`,
+    `primitivevisibility`, `primitivechecks`, `primitiveseparate`, derived-profile
+    and class-wide tests retain untagged inheritance and runtime-check coverage.
+    Baseline: Ada 2005 RM 3.2.3, 3.4, 3.9.2, 3.9.3, 8.3, 8.3.1 and 13.14;
+    these are focused RM-based regressions, not imported ACATS cases.
+    Tagged discriminants, private extensions, anonymous controlling access
+    profiles and general freezing beyond these declaration triggers remain
+    outside this audit's coverage; wider type support and the Phase 8 coverage
+    inventory remain open.
 - [ ] **Variant records.** Confirm that nested variant parts get correct layout,
   initialization and selection checks at every level. Cover assignment,
   copying, aggregates and discriminant mismatches for supported constrained

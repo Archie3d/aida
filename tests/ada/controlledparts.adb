@@ -44,6 +44,8 @@ procedure ControlledParts is
     type Parent is new Ada.Finalization.Controlled with record
         Child : Guards;
     end record;
+    overriding procedure Initialize (Object : in out Parent);
+    overriding procedure Finalize (Object : in out Parent);
     overriding procedure Initialize (Object : in out Parent) is
     begin
         Check (Live = 3);

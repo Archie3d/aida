@@ -78,6 +78,7 @@ Supported:
 - Derived Boolean operations and byte-character literals and strings
 - Scalar position, value and adjacent-value attributes; scalar and array bounds
 - Generics, access types, tagged types with dispatching
+- Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization
 - Text and stream I/O
 - Separate compilation and incremental builds

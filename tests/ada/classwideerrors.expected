@@ -1,4 +1,4 @@
-classwideerrors.adb:17:9: error: a tagged primitive cannot be declared after derivation from its type
+classwideerrors.adb:17:9: error: a tagged primitive cannot be declared after its type is frozen
 classwideerrors.adb:19:5: error: a class-wide object requires an initializer
 classwideerrors.adb:20:5: error: an array component requires a definite subtype
 classwideerrors.adb:22:9: error: a record component requires a definite subtype

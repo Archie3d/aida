@@ -8,6 +8,8 @@ procedure ControlledLimitedResults is
         Value : Integer := 0;
         Original : System.Address;
     end record;
+    overriding procedure Initialize (Object : in out Guard);
+    overriding procedure Finalize (Object : in out Guard);
     overriding procedure Initialize (Object : in out Guard) is
     begin
         Live := Live + 1;

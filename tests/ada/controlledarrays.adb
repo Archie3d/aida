@@ -7,6 +7,9 @@ procedure ControlledArrays is
     type Guard is new Ada.Finalization.Controlled with record
         Owned : Boolean := False;
     end record;
+    overriding procedure Initialize (Object : in out Guard);
+    overriding procedure Adjust (Object : in out Guard);
+    overriding procedure Finalize (Object : in out Guard);
     overriding procedure Initialize (Object : in out Guard) is
     begin
         Live := Live + 1;

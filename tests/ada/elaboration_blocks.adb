@@ -3,6 +3,8 @@ package body Elaboration_Blocks is
     Live : Integer := 0;
     Finalized : Integer := 0;
     type Guard is new Ada.Finalization.Controlled with null record;
+    overriding procedure Initialize (Object : in out Guard);
+    overriding procedure Finalize (Object : in out Guard);
     overriding procedure Initialize (Object : in out Guard) is
     begin
         Live := Live + 1;

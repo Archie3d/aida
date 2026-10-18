@@ -5,6 +5,9 @@ procedure ControlledAggregates is
     type Leaf is new Ada.Finalization.Controlled with record
         Value : Integer := 7;
     end record;
+    overriding procedure Initialize (Object : in out Leaf);
+    overriding procedure Adjust (Object : in out Leaf);
+    overriding procedure Finalize (Object : in out Leaf);
     overriding procedure Initialize (Object : in out Leaf) is
     begin
         Live := Live + 1;
@@ -23,6 +26,9 @@ procedure ControlledAggregates is
     type Parent is new Ada.Finalization.Controlled with record
         Item : Leaf;
     end record;
+    overriding procedure Initialize (Object : in out Parent);
+    overriding procedure Adjust (Object : in out Parent);
+    overriding procedure Finalize (Object : in out Parent);
     overriding procedure Initialize (Object : in out Parent) is
     begin
         Put_Line ("parent initialize");
@@ -38,6 +44,9 @@ procedure ControlledAggregates is
     type Child is new Parent with record
         Extra : Integer := 8;
     end record;
+    overriding procedure Initialize (Object : in out Child);
+    overriding procedure Adjust (Object : in out Child);
+    overriding procedure Finalize (Object : in out Child);
     overriding procedure Initialize (Object : in out Child) is
     begin
         Put_Line ("child initialize");

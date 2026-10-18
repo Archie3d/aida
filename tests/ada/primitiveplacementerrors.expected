@@ -1,0 +1,3 @@
+primitiveplacementerrors.adb:6:9: error: a tagged primitive cannot be declared after its type is frozen
+primitiveplacementerrors.adb:23:5: error: a tagged primitive cannot be overridden after its type is frozen
+primitiveplacementerrors.adb:31:9: error: a tagged primitive cannot be declared after its type is frozen

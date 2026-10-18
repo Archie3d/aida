@@ -411,7 +411,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             primitive->m_dispatchSlot = -1;
         }
         type->m_dispatchFrozen = false;
-        parent->m_dispatchFrozen = parent->m_tagged;
+        rootType(parent)->m_dispatchFrozen = parent->m_tagged;
         type->name = name;
         if (definition->m_extension) {
             type->byteSize = 0;
@@ -1285,6 +1285,29 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         symbol->m_privatePrimitiveTo = m_packages.back();
     }
     for (Type* type : types) {
+        if (type->m_tagged && type->m_classRoot == nullptr
+            && (scope == m_packageSpecScope || symbol->m_overrides)) {
+            if (scope == m_packageSpecScope && !m_inVisiblePart
+                && rootType(symbol->returnType) == type && !symbol->m_overrides) {
+                for (const auto& declaration : m_symbolTable.symbols()) {
+                    if (declaration->kind == SymbolKind::TypeName && declaration->type == type
+                        && declaration->m_privatePrimitiveTo == nullptr) {
+                        m_diagnostics.error(symbol->location,
+                            "a private primitive with a controlling result must override a visible operation");
+                        break;
+                    }
+                }
+            }
+            if (symbol->m_controllingType != nullptr && symbol->m_controllingType != type) {
+                m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
+            }
+            for (Symbol* parameter : symbol->parameters) {
+                if (rootType(parameter->type) == type && parameter->hasDefault
+                    && !parameter->defaultExpr->m_tagIndeterminate) {
+                    m_diagnostics.error(parameter->location, "a controlling parameter default must be tag indeterminate");
+                }
+            }
+        }
         bool replaced = false;
         for (Symbol*& primitive : type->m_primitives) {
             if (primitive->name != symbol->name || primitive->m_inheritedFrom == nullptr
@@ -1300,7 +1323,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                 scope->remove(primitive);
                 if (type->m_tagged && primitive->m_dispatchSlot >= 0) {
                     if (type->m_dispatchFrozen) {
-                        m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after derivation from its type");
+                        m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after its type is frozen");
                     }
                     symbol->m_dispatchSlot = primitive->m_dispatchSlot;
                     symbol->m_controllingType = type;
@@ -1314,10 +1337,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             type->m_primitives.push_back(symbol);
             if (type->m_tagged && type->m_classRoot == nullptr) {
                 if (type->m_dispatchFrozen) {
-                    m_diagnostics.error(symbol->location, "a tagged primitive cannot be declared after derivation from its type");
-                }
-                if (symbol->m_controllingType != nullptr && symbol->m_controllingType != type) {
-                    m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
+                    m_diagnostics.error(symbol->location, "a tagged primitive cannot be declared after its type is frozen");
                 }
                 symbol->m_controllingType = type;
                 symbol->m_dispatchSlot = static_cast<int>(type->m_dispatchSlots.size());
@@ -1396,10 +1416,17 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                 matches = matches && rootType(declared->parameters[i]->type) == rootType(inherited->parameters[i]->type);
             }
             if (matches) {
+                bool subtypeConformant = declared->returnType == inherited->returnType
+                    || SemaSupport::staticallyMatches(declared->returnType, inherited->returnType);
                 for (std::size_t i = 0; i < declared->parameters.size(); ++i) {
+                    subtypeConformant = subtypeConformant
+                        && SemaSupport::staticallyMatches(declared->parameters[i]->type, inherited->parameters[i]->type);
                     if (declared->parameters[i]->mode != inherited->parameters[i]->mode) {
                         m_diagnostics.error(declared->location, "overriding parameters must have the inherited modes");
                     }
+                }
+                if (type->m_tagged && !subtypeConformant) {
+                    m_diagnostics.error(declared->location, "overriding dispatching profile must be subtype conformant with the inherited operation");
                 }
                 declared->m_overrides = true;
                 if (type->m_tagged && inherited->m_dispatchSlot >= 0) {

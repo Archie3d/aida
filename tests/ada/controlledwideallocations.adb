@@ -18,6 +18,7 @@ procedure ControlledWideAllocations is
         type Child is new Guard with record
             Extra : Guard;
         end record;
+        overriding function Make (Value : Integer) return Child;
         overriding procedure Finalize (Object : in out Child) is
         begin
             Finalized := Finalized + 1;
@@ -63,6 +64,8 @@ procedure ControlledWideAllocations is
     procedure Limited_Allocation is
         Live : Integer := 0;
         type Guard is new Ada.Finalization.Limited_Controlled with null record;
+        overriding procedure Initialize (Object : in out Guard);
+        overriding procedure Finalize (Object : in out Guard);
         overriding procedure Initialize (Object : in out Guard) is
         begin
             Live := Live + 1;

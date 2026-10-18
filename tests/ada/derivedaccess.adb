@@ -6,6 +6,8 @@ procedure DerivedAccess is
     type Guard is new Ada.Finalization.Controlled with record
         Value : Integer := 7;
     end record;
+    overriding procedure Initialize (Item : in out Guard);
+    overriding procedure Finalize (Item : in out Guard);
     overriding procedure Initialize (Item : in out Guard) is
     begin
         Live := Live + 1;

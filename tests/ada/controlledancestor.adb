@@ -6,6 +6,7 @@ procedure ControlledAncestor is
         Extra : Guard;
         Marker : Integer := 123;
     end record;
+    overriding procedure Finalize (Object : in out Child);
     overriding function Make (Value : Integer) return Child is
         Object : Child;
     begin

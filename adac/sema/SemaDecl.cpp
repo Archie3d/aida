@@ -16,6 +16,17 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
         }
         std::size_t firstSymbol = m_symbolTable.symbols().size();
         analyzeDecl(decl.get(), scope);
+        if (decl->kind == DeclKind::SubprogramBody
+            && !static_cast<SubprogramBody*>(decl.get())->m_isNull) {
+            // A body freezes preceding declarations in its declarative part.
+            // Register the body's own profile first: it can itself override.
+            for (const auto& symbol : m_symbolTable.symbols()) {
+                if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
+                    && symbol->type->m_declarationScope == scope && symbol->type->m_tagged) {
+                    rootType(symbol->type)->m_dispatchFrozen = true;
+                }
+            }
+        }
         if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
             for (std::size_t i = firstSymbol; i < m_symbolTable.symbols().size(); ++i) {
                 Symbol* symbol = m_symbolTable.symbols()[i].get();
@@ -161,6 +172,10 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
+
+    if (type != nullptr && type->m_tagged && type->m_classRoot == nullptr) {
+        rootType(type)->m_dispatchFrozen = true;
+    }
 
     if (type != nullptr && !decl->m_isRenaming) {
         if (type->m_abstract && type->m_classRoot == nullptr) {
@@ -330,6 +345,24 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
     }
 }
 
+static bool isPrimitive(Symbol* symbol)
+{
+    auto belongsTo = [&](Type* type) {
+        type = rootType(type);
+        return type != nullptr
+            && std::find(type->m_primitives.begin(), type->m_primitives.end(), symbol) != type->m_primitives.end();
+    };
+    if (belongsTo(symbol->returnType)) {
+        return true;
+    }
+    for (Symbol* parameter : symbol->parameters) {
+        if (belongsTo(parameter->type)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal)
 {
     std::vector<Type*> parameterTypes;
@@ -376,14 +409,27 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         if (matches && (candidate->m_inheritedFrom != nullptr || (isBody && candidate->m_overrides))) {
             overrides = true;
+            bool subtypeConformant = candidate->returnType == returnType
+                || SemaSupport::staticallyMatches(candidate->returnType, returnType);
             for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
+                subtypeConformant = subtypeConformant
+                    && SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]);
                 if (candidate->parameters[i]->mode != spec.parameters[i].mode) {
                     m_diagnostics.error(spec.location, "overriding parameters must have the inherited modes");
                 }
             }
+            if (candidate->m_dispatchSlot >= 0 && !subtypeConformant) {
+                m_diagnostics.error(spec.location, "overriding dispatching profile must be subtype conformant with the inherited operation");
+            }
         }
     }
     if (!overrides && !operatorSymbol(spec.lower).empty() && spec.isFunction) {
+        // Predefined operators can only be overridden in the declarative
+        // region of their type. An inner homograph merely hides them.
+        bool localType = returnType != nullptr && rootType(returnType)->m_declarationScope == scope;
+        for (Type* type : parameterTypes) {
+            localType = localType || (type != nullptr && rootType(type)->m_declarationScope == scope);
+        }
         Scope* probes = m_symbolTable.createScope(scope);
         std::vector<ExprPtr> expressions;
         std::vector<Expr*> operands;
@@ -404,7 +450,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 matches = rootType(candidate.parameters[i]) == rootType(parameterTypes[i])
                     && spec.parameters[i].mode == ParameterMode::In;
             }
-            overrides = overrides || matches;
+            overrides = overrides || (localType && matches);
         }
     }
     auto incompletePrivate = [](Type* type) {
@@ -446,6 +492,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         if (!matches) {
             continue;
+        }
+        if (spec.m_overriding == -1 && !isPrimitive(candidate)) {
+            m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
         }
         if (!isBody || candidate->hasBody) {
             m_diagnostics.error(spec.location, "'" + spec.name + "' has already been declared in this scope");
@@ -536,6 +585,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 
     scope->add(symbol);
     registerPrimitive(symbol, scope);
+    if (spec.m_overriding == -1 && !isPrimitive(symbol)) {
+        m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
+    }
     if (spec.lower == "=" && m_types.isBoolean(returnType)) {
         Symbol* complement = m_symbolTable.createSymbol(SymbolKind::Subprogram, "/=", "/=");
         complement->parameters = symbol->parameters;

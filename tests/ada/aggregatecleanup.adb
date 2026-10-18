@@ -11,6 +11,9 @@ procedure AggregateCleanup is
     type Guard is new Ada.Finalization.Controlled with record
         Value : Integer := Default_Value;
     end record;
+    overriding procedure Initialize (Object : in out Guard);
+    overriding procedure Adjust (Object : in out Guard);
+    overriding procedure Finalize (Object : in out Guard);
     overriding procedure Initialize (Object : in out Guard) is
     begin
         Live := Live + 1;

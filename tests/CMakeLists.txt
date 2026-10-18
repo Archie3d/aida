@@ -800,3 +800,8 @@ add_determinism_test(arrayconversions SOURCE arrayconversions.adb)
 add_ada_test(arrayconversionchecks SOURCES arrayconversionchecks.adb)
 add_ada_error_test(arrayconversionerrors SOURCES arrayconversionerrors.adb)
 add_determinism_test(arrayconversionchecks SOURCE arrayconversionchecks.adb)
+
+add_ada_test(primitiveaudit SOURCES primitive_audit_model.ads primitive_audit_model.adb primitiveaudit.adb)
+add_determinism_test(primitiveaudit SOURCE primitiveaudit.adb)
+add_ada_error_test(primitiveauditerrors SOURCES primitiveauditerrors.adb)
+add_ada_error_test(primitiveplacementerrors SOURCES primitiveplacementerrors.adb)

@@ -48,6 +48,8 @@ procedure ControlledAllocations is
     end Recursive;
     Limited_Live : Integer := 0;
     type Limited_Guard is new Ada.Finalization.Limited_Controlled with null record;
+    overriding procedure Initialize (Object : in out Limited_Guard);
+    overriding procedure Finalize (Object : in out Limited_Guard);
     overriding procedure Initialize (Object : in out Limited_Guard) is
     begin
         Limited_Live := Limited_Live + 1;
