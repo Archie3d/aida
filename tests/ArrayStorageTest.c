@@ -198,7 +198,7 @@ int main(void)
     __ada_save_occurrence(&saved, &occurrence);
     __ada_trace_leave(&callee);
     __ada_trace_leave(&caller);
-    CHECK(__ada_task_context()->m_currentTrace == NULL);
+    CHECK(__ada_task_context()->currentTrace == NULL);
     __ada_array_release(&owner);
     __ada_reraise(&saved);
     __ada_exception_capture(&occurrence, &owner);
@@ -269,7 +269,7 @@ int main(void)
     __ada_finalize_to(&finalizations, NULL);
     CHECK(finalizationOrder == 0 && __ada_exception == NULL);
     __ada_array_release(&owner);
-    CHECK(liveAllocations == 0 && __ada_task_context()->m_registeredFinalizations == NULL);
+    CHECK(liveAllocations == 0 && __ada_task_context()->registeredFinalizations == NULL);
     __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeValue);
     __ada_finalization_reserve(&finalizations, &owner, &secondObject, finalizeValue);
     CHECK(liveAllocations == 4);
@@ -278,7 +278,7 @@ int main(void)
     CHECK(liveAllocations == 4);
     CHECK(__ada_controlled_finalize(&firstObject) == 0 && finalizationOrder == 1);
     __ada_finalize_to(&finalizations, NULL);
-    CHECK(finalizationOrder == 1 && __ada_task_context()->m_registeredFinalizations == NULL);
+    CHECK(finalizationOrder == 1 && __ada_task_context()->registeredFinalizations == NULL);
     __ada_array_release(&owner);
     CHECK(liveAllocations == 0);
     /* Library registrations outlive elaboration arenas. Shutdown must skip
@@ -287,7 +287,7 @@ int main(void)
     finalizationOrder = 0;
     failNext = 1;
     __ada_library_reserve(&firstObject, finalizeValue);
-    CHECK(__ada_main_context.m_libraryFinalizations == NULL && liveAllocations == 0 && __ada_exception == ADA_STORAGE_ERROR);
+    CHECK(__ada_main_context.libraryFinalizations == NULL && liveAllocations == 0 && __ada_exception == ADA_STORAGE_ERROR);
     __ada_exception = NULL;
     __ada_library_reserve(&firstObject, finalizeValue);
     __ada_controlled_activate(&firstObject, finalizeValue);
@@ -295,8 +295,8 @@ int main(void)
     CHECK(liveAllocations == 4);
     __ada_raise_message(ADA_STORAGE_ERROR, "library failure", 15);
     __ada_library_finalize();
-    CHECK(finalizationOrder == 1 && __ada_task_context()->m_registeredFinalizations == NULL && __ada_main_context.m_libraryFinalizations == NULL);
-    CHECK(__ada_main_context.m_libraryFinalizationArena == NULL && __ada_exception == ADA_STORAGE_ERROR);
+    CHECK(finalizationOrder == 1 && __ada_task_context()->registeredFinalizations == NULL && __ada_main_context.libraryFinalizations == NULL);
+    CHECK(__ada_main_context.libraryFinalizationArena == NULL && __ada_exception == ADA_STORAGE_ERROR);
     __ada_exception_capture(&occurrence, &owner);
     CHECK(occurrence.length == 15 && memcmp(occurrence.message, "library failure", 15) == 0);
     __ada_array_release(&owner);
@@ -311,7 +311,7 @@ int main(void)
     failNext = 1;
     __ada_library_finalize();
     CHECK(finalizationOrder == 21 && liveAllocations == 0 && failNext == 1);
-    CHECK(__ada_exception == ADA_PROGRAM_ERROR && __ada_task_context()->m_registeredFinalizations == NULL);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR && __ada_task_context()->registeredFinalizations == NULL);
     failNext = 0;
     __ada_exception = NULL;
     /* Every allocation point in collection creation, object allocation and
@@ -333,7 +333,7 @@ int main(void)
         failAfter = -1;
         __ada_finalize_to(&finalizations, NULL);
         __ada_array_release(&owner);
-        CHECK(liveAllocations == 0 && __ada_task_context()->m_registeredAllocations == NULL && __ada_task_context()->m_registeredFinalizations == NULL);
+        CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL && __ada_task_context()->registeredFinalizations == NULL);
         __ada_exception = NULL;
     }
     void* collection = __ada_collection_create(&finalizations, &owner);
@@ -353,7 +353,7 @@ int main(void)
     __ada_finalize_to(&finalizations, NULL);
     __ada_array_release(&owner);
     CHECK(finalizationOrder == 21 && __ada_exception == ADA_PROGRAM_ERROR);
-    CHECK(liveAllocations == 0 && __ada_task_context()->m_registeredAllocations == NULL && __ada_task_context()->m_registeredFinalizations == NULL);
+    CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL && __ada_task_context()->registeredFinalizations == NULL);
     __ada_exception = NULL;
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };
@@ -393,7 +393,7 @@ int main(void)
     __ada_tag_check_level(&object, 0);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR);
     __ada_exception = NULL;
-    tag->m_needsFinalization = 1;
+    tag->needsFinalization = 1;
     __ada_tag_check_copy(&object);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR);
     __ada_exception = NULL;
@@ -401,7 +401,7 @@ int main(void)
     __ada_tagged_result(&transfer, &object);
     CHECK(transfer == NULL && __ada_exception == ADA_PROGRAM_ERROR && liveAllocations == 3);
     __ada_exception = NULL;
-    tag->m_parts = managedParts;
+    tag->parts = managedParts;
     for (int failure = 0; failure < 10; ++failure) {
         failAfter = failure;
         void* copy = __ada_tagged_owned_copy(&finalizations, &owner, &object);
@@ -409,7 +409,7 @@ int main(void)
         CHECK(copy != NULL || __ada_exception == ADA_STORAGE_ERROR);
         __ada_finalize_to(&finalizations, NULL);
         __ada_array_release(&owner);
-        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->m_registeredFinalizations == NULL);
+        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->registeredFinalizations == NULL);
         __ada_exception = NULL;
     }
     for (int failure = 0; failure < 10; ++failure) {
@@ -420,8 +420,8 @@ int main(void)
         CHECK(copy != NULL || __ada_exception == ADA_STORAGE_ERROR);
         __ada_finalize_to(&finalizations, NULL);
         __ada_array_release(&owner);
-        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->m_registeredFinalizations == NULL);
-        CHECK(__ada_task_context()->m_registeredAllocations == NULL);
+        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->registeredFinalizations == NULL);
+        CHECK(__ada_task_context()->registeredAllocations == NULL);
         __ada_exception = NULL;
     }
     for (int failure = 0; failure < 12; ++failure) {
@@ -441,14 +441,14 @@ int main(void)
         failAfter = -1;
         __ada_finalize_to(&finalizations, NULL);
         __ada_array_release(&owner);
-        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->m_registeredFinalizations == NULL);
-        CHECK(__ada_task_context()->m_registeredAllocations == NULL);
+        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_task_context()->registeredFinalizations == NULL);
+        CHECK(__ada_task_context()->registeredAllocations == NULL);
         __ada_exception = NULL;
     }
     managedFail = 2;
     CHECK(__ada_tagged_owned_copy(&finalizations, &owner, &object) == NULL);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR && managedLive == 0 && liveAllocations == 3);
-    CHECK(finalizations == NULL && owner == NULL && __ada_task_context()->m_registeredFinalizations == NULL);
+    CHECK(finalizations == NULL && owner == NULL && __ada_task_context()->registeredFinalizations == NULL);
     __ada_exception = NULL;
     releaseTags();
     CHECK(liveAllocations == 0);

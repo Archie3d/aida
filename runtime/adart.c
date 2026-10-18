@@ -32,7 +32,7 @@ const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
 AdaTaskContext __ada_main_context;
 static _Thread_local AdaTaskContext* currentTaskContext = &__ada_main_context;
 
-_Static_assert(offsetof(AdaTaskContext, m_exception) == 0, "pending exception context ABI");
+_Static_assert(offsetof(AdaTaskContext, exception) == 0, "pending exception context ABI");
 _Static_assert(sizeof(AdaTraceFrame) == 24, "trace frame ABI");
 _Static_assert(offsetof(AdaTraceFrame, location) == 16, "trace location ABI");
 
@@ -50,13 +50,13 @@ AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context)
 
 int __ada_task_context_dispose(AdaTaskContext* context)
 {
-    if (context == NULL || context->m_currentTrace != NULL
-        || context->m_registeredFinalizations != NULL || context->m_registeredAllocations != NULL
-        || context->m_libraryFinalizations != NULL || context->m_libraryFinalizationArena != NULL
-        || context->m_libraryFinalizing) {
+    if (context == NULL || context->currentTrace != NULL
+        || context->registeredFinalizations != NULL || context->registeredAllocations != NULL
+        || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
+        || context->libraryFinalizing) {
         return 0;
     }
-    free(context->m_pendingMessage);
+    free(context->pendingMessage);
     memset(context, 0, sizeof *context);
     return 1;
 }
@@ -117,24 +117,24 @@ int __ada_get_exit_status(void)
 AdaTaskContext* __ada_trace_enter(AdaTraceFrame* frame, const char* routine, const char* location)
 {
     AdaTaskContext* context = __ada_task_context();
-    frame->previous = context->m_currentTrace;
+    frame->previous = context->currentTrace;
     frame->routine = routine;
     frame->location = location;
-    context->m_currentTrace = frame;
+    context->currentTrace = frame;
     return context;
 }
 
 void __ada_trace_location(const char* location)
 {
     AdaTaskContext* context = __ada_task_context();
-    if (context->m_currentTrace != NULL) {
-        context->m_currentTrace->location = location;
+    if (context->currentTrace != NULL) {
+        context->currentTrace->location = location;
     }
 }
 
 void __ada_trace_leave_context(AdaTaskContext* context, AdaTraceFrame* frame)
 {
-    context->m_currentTrace = frame->previous;
+    context->currentTrace = frame->previous;
 }
 
 void __ada_trace_leave(AdaTraceFrame* frame)
@@ -152,15 +152,15 @@ static void copyTrace(AdaExceptionOccurrence* target, const AdaExceptionOccurren
 void __ada_raise(const AdaException* exception)
 {
     AdaTaskContext* context = __ada_task_context();
-    free(context->m_pendingMessage);
-    context->m_pendingMessage = NULL;
-    context->m_pendingMessageLength = 0;
-    context->m_exception = exception == NULL ? ADA_PROGRAM_ERROR : exception;
-    context->m_pendingOrigin = context->m_currentTrace == NULL ? NULL : context->m_currentTrace->location;
-    context->m_pendingTraceCount = 0;
-    for (AdaTraceFrame* frame = context->m_currentTrace;
-         frame != NULL && context->m_pendingTraceCount < ADA_TRACE_CAPACITY; frame = frame->previous) {
-        context->m_pendingTrace[context->m_pendingTraceCount++] = (AdaTraceEntry) { frame->routine, frame->location };
+    free(context->pendingMessage);
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
+    context->exception = exception == NULL ? ADA_PROGRAM_ERROR : exception;
+    context->pendingOrigin = context->currentTrace == NULL ? NULL : context->currentTrace->location;
+    context->pendingTraceCount = 0;
+    for (AdaTraceFrame* frame = context->currentTrace;
+         frame != NULL && context->pendingTraceCount < ADA_TRACE_CAPACITY; frame = frame->previous) {
+        context->pendingTrace[context->pendingTraceCount++] = (AdaTraceEntry) { frame->routine, frame->location };
     }
 }
 
@@ -181,34 +181,34 @@ void __ada_raise_message(const AdaException* exception, const char* message, int
         memcpy(copy, message, (size_t)length);
     }
     __ada_raise(exception);
-    context->m_pendingMessage = copy;
-    context->m_pendingMessageLength = length;
+    context->pendingMessage = copy;
+    context->pendingMessageLength = length;
 }
 
 void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner)
 {
     AdaTaskContext* context = __ada_task_context();
-    const AdaException* identity = context->m_exception;
-    int length = context->m_pendingMessageLength;
+    const AdaException* identity = context->exception;
+    int length = context->pendingMessageLength;
     char* copy = NULL;
     if (length != 0) {
         copy = __ada_array_local(owner, 1, length, 1);
         if (copy == NULL) {
             return; /* The allocator has replaced the pending exception. */
         }
-        memcpy(copy, context->m_pendingMessage, (size_t)length);
+        memcpy(copy, context->pendingMessage, (size_t)length);
     }
     target->identity = identity;
     target->message = copy;
     target->length = length;
-    target->origin = context->m_pendingOrigin;
-    target->traceCount = context->m_pendingTraceCount;
-    memcpy(target->trace, context->m_pendingTrace,
-           (size_t)context->m_pendingTraceCount * sizeof *context->m_pendingTrace);
-    free(context->m_pendingMessage);
-    context->m_pendingMessage = NULL;
-    context->m_pendingMessageLength = 0;
-    context->m_exception = NULL;
+    target->origin = context->pendingOrigin;
+    target->traceCount = context->pendingTraceCount;
+    memcpy(target->trace, context->pendingTrace,
+           (size_t)context->pendingTraceCount * sizeof *context->pendingTrace);
+    free(context->pendingMessage);
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
+    context->exception = NULL;
 }
 
 void __ada_reraise(const AdaExceptionOccurrence* occurrence)
@@ -218,11 +218,11 @@ void __ada_reraise(const AdaExceptionOccurrence* occurrence)
         __ada_raise_message(occurrence->identity, occurrence->message, occurrence->length);
         // A failure while copying the message is a fresh Storage_Error. Only
         // a successful re-raise restores the original diagnostic snapshot.
-        if (context->m_exception == occurrence->identity && context->m_pendingMessageLength == occurrence->length) {
-            context->m_pendingOrigin = occurrence->origin;
-            context->m_pendingTraceCount = occurrence->traceCount;
-            memcpy(context->m_pendingTrace, occurrence->trace,
-                   (size_t)context->m_pendingTraceCount * sizeof *context->m_pendingTrace);
+        if (context->exception == occurrence->identity && context->pendingMessageLength == occurrence->length) {
+            context->pendingOrigin = occurrence->origin;
+            context->pendingTraceCount = occurrence->traceCount;
+            memcpy(context->pendingTrace, occurrence->trace,
+                   (size_t)context->pendingTraceCount * sizeof *context->pendingTrace);
         }
     }
 }
@@ -819,20 +819,20 @@ void __ada_unhandled(const AdaException* exception)
     AdaTaskContext* context = __ada_task_context();
     fflush(stdout);
     fprintf(stderr, "\nraised %s", exception == NULL ? "EXCEPTION" : exception->name);
-    if (context->m_pendingMessageLength != 0) {
+    if (context->pendingMessageLength != 0) {
         fputs(" : ", stderr);
-        fwrite(context->m_pendingMessage, 1, (size_t)context->m_pendingMessageLength, stderr);
+        fwrite(context->pendingMessage, 1, (size_t)context->pendingMessageLength, stderr);
     }
     fputc('\n', stderr);
-    free(context->m_pendingMessage);
-    context->m_pendingMessage = NULL;
-    context->m_pendingMessageLength = 0;
+    free(context->pendingMessage);
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
 }
 
 _Static_assert(sizeof(AdaArrayResult) == 24, "array result ABI");
-_Static_assert(offsetof(AdaArrayResult, m_first) == 8, "array result bounds ABI");
-_Static_assert(offsetof(AdaArrayResult, m_last) == 12, "array result bounds ABI");
-_Static_assert(offsetof(AdaArrayResult, m_size) == 16, "array result size ABI");
+_Static_assert(offsetof(AdaArrayResult, first) == 8, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, last) == 12, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, size) == 16, "array result size ABI");
 
 /* Internal Ada ABI: an unconstrained result carries a transfer buffer, its
    first dimension's bounds, and the buffer size. The emitter appends any
@@ -998,9 +998,9 @@ static int requireLibraryOwner(void)
 static AdaFinalization* findFinalization(void* object)
 {
     AdaTaskContext* context = __ada_task_context();
-    for (AdaFinalization* record = context->m_registeredFinalizations; record != NULL;
-         record = record->m_registeredNext) {
-        if (record->m_object == object) {
+    for (AdaFinalization* record = context->registeredFinalizations; record != NULL;
+         record = record->registeredNext) {
+        if (record->object == object) {
             return record;
         }
     }
@@ -1011,12 +1011,12 @@ static AdaFinalization* findFinalization(void* object)
 static void unregisterFinalization(AdaFinalization* record)
 {
     AdaTaskContext* context = __ada_task_context();
-    AdaFinalization** link = &context->m_registeredFinalizations;
+    AdaFinalization** link = &context->registeredFinalizations;
     while (*link != NULL && *link != record) {
-        link = &(*link)->m_registeredNext;
+        link = &(*link)->registeredNext;
     }
     if (*link != NULL) {
-        *link = record->m_registeredNext;
+        *link = record->registeredNext;
     }
 }
 
@@ -1024,12 +1024,12 @@ void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
                              void* object, void (*finalize)(void*))
 {
     AdaTaskContext* context = __ada_task_context();
-    record->m_next = *owner;
-    record->m_object = object;
-    record->m_finalize = finalize;
-    record->m_registeredNext = context->m_registeredFinalizations;
-    record->m_active = 1;
-    context->m_registeredFinalizations = record;
+    record->next = *owner;
+    record->object = object;
+    record->finalize = finalize;
+    record->registeredNext = context->registeredFinalizations;
+    record->active = 1;
+    context->registeredFinalizations = record;
     *owner = record;
 }
 
@@ -1041,44 +1041,44 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
     }
     /* Suspend the complete pending occurrence without allocating. Ada calls
        made by a finalizer must start with a clear pending exception status. */
-    const AdaException* savedException = context->m_exception;
-    char* savedMessage = context->m_pendingMessage;
-    int savedLength = context->m_pendingMessageLength;
-    const char* savedOrigin = context->m_pendingOrigin;
-    int savedCount = context->m_pendingTraceCount;
+    const AdaException* savedException = context->exception;
+    char* savedMessage = context->pendingMessage;
+    int savedLength = context->pendingMessageLength;
+    const char* savedOrigin = context->pendingOrigin;
+    int savedCount = context->pendingTraceCount;
     AdaTraceEntry savedTrace[ADA_TRACE_CAPACITY];
-    memcpy(savedTrace, context->m_pendingTrace, (size_t)savedCount * sizeof *savedTrace);
-    context->m_exception = NULL;
-    context->m_pendingMessage = NULL;
-    context->m_pendingMessageLength = 0;
+    memcpy(savedTrace, context->pendingTrace, (size_t)savedCount * sizeof *savedTrace);
+    context->exception = NULL;
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
     int failed = 0;
     while (*owner != checkpoint) {
         AdaFinalization* record = *owner;
         /* Pop before calling: nested cleanup cannot finalize this object twice. */
-        *owner = record->m_next;
-        if (record->m_active) {
-            record->m_active = 0;
-            record->m_finalize(record->m_object);
+        *owner = record->next;
+        if (record->active) {
+            record->active = 0;
+            record->finalize(record->object);
         }
         unregisterFinalization(record);
-        if (context->m_exception != NULL) {
+        if (context->exception != NULL) {
             failed = 1;
         }
-        free(context->m_pendingMessage);
-        context->m_pendingMessage = NULL;
-        context->m_pendingMessageLength = 0;
-        context->m_exception = NULL;
+        free(context->pendingMessage);
+        context->pendingMessage = NULL;
+        context->pendingMessageLength = 0;
+        context->exception = NULL;
     }
     if (failed) {
         free(savedMessage);
         __ada_raise(ADA_PROGRAM_ERROR);
     } else {
-        context->m_exception = savedException;
-        context->m_pendingMessage = savedMessage;
-        context->m_pendingMessageLength = savedLength;
-        context->m_pendingOrigin = savedOrigin;
-        context->m_pendingTraceCount = savedCount;
-        memcpy(context->m_pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
+        context->exception = savedException;
+        context->pendingMessage = savedMessage;
+        context->pendingMessageLength = savedLength;
+        context->pendingOrigin = savedOrigin;
+        context->pendingTraceCount = savedCount;
+        memcpy(context->pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
     }
 }
 
@@ -1089,15 +1089,15 @@ void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* obj
         return;
     }
     __ada_finalization_push(owner, record, object, finalize);
-    record->m_active = 0;
+    record->active = 0;
 }
 
 void __ada_controlled_activate(void* object, void (*finalize)(void*))
 {
     AdaFinalization* record = findFinalization(object);
     if (record != NULL) {
-        record->m_finalize = finalize;
-        record->m_active = 1;
+        record->finalize = finalize;
+        record->active = 1;
     }
 }
 
@@ -1109,7 +1109,7 @@ void __ada_library_reserve(void* object, void (*finalize)(void*))
     if (!requireLibraryOwner()) {
         return;
     }
-    __ada_finalization_reserve(&__ada_main_context.m_libraryFinalizations, &__ada_main_context.m_libraryFinalizationArena, object, finalize);
+    __ada_finalization_reserve(&__ada_main_context.libraryFinalizations, &__ada_main_context.libraryFinalizationArena, object, finalize);
 }
 
 void __ada_library_finalize(void)
@@ -1117,59 +1117,59 @@ void __ada_library_finalize(void)
     if (!requireLibraryOwner()) {
         return;
     }
-    if (__ada_main_context.m_libraryFinalizing) {
+    if (__ada_main_context.libraryFinalizing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    __ada_main_context.m_libraryFinalizing = 1;
-    __ada_master_await(&__ada_main_context, &__ada_main_context.m_libraryMaster);
-    __ada_finalize_to(&__ada_main_context.m_libraryFinalizations, NULL);
-    __ada_array_release(&__ada_main_context.m_libraryFinalizationArena);
-    __ada_master_leave(&__ada_main_context, &__ada_main_context.m_libraryMaster);
-    __ada_main_context.m_libraryFinalizing = 0;
+    __ada_main_context.libraryFinalizing = 1;
+    __ada_master_await(&__ada_main_context, &__ada_main_context.libraryMaster);
+    __ada_finalize_to(&__ada_main_context.libraryFinalizations, NULL);
+    __ada_array_release(&__ada_main_context.libraryFinalizationArena);
+    __ada_master_leave(&__ada_main_context, &__ada_main_context.libraryMaster);
+    __ada_main_context.libraryFinalizing = 0;
 }
 
 void __ada_library_enter(void)
 {
     if (requireLibraryOwner()) {
-        __ada_master_enter(&__ada_main_context, &__ada_main_context.m_libraryMaster, ADA_MASTER_LIBRARY);
+        __ada_master_enter(&__ada_main_context, &__ada_main_context.libraryMaster, ADA_MASTER_LIBRARY);
     }
 }
 
 void __ada_library_activate(void)
 {
     if (requireLibraryOwner()) {
-        __ada_master_activate(&__ada_main_context, &__ada_main_context.m_libraryMaster);
+        __ada_master_activate(&__ada_main_context, &__ada_main_context.libraryMaster);
     }
 }
 
 typedef struct AdaCollection AdaCollection;
 typedef struct AdaAllocation
 {
-    struct AdaAllocation* m_next;
-    struct AdaAllocation* m_registeredNext;
-    AdaCollection* m_collection;
-    void* m_object;
-    AdaFinalization* m_finalizations;
-    void* m_arena;
-    int m_arenaOwnsObject;
+    struct AdaAllocation* next;
+    struct AdaAllocation* registeredNext;
+    AdaCollection* collection;
+    void* object;
+    AdaFinalization* finalizations;
+    void* arena;
+    int arenaOwnsObject;
 } AdaAllocation;
 
 struct AdaCollection
 {
-    AdaMaster m_master;
-    AdaTaskContext* m_context;
-    AdaAllocation* m_allocations;
-    int m_closing;
+    AdaMaster master;
+    AdaTaskContext* context;
+    AdaAllocation* allocations;
+    int closing;
 };
 
 
 static AdaAllocation* findAllocation(void* address)
 {
     AdaTaskContext* context = __ada_task_context();
-    for (AdaAllocation* allocation = context->m_registeredAllocations; allocation != NULL;
-         allocation = allocation->m_registeredNext) {
-        if (allocation->m_object == address) {
+    for (AdaAllocation* allocation = context->registeredAllocations; allocation != NULL;
+         allocation = allocation->registeredNext) {
+        if (allocation->object == address) {
             return allocation;
         }
     }
@@ -1180,11 +1180,11 @@ void __ada_collection_activate(void* owner)
 {
     AdaCollection* collection = owner;
     AdaTaskContext* context = __ada_task_context();
-    if (collection == NULL || collection->m_context != context || collection->m_closing) {
+    if (collection == NULL || collection->context != context || collection->closing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    __ada_master_activate(context, &collection->m_master);
+    __ada_master_activate(context, &collection->master);
 }
 
 static void releaseAllocation(AdaAllocation* allocation)
@@ -1192,20 +1192,20 @@ static void releaseAllocation(AdaAllocation* allocation)
     AdaTaskContext* context = __ada_task_context();
     // Unlink before calling user code: a finalizer may deallocate another
     // member of this collection. Keep the object alive until all parts finish.
-    AdaAllocation** link = &allocation->m_collection->m_allocations;
+    AdaAllocation** link = &allocation->collection->allocations;
     while (*link != allocation) {
-        link = &(*link)->m_next;
+        link = &(*link)->next;
     }
-    *link = allocation->m_next;
-    link = &context->m_registeredAllocations;
+    *link = allocation->next;
+    link = &context->registeredAllocations;
     while (*link != allocation) {
-        link = &(*link)->m_registeredNext;
+        link = &(*link)->registeredNext;
     }
-    *link = allocation->m_registeredNext;
-    __ada_finalize_to(&allocation->m_finalizations, NULL);
-    __ada_array_release(&allocation->m_arena);
-    if (!allocation->m_arenaOwnsObject) {
-        free(allocation->m_object);
+    *link = allocation->registeredNext;
+    __ada_finalize_to(&allocation->finalizations, NULL);
+    __ada_array_release(&allocation->arena);
+    if (!allocation->arenaOwnsObject) {
+        free(allocation->object);
     }
     free(allocation);
 }
@@ -1223,12 +1223,12 @@ static int releaseControlledAllocation(void* address)
 static void finalizeCollection(void* object)
 {
     AdaCollection* collection = object;
-    collection->m_closing = 1;
-    __ada_master_await(collection->m_context, &collection->m_master);
-    while (collection->m_allocations != NULL) {
-        releaseAllocation(collection->m_allocations);
+    collection->closing = 1;
+    __ada_master_await(collection->context, &collection->master);
+    while (collection->allocations != NULL) {
+        releaseAllocation(collection->allocations);
     }
-    __ada_master_leave(collection->m_context, &collection->m_master);
+    __ada_master_leave(collection->context, &collection->master);
 }
 
 void* __ada_collection_create(AdaFinalization** owner, void** arena)
@@ -1238,21 +1238,21 @@ void* __ada_collection_create(AdaFinalization** owner, void** arena)
         if (!requireLibraryOwner()) {
             return NULL;
         }
-        owner = &__ada_main_context.m_libraryFinalizations;
-        arena = &__ada_main_context.m_libraryFinalizationArena;
+        owner = &__ada_main_context.libraryFinalizations;
+        arena = &__ada_main_context.libraryFinalizationArena;
     }
     AdaCollection* collection = __ada_array_local(arena, 1, 1, sizeof *collection);
     if (collection == NULL) {
         return NULL;
     }
     memset(collection, 0, sizeof *collection);
-    collection->m_context = context;
+    collection->context = context;
     __ada_finalization_reserve(owner, arena, collection, finalizeCollection);
-    if (context->m_exception != NULL) {
+    if (context->exception != NULL) {
         return NULL;
     }
     __ada_controlled_activate(collection, finalizeCollection);
-    __ada_master_enter(context, &collection->m_master, ADA_MASTER_COLLECTION);
+    __ada_master_enter(context, &collection->master, ADA_MASTER_COLLECTION);
     return collection;
 }
 
@@ -1260,7 +1260,7 @@ void* __ada_collection_allocate(void* owner, long size)
 {
     AdaTaskContext* context = __ada_task_context();
     AdaCollection* collection = owner;
-    if (collection == NULL || collection->m_context != context || collection->m_closing) {
+    if (collection == NULL || collection->context != context || collection->closing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return NULL;
     }
@@ -1269,17 +1269,17 @@ void* __ada_collection_allocate(void* owner, long size)
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    allocation->m_object = __ada_allocate(size);
-    if (allocation->m_object == NULL) {
+    allocation->object = __ada_allocate(size);
+    if (allocation->object == NULL) {
         free(allocation);
         return NULL;
     }
-    allocation->m_collection = collection;
-    allocation->m_next = collection->m_allocations;
-    collection->m_allocations = allocation;
-    allocation->m_registeredNext = context->m_registeredAllocations;
-    context->m_registeredAllocations = allocation;
-    return allocation->m_object;
+    allocation->collection = collection;
+    allocation->next = collection->allocations;
+    collection->allocations = allocation;
+    allocation->registeredNext = context->registeredAllocations;
+    context->registeredAllocations = allocation;
+    return allocation->object;
 }
 
 void __ada_allocation_reserve(void* object, void* part, void (*finalize)(void*))
@@ -1289,7 +1289,7 @@ void __ada_allocation_reserve(void* object, void* part, void (*finalize)(void*))
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    __ada_finalization_reserve(&allocation->m_finalizations, &allocation->m_arena, part, finalize);
+    __ada_finalization_reserve(&allocation->finalizations, &allocation->arena, part, finalize);
 }
 
 int __ada_controlled_finalize(void* object)
@@ -1297,20 +1297,20 @@ int __ada_controlled_finalize(void* object)
     AdaTaskContext* context = __ada_task_context();
     AdaFinalization* record = findFinalization(object);
     if (record == NULL) {
-        context->m_exception = NULL;
+        context->exception = NULL;
         return 1;
     }
-    if (!record->m_active) {
+    if (!record->active) {
         return 0;
     }
-    record->m_active = 0;
+    record->active = 0;
     /* Finalize one object without removing its persistent registration. Reuse
        the exception suspension and Program_Error handling of scope cleanup. */
-    AdaFinalization current = { NULL, object, record->m_finalize, NULL, 1 };
+    AdaFinalization current = { NULL, object, record->finalize, NULL, 1 };
     AdaFinalization* owner = &current;
     __ada_finalize_to(&owner, NULL);
-    int failed = context->m_exception != NULL;
-    context->m_exception = NULL;
+    int failed = context->exception != NULL;
+    context->exception = NULL;
     return failed;
 }
 
@@ -1319,19 +1319,19 @@ int __ada_controlled_adjust(void* object, void (*adjust)(void*))
     AdaTaskContext* context = __ada_task_context();
     AdaFinalization* record = findFinalization(object);
     if (record == NULL) {
-        context->m_exception = NULL;
+        context->exception = NULL;
         return 1;
     }
-    record->m_active = 0;
+    record->active = 0;
     adjust(object);
-    if (context->m_exception != NULL) {
+    if (context->exception != NULL) {
         /* The emitter accumulates failures while adjusting the other parts,
            then raises Program_Error. A failed adjustment is not finalized. */
         __ada_raise(ADA_PROGRAM_ERROR);
-        context->m_exception = NULL;
+        context->exception = NULL;
         return 1;
     }
-    record->m_active = 1;
+    record->active = 1;
     return 0;
 }
 
@@ -1339,23 +1339,23 @@ int __ada_controlled_adjust(void* object, void (*adjust)(void*))
    inactive until each adjustment succeeds, just as for statically typed copies. */
 typedef struct TaggedCopyContext
 {
-    AdaFinalization** m_owner;
-    void** m_arena;
-    int m_failed;
+    AdaFinalization** owner;
+    void** arena;
+    int failed;
 } TaggedCopyContext;
 
 static void reserveTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
 {
     (void)adjust;
     TaggedCopyContext* copy = context;
-    __ada_finalization_reserve(copy->m_owner, copy->m_arena, part, finalize);
+    __ada_finalization_reserve(copy->owner, copy->arena, part, finalize);
 }
 
 static void adjustTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
 {
     (void)finalize;
     TaggedCopyContext* copy = context;
-    copy->m_failed |= __ada_controlled_adjust(part, adjust);
+    copy->failed |= __ada_controlled_adjust(part, adjust);
 }
 
 static void finalizeTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
@@ -1363,27 +1363,27 @@ static void finalizeTaggedPart(void* part, void (*finalize)(void*), void (*adjus
     (void)finalize;
     (void)adjust;
     TaggedCopyContext* copy = context;
-    copy->m_failed |= __ada_controlled_finalize(part);
+    copy->failed |= __ada_controlled_finalize(part);
 }
 
 static void copyTaggedObject(void* target, const void* source, TaggedCopyContext* copy, int reserve)
 {
     AdaTaskContext* context = __ada_task_context();
     const AdaTag* tag = *(const AdaTag* const*)source;
-    if (tag->m_hasLimitedParts) {
+    if (tag->hasLimitedParts) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    if (reserve && tag->m_parts != NULL) {
-        tag->m_parts(target, reserveTaggedPart, copy, 0);
-        if (context->m_exception != NULL) {
+    if (reserve && tag->parts != NULL) {
+        tag->parts(target, reserveTaggedPart, copy, 0);
+        if (context->exception != NULL) {
             return;
         }
     }
     memcpy(target, source, tag->size);
-    if (tag->m_parts != NULL) {
-        tag->m_parts(target, adjustTaggedPart, copy, 0);
-        if (copy->m_failed) {
+    if (tag->parts != NULL) {
+        tag->parts(target, adjustTaggedPart, copy, 0);
+        if (copy->failed) {
             __ada_raise(ADA_PROGRAM_ERROR);
         }
     }
@@ -1396,8 +1396,8 @@ void* __ada_tagged_owned_copy(AdaFinalization** owner, void** arena, const void*
         if (!requireLibraryOwner()) {
             return NULL;
         }
-        owner = &__ada_main_context.m_libraryFinalizations;
-        arena = &__ada_main_context.m_libraryFinalizationArena;
+        owner = &__ada_main_context.libraryFinalizations;
+        arena = &__ada_main_context.libraryFinalizationArena;
     }
     const AdaTag* tag = *(const AdaTag* const*)source;
     AdaFinalization* mark = *owner;
@@ -1407,7 +1407,7 @@ void* __ada_tagged_owned_copy(AdaFinalization** owner, void** arena, const void*
         TaggedCopyContext copy = { owner, arena, 0 };
         copyTaggedObject(target, source, &copy, 1);
     }
-    if (context->m_exception != NULL) {
+    if (context->exception != NULL) {
         __ada_finalize_to(owner, mark);
         __ada_array_rewind(arena, arenaMark);
         return NULL;
@@ -1424,9 +1424,9 @@ void* __ada_tagged_allocation(void* collection, const void* source)
         return NULL;
     }
     AdaAllocation* allocation = findAllocation(target);
-    TaggedCopyContext copy = { &allocation->m_finalizations, &allocation->m_arena, 0 };
+    TaggedCopyContext copy = { &allocation->finalizations, &allocation->arena, 0 };
     copyTaggedObject(target, source, &copy, 1);
-    if (context->m_exception != NULL) {
+    if (context->exception != NULL) {
         __ada_deallocate(target);
         return NULL;
     }
@@ -1448,9 +1448,9 @@ void __ada_tagged_assign(void* target, const void* source, AdaFinalization** own
         return;
     }
     TaggedCopyContext copy = { owner, arena, 0 };
-    if (tag->m_parts != NULL) {
-        tag->m_parts(target, finalizeTaggedPart, &copy, 1);
-        if (copy.m_failed) {
+    if (tag->parts != NULL) {
+        tag->parts(target, finalizeTaggedPart, &copy, 1);
+        if (copy.failed) {
             __ada_raise(ADA_PROGRAM_ERROR);
             return;
         }
@@ -1463,8 +1463,8 @@ void* __ada_construction_owner(void* allocation)
     if (allocation == NULL && !requireLibraryOwner()) {
         return NULL;
     }
-    return allocation == NULL ? (void*)&__ada_main_context.m_libraryFinalizations
-        : (void*)&findAllocation(allocation)->m_finalizations;
+    return allocation == NULL ? (void*)&__ada_main_context.libraryFinalizations
+        : (void*)&findAllocation(allocation)->finalizations;
 }
 
 void* __ada_construction_arena(void* allocation)
@@ -1472,8 +1472,8 @@ void* __ada_construction_arena(void* allocation)
     if (allocation == NULL && !requireLibraryOwner()) {
         return NULL;
     }
-    return allocation == NULL ? (void*)&__ada_main_context.m_libraryFinalizationArena
-        : (void*)&findAllocation(allocation)->m_arena;
+    return allocation == NULL ? (void*)&__ada_main_context.libraryFinalizationArena
+        : (void*)&findAllocation(allocation)->arena;
 }
 
 int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), void* tag)
@@ -1483,11 +1483,11 @@ int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), voi
     if (record == NULL) {
         return 1;
     }
-    record->m_active = 0;
+    record->active = 0;
     adjust(object, tag);
-    int failed = context->m_exception != NULL;
-    context->m_exception = NULL;
-    record->m_active = !failed;
+    int failed = context->exception != NULL;
+    context->exception = NULL;
+    record->active = !failed;
     return failed;
 }
 
@@ -1498,13 +1498,13 @@ int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*),
     if (record == NULL) {
         return 1;
     }
-    if (!record->m_active) {
+    if (!record->active) {
         return 0;
     }
-    record->m_active = 0;
+    record->active = 0;
     finalize(object, tag);
-    int failed = context->m_exception != NULL;
-    context->m_exception = NULL;
+    int failed = context->exception != NULL;
+    context->exception = NULL;
     return failed;
 }
 
@@ -1514,7 +1514,7 @@ void* __ada_collection_begin(void* owner)
 {
     AdaTaskContext* context = __ada_task_context();
     AdaCollection* collection = owner;
-    if (collection == NULL || collection->m_context != context || collection->m_closing) {
+    if (collection == NULL || collection->context != context || collection->closing) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return NULL;
     }
@@ -1523,29 +1523,29 @@ void* __ada_collection_begin(void* owner)
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    allocation->m_arenaOwnsObject = 1;
-    allocation->m_collection = collection;
-    allocation->m_next = collection->m_allocations;
-    collection->m_allocations = allocation;
-    allocation->m_registeredNext = context->m_registeredAllocations;
-    context->m_registeredAllocations = allocation;
+    allocation->arenaOwnsObject = 1;
+    allocation->collection = collection;
+    allocation->next = collection->allocations;
+    collection->allocations = allocation;
+    allocation->registeredNext = context->registeredAllocations;
+    context->registeredAllocations = allocation;
     return allocation;
 }
 
 void* __ada_collection_result_owner(void* pending)
 {
-    return &((AdaAllocation*)pending)->m_finalizations;
+    return &((AdaAllocation*)pending)->finalizations;
 }
 
 void* __ada_collection_result_arena(void* pending)
 {
-    return &((AdaAllocation*)pending)->m_arena;
+    return &((AdaAllocation*)pending)->arena;
 }
 
 void __ada_collection_finish(void* pending, void* object)
 {
-    ((AdaAllocation*)pending)->m_object = object;
-    __ada_collection_activate(((AdaAllocation*)pending)->m_collection);
+    ((AdaAllocation*)pending)->object = object;
+    __ada_collection_activate(((AdaAllocation*)pending)->collection);
 }
 
 void __ada_collection_abort(void* pending)

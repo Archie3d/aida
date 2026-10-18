@@ -26,10 +26,10 @@ typedef struct AdaTag
     int64_t level;
     void* master;
     int64_t slotCount;
-    int64_t m_isAbstract;
-    int64_t m_needsFinalization;
-    void (*m_parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
-    int64_t m_hasLimitedParts;
+    int64_t isAbstract;
+    int64_t needsFinalization;
+    void (*parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
+    int64_t hasLimitedParts;
 } AdaTag;
 
 
@@ -106,20 +106,20 @@ typedef struct AdaTraceFrame
    Allocation/finalization operations must run in the owning context. */
 typedef struct AdaTaskContext
 {
-    const AdaException* m_exception;
-    char* m_pendingMessage;
-    int m_pendingMessageLength;
-    AdaTraceFrame* m_currentTrace;
-    const char* m_pendingOrigin;
-    int m_pendingTraceCount;
-    AdaTraceEntry m_pendingTrace[ADA_TRACE_CAPACITY];
-    struct AdaFinalization* m_registeredFinalizations;
-    struct AdaAllocation* m_registeredAllocations;
+    const AdaException* exception;
+    char* pendingMessage;
+    int pendingMessageLength;
+    AdaTraceFrame* currentTrace;
+    const char* pendingOrigin;
+    int pendingTraceCount;
+    AdaTraceEntry pendingTrace[ADA_TRACE_CAPACITY];
+    struct AdaFinalization* registeredFinalizations;
+    struct AdaAllocation* registeredAllocations;
     /* Only the environment task may use library lifetime storage. */
-    struct AdaFinalization* m_libraryFinalizations;
-    void* m_libraryFinalizationArena;
-    int m_libraryFinalizing;
-    AdaMaster m_libraryMaster;
+    struct AdaFinalization* libraryFinalizations;
+    void* libraryFinalizationArena;
+    int libraryFinalizing;
+    AdaMaster libraryMaster;
 } AdaTaskContext;
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the
@@ -139,7 +139,7 @@ AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context);
 int __ada_task_context_dispose(AdaTaskContext* context);
 
 /* C helpers use the bound context; there is no separate exception global. */
-#define __ada_exception (__ada_task_context()->m_exception)
+#define __ada_exception (__ada_task_context()->exception)
 
 /* Entry returns the bound context for generated code to cache. Its binding
    must stay the same until return (a C callback may switch and restore it).
@@ -189,10 +189,10 @@ void __ada_array_adopt(void** owner, void* data);
    and a 64-bit transfer size. The caller owns and releases the buffer. */
 typedef struct AdaArrayResult
 {
-    void* m_data;
-    int32_t m_first;
-    int32_t m_last;
-    int64_t m_size;
+    void* data;
+    int32_t first;
+    int32_t last;
+    int64_t size;
 } AdaArrayResult;
 
 void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize);
@@ -263,11 +263,11 @@ int __ada_value_character(const char* text, int length);
 /* Compiler-owned activation records: no heap allocation during registration. */
 typedef struct AdaFinalization
 {
-    struct AdaFinalization* m_next;
-    void* m_object;
-    void (*m_finalize)(void*);
-    struct AdaFinalization* m_registeredNext;
-    int m_active;
+    struct AdaFinalization* next;
+    void* object;
+    void (*finalize)(void*);
+    struct AdaFinalization* registeredNext;
+    int active;
 } AdaFinalization;
 
 void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,

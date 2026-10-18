@@ -11,57 +11,57 @@
    retain the exact rational until the single rounding to the target Small. */
 typedef struct BigNatural
 {
-    uint32_t* m_words;
-    size_t m_size;
-    size_t m_capacity;
+    uint32_t* words;
+    size_t size;
+    size_t capacity;
 } BigNatural;
 
 static int reserve(BigNatural* number, size_t size)
 {
-    if (size > number->m_capacity) {
+    if (size > number->capacity) {
         if (size > SIZE_MAX / sizeof(uint32_t) / 2) {
             __ada_raise(ADA_STORAGE_ERROR);
             return 0;
         }
         size_t capacity = size * 2;
-        void* words = realloc(number->m_words, capacity * sizeof(uint32_t));
+        void* words = realloc(number->words, capacity * sizeof(uint32_t));
         if (words == NULL) {
             __ada_raise(ADA_STORAGE_ERROR);
             return 0;
         }
-        number->m_words = words;
-        number->m_capacity = capacity;
+        number->words = words;
+        number->capacity = capacity;
     }
     return 1;
 }
 
 static int multiplyAdd(BigNatural* number, uint64_t multiplier, uint32_t digit)
 {
-    if (!reserve(number, number->m_size + 3)) {
+    if (!reserve(number, number->size + 3)) {
         return 0;
     }
     unsigned __int128 carry = digit;
-    for (size_t i = 0; i < number->m_size; ++i) {
-        carry += (unsigned __int128)number->m_words[i] * multiplier;
-        number->m_words[i] = (uint32_t)carry;
+    for (size_t i = 0; i < number->size; ++i) {
+        carry += (unsigned __int128)number->words[i] * multiplier;
+        number->words[i] = (uint32_t)carry;
         carry >>= 32;
     }
     while (carry != 0) {
-        number->m_words[number->m_size++] = (uint32_t)carry;
+        number->words[number->size++] = (uint32_t)carry;
         carry >>= 32;
     }
-    while (number->m_size != 0 && number->m_words[number->m_size - 1] == 0) { --number->m_size; }
+    while (number->size != 0 && number->words[number->size - 1] == 0) { --number->size; }
     return 1;
 }
 
 static int compare(const BigNatural* left, const BigNatural* right)
 {
-    if (left->m_size != right->m_size) {
-        return left->m_size < right->m_size ? -1 : 1;
+    if (left->size != right->size) {
+        return left->size < right->size ? -1 : 1;
     }
-    for (size_t i = left->m_size; i != 0; --i) {
-        if (left->m_words[i - 1] != right->m_words[i - 1]) {
-            return left->m_words[i - 1] < right->m_words[i - 1] ? -1 : 1;
+    for (size_t i = left->size; i != 0; --i) {
+        if (left->words[i - 1] != right->words[i - 1]) {
+            return left->words[i - 1] < right->words[i - 1] ? -1 : 1;
         }
     }
     return 0;
@@ -69,11 +69,11 @@ static int compare(const BigNatural* left, const BigNatural* right)
 
 static int times(BigNatural* result, const BigNatural* source, uint64_t factor)
 {
-    if (!reserve(result, source->m_size + 3)) {
+    if (!reserve(result, source->size + 3)) {
         return 0;
     }
-    memcpy(result->m_words, source->m_words, source->m_size * sizeof(uint32_t));
-    result->m_size = source->m_size;
+    memcpy(result->words, source->words, source->size * sizeof(uint32_t));
+    result->size = source->size;
     return multiplyAdd(result, factor, 0);
 }
 
@@ -123,9 +123,9 @@ static int parseFixed(const char* text, int length, int bits, long long low, lon
     int based = cursor < length && (text[cursor] == '#' || text[cursor] == ':');
     char delimiter = based ? text[cursor] : 0;
     if (based) {
-        if (numerator.m_size != 1 || numerator.m_words[0] < 2 || numerator.m_words[0] > 16) { goto done; }
-        base = (int)numerator.m_words[0];
-        numerator.m_size = 0;
+        if (numerator.size != 1 || numerator.words[0] < 2 || numerator.words[0] > 16) { goto done; }
+        base = (int)numerator.words[0];
+        numerator.size = 0;
         ++cursor;
         if (!numeral(text, length, &cursor, base, &numerator, &before)) { goto done; }
     }
@@ -165,7 +165,7 @@ static int parseFixed(const char* text, int length, int bits, long long low, lon
         while (cursor < length && isspace((unsigned char)text[cursor])) { ++cursor; }
         if (cursor != length) { goto done; }
     }
-    if (numerator.m_size == 0) {
+    if (numerator.size == 0) {
         *result = 0;
         ok = low <= 0 && high >= 0;
         goto done;
@@ -197,26 +197,26 @@ static int parseFixed(const char* text, int length, int bits, long long low, lon
     if (!times(&product, &denominator, lower) || !multiplyAdd(&product, 2, 0)
         || !multiplyAdd(&numerator, 2, 0)) { goto done; }
     /* Add D to the product using wide limb carries. */
-    if (!reserve(&product, denominator.m_size + 4)) { goto done; }
+    if (!reserve(&product, denominator.size + 4)) { goto done; }
     uint64_t carry = 0;
-    size_t size = product.m_size > denominator.m_size ? product.m_size : denominator.m_size;
+    size_t size = product.size > denominator.size ? product.size : denominator.size;
     if (!reserve(&product, size + 1)) { goto done; }
     for (size_t i = 0; i < size; ++i) {
-        carry += (i < product.m_size ? product.m_words[i] : 0)
-            + (uint64_t)(i < denominator.m_size ? denominator.m_words[i] : 0);
-        product.m_words[i] = (uint32_t)carry;
+        carry += (i < product.size ? product.words[i] : 0)
+            + (uint64_t)(i < denominator.size ? denominator.words[i] : 0);
+        product.words[i] = (uint32_t)carry;
         carry >>= 32;
     }
-    product.m_size = size;
-    if (carry != 0) { product.m_words[product.m_size++] = (uint32_t)carry; }
+    product.size = size;
+    if (carry != 0) { product.words[product.size++] = (uint32_t)carry; }
     if (compare(&numerator, &product) >= 0) { ++lower; }
     if (lower > (UINT64_C(1) << 63) || (!negative && lower > LLONG_MAX)) { goto done; }
     *result = negative ? (lower == (UINT64_C(1) << 63) ? LLONG_MIN : -(long long)lower) : (long long)lower;
     ok = *result >= low && *result <= high;
 done:
-    free(numerator.m_words);
-    free(denominator.m_words);
-    free(product.m_words);
+    free(numerator.words);
+    free(denominator.words);
+    free(product.words);
     return ok;
 }
 

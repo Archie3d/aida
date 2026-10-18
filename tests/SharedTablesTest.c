@@ -146,11 +146,11 @@ static void checkSnapshots(void)
     CHECK(*snapshot == first && *__ada_current_output() == second);
     AdaArrayResult name;
     __ada_file_name(&name, &first);
-    CHECK(__ada_exception == NULL && name.m_last == 18);
+    CHECK(__ada_exception == NULL && name.last == 18);
     __ada_file_delete(&first);
     __ada_file_open(&first, ADA_MODE_OUT, "reused-slot.tmp", 15, 1);
-    CHECK(memcmp(name.m_data, "snapshot-first.tmp", 18) == 0);
-    __ada_deallocate(name.m_data);
+    CHECK(memcmp(name.data, "snapshot-first.tmp", 18) == 0);
+    __ada_deallocate(name.data);
     __ada_file_delete(&first);
     __ada_file_delete(&second);
     CHECK(*__ada_current_output() == *__ada_standard_output());
@@ -181,16 +181,16 @@ int main(void)
     __ada_raise_message(ADA_TASKING_ERROR, "preserved", 9);
     __ada_library_finalize();
     CHECK(finalizations == 1 && __ada_exception == ADA_TASKING_ERROR);
-    CHECK(__ada_main_context.m_pendingMessageLength == 9);
-    CHECK(memcmp(__ada_main_context.m_pendingMessage, "preserved", 9) == 0);
+    CHECK(__ada_main_context.pendingMessageLength == 9);
+    CHECK(memcmp(__ada_main_context.pendingMessage, "preserved", 9) == 0);
     CHECK(__ada_task_context_dispose(&__ada_main_context));
     object = 1;
     __ada_library_reserve(&object, finalize);
     __ada_controlled_activate(&object, finalize);
     __ada_library_finalize();
     CHECK(finalizations == 2 && __ada_exception == ADA_PROGRAM_ERROR);
-    CHECK(__ada_main_context.m_libraryFinalizations == NULL);
-    CHECK(__ada_main_context.m_libraryFinalizationArena == NULL);
+    CHECK(__ada_main_context.libraryFinalizations == NULL);
+    CHECK(__ada_main_context.libraryFinalizationArena == NULL);
     CHECK(__ada_task_context_dispose(&__ada_main_context));
     return 0;
 }

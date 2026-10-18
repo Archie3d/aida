@@ -9,7 +9,7 @@ typedef struct AdaTaskContext AdaTaskContext;
    occur in the Phase 2 implementation. */
 typedef struct AdaMaster
 {
-    void* m_state;
+    void* state;
 } AdaMaster;
 
 enum AdaMasterKind

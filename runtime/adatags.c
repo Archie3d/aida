@@ -120,7 +120,7 @@ void __ada_tag_check_accessibility(const void* object, int level)
 void __ada_tag_check_level(const void* object, int level)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;
-    if (tag->m_needsFinalization || tag->level > level) {
+    if (tag->needsFinalization || tag->level > level) {
         __ada_raise(ADA_PROGRAM_ERROR);
     }
 }
@@ -128,7 +128,7 @@ void __ada_tag_check_level(const void* object, int level)
 void __ada_tagged_result(void** result, const void* object)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;
-    if (tag->m_needsFinalization) {
+    if (tag->needsFinalization) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
@@ -213,7 +213,7 @@ static void* tagDescendant(const char* name, int length, void* ancestor)
 
 int __ada_tag_is_abstract(void* tag)
 {
-    return requireTag(tag) ? ((AdaTag*)tag)->m_isAbstract != 0 : 0;
+    return requireTag(tag) ? ((AdaTag*)tag)->isAbstract != 0 : 0;
 }
 
 int __ada_tagged_equal(const void* left, const void* right)
@@ -230,7 +230,7 @@ int __ada_tagged_equal(const void* left, const void* right)
 void __ada_tag_check_copy(const void* object)
 {
     const AdaTag* tag = *(const AdaTag* const*)object;
-    if (tag->m_needsFinalization) {
+    if (tag->needsFinalization) {
         __ada_raise(ADA_PROGRAM_ERROR);
     }
 }

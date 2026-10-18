@@ -18,7 +18,7 @@ extern int context_worker__run(int mode);
 
 void contextMeet(void)
 {
-    AdaTraceFrame* frame = __ada_task_context()->m_currentTrace;
+    AdaTraceFrame* frame = __ada_task_context()->currentTrace;
     CHECK(frame != NULL && strcmp(frame->routine, "Fail") == 0);
     CHECK(strstr(frame->location, "context_worker.adb:") != NULL);
     frame = frame->previous;
@@ -46,12 +46,12 @@ static void* worker(void* argument)
     AdaTaskContext* previous = __ada_task_context_bind(&context);
     for (int i = 0; i < 40; ++i) {
         int result = context_worker__run(mode);
-        CHECK(context.m_currentTrace == NULL);
-        CHECK(context.m_registeredFinalizations == NULL && context.m_registeredAllocations == NULL);
+        CHECK(context.currentTrace == NULL);
+        CHECK(context.registeredFinalizations == NULL && context.registeredAllocations == NULL);
         if (mode == 0) {
-            CHECK(result == 17 && context.m_exception == NULL);
+            CHECK(result == 17 && context.exception == NULL);
         } else {
-            CHECK(context.m_exception == ADA_PROGRAM_ERROR);
+            CHECK(context.exception == ADA_PROGRAM_ERROR);
             void* arena = NULL;
             AdaExceptionOccurrence occurrence;
             __ada_exception_capture(&occurrence, &arena);
@@ -70,7 +70,7 @@ static void* worker(void* argument)
 int exerciseContexts(void)
 {
     AdaTaskContext* mainContext = __ada_task_context();
-    AdaTraceFrame* mainTrace = mainContext->m_currentTrace;
+    AdaTraceFrame* mainTrace = mainContext->currentTrace;
     __ada_raise_message(ADA_TASKING_ERROR, "main sentinel", 13);
     pthread_t threads[workerCount];
     int modes[workerCount] = { 0, 1, 0, 1 };
@@ -80,7 +80,7 @@ int exerciseContexts(void)
     for (int i = 0; i < workerCount; ++i) {
         CHECK(pthread_join(threads[i], NULL) == 0);
     }
-    CHECK(mainContext->m_exception == ADA_TASKING_ERROR && mainContext->m_currentTrace == mainTrace);
+    CHECK(mainContext->exception == ADA_TASKING_ERROR && mainContext->currentTrace == mainTrace);
     void* arena = NULL;
     AdaExceptionOccurrence occurrence;
     __ada_exception_capture(&occurrence, &arena);

@@ -53,25 +53,25 @@ void __ada_io_begin(AdaFileRef handle)
         AdaFile* file = handle != NULL ? *handle : NULL;
         activeFile = file;
         if (file == NULL) { return; }
-        if (!file->m_mutexReady) {
-            if (pthread_mutex_init(&file->m_mutex, NULL) != 0) { abort(); }
-            file->m_mutexReady = 1;
+        if (!file->mutexReady) {
+            if (pthread_mutex_init(&file->mutex, NULL) != 0) { abort(); }
+            file->mutexReady = 1;
         }
-        ++file->m_users;
+        ++file->users;
         __ada_io_unlock();
-        __ada_mutex_lock(&file->m_mutex);
+        __ada_mutex_lock(&file->mutex);
         __ada_io_lock();
         if (*handle == file) { return; }
-        --file->m_users;
-        __ada_mutex_unlock(&file->m_mutex);
+        --file->users;
+        __ada_mutex_unlock(&file->mutex);
     }
 }
 
 void __ada_io_end(void)
 {
     if (activeFile != NULL) {
-        --activeFile->m_users;
-        __ada_mutex_unlock(&activeFile->m_mutex);
+        --activeFile->users;
+        __ada_mutex_unlock(&activeFile->mutex);
         activeFile = NULL;
     }
     __ada_io_unlock();
@@ -129,7 +129,7 @@ static void closeEverything(void)
 
 static void openStandard(AdaFile* file, FILE* stream, int mode)
 {
-    file->m_self = file;
+    file->self = file;
     file->stream = stream;
     file->mode = mode;
     file->isOpen = 1;
@@ -144,7 +144,7 @@ static void prepare(void)
     }
     poolPrepared = 1;
     for (int i = 0; i < ADA_MAX_FILES; ++i) {
-        filePool[i].m_self = &filePool[i];
+        filePool[i].self = &filePool[i];
     }
 
     openStandard(&standardInput, stdin, ADA_MODE_IN);
@@ -181,13 +181,13 @@ static AdaFileRef __ada_standard_errorImpl(void)
 static AdaFileRef __ada_current_inputImpl(void)
 {
     if (activeFile == NULL) { prepare(); }
-    return activeFile != NULL ? &activeFile->m_self : &currentInputHandle->m_self;
+    return activeFile != NULL ? &activeFile->self : &currentInputHandle->self;
 }
 
 static AdaFileRef __ada_current_outputImpl(void)
 {
     if (activeFile == NULL) { prepare(); }
-    return activeFile != NULL ? &activeFile->m_self : &currentOutputHandle->m_self;
+    return activeFile != NULL ? &activeFile->self : &currentOutputHandle->self;
 }
 
 static void __ada_set_inputImpl(AdaFileRef handle)
@@ -240,20 +240,20 @@ static AdaFile* takeFreeEntry(void)
     int i;
 
     for (i = 0; i < ADA_MAX_FILES; ++i) {
-        if (!filePool[i].isOpen && filePool[i].m_users == 0) {
+        if (!filePool[i].isOpen && filePool[i].users == 0) {
             AdaFile* file = &filePool[i];
-            if (!file->m_mutexReady) {
-                if (pthread_mutex_init(&file->m_mutex, NULL) != 0) { abort(); }
-                file->m_mutexReady = 1;
+            if (!file->mutexReady) {
+                if (pthread_mutex_init(&file->mutex, NULL) != 0) { abort(); }
+                file->mutexReady = 1;
             }
             /* No pins and a closed slot: acquiring this mutex cannot wait. */
-            __ada_mutex_lock(&file->m_mutex);
+            __ada_mutex_lock(&file->mutex);
             if (activeFile != NULL) {
-                --activeFile->m_users;
-                __ada_mutex_unlock(&activeFile->m_mutex);
+                --activeFile->users;
+                __ada_mutex_unlock(&activeFile->mutex);
             }
             activeFile = file;
-            ++file->m_users;
+            ++file->users;
             return file;
         }
     }

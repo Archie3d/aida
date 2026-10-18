@@ -22,10 +22,10 @@ typedef struct AdaFile
     int isOpen;
     int isStandard; /* The standard files are never closed or deleted. */
     char name[1024];
-    AdaMutex m_mutex;
-    unsigned m_users; /* Table lock: pins include callers waiting on m_mutex. */
-    int m_mutexReady;
-    struct AdaFile* m_self; /* Immutable handle snapshot, initialized before publication. */
+    AdaMutex mutex;
+    unsigned users; /* Table lock: pins include callers waiting on mutex. */
+    int mutexReady;
+    struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
 } AdaFile;
 
 /* An Ada File_Type is a one component record holding one of these pointers, so
@@ -37,7 +37,7 @@ typedef AdaFile** AdaFileRef;
    work; reacquire it before End. Never wait or call Ada while holding it.
    File_Type variables must be changed through runtime entry points, not raw
    concurrent C stores. Stack-allocated C AdaFile records must start zeroed
-   and have their lazily initialized m_mutex destroyed after the last use. */
+   and have their lazily initialized mutex destroyed after the last use. */
 void __ada_io_begin(AdaFileRef handle);
 void __ada_io_end(void);
 void __ada_io_lock(void);

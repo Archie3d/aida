@@ -6,9 +6,9 @@
 AdaTaskContext* hiddenContextEntry(AdaTaskContext* context, AdaTraceFrame* frame,
                                   const char* routine, const char* location)
 {
-    frame->previous = context->m_currentTrace;
+    frame->previous = context->currentTrace;
     frame->routine = routine;
     frame->location = location;
-    context->m_currentTrace = frame;
+    context->currentTrace = frame;
     return context;
 }

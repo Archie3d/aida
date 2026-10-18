@@ -40,5 +40,5 @@ int main(int argc, char** argv)
         __ada_trace_leave_context(current, &frame);
     }
     printf("%.6f\n", seconds() - start);
-    return context->m_currentTrace != NULL;
+    return context->currentTrace != NULL;
 }

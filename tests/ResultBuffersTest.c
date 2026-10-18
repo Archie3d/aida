@@ -114,16 +114,16 @@ static void checkStreams(void)
     void* owner = NULL;
     for (int i = 0; i < 13; ++i) {
         __ada_stream_read_array(&results[i], &file, 1);
-        CHECK(__ada_exception == NULL && results[i].m_data != NULL);
-        __ada_array_adopt(&owner, results[i].m_data);
+        CHECK(__ada_exception == NULL && results[i].data != NULL);
+        __ada_array_adopt(&owner, results[i].data);
     }
     for (int i = 0; i < 12; ++i) {
-        CHECK(results[i].m_first == 5 && results[i].m_last == 8196 && results[i].m_size == sizeof payload);
+        CHECK(results[i].first == 5 && results[i].last == 8196 && results[i].size == sizeof payload);
         for (int j = 0; j < (int)sizeof payload; ++j) {
-            CHECK(((char*)results[i].m_data)[j] == 'a' + i);
+            CHECK(((char*)results[i].data)[j] == 'a' + i);
         }
     }
-    CHECK(results[12].m_first == INT_MAX && results[12].m_last == INT_MIN);
+    CHECK(results[12].first == INT_MAX && results[12].last == INT_MIN);
     __ada_array_release(&owner);
     CHECK(liveAllocations == 0);
 
@@ -134,9 +134,9 @@ static void checkStreams(void)
         AdaArrayResult result;
         __ada_stream_read_array(&result, &file, 1);
         if (__ada_exception == NULL) {
-            __ada_array_adopt(&owner, result.m_data);
+            __ada_array_adopt(&owner, result.data);
         } else {
-            CHECK(result.m_data == NULL);
+            CHECK(result.data == NULL);
         }
         CHECK(__ada_exception == ADA_STORAGE_ERROR && owner == NULL && liveAllocations == 0);
         __ada_exception = NULL;
@@ -157,12 +157,12 @@ static void checkStreams(void)
         rewind(file.stream);
         AdaArrayResult result;
         __ada_stream_read_array(&result, &file, scenario == 2 ? 8 : 1);
-        CHECK(result.m_data == NULL && liveAllocations == 0);
+        CHECK(result.data == NULL && liveAllocations == 0);
         CHECK(__ada_exception == (scenario == 2 ? ADA_STORAGE_ERROR : ADA_END_ERROR));
         __ada_exception = NULL;
         fclose(file.stream);
     }
-    CHECK(__ada_mutex_destroy(&file.m_mutex) == 0);
+    CHECK(__ada_mutex_destroy(&file.mutex) == 0);
 }
 
 static void* worker(void* argument)

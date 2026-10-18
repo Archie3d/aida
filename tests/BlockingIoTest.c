@@ -65,13 +65,13 @@ static void waitForPins(unsigned count)
 {
     for (;;) {
         __ada_io_lock();
-        unsigned users = input->m_users;
+        unsigned users = input->users;
         int locked = 0;
         if (users >= count) {
-            int status = pthread_mutex_trylock(&input->m_mutex);
+            int status = pthread_mutex_trylock(&input->mutex);
             CHECK(status == 0 || status == EBUSY);
             locked = status == EBUSY;
-            if (status == 0) { CHECK(pthread_mutex_unlock(&input->m_mutex) == 0); }
+            if (status == 0) { CHECK(pthread_mutex_unlock(&input->mutex) == 0); }
         }
         __ada_io_unlock();
         if (locked) { return; }

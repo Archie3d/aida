@@ -30,7 +30,7 @@ private:
 
 In classes the sections should be in this order: `public`, `protected`, `private`.
 
-- Class member variables have `m_` prefix.
+- C++ Class member variables have `m_` prefix, but public structs in C++ and C should not.
 - Identifiers use Camel case convention, with UpperCamelCase for types, and lowerCamelCase for variables.
 
 - All other code scopes have curly brase put at the end of the statement line:

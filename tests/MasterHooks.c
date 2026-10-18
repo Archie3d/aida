@@ -10,13 +10,13 @@
 
 typedef struct MasterState
 {
-    AdaMaster* m_master;
-    AdaTaskContext* m_context;
-    struct MasterState* m_previous;
-    struct MasterState* m_next;
-    int m_kind;
-    int m_activated;
-    int m_awaited;
+    AdaMaster* master;
+    AdaTaskContext* context;
+    struct MasterState* previous;
+    struct MasterState* next;
+    int kind;
+    int activated;
+    int awaited;
 } MasterState;
 
 static _Thread_local MasterState* top;
@@ -29,13 +29,13 @@ static _Thread_local int blocks;
 void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 {
     CHECK(context == __ada_task_context());
-    for (MasterState* live = records; live != NULL; live = live->m_next) {
-        CHECK(live->m_master != master);
+    for (MasterState* live = records; live != NULL; live = live->next) {
+        CHECK(live->master != master);
     }
     MasterState* state = calloc(1, sizeof *state);
     CHECK(state != NULL);
     *state = (MasterState) { master, context, top, records, kind, 0, 0 };
-    master->m_state = state;
+    master->state = state;
     records = state;
     if (kind != ADA_MASTER_COLLECTION) {
         top = state;
@@ -45,10 +45,10 @@ void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 
 void __ada_master_activate(AdaTaskContext* context, AdaMaster* master)
 {
-    MasterState* state = master->m_state;
-    CHECK(state != NULL && state->m_context == context && !state->m_awaited);
-    CHECK(state->m_kind == ADA_MASTER_COLLECTION || (state == top && !state->m_activated));
-    state->m_activated = 1;
+    MasterState* state = master->state;
+    CHECK(state != NULL && state->context == context && !state->awaited);
+    CHECK(state->kind == ADA_MASTER_COLLECTION || (state == top && !state->activated));
+    state->activated = 1;
     /* A future activation failure must leave through the same master cleanup
        as declaration failure, before executing the block's statements. */
     if (owners[18] == state) {
@@ -58,38 +58,38 @@ void __ada_master_activate(AdaTaskContext* context, AdaMaster* master)
 
 void __ada_master_await(AdaTaskContext* context, AdaMaster* master)
 {
-    MasterState* state = master->m_state;
-    CHECK(state != NULL && state->m_context == context && !state->m_awaited);
-    CHECK(state->m_kind == ADA_MASTER_COLLECTION || state == top);
-    skippedActivation += !state->m_activated;
-    state->m_awaited = 1;
+    MasterState* state = master->state;
+    CHECK(state != NULL && state->context == context && !state->awaited);
+    CHECK(state->kind == ADA_MASTER_COLLECTION || state == top);
+    skippedActivation += !state->activated;
+    state->awaited = 1;
 }
 
 void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
 {
-    MasterState* state = master->m_state;
-    CHECK(state != NULL && state->m_context == context && state->m_awaited);
+    MasterState* state = master->state;
+    CHECK(state != NULL && state->context == context && state->awaited);
     for (int i = 0; i < 32; ++i) {
         CHECK(owners[i] != state);
     }
-    int library = state->m_kind == ADA_MASTER_LIBRARY;
+    int library = state->kind == ADA_MASTER_LIBRARY;
 #ifdef EXPECT_LIBRARY_FAILURE
     if (library) {
-        CHECK(!state->m_activated);
+        CHECK(!state->activated);
     }
 #endif
-    if (state->m_kind != ADA_MASTER_COLLECTION) {
+    if (state->kind != ADA_MASTER_COLLECTION) {
         CHECK(top == state);
-        top = state->m_previous;
+        top = state->previous;
     }
     MasterState** link = &records;
     while (*link != state) {
         CHECK(*link != NULL);
-        link = &(*link)->m_next;
+        link = &(*link)->next;
     }
-    *link = state->m_next;
+    *link = state->next;
     free(state);
-    master->m_state = NULL;
+    master->state = NULL;
     if (library) {
         CHECK(records == NULL && top == NULL && completed[1] && skippedActivation > 0);
 #ifndef EXPECT_FAILURE
@@ -113,10 +113,10 @@ int rememberCollection(int id)
 {
     CHECK(id > 0 && id < 32 && owners[id] == NULL);
     MasterState* state = records;
-    while (state != NULL && state->m_kind != ADA_MASTER_COLLECTION) {
-        state = state->m_next;
+    while (state != NULL && state->kind != ADA_MASTER_COLLECTION) {
+        state = state->next;
     }
-    CHECK(state != NULL && state->m_activated);
+    CHECK(state != NULL && state->activated);
     owners[id] = state;
     return id;
 }
@@ -124,7 +124,7 @@ int rememberCollection(int id)
 void masterFinalized(int id)
 {
     CHECK(id > 0 && id < 32 && owners[id] != NULL);
-    CHECK(owners[id]->m_awaited);
+    CHECK(owners[id]->awaited);
     owners[id] = NULL;
     completed[id] = 1;
     if (id == 12) {
