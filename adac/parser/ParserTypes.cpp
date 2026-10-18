@@ -482,6 +482,9 @@ void Parser::parseDiscreteRange(std::string& typeName, std::string& typeLower, E
             };
             low = makeAttribute("first");
             high = makeAttribute("last");
+            auto* firstBound = static_cast<AttributeExpr*>(low.get());
+            firstBound->m_rangeFirst = firstBound;
+            static_cast<AttributeExpr*>(high.get())->m_rangeFirst = firstBound;
             return;
         }
     }

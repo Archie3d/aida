@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <cmath>
+#include <limits>
 
 using SemaSupport::adaptUniversal;
 
@@ -180,6 +182,17 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixIsType = static_cast<AttributeExpr*>(expr->prefix.get())->lower == "base"
             || static_cast<AttributeExpr*>(expr->prefix.get())->lower == "class";
     }
+    if (!prefixIsType && prefixType != nullptr && prefixType->kind == TypeKind::Access
+        && prefixType->target != nullptr && prefixType->target->kind == TypeKind::Array
+        && (expr->lower == "first" || expr->lower == "last" || expr->lower == "length")) {
+        auto dereference = std::make_unique<SelectedExpr>();
+        dereference->location = expr->prefix->location;
+        dereference->selector = dereference->selectorLower = "all";
+        dereference->isDereference = true;
+        dereference->prefix = std::move(expr->prefix);
+        expr->prefix = std::move(dereference);
+        prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
+    }
     expr->prefixType = prefixType;
     if (expr->lower == "identity") {
         Symbol* symbol = nullptr;
@@ -216,7 +229,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "base") {
-        if (!prefixIsType || !expr->arguments.empty()) {
+        if (!prefixIsType || !expr->arguments.empty() || !representationVisible(prefixType)) {
             m_diagnostics.error(expr->location, "'Base requires a scalar subtype mark");
             return nullptr;
         }
@@ -227,19 +240,79 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    const std::string& name = expr->lower;
+    bool bounds = name == "first" || name == "last" || name == "length";
+    bool discreteFunction = name == "pos" || name == "val";
+    bool adjacent = name == "succ" || name == "pred";
+    if (bounds || discreteFunction || adjacent) {
+        bool array = prefixType != nullptr && prefixType->kind == TypeKind::Array;
+        bool scalar = isDiscrete(prefixType) || isReal(prefixType)
+            || (prefixType != nullptr && prefixType->kind == TypeKind::Fixed);
+        if (!representationVisible(prefixType) || (bounds ? (!array && (!scalar || !prefixIsType))
+            : (!prefixIsType || (discreteFunction ? !isDiscrete(prefixType) : !scalar)))) {
+            m_diagnostics.error(expr->location, "'" + expr->name + " requires "
+                + (bounds ? "an array prefix or a scalar subtype mark" : discreteFunction
+                    ? "a discrete subtype mark" : "a scalar subtype mark"));
+            return nullptr;
+        }
+        if (name == "length" && !array) {
+            m_diagnostics.error(expr->location, "'Length requires an array prefix");
+            return nullptr;
+        }
+        if (!array && expr->arguments.size() != (bounds ? 0u : 1u)) {
+            m_diagnostics.error(expr->location, "'" + expr->name
+                + (bounds ? " takes no arguments" : " takes exactly one argument"));
+            return nullptr;
+        }
+    }
+
     for (const ExprPtr& argument : expr->arguments) {
         // An aggregate waits for the stream attributes below, which know the
         // type it is meant to have.
         if (argument->kind != ExprKind::Aggregate) {
             bool contextual = expr->lower == "image" || expr->lower == "pos"
                 || expr->lower == "succ" || expr->lower == "pred";
-            analyzeExpr(argument.get(), scope, contextual ? prefixType : nullptr);
+            Type* context = contextual ? prefixType : nullptr;
+            if ((discreteFunction || adjacent) && name != "val") {
+                context = m_types.scalarBaseType(prefixType);
+            }
+            analyzeExpr(argument.get(), scope, context);
         }
+    }
+
+    if (discreteFunction || adjacent) {
+        Expr* argument = expr->arguments.front().get();
+        Type* argumentType = argument->type;
+        bool valid = name == "val"
+            ? argumentType != nullptr && (argumentType->kind == TypeKind::Integer
+                || argumentType->kind == TypeKind::UniversalInteger) && representationVisible(argumentType)
+            : argumentType != nullptr && typesCompatible(prefixType, argumentType);
+        if (!valid) {
+            m_diagnostics.error(argument->location, "'" + expr->name
+                + (name == "val" ? " requires an integer argument" : " requires an argument of the prefix type"));
+            return nullptr;
+        }
+        if (name != "val" && argument->isStatic) {
+            Type* base = m_types.scalarBaseType(prefixType);
+            bool inRange = isReal(base)
+                ? argument->staticReal >= floatLowBound(base) && argument->staticReal <= floatHighBound(base)
+                : argument->staticValue >= base->low && argument->staticValue <= base->high;
+            if (!inRange) {
+                m_diagnostics.error(argument->location, "attribute argument is outside the prefix base range");
+                return nullptr;
+            }
+        }
+    }
+
+    bool staticArrayPrefix = prefixIsType;
+    if (expr->prefix->kind == ExprKind::Identifier && expr->prefix->m_implicitCall == nullptr) {
+        Symbol* symbol = static_cast<IdentifierExpr*>(expr->prefix.get())->symbol;
+        staticArrayPrefix = staticArrayPrefix || (symbol != nullptr
+            && (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter));
     }
 
     // Subtypes carry their own constraint, so the prefix type is used as written.
     Type* base = prefixType;
-    const std::string& name = expr->lower;
     if (base != nullptr && base->kind == TypeKind::Fixed) {
         if (name == "fore" || name == "aft") {
             if (!prefixIsType || !expr->arguments.empty()) {
@@ -283,16 +356,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return expr->type;
         }
         if (name == "first" || name == "last") {
-            if (!expr->arguments.empty()) {
-                m_diagnostics.error(expr->location, "fixed-point bounds take no arguments");
-            }
             expr->type = prefixType;
             expr->isStatic = !base->m_formalFixed;
             expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
             return expr->type;
         }
         if (name != "base" && name != "size" && name != "address"
-            && name != "image" && name != "value") {
+            && name != "image" && name != "value" && name != "succ" && name != "pred") {
             m_diagnostics.error(expr->location, "this attribute is not yet supported for fixed-point types");
             return nullptr;
         }
@@ -395,8 +465,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     if (name == "first" || name == "last") {
         if (base != nullptr && base->kind == TypeKind::Array) {
-            expr->type = base->index != nullptr ? base->index : m_types.integerType();
-            if (base->constrained) {
+            expr->type = base->index != nullptr ? m_types.scalarBaseType(base->index) : m_types.integerType();
+            if (base->constrained && staticArrayPrefix) {
                 expr->isStatic = true;
                 expr->staticValue = name == "first" ? base->indexLow : base->indexHigh;
             }
@@ -431,7 +501,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     if (name == "length") {
         expr->type = m_types.integerType();
-        if (base != nullptr && base->kind == TypeKind::Array && base->constrained) {
+        if (base != nullptr && base->kind == TypeKind::Array && base->constrained && staticArrayPrefix) {
             expr->isStatic = true;
             expr->staticValue = arrayLength(base);
         }
@@ -444,7 +514,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         adaptUniversal(expr->arguments.front().get(), prefixType);
-        expr->type = m_types.integerType();
+        expr->type = m_types.universalInteger();
         expr->isStatic = expr->arguments.front()->isStatic;
         expr->staticValue = expr->arguments.front()->staticValue;
         return expr->type;
@@ -455,16 +525,31 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "'" + expr->name + " takes exactly one argument");
             return nullptr;
         }
-        Type* argumentType = name == "val" ? m_types.universalInteger() : prefixType;
-        adaptUniversal(expr->arguments.front().get(), argumentType);
-        expr->type = prefixType;
-        if (expr->arguments.front()->isStatic && prefixType->m_scalarBoundsSymbol == nullptr) {
+        Type* resultType = m_types.scalarBaseType(prefixType);
+        Type* argumentType = name == "val" ? nullptr : resultType;
+        if (argumentType != nullptr) {
+            adaptUniversal(expr->arguments.front().get(), argumentType);
+        }
+        expr->type = resultType;
+        if (expr->arguments.front()->isStatic && isReal(resultType)) {
+            double argument = expr->arguments.front()->staticReal;
+            double direction = name == "succ" ? std::numeric_limits<double>::infinity()
+                : -std::numeric_limits<double>::infinity();
+            double value = typeSize(resultType) == 4
+                ? std::nextafter(static_cast<float>(argument), static_cast<float>(direction))
+                : std::nextafter(argument, direction);
+            if (std::isfinite(value)) {
+                expr->isStatic = true;
+                expr->staticReal = value;
+            }
+        }
+        if (expr->arguments.front()->isStatic && !isReal(resultType)) {
             long long value = expr->arguments.front()->staticValue;
             bool overflow = name == "succ" ? __builtin_add_overflow(value, 1LL, &value)
                 : (name == "pred" && __builtin_sub_overflow(value, 1LL, &value));
             // Keep exceptional cases in the emitted path so they raise an Ada
             // exception instead of overflowing the compiler's own arithmetic.
-            if (!overflow && value >= prefixType->low && value <= prefixType->high) {
+            if (!overflow && value >= resultType->low && value <= resultType->high) {
                 expr->isStatic = true;
                 expr->staticValue = value;
             }

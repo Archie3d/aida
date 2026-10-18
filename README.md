@@ -76,6 +76,7 @@ Supported:
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
 - Derived Boolean operations and byte-character literals and strings
+- Scalar position, value and adjacent-value attributes; scalar and array bounds
 - Generics, access types, tagged types with dispatching
 - Controlled types and finalization
 - Text and stream I/O

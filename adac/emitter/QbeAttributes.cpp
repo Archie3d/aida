@@ -2,6 +2,7 @@
 #include "QbeSupport.h"
 
 #include <algorithm>
+#include <cfloat>
 
 using QbeSupport::constantValue;
 using QbeSupport::isFloatClass;
@@ -34,12 +35,32 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return emitStreamAttribute(expr);
     }
     if (name == "pos") {
-        return emitExpr(expr->arguments.front().get());
+        Value value = emitExpr(expr->arguments.front().get());
+        if (value.type == 'w' && qbeClass(expr->type) == 'l') {
+            std::string wide = newTemp();
+            line(wide + " =l extsw " + value.name);
+            value = Value { wide, 'l' };
+        }
+        if (isDiscrete(expr->type) && expr->type->kind != TypeKind::UniversalInteger) {
+            emitRangeCheck(value, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
+        }
+        char width = qbeClass(expr->type);
+        if (value.type != width) {
+            std::string converted = newTemp();
+            line(converted + " =" + width + (width == 'l' ? " extsw " : " copy ") + value.name);
+            return Value { converted, width };
+        }
+        return value;
     }
     if (name == "val") {
         Value value = emitExpr(expr->arguments.front().get());
-        emitRangeCheck(value, prefixType, expr->location);
-        char type = qbeClass(prefixType);
+        if (value.type == 'w' && qbeClass(expr->type) == 'l') {
+            std::string wide = newTemp();
+            line(wide + " =l extsw " + value.name);
+            value = Value { wide, 'l' };
+        }
+        emitRangeCheck(value, expr->type, expr->location);
+        char type = qbeClass(expr->type);
         if (value.type != type) {
             std::string converted = newTemp();
             line(converted + " =" + std::string(1, type)
@@ -50,10 +71,27 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "succ" || name == "pred") {
         Value value = emitExpr(expr->arguments.front().get());
-        Value result = emitIntegerOperation(name == "succ" ? 0 : 1, value, Value { "1", value.type }, value.type);
-        if (prefixType->kind == TypeKind::Enumeration || prefixType->m_modulus != 0) {
-            emitRangeCheck(result, baseType(prefixType), expr->location);
+        if (isFloatClass(value.type)) {
+            double endpoint = value.type == 's' ? FLT_MAX : DBL_MAX;
+            if (name == "pred") {
+                endpoint = -endpoint;
+            }
+            std::string bound = QbeSupport::realLiteral(endpoint, value.type);
+            std::string valid = newTemp();
+            line(valid + " =w " + (name == "succ" ? "clt" : "cgt") + value.type + " " + value.name + ", " + bound);
+            std::string good = newLabel("adjacentvalid");
+            std::string bad = newLabel("adjacentinvalid");
+            branch(Value { valid, 'w' }, good, bad);
+            label(bad);
+            raiseConstraintError();
+            label(good);
+            std::string result = newTemp();
+            line(result + " =" + value.type + " call $" + (value.type == 's' ? "nextafterf" : "nextafter")
+                + "(" + value.type + " " + value.name + ", " + value.type + " " + bound + ")");
+            return Value { result, value.type };
         }
+        Value result = emitIntegerOperation(name == "succ" ? 0 : 1, value, Value { "1", value.type }, value.type);
+        emitRangeCheck(result, expr->type, expr->location);
         return result;
     }
     if (name == "image") {
@@ -172,8 +210,17 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             Value bounds = scalarBounds(base);
             return Value { name == "first" ? bounds.first : bounds.last, bounds.type };
         }
-        if (isUnconstrainedArray(base)) {
-            Value array = emitExpr(expr->prefix.get());
+        if (base != nullptr && base->kind == TypeKind::Array) {
+            Value array;
+            if (expr->m_rangeFirst != nullptr && expr->m_rangeFirst != expr) {
+                array = m_context->m_rangePrefixes.at(expr->m_rangeFirst);
+                m_context->m_rangePrefixes.erase(expr->m_rangeFirst);
+            } else {
+                array = emitExpr(expr->prefix.get());
+                if (expr->m_rangeFirst == expr) {
+                    m_context->m_rangePrefixes[expr] = array;
+                }
+            }
             Type* axis = expr->prefix->type;
             long long dimension = expr->arguments.empty() ? 1 : expr->arguments.front()->staticValue;
             for (long long i = 1; i < dimension; ++i) {
@@ -183,15 +230,16 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             if (name == "length") {
                 return lengthOf(array, base);
             }
-            return Value { name == "first" ? array.first : array.last, 'w' };
+            std::string bound = name == "first" ? array.first : array.last;
+            if (qbeClass(expr->type) == 'l') {
+                std::string wide = newTemp();
+                line(wide + " =l extsw " + bound);
+                return Value { wide, 'l' };
+            }
+            return Value { bound, 'w' };
         }
-        long long value = 0;
-        if (base != nullptr && base->kind == TypeKind::Array) {
-            value = name == "first" ? base->indexLow : (name == "last" ? base->indexHigh : arrayLength(base));
-        } else if (base != nullptr) {
-            value = name == "first" ? base->low : base->high;
-        }
-        return constantValue(value, 'w');
+        long long value = base == nullptr ? 0 : (name == "first" ? base->low : base->high);
+        return constantValue(value, qbeClass(expr->type));
     }
 
     m_diagnostics.error(expr->location, "unsupported attribute '" + expr->name + "'");

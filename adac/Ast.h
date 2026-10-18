@@ -244,6 +244,9 @@ struct AttributeExpr : Expr
     std::string lower;
     std::vector<ExprPtr> arguments;
     Type* prefixType = nullptr;
+    // The two lowered bounds of 'Range share one prefix evaluation.
+    // The first bound points to itself; the last points to the first.
+    AttributeExpr* m_rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* m_accessSubprogram = nullptr;
 };

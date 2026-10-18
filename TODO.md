@@ -478,11 +478,28 @@ there; this phase does not introduce an anonymous library-block extension.
     with character components wider than a byte remain diagnosed restrictions.
     The wider primitive visibility/overriding and variant-record audits below
     remain separate items; this completes derivation within the supported subset.
-- [ ] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
+- [x] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
   `'Range`: base versus subtype rules, valid type/object prefixes, operand
   types, arity and result width. Include scalar endpoints, null ranges,
   multidimensional array dimension arguments, and static versus runtime
   failures within the existing numeric model.
+  - [x] Validate visible scalar subtype marks, array object/type prefixes,
+    argument types and counts, and static array dimensions. Discrete position
+    results retain universal-integer context and width; value and adjacent-value
+    attributes use the scalar base range, including derived and dynamic subtypes.
+    Diagnose static operands outside the prefix base range before folding.
+    Check endpoints before narrowing, with `Constraint_Error` for failed value
+    conversions and successor/predecessor operations. Fixed-point adjacency uses
+    `Small`; floating-point adjacency uses the next representable machine value.
+    Array bounds retain their index width, and a lowered array `'Range` evaluates
+    its prefix once, including function results and implicit access dereferences.
+    Covered by `attributeaudit`, `attributebounds`, their determinism tests, and
+    `attributeauditerrors`; existing attribute and runtime-bound tests remain.
+    Audit baseline: Ada 2005 RM 3.5, 3.5.5 and 3.6.2. These are focused RM-based
+    regressions, not imported ACATS cases. The existing 32/64-bit numeric model,
+    32-bit array descriptor bounds and deferred static-arithmetic work remain
+    unchanged; broader representation and streaming attributes remain separate
+    roadmap items.
 - [ ] **Primitive operations.** Wider visibility and legality audit for tagged
   and untagged primitives: declaration placement, inheritance, hiding,
   overriding indicators, controlling profiles and dispatch through supported

@@ -404,10 +404,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
         } else if (name == "identity") {
             add(m_exceptionIdType);
-        } else if (name == "pos" || name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {
+        } else if (name == "pos") {
+            add(m_types.universalInteger());
+        } else if (name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
+                if ((name == "first" || name == "last") && prefix->kind == TypeKind::Access
+                    && prefix->target != nullptr && prefix->target->kind == TypeKind::Array) {
+                    prefix = prefix->target;
+                }
                 if ((name == "first" || name == "last") && prefix->kind == TypeKind::Array) {
                     // The dimension expression is static; literal dimensions
                     // can be inspected before the normal attribute analysis.
@@ -432,10 +438,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     if (prefix->kind == TypeKind::Array) {
                         add(prefix->index);
                     }
-                } else if (name == "base") {
+                } else if (name == "base" || name == "val" || name == "succ" || name == "pred") {
                     add(m_types.scalarBaseType(prefix));
-                } else if (name == "first" || name == "last" || name == "val" || name == "succ"
-                           || name == "pred" || name == "value" || name == "input") {
+                } else if (name == "first" || name == "last" || name == "value" || name == "input") {
                     add(prefix);
                 }
             }

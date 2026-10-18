@@ -89,6 +89,7 @@ private:
         long long frameSize = 8;
         std::unordered_map<Symbol*, std::string> locals;
         std::unordered_map<Symbol*, Value> bounds;
+        std::unordered_map<const AttributeExpr*, Value> m_rangePrefixes;
         std::vector<std::string> handlerLabels;
         std::unordered_map<std::string, StorageCheckpoint> handlerStorage;
         std::unordered_map<const LoopStmt*, StorageCheckpoint> m_loopStorage;

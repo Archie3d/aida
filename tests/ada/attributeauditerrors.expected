@@ -1,0 +1,26 @@
+attributeauditerrors.adb:11:37: error: 'Pos requires an argument of the prefix type
+attributeauditerrors.adb:12:35: error: 'Val requires an integer argument
+attributeauditerrors.adb:13:37: error: 'Succ requires an argument of the prefix type
+attributeauditerrors.adb:14:30: error: 'Pos requires a discrete subtype mark
+attributeauditerrors.adb:15:29: error: 'First requires an array prefix or a scalar subtype mark
+attributeauditerrors.adb:16:32: error: 'Pos requires a discrete subtype mark
+attributeauditerrors.adb:17:42: error: 'Succ requires a scalar subtype mark
+attributeauditerrors.adb:18:35: error: 'First takes no arguments
+attributeauditerrors.adb:19:33: error: 'Val takes exactly one argument
+attributeauditerrors.adb:20:31: error: 'Pred takes exactly one argument
+attributeauditerrors.adb:21:36: error: 'Length requires an array prefix
+attributeauditerrors.adb:22:34: error: array bound attributes require an object or a constrained array subtype
+attributeauditerrors.adb:23:34: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:24:35: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:25:34: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:26:37: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:27:34: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:28:35: error: array dimension must be a static value within the array rank
+attributeauditerrors.adb:34:45: error: 'First requires an array prefix or a scalar subtype mark
+attributeauditerrors.adb:35:43: error: 'Pos requires a discrete subtype mark
+attributeauditerrors.adb:36:47: error: attribute argument is outside the prefix base range
+attributeauditerrors.adb:37:48: error: attribute argument is outside the prefix base range
+attributeauditerrors.adb:38:50: error: attribute argument is outside the prefix base range
+attributeauditerrors.adb:39:43: error: attribute argument is outside the prefix base range
+attributeauditerrors.adb:41:15: error: 'first requires an array prefix or a scalar subtype mark
+attributeauditerrors.adb:41:15: error: 'last requires an array prefix or a scalar subtype mark
