@@ -336,13 +336,13 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             Type* designated = baseType(prefixType) != nullptr && baseType(prefixType)->kind == TypeKind::Access
                                    ? baseType(prefixType)->target
                                    : prefixType;
-            int variant = knownVariant(designated);
-            if (variant >= 0 && variant != field.variant) {
+            int presence = variantPresence(designated, field.variant);
+            if (presence == 0) {
                 m_diagnostics.error(expr->location, "'" + expr->selector + "' belongs to another variant of '"
                                                         + record->name + "' than the one this value has");
                 return nullptr;
             }
-            expr->checkedVariant = variant < 0 ? field.variant : -1;
+            expr->checkedVariant = presence < 0 ? field.variant : -1;
         }
         return expr->type;
     }

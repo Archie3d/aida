@@ -805,3 +805,7 @@ add_ada_test(primitiveaudit SOURCES primitive_audit_model.ads primitive_audit_mo
 add_determinism_test(primitiveaudit SOURCE primitiveaudit.adb)
 add_ada_error_test(primitiveauditerrors SOURCES primitiveauditerrors.adb)
 add_ada_error_test(primitiveplacementerrors SOURCES primitiveplacementerrors.adb)
+
+add_ada_test(nestedvariants SOURCES nestedvariants.adb)
+add_determinism_test(nestedvariants SOURCE nestedvariants.adb)
+add_ada_error_test(nestedvariantserrors SOURCES nestedvariantserrors.adb)

@@ -75,15 +75,23 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         // A record with a variant part carries the components of one
         // alternative and no other, so which one it is has to be settled before
         // the aggregate can be read.
-        int variant = knownVariant(target);
-        // Nothing fixed the discriminant, so the aggregate itself has to say
-        // what it is: 'new Shape'(Rectangle, ...)' makes a rectangle.
-        long long chosen = 0;
-        if (baseType(target)->variantOn >= 0 && variant < 0
-            && aggregateDiscriminant(expr, baseType(target), scope, baseType(target)->variantOn, chosen)) {
-            variant = variantFor(baseType(target), chosen);
+        Type* record = baseType(target);
+        std::vector<bool> active(record->variants.size(), false);
+        bool unknown = false;
+        for (std::size_t i = 0; i < record->variants.size(); ++i) {
+            const VariantInfo& info = record->variants[i];
+            if (info.parent >= 0 && !active[info.parent]) {
+                continue;
+            }
+            long long chosen = 0;
+            if (!discriminantValue(target, info.discriminant, chosen)
+                && !aggregateDiscriminant(expr, record, scope, info.discriminant, chosen)) {
+                unknown = true;
+                break;
+            }
+            active[i] = variantFor(record, chosen, info.parent) == static_cast<int>(i);
         }
-        if (baseType(target)->variantOn >= 0 && variant < 0) {
+        if (unknown) {
             m_diagnostics.error(expr->location, "an aggregate for '" + baseType(target)->name
                                                     + "' needs its discriminant fixed, as in '" + baseType(target)->name
                                                     + " (...)', so that its components are known");
@@ -104,7 +112,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
 
         auto present = [&](const FieldInfo& field) {
-            return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || field.variant == variant);
+            return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || active[field.variant]);
         };
         // A grouped association has one expected type, but its expression is
         // evaluated separately for each field by the emitter.

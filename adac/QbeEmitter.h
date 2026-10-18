@@ -147,6 +147,7 @@ private:
                       const std::string& dispatchLabel);
     void emitRecordConstraintCheck(const Value& value, Type* type);
     void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location);
+    Value variantCondition(const Value& address, Type* record, int variant);
     void checkVariant(const Value& address, Type* record, int variant);
     std::string rangeTest(const Value& value, long long low, long long high);
     void checkNotNull(const Value& pointer);

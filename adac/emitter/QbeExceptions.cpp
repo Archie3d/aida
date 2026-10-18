@@ -212,9 +212,10 @@ void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLoca
 // A component of a variant part is only there when the discriminant selects
 // that alternative.  Where nothing fixed the discriminant, the value carries
 // the answer and reaching for the wrong component raises Constraint_Error.
-void QbeEmitter::checkVariant(const Value& address, Type* record, int variant)
+Value QbeEmitter::variantCondition(const Value& address, Type* record, int variant)
 {
-    const FieldInfo& discriminant = record->fields[static_cast<std::size_t>(record->variantOn)];
+    const VariantInfo& alternative = record->variants[variant];
+    const FieldInfo& discriminant = record->fields[alternative.discriminant];
     Value slot = address;
     if (discriminant.offset != 0) {
         std::string moved = newTemp();
@@ -222,42 +223,42 @@ void QbeEmitter::checkVariant(const Value& address, Type* record, int variant)
         slot = Value { moved, 'l' };
     }
     Value value = loadFrom(slot, discriminant.type);
-
-    const VariantInfo& alternative = record->variants[static_cast<std::size_t>(variant)];
-    std::string ok = newLabel("rightvariant");
-    std::string bad = newLabel("wrongvariant");
-
-    if (alternative.isOthers) {
-        // 'when others' holds whatever no other alternative named, so the test
-        // is that none of them does.
-        std::string matched = newTemp();
-        line(matched + " =w copy 0");
-        for (const VariantInfo& other : record->variants) {
-            if (other.isOthers) {
-                continue;
-            }
-            for (const VariantChoice& choice : other.choices) {
-                std::string within = newTemp();
-                line(within + " =w " + rangeTest(value, choice.low, choice.high));
-                std::string combined = newTemp();
-                line(combined + " =w or " + matched + ", " + within);
-                matched = combined;
-            }
+    std::string matched = newTemp();
+    line(matched + " =w copy 0");
+    for (std::size_t i = 0; i < record->variants.size(); ++i) {
+        const VariantInfo& other = record->variants[i];
+        if (alternative.isOthers ? (other.parent != alternative.parent || other.isOthers)
+                                 : static_cast<int>(i) != variant) {
+            continue;
         }
-        branch(Value { matched, 'w' }, bad, ok);
-    } else {
-        std::string matched = newTemp();
-        line(matched + " =w copy 0");
-        for (const VariantChoice& choice : alternative.choices) {
+        for (const VariantChoice& choice : other.choices) {
             std::string within = newTemp();
             line(within + " =w " + rangeTest(value, choice.low, choice.high));
             std::string combined = newTemp();
             line(combined + " =w or " + matched + ", " + within);
             matched = combined;
         }
-        branch(Value { matched, 'w' }, ok, bad);
     }
+    if (alternative.isOthers) {
+        std::string inverted = newTemp();
+        line(inverted + " =w xor " + matched + ", 1");
+        matched = inverted;
+    }
+    if (alternative.parent >= 0) {
+        Value parent = variantCondition(address, record, alternative.parent);
+        std::string combined = newTemp();
+        line(combined + " =w and " + matched + ", " + parent.name);
+        matched = combined;
+    }
+    return Value { matched, 'w' };
+}
 
+void QbeEmitter::checkVariant(const Value& address, Type* record, int variant)
+{
+    Value matches = variantCondition(address, record, variant);
+    std::string ok = newLabel("rightvariant");
+    std::string bad = newLabel("wrongvariant");
+    branch(matches, ok, bad);
     label(bad);
     raiseConstraintError();
     label(ok);

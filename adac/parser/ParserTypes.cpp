@@ -389,6 +389,9 @@ VariantPartPtr Parser::parseVariantPart()
         }
         expect(TokenKind::Arrow, "in variant alternative");
         parseRecordComponents(variant.fields);
+        if (check(TokenKind::KwCase)) {
+            variant.nested = parseVariantPart();
+        }
         part->variants.push_back(std::move(variant));
     }
 

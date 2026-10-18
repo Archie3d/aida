@@ -73,6 +73,7 @@ Supported:
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
 - Checked record and array aggregates, including sliding and inferred bounds
+- Nested variant records with checked selection and constrained assignment
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
 - Derived Boolean operations and byte-character literals and strings

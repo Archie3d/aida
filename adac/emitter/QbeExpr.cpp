@@ -681,14 +681,18 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
     if (base->m_tagged) {
         line("storel " + typeTag(base).name + ", " + address.name);
     }
-    long long discriminant = 0;
-    bool fixedVariant = base->variantOn >= 0 && discriminantValueOf(type, base->variantOn, discriminant);
-    int activeVariant = fixedVariant ? variantFor(base, discriminant) : -1;
     for (const FieldInfo& field : base->fields) {
-        // Inactive alternatives share storage with the active one. Their
-        // defaults must neither write that storage nor evaluate side effects.
-        if (fixedVariant && field.variant >= 0 && field.variant != activeVariant) {
+        // Every enclosing alternative must be active before a default runs.
+        int presence = variantPresence(type, field.variant);
+        if (presence == 0) {
             continue;
+        }
+        std::string next;
+        if (presence < 0) {
+            std::string active = newLabel("defaultvariant");
+            next = newLabel("defaultnextvariant");
+            branch(variantCondition(address, base, field.variant), active, next);
+            label(active);
         }
         Value slot = address;
         if (field.offset != 0) {
@@ -703,6 +707,10 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             assignInto(slot, field.type, field.defaultValue, true);
         } else {
             emitDefaultInit(slot, field.type);
+        }
+        if (!next.empty()) {
+            jump(next);
+            label(next);
         }
     }
     if (base->m_controlled) {

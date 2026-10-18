@@ -372,6 +372,8 @@ struct RecordField
 
 // One alternative of a variant part: the discriminant values it answers to and
 // the components that only exist when the discriminant has one of them.
+struct VariantPart;
+
 struct RecordVariant
 {
     std::vector<ExprPtr> choiceLows;
@@ -379,6 +381,7 @@ struct RecordVariant
     std::vector<CaseChoice> choices;
     bool isOthers = false;
     std::vector<RecordField> fields;
+    std::unique_ptr<VariantPart> nested;
     SourceLocation location;
 };
 

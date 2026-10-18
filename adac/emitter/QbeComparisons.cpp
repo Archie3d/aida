@@ -228,43 +228,20 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
         }
     }
 
-    if (record->variantOn >= 0) {
-        const FieldInfo& discriminant = record->fields[static_cast<std::size_t>(record->variantOn)];
-        Value value = loadFrom(fieldAddress(left, discriminant), discriminant.type);
-        std::vector<std::string> alternatives;
-        std::string fallback = done;
-        for (const VariantInfo& variant : record->variants) {
-            alternatives.push_back(newLabel("comparevariant"));
-            if (variant.isOthers) {
-                fallback = alternatives.back();
+    for (std::size_t i = 0; i < record->variants.size(); ++i) {
+        std::string active = newLabel("comparevariant");
+        std::string next = newLabel("comparenextvariant");
+        branch(variantCondition(left, record, static_cast<int>(i)), active, next);
+        label(active);
+        for (const FieldInfo& field : record->fields) {
+            if (field.variant == static_cast<int>(i)) {
+                compareField(field);
             }
         }
-        for (std::size_t i = 0; i < record->variants.size(); ++i) {
-            const VariantInfo& variant = record->variants[i];
-            if (variant.isOthers) {
-                continue;
-            }
-            for (const VariantChoice& choice : variant.choices) {
-                std::string matches = newTemp();
-                std::string next = newLabel("comparenextvariant");
-                line(matches + " =w " + rangeTest(value, choice.low, choice.high));
-                branch(Value { matches, 'w' }, alternatives[i], next);
-                label(next);
-            }
-        }
-        jump(fallback);
-        for (std::size_t i = 0; i < record->variants.size(); ++i) {
-            label(alternatives[i]);
-            for (const FieldInfo& field : record->fields) {
-                if (field.variant == static_cast<int>(i)) {
-                    compareField(field);
-                }
-            }
-            jump(done);
-        }
-    } else {
-        jump(done);
+        jump(next);
+        label(next);
     }
+    jump(done);
 
     label(different);
     line("storew 0, " + resultSlot);

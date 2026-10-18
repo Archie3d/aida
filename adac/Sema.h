@@ -138,7 +138,6 @@ private:
     Type* constrainDiscriminants(SubtypeIndication* indication, Type* base, Scope* scope);
     bool hasKnownDiscriminants(Type* type) const;
     bool discriminantValue(Type* type, int index, long long& value) const;
-    int knownVariant(Type* type) const;
     bool typesCompatible(Type* target, Type* source) const;
 
     // SemaStatements.cpp

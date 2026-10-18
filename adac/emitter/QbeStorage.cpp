@@ -350,16 +350,25 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         Type* record = baseType(type);
         for (int which = 0; which < record->discriminantCount; ++which) {
             long long fixed = 0;
-            if (!discriminantValueOf(type, which, fixed)) {
+            bool known = discriminantValueOf(type, which, fixed);
+            if (!known && initialize) {
                 continue;
             }
             const FieldInfo& field = record->fields[which];
+            Value expected = QbeSupport::constantValue(fixed, qbeClass(field.type));
+            if (!known) {
+                // Unconstrained formals still designate constrained objects.
+                // Mutable discriminants are not part of the supported subset.
+                std::string targetSlot = newTemp();
+                line(targetSlot + " =l add " + address.name + ", " + std::to_string(field.offset));
+                expected = loadFrom(Value { targetSlot, 'l' }, field.type);
+            }
             std::string slot = newTemp();
             line(slot + " =l add " + source.name + ", " + std::to_string(field.offset));
             Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
             std::string same = newTemp();
             line(same + " =w ceq" + std::string(1, discriminant.type) + " "
-                 + discriminant.name + ", " + std::to_string(fixed));
+                 + discriminant.name + ", " + expected.name);
             std::string ok = newLabel("recordconstraintok");
             std::string bad = newLabel("recordconstraintbad");
             branch(Value { same, 'w' }, ok, bad);

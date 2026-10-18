@@ -526,11 +526,26 @@ there; this phase does not introduce an anonymous library-block extension.
     profiles and general freezing beyond these declaration triggers remain
     outside this audit's coverage; wider type support and the Phase 8 coverage
     inventory remain open.
-- [ ] **Variant records.** Confirm that nested variant parts get correct layout,
+- [x] **Variant records.** Confirm that nested variant parts get correct layout,
   initialization and selection checks at every level. Cover assignment,
   copying, aggregates and discriminant mismatches for supported constrained
   objects, retaining active-component equality regressions. Mutable
   discriminants and controlled variant components remain in Phase 6.
+  Nested variant parts now retain their enclosing alternatives throughout
+  parsing, layout, aggregate resolution, initialization, selection and equality.
+  Only active defaults run; runtime selections check every enclosing selector.
+  Assignment through an unconstrained record formal checks the actual target's
+  discriminants before copying, preserving it on failure. Covered by
+  `nestedvariants`, its determinism test, and `nestedvariantserrors`: three-level
+  nesting, sibling nested parts, null/others alternatives, mixed 32/64-bit field
+  alignment, positional/named aggregates, function results, arrays and record
+  components, copying, equality and discriminant mismatches at every level.
+  Existing `variants`, `varianterrors` and aggregate/comparison regressions remain
+  in place. Baseline: Ada 2005 RM 3.7, 3.8.1, 4.1.3, 4.3.1, 4.5.2 and 5.2;
+  focused RM-based regressions, not imported ACATS cases. Explicit record
+  constraints still require static discriminants, and unconstrained standalone
+  objects, mutable discriminants and controlled variant components remain
+  unsupported with diagnostics.
 - [ ] **Feature interactions.** Add focused combinations of the audited features
   with existing overload resolution, named/defaulted arguments, generic
   instantiation, renaming, controlled ownership and exception handling. Check

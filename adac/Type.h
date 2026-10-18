@@ -52,10 +52,12 @@ struct VariantChoice
     long long high = 0;
 };
 
-// One alternative of a variant part.  Its components share their storage with
-// those of every other alternative, since only one of them exists at a time.
+// Alternatives are stored in preorder. Siblings share storage; a nested
+// alternative also requires its parent to be active.
 struct VariantInfo
 {
+    int parent = -1;
+    int discriminant = -1;
     std::vector<VariantChoice> choices;
     bool isOthers = false;
 };
@@ -115,8 +117,9 @@ public:
     bool isLimited = false;
 
     // Discriminants and the variant part they may select.  The discriminants
-    // are the first components of the record; variantOn is the index of the
-    // one the variant part switches on, or -1 when there is no variant part.
+    // are the first components of the record; variantOn identifies the outer
+    // selector, or -1 when there is no variant part. Each nested alternative
+    // records its own selector and parent in variants.
     int discriminantCount = 0;
     int variantOn = -1;
     std::vector<VariantInfo> variants;
@@ -202,7 +205,9 @@ Type* rootType(Type* type);
 
 // Which alternative of a variant part a discriminant value picks, or -1 when
 // it picks none.
-int variantFor(const Type* record, long long discriminant);
+int variantFor(const Type* record, long long discriminant, int parent = -1);
+// -1 means unknown, 0 absent, 1 present, including all enclosing variants.
+int variantPresence(Type* type, int variant);
 
 // What a constraint along the subtype chain fixed a discriminant to, if
 // anything did.

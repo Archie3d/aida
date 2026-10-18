@@ -380,10 +380,13 @@ bool discriminantValueOf(const Type* type, int index, long long& value)
     return false;
 }
 
-int variantFor(const Type* record, long long discriminant)
+int variantFor(const Type* record, long long discriminant, int parent)
 {
     int fallback = -1;
     for (std::size_t v = 0; v < record->variants.size(); ++v) {
+        if (record->variants[v].parent != parent) {
+            continue;
+        }
         if (record->variants[v].isOthers) {
             fallback = static_cast<int>(v);
             continue;
@@ -395,6 +398,22 @@ int variantFor(const Type* record, long long discriminant)
         }
     }
     return fallback;
+}
+
+int variantPresence(Type* type, int variant)
+{
+    Type* record = baseType(type);
+    bool unknown = false;
+    for (int current = variant; current >= 0; current = record->variants[current].parent) {
+        const VariantInfo& info = record->variants[current];
+        long long value = 0;
+        if (!discriminantValueOf(type, info.discriminant, value)) {
+            unknown = true;
+        } else if (variantFor(record, value, info.parent) != current) {
+            return 0;
+        }
+    }
+    return unknown ? -1 : 1;
 }
 
 bool TypeTable::isBoolean(const Type* type) const

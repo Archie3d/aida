@@ -1,6 +1,7 @@
 #include "Sema.h"
 
 #include <algorithm>
+#include <functional>
 #include "SemaSupport.h"
 #include <cstdint>
 #include <limits>
@@ -718,58 +719,71 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         return;
     }
 
-    VariantPart& part = *definition->variant;
-    for (const FieldInfo& field : type->fields) {
-        if (field.isDiscriminant && field.name == part.discriminantLower) {
-            type->variantOn = field.index;
-            part.discriminantIndex = field.index;
-        }
-    }
-    if (type->variantOn < 0) {
-        m_diagnostics.error(part.location,
-                            "'" + part.discriminant + "' is not a discriminant of '" + type->name + "'");
-        return;
-    }
-
-    // Every alternative starts where the components common to all of them left
-    // off: only one alternative exists in any one value, so they share the
-    // storage and the record keeps a single size.
-    Type* selector = type->fields[type->variantOn].type;
-    long long base = offset;
-    std::vector<CaseChoice> covered;
-    bool sawOthers = false;
-
-    for (std::size_t v = 0; v < part.variants.size(); ++v) {
-        RecordVariant& variant = part.variants[v];
-        if (sawOthers) {
-            m_diagnostics.error(variant.location, "'others' has to be the last alternative of a variant part");
-        }
-
-        VariantInfo info;
-        info.isOthers = variant.isOthers;
-        sawOthers = sawOthers || variant.isOthers;
-
-        for (std::size_t k = 0; k < variant.choiceLows.size(); ++k) {
-            CaseChoice choice;
-            if (!resolveChoice(variant.choiceLows[k].get(), variant.choiceHighs[k].get(), selector, covered, scope,
-                               choice)) {
-                continue;
+    std::function<void(VariantPart&, int)> layoutVariant = [&](VariantPart& part, int parent) {
+        int selectorIndex = -1;
+        for (const FieldInfo& field : type->fields) {
+            if (field.isDiscriminant && field.name == part.discriminantLower) {
+                selectorIndex = field.index;
+                part.discriminantIndex = field.index;
             }
-            covered.push_back(choice);
-            variant.choices.push_back(choice);
-            info.choices.push_back(VariantChoice { choice.low, choice.high });
         }
-        type->variants.push_back(info);
-
-        offset = base;
-        for (RecordField& field : variant.fields) {
-            place(field, static_cast<int>(v), false);
+        if (selectorIndex < 0) {
+            m_diagnostics.error(part.location,
+                                "'" + part.discriminant + "' is not a discriminant of '" + type->name + "'");
+            return;
         }
-    }
 
-    if (!sawOthers) {
-        reportUncovered(covered, selector, part.location, "variant part");
-    }
+        if (parent < 0) {
+            type->variantOn = selectorIndex;
+        }
+
+        // Every alternative starts where the components common to all of them left
+        // off: only one alternative exists in any one value, so they share the
+        // storage and the record keeps a single size.
+        Type* selector = type->fields[selectorIndex].type;
+        long long base = offset;
+        std::vector<CaseChoice> covered;
+        bool sawOthers = false;
+
+        for (std::size_t v = 0; v < part.variants.size(); ++v) {
+            RecordVariant& variant = part.variants[v];
+            if (sawOthers) {
+                m_diagnostics.error(variant.location, "'others' has to be the last alternative of a variant part");
+            }
+
+            VariantInfo info;
+            info.parent = parent;
+            info.discriminant = selectorIndex;
+            info.isOthers = variant.isOthers;
+            sawOthers = sawOthers || variant.isOthers;
+
+            for (std::size_t k = 0; k < variant.choiceLows.size(); ++k) {
+                CaseChoice choice;
+                if (!resolveChoice(variant.choiceLows[k].get(), variant.choiceHighs[k].get(), selector, covered, scope,
+                                   choice)) {
+                    continue;
+                }
+                covered.push_back(choice);
+                variant.choices.push_back(choice);
+                info.choices.push_back(VariantChoice { choice.low, choice.high });
+            }
+            int index = static_cast<int>(type->variants.size());
+            type->variants.push_back(info);
+
+            offset = base;
+            for (RecordField& field : variant.fields) {
+                place(field, index, false);
+            }
+            if (variant.nested != nullptr) {
+                layoutVariant(*variant.nested, index);
+            }
+        }
+
+        if (!sawOthers) {
+            reportUncovered(covered, selector, part.location, "variant part");
+        }
+    };
+    layoutVariant(*definition->variant, -1);
 }
 
 // A type may be named before it is described, but not left that way: an object
@@ -1191,21 +1205,6 @@ bool Sema::hasKnownDiscriminants(Type* type) const
 bool Sema::discriminantValue(Type* type, int index, long long& value) const
 {
     return discriminantValueOf(type, index, value);
-}
-
-// The alternative a record subtype's fixed discriminant selects, or -1 when
-// nothing has fixed it.
-int Sema::knownVariant(Type* type) const
-{
-    Type* record = baseType(type);
-    if (record == nullptr || record->variantOn < 0) {
-        return -1;
-    }
-    long long fixed = 0;
-    if (!discriminantValue(type, record->variantOn, fixed)) {
-        return -1;
-    }
-    return variantFor(record, fixed);
 }
 
 bool Sema::typesCompatible(Type* target, Type* source) const
