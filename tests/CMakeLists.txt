@@ -809,3 +809,22 @@ add_ada_error_test(primitiveplacementerrors SOURCES primitiveplacementerrors.adb
 add_ada_test(nestedvariants SOURCES nestedvariants.adb)
 add_determinism_test(nestedvariants SOURCE nestedvariants.adb)
 add_ada_error_test(nestedvariantserrors SOURCES nestedvariantserrors.adb)
+
+add_ada_test(interactioncalls SOURCES interactioncalls.adb)
+add_determinism_test(interactioncalls SOURCE interactioncalls.adb)
+add_ada_test(interactionownership SOURCES interactionownership.adb)
+add_determinism_test(interactionownership SOURCE interactionownership.adb)
+set_tests_properties(ada.interactioncalls ada.interactionownership
+    determinism.interactioncalls determinism.interactionownership PROPERTIES TIMEOUT 60)
+add_ada_error_test(interactionerrors SOURCES interactionerrors.adb)
+set_tests_properties(error.interactionerrors PROPERTIES TIMEOUT 10)
+add_test(NAME semantics.interaction_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckInteractionModes.cmake)
+set_tests_properties(semantics.interaction_modes PROPERTIES TIMEOUT 60)

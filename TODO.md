@@ -546,13 +546,38 @@ there; this phase does not introduce an anonymous library-block extension.
   constraints still require static discriminants, and unconstrained standalone
   objects, mutable discriminants and controlled variant components remain
   unsupported with diagnostics.
-- [ ] **Feature interactions.** Add focused combinations of the audited features
+- [x] **Feature interactions.** Add focused combinations of the audited features
   with existing overload resolution, named/defaulted arguments, generic
   instantiation, renaming, controlled ownership and exception handling. Check
   copy-in/copy-out behavior, owned results and partial initialization cleanup;
   preserve the Phase 2 master/context boundaries on normal and exceptional
   exits. Reuse existing regression coverage and add cases for uncovered
   interactions rather than duplicating entire feature suites.
+  - `interactioncalls` combines overloaded renamings of generic instances,
+    renamed parameter names/defaults, constrained array conversions and selected
+    slices. Checks single evaluation, sliding, normal copy-back, no copy-back
+    after exceptions, entry-shape rejection and scalar copy-back range failure.
+    `interactionerrors` rejects constant and function-result converted actuals
+    passed by name through a renamed generic instance.
+  - `interactionownership` combines private generic actuals, formal function
+    wrappers, overloaded/defaulted renamings, controlled aggregate results and
+    array conversions. Resource counts verify early-return cleanup, partial
+    aggregate initialization failure, preserved exception messages, failed
+    adjustment in a forwarding wrapper and successful recovery over repeated
+    activations. Synthetic formal-subprogram wrappers now record owned-result
+    finalization requirements, preserving their master and temporary ownership
+    chains instead of emitting a missing owner argument.
+  - Both executable tests have whole/separate IR determinism coverage;
+    `semantics.interaction_modes` additionally executes whole-program builds.
+    Reuse `runtime.masterhooks`, `runtime.masterfailure`,
+    `runtime.masterlibraryfailure`, `runtime.task_context` and
+    `runtime.generated_contexts` for master ordering and context isolation;
+    `aggregatecleanup`, `controlledconversions`, `forwardcontracts`,
+    `primitiveaudit` and `nestedvariants` retain the existing cross-feature
+    coverage. No runtime ABI or supported-language boundary changes.
+    Baseline: Ada 2005 RM 6.4.1, 7.6.1, 8.5.4 and 12.6; focused RM-based
+    regressions, not imported ACATS cases. The existing array-view, generic
+    formal and controlled-variant restrictions remain in their owning items.
 
 Completion criteria for every item: record the supported behavior and any
 remaining restrictions; add positive executable tests, legality rejection

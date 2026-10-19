@@ -641,6 +641,16 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         }
     } else {
         implementation = bindOperator(candidates.front(), std::move(operands), operandsScope, formal.location);
+        // bindOperator builds an already-resolved call without passing its
+        // result through analyzeExpr. The synthetic wrapper still owns the
+        // returned temporary, including when a private formal becomes a
+        // controlled or tagged actual at instantiation.
+        if (implementation != nullptr) {
+            Type* result = implementation->type;
+            if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->m_tagged)) {
+                wrapper->m_usesFinalization = true;
+            }
+        }
     }
     m_currentSubprogram = savedSubprogram;
     if (implementation == nullptr) {

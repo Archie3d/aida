@@ -1,0 +1,2 @@
+interactionerrors.adb:20:28: error: 'constantValue' cannot be assigned to
+interactionerrors.adb:21:28: error: the target of an assignment must be a variable

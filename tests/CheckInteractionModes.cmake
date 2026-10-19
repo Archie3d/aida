@@ -1,0 +1,26 @@
+# Execute the cross-unit ownership case in both driver modes. The ordinary
+# ada tests use separate compilation; determinism tests compare each unit's IR.
+set(work "${WORKDIR}/interaction-modes")
+file(MAKE_DIRECTORY "${work}")
+set(math_library)
+if(SEPARATE_LIBM)
+    set(math_library -lm)
+endif()
+function(run)
+    execute_process(COMMAND ${ARGV} RESULT_VARIABLE status
+        OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 30
+        WORKING_DIRECTORY "${work}")
+    if(NOT status EQUAL 0)
+        message(FATAL_ERROR "Command failed: ${ARGV}\n${status}\n${output}${errors}")
+    endif()
+    set(actual "${output}" PARENT_SCOPE)
+endfunction()
+foreach(name interactioncalls interactionownership)
+    run("${ADA}" -S -o "${work}/${name}.s" "${FIXTURES}/${name}.adb")
+    run("${CC}" -pthread "${work}/${name}.s" "${RUNTIME}" ${math_library} -o "${work}/${name}")
+    run("${work}/${name}")
+    file(READ "${FIXTURES}/${name}.expected" expected)
+    if(NOT actual STREQUAL expected)
+        message(FATAL_ERROR "${name}: expected '${expected}', got '${actual}'")
+    endif()
+endforeach()
