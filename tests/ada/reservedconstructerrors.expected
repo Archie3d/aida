@@ -1,6 +1,4 @@
 reservedconstructerrors.adb:2:13: error: aliased declarations are not yet supported
-reservedconstructerrors.adb:3:5: error: protected declarations are not yet supported
-reservedconstructerrors.adb:5:5: error: protected declarations are not yet supported
 reservedconstructerrors.adb:7:29: error: access-to-protected-subprogram types are not yet supported
 reservedconstructerrors.adb:8:19: error: interface types are not yet supported
 reservedconstructerrors.adb:9:31: error: interface types are not yet supported

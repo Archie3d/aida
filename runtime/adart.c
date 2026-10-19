@@ -53,7 +53,8 @@ int __ada_task_context_dispose(AdaTaskContext* context)
     if (context == NULL || context->currentTrace != NULL
         || context->registeredFinalizations != NULL || context->registeredAllocations != NULL
         || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
-        || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL) {
+        || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
+        || context->protectedActions != NULL) {
         return 0;
     }
     free(context->pendingMessage);

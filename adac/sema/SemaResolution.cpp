@@ -25,7 +25,9 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
         auto prefixes = expressionNames(selected->prefix.get(), scope);
-        if (prefixes.size() != 1) {
+        if (prefixes.size() != 1 && std::any_of(prefixes.begin(), prefixes.end(), [](Symbol* prefix) {
+                return prefix->kind == SymbolKind::Package;
+            })) {
             return {};
         }
         for (Symbol* prefix : prefixes) {
@@ -33,6 +35,24 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
                 return contractNames(expr, prefix->scope->lookupVisibleLocal(selected->selectorLower, scope));
             }
         }
+        std::vector<Symbol*> operations;
+        for (Type* prefix : expressionTypes(selected->prefix.get(), scope)) {
+            Type* type = baseType(prefix);
+            if (type != nullptr && type->kind == TypeKind::Access) {
+                type = baseType(type->target);
+            }
+            if (type != nullptr && type->m_protectedScope != nullptr && representationVisible(type)
+                && !selected->isDereference) {
+                for (Symbol* operation : type->m_protectedScope->lookupLocal(selected->selectorLower)) {
+                    bool current = isProtectedCurrentInstance(selected->prefix.get(), type, scope);
+                    if ((operation->kind == SymbolKind::Subprogram && !operation->m_protectedPrivate)
+                        || current) {
+                        operations.push_back(operation);
+                    }
+                }
+            }
+        }
+        return contractNames(expr, std::move(operations));
     }
     return {};
 }

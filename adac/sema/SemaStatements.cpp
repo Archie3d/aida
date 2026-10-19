@@ -57,6 +57,14 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
 {
     (void)scope;
 
+    if (target->m_protectedReceiver != nullptr && target->m_protectedReceiver->mode == ParameterMode::In) {
+        Symbol* field = target->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(target)->symbol
+            : target->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(target)->symbol : nullptr;
+        if (field != nullptr && field->m_protectedField >= 0) {
+            m_diagnostics.error(target->location, "a protected function cannot modify its constant current instance");
+            return;
+        }
+    }
     if (target->m_implicitCall != nullptr
         || (target->kind == ExprKind::Call && static_cast<CallExpr*>(target)->m_indirect)) {
         m_diagnostics.error(target->location, "the target of an assignment must be a variable");
@@ -195,10 +203,16 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* assign = static_cast<AssignStmt*>(statement);
         Type* targetType = analyzeExpr(assign->target.get(), scope, nullptr);
         checkAssignable(assign->target.get(), scope);
+        if (hasIncompleteParts(targetType)) {
+            m_deferredProtectedUses.push_back({targetType, assign->location});
+        }
+        if (hasProtected(targetType)) {
+            m_diagnostics.error(assign->location, "objects containing protected parts cannot be assigned");
+        }
         if (hasTasks(targetType)) {
             m_diagnostics.error(assign->location, "objects containing tasks cannot be assigned");
         }
-        if (hasLimitedControlledParts(targetType)) {
+        if (!hasProtected(targetType) && hasLimitedControlledParts(targetType)) {
             m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
         }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);

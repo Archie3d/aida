@@ -79,6 +79,8 @@ struct Expr : Node
     }
 
     ExprKind kind;
+    Expr* m_protectedObject = nullptr; // Borrowed target of an external protected call.
+    Symbol* m_protectedReceiver = nullptr; // Current instance for fields/internal calls.
     bool m_tagIndeterminate = false;
     std::unique_ptr<Expr> m_implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
@@ -355,6 +357,7 @@ enum class TypeDefKind
     FloatDigits,
     FixedDelta,
     Task,
+    Protected,
     Array,
     Record,
     Derived,
@@ -751,7 +754,9 @@ struct TypeDecl : Decl
     std::vector<RecordField> discriminants;
     TypeDefinitionPtr definition;
     Type* declaredType = nullptr;
-    DeclList m_taskObjects; // Anonymous type followed by the single task object.
+    DeclList m_taskObjects; // Anonymous type followed by its single concurrent object.
+    DeclList m_protectedDeclarations;
+    bool m_protectedBody = false;
 };
 
 struct SubtypeDecl : Decl
@@ -775,6 +780,7 @@ struct SubprogramDecl : Decl
     }
 
     SubprogramSpec spec;
+    bool m_protectedPrivate = false;
     Symbol* symbol = nullptr;
     ExprPtr m_renamedName;
     std::vector<Token> m_renamedTokens;

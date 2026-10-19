@@ -354,6 +354,10 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     if (!needsFinalization(type)) {
         return;
     }
+    if (type->m_protectedScope != nullptr) {
+        action(object, type);
+        return;
+    }
     if (parentFirst && type->m_controlled) {
         action(object, type);
     }
@@ -418,7 +422,7 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
 
 void QbeEmitter::activateControlledObject(const Value& object, Type* type)
 {
-    if (type->m_controlled) {
+    if (type->m_controlled || type->m_protectedScope != nullptr) {
         line("call $__ada_controlled_activate(l " + object.name + ", l " + rootType(type)->m_tagName + ".finalize)");
         emitExceptionCheck();
     }

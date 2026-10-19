@@ -36,7 +36,8 @@ bool hasControlledObjects(DeclList& declarations)
                 }
             }
         } else if (decl->kind == DeclKind::Type) {
-            if (needsCollection(static_cast<TypeDecl*>(decl.get())->declaredType)) {
+            if (needsCollection(static_cast<TypeDecl*>(decl.get())->declaredType)
+                || hasControlledObjects(static_cast<TypeDecl*>(decl.get())->m_taskObjects)) {
                 return true;
             }
         } else if (decl->kind == DeclKind::PackageSpecification) {
@@ -142,6 +143,9 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
         case DeclKind::SubprogramDeclaration:
             emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
             break;
+        case DeclKind::Type:
+            emitSubprogramsIn(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
+            break;
         case DeclKind::SubprogramBody:
             emitSubprogram(static_cast<SubprogramBody*>(decl.get()));
             break;
@@ -224,6 +228,22 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     if (symbol->level > 0 || symbol->m_taskBody) {
         signature += (first ? "" : ", ") + std::string("l %.link");
         first = false;
+    }
+    if (symbol->m_protectedReceiver != nullptr) {
+        signature += (first ? "" : ", ") + std::string("l %.protectedObject");
+        first = false;
+        Symbol* receiver = symbol->m_protectedReceiver;
+        if (receiver->isUplevel) {
+            context.hasFrame = true;
+            context.frameSize = (context.frameSize + 7) / 8 * 8;
+            receiver->frameOffset = context.frameSize;
+            context.frameSize += 8;
+            std::string slot = newTemp();
+            context.prologue << "    " << slot << " =l add " << context.frameTemp << ", " << receiver->frameOffset << "\n";
+            context.prologue << "    storel %.protectedObject, " << slot << "\n";
+        } else {
+            context.locals[receiver] = "%.protectedObject";
+        }
     }
     for (Symbol* parameter : symbol->parameters) {
         if (!first) {

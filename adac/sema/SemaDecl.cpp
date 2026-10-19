@@ -55,7 +55,9 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             reportMissingBodies(package->privatePart);
         }
         if (decl->kind == DeclKind::Type) {
-            Type* type = static_cast<TypeDecl*>(decl.get())->declaredType;
+            auto* typeDecl = static_cast<TypeDecl*>(decl.get());
+            reportMissingBodies(typeDecl->m_protectedDeclarations);
+            Type* type = typeDecl->declaredType;
             if (type != nullptr && type->m_taskBody != nullptr && !type->m_taskBody->hasBody
                 && !type->m_taskBody->m_missingBodyReported) {
                 type->m_taskBody->m_missingBodyReported = true;
@@ -83,10 +85,26 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     case DeclKind::Number:
         analyzeNumberDecl(static_cast<NumberDecl*>(decl), scope);
         break;
-    case DeclKind::Type:
-        analyzeTypeDecl(static_cast<TypeDecl*>(decl), scope);
-        analyzeDeclarativePart(static_cast<TypeDecl*>(decl)->m_taskObjects, scope);
+    case DeclKind::Type: {
+        auto* typeDecl = static_cast<TypeDecl*>(decl);
+        if (typeDecl->m_protectedBody) {
+            analyzeProtected(typeDecl, scope);
+            break;
+        }
+        analyzeTypeDecl(typeDecl, scope);
+        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->m_protectedScope != nullptr) {
+            analyzeProtected(typeDecl, scope);
+        }
+        analyzeDeclarativePart(typeDecl->m_taskObjects, scope);
+        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->m_protectedScope != nullptr
+            && !typeDecl->m_taskObjects.empty()) {
+            auto* object = static_cast<ObjectDecl*>(typeDecl->m_taskObjects.front().get());
+            if (!object->symbols.empty()) {
+                typeDecl->declaredType->m_protectedObject = object->symbols.front();
+            }
+        }
         break;
+    }
     case DeclKind::Subtype:
         analyzeSubtypeDecl(static_cast<SubtypeDecl*>(decl), scope);
         break;
@@ -167,6 +185,10 @@ int objectView(Expr* expr)
     if (symbol == nullptr) {
         return 0;
     }
+    if (symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr
+        && expr->m_protectedReceiver->mode == ParameterMode::In) {
+        return 1;
+    }
     if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter
         || symbol->kind == SymbolKind::LoopParameter) {
         return symbol->isConstant || symbol->kind == SymbolKind::LoopParameter
@@ -232,6 +254,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (decl->initializer && !decl->m_isRenaming) {
+        if (hasIncompleteParts(type)) {
+            m_deferredProtectedUses.push_back({type, decl->location});
+        }
+        if (hasProtected(type)) {
+            m_diagnostics.error(decl->location, "objects containing protected parts cannot be copied or explicitly initialized yet");
+        }
         if (hasTasks(type)) {
             m_diagnostics.error(decl->location, "objects containing tasks cannot be copied or explicitly initialized yet");
         }
@@ -239,7 +267,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
-        if ((hasLimitedControlledParts(type) || hasLimitedControlledParts(valueType))
+        if (!hasProtected(type) && (hasLimitedControlledParts(type) || hasLimitedControlledParts(valueType))
             && !buildsLimitedResult(decl->initializer.get())) {
             m_diagnostics.error(decl->location, "limited controlled objects cannot be copied");
         }
@@ -394,6 +422,12 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+    if (hasIncompleteParts(returnType)) {
+        m_deferredProtectedUses.push_back({returnType, spec.location});
+    }
+    if (hasProtected(returnType)) {
+        m_diagnostics.error(spec.location, "function results containing protected objects are not yet supported");
+    }
     if (hasTasks(returnType)) {
         m_diagnostics.error(spec.location, "function results containing tasks are not yet supported");
     }
@@ -662,6 +696,9 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     }
 
     Symbol* symbol = declareSubprogram(body->spec, scope, true);
+    if (scope == m_protectedBodyScope && m_currentProtectedType != nullptr) {
+        declareProtectedOperation(symbol, m_currentProtectedType);
+    }
     scope->m_publicChildPart = false;
     symbol->hasBody = true;
     body->symbol = symbol;

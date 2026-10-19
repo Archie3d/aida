@@ -135,7 +135,7 @@ long long typeSize(const Type* type)
         return count * elementSize;
     }
     case TypeKind::Record: {
-        long long size = type->m_tagged ? 8 : 0;
+        long long size = type->m_tagged || type->m_protectedScope != nullptr ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
@@ -166,7 +166,7 @@ long long typeAlignment(const Type* type)
     case TypeKind::Array:
         return typeAlignment(type->element);
     case TypeKind::Record: {
-        long long alignment = type->m_tagged ? 8 : 1;
+        long long alignment = type->m_tagged || type->m_protectedScope != nullptr ? 8 : 1;
         for (const FieldInfo& field : type->fields) {
             long long fieldAlignment = typeAlignment(field.type);
             if (fieldAlignment > alignment) {
@@ -343,6 +343,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
     subtype->m_taskBody = parent->m_taskBody;
+    subtype->m_protectedScope = parent->m_protectedScope;
+    subtype->m_incompleteLayout = parent->m_incompleteLayout;
     subtype->discriminantCount = parent->discriminantCount;
     subtype->variantOn = parent->variantOn;
     subtype->variants = parent->variants;
@@ -366,6 +368,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->fields = completed->fields;
         subtype->m_taskBody = completed->m_taskBody;
+        subtype->m_protectedScope = completed->m_protectedScope;
         if (completed->m_taskBody != nullptr) {
             subtype->byteSize = completed->byteSize;
         }
@@ -488,7 +491,7 @@ bool needsFinalization(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_controlled || type->m_classRoot != nullptr) {
+    if (type->m_protectedScope != nullptr || type->m_controlled || type->m_classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -572,4 +575,37 @@ bool hasPrivateOrTaggedParts(const Type* type)
         }
     }
     return false;
+}
+
+bool hasProtected(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->m_protectedScope != nullptr) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasProtected(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasProtected(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool hasIncompleteParts(const Type* type)
+{
+    type = baseType(const_cast<Type*>(type));
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->isIncomplete || type->m_incompleteLayout) {
+        return true;
+    }
+    return type->kind == TypeKind::Array && hasIncompleteParts(type->element);
 }

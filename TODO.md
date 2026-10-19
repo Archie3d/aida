@@ -88,7 +88,9 @@ generic formal type parsing and diagnostics for unsupported constructs.
   by `subprogramstuberrors` and `subprogramcompletions`.
 - [x] **Reserved words.** `aliased`, `protected`, `requeue`, `until`,
   `interface` and `synchronized` are reserved, and the constructs they introduce
-  are rejected (including inside generic formal type definitions). Covered by
+  have their unsupported forms rejected (including inside generic formal type
+  definitions). Phase 4 replaces the original protected-declaration rejection
+  with its supported subset. Covered by
   `reservedworderrors`, `reservedconstructerrors`, `reservedgenericerrors` and
   `reservedwordboundaries`.
 - [x] **Import without an external name.** Both C and Ada imports require an
@@ -190,7 +192,7 @@ redesigning. The shared state is in the C run time.
   startup reset; concurrent access and post-join visibility are covered by
   `runtime.task_context`.
   Collections reject allocation from a different context. No generated callback
-  runs under a runtime mutex. Covered by `runtime.shared_tables`, `filesnapshots`
+  runs under an infrastructure table mutex. Covered by `runtime.shared_tables`, `filesnapshots`
   and its determinism test, including concurrent first use and slot reuse.
   `adalock` supplies the private mutex operations needed here, extended by the
   threading layer below. `runtime.blocking_io` verifies unrelated file
@@ -635,8 +637,41 @@ must keep it working; Phase 9 completes core tasking.
     lifecycle test and both generated concurrency modes with instrumented C
     runtime/helpers; QBE-generated Ada memory accesses are not instrumented.
     The C lifecycle test also passes AddressSanitizer and UndefinedBehaviorSanitizer.
-- [ ] **Protected objects.** Protected types and single protected objects with
+- [x] **Protected objects.** Protected types and single protected objects with
   procedures and functions, under one lock per object.
+  - Private data has a hidden receiver, with constant current-instance views in
+    functions, including nested helpers and aliases. External calls evaluate the
+    receiver and actuals before acquiring the object's mutex, then release it
+    before exception transfer and copy-back. Functions conservatively use the
+    same exclusive mutex as procedures. Internal calls reuse the current action;
+    current-instance expanded names and private/local operations retain that rule.
+  - Locks join the existing finalization chains for local, library, allocated,
+    array and ordinary-record objects. Task masters await users before cleanup;
+    partial construction and failed allocation release initialized locks only.
+    Overloads, named/defaulted arguments, composite results, generic protected
+    units and whole/separate compilation retain the existing call ABI around
+    the hidden receiver. Private views continue to hide protected operations.
+  - Protected objects and containing composites cannot be copied, assigned,
+    converted, streamed or returned as values in this subset. Entries,
+    discriminants, interfaces, operator functions, operation renaming, protected
+    subprogram access and protected operation generic actuals remain diagnosed.
+    Private components
+    containing controlled, task or protected parts, tagged/variant composites,
+    and layouts/value operations preceding a protected private completion are
+    also rejected. Access collections retain their Phase 2 owner restriction.
+    External self-calls and task creation during an action raise `Program_Error`;
+    this is not general `Detect_Blocking` support.
+  - Covered by `protectedobjects`, `protectedconcurrency`, `protectedlibrary`,
+    `protectedgenerics` and `protectedcleanup`, executable whole/separate modes
+    and IR determinism; `protectederrors`, `protectedlegalityerrors`,
+    `protectedcompletionerrors`, `protectedgenericerrors` and
+    `protectedsyntaxerrors` cover legality and unsupported recovery. `runtime.protected_lifecycle` checks contention,
+    independent-object progress, action stacks, re-entry, exception preservation
+    and disposal. Baseline: Ada 2005 RM 7.5, 7.6.1, 9.4 and 9.5.1; focused
+    RM-based regressions, not imported ACATS cases. ThreadSanitizer and
+    AddressSanitizer/UndefinedBehaviorSanitizer pass for the C runtime tests and
+    the five generated cases in both compilation modes with instrumented C
+    runtime/helpers; QBE-generated Ada memory accesses remain uninstrumented.
 - [ ] **Protected entries.** Entries with barriers, re-evaluated when a
   protected procedure or entry completes.
 - [ ] **Time.** `Duration` (an ordinary fixed-point type), `delay`,

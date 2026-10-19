@@ -78,6 +78,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
+            call.m_protectedObject = expr->m_protectedObject;
+            call.m_protectedReceiver = expr->m_protectedReceiver;
             call.type = expr->type;
             call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
             call.m_tagIndeterminate = expr->m_tagIndeterminate;
@@ -96,7 +98,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (symbol->kind == SymbolKind::TypeName && symbol->type->m_boundsSymbol != nullptr) {
             return boundsFor(symbol->type->m_boundsSymbol);
         }
-        Value address = addressOf(symbol);
+        Value address = symbol->m_protectedField >= 0 ? emitAddress(expr) : addressOf(symbol);
         if (isComposite(symbol->type)) {
             return withBounds(address, symbol->type, symbol);
         }
@@ -111,6 +113,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
+            call.m_protectedObject = expr->m_protectedObject;
+            call.m_protectedReceiver = expr->m_protectedReceiver;
             call.type = expr->type;
             call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
             call.m_tagIndeterminate = expr->m_tagIndeterminate;
@@ -341,6 +345,13 @@ Value QbeEmitter::emitAddress(Expr* expr)
             && (identifier->symbol->kind == SymbolKind::Object
                 || identifier->symbol->kind == SymbolKind::Parameter
                 || identifier->symbol->kind == SymbolKind::LoopParameter)) {
+            if (identifier->symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
+                Value object = addressOf(expr->m_protectedReceiver);
+                const auto& field = identifier->symbol->m_protectedType->fields[identifier->symbol->m_protectedField];
+                Value address { newTemp(), 'l' };
+                line(address.name + " =l add " + object.name + ", " + std::to_string(field.offset));
+                return address;
+            }
             return addressOf(identifier->symbol);
         }
         break;
@@ -349,6 +360,13 @@ Value QbeEmitter::emitAddress(Expr* expr)
         auto* selected = static_cast<SelectedExpr*>(expr);
         if (selected->symbol != nullptr
             && (selected->symbol->kind == SymbolKind::Object || selected->symbol->kind == SymbolKind::Parameter)) {
+            if (selected->symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
+                Value object = addressOf(expr->m_protectedReceiver);
+                const auto& field = selected->symbol->m_protectedType->fields[selected->symbol->m_protectedField];
+                Value address { newTemp(), 'l' };
+                line(address.name + " =l add " + object.name + ", " + std::to_string(field.offset));
+                return address;
+            }
             return addressOf(selected->symbol);
         }
         if (selected->isDereference) {
@@ -637,7 +655,7 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base == nullptr) {
         return false;
     }
-    if (base->m_taskBody != nullptr) {
+    if (base->m_taskBody != nullptr || base->m_protectedScope != nullptr) {
         return true;
     }
     if (base->kind == TypeKind::Array) {
@@ -735,6 +753,11 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             jump(next);
             label(next);
         }
+    }
+    if (base->m_protectedScope != nullptr) {
+        line("call $__ada_protected_init(l " + address.name + ")");
+        emitExceptionCheck();
+        activateControlledObject(address, type);
     }
     if (base->m_controlled) {
         emitControlledCall(address, type, "initialize");

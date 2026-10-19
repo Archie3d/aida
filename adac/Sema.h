@@ -41,6 +41,11 @@ private:
     void analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete = true);
     void reportMissingBodies(const DeclList& declarations);
     void analyzeDecl(Decl* decl, Scope* scope);
+    void analyzeProtected(TypeDecl* decl, Scope* scope);
+    void declareProtectedOperation(Symbol* operation, Type* type);
+    Symbol* protectedReceiver(Type* type);
+    bool isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope);
+    void bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);
@@ -260,6 +265,9 @@ private:
     Type* m_exceptionIdType = nullptr;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
+    std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;
+    Type* m_currentProtectedType = nullptr;
+    Scope* m_protectedBodyScope = nullptr;
     int m_accessibilityLevel = 0;
     int m_handlerDepth = 0;
     std::vector<Symbol*> m_extendedReturns;

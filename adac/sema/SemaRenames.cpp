@@ -69,6 +69,10 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
+    if (chosen != nullptr && chosen->m_protectedType != nullptr) {
+        m_diagnostics.error(decl->location, "renaming protected operations is not yet supported");
+        return;
+    }
     Type* access = nullptr;
     if (name->kind == ExprKind::Selected && static_cast<SelectedExpr*>(name)->isDereference) {
         auto* selected = static_cast<SelectedExpr*>(name);

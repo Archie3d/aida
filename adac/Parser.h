@@ -38,6 +38,7 @@ private:
     DeclList parseDeclarativePart(bool stopAtPrivate = false);
     DeclPtr parseDeclarativeItem();
     DeclPtr parseTask();
+    DeclPtr parseProtected();
     DeclPtr parseObjectOrNumberDecl();
     DeclPtr parseUseClause();
     DeclPtr parsePragma();

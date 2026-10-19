@@ -115,6 +115,11 @@ bool requiresGenericBody(const DeclList& declarations)
             if (symbol != nullptr && !symbol->hasBody) {
                 return true;
             }
+        } else if (declaration->kind == DeclKind::Type) {
+            auto* type = static_cast<TypeDecl*>(declaration.get());
+            if (requiresGenericBody(type->m_protectedDeclarations)) {
+                return true;
+            }
         } else if (declaration->kind == DeclKind::PackageSpecification) {
             auto* package = static_cast<PackageSpecDecl*>(declaration.get());
             if (requiresGenericBody(package->publicPart) || requiresGenericBody(package->privatePart)) {
@@ -562,6 +567,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     const auto& actualCandidates = namedDefault && actual->kind == ExprKind::Selected
         ? formal.m_defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
+        if (matches(candidate) && candidate->m_protectedType != nullptr) {
+            m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
+            return false;
+        }
         if (matches(candidate)) {
             candidates.push_back(candidate);
         }
@@ -1140,6 +1149,23 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     if (m_diagnostics.hasErrors()) {
         return;
+    }
+    // Private completions can reveal noncopying parts after an earlier use was
+    // analyzed. Reject unsupported delayed layouts and value operations before
+    // emitting code, rather than treating a partial view as an empty record.
+    std::unordered_set<Type*> checked;
+    for (const auto& symbol : m_symbolTable.symbols()) {
+        Type* type = symbol->type;
+        if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second
+            && hasProtected(type) && (type->m_incompleteLayout || type->m_tagged || type->variantOn >= 0)) {
+            m_diagnostics.error(symbol->location,
+                "protected components require a complete ordinary record or array layout at declaration");
+        }
+    }
+    for (const auto& use : m_deferredProtectedUses) {
+        if (hasProtected(use.first)) {
+            m_diagnostics.error(use.second, "this value operation cannot copy, convert or stream a protected private completion");
+        }
     }
     for (const auto& pending : m_pendingGenericInstances) {
         Symbol* generic = pending.m_instance->m_generic;

@@ -68,6 +68,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     }
 
+    if (candidates.empty() && expr->callee->kind == ExprKind::Selected) {
+        candidates = expressionNames(expr->callee.get(), scope);
+    }
     // An explicit dereference and an implicit one use the same indirect call.
     if (expr->callee->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
@@ -220,6 +223,12 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(operand, expr->type);
         }
 
+        if (hasIncompleteParts(expr->type)) {
+            m_deferredProtectedUses.push_back({expr->type, expr->location});
+        }
+        if (hasProtected(expr->type)) {
+            m_diagnostics.error(expr->location, "conversions containing protected objects are not yet supported");
+        }
         if (hasTasks(expr->type)) {
             m_diagnostics.error(expr->location, "conversions of types containing tasks are not yet supported");
         }
@@ -346,6 +355,15 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 
         expr->form = CallForm::Subprogram;
         expr->subprogram = chosen;
+        if (hasProtected(chosen->returnType)) {
+            m_diagnostics.error(expr->location, "function results containing protected objects are not yet supported");
+        }
+        if (hasIncompleteParts(chosen->returnType)) {
+            m_deferredProtectedUses.push_back({chosen->returnType, expr->location});
+        }
+        Expr* protectedObject = expr->callee->kind == ExprKind::Selected
+            ? static_cast<SelectedExpr*>(expr->callee.get())->prefix.get() : nullptr;
+        bindProtectedCall(expr, chosen, protectedObject, scope);
         if (!expr->m_indirect) {
             recordContractName(expr->callee.get(), chosen);
         }

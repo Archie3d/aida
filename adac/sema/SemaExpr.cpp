@@ -201,6 +201,12 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
 
     expr->designated = designated;
     if (expr->value != nullptr) {
+        if (hasIncompleteParts(designated)) {
+            m_deferredProtectedUses.push_back({designated, expr->location});
+        }
+        if (hasProtected(designated)) {
+            m_diagnostics.error(expr->location, "allocators with protected parts cannot have explicit initializers yet");
+        }
         if (hasTasks(designated)) {
             m_diagnostics.error(expr->location, "allocators containing tasks cannot have explicit initializers yet");
         }
@@ -208,7 +214,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
-        if (hasLimitedControlledParts(designated) && !buildsLimitedResult(expr->value.get())) {
+        if (!hasProtected(designated) && hasLimitedControlledParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
         }
         if (!typesCompatible(designated, value)) {
@@ -233,6 +239,13 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
     for (Expr* operand : { expr->left.get(), expr->right.get() }) {
         Type* type = operand != nullptr ? baseType(operand->type) : nullptr;
+        if (comparison && hasIncompleteParts(type)) {
+            m_deferredProtectedUses.push_back({type, expr->location});
+        }
+        if (hasProtected(type) && comparison) {
+            m_diagnostics.error(expr->location, "types containing protected objects have no predefined equality");
+            return;
+        }
         if (hasTasks(type) && comparison) {
             m_diagnostics.error(expr->location, "types containing tasks have no predefined equality");
             return;

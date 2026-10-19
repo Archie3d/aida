@@ -7,6 +7,18 @@ using QbeSupport::isUnconstrainedArray;
 
 void QbeEmitter::emitTypeTag(Type* type)
 {
+    if (type != nullptr && type->m_protectedScope != nullptr && !m_emittedTags.contains(rootType(type))) {
+        type = rootType(type);
+        m_emittedTags[type] = true;
+        FunctionContext context;
+        context.traceName = type->name + " protected finalization";
+        FunctionContext* saved = m_context;
+        m_context = &context;
+        line("call $__ada_protected_destroy(l %object)");
+        finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
+        m_context = saved;
+        return;
+    }
     if (type == nullptr || !type->m_tagged || m_emittedTags.contains(type)) {
         return;
     }
@@ -81,6 +93,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
         case DeclKind::Type: {
             auto* taskDecl = static_cast<TypeDecl*>(decl.get());
             collectGlobals(taskDecl->m_taskObjects);
+            collectGlobals(taskDecl->m_protectedDeclarations);
             Type* type = taskDecl->declaredType;
             emitTypeTag(type);
             if (needsCollection(type) && type->m_parentType == nullptr && type->m_collectionOwner == nullptr
@@ -165,6 +178,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
             initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
             emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_taskObjects);
+            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
         } else if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -243,6 +257,8 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
                 Value flag = elaborationFlag(symbol);
                 line("storew 0, " + flag.name);
             }
+        } else if (decl->kind == DeclKind::Type) {
+            prepareElaborationFlags(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
         } else if (decl->kind == DeclKind::PackageSpecification) {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
             prepareElaborationFlags(package->publicPart);
@@ -332,6 +348,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             initializeCollection(typeDecl->declaredType);
             if (!typeDecl->m_taskObjects.empty()) {
                 emitLocalDeclarations(typeDecl->m_taskObjects);
+            }
+            if (!typeDecl->m_protectedDeclarations.empty()) {
+                emitLocalDeclarations(typeDecl->m_protectedDeclarations);
             }
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);

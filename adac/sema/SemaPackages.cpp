@@ -96,6 +96,9 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             if (operation == nullptr) {
                 continue;
             }
+            if (hasProtected(operation->returnType)) {
+                m_diagnostics.error(operation->location, "function results containing protected objects are not yet supported");
+            }
             if (hasTasks(operation->returnType)) {
                 m_diagnostics.error(operation->location, "function results containing tasks are not yet supported");
             }

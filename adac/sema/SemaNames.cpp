@@ -91,6 +91,11 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
     if (m_recordContract != nullptr) {
         m_recordContract->m_typeNames[key] = symbol;
     }
+    if (symbol->type != nullptr && symbol->type->m_protectedScope != nullptr
+        && m_currentProtectedType == symbol->type && symbol->name == symbol->type->m_protectedName) {
+        m_diagnostics.error(location, "the current protected instance cannot be used as a subtype mark");
+        return nullptr;
+    }
     return symbol->type;
 }
 
@@ -166,7 +171,24 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
     if (chosen == nullptr) {
         return nullptr;
     }
+    if (chosen->type != nullptr && chosen->type->m_protectedScope != nullptr
+        && (chosen->kind == SymbolKind::TypeName || chosen == chosen->type->m_protectedObject)
+        && chosen->name == chosen->type->m_protectedName) {
+        if (Symbol* receiver = protectedReceiver(chosen->type)) {
+            chosen = receiver;
+        }
+    }
     expr->symbol = chosen;
+    if (chosen->m_protectedField >= 0) {
+        expr->m_protectedReceiver = protectedReceiver(chosen->m_protectedType);
+        if (expr->m_protectedReceiver == nullptr) {
+            m_diagnostics.error(expr->location, "protected components require the current protected instance");
+        } else {
+            noteReference(expr->m_protectedReceiver);
+        }
+    } else {
+        bindProtectedCall(expr, chosen, nullptr, scope);
+    }
     recordContractName(expr, chosen);
 
     switch (chosen->kind) {
@@ -318,6 +340,33 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     if (record == nullptr || record->kind != TypeKind::Record) {
         m_diagnostics.error(expr->location, "'" + expr->selector + "' is not a component of a record");
         return nullptr;
+    }
+    if (record->m_protectedScope != nullptr) {
+        if (!checkNotPrivate(record, expr->location, "protected operations require the full view")) {
+            return nullptr;
+        }
+        auto candidates = expressionNames(expr, scope);
+        if (candidates.empty()) {
+            m_diagnostics.error(expr->location, "protected components and private operations are not externally visible");
+            return nullptr;
+        }
+        Symbol* operation = resolveBareName(candidates, expected, expr->location, expr->selector);
+        if (operation != nullptr && operation->m_protectedField >= 0
+            && isProtectedCurrentInstance(expr->prefix.get(), record, scope)) {
+            expr->symbol = operation;
+            expr->type = operation->type;
+            expr->m_protectedReceiver = protectedReceiver(record);
+            noteReference(expr->m_protectedReceiver);
+            return expr->type;
+        }
+        if (operation == nullptr || operation->kind != SymbolKind::Subprogram) {
+            m_diagnostics.error(expr->location, "protected components and private operations are not externally visible");
+            return nullptr;
+        }
+        expr->symbol = operation;
+        expr->type = operation->returnType;
+        bindProtectedCall(expr, operation, expr->prefix.get(), scope);
+        return expr->type;
     }
     if (!checkNotPrivate(record, expr->location, "'.' reaches inside a value")) {
         return nullptr;

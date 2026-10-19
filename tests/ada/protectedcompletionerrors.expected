@@ -1,0 +1,3 @@
+protectedcompletionerrors.adb:4:9: error: protected components require a complete ordinary record or array layout at declaration
+protectedcompletionerrors.adb:8:9: error: protected components require a complete ordinary record or array layout at declaration
+protectedcompletionerrors.adb:10:9: error: this value operation cannot copy, convert or stream a protected private completion

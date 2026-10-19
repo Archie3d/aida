@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "adamaster.h"
+#include "adaprotected.h"
 #include "../common/Modular.h"
 
 typedef struct AdaDispatchEntry
@@ -123,6 +124,7 @@ typedef struct AdaTaskContext
     AdaMaster* currentMaster;
     struct AdaMasterState* taskMasters;
     struct AdaTaskState* taskSelf;
+    AdaProtectedAction* protectedActions;
 } AdaTaskContext;
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the

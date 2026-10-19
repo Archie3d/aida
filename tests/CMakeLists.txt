@@ -862,3 +862,48 @@ add_determinism_test(taskactivationfailure SOURCE taskactivationfailure.adb)
 set_tests_properties(ada.taskactivationfailure determinism.taskactivationfailure PROPERTIES TIMEOUT 30)
 add_ada_error_test(tasklegalityerrors SOURCES tasklegalityerrors.adb)
 set_tests_properties(error.tasklegalityerrors PROPERTIES TIMEOUT 10)
+
+add_ada_test(protectedobjects SOURCES protectedobjects.adb)
+add_determinism_test(protectedobjects SOURCE protectedobjects.adb)
+set_tests_properties(ada.protectedobjects determinism.protectedobjects PROPERTIES TIMEOUT 30)
+add_ada_test(protectedconcurrency SOURCES protectedconcurrency.adb)
+add_determinism_test(protectedconcurrency SOURCE protectedconcurrency.adb)
+set_tests_properties(ada.protectedconcurrency determinism.protectedconcurrency PROPERTIES TIMEOUT 30)
+add_ada_test(protectedlibrary SOURCES protectedlibrary.adb)
+add_determinism_test(protectedlibrary SOURCE protectedlibrary.adb)
+set_tests_properties(ada.protectedlibrary determinism.protectedlibrary PROPERTIES TIMEOUT 30)
+
+add_executable(protected_runtime_test ProtectedRuntimeTest.c)
+target_link_libraries(protected_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.protected_lifecycle COMMAND protected_runtime_test)
+set_tests_properties(runtime.protected_lifecycle PROPERTIES TIMEOUT 30)
+foreach(protected_case protectedobjects protectedconcurrency protectedlibrary protectedgenerics protectedcleanup)
+    add_test(NAME runtime.${protected_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${protected_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${protected_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${protected_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${protected_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_ada_error_test(protectederrors SOURCES protectederrors.adb)
+add_ada_error_test(protectedsyntaxerrors SOURCES protectedsyntaxerrors.adb)
+set_tests_properties(error.protectederrors error.protectedsyntaxerrors PROPERTIES TIMEOUT 10)
+
+foreach(protected_case protectedgenerics protectedcleanup)
+    add_ada_test(${protected_case} SOURCES ${protected_case}.adb)
+    add_determinism_test(${protected_case} SOURCE ${protected_case}.adb)
+    set_tests_properties(ada.${protected_case} determinism.${protected_case} PROPERTIES TIMEOUT 30)
+endforeach()
+add_ada_error_test(protectedlegalityerrors SOURCES protectedlegalityerrors.adb)
+set_tests_properties(error.protectedlegalityerrors PROPERTIES TIMEOUT 10)
+add_ada_error_test(protectedcompletionerrors SOURCES protectedcompletionerrors.adb)
+set_tests_properties(error.protectedcompletionerrors PROPERTIES TIMEOUT 10)
+add_ada_error_test(protectedgenericerrors SOURCES protectedgenericerrors.adb)
+set_tests_properties(error.protectedgenericerrors PROPERTIES TIMEOUT 10)

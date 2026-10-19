@@ -12,6 +12,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/Token.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Lexer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser/Parser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/parser/ParserProtected.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser/ParserDecl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser/ParserTypes.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser/ParserSubprograms.cpp
@@ -23,6 +24,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/Type.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Scope.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/Sema.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaProtected.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaDecl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaRenames.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaPackages.cpp

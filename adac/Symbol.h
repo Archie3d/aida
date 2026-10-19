@@ -70,6 +70,10 @@ struct Symbol
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
     bool m_taskBody = false;
+    Type* m_protectedType = nullptr;
+    Symbol* m_protectedReceiver = nullptr;
+    bool m_protectedPrivate = false;
+    int m_protectedField = -1;
     bool m_requiresBody = false;
     bool m_missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.

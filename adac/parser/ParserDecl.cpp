@@ -46,7 +46,7 @@ DeclPtr Parser::parseDeclarativeItem()
     case TokenKind::KwTask:
         return parseTask();
     case TokenKind::KwProtected:
-        fail("protected declarations are not yet supported");
+        return parseProtected();
     case TokenKind::KwGeneric:
         return parseGenericDeclaration();
     case TokenKind::KwType:

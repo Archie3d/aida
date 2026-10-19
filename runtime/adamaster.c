@@ -98,6 +98,10 @@ static void* executeTask(void* argument)
 void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
                       void* link, const int* elaborated, void* collection, void* group)
 {
+    if (context->protectedActions != NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
     // AdaCollection begins with its independent master identity.
     AdaMaster* master = collection != NULL ? collection : context->currentMaster;
     if (master == NULL) {

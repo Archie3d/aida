@@ -1,0 +1,6 @@
+protectedsyntaxerrors.adb:3:9: error: protected entries are not yet supported
+protectedsyntaxerrors.adb:5:32: error: protected discriminants are not yet supported
+protectedsyntaxerrors.adb:7:37: error: protected interfaces are not yet supported
+protectedsyntaxerrors.adb:13:5: error: generic instantiations in protected bodies are not yet supported
+protectedsyntaxerrors.adb:16:5: error: protected operations currently require a simple identifier
+protectedsyntaxerrors.adb:19:5: error: goto statements are not yet supported

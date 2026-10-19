@@ -113,6 +113,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
             return nullptr;
         }
+        if (chosen->m_protectedType != nullptr) {
+            m_diagnostics.error(expr->location, "access to protected subprograms is not yet supported");
+            return nullptr;
+        }
         // A renaming is another view of the same callable entity.
         while (chosen->m_renamedSubprogram != nullptr) {
             chosen = chosen->m_renamedSubprogram;
@@ -391,6 +395,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
+        if (hasIncompleteParts(base)) {
+            m_deferredProtectedUses.push_back({base, expr->location});
+        }
+        if (hasProtected(base)) {
+            m_diagnostics.error(expr->location, "protected objects do not support streaming");
+            return nullptr;
+        }
         if (hasTasks(base)) {
             m_diagnostics.error(expr->location, "types containing tasks do not support streaming yet");
             return nullptr;

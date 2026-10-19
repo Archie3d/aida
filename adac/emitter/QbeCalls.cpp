@@ -95,6 +95,17 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         return result;
     }
 
+    Value protectedObject;
+    if (subprogram->m_protectedType != nullptr) {
+        if (expr->m_protectedObject != nullptr) {
+            protectedObject = emitExpr(expr->m_protectedObject);
+            if (baseType(expr->m_protectedObject->type)->kind == TypeKind::Access) {
+                checkNotNull(protectedObject);
+            }
+        } else if (expr->m_protectedReceiver != nullptr) {
+            protectedObject = addressOf(expr->m_protectedReceiver);
+        }
+    }
     std::string resultTarget = std::move(m_context->m_resultTarget);
     Value resultShape = m_context->m_resultTargetShape;
     std::string resultDescriptor = std::move(m_context->m_resultDescriptor);
@@ -178,6 +189,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram->level > 0 && !expr->m_dispatching) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
+    }
+
+    if (subprogram->m_protectedType != nullptr) {
+        arguments.push_back("l " + protectedObject.name);
     }
 
     struct TagContext
@@ -321,6 +336,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         argumentList += arguments[i];
     }
 
+    std::string protectedAction;
+    if (expr->m_protectedObject != nullptr && subprogram->m_protectedType != nullptr) {
+        protectedAction = allocScratch(16);
+        line("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")");
+        emitExceptionCheck();
+    }
     Value result { "0", 'w' };
     auto invoke = [&](const std::string& actuals) {
         if (subprogram->returnType != nullptr && !compositeResult) {
@@ -365,6 +386,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         result = invoke(argumentList);
     }
 
+    if (!protectedAction.empty()) {
+        line("call $__ada_protected_leave(l %.taskContext, l " + protectedAction + ")");
+    }
     emitExceptionCheck();
     if (dispatchEquality && subprogram->name == "/=") {
         std::string negated = newTemp();

@@ -3,8 +3,9 @@
 
 #include <pthread.h>
 
-/* Private runtime locks. No lock may be held while invoking generated Ada
-   callbacks. Initialization/destruction return POSIX error numbers; lock and
+/* Runtime mutexes. Infrastructure owners release table locks before invoking
+   Ada callbacks; protected execution resources cover operation bodies.
+   Initialization/destruction return POSIX error numbers; lock and
    unlock failures indicate broken runtime invariants and abort. */
 typedef pthread_mutex_t AdaMutex;
 #define ADA_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER

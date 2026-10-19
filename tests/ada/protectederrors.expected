@@ -1,0 +1,19 @@
+protectederrors.adb:9:9: error: protected functions require in parameters
+protectederrors.adb:23:17: error: a protected function cannot modify its constant current instance
+protectederrors.adb:26:13: error: 'aliasValue' cannot be assigned to
+protectederrors.adb:27:20: error: a protected function cannot modify its constant current instance
+protectederrors.adb:28:23: error: a protected function cannot modify its constant current instance
+protectederrors.adb:29:13: error: a protected function cannot call a procedure on its constant current instance
+protectederrors.adb:43:5: error: objects containing protected parts cannot be copied or explicitly initialized yet
+protectederrors.adb:44:5: error: function results containing protected objects are not yet supported
+protectederrors.adb:45:5: error: function results containing protected objects are not yet supported
+protectederrors.adb:47:9: error: a limited result must be built in place
+protectederrors.adb:49:5: error: renaming protected operations is not yet supported
+protectederrors.adb:51:45: error: access to protected subprograms is not yet supported
+protectederrors.adb:59:44: error: protected operation generic actuals are not yet supported
+protectederrors.adb:61:9: error: subprogram 'Operation' has no body
+protectederrors.adb:64:5: error: objects containing protected parts cannot be assigned
+protectederrors.adb:65:13: error: types containing protected objects have no predefined equality
+protectederrors.adb:68:9: error: protected components and private operations are not externally visible
+protectederrors.adb:69:9: error: protected components and private operations are not externally visible
+protectederrors.adb:70:12: error: a protected operation requires an object, not a type name
