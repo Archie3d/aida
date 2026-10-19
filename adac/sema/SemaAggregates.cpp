@@ -21,6 +21,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
         return nullptr;
     }
+    if (hasTasks(target)) {
+        m_diagnostics.error(expr->location, "aggregates containing tasks are not yet supported");
+        return nullptr;
+    }
     if (target->m_abstract) {
         m_diagnostics.error(expr->location, "abstract aggregates are not supported");
         return nullptr;

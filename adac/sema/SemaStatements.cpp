@@ -195,6 +195,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* assign = static_cast<AssignStmt*>(statement);
         Type* targetType = analyzeExpr(assign->target.get(), scope, nullptr);
         checkAssignable(assign->target.get(), scope);
+        if (hasTasks(targetType)) {
+            m_diagnostics.error(assign->location, "objects containing tasks cannot be assigned");
+        }
         if (hasLimitedControlledParts(targetType)) {
             m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
         }
@@ -350,6 +353,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     }
 
     case StmtKind::Return: {
+        if (m_currentSubprogram != nullptr && m_currentSubprogram->m_taskBody) {
+            m_diagnostics.error(statement->location, "return statements are not allowed in a task body");
+        }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* expected = m_currentSubprogram != nullptr ? m_currentSubprogram->returnType : nullptr;
         if (m_currentSubprogram == nullptr || m_currentSubprogram == elaborationOwner(m_currentUnit)) {

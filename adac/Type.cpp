@@ -159,6 +159,9 @@ long long typeAlignment(const Type* type)
     if (type == nullptr) {
         return 1;
     }
+    if (type->m_taskBody != nullptr) {
+        return 8;
+    }
     switch (type->kind) {
     case TypeKind::Array:
         return typeAlignment(type->element);
@@ -339,6 +342,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long lo
     subtype->m_accessScope = parent->m_accessScope;
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
+    subtype->m_taskBody = parent->m_taskBody;
     subtype->discriminantCount = parent->discriminantCount;
     subtype->variantOn = parent->variantOn;
     subtype->variants = parent->variants;
@@ -361,6 +365,10 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->m_parentFieldCount = completed->m_parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->fields = completed->fields;
+        subtype->m_taskBody = completed->m_taskBody;
+        if (completed->m_taskBody != nullptr) {
+            subtype->byteSize = completed->byteSize;
+        }
     }
 }
 
@@ -496,11 +504,32 @@ bool needsFinalization(const Type* type)
     return false;
 }
 
+bool hasTasks(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (type->m_taskBody != nullptr) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasTasks(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasTasks(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool needsCollection(const Type* type)
 {
     return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
         // An uncontrolled root may have descendants with controlled fields.
-        && (type->target->m_classRoot != nullptr || needsFinalization(type->target));
+        && (type->target->m_classRoot != nullptr || needsFinalization(type->target) || hasTasks(type->target));
 }
 
 bool hasLimitedControlledParts(const Type* type)

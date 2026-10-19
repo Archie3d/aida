@@ -220,6 +220,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(operand, expr->type);
         }
 
+        if (hasTasks(expr->type)) {
+            m_diagnostics.error(expr->location, "conversions of types containing tasks are not yet supported");
+        }
         if (expr->type->kind == TypeKind::Array && hasLimitedControlledParts(expr->type)) {
             m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
         }

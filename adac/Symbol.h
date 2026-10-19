@@ -69,6 +69,7 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    bool m_taskBody = false;
     bool m_requiresBody = false;
     bool m_missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.
@@ -102,6 +103,7 @@ struct Symbol
     Symbol* parentPackage = nullptr;
     std::string m_libraryName;
     bool m_hasSpecification = false;
+    bool m_containsTasks = false;
     PackageSpecDecl* m_packageDeclaration = nullptr;
 
     // Generic units, which keep the declaration they came from so that an

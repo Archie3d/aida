@@ -54,6 +54,14 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             reportMissingBodies(package->publicPart);
             reportMissingBodies(package->privatePart);
         }
+        if (decl->kind == DeclKind::Type) {
+            Type* type = static_cast<TypeDecl*>(decl.get())->declaredType;
+            if (type != nullptr && type->m_taskBody != nullptr && !type->m_taskBody->hasBody
+                && !type->m_taskBody->m_missingBodyReported) {
+                type->m_taskBody->m_missingBodyReported = true;
+                m_diagnostics.error(decl->location, "task '" + type->name + "' has no body");
+            }
+        }
         if (decl->kind != DeclKind::SubprogramDeclaration) {
             continue;
         }
@@ -77,6 +85,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     case DeclKind::Type:
         analyzeTypeDecl(static_cast<TypeDecl*>(decl), scope);
+        analyzeDeclarativePart(static_cast<TypeDecl*>(decl)->m_taskObjects, scope);
         break;
     case DeclKind::Subtype:
         analyzeSubtypeDecl(static_cast<SubtypeDecl*>(decl), scope);
@@ -173,6 +182,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           m_currentSubprogram != nullptr || m_recordContract != nullptr);
 
+    if (hasTasks(type) && !m_packages.empty()) {
+        m_packages.back()->m_containsTasks = true;
+    }
     if (type != nullptr && type->m_tagged && type->m_classRoot == nullptr) {
         rootType(type)->m_dispatchFrozen = true;
     }
@@ -220,6 +232,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (decl->initializer && !decl->m_isRenaming) {
+        if (hasTasks(type)) {
+            m_diagnostics.error(decl->location, "objects containing tasks cannot be copied or explicitly initialized yet");
+        }
         if (baseType(type) == m_exceptionOccurrenceType && !withinPackage(type->privateTo)) {
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
@@ -379,6 +394,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
     Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+    if (hasTasks(returnType)) {
+        m_diagnostics.error(spec.location, "function results containing tasks are not yet supported");
+    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";
@@ -609,6 +627,21 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 
 void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 {
+    if (body->m_taskBody) {
+        Symbol* task = lookupName(body->m_taskName, scope);
+        if (task == nullptr || task->type == nullptr || task->type->m_taskBody == nullptr
+            || (task->kind != SymbolKind::TypeName && task->kind != SymbolKind::Object)
+            || task->type->m_taskBody->name != "__task_" + body->m_taskName) {
+            m_diagnostics.error(body->location, "task body requires a task declaration in the same declarative region");
+            return;
+        }
+        body->spec.lower = task->type->m_taskBody->name;
+        auto declarations = scope->lookupDeclaration(body->spec.lower);
+        if (std::find(declarations.begin(), declarations.end(), task->type->m_taskBody) == declarations.end()) {
+            m_diagnostics.error(body->location, "task body must complete a task declared in the same declarative region");
+            return;
+        }
+    }
     // Attach a separately encountered body and check it in the formal environment.
     Symbol* named = lookupName(body->spec.lower, scope);
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr

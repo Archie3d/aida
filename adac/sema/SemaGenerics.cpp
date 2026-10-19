@@ -1159,7 +1159,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
                     }
                 }
                 std::string kind = symbol->kind == SymbolKind::Generic
-                    ? (symbol->generic->isPackage ? "generic package" : "generic subprogram") : "subprogram";
+                    ? (symbol->generic->isPackage ? "generic package" : "generic subprogram") : symbol->m_taskBody ? "task" : "subprogram";
                 m_diagnostics.error(symbol->location, kind + " '" + symbol->displayName + "' has no body");
             }
         }

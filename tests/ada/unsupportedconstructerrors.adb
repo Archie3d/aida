@@ -3,8 +3,10 @@ procedure UnsupportedConstructErrors is
         type Root is abstract tagged null record;
         procedure Operation (Self : Root) is abstract;
     end Abstract_Operations;
-    task Worker;
-    task type Worker_Type;
+    task Worker is
+        entry Run;
+    end Worker;
+    task type Worker_Type (Id : Integer);
 begin
     goto Target;
     <<Target>>

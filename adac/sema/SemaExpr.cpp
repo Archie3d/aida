@@ -201,6 +201,9 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
 
     expr->designated = designated;
     if (expr->value != nullptr) {
+        if (hasTasks(designated)) {
+            m_diagnostics.error(expr->location, "allocators containing tasks cannot have explicit initializers yet");
+        }
         if (baseType(designated) == m_exceptionOccurrenceType) {
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
@@ -230,6 +233,10 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
 
     for (Expr* operand : { expr->left.get(), expr->right.get() }) {
         Type* type = operand != nullptr ? baseType(operand->type) : nullptr;
+        if (hasTasks(type) && comparison) {
+            m_diagnostics.error(expr->location, "types containing tasks have no predefined equality");
+            return;
+        }
         if (hasLimitedControlledParts(type) && comparison) {
             m_diagnostics.error(expr->location, "a limited controlled type has no predefined equality");
             return;

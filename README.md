@@ -81,12 +81,14 @@ Supported:
 - Generics, access types, tagged types with dispatching
 - Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization
+- Entry-free tasks, grouped activation and master-based waiting
 - Text and stream I/O
 - Separate compilation and incremental builds
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
 
 Not supported yet:
-- Tasking and protected types
+- Task entries, protected types and task discriminants
+- Task-containing aggregates, function results, tagged and variant records
 - Ada 2005 box defaults (`<>`) in aggregates
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
@@ -95,6 +97,9 @@ Not supported yet:
 - Several access-type features, many representation clauses and pragmas
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`
+
+Access-type collections remain owned by their creating task; allocation or
+deallocation through another task raises `Program_Error`.
 
 See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
 and expected diagnostics.

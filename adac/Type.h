@@ -115,6 +115,7 @@ public:
     // assignment or equality to the outside.
     Symbol* privateTo = nullptr;
     bool isLimited = false;
+    Symbol* m_taskBody = nullptr; // Task identity occupies one pointer-sized slot.
 
     // Discriminants and the variant part they may select.  The discriminants
     // are the first components of the record; variantOn identifies the outer
@@ -198,6 +199,7 @@ public:
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
 bool needsCollection(const Type* type);
+bool hasTasks(const Type* type);
 bool hasLimitedControlledParts(const Type* type);
 
 // The type identity at the root of a subtype chain.

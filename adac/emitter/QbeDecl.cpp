@@ -79,7 +79,9 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
         case DeclKind::Type: {
-            Type* type = static_cast<TypeDecl*>(decl.get())->declaredType;
+            auto* taskDecl = static_cast<TypeDecl*>(decl.get());
+            collectGlobals(taskDecl->m_taskObjects);
+            Type* type = taskDecl->declaredType;
             emitTypeTag(type);
             if (needsCollection(type) && type->m_parentType == nullptr && type->m_collectionOwner == nullptr
                 && !m_emittedCollections.contains(type)) {
@@ -162,6 +164,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::Type) {
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
             initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
+            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_taskObjects);
         } else if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -327,6 +330,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             emitTypeTag(typeDecl->declaredType);
             initializeTypeTag(typeDecl->declaredType);
             initializeCollection(typeDecl->declaredType);
+            if (!typeDecl->m_taskObjects.empty()) {
+                emitLocalDeclarations(typeDecl->m_taskObjects);
+            }
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }
@@ -407,8 +413,18 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::PackageSpecification: {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
+            std::string savedGroup = m_context->m_taskGroup;
+            if (package->symbol->m_containsTasks) {
+                m_context->m_taskGroup = allocScratch(1);
+                m_context->m_taskGroups[package->symbol] = m_context->m_taskGroup;
+            }
             emitLocalDeclarations(package->publicPart);
             emitLocalDeclarations(package->privatePart);
+            if (package->symbol->m_containsTasks && !package->symbol->hasBody) {
+                line("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")");
+                emitExceptionCheck();
+            }
+            m_context->m_taskGroup = savedGroup;
             break;
         }
         case DeclKind::PackageBody: {
@@ -417,7 +433,16 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 line("storew 1, " + elaborationFlag(package->m_genericBody).name);
                 break;
             }
+            std::string savedGroup = m_context->m_taskGroup;
+            if (package->symbol->m_containsTasks) {
+                m_context->m_taskGroup = m_context->m_taskGroups.at(package->symbol);
+            }
             emitLocalDeclarations(package->declarations);
+            if (package->symbol->m_containsTasks) {
+                line("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")");
+                emitExceptionCheck();
+            }
+            m_context->m_taskGroup = savedGroup;
             if (package->handlers.empty()) {
                 emitStatements(package->body);
             } else {

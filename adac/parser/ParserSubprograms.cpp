@@ -145,3 +145,94 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
                         m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
     return body;
 }
+
+// Task bodies reuse lexical subprogram frames and cleanup, with a separate
+// activation handshake before their handled sequence of statements.
+DeclPtr Parser::parseTask()
+{
+    SourceLocation location = expect(TokenKind::KwTask, "in task declaration").location;
+    if (match(TokenKind::KwBody)) {
+        const Token& name = expect(TokenKind::Identifier, "after task body");
+        auto body = std::make_unique<SubprogramBody>();
+        body->location = location;
+        body->m_taskBody = true;
+        body->m_taskName = name.lower;
+        body->spec.name = name.text;
+        body->spec.lower = "__task_" + name.lower;
+        body->spec.location = location;
+        expect(TokenKind::KwIs, "in task body");
+        if (check(TokenKind::KwSeparate)) {
+            fail("task body stubs are not yet supported");
+        }
+        body->declarations = parseDeclarativePart();
+        expect(TokenKind::KwBegin, "in task body");
+        body->body = parseSequenceOfStatements();
+        if (check(TokenKind::KwException)) {
+            body->handlers = parseExceptionHandlers();
+        }
+        expect(TokenKind::KwEnd, "after task body");
+        parseClosingName(name.lower, true);
+        expect(TokenKind::Semicolon, "after task body");
+        return body;
+    }
+    bool isType = match(TokenKind::KwType);
+    const Token& name = expect(TokenKind::Identifier, "in task declaration");
+    auto decl = std::make_unique<TypeDecl>();
+    decl->location = location;
+    decl->name = name.text;
+    decl->lower = isType ? name.lower : "__single_task_" + name.lower;
+    decl->definition = std::make_unique<TypeDefinition>(TypeDefKind::Task);
+    decl->definition->location = location;
+    auto rejectDefinition = [&](const std::string& message) -> DeclPtr {
+        m_diagnostics.error(current().location, message);
+        int parentheses = 0;
+        while (!check(TokenKind::EndOfFile)) {
+            if (parentheses == 0 && match(TokenKind::Semicolon)) {
+                return nullptr;
+            }
+            if (parentheses == 0 && match(TokenKind::KwIs)) {
+                break;
+            }
+            if (match(TokenKind::LeftParen)) {
+                ++parentheses;
+            } else if (match(TokenKind::RightParen)) {
+                --parentheses;
+            } else {
+                advance();
+            }
+        }
+        while (!check(TokenKind::EndOfFile)) {
+            if (check(TokenKind::KwEnd) && (peek(1).kind == TokenKind::Semicolon
+                || (peek(1).kind == TokenKind::Identifier && peek(1).lower == name.lower))) {
+                advance();
+                skipToSemicolon();
+                break;
+            }
+            advance();
+        }
+        return nullptr;
+    };
+    if (check(TokenKind::LeftParen)) {
+        return rejectDefinition("task discriminants are not yet supported");
+    }
+    if (check(TokenKind::KwIs) && peek(1).kind != TokenKind::KwEnd) {
+        return rejectDefinition("task entries, interfaces and task definition items are not yet supported");
+    }
+    if (match(TokenKind::KwIs)) {
+        advance();
+        parseClosingName(name.lower, true);
+    }
+    expect(TokenKind::Semicolon, "after task declaration");
+    if (!isType) {
+        auto object = std::make_unique<ObjectDecl>();
+        object->location = location;
+        object->names.push_back(name.text);
+        object->namesLower.push_back(name.lower);
+        object->subtype = std::make_unique<SubtypeIndication>();
+        object->subtype->location = location;
+        object->subtype->name = decl->name;
+        object->subtype->lower = decl->lower;
+        decl->m_taskObjects.push_back(std::move(object));
+    }
+    return decl;
+}

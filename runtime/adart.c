@@ -53,7 +53,7 @@ int __ada_task_context_dispose(AdaTaskContext* context)
     if (context == NULL || context->currentTrace != NULL
         || context->registeredFinalizations != NULL || context->registeredAllocations != NULL
         || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
-        || context->libraryFinalizing) {
+        || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL) {
         return 0;
     }
     free(context->pendingMessage);
@@ -1153,6 +1153,7 @@ typedef struct AdaAllocation
     AdaFinalization* finalizations;
     void* arena;
     int arenaOwnsObject;
+    long size;
 } AdaAllocation;
 
 struct AdaCollection
@@ -1202,6 +1203,7 @@ static void releaseAllocation(AdaAllocation* allocation)
         link = &(*link)->registeredNext;
     }
     *link = allocation->registeredNext;
+    __ada_task_discard(context, &allocation->collection->master, allocation->object, allocation->size);
     __ada_finalize_to(&allocation->finalizations, NULL);
     __ada_array_release(&allocation->arena);
     if (!allocation->arenaOwnsObject) {
@@ -1274,6 +1276,7 @@ void* __ada_collection_allocate(void* owner, long size)
         free(allocation);
         return NULL;
     }
+    allocation->size = size;
     allocation->collection = collection;
     allocation->next = collection->allocations;
     collection->allocations = allocation;

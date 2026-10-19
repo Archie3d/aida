@@ -98,9 +98,25 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "a private type and its completion must agree on abstractness");
         return;
     }
+    bool nonlimitedPrivateCompletion = completing != nullptr && completing->privateTo != nullptr
+        && !completing->isLimited;
     Type* type = nullptr;
 
     switch (definition->kind) {
+    case TypeDefKind::Task: {
+        type = makeType(TypeKind::Record);
+        type->byteSize = 8;
+        type->isLimited = true;
+        type->needsZeroInit = true;
+        SubprogramSpec spec;
+        spec.name = decl->name;
+        spec.lower = "__task_" + (decl->m_taskObjects.empty() ? decl->lower
+            : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
+        spec.location = decl->location;
+        type->m_taskBody = declareSubprogram(spec, scope, false);
+        type->m_taskBody->m_taskBody = true;
+        break;
+    }
     case TypeDefKind::Enumeration: {
         type = makeType(TypeKind::Enumeration);
         type->low = 0;
@@ -347,6 +363,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "new discriminant parts on derived types are not yet supported");
             return;
         }
+        if (hasTasks(parent)) {
+            m_diagnostics.error(decl->location, "derivation of types containing tasks is not yet supported");
+            return;
+        }
         if (completing != nullptr && parent->m_controlled && parent->isLimited && !completing->isLimited) {
             m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
@@ -499,11 +519,20 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
+    if (hasTasks(type) && nonlimitedPrivateCompletion) {
+        m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
+    }
+    if (hasTasks(type) && type->m_tagged) {
+        m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
+    }
+    if (type->variantOn >= 0 && hasTasks(type)) {
+        m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
+    }
     if (type->variantOn >= 0 && needsFinalization(type)) {
         m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
     }
     type->m_abstract = definition->m_abstract;
-    type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type);
+    type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type) || hasTasks(type);
     if (type->m_abstract && !type->m_tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
     }
@@ -511,7 +540,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
         type->m_controlled = true;
     }
-    if (definition->kind == TypeDefKind::Record && definition->isLimited && !needsFinalization(type)) {
+    if (definition->kind == TypeDefKind::Record && definition->isLimited && !needsFinalization(type) && !hasTasks(type)) {
         m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
     }
     if (type->m_tagged && type->m_tagName.empty()) {
@@ -670,6 +699,9 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.variant = variantIndex;
         info.isDiscriminant = isDiscriminant;
         if (field.defaultValue) {
+            if (hasTasks(info.type)) {
+                m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");
+            }
             Type* valueType = analyzeExpr(field.defaultValue.get(), scope, info.type);
             if (hasLimitedControlledParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");

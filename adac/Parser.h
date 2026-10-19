@@ -37,6 +37,7 @@ private:
     // Declarations (ParserDecl.cpp).
     DeclList parseDeclarativePart(bool stopAtPrivate = false);
     DeclPtr parseDeclarativeItem();
+    DeclPtr parseTask();
     DeclPtr parseObjectOrNumberDecl();
     DeclPtr parseUseClause();
     DeclPtr parsePragma();

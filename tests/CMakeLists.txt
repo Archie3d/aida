@@ -828,3 +828,37 @@ add_test(NAME semantics.interaction_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckInteractionModes.cmake)
 set_tests_properties(semantics.interaction_modes PROPERTIES TIMEOUT 60)
+
+foreach(task_case tasks taskallocations)
+    add_ada_test(${task_case} SOURCES ${task_case}.adb)
+    add_determinism_test(${task_case} SOURCE ${task_case}.adb)
+    set_tests_properties(ada.${task_case} determinism.${task_case} PROPERTIES TIMEOUT 30)
+endforeach()
+add_ada_test(tasklibrarymain SOURCES tasklibrarymain.adb)
+add_determinism_test(tasklibrarymain SOURCE tasklibrarymain.adb)
+add_ada_error_test(taskerrors SOURCES taskerrors.adb)
+set_tests_properties(ada.tasklibrarymain determinism.tasklibrarymain error.taskerrors PROPERTIES TIMEOUT 30)
+add_determinism_test(taskconcurrency SOURCE taskconcurrency.adb)
+add_test(NAME runtime.tasking
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/taskconcurrency.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/TaskingHooks.c
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/tasking
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.tasking determinism.taskconcurrency PROPERTIES TIMEOUT 60)
+add_executable(tasking_runtime_test TaskingRuntimeTest.c)
+target_link_libraries(tasking_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.tasking_lifecycle COMMAND tasking_runtime_test)
+set_tests_properties(runtime.tasking_lifecycle PROPERTIES TIMEOUT 30)
+add_ada_test(taskactivationfailure SOURCES taskactivationfailure.adb
+    EXIT_CODE 1 STDERR taskactivationfailure.stderr)
+add_determinism_test(taskactivationfailure SOURCE taskactivationfailure.adb)
+set_tests_properties(ada.taskactivationfailure determinism.taskactivationfailure PROPERTIES TIMEOUT 30)
+add_ada_error_test(tasklegalityerrors SOURCES tasklegalityerrors.adb)
+set_tests_properties(error.tasklegalityerrors PROPERTIES TIMEOUT 10)

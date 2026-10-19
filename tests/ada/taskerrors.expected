@@ -1,0 +1,12 @@
+taskerrors.adb:6:9: error: return statements are not allowed in a task body
+taskerrors.adb:9:5: error: task body requires a task declaration in the same declarative region
+taskerrors.adb:14:5: error: objects containing tasks cannot be copied or explicitly initialized yet
+taskerrors.adb:20:5: error: derivation of types containing tasks is not yet supported
+taskerrors.adb:21:5: error: function results containing tasks are not yet supported
+taskerrors.adb:22:5: error: function results containing tasks are not yet supported
+taskerrors.adb:27:28: error: allocators containing tasks cannot have explicit initializers yet
+taskerrors.adb:8:5: error: task 'Missing' has no body
+taskerrors.adb:30:5: error: objects containing tasks cannot be assigned
+taskerrors.adb:31:5: error: objects containing tasks cannot be assigned
+taskerrors.adb:32:13: error: types containing tasks have no predefined equality
+taskerrors.adb:35:11: error: types containing tasks do not support streaming yet

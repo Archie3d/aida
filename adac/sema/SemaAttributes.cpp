@@ -391,6 +391,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
+        if (hasTasks(base)) {
+            m_diagnostics.error(expr->location, "types containing tasks do not support streaming yet");
+            return nullptr;
+        }
         if (base != nullptr && base->m_classRoot != nullptr) {
             m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
             return nullptr;

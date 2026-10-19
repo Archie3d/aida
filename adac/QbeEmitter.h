@@ -81,6 +81,9 @@ private:
         std::string m_resultTargetArena;
         std::string m_constructionOwner;
         std::string m_constructionArena;
+        std::string m_taskCollection = "0";
+        std::string m_taskGroup = "0";
+        std::unordered_map<Symbol*, std::string> m_taskGroups;
         bool arrayArenaUsed = false;
         bool temporaryArenaUsed = false;
         std::string frameTemp;

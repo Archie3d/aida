@@ -96,6 +96,9 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             if (operation == nullptr) {
                 continue;
             }
+            if (hasTasks(operation->returnType)) {
+                m_diagnostics.error(operation->location, "function results containing tasks are not yet supported");
+            }
             if (operation->m_pendingControlledResult) {
                 Type* result = operation->returnType;
                 if (needsFinalization(result) && operation->builtin == BuiltinKind::Runtime) {

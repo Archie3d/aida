@@ -114,7 +114,7 @@ generic formal type parsing and diagnostics for unsupported constructs.
   contract check, covered by `deallocationformalerrors` and the existing
   allocation tests. Phase 6 implements the rejected categories.
 - [x] **Clear diagnostics for unsupported syntax.** Abstract subprograms, `goto`
-  and labels, `select`, task declarations, `limited with` and `private with`
+  and labels, `select`, entry-bearing task declarations, `limited with` and `private with`
   receive messages naming the unsupported construct. Recovery consumes task
   definitions and nested select blocks and preserves statements after labels.
   Covered by `unsupportedconstructerrors`, `unsupportedcontexterrors` and
@@ -137,9 +137,9 @@ subset under separate contexts. Image and stream results are caller-owned;
 file and tag tables are locked, and library lifetime storage belongs to the
 environment task. The C threading layer provides joinable threads, mutexes,
 monotonic condition waits and scalar atomic access. Master entry, activation,
-await and exit hooks now bracket scoped cleanup; they remain task-free until
-Phase 4. Empty subprogram masters are elided when the lifetime analysis proves
-they have no declarations or owned temporaries.
+await and exit hooks bracket scoped cleanup; Phase 4 supplies their task behavior.
+Empty subprogram masters are elided when the lifetime analysis proves they have
+no declarations or owned temporaries.
 Finalization chains and storage checkpoints already live in stack frames, and
 exceptions propagate by explicit checks rather than unwinding, so neither needs
 redesigning. The shared state is in the C run time.
@@ -598,9 +598,43 @@ A working subset, close to the Ravenscar profile, that makes tasking a tested
 part of the compiler early, without claiming Ravenscar compliance. Later phases
 must keep it working; Phase 9 completes core tasking.
 
-- [ ] **Tasks.** Task types and single task objects without entries; activation
+- [x] **Tasks.** Task types and single task objects without entries; activation
   at the end of the declarative part or library elaboration; masters awaiting
   task objects as record components and allocated tasks.
+  - Task bodies reuse lexical frames and scoped cleanup. Objects are created
+    without starting threads; the complete group checks body elaboration before
+    starting any member. The activator waits for all declarations to finish;
+    activation failures raise `Tasking_Error`, while an exception escaping a
+    task's statements completes only that task. Failed enclosing declarations
+    discard tasks that never reached activation. Library activation precedes main.
+  - Runtime masters keep empty boundaries allocation-free, own task contexts
+    and join dependents before finalization. Local package specifications/bodies
+    have separate activation groups, including generic instances. Arrays and
+    ordinary records initialize each task component in place. Allocated tasks
+    belong to the access type's collection and its original master, even when
+    allocated from a shorter-lived subprogram; failed allocations cancel their
+    pending tasks before storage release. Nested allocators retain separate
+    activation groups, and task slots retain pointer alignment in mixed records.
+  - Tasks and composites containing them cannot be copied or assigned; renaming
+    and by-reference parameters preserve identity. Task discriminants, entries,
+    tagged/variant task composites, derivation, task-containing aggregates,
+    explicit initialization/defaults, conversions, streaming and function results
+    receive diagnostics. Access-type collections retain the Phase 2 ownership
+    restriction: allocation/deallocation from another task raises `Program_Error`.
+    General shared collections remain a Phase 9 follow-up.
+  - Covered by `tasks`, `taskallocations`, `tasklibrarymain`,
+    `taskactivationfailure`, their whole/separate IR determinism checks,
+    `taskerrors` and `tasklegalityerrors`. `runtime.tasking` executes generated
+    concurrency in both compilation modes: bounded rendezvous, activation
+    handshakes, local/generic package groups, normal/exceptional finalization,
+    allocated components and exception-message preservation.
+    `runtime.tasking_lifecycle` covers repeated contexts, mixed successful/failed
+    groups, body-readiness checks and collection ownership of nested allocations.
+    Baseline: Ada 2005 RM 3.11, 7.5, 7.6.1 and 9.1–9.3; focused RM-based
+    regressions, not imported ACATS cases. ThreadSanitizer passes for the runtime
+    lifecycle test and both generated concurrency modes with instrumented C
+    runtime/helpers; QBE-generated Ada memory accesses are not instrumented.
+    The C lifecycle test also passes AddressSanitizer and UndefinedBehaviorSanitizer.
 - [ ] **Protected objects.** Protected types and single protected objects with
   procedures and functions, under one lock per object.
 - [ ] **Protected entries.** Entries with barriers, re-evaluated when a
@@ -817,6 +851,8 @@ Completes Ada 2005 core tasking on top of Phases 4 and 6. Core tasking is part
 of the language goal, not an optional annex. Track annex-specific priorities,
 scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
+- [ ] Shared access-type collections across tasks: allocation/deallocation,
+  registry ownership and finalization after all dependent tasks terminate.
 - [ ] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
 - [ ] Selective accept, with guards, `terminate` and `delay` alternatives;

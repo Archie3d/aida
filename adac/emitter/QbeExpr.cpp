@@ -534,7 +534,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         emitExceptionCheck();
         return object;
     }
-    if (needsFinalization(designated) && designated->m_classRoot == nullptr) {
+    if ((needsFinalization(designated) || hasTasks(designated)) && designated->m_classRoot == nullptr) {
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
         line(object.name + " =l call $__ada_collection_allocate(l " + collection.name
@@ -548,6 +548,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
                  + ", l " + rootType(partType)->m_tagName + ".finalize)");
             emitExceptionCheck();
         });
+        std::string savedTaskCollection = m_context->m_taskCollection;
+        std::string savedTaskGroup = m_context->m_taskGroup;
+        m_context->m_taskCollection = collection.name;
+        m_context->m_taskGroup = object.name;
         std::string savedOwner = m_context->m_constructionOwner;
         std::string savedArena = m_context->m_constructionArena;
         if (hasLimitedControlledParts(designated)) {
@@ -561,9 +565,15 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         } else {
             emitDefaultInit(object, designated);
         }
+        m_context->m_taskCollection = savedTaskCollection;
+        m_context->m_taskGroup = savedTaskGroup;
         m_context->m_constructionOwner = savedOwner;
         m_context->m_constructionArena = savedArena;
-        line("call $__ada_collection_activate(l " + collection.name + ")");
+        if (hasTasks(designated)) {
+            line("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")");
+        } else {
+            line("call $__ada_collection_activate(l " + collection.name + ")");
+        }
         emitExceptionCheck();
         if (expr->type->target->m_classRoot != nullptr) {
             // Ownership is already recorded; only accessibility remains to check.
@@ -627,6 +637,9 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base == nullptr) {
         return false;
     }
+    if (base->m_taskBody != nullptr) {
+        return true;
+    }
     if (base->kind == TypeKind::Array) {
         return hasComponentDefaults(type->element);
     }
@@ -662,6 +675,16 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         return;
     }
 
+    if (base->m_taskBody != nullptr) {
+        Symbol* body = base->m_taskBody;
+        Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
+        Value flag = elaborationFlag(body);
+        line("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
+             + ", l " + link.name + ", l " + flag.name + ", l " + m_context->m_taskCollection + ", l "
+             + m_context->m_taskGroup + ")");
+        emitExceptionCheck();
+        return;
+    }
     if (type->kind == TypeKind::Array && !type->constrained) {
         emitArrayFill(address, type, nullptr);
         return;

@@ -120,6 +120,9 @@ typedef struct AdaTaskContext
     void* libraryFinalizationArena;
     int libraryFinalizing;
     AdaMaster libraryMaster;
+    AdaMaster* currentMaster;
+    struct AdaMasterState* taskMasters;
+    struct AdaTaskState* taskSelf;
 } AdaTaskContext;
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the

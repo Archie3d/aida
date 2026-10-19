@@ -142,3 +142,13 @@ int masterFail(void)
     __ada_raise_message(ADA_CONSTRAINT_ERROR, "elaboration failure", 19);
     return 0;
 }
+
+/* These task-free fixtures replace every master operation. Keep allocation
+   release from pulling the production master implementation into this link. */
+void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object, long size)
+{
+    (void)context;
+    (void)master;
+    (void)object;
+    (void)size;
+}

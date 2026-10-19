@@ -354,6 +354,7 @@ enum class TypeDefKind
     Modular,
     FloatDigits,
     FixedDelta,
+    Task,
     Array,
     Record,
     Derived,
@@ -750,6 +751,7 @@ struct TypeDecl : Decl
     std::vector<RecordField> discriminants;
     TypeDefinitionPtr definition;
     Type* declaredType = nullptr;
+    DeclList m_taskObjects; // Anonymous type followed by the single task object.
 };
 
 struct SubtypeDecl : Decl
@@ -789,6 +791,8 @@ struct SubprogramBody : Decl
 
     SubprogramSpec spec;
     bool m_isNull = false;
+    bool m_taskBody = false;
+    std::string m_taskName;
     DeclList declarations;
     StmtList body;
     std::vector<ExceptionHandler> handlers;

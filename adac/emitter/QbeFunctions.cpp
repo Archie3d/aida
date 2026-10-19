@@ -189,9 +189,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // Elide a statically empty boundary: no declarations, collections or
     // owned temporaries. Nested blocks carry their own masters, and allocators
     // depend on their access type's collection. Scalar leaf calls thus keep
-    // their existing entry/exit cost. Task-valued temporaries must participate
-    // in this lifetime analysis when task types are added.
-    context.m_hasMaster = !body->declarations.empty() || usesFinalization;
+    // their existing entry/exit cost. Task-valued results and aggregates remain
+    // diagnosed until build-in-place lifetimes support them.
+    context.m_hasMaster = body->m_taskBody || !body->declarations.empty() || usesFinalization;
     context.traceName = symbol->displayName;
     context.sourceLocation = symbol->location;
     context.hasFrame = symbol->needsFrame;
@@ -221,7 +221,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         }
         first = false;
     }
-    if (symbol->level > 0) {
+    if (symbol->level > 0 || symbol->m_taskBody) {
         signature += (first ? "" : ", ") + std::string("l %.link");
         first = false;
     }
@@ -314,6 +314,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         emitExceptionCheck();
     }
 
+    if (body->m_taskBody) {
+        line("call $__ada_task_activated(l %.taskContext)");
+    }
     if (body->handlers.empty()) {
         emitStatements(body->body);
     } else {
@@ -405,6 +408,10 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::istringstream bodyLines(context.body.str());
     std::string bodyLine;
     while (std::getline(bodyLines, bodyLine)) {
+        if (context.symbol != nullptr && context.symbol->m_taskBody
+            && bodyLine.compare(0, 7, "    ret") == 0) {
+            text += "    call $__ada_task_activation_failed(l %.taskContext)\n";
+        }
         if (context.m_hasMaster && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_master_await(l %.taskContext, l %.master)\n";
         }
