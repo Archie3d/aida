@@ -45,6 +45,12 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    if (expected != nullptr && !representationVisible(expected)
+        && (expr->kind == ExprKind::IntegerLiteral || expr->kind == ExprKind::RealLiteral)) {
+        m_diagnostics.error(expr->location, "a numeric literal cannot denote a private type outside its defining package");
+        expr->type = expected;
+        return expected;
+    }
     if (expr->m_implicitCall != nullptr) {
         expr->type = analyzeExpr(expr->m_implicitCall.get(), scope, expected);
         return expr->type;
@@ -318,6 +324,8 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 && (chosen.parameters[0]->kind == TypeKind::Fixed || chosen.parameters[1]->kind == TypeKind::Fixed)) {
                 analyzeExpr(expr->left.get(), scope, chosen.parameters[0]);
                 analyzeExpr(expr->right.get(), scope, chosen.parameters[1]);
+                adaptUniversal(expr->left.get(), chosen.parameters[0]);
+                adaptUniversal(expr->right.get(), chosen.parameters[1]);
                 expr->type = chosen.result;
                 noteStaticValue(expr);
                 checkPrivateOperands(expr);

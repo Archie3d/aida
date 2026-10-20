@@ -263,6 +263,7 @@ private:
     Type* m_tagType = nullptr;
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;
+    Type* m_realTimeType = nullptr;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;

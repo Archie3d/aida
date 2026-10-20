@@ -196,6 +196,17 @@ Type* Sema::analyzeCondition(Expr* expr, Scope* scope)
 void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 {
     switch (statement->kind) {
+    case StmtKind::Delay: {
+        auto* delay = static_cast<DelayStmt*>(statement);
+        Type* type = analyzeExpr(delay->expression.get(), scope, delay->until ? nullptr : m_types.durationType());
+        if (!delay->until && !typesCompatible(m_types.durationType(), type)) {
+            m_diagnostics.error(delay->expression->location, "relative delay requires a Standard.Duration value");
+        }
+        if (delay->until && (m_realTimeType == nullptr || rootType(type) != m_realTimeType)) {
+            m_diagnostics.error(delay->expression->location, "delay until requires an Ada.Real_Time.Time value");
+        }
+        break;
+    }
     case StmtKind::Null:
         break;
 

@@ -38,6 +38,10 @@ int __ada_condition_broadcast(AdaCondition* condition);
    clock; negative deadlines are invalid. Output is unchanged on failure.
    macOS and winpthreads implement timed waits using relative pthread APIs. */
 int __ada_monotonic_clock(int64_t* nanoseconds);
+int __ada_monotonic_resolution(int64_t* nanoseconds);
+/* Sleep against the same monotonic epoch, retrying interruptions without
+   extending the deadline. Expired deadlines yield without blocking. */
+int __ada_monotonic_delay_until(int64_t deadline);
 
 /* Generated-code ABI: naturally aligned scalar storage, widths in bits.
    All concurrent accesses to an object must use these helpers (no mixing

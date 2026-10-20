@@ -107,11 +107,15 @@ StmtPtr Parser::parseStatement()
     }
     case TokenKind::KwRequeue:
         fail("requeue statements are not yet supported");
-    case TokenKind::KwDelay:
-        if (peek(1).kind == TokenKind::KwUntil) {
-            fail("delay until statements are not yet supported");
-        }
-        fail("delay statements are not yet supported");
+    case TokenKind::KwDelay: {
+        advance();
+        auto statement = std::make_unique<DelayStmt>();
+        statement->location = location;
+        statement->until = match(TokenKind::KwUntil);
+        statement->expression = parseExpression();
+        expect(TokenKind::Semicolon, "after delay statement");
+        return statement;
+    }
     case TokenKind::KwNull: {
         advance();
         expect(TokenKind::Semicolon, "after null statement");

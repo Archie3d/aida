@@ -8,6 +8,7 @@
 #include "adathread.h"
 #include <errno.h>
 #include <time.h>
+#include <sched.h>
 
 int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument)
 {
@@ -123,6 +124,51 @@ int __ada_monotonic_clock(int64_t* nanoseconds)
     }
     *nanoseconds = (int64_t)now.tv_sec * 1000000000 + now.tv_nsec;
     return 0;
+}
+
+int __ada_monotonic_resolution(int64_t* nanoseconds)
+{
+    if (nanoseconds == NULL) {
+        return EINVAL;
+    }
+    struct timespec resolution;
+    if (clock_getres(CLOCK_MONOTONIC, &resolution) != 0) {
+        return errno;
+    }
+    if (resolution.tv_sec < 0 || (uint64_t)resolution.tv_sec >
+            (uint64_t)(INT64_MAX - resolution.tv_nsec) / 1000000000) {
+        return EOVERFLOW;
+    }
+    *nanoseconds = (int64_t)resolution.tv_sec * 1000000000 + resolution.tv_nsec;
+    if (*nanoseconds == 0) {
+        *nanoseconds = 1;
+    }
+    return 0;
+}
+
+int __ada_monotonic_delay_until(int64_t deadline)
+{
+    for (;;) {
+        int64_t now;
+        int status = __ada_monotonic_clock(&now);
+        if (status != 0) {
+            return status;
+        }
+        if (deadline <= now) {
+            return sched_yield() == 0 ? 0 : errno;
+        }
+        int64_t remaining = deadline - now;
+        // Bounded chunks fit time_t on POSIX hosts and winpthreads.
+        if (remaining > INT64_C(86400000000000)) {
+            remaining = INT64_C(86400000000000);
+        }
+        struct timespec request;
+        request.tv_sec = (time_t)(remaining / 1000000000);
+        request.tv_nsec = (long)(remaining % 1000000000);
+        if (nanosleep(&request, NULL) != 0 && errno != EINTR) {
+            return errno;
+        }
+    }
 }
 
 /* GCC/Clang builtins operate on ordinary generated storage, unlike C11

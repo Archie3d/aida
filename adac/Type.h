@@ -267,6 +267,7 @@ public:
     Type* floatType() const { return m_float; }
     Type* longFloatType() const { return m_longFloat; }
     Type* stringType() const { return m_string; }
+    Type* durationType() const { return m_duration; }
 
     bool isBoolean(const Type* type) const;
     bool isCharacter(const Type* type) const;
@@ -286,6 +287,7 @@ private:
     Type* m_float = nullptr;
     Type* m_longFloat = nullptr;
     Type* m_string = nullptr;
+    Type* m_duration = nullptr;
 };
 
 // Conservative by-reference components for array view conversions.

@@ -1,0 +1,11 @@
+timeerrors.adb:8:23: error: a numeric literal cannot denote a private type outside its defining package
+timeerrors.adb:11:11: error: relative delay requires a Standard.Duration value
+timeerrors.adb:12:11: error: relative delay requires a Standard.Duration value
+timeerrors.adb:13:11: error: no visible interpretation of 'True' matches this context
+timeerrors.adb:14:17: error: delay until requires an Ada.Real_Time.Time value
+timeerrors.adb:15:17: error: delay until requires an Ada.Real_Time.Time value
+timeerrors.adb:16:17: error: delay until requires an Ada.Real_Time.Time value
+timeerrors.adb:17:17: error: delay until requires an Ada.Real_Time.Time value
+timeerrors.adb:18:17: error: delay until requires an Ada.Real_Time.Time value
+timeerrors.adb:19:29: error: ambiguous name 'Clock'
+timeerrors.adb:20:18: error: 'Time_Span' is private, so 'Real_Time' has to be the one to say what this operator means

@@ -288,6 +288,13 @@ TypeTable::TypeTable()
     m_longFloat = create(TypeKind::Float, "Long_Float");
     m_longFloat->digits = 15;
 
+    // Runtime time ABI: signed 64-bit counts of 2**(-30) seconds.
+    m_duration = create(TypeKind::Fixed, "Duration");
+    m_duration->m_fixedBits = 30;
+    m_duration->m_fixedAft = 10;
+    m_duration->low = std::numeric_limits<long long>::min();
+    m_duration->high = std::numeric_limits<long long>::max();
+
     m_string = create(TypeKind::Array, "String");
     m_string->element = m_character;
     m_string->index = m_positive;

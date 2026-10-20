@@ -50,6 +50,7 @@ void Sema::setupStandardScope()
     addType(m_types.floatType());
     addType(m_types.longFloatType());
     addType(m_types.stringType());
+    addType(m_types.durationType());
 
     const char* booleanLiterals[] = { "False", "True" };
     for (int i = 0; i < 2; ++i) {
@@ -133,6 +134,9 @@ void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
         return;
     }
 
+    if (m_namePrefix[1] == "real_time") {
+        m_realTimeType = typeIn(package->scope, "time");
+    }
     if (m_namePrefix[1] == "text_io") {
         m_textFileType = typeIn(package->scope, "file_type");
         m_fieldType = typeIn(package->scope, "field");

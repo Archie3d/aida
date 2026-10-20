@@ -494,7 +494,8 @@ enum class StmtKind
     Return,
     Case,
     Block,
-    Raise
+    Raise,
+    Delay
 };
 
 struct Stmt : Node
@@ -526,6 +527,17 @@ struct ExceptionHandler
     bool isOthers = false;
     StmtList body;
     SourceLocation location;
+};
+
+struct DelayStmt : Stmt
+{
+    DelayStmt()
+        : Stmt(StmtKind::Delay)
+    {
+    }
+
+    bool until = false;
+    ExprPtr expression;
 };
 
 struct NullStmt : Stmt

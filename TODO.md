@@ -701,8 +701,40 @@ must keep it working; Phase 9 completes core tasking.
     UndefinedBehaviorSanitizer pass for the C entry/protected runtime tests and
     the five generated cases in both compilation modes with instrumented C
     runtime; QBE-generated Ada memory accesses remain uninstrumented.
-- [ ] **Time.** `Duration` (an ordinary fixed-point type), `delay`,
-  `delay until`, and `Ada.Real_Time`.
+- [x] **Time.** Standard `Duration`, relative `delay`, `delay until` for
+  `Ada.Real_Time.Time`, and the Ada 2005 `Ada.Real_Time` API.
+  - `Duration` uses signed 64-bit counts with `Small = Delta = 2**(-30)`
+    seconds, range `-2**33 .. 2**33 - 2**(-30)` seconds, and the existing
+    ordinary fixed-point arithmetic, conversions, attributes and generic I/O.
+    Relative delays require this predefined type even when its name is hidden.
+  - `Time` and `Time_Span` use signed 64-bit nanoseconds: their first/last
+    values are `-2**63` and `2**63-1` nanoseconds, `Time_Unit = 1.0E-9`,
+    `Time_Span_Zero = 0`, and `Time_Span_Unit = 1` nanosecond.
+    `Seconds_Count` is a signed 64-bit integer. Arithmetic, comparisons, unit
+    constructors, duration conversions and `Split`/`Time_Of` are checked;
+    conversions round nearest, ties away from zero. Negative times split with
+    a nonnegative fractional second; composition uses wide intermediates.
+  - Clock and both delay forms use the host `CLOCK_MONOTONIC` epoch, without
+    synchronization to an external time reference. `Tick` is the host-reported
+    monotonic resolution, at least one nanosecond. Positive relative intervals
+    round upward to nanoseconds. Interrupted sleeps retry the original deadline;
+    expired, zero and negative delays yield without blocking. Expressions are
+    evaluated once. Delays during protected actions raise `Program_Error`.
+  - `timevalues`, `timedelays` and `timelibrary` cover arithmetic, endpoints,
+    rounding, overflow, private views, out-parameter copy-back, generic Duration,
+    environment-task elaboration, library tasks, periodic local tasks and queue
+    interactions in whole/separate compilation and IR determinism. `timeerrors`
+    checks delay types and hidden representations. `runtime.time_lifecycle`
+    checks numeric boundaries, real waits, signal interruption on POSIX and
+    protected-action rejection. ThreadSanitizer and AddressSanitizer/
+    UndefinedBehaviorSanitizer pass for the time/threading C tests and all three
+    generated cases in both modes with instrumented C runtime; QBE-generated
+    Ada memory accesses remain uninstrumented.
+  - Baseline: Ada 2005 RM 9.6 and D.8; focused RM-based regressions, not
+    imported ACATS cases. Host scheduling, suspension and clock-source behavior
+    govern lateness and clock metrics; hard real-time latency, jitter and drift
+    guarantees are not provided. `Ada.Calendar`, select delays, cancellation
+    and abort remain in their later roadmap items.
 - [ ] **Shared variables.** `pragma Atomic` and `pragma Volatile` through the
   Phase 2 threading layer.
 - [ ] **Task identity.** `Ada.Task_Identification`, `'Terminated` and
