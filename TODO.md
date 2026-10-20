@@ -34,7 +34,10 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
    gets a clear diagnostic until it is implemented.
 2. **Prove every change.** Each behavior lands with a focused executable test in
    `tests/ada/`, a rejection test for each legality rule, and a determinism test
-   when code generation changes. The full suite stays green.
+   when code generation changes. The full suite stays green. Mark an item
+   complete only once its remaining restrictions are recorded here and in the
+   README; completed entries stay brief, with details in the named tests and
+   the commit history.
 3. **Extend existing mechanisms.** Build on the array descriptors, owned-result
    ABI, finalization chains, tag descriptors and token-based generic instantiation
    rather than adding parallel paths.
@@ -47,10 +50,10 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
    state only through that context. Once Phase 4 lands, a feature that
    interacts with tasks gets a test that runs it from several tasks.
 7. **Leave `qbe/` unchanged.**
-8. **Run validation alongside implementation.** Start Phase 8's coverage
-   inventory now and maintain it throughout the roadmap. Add relevant Ada 2005
-   ACATS coverage with each feature rather than waiting for the earlier phases
-   to finish.
+8. **Run validation alongside implementation.** The Phase 5 prelude creates
+   Phase 8's coverage matrix and ACATS harness; maintain both throughout the
+   roadmap. Add relevant Ada 2005 ACATS coverage and matrix rows with each
+   feature rather than waiting for the earlier phases to finish.
 9. **Follow dependencies, not just bullet order.** Keep the phase sequence,
    but resolve local prerequisites before their dependents. In Phase 6,
    establish general limited-record semantics before generalizing limited
@@ -58,7 +61,10 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
    returns can proceed independently. In Phase 7, implement `Ada.Calendar`
    before `Ada.Directories`, whose modification-time operations use
    `Ada.Calendar.Time`, and wide character/string types before wide exception
-   names and related library APIs.
+   names and related library APIs. Shared access-type collections precede the
+   Phase 7 library, whose allocating packages must work from several tasks.
+   The abort-deferral design precedes Phase 6's finalization extensions, and
+   record representation clauses follow discriminated records.
 10. **Establish tasking's limited-type rules early.** Phase 4 must enforce the
   noncopying, lifetime and finalization rules needed by task/protected objects
   and composites containing them, without waiting for Phase 6's general
@@ -68,761 +74,197 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
 
 ## Phase 1 — Stop silent acceptance
 
-Highest priority: constructs that were accepted while their meaning was dropped.
-The original items and all follow-ups below are complete, including strict
-generic formal type parsing and diagnostics for unsupported constructs.
+Complete. Constructs that were accepted while their meaning was dropped now get
+diagnostics; later phases replace each rejection as they implement it.
 
-- [x] **Pragmas.** `Parser::parsePragma` accepts `Import`, plus `Inline`, `Pure`
-  and `Preelaborate` as advisory, and rejects every other or unknown pragma in
-  context clauses, declarative parts and statements. Covered by `pragmas` and
-  the `pragma*errors` tests (syntax, unknown, representation, elaboration,
-  checks, tasking).
-- [x] **Representation clauses.** Only `'Size` clauses are accepted, and they
-  are validated against the representation and range. Other attribute,
-  enumeration, record and address clauses are rejected. Covered by
-  `sizeclauses`, `representationerrors` and `size{layout,range,value}errors`.
-- [x] **Import conventions.** Only C and Ada are accepted. Covered by
-  `importconventions`, `importconventionerrors` and
-  `importconventionsyntaxerrors`.
-- [x] **Subprogram stubs.** `is separate` on a subprogram is rejected. Covered
-  by `subprogramstuberrors` and `subprogramcompletions`.
+- [x] **Pragmas.** `Import` is implemented; `Inline`, `Pure` and `Preelaborate`
+  are advisory; every other pragma is rejected (`pragmas`, `pragma*errors`).
+- [x] **Representation clauses.** Only validated `'Size` clauses are accepted
+  (`sizeclauses`, `representationerrors`, `size*errors`).
+- [x] **Imports.** C and Ada conventions only, with exactly three positional
+  arguments and a nonempty external name (`importconvention*`).
+- [x] **Stubs.** Subprogram and package body stubs (`is separate`) get a single
+  diagnostic without cascading errors (`subprogramstuberrors`).
 - [x] **Reserved words.** `aliased`, `protected`, `requeue`, `until`,
-  `interface` and `synchronized` are reserved, and the constructs they introduce
-  have their unsupported forms rejected (including inside generic formal type
-  definitions). Phase 4 replaces the original protected-declaration rejection
-  with its supported subset. Covered by
-  `reservedworderrors`, `reservedconstructerrors`, `reservedgenericerrors` and
-  `reservedwordboundaries`.
-- [x] **Import without an external name.** Both C and Ada imports require an
-  explicit, nonempty external name string. Missing names are diagnosed instead
-  of silently dropping the pragma. Covered by `importconventionerrors` and
-  `importconventionsyntaxerrors`; explicit-name calls remain covered by
-  `importconventions`.
-- [x] **Remaining `Import` arguments.** Only three positional arguments are
-  accepted. Named associations (including `Convention => ...` and
-  `Link_Name => ...`) and extra arguments receive explicit diagnostics.
-  Closing delimiters are required and trailing tokens are rejected. Covered
-  by `importconventionerrors` and `importconventionsyntaxerrors`.
-- [x] **Package body stubs.** `package body P is separate;` is rejected with a
-  single clear diagnostic at `separate`, without cascading parse errors.
-  Covered by `subprogramstuberrors` in local, nested-package, block and
-  uninstantiated-generic contexts.
-- [x] **Generic formal type definitions.** Only complete private, limited
-  private, discrete, integer, floating-point, ordinary fixed-point and array
-  forms are accepted. Unsupported categories and trailing tokens are rejected;
-  `range <>` and `digits <>` must end at the box. Covered by
-  `genericformalerrors` and `genericformalsyntaxerrors`. The predefined
-  deallocator uses supported private-formal syntax with an explicit access
-  contract check, covered by `deallocationformalerrors` and the existing
-  allocation tests. Phase 6 implements the rejected categories.
-- [x] **Clear diagnostics for unsupported syntax.** Abstract subprograms, `goto`
-  and labels, `select`, entry-bearing task declarations, `limited with` and `private with`
-  receive messages naming the unsupported construct. Recovery consumes task
-  definitions and nested select blocks and preserves statements after labels.
-  Covered by `unsupportedconstructerrors`, `unsupportedcontexterrors` and
-  `unsupportedrecoveryerrors`.
-
-Tests: a rejection test for each unsupported formal type form, and one per
-construct in the diagnostics item.
+  `interface` and `synchronized` are reserved; their unsupported constructs are
+  rejected, including in generic formals (`reserved*`).
+- [x] **Generic formal types.** Private, limited private, discrete, integer,
+  floating, ordinary fixed and array formals only; other categories and trailing
+  tokens are rejected (`genericformal*errors`, `deallocationformalerrors`).
+- [x] **Unsupported syntax.** Abstract subprograms, `goto`/labels, `select`,
+  task entries, `limited with` and `private with` get named diagnostics with
+  recovery (`unsupported*errors`).
 
 ## Phase 2 — Tasking foundations
 
-Prepare the run time and code generator for several threads of control before
-more features depend on single-threaded behavior. Nothing here adds Ada syntax;
-the existing suite must pass unchanged, with no measurable slowdown.
+Complete. Run-time and code-generation groundwork for several threads, with no
+new Ada syntax. Finalization chains and storage checkpoints live in stack frames
+and exceptions propagate by explicit checks, so neither needed redesign.
+Measurements are in `tests/benchmarks/README.md`; open cross-host validation
+moved to Phase 8.
 
-Current state: the C run time has a bindable per-task context. Each generated
-subprogram caches the context returned by traceback entry; exception checks
-and handlers load the pending exception at offset zero from that pointer. The
-binder fetches its context once as well. C workers can call the tested Ada
-subset under separate contexts. Image and stream results are caller-owned;
-file and tag tables are locked, and library lifetime storage belongs to the
-environment task. The C threading layer provides joinable threads, mutexes,
-monotonic condition waits and scalar atomic access. Master entry, activation,
-await and exit hooks bracket scoped cleanup; Phase 4 supplies their task behavior.
-Empty subprogram masters are elided when the lifetime analysis proves they have
-no declarations or owned temporaries.
-Finalization chains and storage checkpoints already live in stack frames, and
-exceptions propagate by explicit checks rather than unwinding, so neither needs
-redesigning. The shared state is in the C run time.
-
-- [x] **Per-task context.** Gather the mutable run-time state into one context
-  record: pending exception, message and trace (`adart.c`), the current trace
-  frame, and the registries of finalizations and allocations. The main program
-  owns the first context; each task will own another. C helpers use a C11
-  thread-local binding, with zero-initialized caller-owned contexts and checked
-  disposal after masters exit. Registry operations require the owning context.
-  Covered by `runtime.task_context` (four concurrent workers, context switching,
-  trace/message isolation and cleanup) and `runtime.array_storage` (allocation
-  failure and pending-message disposal). Library lifetime storage now belongs
-  to the environment context; process-wide command-line state remains separate.
-- [x] **Generated access to the context.** QBE's `thread` data cannot serve
-  every target: it is rejected for extern symbols on arm64 Linux and entirely on
-  Windows amd64 (`qbe/arm64/emit.c`, `qbe/amd64/emit.c`). Have each subprogram
-  fetch the context pointer once on entry (a run-time call or a hidden
-  parameter), and load the pending exception at a fixed offset from it. Measure
-  the cost and pick one ABI before more emitter code reads run-time state.
-  Chosen ABI: return the context from the existing traceback-entry call, update
-  the local trace frame directly, and pass the context to traceback exit. No
-  extra Ada parameter or QBE TLS reference is needed. The hidden-parameter
-  entry probe showed no speed advantage on the measured host; generated call
-  timing improved over Step 1. See `tests/benchmarks/README.md` for measurements,
-  scope and reproduction. Covered by `runtime.generated_contexts`, its IR
-  structure checks, `determinism.generatedcontexts`, and updated IR goldens.
-  The phase-wide no-slowdown goal still needs broader/other-target validation;
-  Step 1's exception-helper-only overhead is not removed by this emitter ABI.
-- [x] **Result buffers.** Removed rotating static image, fixed-point text and
-  stream-result buffers. Images write into per-expression caller stack storage
-  sized from the type, returning explicit lengths; fixed-point images no longer
-  allocate. Unconstrained stream input uses the existing owned-array descriptor
-  and shared caller-adoption path, releasing partial reads on failure. The 4 KiB
-  stream cap is gone; signed 32-bit length/byte-count limits remain. Covered by
-  `imageresults`, `streamresults`, their determinism tests and
-  `runtime.result_buffers` (four workers, allocation/adoption failure and
-  truncated input). The image benchmark is recorded in `tests/benchmarks/README.md`.
-- [x] **Shared run-time tables.** Protect the file table and current input/output
-  (`adaio.c`), tag registrations (`adatags.c`) and library finalization with a
-  run-time lock, or give them a single owner. File operations use per-file mutexes
-  across validation and use, with a short table lock and pins preventing reuse; current-file getters return stable handle snapshots
-  and file names use caller-owned array results. Tag registration and lookup
-  use a separate mutex; descriptors survive until process shutdown after worker
-  termination. Library lifetime storage is owned by the environment context;
-  foreign-context operations and recursive library shutdown raise Program_Error.
-  Process-wide exit status uses relaxed C11 atomic loads/stores, including its
-  startup reset; concurrent access and post-join visibility are covered by
-  `runtime.task_context`.
-  Collections reject allocation from a different context. No generated callback
-  runs under an infrastructure table mutex. Covered by `runtime.shared_tables`, `filesnapshots`
-  and its determinism test, including concurrent first use and slot reuse.
-  `adalock` supplies the private mutex operations needed here, extended by the
-  threading layer below. `runtime.blocking_io` verifies unrelated file
-  progress during blocked text, stream and fixed reads, including Close/Reset
-  waiters; the table lock is never held across blocking I/O or file-lock waits.
-- [x] **Threading layer.** `adathread` provides a thin C layer over POSIX threads
-  (winpthreads on MSYS2): joinable threads, mutex lifecycle/try-lock, condition
-  variables and monotonic nanosecond clocks/deadlines. macOS and winpthreads use
-  relative condition waits; other hosts select `CLOCK_MONOTONIC` explicitly. Status
-  functions return POSIX errors; callers own thread/context lifetimes.
-  Sequentially consistent 8/16/32/64-bit atomic loads/stores operate on naturally
-  aligned scalar storage, ready for Phase 4 `Atomic`/`Volatile` lowering.
-  Native lock-free support is required, avoiding a new linker dependency.
-  Covered by `runtime.threading` (contention, signal/broadcast, timeout,
-  thread results and atomic publication), plus `runtime.task_context` and
-  `runtime.result_buffers` using the layer. All 355 tests and a focused
-  ThreadSanitizer run pass on macOS; the user also verified the suite on Linux.
-  MSYS2 execution remains host validation work. No generated code or existing
-  lock/unlock path is changed by this step.
-- [x] **Masters and activation hooks.** `adamaster` supplies task-free entry,
-  activation, await and exit hooks with explicit contexts and caller-owned
-  identities. Subprograms and blocks activate after successful declarations;
-  the binder activates the library master only after all elaborations succeed.
-  Existing managed access-type collections activate after allocator completion
-  and await before any member is finalized. Nested scopes await, finalize and
-  release storage inside-out on normal completion, return, loop exit and
-  exception transfer; handlers retain their own scope until it exits.
-  Statically empty subprogram boundaries are elided to preserve scalar leaf
-  call cost. Task-valued temporaries must join lifetime analysis in Phase 4.
-  Covered by `runtime.masterhooks`, `runtime.masterfailure`,
-  `runtime.masterlibraryfailure` and `determinism.masterhooks`, including
-  observed finalization order, failed declarations/activation, re-raise,
-  missing returns, extended returns, finalizer failure and collection variants.
-  The binder IR golden is updated. The existing call/image benchmarks showed
-  no material regression on macOS (see `tests/benchmarks/README.md`); broader
-  and cross-target performance validation remains open.
-
-Tests: the existing suite; a C test that runs run-time helpers (images,
-exceptions, allocation) from several threads at once; IR golden updates for the
-new context access.
+- [x] **Per-task context.** Pending exception, message, trace frame and the
+  finalization/allocation registries live in one context record, bound through
+  C11 thread-local storage. The environment task owns library lifetime storage;
+  registry operations require the owning context (`runtime.task_context`,
+  `runtime.array_storage`).
+- [x] **Generated access to the context.** QBE `thread` data is unusable for
+  arm64 Linux externs and Windows amd64, so the traceback-entry call returns the
+  context; generated code loads the pending exception at offset zero and passes
+  the context to traceback exit. No hidden parameter or TLS reference
+  (`runtime.generated_contexts`, `determinism.generatedcontexts`).
+- [x] **Result buffers.** Images, fixed-point text and stream results use
+  caller-owned storage instead of rotating static buffers; signed 32-bit length
+  limits remain (`imageresults`, `streamresults`, `runtime.result_buffers`).
+- [x] **Shared run-time tables.** Per-file mutexes with a short table lock and
+  pins, a locked tag registry and an atomic exit status. No generated callback
+  runs under a table mutex, and blocking I/O never holds the table lock
+  (`runtime.shared_tables`, `runtime.blocking_io`, `filesnapshots`).
+- [x] **Threading layer.** `adathread` wraps POSIX threads (winpthreads on
+  MSYS2): threads, mutexes, monotonic condition waits and sequentially
+  consistent 8–64-bit atomics requiring native lock-free support
+  (`runtime.threading`).
+- [x] **Masters and activation hooks.** `adamaster` brackets subprograms,
+  blocks, collections and the library master with entry, activation, await and
+  exit hooks; scopes await, finalize and release inside-out on every exit path.
+  Statically empty boundaries are elided (`runtime.master*`,
+  `determinism.masterhooks`).
 
 ## Phase 3 — Harden the existing subset
 
-Audits of supported features, in the order below. Write a focused reproduction
-before choosing a fix. Follow the language target recorded in Phase 8 and keep
-README.md current alongside this phase, recording deliberate subset restrictions and
-validating supported cases with focused regression tests. Wider numeric support,
-new access forms and other features explicitly deferred to later phases stay
-there; this phase does not introduce an anonymous library-block extension.
+Complete. Audits of supported features against the Ada 95/2005 RM, each with
+focused regressions (not ACATS), whole/separate compilation and determinism
+tests where code generation changed. Remaining restrictions are listed per item
+and in README.md.
 
-- [x] **Unit identity and loading.** Establish specification/body identity from
-  declarations and define the source naming policy. Diagnose filename/unit-name
-  mismatches and conflicting or duplicate definitions; handle repeated references
-  to the same source consistently. Cover explicit sources, automatic spec/body
-  loading, source argument order, and parent/child dependencies. Represent
-  specifications and bodies as separate dependency nodes, preserving each
-  part's context clauses. Diagnose illegal dependency cycles without rejecting
-  legal dependencies between bodies and already available specifications.
-  Code: `adac/UnitLoader.cpp`, `adac/UnitManifest.h`, `adac/UnitManifest.cpp`,
-  `adac/main.cpp`.
-  - [x] Source-file foundation: declaration-based part identities, preregistered
-    explicit paths, canonical-path deduplication, conflicting-source diagnostics,
-    automatic spec/body loading, parent dependencies, and separate source-part
-    graph ordering with cycle diagnostics. Format 3 manifests preserve that graph.
-    Covered by `loading.{cycles,identity,sources,child}`, `ada.load_main`,
-    `ada.child_main` and `determinism.load_main`. Explicit custom filenames and
-    multi-item source bundles remain supported extensions; library-path lookup
-    diagnoses filename/declaration mismatches.
-  - [x] Per-library-item identities, context-clause storage and dependency
-    ordering within multi-item bundles, including adjacent generic bodies.
-    Format 4 manifests and emitted elaborations use declaration identities while
-    object/cache names remain file-based. Explicit bundles are preregistered and
-    passed through separate compilation. Covered by `loading.bundles` (duplicate,
-    cycle, parent, source-order, whole/separate IR and incremental checks),
-    `ada.bundle_main`, `ada.bundle_client`, `determinism.bundle_main` and
-    `determinism.genericelaborationorder`; existing elaboration-failure tests
-    cover stopping within a bundle. Generic template bodies have no standalone
-    elaboration effects.
-  - [x] Declaration/completion identity audit: null procedures and renamings
-    are classified as standalone declarations or completions from the discovered
-    declarations, independent of source order. Reject orphan package bodies,
-    incompatible package/procedure/function kinds, duplicate completions, bodies
-    for already-complete declarations, and non-package parents. Automatic lookup
-    validates source-part roles; explicit targets and main selection use source
-    identity, including aliases. Covered by `loading.completions`,
-    `ada.completion_main` and `determinism.completion_main`, including spec
-    addition/removal rebuilds. Generic renaming completions remain explicitly
-    unsupported. Parameter-profile conformance and full semantic context
-    isolation remain in the existing visibility/conformance audit.
-- [x] **Elaboration order and checks.** Build elaboration constraints from the
-  per-part dependency graph, including specification-before-body and parent/child
-  requirements. Have binding validate manifest order and reject missing,
-  duplicate and unknown elaboration entries, as well as unsatisfiable ordering
-  constraints. Define and implement elaboration-before-use checks that raise
-  `Program_Error` where required, covering direct and indirect calls, local
-  bodies and generic instantiations as well as library initializers. Preserve
-  failure propagation and cleanup when elaboration stops partway through.
-  Apply the same rules to whole-program and separate compilation.
-  Code: `adac/main.cpp`, `adac/Binder.cpp`, `adac/UnitManifest.cpp`,
-  `adac/sema/`, `adac/emitter/`.
-  - [x] Binder graph validation, covered by `binding.elaboration_order`: missing,
-    duplicate and unknown entries, unknown dependencies, duplicate part metadata,
-    invalid ordering and truncated manifests. Identity-derived specification/body
-    and parent/child constraints are enforced even when explicit edges are
-    omitted; self-dependencies and cyclic constraints are rejected.
-  - [x] Subprogram elaboration-before-use checks at body entry, including
-    indirect calls and renaming completions. Library flags are set in source
-    order; nested flags belong to each activation and reset on block re-entry.
-    `elaborationchecks` covers early/valid calls, repeated activation, generic
-    instances and controlled cleanup; `elaborationlibrarycheck` covers partial
-    library failure, finalization and skipped main execution. Both have
-    whole/separate determinism checks. The controlled-completion fixture now
-    initializes its objects in a client package, after the defining bodies.
-  - [x] Generic template-body flags and instantiation-site checks for bodies
-    available to the token-based expander, including separate library bodies.
-    Existing generic executable and determinism suites cover successful
-    elaboration; templates still have no instance initialization effects.
-  - [x] Forward generic instantiation: publish the instance specification and
-    defer body expansion until its template body is available, preserving formal
-    bindings, type identity, lexical captures and contract resolution. Generic
-    subprograms and packages raise `Program_Error` on early execution, before
-    instance initialization; packages with no body remain valid. Covered by
-    `forwardelaboration` (required/optional bodies, cleanup and repeated calls),
-    `forwardcontracts` (nested deferred instances, distinct actual types and
-    declaration/body-site binding), `forwardlibrary` and their determinism tests.
-    Missing required bodies get semantic diagnostics (`elaborationgenericerrors`).
-    `elaboration.forward_modes` executes whole and separate builds, checks
-    template-body changes rebuild clients, and verifies whole-program partial
-    elaboration failure cleanup. Elaboration pragmas remain the next item.
-- [x] **Elaboration pragmas.** Implement `Elaborate`, `Elaborate_All` and
-  `Elaborate_Body`, replacing their Phase 1 rejections. Check placement,
-  arguments and named-unit legality. Test each pragma separately: body-before-
-  client ordering for `Elaborate`, the required transitive closure for
-  `Elaborate_All`, and a required body immediately following its specification
-  for `Elaborate_Body`. Diagnose conflicting constraints and carry the pragma
-  requirements through scan metadata, binding and incremental rebuilds.
-  Context pragmas validate preceding with visibility (including ancestors),
-  retain per-item requirements and add body/transitive semantic-dependency
-  edges. `Elaborate_Body` accepts library package/generic specifications and
-  named pragmas following library subprogram declarations or instantiations;
-  instance bodies already elaborate with their specifications. Library generic
-  pragmas do not apply to instances. Format 5 manifests preserve expanded edges
-  and explicit immediate-body constraints, checked again by the binder.
-  Impossible constraints use deterministic dependency-cycle diagnostics.
-  Covered by `ada.ep_main`, `determinism.ep_main`, `elaboration.pragmas` and
-  updated `pragmaelaborationerrors`: whole/separate execution and IR, child
-  units, generics, bodyless units, bundles, placement/name/argument errors,
-  required bodies, direct/transitive/adjacency cycles, malformed metadata and
-  incremental changes to pragmas and transitive bodies. Specification-only
-  compilation defers unavailable dependency-body ordering to the full scan and
-  binder; source dependencies continue to use the existing digest cache.
-- [x] **Visibility and conformance.** Audit visibility, `use` clauses,
-  homographs, duplicate declarations, overload ambiguity, private views,
-  parent/child visibility and context-clause isolation between compilation
-  units. Check specification/body conformance, including parameter modes,
-  names, defaults, subtype constraints and return profiles. Distinguish valid
-  overloads from mismatched or duplicate completions. Extend existing local
-  missing-body checks to required package and subprogram completions across
-  units, reporting them before linking while allowing declarations that do not
-  require bodies. Code:
-  `adac/sema/SemaNames.cpp`, `adac/sema/SemaDecl.cpp`, `adac/Scope.cpp`.
-  - [x] Reject type and subtype declarations that conflict with existing local
-    names, preserving incomplete/private type completions and nested-scope
-    shadowing. Covered by `duplicatetypeerrors` and `typedeclarations`.
-  - [x] Reject named numbers and exceptions (including exception renamings)
-    that conflict with existing local declarations, including case-insensitive
-    duplicates and repeated names in grouped declarations. Preserve nested
-    shadowing, hiding of use-visible names and renamed exception identity.
-    Covered by `duplicatenumbererrors`, `duplicateexceptionerrors`,
-    `numberexceptiondeclarations` and its determinism test.
-  - [x] Subprogram homographs, duplicate profiles/completions and formal names;
-    package/generic declarations and enumeration literal conflicts. Completions
-    check names, modes, statically matching parameter/result subtypes and
-    structurally conforming defaults with resolved declaration identity.
-    Omitted body defaults remain valid; generic contract replay preserves
-    overloads that acquire identical actual types. Covered by
-    `duplicateprofileerrors`, `profileconformanceerrors`, `defaultbindingerrors`,
-    `profiledefaults`, their executable/determinism coverage and existing
-    generic, renaming and overload suites.
-  - [x] Direct visibility takes precedence over use visibility across enclosing
-    scopes; conflicting use-visible names are diagnosed. Private declarations,
-    private use clauses and package-body locals do not leak to clients or the
-    visible parts of public children. Package shadowing and child subprogram
-    namespaces preserve legal lookup and completion. Covered by
-    `visibilityerrors`, `visibilityconformance`, `profiledefaults`, existing
-    primitive/private-view tests and `semantics.visibility_conformance`.
-  - [x] Each library item has its own context, including items in source bundles.
-    Specifications pass their context to bodies and descendants; body imports
-    stay local. Library children require a mentioning with clause, `System`
-    requires a with clause, and `Standard` supports expanded names. Generic
-    contract/body environments preserve body-site captures. Updated older
-    fixtures to state their dependencies and qualify ambiguous exceptions.
-  - [x] Missing required local/library subprogram and generic bodies are
-    diagnosed before linking, including unresolved package members and
-    mismatched overload completions. Driver scanning now performs semantic
-    validation before publishing manifests or reusing objects; `adac -c` still
-    permits specification-only compilation. Covered by
-    `requiredcompletionerrors`, `semantics.visibility_conformance` (whole and
-    separate builds, child privacy, source-order/bundle isolation, dependency
-    edits, stale artifacts, valid bodyless/import/null declarations and IR
-    determinism), plus the full regression suite.
-    Audit baseline: Ada 95/2005 RM 6.3.1, 7.2, 8.3, 8.4 and 10.1.2. Existing
-    extensions remain: explicit source bundles/custom filenames and optional
-    library package bodies without `Elaborate_Body`. Wider primitive-operation
-    legality remains in its separate Phase 3 item.
-- [x] **Blocks executed during package-body elaboration.** Executable parts
-  and handlers use a per-unit elaboration frame for block locals, captured
-  objects, nested subprograms and local packages. Package declarations retain
-  their library lifetime. Blocks reuse scoped storage, masters, finalization
-  and access collections on normal completion, loop exit and exceptions;
-  declaration failures bypass the block's handlers. Covered by
-  `elaborationblocks` (including separate-compilation determinism),
-  `elaborationblockfailure` (cleanup before failed library startup) and
-  `elaborationblockerrors` (return legality and block visibility). Runtime-bound
-  block arrays are supported; library-level runtime bounds remain in Phase 6.
-- [x] **Aggregates.** Static and dynamic array targets share checked shape,
-  choice, index-subtype and sliding logic; `others` fills only unassociated
-  components. Ordinary record assignments build a temporary before copying,
-  preserving self-references and the destination on component failure. Record
-  associations enforce ordering, component names, coverage, duplicates and
-  a common type for grouped choices. Defaults in ancestor-type extension
-  aggregates and grouped expressions are evaluated per component.
-  Covered by `aggregateaudit`, `aggregateauditchecks`, `aggregateauditerrors`
-  and `aggregatecleanup`, with determinism tests, alongside existing inferred,
-  runtime, multidimensional and controlled aggregate regressions. Includes null
-  arrays, partial initialization cleanup and component subtype checks.
-  Ada 2005 box defaults (`<>`) remain unsupported with an explicit diagnostic
-  (`aggregateboxerrors`); variant/discriminant restrictions remain as documented
-  in their roadmap items. Audit baseline: Ada 95/2005 RM 4.3.1 and 4.3.3.
-- [x] **Array conversions.** Ordinary and controlled value conversions check
-  every dimension, slide to constrained targets and check unconstrained index
-  subtypes. Null ranges skip subtype checks while enumeration/modular bounds
-  must still be representable. Writable converted actuals evaluate the operand
-  once, check entry constraints and convert back only after normal return;
-  same-family arrays with private or tagged components retain element identity.
-  Ada and imported calls share this handling. Value conversions, constants and
-  function results cannot be written through; cross-type views with private or
-  tagged components are rejected.
-  Covered by `arrayconversions`, `arrayconversionchecks`, `arrayconversionerrors`
-  and determinism tests, alongside `controlledconversions`. Includes 32/64-bit
-  integer and enumeration indexes, null/multidimensional shapes, runtime
-  constraints, out/in out calls, copy-back failure and exception propagation.
-  The cross-type restriction remains exact component subtype object identity:
-  distinct subtype declarations with equal constraints are still rejected.
-  No relaxation was made. Limited controlled array conversions and bounds
-  beyond the existing 32-bit descriptors remain unsupported. Audit baseline:
-  Ada 95/2005 RM 4.6 and 6.4.1.
-- [x] **Derived types.** Audit derivation legality, inherited constraints and
-  primitive operations, type identity and explicit conversion rules. Cover
-  accepted and rejected conversions and runtime range, discriminant and tag
-  checks where applicable to the supported subset.
-  - [x] Related untagged enumeration, record and access value conversions,
-    including siblings and multiple derivation levels; retain distinct implicit
-    type identity and hide ancestry introduced by private completions. Preserve
-    inherited scalar base ranges and constrained record discriminants. Check
-    explicit scalar/discriminant conversions even when nested or given static
-    operands. Derived access types share their parent's collection and lifetime.
-    Inherited calls through private scalar views initialize `in` temporaries
-    without copying them back. Reject incomplete parents, repeated discriminant
-    constraints, untyped conversion operands and writable non-array untagged
-    conversions; new discriminant parts and derivation before a private view's
-    completion receive explicit unsupported diagnostics.
-    Covered by `derivedtypes`, `derivedconstraints`, `derivedaccess`,
-    `derivedlibrary`, their whole/separate determinism tests and
-    `derivedtypeerrors`; existing `primitive*`, `tagged*`, `classwide*` and
-    `arrayconversion*` suites retain inheritance, tag-check and array coverage.
-    Audit baseline: Ada 2005 RM 3.4, 3.4.1, 4.6 and 7.3.1. These are focused
-    RM-based regressions, not imported ACATS cases.
-  - [x] Derived Boolean scalar conditions, logical operators and short-circuit
-    forms retain their type identity; overload resolution accepts any visible
-    Boolean type in conditions. Derived Character literals and byte-character
-    arrays retain element identity through concatenation; string literals check
-    constrained component ranges. Private completions
-    do not expose these categories outside their package. Inherited record
-    profiles retain the parent's discriminant constraints independently of the
-    derived first subtype, including unconstrained results through multiple
-    derivations. Constrained record formals check discriminants before entering
-    the callee for all parameter modes. Covered by `derivedcategories`,
-    `derivedcategoryerrors`, `derivedprofiles` and determinism tests, including
-    cross-library calls, failed checks without body execution or object mutation,
-    and constrained destinations receiving unconstrained inherited results.
-    Additional baseline: Ada 2005 RM 4.5.1, 5.3 and 6.4.1.
-    Writable non-array untagged conversions, new derived discriminant parts,
-    derivation before private-view completion, and string literals/concatenation
-    with character components wider than a byte remain diagnosed restrictions.
-    The wider primitive visibility/overriding and variant-record audits below
-    remain separate items; this completes derivation within the supported subset.
+- [x] **Unit identity and loading.** Declaration-based identities per library
+  item, separate spec/body dependency nodes with their own context clauses,
+  canonical-path deduplication, automatic spec/body lookup with
+  filename/declaration checks, completion classification and cycle diagnostics
+  (`loading.*`, `ada.{load,child,bundle,completion}_main`). Source bundles and
+  custom filenames remain extensions; generic renaming completions are
+  unsupported.
+- [x] **Elaboration order and checks.** The binder validates manifest entries,
+  order and implied spec/body and parent/child constraints. Subprogram and
+  generic bodies have elaboration flags raising `Program_Error` on early calls
+  or instantiations; forward generic instances defer body expansion until the
+  template body is available (`binding.elaboration_order`, `elaboration*`,
+  `forward*`).
+- [x] **Elaboration pragmas.** `Elaborate`, `Elaborate_All` and
+  `Elaborate_Body` with placement, argument and visibility checks; requirements
+  flow through format 5 manifests, binding and incremental rebuilds, and
+  impossible constraints report cycles (`elaboration.pragmas`,
+  `pragmaelaborationerrors`, `ada.ep_main`).
+- [x] **Visibility and conformance.** Duplicate and homograph declarations,
+  direct-over-use visibility, private-part and body-local isolation, per-item
+  contexts, full spec/body conformance (names, modes, subtypes, defaults) and
+  missing required bodies diagnosed before linking (`duplicate*errors`,
+  `profile*`, `visibility*`, `requiredcompletionerrors`,
+  `semantics.visibility_conformance`). Library package bodies without
+  `Elaborate_Body` remain optional.
+- [x] **Blocks during package-body elaboration.** A per-unit elaboration frame
+  holds block locals, captures and nested units, with the usual scoped cleanup
+  (`elaborationblock*`). Library-level runtime bounds remain in Phase 6.
+- [x] **Aggregates.** Shared checked shape, choice and sliding logic for
+  arrays; record aggregates go through a temporary, with ordering and coverage
+  checks and per-component defaults (`aggregateaudit*`, `aggregatecleanup`).
+  Box defaults are rejected (`aggregateboxerrors`).
+- [x] **Array conversions.** Per-dimension checks and sliding; writable
+  converted actuals evaluate once and copy back only on normal return
+  (`arrayconversion*`, `controlledconversions`). Cross-type views require
+  identical component subtypes; limited controlled array conversions are
+  unsupported.
+- [x] **Derived types.** Untagged conversions, inherited constraints and
+  profiles, derived Boolean/character categories, and derived access types
+  sharing their parent's collection (`derived*`). Writable non-array untagged
+  conversions, new discriminant parts, derivation before private completion and
+  character components wider than a byte remain diagnosed.
 - [x] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
-  `'Range`: base versus subtype rules, valid type/object prefixes, operand
-  types, arity and result width. Include scalar endpoints, null ranges,
-  multidimensional array dimension arguments, and static versus runtime
-  failures within the existing numeric model.
-  - [x] Validate visible scalar subtype marks, array object/type prefixes,
-    argument types and counts, and static array dimensions. Discrete position
-    results retain universal-integer context and width; value and adjacent-value
-    attributes use the scalar base range, including derived and dynamic subtypes.
-    Diagnose static operands outside the prefix base range before folding.
-    Check endpoints before narrowing, with `Constraint_Error` for failed value
-    conversions and successor/predecessor operations. Fixed-point adjacency uses
-    `Small`; floating-point adjacency uses the next representable machine value.
-    Array bounds retain their index width, and a lowered array `'Range` evaluates
-    its prefix once, including function results and implicit access dereferences.
-    Covered by `attributeaudit`, `attributebounds`, their determinism tests, and
-    `attributeauditerrors`; existing attribute and runtime-bound tests remain.
-    Audit baseline: Ada 2005 RM 3.5, 3.5.5 and 3.6.2. These are focused RM-based
-    regressions, not imported ACATS cases. The existing 32/64-bit numeric model,
-    32-bit array descriptor bounds and deferred static-arithmetic work remain
-    unchanged; broader representation and streaming attributes remain separate
-    roadmap items.
-- [x] **Primitive operations.** Wider visibility and legality audit for tagged
-  and untagged primitives: declaration placement, inheritance, hiding,
-  overriding indicators, controlling profiles and dispatch through supported
-  class-wide views. Include private views and separate compilation.
-  - Added primitive-indicator checks, distinguished inner operator hiding from
-    overriding, and enforced subtype conformance for tagged overrides, including
-    operations inherited at a private completion. Controlling defaults must be
-    tag indeterminate; new private controlling-result functions on visible
-    tagged types are rejected. Multiple controlling types are checked on both
-    new and overriding operations.
-  - Tagged objects and subprogram bodies now freeze primitive declarations,
-    alongside the existing derivation check. Older controlled-type fixtures now
-    declare their overriding profiles before the first body. Covered by
-    `primitiveauditerrors`, `primitiveplacementerrors`, and existing
-    `primitiveerrors`/`classwideerrors` legality tests.
-  - `primitiveaudit` and its whole/separate-compilation determinism test cover
-    private tagged completion, private overriding, class-wide dispatch with an
-    inherited controlling default, and local hiding. Existing `primitives`,
-    `primitivevisibility`, `primitivechecks`, `primitiveseparate`, derived-profile
-    and class-wide tests retain untagged inheritance and runtime-check coverage.
-    Baseline: Ada 2005 RM 3.2.3, 3.4, 3.9.2, 3.9.3, 8.3, 8.3.1 and 13.14;
-    these are focused RM-based regressions, not imported ACATS cases.
-    Tagged discriminants, private extensions, anonymous controlling access
-    profiles and general freezing beyond these declaration triggers remain
-    outside this audit's coverage; wider type support and the Phase 8 coverage
-    inventory remain open.
-- [x] **Variant records.** Confirm that nested variant parts get correct layout,
-  initialization and selection checks at every level. Cover assignment,
-  copying, aggregates and discriminant mismatches for supported constrained
-  objects, retaining active-component equality regressions. Mutable
-  discriminants and controlled variant components remain in Phase 6.
-  Nested variant parts now retain their enclosing alternatives throughout
-  parsing, layout, aggregate resolution, initialization, selection and equality.
-  Only active defaults run; runtime selections check every enclosing selector.
-  Assignment through an unconstrained record formal checks the actual target's
-  discriminants before copying, preserving it on failure. Covered by
-  `nestedvariants`, its determinism test, and `nestedvariantserrors`: three-level
-  nesting, sibling nested parts, null/others alternatives, mixed 32/64-bit field
-  alignment, positional/named aggregates, function results, arrays and record
-  components, copying, equality and discriminant mismatches at every level.
-  Existing `variants`, `varianterrors` and aggregate/comparison regressions remain
-  in place. Baseline: Ada 2005 RM 3.7, 3.8.1, 4.1.3, 4.3.1, 4.5.2 and 5.2;
-  focused RM-based regressions, not imported ACATS cases. Explicit record
-  constraints still require static discriminants, and unconstrained standalone
-  objects, mutable discriminants and controlled variant components remain
-  unsupported with diagnostics.
-- [x] **Feature interactions.** Add focused combinations of the audited features
-  with existing overload resolution, named/defaulted arguments, generic
-  instantiation, renaming, controlled ownership and exception handling. Check
-  copy-in/copy-out behavior, owned results and partial initialization cleanup;
-  preserve the Phase 2 master/context boundaries on normal and exceptional
-  exits. Reuse existing regression coverage and add cases for uncovered
-  interactions rather than duplicating entire feature suites.
-  - `interactioncalls` combines overloaded renamings of generic instances,
-    renamed parameter names/defaults, constrained array conversions and selected
-    slices. Checks single evaluation, sliding, normal copy-back, no copy-back
-    after exceptions, entry-shape rejection and scalar copy-back range failure.
-    `interactionerrors` rejects constant and function-result converted actuals
-    passed by name through a renamed generic instance.
-  - `interactionownership` combines private generic actuals, formal function
-    wrappers, overloaded/defaulted renamings, controlled aggregate results and
-    array conversions. Resource counts verify early-return cleanup, partial
-    aggregate initialization failure, preserved exception messages, failed
-    adjustment in a forwarding wrapper and successful recovery over repeated
-    activations. Synthetic formal-subprogram wrappers now record owned-result
-    finalization requirements, preserving their master and temporary ownership
-    chains instead of emitting a missing owner argument.
-  - Both executable tests have whole/separate IR determinism coverage;
-    `semantics.interaction_modes` additionally executes whole-program builds.
-    Reuse `runtime.masterhooks`, `runtime.masterfailure`,
-    `runtime.masterlibraryfailure`, `runtime.task_context` and
-    `runtime.generated_contexts` for master ordering and context isolation;
-    `aggregatecleanup`, `controlledconversions`, `forwardcontracts`,
-    `primitiveaudit` and `nestedvariants` retain the existing cross-feature
-    coverage. No runtime ABI or supported-language boundary changes.
-    Baseline: Ada 2005 RM 6.4.1, 7.6.1, 8.5.4 and 12.6; focused RM-based
-    regressions, not imported ACATS cases. The existing array-view, generic
-    formal and controlled-variant restrictions remain in their owning items.
-
-Completion criteria for every item: record the supported behavior and any
-remaining restrictions; add positive executable tests, legality rejection
-tests and runtime-failure tests as applicable. Cover the cases named above,
-including valid dependency patterns alongside cycle failures, malformed
-elaboration manifests, each pragma's ordering and legality, calls before body
-elaboration, and valid completions alongside each conformance mismatch.
-Exercise whole-program and separate compilation for cross-unit behavior,
-including rebuilds after changes to dependencies or elaboration pragmas.
-Validate supported behavior against the Ada 2005 Reference Manual,
-accounting for documented implementation-defined behavior. Add determinism tests
-whenever a change affects generated code, update README.md with changed behavior,
-and keep the full suite green. Mark an item complete only when its audit and
-applicable regression coverage are complete.
+  `'Range` with prefix, arity, base-range and width rules and single prefix
+  evaluation (`attributeaudit*`, `attributebounds`).
+- [x] **Primitive operations.** Overriding indicators, hiding versus
+  overriding, subtype conformance, controlling defaults and results, and
+  freezing by objects and bodies (`primitiveaudit*`, `primitiveplacementerrors`).
+  Tagged discriminants, private extensions, anonymous controlling access
+  profiles and general freezing remain open.
+- [x] **Variant records.** Nested variants keep their enclosing alternatives
+  through layout, aggregates, initialization, selection and equality; assignment
+  through unconstrained formals checks discriminants first (`nestedvariants*`).
+  Explicit constraints must be static; mutable discriminants and controlled
+  variant components remain in Phase 6.
+- [x] **Feature interactions.** Overloads, renamed generic instances, defaults,
+  array conversions, controlled ownership and exceptions in combination,
+  checking copy-back and cleanup on every exit (`interaction*`,
+  `semantics.interaction_modes`).
 
 ## Phase 4 — Minimal tasking
-A working subset, close to the Ravenscar profile, that makes tasking a tested
-part of the compiler early, without claiming Ravenscar compliance. Later phases
-must keep it working; Phase 9 completes core tasking.
 
-- [x] **Tasks.** Task types and single task objects without entries; activation
-  at the end of the declarative part or library elaboration; masters awaiting
-  task objects as record components and allocated tasks.
-  - Task bodies reuse lexical frames and scoped cleanup. Objects are created
-    without starting threads; the complete group checks body elaboration before
-    starting any member. The activator waits for all declarations to finish;
-    activation failures raise `Tasking_Error`, while an exception escaping a
-    task's statements completes only that task. Failed enclosing declarations
-    discard tasks that never reached activation. Library activation precedes main.
-  - Runtime masters keep empty boundaries allocation-free, own task contexts
-    and join dependents before finalization. Local package specifications/bodies
-    have separate activation groups, including generic instances. Arrays and
-    ordinary records initialize each task component in place. Allocated tasks
-    belong to the access type's collection and its original master, even when
-    allocated from a shorter-lived subprogram; failed allocations cancel their
-    pending tasks before storage release. Nested allocators retain separate
-    activation groups, and task slots retain pointer alignment in mixed records.
-  - Tasks and composites containing them cannot be copied or assigned; renaming
-    and by-reference parameters preserve identity. Task discriminants, entries,
-    tagged/variant task composites, derivation, task-containing aggregates,
-    explicit initialization/defaults, conversions, streaming and function results
-    receive diagnostics. Access-type collections retain the Phase 2 ownership
-    restriction: allocation/deallocation from another task raises `Program_Error`.
-    General shared collections remain a Phase 9 follow-up.
-  - Covered by `tasks`, `taskallocations`, `tasklibrarymain`,
-    `taskactivationfailure`, their whole/separate IR determinism checks,
-    `taskerrors` and `tasklegalityerrors`. `runtime.tasking` executes generated
-    concurrency in both compilation modes: bounded rendezvous, activation
-    handshakes, local/generic package groups, normal/exceptional finalization,
-    allocated components and exception-message preservation.
-    `runtime.tasking_lifecycle` covers repeated contexts, mixed successful/failed
-    groups, body-readiness checks and collection ownership of nested allocations.
-    Baseline: Ada 2005 RM 3.11, 7.5, 7.6.1 and 9.1–9.3; focused RM-based
-    regressions, not imported ACATS cases. ThreadSanitizer passes for the runtime
-    lifecycle test and both generated concurrency modes with instrumented C
-    runtime/helpers; QBE-generated Ada memory accesses are not instrumented.
-    The C lifecycle test also passes AddressSanitizer and UndefinedBehaviorSanitizer.
-- [x] **Protected objects.** Protected types and single protected objects with
-  procedures and functions, under one lock per object.
-  - Private data has a hidden receiver, with constant current-instance views in
-    functions, including nested helpers and aliases. External calls evaluate the
-    receiver and actuals before acquiring the object's mutex, then release it
-    before exception transfer and copy-back. Functions conservatively use the
-    same exclusive mutex as procedures. Internal calls reuse the current action;
-    current-instance expanded names and private/local operations retain that rule.
-  - Locks join the existing finalization chains for local, library, allocated,
-    array and ordinary-record objects. Task masters await users before cleanup;
-    partial construction and failed allocation release initialized locks only.
-    Overloads, named/defaulted arguments, composite results, generic protected
-    units and whole/separate compilation retain the existing call ABI around
-    the hidden receiver. Private views continue to hide protected operations.
-  - Protected objects and containing composites cannot be copied, assigned,
-    converted, streamed or returned as values in this subset.
-    Discriminants, interfaces, operator functions, operation renaming, protected
-    subprogram access and protected operation generic actuals remain diagnosed.
-    Private components
-    containing controlled, task or protected parts, tagged/variant composites,
-    and layouts/value operations preceding a protected private completion are
-    also rejected. Access collections retain their Phase 2 owner restriction.
-    External self-calls and task creation during an action raise `Program_Error`;
-    this is not general `Detect_Blocking` support.
-  - Covered by `protectedobjects`, `protectedconcurrency`, `protectedlibrary`,
-    `protectedgenerics` and `protectedcleanup`, executable whole/separate modes
-    and IR determinism; `protectederrors`, `protectedlegalityerrors`,
-    `protectedcompletionerrors`, `protectedgenericerrors` and
-    `protectedsyntaxerrors` cover legality and unsupported recovery. `runtime.protected_lifecycle` checks contention,
-    independent-object progress, action stacks, re-entry, exception preservation
-    and disposal. Baseline: Ada 2005 RM 7.5, 7.6.1, 9.4 and 9.5.1; focused
-    RM-based regressions, not imported ACATS cases. ThreadSanitizer and
-    AddressSanitizer/UndefinedBehaviorSanitizer pass for the C runtime tests and
-    the five generated cases in both compilation modes with instrumented C
-    runtime/helpers; QBE-generated Ada memory accesses remain uninstrumented.
-- [x] **Protected entries.** Single entries with Boolean barriers and queued
-  calls on protected types and single protected objects.
-  - Barriers run under the object's execution lock. Closed calls retain their
-    actuals and lexical environment while waiting; each entry's queue is FIFO.
-    Procedure and entry completion service eligible queues until none is open,
-    before returning to callers. Protected functions do not service queues.
-    Entry `'Count` is available within the current protected instance, including
-    barriers; calls are checked before and after queuing.
-  - Entry bodies use the existing parameter ABI, including named/defaulted
-    actuals, scalar copy-back, unconstrained array views, nested helpers and
-    overloads. Copy-back follows queue servicing and release of the lock.
-    Barrier exceptions raise `Program_Error` in queued entry callers; entry-body
-    exceptions propagate to their caller. Servicing preserves a pending
-    exception's identity, message and trace in the completing operation.
-  - Calls to entries from a protected action raise `Program_Error`; statically
-    internal entry calls are diagnosed. Entry families, timed/conditional/select
-    calls, requeue and task entries remain diagnosed and outside this item.
-  - `protectedentries`, `entryproducer`, `entrylibrary`, `entrygenerics` and
-    `entryexceptions` cover producer/consumer blocking, FIFO, queue draining,
-    barrier failure, entry-body exceptions, copy-back failure, allocation,
-    single objects, lexical captures and overloads in whole/separate compilation
-    and IR determinism. `entryerrors` and `protectedsyntaxerrors` cover legality
-    and unsupported syntax. `runtime.entry_lifecycle` exercises multiple C
-    producers/consumers, barrier failures across queues and pending messages.
-    Baseline: Ada 2005 RM 9.5.2, 9.5.3 and 9.9; focused RM-based regressions,
-    not imported ACATS cases. ThreadSanitizer and AddressSanitizer/
-    UndefinedBehaviorSanitizer pass for the C entry/protected runtime tests and
-    the five generated cases in both compilation modes with instrumented C
-    runtime; QBE-generated Ada memory accesses remain uninstrumented.
-- [x] **Time.** Standard `Duration`, relative `delay`, `delay until` for
-  `Ada.Real_Time.Time`, and the Ada 2005 `Ada.Real_Time` API.
-  - `Duration` uses signed 64-bit counts with `Small = Delta = 2**(-30)`
-    seconds, range `-2**33 .. 2**33 - 2**(-30)` seconds, and the existing
-    ordinary fixed-point arithmetic, conversions, attributes and generic I/O.
-    Relative delays require this predefined type even when its name is hidden.
-  - `Time` and `Time_Span` use signed 64-bit nanoseconds: their first/last
-    values are `-2**63` and `2**63-1` nanoseconds, `Time_Unit = 1.0E-9`,
-    `Time_Span_Zero = 0`, and `Time_Span_Unit = 1` nanosecond.
-    `Seconds_Count` is a signed 64-bit integer. Arithmetic, comparisons, unit
-    constructors, duration conversions and `Split`/`Time_Of` are checked;
-    conversions round nearest, ties away from zero. Negative times split with
-    a nonnegative fractional second; composition uses wide intermediates.
-  - Clock and both delay forms use the host `CLOCK_MONOTONIC` epoch, without
-    synchronization to an external time reference. `Tick` is the host-reported
-    monotonic resolution, at least one nanosecond. Positive relative intervals
-    round upward to nanoseconds. Interrupted sleeps retry the original deadline;
-    expired, zero and negative delays yield without blocking. Expressions are
-    evaluated once. Delays during protected actions raise `Program_Error`.
-  - `timevalues`, `timedelays` and `timelibrary` cover arithmetic, endpoints,
-    rounding, overflow, private views, out-parameter copy-back, generic Duration,
-    environment-task elaboration, library tasks, periodic local tasks and queue
-    interactions in whole/separate compilation and IR determinism. `timeerrors`
-    checks delay types and hidden representations. `runtime.time_lifecycle`
-    checks numeric boundaries, real waits, signal interruption on POSIX and
-    protected-action rejection. ThreadSanitizer and AddressSanitizer/
-    UndefinedBehaviorSanitizer pass for the time/threading C tests and all three
-    generated cases in both modes with instrumented C runtime; QBE-generated
-    Ada memory accesses remain uninstrumented.
-  - Baseline: Ada 2005 RM 9.6 and D.8; focused RM-based regressions, not
-    imported ACATS cases. Host scheduling, suspension and clock-source behavior
-    govern lateness and clock metrics; hard real-time latency, jitter and drift
-    guarantees are not provided. `Ada.Calendar`, select delays, cancellation
-    and abort remain in their later roadmap items.
-- [x] **Shared variables.** `pragma Atomic` and `pragma Volatile` on scalar
-  object declarations and full scalar type declarations, through the
-  Phase 2 threading layer.
-  - Naturally aligned 8/16/32/64-bit integers, enumerations, floating-point,
-    fixed-point and access values use the runtime's sequentially consistent
-    loads/stores. Volatile uses the same stronger atomicity. Narrow signed
-    loads extend correctly; float values preserve their bits. Atomic implies
-    volatile; compound updates such as `x := x + 1` remain separate accesses.
-  - Flags follow subtype/derivation ancestry, qualified names, object renamings,
-    generic bindings, captured variables and designated objects. Initialization
-    (including library objects and default-null access objects), parameter
-    storage and copy-back retain the required access rules. Atomic-type
-    constants are read from memory. Captured parameter slots are aligned.
-  - Scalar actuals passed to ordinary Ada or imported C formals use snapshots;
-    successful copy-back checks the actual's constraints and writes through the
-    shared helper. Exceptions bypass copy-back. Generic in out actuals require
-    correspondingly shared formal types. Type pragmas must precede objects and
-    parameter profiles using the type, including derived types.
-  - Composites containing shared parts, component pragmas, imported constants,
-    address escape, streaming and imported parameters exposing shared designated
-    storage (including nested access components) are diagnosed. The known
-    deallocation helper remains available. This is ordinary aligned RAM support;
-    device memory and unaligned storage are unsupported.
-  - `sharedscalars`, `sharedconcurrency`, `sharedlibrary` and `sharedimports`
-    cover widths, bit preservation, aliases, generic instances, heap objects,
-    captures, publication, copy-back and exception handling in whole/separate
-    compilation and IR determinism. `sharederrors`, `sharedcompletionerrors`
-    and `sharedsyntaxerrors` cover legality and unsupported boundaries.
-    `semantics.shared_ir` rejects plain accesses to shared library objects,
-    verifies all helper widths and retains atomic-constant reads.
-    Baseline: Ada 2005 RM C.6 and 9.10; focused RM-based regressions, not
-    imported ACATS cases. ThreadSanitizer and AddressSanitizer/
-    UndefinedBehaviorSanitizer pass for `runtime.threading` and the four
-    generated cases in both modes with instrumented C runtime/helpers;
-    QBE-generated Ada memory accesses remain uninstrumented.
-- [x] **Task identity.** `Ada.Task_Identification`, `'Identity`, `'Terminated`,
-  `'Callable` and protected entry `'Caller`.
-  - Private, default-null `Task_Id`, `Null_Task_Id`, equality/inequality,
-    `Current_Task`, `Image`, `Is_Callable` and `Is_Terminated`. Null queries
-    raise `Program_Error`; the null image is empty. Live task images are stable
-    and distinct. IDs remain usable while their task object exists; retaining
-    an ID after that object's lifetime does not extend its lifetime.
-  - Completion makes a task non-callable before waiting for its dependents and
-    finalizing locals. Termination is published only after all cleanup finishes.
-    Activation failures, discarded unactivated tasks and thread-start failures
-    retain those states. Queries use atomic flags and do not join the task.
-    The environment task has its own identity and library-cleanup lifecycle.
-  - Task attributes preserve identity through renaming, parameters, task array
-    and record components, allocated tasks and generic instances. Implicit
-    dereferencing checks null and evaluates the prefix once. Task-type names
-    denote the current instance only inside their body; lexical captures retain
-    an outer task's identity inside nested tasks. Private representations stay
-    hidden, including private access values such as `Task_Id`.
-  - Protected entry bodies execute in the caller's task: `'Caller` and
-    `Current_Task` return that caller's identity, also in nested helpers.
-    This is the implementation-defined result chosen for `Current_Task` in an
-    entry body. `'Caller` outside its entry body, invalid task prefixes and
-    attribute arguments receive diagnostics. `Abort_Task` remains unavailable
-    and diagnosed along with task abort's Phase 9 scope.
-  - `taskidentity`, `taskidentitylifecycle` and `taskidentityobjects` cover
-    environment/library tasks, default IDs, images, null checks, prefix
-    evaluation, generic instances, lexical captures, completed-but-not-terminated
-    parents, exceptional task completion and blocked finalizers. All run in
-    whole/separate compilation with IR determinism checks; `taskidentityerrors`
-    covers legality and privacy. `runtime.tasking_lifecycle` additionally checks
-    concurrent state publication, activation failures and unactivated tasks.
-    Baseline: [Ada 2005 RM C.7.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-C-7-1.html),
-    [9.9](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-9-9.html)
-    and 9.3; focused RM-based regressions, not imported ACATS cases.
-    ThreadSanitizer and AddressSanitizer/UndefinedBehaviorSanitizer pass for the
-    runtime lifecycle test and the three generated cases in both modes with
-    instrumented C runtime; QBE-generated Ada accesses remain uninstrumented.
+Complete. A tested subset close to the Ravenscar profile, without claiming
+compliance; Phase 9 completes core tasking. Every item runs in whole and
+separate compilation with IR determinism. ThreadSanitizer, AddressSanitizer
+and UBSan pass with an instrumented C run time; QBE-generated accesses are
+uninstrumented (see Phase 8). RM baseline: 3.11, 7.5, 7.6.1, 9.1–9.10, C.6,
+C.7.1 and D.8.
 
-Phase 4 is complete for the minimal tasking scope above. Task entries, abort,
-select/requeue, general shared collections and Ravenscar compliance remain
-outside this phase; Phase 5 starts with static arithmetic.
+- [x] **Tasks.** Entry-free task types and single tasks, grouped activation
+  after declarations or library elaboration, masters joining dependents before
+  finalization, and task components and allocated tasks owned by their
+  collection's master (`tasks`, `taskallocations`, `tasklibrarymain`,
+  `taskactivationfailure`, `task*errors`, `runtime.tasking*`). Tasks and
+  containing composites cannot be copied; discriminants, entries, tagged or
+  variant task composites, aggregates and function results are diagnosed.
+- [x] **Protected objects.** Procedures and functions under one exclusive lock
+  per object, a hidden receiver, and locks on the finalization chains
+  (`protected*`, `runtime.protected_lifecycle`). Not copyable; discriminants,
+  interfaces, operation renaming/access and generic actuals are diagnosed.
+  External self-calls and task creation in an action raise `Program_Error`.
+- [x] **Protected entries.** Single entries with Boolean barriers, FIFO queues
+  serviced on procedure/entry completion, `'Count`, and copy-back after release
+  (`protectedentries`, `entry*`, `runtime.entry_lifecycle`). Barrier exceptions
+  raise `Program_Error` in queued callers. Families, select forms and requeue
+  are diagnosed.
+- [x] **Time.** `Duration` (64-bit, `Small = 2**(-30)`), relative `delay`,
+  `delay until` and `Ada.Real_Time` on 64-bit nanoseconds and the host
+  monotonic clock (`time*`, `runtime.time_lifecycle`). No hard real-time
+  guarantees; delays in protected actions raise `Program_Error`.
+- [x] **Shared variables.** `Atomic` and `Volatile` scalar objects and types
+  through sequentially consistent run-time loads and stores, with snapshots and
+  checked copy-back for actuals (`shared*`, `semantics.shared_ir`). Shared
+  composite parts and component pragmas are diagnosed; aligned RAM only.
+- [x] **Task identity.** `Ada.Task_Identification`, `'Identity`, `'Callable`,
+  `'Terminated` and entry `'Caller`. Entry bodies run in the caller's task, so
+  `Current_Task` there returns the caller (`taskidentity*`). `Abort_Task`
+  waits for Phase 9.
 
-Tests: producer/consumer through a protected entry, tasks inside a subprogram
-and a block, a library-level task, task failure, finalization ordered after
-task termination, periodic tasks with `delay until`.
+Task entries, select/requeue, abort, shared collections (Phase 6) and
+Ravenscar compliance remain for later phases.
 
 ## Phase 5 — Numeric and representation foundations
 
-These unblock several Phase 6 features, especially wider arrays.
+These unblock several Phase 6 features, especially wider arrays. The prelude
+sets up validation and the code-generation structure before the descriptor
+and numeric work changes the generated code.
+
+### Prelude
+
+- [ ] **Validation baseline.** Create the Phase 8 coverage-matrix skeleton by
+  RM clause and predefined unit, with rows for the completed Phases 1–4 items,
+  their restrictions and owning roadmap items. Add an ACATS harness to CTest
+  running a small selected set, with expected failures recorded. Later items
+  extend both.
+- [ ] **Lowering decision.** Decide whether to introduce a lowering layer
+  between semantic analysis and QBE emission before the array-descriptor
+  rework. Weigh descriptors with strides, discriminant-dependent components,
+  build-in-place results, cleanup, dispatch and `select`; record the decision,
+  its scope and migration order in Phase 8.
+
+### Numeric and representation work
 
 - [ ] **Static arithmetic.** Separate universal/static arithmetic from machine
   arithmetic. Diagnose invalid static expressions without host overflow or
-  premature narrowing; accept the most negative 64-bit literal.
+  premature narrowing; accept the most negative 64-bit literal. Evaluate
+  static expressions exactly (RM 4.9): replace the 128-bit `ExactReal` and
+  integer folding with arbitrary precision, or diagnose and document its limits.
 - [ ] **Real edge cases.** Negative exponents and zero divisors. Document the
   supported floating-point model and its checks.
 - [ ] **Floating-point `'Value`.** `Sema` rejects real prefixes, although the run
@@ -831,7 +273,8 @@ These unblock several Phase 6 features, especially wider arrays.
   per-dimension strides, and audit size, offset and allocation-overflow
   arithmetic. Lengths are limited to `Integer'Last` today.
 - [ ] **Concatenation.** General one-dimensional `&` with element/array
-  combinations; it is currently specialized to character arrays.
+  combinations; it is currently specialized to character arrays. Handle
+  components wider than a byte so Phase 7 wide strings reuse it.
 - [ ] **Modular types.** Unsigned 64-bit storage and `mod 2 ** 64`, modular
   generic formals, the Ada 2005 `'Mod` attribute and `Ada.Text_IO.Modular_IO`.
 - [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,
@@ -839,23 +282,38 @@ These unblock several Phase 6 features, especially wider arrays.
   fixed-by-fixed multiplication and division rules.
 - [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
   rounding and checks.
-- [ ] **Representation clauses.** Implement alignment, enumeration
-  representation and record representation clauses, one at a time, replacing
-  their Phase 1 rejections. Also let `'Size` change subtype storage and
-  composite layouts.
+- [ ] **Representation clauses.** Implement alignment and enumeration
+  representation clauses, one at a time, replacing their Phase 1 rejections.
+  Also let `'Size` change subtype storage and composite layouts. Record
+  representation clauses follow discriminated records in Phase 6.
 - [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
   helpers, keeping the same failure behavior.
 
-Tests: literal endpoints, `2.0 ** (-3)`, huge array sizes, integer array
-concatenation, signed small representations, invalid size clauses.
+Tests: an ACATS harness smoke run, literal endpoints, `2.0 ** (-3)`, huge
+array sizes, integer array concatenation, signed small representations,
+invalid size clauses.
 
 ## Phase 6 — Complete the core language
 
 Complete the remaining Ada 95 foundations and Ada 2005 additions together.
-Grouped by dependency. Within a group, work top to bottom. Reuse the existing
-controlled-result construction, cleanup and dispatch mechanisms.
+Grouped by dependency into milestones 6a–6h, taken in order; within a group,
+work top to bottom. Prefixed calls and the 6h pragmas have no prerequisites
+here and may be pulled forward. Reuse the existing controlled-result
+construction, cleanup and dispatch mechanisms.
 
-### Dynamic data
+### 6a. Tasking prerequisites
+
+- [ ] Abort-deferral design: a deferral counter in the per-task context,
+  deferred regions for protected actions and finalization, and how abort is
+  detected (polling at completion points, matching explicit exception checks).
+  Apply it to existing finalization paths before 6c, 6e and 6f extend them;
+  Phase 9 implements abort itself.
+- [ ] Shared access-type collections across tasks (moved from Phase 9):
+  allocation/deallocation, registry ownership and finalization after all
+  dependent tasks terminate. Replaces the Phase 2 owner restriction before the
+  Phase 7 library allocates on behalf of several tasks.
+
+### 6b. Dynamic data
 
 - [ ] Runtime scalar constraints in anonymous subtype indications, library
   declarations, real subtypes, `'Width` and streaming.
@@ -867,15 +325,17 @@ controlled-result construction, cleanup and dispatch mechanisms.
   default initialization, legality, per-component evaluation and partial-failure
   cleanup. Replace the current `aggregateboxerrors` rejection coverage.
 
-### Discriminated records
+### 6c. Discriminated records
 
 - [ ] Default discriminants, constrained versus unconstrained objects, and
   assignments that legally change discriminants.
 - [ ] Runtime discriminant constraints and components whose bounds depend on
   discriminants, such as `String (1 .. Length)`.
 - [ ] Controlled components in variant records.
+- [ ] Record representation clauses (moved from Phase 5), including variant
+  parts and discriminant-dependent components, replacing the Phase 1 rejection.
 
-### Access types
+### 6d. Access types
 
 - [ ] General access types: `aliased` objects, `access all`, `'Access` of
   objects, access-to-constant, and accessibility checks.
@@ -888,7 +348,7 @@ controlled-result construction, cleanup and dispatch mechanisms.
   conversions, generic matching and required runtime checks.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
 
-### Program structure
+### 6e. Program structure
 
 - [ ] Limited and private `with` clauses, including `limited private with`:
   incomplete and tagged incomplete views, visibility and completion rules.
@@ -904,7 +364,7 @@ controlled-result construction, cleanup and dispatch mechanisms.
   limited controlled-result support to all required Ada 2005 cases, preserving
   object identity, accessibility, master lifetimes and failure cleanup.
 
-### Object orientation
+### 6f. Object orientation
 
 - [ ] Abstract subprograms and their full legality rules.
 - [ ] Prefixed calls (`Object.Operation (...)`), including inherited primitives,
@@ -917,7 +377,7 @@ controlled-result construction, cleanup and dispatch mechanisms.
   the single-parent tag/dispatch model with a representation that also supports
   synchronized, task and protected interfaces (Phase 9).
 
-### Generics
+### 6g. Generics
 
 Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
@@ -934,18 +394,21 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 - [ ] Extend contract checking to each new formal category, and remove the
   remaining legality rechecks done at instantiation.
 
-Tests: defaulted discriminants with variant changes, a callback capturing an
-`aliased` local, an access value escaping its scope, subunits using enclosing
-declarations, mutually dependent limited views, private context visibility,
-null-exclusion failures, defaulted aggregate components, noncontrolled extended
-returns, a formal package, an interface hierarchy with prefixed dispatch.
-
-### Pragmas and checks
+### 6h. Pragmas and checks
 
 - [ ] Implement the remaining Ada 2005 core pragmas and check policies, including
   `Assert`, `Assertion_Policy`, `Suppress`, `Unsuppress` and `No_Return`. Validate
   placement and arguments, enabled/disabled behavior and failure propagation;
   continue diagnosing unsupported pragmas until each is implemented.
+
+Tests: allocation and deallocation through a shared collection from several
+tasks, finalization inside an abort-deferred region, defaulted discriminants
+with variant changes, a record representation clause with a variant part, a
+callback capturing an `aliased` local, an access value escaping its scope,
+subunits using enclosing declarations, mutually dependent limited views,
+private context visibility, null-exclusion failures, defaulted aggregate
+components, noncontrolled extended returns, a formal package, an interface
+hierarchy with prefixed dispatch.
 
 ## Phase 7 — Predefined library
 
@@ -970,7 +433,8 @@ Ada 2005 additions and track annex packages separately.
   access-to-subprogram support now permits.
 - [ ] Remaining `Text_IO` and numeric input grammar cases.
 - [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
-  arithmetic, formatting and time-zone child packages.
+  arithmetic, formatting and time-zone child packages. The base package has no
+  Phase 5–6 prerequisites and may be pulled forward.
 - [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
   Ada 2005 rules and `Preelaborable_Initialization`.
 - [ ] `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and `Wide_Wide_String`,
@@ -983,33 +447,40 @@ Ada 2005 additions and track annex packages separately.
 - [x] Establish Ada 2005 as the language target, distinguishing the currently
   implemented subset from the goal without claiming full conformance. Track
   supported behavior and restrictions in README.md and progress in this roadmap.
-- [ ] Maintain an Ada 2005 coverage matrix by RM clause and predefined unit:
+- [ ] Maintain an Ada 2005 coverage matrix (skeleton from the Phase 5 prelude)
+  by RM clause and predefined unit:
   implemented behavior, restrictions, missing legality/runtime checks, regression
   and ACATS coverage, and owning roadmap item. Include completed features in the
   gap review; classify core requirements, implementation-defined choices,
   extensions and selected Specialized Needs Annex facilities separately.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
-  From Phase 4, run the tasking tests under ThreadSanitizer.
+  From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada
+  memory accesses are not instrumented; find another way to cover them, for
+  example a race detector at the run-time boundary or an instrumented IR pass
+  outside `qbe/`.
   - [x] Record-component syntax recovery preserves record/variant boundaries;
     declaration recovery preserves the next declaration's introducer after a
     missing delimiter. Covered by `recordrecoveryaccess`,
     `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
-- [ ] Adopt relevant Ada 2005 ACATS conformance tests alongside each feature,
+- [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
+  prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime
   cases. Record unsupported cases and implementation-defined behavior; extend
   coverage as the subset grows without treating a passing selection as full
   conformance. GNAT comparisons are not a project requirement.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
-  relocation, library lookup, paths with spaces.
+  relocation, library lookup, paths with spaces. Includes validation left open
+  by completed items: running the suite on MSYS2 (Phase 2 threading), and
+  checking Phase 2's no-slowdown goal on other hosts and targets.
 - [ ] Serialized semantic interfaces, so clients compile without dependency
   sources. `.ali` files hold only build metadata today.
 - [ ] Robust artifact publication and concurrent builds: interrupted writes,
   dependency changes or removal, search-path shadowing.
 - [ ] Driver: skip scan, bind and link when nothing changed; let `--clean` work
   without a source argument.
-- [ ] Consider a lowering layer between semantic analysis and QBE emission once
-  descriptors, cleanup and dispatch make direct AST emission too cumbersome.
+- [ ] Lowering layer between semantic analysis and QBE emission: carry out the
+  Phase 5 prelude decision, or close this item if direct emission is kept.
 
 ## Phase 9 — Full tasking
 
@@ -1017,14 +488,12 @@ Completes Ada 2005 core tasking on top of Phases 4 and 6. Core tasking is part
 of the language goal, not an optional annex. Track annex-specific priorities,
 scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
-- [ ] Shared access-type collections across tasks: allocation/deallocation,
-  registry ownership and finalization after all dependent tasks terminate.
 - [ ] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
 - [ ] Selective accept, with guards, `terminate` and `delay` alternatives;
   timed and conditional entry calls; asynchronous `select`.
-- [ ] `requeue`, `abort`, and abort-deferred regions (protected actions,
-  finalization).
+- [ ] `requeue` and `abort`, on the Phase 6 abort-deferral design (protected
+  actions, finalization).
 - [ ] Task and protected discriminants, access-to-protected-subprogram types,
   and synchronized, task and protected interfaces.
 - [ ] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
