@@ -339,7 +339,13 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::string protectedAction;
     if (expr->m_protectedObject != nullptr && subprogram->m_protectedType != nullptr) {
         protectedAction = allocScratch(16);
-        line("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")");
+        if (subprogram->m_entry) {
+            std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
+            line("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
+                + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")");
+        } else {
+            line("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")");
+        }
         emitExceptionCheck();
     }
     Value result { "0", 'w' };
@@ -387,7 +393,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     if (!protectedAction.empty()) {
-        line("call $__ada_protected_leave(l %.taskContext, l " + protectedAction + ")");
+        if (subprogram->returnType == nullptr) {
+            line("call $__ada_protected_complete(l %.taskContext, l " + protectedAction + ")");
+        } else {
+            line("call $__ada_protected_leave(l %.taskContext, l " + protectedAction + ")");
+        }
     }
     emitExceptionCheck();
     if (dispatchEquality && subprogram->name == "/=") {

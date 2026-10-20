@@ -94,6 +94,23 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 
 Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->lower == "count") {
+        auto names = expressionNames(expr->prefix.get(), scope);
+        Symbol* entry = names.size() == 1 ? names.front() : nullptr;
+        Symbol* receiver = entry != nullptr ? protectedReceiver(entry->m_protectedType) : nullptr;
+        bool current = expr->prefix->kind != ExprKind::Selected
+            || (entry != nullptr && isProtectedCurrentInstance(
+                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->m_protectedType, scope));
+        if (entry == nullptr || !entry->m_entry || receiver == nullptr || !current || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "entry 'Count requires an entry of the current protected instance");
+            return nullptr;
+        }
+        noteReference(receiver);
+        expr->m_protectedReceiver = receiver;
+        expr->m_countEntry = entry;
+        expr->type = m_types.universalInteger();
+        return expr->type;
+    }
     if (expr->lower == "access") {
         if (expected == nullptr || expected->m_accessProfile == nullptr || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "subprogram 'Access requires an access-to-subprogram type context");

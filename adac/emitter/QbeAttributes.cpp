@@ -12,6 +12,18 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "count") {
+        Value object = addressOf(expr->m_protectedReceiver);
+        std::string count = newTemp();
+        line(count + " =w call $__ada_protected_count(l " + object.name
+            + ", l " + expr->m_countEntry->qbeName + ".barrier)");
+        if (qbeClass(expr->type) == 'l') {
+            std::string wide = newTemp();
+            line(wide + " =l extsw " + count);
+            return Value { wide, 'l' };
+        }
+        return Value { count, 'w' };
+    }
     if (name == "access") {
         Symbol* subprogram = expr->m_accessSubprogram;
         if (subprogram->m_renamedAccess != nullptr) {

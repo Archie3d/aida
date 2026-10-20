@@ -251,6 +251,7 @@ struct AttributeExpr : Expr
     AttributeExpr* m_rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* m_accessSubprogram = nullptr;
+    Symbol* m_countEntry = nullptr;
 };
 
 struct AggregateComponent
@@ -426,6 +427,8 @@ struct SubprogramSpec
     // 0: omitted, 1: overriding, -1: not overriding.
     int m_overriding = 0;
     bool isFunction = false;
+    bool m_entry = false;
+    bool m_entryBarrier = false;
     std::string name;
     std::string lower;
     std::vector<ParameterDecl> parameters;
@@ -797,6 +800,7 @@ struct SubprogramBody : Decl
 
     SubprogramSpec spec;
     bool m_isNull = false;
+    SubprogramBody* m_barrierBody = nullptr; // Owned by the protected body declaration list.
     bool m_taskBody = false;
     std::string m_taskName;
     DeclList declarations;

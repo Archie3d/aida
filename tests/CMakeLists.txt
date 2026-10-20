@@ -907,3 +907,43 @@ add_ada_error_test(protectedcompletionerrors SOURCES protectedcompletionerrors.a
 set_tests_properties(error.protectedcompletionerrors PROPERTIES TIMEOUT 10)
 add_ada_error_test(protectedgenericerrors SOURCES protectedgenericerrors.adb)
 set_tests_properties(error.protectedgenericerrors PROPERTIES TIMEOUT 10)
+
+foreach(entry_case protectedentries entryproducer entrylibrary entrygenerics)
+    add_ada_test(${entry_case} SOURCES ${entry_case}.adb)
+    add_determinism_test(${entry_case} SOURCE ${entry_case}.adb)
+    add_test(NAME runtime.${entry_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${entry_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${entry_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${entry_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${entry_case} determinism.${entry_case}
+        runtime.${entry_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_executable(entry_runtime_test EntryRuntimeTest.c)
+target_link_libraries(entry_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.entry_lifecycle COMMAND entry_runtime_test)
+set_tests_properties(runtime.entry_lifecycle PROPERTIES TIMEOUT 30)
+add_ada_test(entryexceptions SOURCES entryexceptions.adb)
+add_determinism_test(entryexceptions SOURCE entryexceptions.adb)
+add_ada_error_test(entryerrors SOURCES entryerrors.adb)
+add_test(NAME runtime.entryexceptions_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/entryexceptions.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/entryexceptions.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/entryexceptions-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.entryexceptions determinism.entryexceptions
+    runtime.entryexceptions_modes error.entryerrors PROPERTIES TIMEOUT 30)

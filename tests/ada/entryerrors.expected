@@ -1,0 +1,8 @@
+entryerrors.adb:12:43: error: 'value' is not declared
+entryerrors.adb:16:9: error: entry and procedure declarations cannot complete one another
+entryerrors.adb:20:9: error: entry body requires a declaration in the protected definition
+entryerrors.adb:26:18: error: an entry call within a protected action is potentially blocking
+entryerrors.adb:30:25: error: entry 'Count requires an entry of the current protected instance
+entryerrors.adb:38:35: error: entry 'Count requires an entry of the current protected instance
+entryerrors.adb:4:9: error: subprogram 'Missing' has no body
+entryerrors.adb:40:11: error: protected components and private operations are not externally visible

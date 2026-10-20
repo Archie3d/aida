@@ -69,6 +69,9 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
         }
     }
     if (object == nullptr) {
+        if (operation->m_entry) {
+            m_diagnostics.error(expr->location, "an entry call within a protected action is potentially blocking");
+        }
         Symbol* receiver = protectedReceiver(operation->m_protectedType);
         if (receiver == nullptr) {
             m_diagnostics.error(expr->location, "an internal protected call requires the current protected instance");
@@ -161,7 +164,17 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             declaration->symbol = symbol;
             symbol->m_protectedPrivate = declaration->m_protectedPrivate;
         } else {
-            analyzeSubprogramBody(static_cast<SubprogramBody*>(operation.get()), inner);
+            auto* body = static_cast<SubprogramBody*>(operation.get());
+            analyzeSubprogramBody(body, inner);
+            if (body->symbol != nullptr && body->spec.m_entry) {
+                Symbol* barrier = body->m_barrierBody->symbol;
+                if (barrier != nullptr) {
+                    barrier->qbeName = body->symbol->qbeName + ".barrier";
+                }
+                if (body->symbol->m_declarationScope == inner) {
+                    m_diagnostics.error(body->location, "entry body requires a declaration in the protected definition");
+                }
+            }
         }
     }
     if (decl->m_protectedBody) {

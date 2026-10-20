@@ -225,7 +225,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         }
         first = false;
     }
-    if (symbol->level > 0 || symbol->m_taskBody) {
+    if (symbol->level > 0 || symbol->m_taskBody || symbol->m_entryBarrierFunction) {
         signature += (first ? "" : ", ") + std::string("l %.link");
         first = false;
     }

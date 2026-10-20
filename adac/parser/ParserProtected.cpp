@@ -70,7 +70,66 @@ DeclPtr Parser::parseProtected()
                 }
                 expect(TokenKind::Semicolon, "after protected component");
             } else if (check(TokenKind::KwEntry)) {
-                fail("protected entries are not yet supported");
+                SourceLocation entryLocation = advance().location;
+                const Token& entryName = expect(TokenKind::Identifier, "in protected entry");
+                SubprogramSpec spec;
+                spec.location = entryLocation;
+                spec.name = entryName.text;
+                spec.lower = entryName.lower;
+                spec.m_entry = true;
+                if (check(TokenKind::LeftParen)) {
+                    if (peek(1).kind != TokenKind::Identifier || (peek(2).kind != TokenKind::Colon
+                        && peek(2).kind != TokenKind::Comma)) {
+                        fail("protected entry families are not yet supported");
+                    }
+                    parseParameterList(spec);
+                }
+                if (!isBody) {
+                    expect(TokenKind::Semicolon, "after entry declaration");
+                    auto entry = std::make_unique<SubprogramDecl>();
+                    entry->location = entryLocation;
+                    entry->spec = std::move(spec);
+                    entry->m_protectedPrivate = privatePart;
+                    decl->m_protectedDeclarations.push_back(std::move(entry));
+                } else {
+                    if (check(TokenKind::KwFor)) {
+                        fail("protected entry families are not yet supported");
+                    }
+                    expect(TokenKind::KwWhen, "before protected entry barrier");
+                    auto barrier = std::make_unique<SubprogramBody>();
+                    barrier->location = entryLocation;
+                    barrier->spec.location = entryLocation;
+                    barrier->spec.name = "__entry_barrier_" + entryName.lower
+                        + "_" + std::to_string(decl->m_protectedDeclarations.size());
+                    barrier->spec.lower = barrier->spec.name;
+                    barrier->spec.isFunction = true;
+                    barrier->spec.m_entryBarrier = true;
+                    barrier->spec.returnType = std::make_unique<SubtypeIndication>();
+                    barrier->spec.returnType->location = entryLocation;
+                    barrier->spec.returnType->name = "Boolean";
+                    barrier->spec.returnType->lower = "boolean";
+                    auto result = std::make_unique<ReturnStmt>();
+                    result->location = current().location;
+                    result->value = parseExpression();
+                    barrier->body.push_back(std::move(result));
+                    SubprogramBody* barrierBody = barrier.get();
+                    decl->m_protectedDeclarations.push_back(std::move(barrier));
+                    expect(TokenKind::KwIs, "in entry body");
+                    auto entry = std::make_unique<SubprogramBody>();
+                    entry->location = entryLocation;
+                    entry->m_barrierBody = barrierBody;
+                    entry->spec = std::move(spec);
+                    entry->declarations = parseDeclarativePart();
+                    expect(TokenKind::KwBegin, "in entry body");
+                    entry->body = parseSequenceOfStatements();
+                    if (check(TokenKind::KwException)) {
+                        entry->handlers = parseExceptionHandlers();
+                    }
+                    expect(TokenKind::KwEnd, "after entry body");
+                    parseClosingName(entryName.lower, true);
+                    expect(TokenKind::Semicolon, "after entry body");
+                    decl->m_protectedDeclarations.push_back(std::move(entry));
+                }
             } else {
                 fail("unsupported protected unit item; expected a procedure, function or private component");
             }

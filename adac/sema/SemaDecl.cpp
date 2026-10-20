@@ -421,7 +421,10 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
     }
-    Type* returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+    // The synthetic barrier profile always uses Standard.Boolean, independent
+    // of source declarations hiding Boolean (or Standard) at this point.
+    Type* returnType = spec.m_entryBarrier ? m_types.booleanType()
+        : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
     if (hasIncompleteParts(returnType)) {
         m_deferredProtectedUses.push_back({returnType, spec.location});
     }
@@ -568,6 +571,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 m_diagnostics.error(spec.location, "subprogram body does not conform to the previous declaration");
             }
         }
+        if (candidate->m_entry != spec.m_entry) {
+            m_diagnostics.error(spec.location, "entry and procedure declarations cannot complete one another");
+        }
         candidate->hasBody = candidate->hasBody || isBody;
         for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
             spec.parameters[i].symbol = candidate->parameters[i];
@@ -583,6 +589,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->returnType = returnType;
     symbol->m_pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
+    symbol->m_entry = spec.m_entry;
     symbol->m_requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->m_overrides = overrides;
     symbol->m_pendingOverride = pendingOverride ? spec.m_overriding : 0;
@@ -702,6 +709,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     scope->m_publicChildPart = false;
     symbol->hasBody = true;
     body->symbol = symbol;
+    symbol->m_entryBarrierFunction = body->spec.m_entryBarrier;
 
     Scope* inner = m_symbolTable.createScope(scope);
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {

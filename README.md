@@ -82,13 +82,13 @@ Supported:
 - Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization
 - Entry-free tasks, grouped activation and master-based waiting
-- Protected types and single objects with procedures and functions
+- Protected types and single objects with procedures, functions and guarded entries
 - Text and stream I/O
 - Separate compilation and incremental builds
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
 
 Not supported yet:
-- Task entries, protected entries and discriminants
+- Task entries, entry families, select/requeue, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
 - Ada 2005 box defaults (`<>`) in aggregates

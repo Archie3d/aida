@@ -73,6 +73,8 @@ struct Symbol
     Type* m_protectedType = nullptr;
     Symbol* m_protectedReceiver = nullptr;
     bool m_protectedPrivate = false;
+    bool m_entry = false;
+    bool m_entryBarrierFunction = false;
     int m_protectedField = -1;
     bool m_requiresBody = false;
     bool m_missingBodyReported = false;

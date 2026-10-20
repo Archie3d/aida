@@ -652,8 +652,8 @@ must keep it working; Phase 9 completes core tasking.
     units and whole/separate compilation retain the existing call ABI around
     the hidden receiver. Private views continue to hide protected operations.
   - Protected objects and containing composites cannot be copied, assigned,
-    converted, streamed or returned as values in this subset. Entries,
-    discriminants, interfaces, operator functions, operation renaming, protected
+    converted, streamed or returned as values in this subset.
+    Discriminants, interfaces, operator functions, operation renaming, protected
     subprogram access and protected operation generic actuals remain diagnosed.
     Private components
     containing controlled, task or protected parts, tagged/variant composites,
@@ -672,8 +672,35 @@ must keep it working; Phase 9 completes core tasking.
     AddressSanitizer/UndefinedBehaviorSanitizer pass for the C runtime tests and
     the five generated cases in both compilation modes with instrumented C
     runtime/helpers; QBE-generated Ada memory accesses remain uninstrumented.
-- [ ] **Protected entries.** Entries with barriers, re-evaluated when a
-  protected procedure or entry completes.
+- [x] **Protected entries.** Single entries with Boolean barriers and queued
+  calls on protected types and single protected objects.
+  - Barriers run under the object's execution lock. Closed calls retain their
+    actuals and lexical environment while waiting; each entry's queue is FIFO.
+    Procedure and entry completion service eligible queues until none is open,
+    before returning to callers. Protected functions do not service queues.
+    Entry `'Count` is available within the current protected instance, including
+    barriers; calls are checked before and after queuing.
+  - Entry bodies use the existing parameter ABI, including named/defaulted
+    actuals, scalar copy-back, unconstrained array views, nested helpers and
+    overloads. Copy-back follows queue servicing and release of the lock.
+    Barrier exceptions raise `Program_Error` in queued entry callers; entry-body
+    exceptions propagate to their caller. Servicing preserves a pending
+    exception's identity, message and trace in the completing operation.
+  - Calls to entries from a protected action raise `Program_Error`; statically
+    internal entry calls are diagnosed. Entry families, timed/conditional/select
+    calls, requeue and task entries remain diagnosed and outside this item.
+  - `protectedentries`, `entryproducer`, `entrylibrary`, `entrygenerics` and
+    `entryexceptions` cover producer/consumer blocking, FIFO, queue draining,
+    barrier failure, entry-body exceptions, copy-back failure, allocation,
+    single objects, lexical captures and overloads in whole/separate compilation
+    and IR determinism. `entryerrors` and `protectedsyntaxerrors` cover legality
+    and unsupported syntax. `runtime.entry_lifecycle` exercises multiple C
+    producers/consumers, barrier failures across queues and pending messages.
+    Baseline: Ada 2005 RM 9.5.2, 9.5.3 and 9.9; focused RM-based regressions,
+    not imported ACATS cases. ThreadSanitizer and AddressSanitizer/
+    UndefinedBehaviorSanitizer pass for the C entry/protected runtime tests and
+    the five generated cases in both compilation modes with instrumented C
+    runtime; QBE-generated Ada memory accesses remain uninstrumented.
 - [ ] **Time.** `Duration` (an ordinary fixed-point type), `delay`,
   `delay until`, and `Ada.Real_Time`.
 - [ ] **Shared variables.** `pragma Atomic` and `pragma Volatile` through the

@@ -1,4 +1,4 @@
-protectedsyntaxerrors.adb:3:9: error: protected entries are not yet supported
+protectedsyntaxerrors.adb:3:20: error: protected entry families are not yet supported
 protectedsyntaxerrors.adb:5:32: error: protected discriminants are not yet supported
 protectedsyntaxerrors.adb:7:37: error: protected interfaces are not yet supported
 protectedsyntaxerrors.adb:13:5: error: generic instantiations in protected bodies are not yet supported

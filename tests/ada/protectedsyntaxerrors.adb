@@ -1,6 +1,6 @@
 procedure ProtectedSyntaxErrors is
     protected type WithEntry is
-        entry Wait;
+        entry Wait (1 .. 3);
     end WithEntry;
     protected WithDiscriminant (Value : Integer) is
     end WithDiscriminant;
