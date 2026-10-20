@@ -7,6 +7,7 @@
 #include <limits>
 
 using SemaSupport::adaptUniversal;
+using SemaSupport::objectView;
 
 namespace
 {
@@ -94,6 +95,23 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 
 Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->lower == "caller") {
+        auto names = expressionNames(expr->prefix.get(), scope);
+        Symbol* entry = names.size() == 1 ? names.front() : nullptr;
+        bool inside = false;
+        for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+            inside |= owner == entry;
+        }
+        bool current = expr->prefix->kind != ExprKind::Selected
+            || (entry != nullptr && isProtectedCurrentInstance(
+                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->m_protectedType, scope));
+        if (entry == nullptr || !entry->m_entry || !inside || !current || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'Caller requires the enclosing entry and no arguments");
+            return nullptr;
+        }
+        expr->type = m_taskIdType;
+        return expr->type;
+    }
     if (expr->lower == "count") {
         auto names = expressionNames(expr->prefix.get(), scope);
         Symbol* entry = names.size() == 1 ? names.front() : nullptr;
@@ -215,6 +233,46 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
     }
     expr->prefixType = prefixType;
+    if (expr->lower == "identity" || expr->lower == "callable" || expr->lower == "terminated") {
+        Type* task = prefixType;
+        if (task != nullptr && task->kind == TypeKind::Access) {
+            task = task->target;
+        }
+        task = baseType(task);
+        if (task != nullptr && task->m_taskBody != nullptr
+            && representationVisible(prefixType) && representationVisible(task)) {
+            bool valid = expr->arguments.empty();
+            if (prefixIsType) {
+                Symbol* named = expr->prefix->kind == ExprKind::Identifier
+                    ? static_cast<IdentifierExpr*>(expr->prefix.get())->symbol
+                    : (expr->prefix->kind == ExprKind::Selected
+                        ? static_cast<SelectedExpr*>(expr->prefix.get())->symbol : nullptr);
+                for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+                    if (owner == task->m_taskBody && named != nullptr && !named->type->isSubtype
+                        && owner->name == "__task_" + named->name) {
+                        expr->m_taskCurrentInstance = owner->m_taskIdentity;
+                        noteReference(expr->m_taskCurrentInstance);
+                        break;
+                    }
+                }
+                valid &= expr->m_taskCurrentInstance != nullptr;
+            } else {
+                valid &= objectView(expr->prefix.get()) != 0
+                    || (prefixType != nullptr && prefixType->kind == TypeKind::Access);
+            }
+            if (!valid) {
+                m_diagnostics.error(expr->location, "task attribute requires a task object or its current instance and no arguments");
+                return nullptr;
+            }
+            expr->m_taskAttribute = true;
+            expr->type = expr->lower == "identity" ? m_taskIdType : m_types.booleanType();
+            return expr->type;
+        }
+        if (expr->lower != "identity") {
+            m_diagnostics.error(expr->location, "task attribute requires a task object");
+            return nullptr;
+        }
+    }
     if (expr->lower == "identity") {
         Symbol* symbol = nullptr;
         if (expr->prefix->kind == ExprKind::Identifier) {

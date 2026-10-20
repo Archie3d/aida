@@ -770,8 +770,47 @@ must keep it working; Phase 9 completes core tasking.
     UndefinedBehaviorSanitizer pass for `runtime.threading` and the four
     generated cases in both modes with instrumented C runtime/helpers;
     QBE-generated Ada memory accesses remain uninstrumented.
-- [ ] **Task identity.** `Ada.Task_Identification`, `'Terminated` and
-  `'Callable`.
+- [x] **Task identity.** `Ada.Task_Identification`, `'Identity`, `'Terminated`,
+  `'Callable` and protected entry `'Caller`.
+  - Private, default-null `Task_Id`, `Null_Task_Id`, equality/inequality,
+    `Current_Task`, `Image`, `Is_Callable` and `Is_Terminated`. Null queries
+    raise `Program_Error`; the null image is empty. Live task images are stable
+    and distinct. IDs remain usable while their task object exists; retaining
+    an ID after that object's lifetime does not extend its lifetime.
+  - Completion makes a task non-callable before waiting for its dependents and
+    finalizing locals. Termination is published only after all cleanup finishes.
+    Activation failures, discarded unactivated tasks and thread-start failures
+    retain those states. Queries use atomic flags and do not join the task.
+    The environment task has its own identity and library-cleanup lifecycle.
+  - Task attributes preserve identity through renaming, parameters, task array
+    and record components, allocated tasks and generic instances. Implicit
+    dereferencing checks null and evaluates the prefix once. Task-type names
+    denote the current instance only inside their body; lexical captures retain
+    an outer task's identity inside nested tasks. Private representations stay
+    hidden, including private access values such as `Task_Id`.
+  - Protected entry bodies execute in the caller's task: `'Caller` and
+    `Current_Task` return that caller's identity, also in nested helpers.
+    This is the implementation-defined result chosen for `Current_Task` in an
+    entry body. `'Caller` outside its entry body, invalid task prefixes and
+    attribute arguments receive diagnostics. `Abort_Task` remains unavailable
+    and diagnosed along with task abort's Phase 9 scope.
+  - `taskidentity`, `taskidentitylifecycle` and `taskidentityobjects` cover
+    environment/library tasks, default IDs, images, null checks, prefix
+    evaluation, generic instances, lexical captures, completed-but-not-terminated
+    parents, exceptional task completion and blocked finalizers. All run in
+    whole/separate compilation with IR determinism checks; `taskidentityerrors`
+    covers legality and privacy. `runtime.tasking_lifecycle` additionally checks
+    concurrent state publication, activation failures and unactivated tasks.
+    Baseline: [Ada 2005 RM C.7.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-C-7-1.html),
+    [9.9](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-9-9.html)
+    and 9.3; focused RM-based regressions, not imported ACATS cases.
+    ThreadSanitizer and AddressSanitizer/UndefinedBehaviorSanitizer pass for the
+    runtime lifecycle test and the three generated cases in both modes with
+    instrumented C runtime; QBE-generated Ada accesses remain uninstrumented.
+
+Phase 4 is complete for the minimal tasking scope above. Task entries, abort,
+select/requeue, general shared collections and Ravenscar compliance remain
+outside this phase; Phase 5 starts with static arithmetic.
 
 Tests: producer/consumer through a protected entry, tasks inside a subprogram
 and a block, a library-level task, task failure, finalization ordered after

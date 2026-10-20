@@ -423,7 +423,19 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 }
             }
         } else if (name == "identity") {
-            add(m_exceptionIdType);
+            bool task = false;
+            for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
+                if (prefix->kind == TypeKind::Access) {
+                    prefix = prefix->target;
+                }
+                prefix = baseType(prefix);
+                task |= prefix != nullptr && prefix->m_taskBody != nullptr;
+            }
+            add(task ? m_taskIdType : m_exceptionIdType);
+        } else if (name == "caller") {
+            add(m_taskIdType);
+        } else if (name == "callable" || name == "terminated") {
+            add(m_types.booleanType());
         } else if (name == "pos") {
             add(m_types.universalInteger());
         } else if (name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {

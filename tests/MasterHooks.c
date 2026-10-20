@@ -152,3 +152,11 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
     (void)object;
     (void)size;
 }
+
+/* This fixture replaces the master runtime, including its library lifecycle hook. */
+void __ada_environment_task_state(int completed, int terminated)
+{
+    CHECK(__ada_task_context() == &__ada_main_context);
+    CHECK((completed == 0 || completed == 1) && (terminated == 0 || terminated == 1));
+    CHECK(!terminated || completed);
+}

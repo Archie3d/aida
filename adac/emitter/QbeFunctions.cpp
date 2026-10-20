@@ -331,6 +331,26 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         context.locals[parameter] = slot;
     }
 
+    // Capture this task before declarations; nested tasks can name this instance
+    // through the ordinary lexical frame even while executing on another thread.
+    if (symbol->m_taskIdentity != nullptr) {
+        Symbol* identity = symbol->m_taskIdentity;
+        std::string slot = newTemp();
+        if (identity->isUplevel) {
+            context.hasFrame = true;
+            context.frameSize = (context.frameSize + 7) / 8 * 8;
+            identity->frameOffset = context.frameSize;
+            context.frameSize += 8;
+            context.prologue << "    " << slot << " =l add " << context.frameTemp << ", " << identity->frameOffset << "\n";
+        } else {
+            context.prologue << "    " << slot << " =l alloc8 8\n";
+            context.locals[identity] = slot;
+        }
+        std::string current = newTemp();
+        line(current + " =l call $__ada_current_task()");
+        line("storel " + current + ", " + slot);
+    }
+
     // Check at the shared entry so callbacks, dispatch and generated
     // finalization calls obey the same rule as direct source-level calls.
     // This precedes declarations and the subprogram's own handlers.
@@ -439,6 +459,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
         if (context.symbol != nullptr && context.symbol->m_taskBody
             && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_task_activation_failed(l %.taskContext)\n";
+            text += "    call $__ada_task_complete(l %.taskContext)\n";
         }
         if (context.m_hasMaster && bodyLine.compare(0, 7, "    ret") == 0) {
             text += "    call $__ada_master_await(l %.taskContext, l %.master)\n";

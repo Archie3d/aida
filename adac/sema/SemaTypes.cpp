@@ -61,6 +61,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                     return m_exceptionIdType;
                 }
             }
+            if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada"
+                && m_namePrefix[1] == "task_identification" && decl->lower == "task_id") {
+                return m_taskIdType;
+            }
             return m_types.create(kind, decl->name);
         }
         std::string name = completing->name;

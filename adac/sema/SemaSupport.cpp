@@ -1,4 +1,5 @@
 #include "SemaSupport.h"
+#include "Symbol.h"
 
 #include "Ast.h"
 #include "Type.h"
@@ -251,6 +252,54 @@ std::vector<std::string> splitDottedName(const std::string& name)
     }
     parts.push_back(current);
     return parts;
+}
+
+// 0 is not an object name, 1 is a constant view, 2 is a variable view.
+int objectView(Expr* expr)
+{
+    if (expr->m_implicitCall != nullptr) {
+        return 0;
+    }
+    Symbol* symbol = nullptr;
+    if (expr->kind == ExprKind::Identifier) {
+        symbol = static_cast<IdentifierExpr*>(expr)->symbol;
+    } else if (expr->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr);
+        symbol = selected->symbol;
+        if (symbol == nullptr) {
+            Type* prefix = baseType(selected->prefix->type);
+            bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
+            Type* record = access ? baseType(prefix->target) : prefix;
+            int view = access ? 2 : objectView(selected->prefix.get());
+            if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
+                && record->fields[selected->fieldIndex].isDiscriminant) {
+                return 1;
+            }
+            return view;
+        }
+    } else if (expr->kind == ExprKind::Call) {
+        auto* call = static_cast<CallExpr*>(expr);
+        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
+            return objectView(call->resolvedArguments.front());
+        }
+        if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
+            Type* prefix = baseType(call->callee->type);
+            return prefix != nullptr && prefix->kind == TypeKind::Access ? 2 : objectView(call->callee.get());
+        }
+    }
+    if (symbol == nullptr) {
+        return 0;
+    }
+    if (symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr
+        && expr->m_protectedReceiver->mode == ParameterMode::In) {
+        return 1;
+    }
+    if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter
+        || symbol->kind == SymbolKind::LoopParameter) {
+        return symbol->isConstant || symbol->kind == SymbolKind::LoopParameter
+            || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In) ? 1 : 2;
+    }
+    return 0;
 }
 
 }

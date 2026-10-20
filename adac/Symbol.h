@@ -73,6 +73,7 @@ struct Symbol
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
     bool m_taskBody = false;
+    Symbol* m_taskIdentity = nullptr;
     Type* m_protectedType = nullptr;
     Symbol* m_protectedReceiver = nullptr;
     bool m_protectedPrivate = false;

@@ -35,4 +35,15 @@ void __ada_task_activated(AdaTaskContext* context);
 void __ada_task_activation_failed(AdaTaskContext* context);
 void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object, long size);
 
+/* Task_Id values remain valid while the corresponding task object exists.
+   Queries synchronize with completion and termination without joining tasks. */
+void* __ada_current_task(void);
+void* __ada_task_identity(void** object);
+int __ada_task_id_equal(void* left, void* right);
+const char* __ada_task_image(void* identity);
+int __ada_task_is_callable(void* identity);
+int __ada_task_is_terminated(void* identity);
+void __ada_task_complete(AdaTaskContext* context);
+void __ada_environment_task_state(int completed, int terminated);
+
 #endif

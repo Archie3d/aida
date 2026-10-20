@@ -325,7 +325,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
 
     if (expr->isDereference) {
         Type* access = baseType(prefixType);
-        if (access == nullptr || access->kind != TypeKind::Access) {
+        if (access == nullptr || access->kind != TypeKind::Access || !representationVisible(prefixType)) {
             m_diagnostics.error(expr->location, "only an access value designates an object with '.all'");
             return nullptr;
         }

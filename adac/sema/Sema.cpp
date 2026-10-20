@@ -88,6 +88,10 @@ void Sema::setupStandardScope()
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");
     m_exceptionIdType = m_types.create(TypeKind::Access, "Exception_Id");
     m_exceptionIdType->privateTo = m_exceptionOccurrenceType->privateTo;
+    // Task attributes are available without a with clause for the package.
+    m_taskIdType = m_types.create(TypeKind::Access, "Task_Id");
+    m_taskIdType->privateTo =
+        m_symbolTable.createSymbol(SymbolKind::Package, "ada.task_identification", "Ada.Task_Identification");
 
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
     storageUnit->type = m_types.integerType();

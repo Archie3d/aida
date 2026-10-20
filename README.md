@@ -81,7 +81,7 @@ Supported:
 - Generics, access types, tagged types with dispatching
 - Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization
-- Entry-free tasks, grouped activation and master-based waiting
+- Entry-free tasks, grouped activation, master-based waiting and task identity/status
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
@@ -90,7 +90,7 @@ Supported:
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
 
 Not supported yet:
-- Task entries, entry families, select/requeue, and task/protected discriminants
+- Task entries, entry families, select/requeue, abort, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
 - Ada 2005 box defaults (`<>`) in aggregates

@@ -1017,3 +1017,23 @@ add_test(NAME semantics.shared_ir
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSharedIR.cmake)
 set_tests_properties(semantics.shared_ir PROPERTIES TIMEOUT 30)
+
+foreach(identity_case taskidentity taskidentitylifecycle taskidentityobjects)
+    add_ada_test(${identity_case} SOURCES ${identity_case}.adb)
+    add_determinism_test(${identity_case} SOURCE ${identity_case}.adb)
+    add_test(NAME runtime.${identity_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${identity_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${identity_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${identity_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${identity_case} determinism.${identity_case}
+        runtime.${identity_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_ada_error_test(taskidentityerrors SOURCES taskidentityerrors.adb)

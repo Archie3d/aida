@@ -4,6 +4,7 @@
 #include <algorithm>
 
 using SemaSupport::adaptUniversal;
+using SemaSupport::objectView;
 
 void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete)
 {
@@ -145,58 +146,6 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         analyzeRepresentation(static_cast<RepresentationDecl*>(decl), scope);
         break;
     }
-}
-
-namespace {
-
-// 0 is not an object name, 1 is a constant view, 2 is a variable view.
-int objectView(Expr* expr)
-{
-    if (expr->m_implicitCall != nullptr) {
-        return 0;
-    }
-    Symbol* symbol = nullptr;
-    if (expr->kind == ExprKind::Identifier) {
-        symbol = static_cast<IdentifierExpr*>(expr)->symbol;
-    } else if (expr->kind == ExprKind::Selected) {
-        auto* selected = static_cast<SelectedExpr*>(expr);
-        symbol = selected->symbol;
-        if (symbol == nullptr) {
-            Type* prefix = baseType(selected->prefix->type);
-            bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
-            Type* record = access ? baseType(prefix->target) : prefix;
-            int view = access ? 2 : objectView(selected->prefix.get());
-            if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
-                && record->fields[selected->fieldIndex].isDiscriminant) {
-                return 1;
-            }
-            return view;
-        }
-    } else if (expr->kind == ExprKind::Call) {
-        auto* call = static_cast<CallExpr*>(expr);
-        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
-            return objectView(call->resolvedArguments.front());
-        }
-        if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
-            Type* prefix = baseType(call->callee->type);
-            return prefix != nullptr && prefix->kind == TypeKind::Access ? 2 : objectView(call->callee.get());
-        }
-    }
-    if (symbol == nullptr) {
-        return 0;
-    }
-    if (symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr
-        && expr->m_protectedReceiver->mode == ParameterMode::In) {
-        return 1;
-    }
-    if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter
-        || symbol->kind == SymbolKind::LoopParameter) {
-        return symbol->isConstant || symbol->kind == SymbolKind::LoopParameter
-            || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In) ? 1 : 2;
-    }
-    return 0;
-}
-
 }
 
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
@@ -712,6 +661,14 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     symbol->hasBody = true;
     body->symbol = symbol;
     symbol->m_entryBarrierFunction = body->spec.m_entryBarrier;
+    if (body->m_taskBody && symbol->m_taskIdentity == nullptr) {
+        Symbol* identity = m_symbolTable.createSymbol(SymbolKind::Object, "__task_identity", "__task_identity");
+        identity->type = m_taskIdType;
+        identity->owner = symbol;
+        identity->level = symbol->level;
+        identity->isConstant = true;
+        symbol->m_taskIdentity = identity;
+    }
 
     Scope* inner = m_symbolTable.createScope(scope);
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {

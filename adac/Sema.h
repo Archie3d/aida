@@ -263,6 +263,7 @@ private:
     Type* m_tagType = nullptr;
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;
+    Type* m_taskIdType = nullptr;
     Type* m_realTimeType = nullptr;
     std::vector<Expr*> m_sharedEscapes;
     std::vector<std::pair<Expr*, Type*>> m_sharedGenericActuals;

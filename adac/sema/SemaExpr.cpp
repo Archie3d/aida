@@ -128,6 +128,9 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         return type;
     }
     case ExprKind::Null:
+        if (expected != nullptr && expected->kind == TypeKind::Access && !representationVisible(expected)) {
+            m_diagnostics.error(expr->location, "null literal requires a visible access type");
+        }
         expr->type = expected != nullptr && expected->kind == TypeKind::Access ? expected : nullptr;
         return expr->type;
     case ExprKind::Allocator:

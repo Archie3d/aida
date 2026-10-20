@@ -1123,16 +1123,19 @@ void __ada_library_finalize(void)
         return;
     }
     __ada_main_context.libraryFinalizing = 1;
+    __ada_environment_task_state(1, 0);
     __ada_master_await(&__ada_main_context, &__ada_main_context.libraryMaster);
     __ada_finalize_to(&__ada_main_context.libraryFinalizations, NULL);
     __ada_array_release(&__ada_main_context.libraryFinalizationArena);
     __ada_master_leave(&__ada_main_context, &__ada_main_context.libraryMaster);
     __ada_main_context.libraryFinalizing = 0;
+    __ada_environment_task_state(1, 1);
 }
 
 void __ada_library_enter(void)
 {
     if (requireLibraryOwner()) {
+        __ada_environment_task_state(0, 0);
         __ada_master_enter(&__ada_main_context, &__ada_main_context.libraryMaster, ADA_MASTER_LIBRARY);
     }
 }

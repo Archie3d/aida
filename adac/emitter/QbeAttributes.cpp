@@ -12,6 +12,35 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    // Protected entry bodies execute in the calling task. Current_Task in an
+    // entry body uses this same identity (the RM C.7.1 bounded-error choice).
+    if (name == "caller") {
+        std::string identity = newTemp();
+        line(identity + " =l call $__ada_current_task()");
+        return Value { identity, 'l' };
+    }
+    if (expr->m_taskAttribute) {
+        Value identity;
+        if (expr->m_taskCurrentInstance != nullptr) {
+            identity = loadFrom(addressOf(expr->m_taskCurrentInstance), expr->m_taskCurrentInstance->type);
+        } else {
+            Value object = emitExpr(expr->prefix.get());
+            if (prefixType->kind == TypeKind::Access) {
+                checkNotNull(object);
+            }
+            std::string result = newTemp();
+            line(result + " =l call $__ada_task_identity(l " + object.name + ")");
+            emitExceptionCheck();
+            identity = Value { result, 'l' };
+        }
+        if (name == "identity") {
+            return identity;
+        }
+        std::string result = newTemp();
+        line(result + " =w call $__ada_task_is_" + name + "(l " + identity.name + ")");
+        emitExceptionCheck();
+        return Value { result, 'w' };
+    }
     if (name == "count") {
         Value object = addressOf(expr->m_protectedReceiver);
         std::string count = newTemp();

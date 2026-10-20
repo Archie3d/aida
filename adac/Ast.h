@@ -252,6 +252,8 @@ struct AttributeExpr : Expr
     Symbol* exceptionSymbol = nullptr;
     Symbol* m_accessSubprogram = nullptr;
     Symbol* m_countEntry = nullptr;
+    bool m_taskAttribute = false;
+    Symbol* m_taskCurrentInstance = nullptr;
 };
 
 struct AggregateComponent
