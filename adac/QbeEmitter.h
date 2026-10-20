@@ -26,6 +26,8 @@ struct Value
     // their component bounds in the component type instead.
     std::vector<std::pair<std::string, std::string>> innerBounds;
 
+    bool m_shared = false; // This value denotes shared scalar storage.
+
     bool hasBounds() const { return !first.empty() && !last.empty(); }
 };
 

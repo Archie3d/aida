@@ -84,6 +84,7 @@ Supported:
 - Entry-free tasks, grouped activation and master-based waiting
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
+- Scalar `Atomic` and `Volatile` objects and types
 - Text and stream I/O
 - Separate compilation and incremental builds
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas

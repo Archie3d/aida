@@ -463,11 +463,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         if (yieldsValue) {
+            m_sharedEscapes.push_back(expr->prefix.get());
             expr->type = base;
             return expr->type;
         }
 
+        m_sharedEscapes.push_back(expr->prefix.get());
         Expr* item = expr->arguments[1].get();
+        m_sharedEscapes.push_back(item);
         if (item->type == nullptr) {
             analyzeExpr(item, scope, base);
         }
@@ -607,6 +610,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     // generic body hand a value to the run time without either side having to
     // know what shape it has.
     if (name == "address") {
+        m_sharedEscapes.push_back(expr->prefix.get());
         if (prefixIsType) {
             m_diagnostics.error(expr->location, "'Address requires an object, not a type");
             return nullptr;

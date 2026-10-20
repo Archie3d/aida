@@ -4,6 +4,7 @@
 #include "Type.h"
 
 #include <string>
+#include <algorithm>
 #include <vector>
 
 class Scope;
@@ -46,6 +47,8 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool m_genericObject = false;
+    int m_shared = 0;
+    Expr* m_sharedAlias = nullptr;
     bool m_classWideObject = false;
     bool m_objectReference = false; // A slot holding a renamed or generic actual object address.
     ParameterMode mode = ParameterMode::In;
@@ -136,3 +139,29 @@ struct Symbol
     bool needsFrame = false;
     bool m_usesFinalization = false;
 };
+
+inline int sharedObjectKind(const Expr* expr);
+
+inline int sharedSymbolKind(const Symbol* symbol)
+{
+    if (symbol == nullptr) {
+        return 0;
+    }
+    int kind = std::max(symbol->m_shared, sharedTypeKind(symbol->type));
+    return std::max(kind, sharedObjectKind(symbol->m_sharedAlias));
+}
+
+inline int sharedObjectKind(const Expr* expr)
+{
+    if (expr == nullptr) {
+        return 0;
+    }
+    if (expr->kind == ExprKind::Identifier) {
+        return sharedSymbolKind(static_cast<const IdentifierExpr*>(expr)->symbol);
+    }
+    if (expr->kind == ExprKind::Selected) {
+        const auto* selected = static_cast<const SelectedExpr*>(expr);
+        return std::max(sharedSymbolKind(selected->symbol), sharedTypeKind(expr->type));
+    }
+    return sharedTypeKind(expr->type);
+}

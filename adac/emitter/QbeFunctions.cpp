@@ -267,6 +267,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         std::string incoming = "%p." + parameter->name;
         bool unconstrained = isUnconstrainedArray(parameter->type);
         if (parameter->isUplevel) {
+            long long alignment = parameter->byReference ? 8 : typeAlignment(parameter->type);
+            context.frameSize = (context.frameSize + alignment - 1) / alignment * alignment;
             parameter->frameOffset = context.frameSize;
             long long slotSize = parameter->byReference ? 8 : typeSize(parameter->type);
             if (unconstrained) {
@@ -278,6 +280,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                              << parameter->frameOffset << "\n";
             if (parameter->byReference) {
                 context.prologue << "    storel " << incoming << ", " << address << "\n";
+            } else if (sharedTypeKind(parameter->type) != 0) {
+                storeInto(Value { address, 'l' }, Value { incoming, qbeClass(parameter->type) }, parameter->type);
             } else {
                 context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", "
                                  << address << "\n";
@@ -318,8 +322,12 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         long long size = typeSize(parameter->type);
         context.prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
                          << (size < 1 ? 1 : size) << "\n";
-        context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", " << slot
-                         << "\n";
+        if (sharedTypeKind(parameter->type) != 0) {
+            storeInto(Value { slot, 'l' }, Value { incoming, qbeClass(parameter->type) }, parameter->type);
+        } else {
+            context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", " << slot
+                             << "\n";
+        }
         context.locals[parameter] = slot;
     }
 

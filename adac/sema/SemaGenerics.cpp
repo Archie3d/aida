@@ -832,6 +832,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         }
         bool reference = formal.m_mode == ParameterMode::InOut;
         if (reference) {
+            m_sharedGenericActuals.push_back({actual, type});
             int errors = m_diagnostics.errorCount();
             if (!isGenericVariable(actual)) {
                 m_diagnostics.error(actual->location, "an in out generic formal object requires a variable actual");
@@ -867,13 +868,14 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         symbol->isConstant = !reference;
         symbol->m_objectReference = reference;
         symbol->m_genericObject = true;
+        symbol->m_sharedAlias = reference ? actual : nullptr;
         symbol->owner = m_currentSubprogram;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->lower + "__formal__" + formal.lower);
         }
-        if (!reference && !isComposite(type)) {
+        if (!reference && !isComposite(type) && sharedTypeKind(type) == 0) {
             long long value = 0;
             double real = 0.0;
             if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {
@@ -1153,9 +1155,36 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     // Private completions can reveal noncopying parts after an earlier use was
     // analyzed. Reject unsupported delayed layouts and value operations before
     // emitting code, rather than treating a partial view as an empty record.
+    for (Expr* escape : m_sharedEscapes) {
+        if (sharedObjectKind(escape) != 0) {
+            m_diagnostics.error(escape->location, "address escape and streaming of shared scalars are not yet supported");
+        }
+    }
+    for (const auto& actual : m_sharedGenericActuals) {
+        if (sharedObjectKind(actual.first) > sharedTypeKind(actual.second)) {
+            m_diagnostics.error(actual.first->location, "a shared generic in out actual requires a correspondingly shared formal type");
+        }
+    }
     std::unordered_set<Type*> checked;
     for (const auto& symbol : m_symbolTable.symbols()) {
         Type* type = symbol->type;
+        if (isScalar(type) && (sharedSymbolKind(symbol.get()) != 0)) {
+            long long size = typeSize(type);
+            if ((size != 1 && size != 2 && size != 4 && size != 8) || typeAlignment(type) < size) {
+                m_diagnostics.error(symbol->location, "shared scalar storage requires a naturally aligned 8/16/32/64-bit representation");
+            }
+        }
+        if (symbol->builtin == BuiltinKind::Runtime) {
+            for (Symbol* parameter : symbol->parameters) {
+                Type* formal = baseType(parameter->type);
+                if (hasSharedAccessParts(formal) && symbol->runtimeSymbol != "$__ada_deallocate") {
+                    m_diagnostics.error(symbol->location, "imported parameters containing access to shared objects are not yet supported");
+                }
+            }
+        }
+        if (symbol->kind == SymbolKind::TypeName && isComposite(type) && hasSharedParts(type)) {
+            m_diagnostics.error(symbol->location, "composites containing atomic or volatile parts are not yet supported");
+        }
         if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second
             && hasProtected(type) && (type->m_incompleteLayout || type->m_tagged || type->variantOn >= 0)) {
             m_diagnostics.error(symbol->location,

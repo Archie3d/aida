@@ -135,6 +135,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         line(pointer + " =l loadl " + address.name);
         address.name = pointer;
     }
+    address.m_shared = sharedSymbolKind(symbol) != 0;
     return withBounds(address, symbol->type, symbol);
 }
 
@@ -142,13 +143,45 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
 {
     char resultType = qbeClass(type);
     std::string temp = newTemp();
-    line(temp + " =" + std::string(1, resultType) + " " + qbeLoadInstruction(type) + " " + address.name);
+    if (address.m_shared || sharedTypeKind(type) != 0) {
+        long long bits = typeSize(type) * 8;
+        char rawClass = bits == 64 ? 'l' : 'w';
+        line(temp + " =" + std::string(1, rawClass) + " call $__ada_atomic_load_"
+            + std::to_string(bits) + "(l " + address.name + ")");
+        if (resultType == 's' || resultType == 'd') {
+            std::string converted = newTemp();
+            line(converted + " =" + std::string(1, resultType) + " cast " + temp);
+            temp = converted;
+        } else if ((bits == 8 || bits == 16) && type->kind == TypeKind::Integer && type->low < 0) {
+            std::string extended = newTemp();
+            line(extended + " =w " + (bits == 8 ? "extsb " : "extsh ") + temp);
+            temp = extended;
+        } else if (bits == 8 || bits == 16) {
+            std::string masked = newTemp();
+            line(masked + " =w and " + temp + ", " + (bits == 8 ? "255" : "65535"));
+            temp = masked;
+        }
+    } else {
+        line(temp + " =" + std::string(1, resultType) + " " + qbeLoadInstruction(type) + " " + address.name);
+    }
     return Value { temp, resultType };
 }
 
 void QbeEmitter::storeInto(const Value& address, const Value& value, Type* type)
 {
-    line(std::string(qbeStoreInstruction(type)) + " " + value.name + ", " + address.name);
+    if (address.m_shared || sharedTypeKind(type) != 0) {
+        long long bits = typeSize(type) * 8;
+        char rawClass = bits == 64 ? 'l' : 'w';
+        std::string raw = value.name;
+        if (value.type == 's' || value.type == 'd') {
+            raw = newTemp();
+            line(raw + " =" + std::string(1, rawClass) + " cast " + value.name);
+        }
+        line("call $__ada_atomic_store_" + std::to_string(bits) + "(l " + address.name
+            + ", " + std::string(1, rawClass) + " " + raw + ")");
+    } else {
+        line(std::string(qbeStoreInstruction(type)) + " " + value.name + ", " + address.name);
+    }
 }
 
 void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* type)

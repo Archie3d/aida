@@ -689,6 +689,10 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
 void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
 {
     Type* base = baseType(type);
+    if (base != nullptr && base->kind == TypeKind::Access && (address.m_shared || sharedTypeKind(type) != 0)) {
+        storeInto(address, Value { "0", 'l' }, type);
+        return;
+    }
     if (base == nullptr || !hasComponentDefaults(type)) {
         return;
     }

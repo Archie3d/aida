@@ -972,3 +972,48 @@ add_executable(time_runtime_test TimeRuntimeTest.c)
 target_link_libraries(time_runtime_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.time_lifecycle COMMAND time_runtime_test)
 set_tests_properties(runtime.time_lifecycle PROPERTIES TIMEOUT 30)
+
+foreach(shared_case sharedscalars sharedconcurrency sharedlibrary)
+    add_ada_test(${shared_case} SOURCES ${shared_case}.adb)
+    add_determinism_test(${shared_case} SOURCE ${shared_case}.adb)
+    add_test(NAME runtime.${shared_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${shared_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${shared_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${shared_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${shared_case} determinism.${shared_case}
+        runtime.${shared_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_determinism_test(sharedimports SOURCE sharedimports.adb)
+add_test(NAME runtime.sharedimports_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/sharedimports.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/sharedimports.expected
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/SharedHooks.c
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/sharedimports-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.sharedimports_modes determinism.sharedimports PROPERTIES TIMEOUT 60)
+foreach(shared_error sharederrors sharedcompletionerrors sharedsyntaxerrors)
+    add_ada_error_test(${shared_error} SOURCES ${shared_error}.adb)
+    set_tests_properties(error.${shared_error} PROPERTIES TIMEOUT 10)
+endforeach()
+add_test(NAME semantics.shared_ir
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/ada
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSharedIR.cmake)
+set_tests_properties(semantics.shared_ir PROPERTIES TIMEOUT 30)

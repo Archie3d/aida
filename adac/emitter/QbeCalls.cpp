@@ -436,7 +436,23 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
     std::vector<std::string> arguments;
     std::vector<ArrayCopyBack> arrayCopies;
+    struct SharedCopyBack
+    {
+        Value actual;
+        Value temporary;
+        Type* type;
+        Expr* argument;
+    };
+    std::vector<SharedCopyBack> sharedCopies;
     auto copyBack = [&]() {
+        if (!sharedCopies.empty()) {
+            emitExceptionCheck();
+            for (const auto& copy : sharedCopies) {
+                Value value = loadFrom(copy.temporary, copy.type);
+                emitRangeCheck(value, copy.argument->type, copy.argument->location);
+                storeInto(copy.actual, value, copy.argument->type);
+            }
+        }
         if (!arrayCopies.empty()) {
             emitExceptionCheck();
             emitArrayCopyBacks(arrayCopies);
@@ -460,6 +476,24 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             continue;
         }
 
+        if (parameter->byReference && isScalar(formal)
+            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0)) {
+            Value temporary { allocScratch(typeSize(formal)), 'l' };
+            Value actual;
+            if (parameter->mode != ParameterMode::In) {
+                actual = emitAddress(argument);
+                sharedCopies.push_back({actual, temporary, formal, argument});
+            }
+            if (parameter->mode != ParameterMode::Out || formal->kind == TypeKind::Access) {
+                Value value = parameter->mode == ParameterMode::In ? emitExpr(argument) : loadFrom(actual, argument->type);
+                if (parameter->mode != ParameterMode::Out) {
+                    emitRangeCheck(value, formal, argument->location);
+                }
+                storeInto(temporary, value, formal);
+            }
+            arguments.push_back("l " + temporary.name);
+            continue;
+        }
         if (parameter->byReference) {
             Value address = isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
             if (parameter->type->kind == TypeKind::Record) {

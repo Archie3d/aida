@@ -1,0 +1,8 @@
+sharedcompletionerrors.adb:5:33: error: address escape and streaming of shared scalars are not yet supported
+sharedcompletionerrors.adb:32:28: error: address escape and streaming of shared scalars are not yet supported
+sharedcompletionerrors.adb:33:23: error: address escape and streaming of shared scalars are not yet supported
+sharedcompletionerrors.adb:13:39: error: a shared generic in out actual requires a correspondingly shared formal type
+sharedcompletionerrors.adb:17:5: error: composites containing atomic or volatile parts are not yet supported
+sharedcompletionerrors.adb:20:5: error: composites containing atomic or volatile parts are not yet supported
+sharedcompletionerrors.adb:22:5: error: imported parameters containing access to shared objects are not yet supported
+sharedcompletionerrors.adb:27:5: error: imported parameters containing access to shared objects are not yet supported

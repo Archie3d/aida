@@ -1,6 +1,8 @@
 #include "Type.h"
 
 #include <limits>
+#include <algorithm>
+#include <unordered_set>
 
 Type* rootType(Type* type)
 {
@@ -615,4 +617,66 @@ bool hasIncompleteParts(const Type* type)
         return true;
     }
     return type->kind == TypeKind::Array && hasIncompleteParts(type->element);
+}
+
+int sharedTypeKind(const Type* type)
+{
+    int kind = 0;
+    for (; type != nullptr; type = type->base != nullptr ? type->base : type->m_parentType) {
+        kind = std::max(kind, type->m_shared);
+    }
+    return kind;
+}
+
+bool hasSharedParts(const Type* type)
+{
+    if (type == nullptr) {
+        return false;
+    }
+    if (sharedTypeKind(type) != 0) {
+        return true;
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasSharedParts(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasSharedParts(field.type)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+namespace
+{
+
+bool hasSharedAccessParts(const Type* type, std::unordered_set<const Type*>& visited)
+{
+    if (type == nullptr || !visited.insert(type).second) {
+        return false;
+    }
+    if (type->kind == TypeKind::Access) {
+        return hasSharedParts(type->target) || hasSharedAccessParts(type->target, visited);
+    }
+    if (type->kind == TypeKind::Array) {
+        return hasSharedAccessParts(type->element, visited);
+    }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasSharedAccessParts(field.type, visited)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+}
+
+bool hasSharedAccessParts(const Type* type)
+{
+    std::unordered_set<const Type*> visited;
+    return hasSharedAccessParts(type, visited);
 }

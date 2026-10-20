@@ -1,0 +1,12 @@
+sharederrors.adb:5:5: error: Atomic and Volatile currently require a complete, naturally aligned 8/16/32/64-bit scalar
+sharederrors.adb:7:5: error: Atomic and Volatile currently require a complete, naturally aligned 8/16/32/64-bit scalar
+sharederrors.adb:9:5: error: Atomic and Volatile currently require a complete, naturally aligned 8/16/32/64-bit scalar
+sharederrors.adb:11:5: error: shared-variable pragmas on constants require object Import, which is not yet supported
+sharederrors.adb:14:5: error: shared-variable pragma requires an object or full type declared here
+sharederrors.adb:16:5: error: shared-variable pragma requires an object or full type declared here
+sharederrors.adb:17:5: error: shared-variable pragma requires an object or full type declared here
+sharederrors.adb:19:5: error: Atomic and Volatile currently require a complete, naturally aligned 8/16/32/64-bit scalar
+sharederrors.adb:22:5: error: shared type pragma must precede objects and parameter profiles using the type
+sharederrors.adb:26:5: error: shared type pragma must precede objects and parameter profiles using the type
+sharederrors.adb:28:9: error: shared-variable pragma requires an object or full type declared here
+sharederrors.adb:18:5: error: 'Incomplete' is never described

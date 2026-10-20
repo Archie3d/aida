@@ -264,6 +264,8 @@ private:
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;
     Type* m_realTimeType = nullptr;
+    std::vector<Expr*> m_sharedEscapes;
+    std::vector<std::pair<Expr*, Type*>> m_sharedGenericActuals;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;

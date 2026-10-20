@@ -41,7 +41,7 @@ private:
     DeclPtr parseProtected();
     DeclPtr parseObjectOrNumberDecl();
     DeclPtr parseUseClause();
-    DeclPtr parsePragma();
+    DeclPtr parsePragma(bool allowShared = false);
     DeclPtr parseRepresentationClause();
 
     // Types and ranges (ParserTypes.cpp).

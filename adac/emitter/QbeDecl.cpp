@@ -189,6 +189,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     continue;
                 }
                 Value address { symbol->qbeName, 'l' };
+                address.m_shared = sharedSymbolKind(symbol) != 0;
                 if (!symbol->m_objectReference && !symbol->m_classWideObject) {
                     prepareControlledObject(address, symbol->type, true);
                 }
@@ -400,7 +401,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (object->initializer) {
                     initializeObject(addressOf(symbol), symbol, object->initializer.get());
                 } else {
-                    if (needsZeroInit(symbol->type)) {
+                    if (needsZeroInit(symbol->type) && !(isScalar(symbol->type) && sharedSymbolKind(symbol) != 0)) {
                         // A file handle has to read as closed before anything
                         // opens it, so its storage cannot be left as it was
                         // found.

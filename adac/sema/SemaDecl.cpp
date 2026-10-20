@@ -321,6 +321,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
         symbol->m_objectReference = decl->m_isRenaming;
+        symbol->m_sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
         symbol->m_classWideObject = type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
@@ -332,7 +333,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->namesLower[i]);
         }
-        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->m_scalarBoundsSymbol == nullptr) {
+        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->m_scalarBoundsSymbol == nullptr
+            && sharedTypeKind(type) == 0) {
             long long value = 0;
             double realValue = 0.0;
             if (isReal(type) && foldStaticReal(decl->initializer.get(), realValue)) {
@@ -782,6 +784,44 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
 void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 {
     std::vector<Symbol*> candidates = scope->lookupLocal(decl->entityLower);
+    if (decl->lower == "atomic" || decl->lower == "volatile") {
+        Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
+        bool object = entity != nullptr && entity->kind == SymbolKind::Object
+            && !entity->m_objectReference && !entity->m_genericObject && entity->m_protectedField < 0;
+        bool typeName = entity != nullptr && entity->kind == SymbolKind::TypeName
+            && entity->type != nullptr && !entity->type->isSubtype;
+        if ((!object && !typeName) || entity->type == nullptr) {
+            m_diagnostics.error(decl->location, "shared-variable pragma requires an object or full type declared here");
+            return;
+        }
+        Type* type = entity->type;
+        long long size = typeSize(type);
+        if (type->isIncomplete || !representationVisible(type) || !isScalar(type)
+            || (size != 1 && size != 2 && size != 4 && size != 8) || typeAlignment(type) < size) {
+            m_diagnostics.error(decl->location, "Atomic and Volatile currently require a complete, naturally aligned 8/16/32/64-bit scalar");
+            return;
+        }
+        if (object && entity->isConstant) {
+            m_diagnostics.error(decl->location, "shared-variable pragmas on constants require object Import, which is not yet supported");
+            return;
+        }
+        if (typeName) {
+            for (const auto& symbol : m_symbolTable.symbols()) {
+                Type* used = rootType(symbol->type);
+                while (used != nullptr && used != type) {
+                    used = used->m_parentType;
+                }
+                if ((symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter)
+                    && used == type) {
+                    m_diagnostics.error(decl->location, "shared type pragma must precede objects and parameter profiles using the type");
+                    return;
+                }
+            }
+        }
+        int& shared = typeName ? type->m_shared : entity->m_shared;
+        shared = std::max(shared, decl->lower == "atomic" ? 2 : 1);
+        return;
+    }
     Symbol* target = nullptr;
     for (Symbol* candidate : candidates) {
         if (candidate->kind == SymbolKind::Subprogram) {

@@ -63,7 +63,7 @@ DeclPtr Parser::parseDeclarativeItem()
     case TokenKind::KwUse:
         return parseUseClause();
     case TokenKind::KwPragma:
-        return parsePragma();
+        return parsePragma(true);
     case TokenKind::KwFor:
         return parseRepresentationClause();
     case TokenKind::Identifier:
@@ -148,10 +148,11 @@ DeclPtr Parser::parseUseClause()
     return decl;
 }
 
-// Keep Import for semantic analysis. Inline, Pure and Preelaborate are
+// Keep Import and shared-variable pragmas for analysis. Inline, Pure and
+// Preelaborate are
 // explicitly accepted as advisory only; reject every other pragma rather than
 // silently losing requirements on representation, checks or execution.
-DeclPtr Parser::parsePragma()
+DeclPtr Parser::parsePragma(bool allowShared)
 {
     SourceLocation location = current().location;
     expect(TokenKind::KwPragma, "in pragma");
@@ -181,9 +182,25 @@ DeclPtr Parser::parsePragma()
         expect(TokenKind::Semicolon, "after pragma");
         return nullptr;
     }
+    if (name.lower == "atomic" || name.lower == "volatile") {
+        if (!allowShared) {
+            fail("shared-variable pragmas are only supported in declarative parts");
+        }
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->name = name.text;
+        pragma->lower = name.lower;
+        expect(TokenKind::LeftParen, "after shared-variable pragma");
+        const Token& entity = expect(TokenKind::Identifier, "as shared-variable pragma entity");
+        pragma->entity = entity.text;
+        pragma->entityLower = entity.lower;
+        expect(TokenKind::RightParen, "after shared-variable pragma entity");
+        expect(TokenKind::Semicolon, "after pragma");
+        return pragma;
+    }
     if (name.lower != "import") {
         m_diagnostics.error(name.location, "unsupported or unknown pragma '" + name.text
-            + "'; supported pragmas are Import, Inline, Pure and Preelaborate");
+            + "'; supported pragmas are Import, Inline, Pure, Preelaborate, Atomic and Volatile");
         skipToSemicolon();
         return nullptr;
     }

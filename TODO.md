@@ -735,8 +735,41 @@ must keep it working; Phase 9 completes core tasking.
     govern lateness and clock metrics; hard real-time latency, jitter and drift
     guarantees are not provided. `Ada.Calendar`, select delays, cancellation
     and abort remain in their later roadmap items.
-- [ ] **Shared variables.** `pragma Atomic` and `pragma Volatile` through the
+- [x] **Shared variables.** `pragma Atomic` and `pragma Volatile` on scalar
+  object declarations and full scalar type declarations, through the
   Phase 2 threading layer.
+  - Naturally aligned 8/16/32/64-bit integers, enumerations, floating-point,
+    fixed-point and access values use the runtime's sequentially consistent
+    loads/stores. Volatile uses the same stronger atomicity. Narrow signed
+    loads extend correctly; float values preserve their bits. Atomic implies
+    volatile; compound updates such as `x := x + 1` remain separate accesses.
+  - Flags follow subtype/derivation ancestry, qualified names, object renamings,
+    generic bindings, captured variables and designated objects. Initialization
+    (including library objects and default-null access objects), parameter
+    storage and copy-back retain the required access rules. Atomic-type
+    constants are read from memory. Captured parameter slots are aligned.
+  - Scalar actuals passed to ordinary Ada or imported C formals use snapshots;
+    successful copy-back checks the actual's constraints and writes through the
+    shared helper. Exceptions bypass copy-back. Generic in out actuals require
+    correspondingly shared formal types. Type pragmas must precede objects and
+    parameter profiles using the type, including derived types.
+  - Composites containing shared parts, component pragmas, imported constants,
+    address escape, streaming and imported parameters exposing shared designated
+    storage (including nested access components) are diagnosed. The known
+    deallocation helper remains available. This is ordinary aligned RAM support;
+    device memory and unaligned storage are unsupported.
+  - `sharedscalars`, `sharedconcurrency`, `sharedlibrary` and `sharedimports`
+    cover widths, bit preservation, aliases, generic instances, heap objects,
+    captures, publication, copy-back and exception handling in whole/separate
+    compilation and IR determinism. `sharederrors`, `sharedcompletionerrors`
+    and `sharedsyntaxerrors` cover legality and unsupported boundaries.
+    `semantics.shared_ir` rejects plain accesses to shared library objects,
+    verifies all helper widths and retains atomic-constant reads.
+    Baseline: Ada 2005 RM C.6 and 9.10; focused RM-based regressions, not
+    imported ACATS cases. ThreadSanitizer and AddressSanitizer/
+    UndefinedBehaviorSanitizer pass for `runtime.threading` and the four
+    generated cases in both modes with instrumented C runtime/helpers;
+    QBE-generated Ada memory accesses remain uninstrumented.
 - [ ] **Task identity.** `Ada.Task_Identification`, `'Terminated` and
   `'Callable`.
 

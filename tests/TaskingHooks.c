@@ -1,6 +1,6 @@
 /* A bounded rendezvous proves that generated tasks execute concurrently.
-   All communication uses runtime locks or C11 atomics, ahead of protected
-   objects and Atomic/Volatile syntax in later Phase 4 items. */
+   This low-level fixture uses runtime locks and C11 atomics; the separate
+   protected-object and shared-variable fixtures exercise Ada syntax. */
 #include "../runtime/adart.h"
 #include "../runtime/adathread.h"
 #include <stdatomic.h>

@@ -194,6 +194,7 @@ public:
     // Objects of this type start out cleared.  A File_Type has to, because the
     // run time reads the handle before anything has opened it.
     bool needsZeroInit = false;
+    int m_shared = 0; // 1: Volatile, 2: Atomic (also volatile).
 
     // A width the type carries instead of the one its kind implies, which is
     // how a Stream_Element comes out a byte wide.
@@ -292,3 +293,7 @@ private:
 
 // Conservative by-reference components for array view conversions.
 bool hasPrivateOrTaggedParts(const Type* type);
+
+int sharedTypeKind(const Type* type);
+bool hasSharedParts(const Type* type);
+bool hasSharedAccessParts(const Type* type);

@@ -197,7 +197,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
     case SymbolKind::LoopParameter:
         noteReference(chosen);
         expr->type = chosen->type;
-        if (chosen->hasStaticValue) {
+        if (chosen->hasStaticValue && sharedSymbolKind(chosen) == 0) {
             expr->isStatic = true;
             expr->staticValue = chosen->staticValue;
             expr->staticReal = chosen->staticReal;
@@ -288,7 +288,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             if (chosen->kind == SymbolKind::EnumerationLiteral) {
                 expr->isStatic = true;
                 expr->staticValue = chosen->enumerationValue;
-            } else if (chosen->hasStaticValue) {
+            } else if (chosen->hasStaticValue && sharedSymbolKind(chosen) == 0) {
                 expr->isStatic = true;
                 expr->staticValue = chosen->staticValue;
                 expr->staticReal = chosen->staticReal;

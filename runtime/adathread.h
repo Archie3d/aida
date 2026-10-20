@@ -46,10 +46,9 @@ int __ada_monotonic_delay_until(int64_t deadline);
 /* Generated-code ABI: naturally aligned scalar storage, widths in bits.
    All concurrent accesses to an object must use these helpers (no mixing
    with plain C/QBE accesses). Sequential consistency also provides the
-   ordering needed for future Volatile lowering, with stronger atomicity.
-   Signed integers, pointers and floats use their same-width bit patterns.
-   Composite/unaligned objects and device memory are not supported. The
-   compiler still rejects Atomic/Volatile pragmas until Phase 4. */
+   ordering for Atomic and Volatile scalar lowering; Volatile uses the same
+   stronger atomicity. Signed integers, pointers and floats use their same-width
+   bit patterns. Composite/unaligned objects and device memory are unsupported. */
 #define ADA_DECLARE_ATOMIC(bits) \
     uint##bits##_t __ada_atomic_load_##bits(const volatile void* address); \
     void __ada_atomic_store_##bits(volatile void* address, uint##bits##_t value);
