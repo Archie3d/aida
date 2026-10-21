@@ -1,0 +1,31 @@
+staticarithmeticerrors.adb:2:36: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:3:36: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:4:38: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:5:32: error: division by zero in static expression
+staticarithmeticerrors.adb:6:29: error: division by zero in static expression
+staticarithmeticerrors.adb:7:29: error: division by zero in static expression
+staticarithmeticerrors.adb:8:35: error: negative exponent in static integer expression
+staticarithmeticerrors.adb:9:37: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+staticarithmeticerrors.adb:10:38: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+staticarithmeticerrors.adb:11:30: error: division by zero in static expression
+staticarithmeticerrors.adb:12:30: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+staticarithmeticerrors.adb:13:33: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+staticarithmeticerrors.adb:14:36: error: division by zero in static expression
+staticarithmeticerrors.adb:17:37: error: constraint check fails in static expression
+staticarithmeticerrors.adb:18:39: error: constraint check fails in static expression
+staticarithmeticerrors.adb:19:38: error: constraint check fails in static expression
+staticarithmeticerrors.adb:20:46: error: constraint check fails in static expression
+staticarithmeticerrors.adb:21:49: error: constraint check fails in static expression
+staticarithmeticerrors.adb:22:33: error: constraint check fails in static expression
+staticarithmeticerrors.adb:23:32: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:24:55: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:26:33: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:28:45: error: division by zero in static expression
+staticarithmeticerrors.adb:30:32: error: constraint check fails in static expression
+staticarithmeticerrors.adb:31:46: error: constraint check fails in static expression
+staticarithmeticerrors.adb:33:43: error: static fixed-point expression exceeds supported 64-bit scaled evaluation limits
+staticarithmeticerrors.adb:34:49: error: attribute argument is outside the prefix base range
+staticarithmeticerrors.adb:35:63: error: attribute argument is outside the prefix base range
+staticarithmeticerrors.adb:37:10: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:40:14: error: static expression is outside the base range of its expected type
+staticarithmeticerrors.adb:40:23: error: static expression is outside the base range of its expected type

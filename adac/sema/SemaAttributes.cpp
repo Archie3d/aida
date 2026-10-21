@@ -373,12 +373,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (name != "val" && argument->isStatic) {
             Type* base = m_types.scalarBaseType(prefixType);
+            __int128 integer = 0;
+            StaticFailure failure = StaticFailure::None;
             bool inRange = isReal(base)
                 ? argument->staticReal >= floatLowBound(base) && argument->staticReal <= floatHighBound(base)
-                : argument->staticValue >= base->low && argument->staticValue <= base->high;
+                : foldWideInteger(argument, integer, failure) && integer >= base->low && integer <= base->high;
             if (!inRange) {
-                m_diagnostics.error(argument->location, "attribute argument is outside the prefix base range");
-                return nullptr;
+                expr->staticFailure = StaticFailure::AttributeRange;
             }
         }
     }
@@ -610,6 +611,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->type = m_types.universalInteger();
         expr->isStatic = expr->arguments.front()->isStatic;
         expr->staticValue = expr->arguments.front()->staticValue;
+        if (expr->arguments.front()->staticFailure != StaticFailure::None) {
+            expr->staticFailure = StaticFailure::Dependent;
+        }
         return expr->type;
     }
 
@@ -624,6 +628,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(expr->arguments.front().get(), argumentType);
         }
         expr->type = resultType;
+        if (expr->arguments.front()->staticFailure != StaticFailure::None) {
+            expr->staticFailure = StaticFailure::Dependent;
+        }
+        if (expr->staticFailure != StaticFailure::None) {
+            expr->isStatic = true;
+            return expr->type;
+        }
         if (expr->arguments.front()->isStatic && isReal(resultType)) {
             double argument = expr->arguments.front()->staticReal;
             double direction = name == "succ" ? std::numeric_limits<double>::infinity()
@@ -634,17 +645,28 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             if (std::isfinite(value)) {
                 expr->isStatic = true;
                 expr->staticReal = value;
+            } else {
+                expr->isStatic = true;
+                expr->staticFailure = StaticFailure::Check;
             }
         }
         if (expr->arguments.front()->isStatic && !isReal(resultType)) {
-            long long value = expr->arguments.front()->staticValue;
-            bool overflow = name == "succ" ? __builtin_add_overflow(value, 1LL, &value)
-                : (name == "pred" && __builtin_sub_overflow(value, 1LL, &value));
-            // Keep exceptional cases in the emitted path so they raise an Ada
-            // exception instead of overflowing the compiler's own arithmetic.
-            if (!overflow && value >= resultType->low && value <= resultType->high) {
-                expr->isStatic = true;
-                expr->staticValue = value;
+            __int128 value = 0;
+            StaticFailure failure = StaticFailure::None;
+            expr->isStatic = true;
+            if (!foldWideInteger(expr->arguments.front().get(), value, failure)) {
+                expr->staticFailure = StaticFailure::Dependent;
+            } else {
+                if (value < resultType->low || value > resultType->high) {
+                    expr->staticFailure = StaticFailure::Check;
+                    return expr->type;
+                }
+                value += name == "succ" ? 1 : name == "pred" ? -1 : 0;
+                if (value < resultType->low || value > resultType->high) {
+                    expr->staticFailure = StaticFailure::Check;
+                } else {
+                    expr->staticValue = static_cast<long long>(value);
+                }
             }
         }
         return expr->type;

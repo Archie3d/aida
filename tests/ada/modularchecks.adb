@@ -12,6 +12,8 @@ procedure ModularChecks is
     Wide : Long_Integer := 4294967296;
     F : Long_Float := 256.0;
     Count : Integer := 0;
+    Outside_Byte : Integer := 256;
+    Outside_Small : Byte := 4;
 begin
     begin
         B := B / Zero;
@@ -69,17 +71,17 @@ begin
         when Constraint_Error => Count := Count + 1;
     end;
     begin
-        B := Byte (256);
+        B := Byte (Outside_Byte);
     exception
         when Constraint_Error => Count := Count + 1;
     end;
     begin
-        S := Small (4) - 1;
+        S := Small (Outside_Small) - 1;
     exception
         when Constraint_Error => Count := Count + 1;
     end;
     begin
-        S := Small'(4) - 1;
+        S := Small'(Outside_Small) - 1;
     exception
         when Constraint_Error => Count := Count + 1;
     end;

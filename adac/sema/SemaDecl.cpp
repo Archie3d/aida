@@ -294,7 +294,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
                 symbol->staticValue = value;
             }
         }
-        if (decl->initializer) {
+        if (decl->initializer && type->kind != TypeKind::Float) {
             symbol->m_exactReal = decl->initializer->m_exactReal;
         }
         scope->add(symbol);
@@ -305,18 +305,17 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
 {
     Type* type = analyzeExpr(decl->value.get(), scope, nullptr);
-    if (type != nullptr && type->kind == TypeKind::UniversalInteger) {
-        type = m_types.integerType();
-        adaptUniversal(decl->value.get(), type);
-    }
-
-    // A real named number keeps its universal type, so that every use of it
-    // takes the precision of its context.
+    // Named numbers retain their universal type and exact value. Storage
+    // width is chosen only when a use supplies a specific type.
     long long value = 0;
     double realValue = 0.0;
     bool real = isReal(type);
-    bool isStatic = real ? foldStaticReal(decl->value.get(), realValue) : foldStatic(decl->value.get(), value);
-    if (!isStatic) {
+    ExactReal exact;
+    bool isStatic = real ? foldStaticReal(decl->value.get(), realValue) : exactValue(decl->value.get(), exact);
+    if (!real && isStatic) {
+        exact.integer(value);
+    }
+    if (!isStatic && decl->value->staticFailure == StaticFailure::None) {
         m_diagnostics.error(decl->value->location, "the value of a named number must be static");
     }
 

@@ -172,6 +172,7 @@ ExprPtr Parser::parsePrimary()
     case TokenKind::IntegerLiteral: {
         auto expr = std::make_unique<IntegerLiteralExpr>();
         expr->location = location;
+        expr->m_exactReal = ExactReal::parse(current().text);
         expr->value = advance().intValue;
         return expr;
     }

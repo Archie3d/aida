@@ -42,11 +42,6 @@ begin
         when Constraint_Error => Put_Line ("integer constraint");
     end;
     begin
-        Put_Line (Integer'Image (Read (Number (Count (9)))));
-    exception
-        when Constraint_Error => Put_Line ("static integer constraint");
-    end;
-    begin
         X := Dynamic_Child (V);
     exception
         when Constraint_Error => Put_Line ("dynamic constraint");

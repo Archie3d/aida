@@ -34,6 +34,13 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return Value { std::to_string(expr->staticValue), 'l' };
     }
     if (expr->isStatic && isDiscrete(baseType(expr->type))) {
+        // Universal named numbers may be wider than every machine type.
+        // Refuse an unrepresentable materialization instead of using the
+        // deliberately unset machine-value cache as zero.
+        if (expr->m_exactReal.m_valid && !expr->m_exactReal.integer(expr->staticValue)) {
+            m_diagnostics.error(expr->location, "static value exceeds supported 64-bit machine storage");
+            return Value { "0", qbeClass(expr->type) };
+        }
         if (expr->type->m_modulus != 0
             && (expr->staticValue < 0 || expr->staticValue >= expr->type->m_modulus)) {
             raiseConstraintError();

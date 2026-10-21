@@ -292,7 +292,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
                 expr->isStatic = true;
                 expr->staticValue = chosen->staticValue;
                 expr->staticReal = chosen->staticReal;
-            expr->m_exactReal = chosen->m_exactReal;
+                expr->m_exactReal = chosen->m_exactReal;
             }
         }
         return expr->type;

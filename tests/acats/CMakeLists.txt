@@ -15,6 +15,7 @@ endfunction()
 
 add_acats_test(c52005a)
 add_acats_test(c53007a)
+add_acats_test(c49022a)
 # Phase 6e: valid Ada rejected because goto/labels are not implemented.
 add_acats_test(c59002a REJECTION "goto statements are not yet supported")
 

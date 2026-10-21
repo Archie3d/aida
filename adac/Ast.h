@@ -71,6 +71,18 @@ enum class UnaryOp
     Abs
 };
 
+enum class StaticFailure
+{
+    None,
+    Dependent,
+    Capacity,
+    FixedCapacity,
+    ZeroDivisor,
+    NegativeExponent,
+    Check,
+    AttributeRange
+};
+
 struct Expr : Node
 {
     explicit Expr(ExprKind exprKind)
@@ -87,6 +99,7 @@ struct Expr : Node
     bool isStatic = false;
     long long staticValue = 0;
     ExactReal m_exactReal;
+    StaticFailure staticFailure = StaticFailure::None;
     bool m_fixedInvalid = false;
     double staticReal = 0.0;   // Holds the folded value of a real expression.
 };

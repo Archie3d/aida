@@ -322,6 +322,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 }
                 adaptUniversal(loop->rangeLow.get(), variableType);
                 adaptUniversal(loop->rangeHigh.get(), variableType);
+                validateStatic(loop->rangeLow.get());
+                validateStatic(loop->rangeHigh.get());
             } else if (variableType != nullptr) {
                 loop->rangeLow = scalarBoundExpr(variableType, true, loop->location);
                 loop->rangeHigh = scalarBoundExpr(variableType, false, loop->location);
@@ -492,6 +494,7 @@ void Sema::analyzeCaseStatement(CaseStmt* statement, Scope* scope)
     if (isUniversal(selectorType)) {
         selectorType = m_types.integerType();
         adaptUniversal(statement->selector.get(), selectorType);
+        validateStatic(statement->selector.get());
     }
 
     if (selectorType != nullptr && selectorType->m_scalarBoundsSymbol != nullptr) {

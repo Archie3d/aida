@@ -107,6 +107,11 @@ Not supported yet:
 Access-type collections remain owned by their creating task; allocation or
 deallocation through another task raises `Program_Error`.
 
+[Static arithmetic](docs/static-arithmetic.md) uses checked exact evaluation,
+bounded to 127-bit integer/rational magnitudes and 64-bit scaled fixed-point
+intermediates. Exceeding these limits is diagnosed; arbitrary precision remains
+unsupported.
+
 See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
 and expected diagnostics. The [Ada 2005 coverage matrix](docs/ada2005-coverage.md)
 tracks known gaps; the [selected ACATS baseline](tests/acats/README.md) runs with

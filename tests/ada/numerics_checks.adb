@@ -98,7 +98,7 @@ package body Numerics_Checks is
             end;
         else
             Result := Exp (100.0);
-            if Result < 1.0E+40 then
+            if Result / 1.0E+20 < 1.0E+20 then
                 raise Program_Error;
             end if;
         end if;

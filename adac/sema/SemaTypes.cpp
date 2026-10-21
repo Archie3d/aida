@@ -187,8 +187,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::IntegerRange: {
         type = makeType(TypeKind::Integer);
-        analyzeExpr(definition->rangeLow.get(), scope, m_types.integerType());
-        analyzeExpr(definition->rangeHigh.get(), scope, m_types.integerType());
+        analyzeExpr(definition->rangeLow.get(), scope, m_types.universalInteger());
+        analyzeExpr(definition->rangeHigh.get(), scope, m_types.universalInteger());
         long long low = 0;
         long long high = 0;
         if (!foldStatic(definition->rangeLow.get(), low) || !foldStatic(definition->rangeHigh.get(), high)) {

@@ -106,6 +106,8 @@ add_ada_test(subprogramcompletions SOURCES subprogramcompletions.adb)
 add_ada_error_test(missingbodyerrors SOURCES missingbodyerrors.adb)
 add_ada_error_test(integerliteralerrors SOURCES integerliteralerrors.adb)
 add_ada_test(integerliteralbounds SOURCES integerliteralbounds.adb)
+add_ada_test(staticarithmetic SOURCES staticarithmetic.adb)
+add_ada_error_test(staticarithmeticerrors SOURCES staticarithmeticerrors.adb)
 set_tests_properties(error.integerliteralerrors ada.integerliteralbounds PROPERTIES TIMEOUT 10)
 add_ada_error_test(subprogramstuberrors SOURCES subprogramstuberrors.adb)
 
@@ -204,6 +206,9 @@ function(add_determinism_test name)
 endfunction()
 
 add_determinism_test(sizeclauses SOURCE sizeclauses.adb)
+add_determinism_test(staticarithmetic SOURCE staticarithmetic.adb)
+set_tests_properties(ada.staticarithmetic error.staticarithmeticerrors
+    determinism.staticarithmetic PROPERTIES TIMEOUT 10)
 add_determinism_test(private SOURCE private.adb)
 add_determinism_test(generics SOURCE generics.adb)
 add_determinism_test(generic_subprograms SOURCE generic_subprograms.adb)

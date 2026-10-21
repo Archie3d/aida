@@ -2,6 +2,7 @@
 #include "SemaSupport.h"
 
 #include <algorithm>
+#include <cmath>
 
 using SemaSupport::adaptUniversal;
 
@@ -16,6 +17,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         expr->m_tagIndeterminate = expr->operatorExpression->m_tagIndeterminate;
         expr->staticValue = expr->operatorExpression->staticValue;
         expr->staticReal = expr->operatorExpression->staticReal;
+        expr->m_exactReal = expr->operatorExpression->m_exactReal;
+        expr->staticFailure = expr->operatorExpression->staticFailure;
         return expr->type;
     }
     expr->resolvedArguments.clear();
@@ -291,25 +294,37 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 && value >= expr->type->low && value <= expr->type->high) {
                 expr->isStatic = true;
                 expr->staticValue = value;
-            } else if (operand->type != nullptr && operand->type->kind == TypeKind::UniversalReal) {
-                m_diagnostics.error(expr->location, "fixed-point conversion requires an exact static real within the target range");
+            } else if (operand->isStatic) {
+                expr->isStatic = true;
+                expr->staticFailure = operand->staticFailure != StaticFailure::None
+                    ? StaticFailure::Dependent : exact.m_valid ? StaticFailure::Check : StaticFailure::Capacity;
             }
             return expr->type;
         }
-        if (operand->type != nullptr && operand->type->kind == TypeKind::Fixed) {
-            return expr->type;
-        }
-        if (operand->isStatic && expr->type->m_scalarBoundsSymbol == nullptr
-            && isReal(expr->type) == isReal(operand->type)
-            && (!isDiscrete(expr->type)
-                || (operand->staticValue >= expr->type->low && operand->staticValue <= expr->type->high))
-            && (!isReal(expr->type) || !expr->type->hasRealRange
-                || (operand->staticReal >= expr->type->lowReal && operand->staticReal <= expr->type->highReal))
-            && (expr->type->m_modulus == 0
-                || (operand->staticValue >= expr->type->low && operand->staticValue <= expr->type->high))) {
+        if (numeric && operand->isStatic && expr->type->m_scalarBoundsSymbol == nullptr) {
+            ExactReal exact;
             expr->isStatic = true;
-            expr->staticValue = operand->staticValue;
-            expr->staticReal = operand->staticReal;
+            if (operand->staticFailure != StaticFailure::None) {
+                expr->staticFailure = StaticFailure::Dependent;
+            } else if (!exactValue(operand, exact)) {
+                expr->staticFailure = StaticFailure::Capacity;
+            } else if (isDiscrete(expr->type)) {
+                long long value;
+                bool integral = isReal(operand->type) || operand->type->kind == TypeKind::Fixed
+                    ? exact.scaled(0, value) : exact.integer(value);
+                if (!integral || value < expr->type->low || value > expr->type->high) {
+                    expr->staticFailure = StaticFailure::Check;
+                } else {
+                    expr->staticValue = value;
+                    expr->m_exactReal = ExactReal::make(value);
+                }
+            } else if (isReal(expr->type)) {
+                expr->staticReal = exact.real(typeSize(expr->type) == 4 ? 24 : 53);
+                if (!std::isfinite(expr->staticReal) || (expr->type->hasRealRange
+                    && (expr->staticReal < expr->type->lowReal || expr->staticReal > expr->type->highReal))) {
+                    expr->staticFailure = StaticFailure::Check;
+                }
+            }
         }
         return expr->type;
     }

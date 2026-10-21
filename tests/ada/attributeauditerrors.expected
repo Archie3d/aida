@@ -21,6 +21,6 @@ attributeauditerrors.adb:35:43: error: 'Pos requires a discrete subtype mark
 attributeauditerrors.adb:36:47: error: attribute argument is outside the prefix base range
 attributeauditerrors.adb:37:48: error: attribute argument is outside the prefix base range
 attributeauditerrors.adb:38:50: error: attribute argument is outside the prefix base range
-attributeauditerrors.adb:39:43: error: attribute argument is outside the prefix base range
+attributeauditerrors.adb:39:43: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
 attributeauditerrors.adb:41:15: error: 'first requires an array prefix or a scalar subtype mark
 attributeauditerrors.adb:41:15: error: 'last requires an array prefix or a scalar subtype mark

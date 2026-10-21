@@ -1,4 +1,5 @@
 #include "Lexer.h"
+#include "ExactReal.h"
 
 #include <cerrno>
 #include <cctype>
@@ -230,20 +231,14 @@ Token Lexer::lexNumericLiteral()
 
     auto integerToken = [&](const std::string& digits) {
         errno = 0;
-        long long power = std::strtoll(digits.c_str(), nullptr, 10);
+        std::strtoll(digits.c_str(), nullptr, 10);
         bool overflowed = errno == ERANGE;
-        errno = 0;
-        long long value = std::strtoll(integerPart.c_str(), nullptr, 10);
-        overflowed = overflowed || errno == ERANGE;
-        for (long long i = 0; value != 0 && i < power && !overflowed; ++i) {
-            if (value > LLONG_MAX / 10) {
-                overflowed = true;
-            } else {
-                value *= 10;
-            }
-        }
+        ExactReal exact = ExactReal::parse(text);
+        overflowed = overflowed || !exact.m_valid;
+        long long value = 0;
+        exact.integer(value);
         if (overflowed) {
-            m_diagnostics.error(location, "integer literal is too large");
+            m_diagnostics.error(location, "integer literal exceeds the supported 127-bit exact magnitude");
             value = 0;
         }
         Token token = makeToken(TokenKind::IntegerLiteral, location, text);
@@ -339,15 +334,17 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
 
     // The whole part is accumulated both ways: exactly for an integer literal,
     // where overflow has to be reported, and approximately for a real one.
-    long long wholeValue = 0;
+    __int128 wholeValue = 0;
     double realValue = 0.0;
     bool overflowed = false;
     for (char c : wholeDigits) {
         int digit = valueOf(c);
-        if (wholeValue > (LLONG_MAX - digit) / base) {
+        __int128 next;
+        if (__builtin_mul_overflow(wholeValue, (__int128)base, &next)
+            || __builtin_add_overflow(next, (__int128)digit, &next)) {
             overflowed = true;
         } else {
-            wholeValue = wholeValue * base + digit;
+            wholeValue = next;
         }
         realValue = realValue * static_cast<double>(base) + digit;
     }
@@ -414,19 +411,17 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
     }
 
     for (long long i = 0; wholeValue != 0 && i < power && !overflowed; ++i) {
-        if (wholeValue > LLONG_MAX / base) {
+        if (__builtin_mul_overflow(wholeValue, (__int128)base, &wholeValue)) {
             overflowed = true;
-        } else {
-            wholeValue *= base;
         }
     }
     if (overflowed) {
-        m_diagnostics.error(location, "based literal is too large");
+        m_diagnostics.error(location, "based literal exceeds the supported 127-bit exact magnitude");
         wholeValue = 0;
     }
 
     Token token = makeToken(TokenKind::IntegerLiteral, location, spelling);
-    token.intValue = wholeValue;
+    token.intValue = wholeValue <= LLONG_MAX ? static_cast<long long>(wholeValue) : 0;
     return token;
 }
 

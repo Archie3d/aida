@@ -2,5 +2,5 @@ baseerrors.adb:3:42: error: based literal base must be between 2 and 16
 baseerrors.adb:4:42: error: digit out of range for the literal base
 baseerrors.adb:5:42: error: missing closing '#' in based literal
 baseerrors.adb:6:42: error: integer literal cannot have a negative exponent
-baseerrors.adb:7:42: error: based literal is too large
+baseerrors.adb:7:42: error: based literal exceeds the supported 127-bit exact magnitude
 baseerrors.adb:8:42: error: based literal has no digits after the point

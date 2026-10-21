@@ -17,6 +17,10 @@ procedure AttributeAudit is
     F : Fixed := 1.0;
     R : Float := 1.0;
     Long_R : Long_Float := 1.0;
+    Invalid_Wide : Long_Integer := 4294967296;
+    Invalid_Position : Integer := -1;
+    Lowest_Real : Float := Float'Base'First;
+    Highest_Fixed : Fixed'Base := Fixed'Base'Last;
     subtype Real_Window is Float range 2.0 .. 3.0;
     function Read (Value : Integer) return Integer is
     begin
@@ -50,7 +54,7 @@ begin
         when Constraint_Error => Put_Line ("signed endpoint");
     end;
     begin
-        Put_Line (Integer'Image (Read (Integer'Val (4294967296))));
+        Put_Line (Integer'Image (Read (Integer'Val (Invalid_Wide))));
         Put_Line ("MISSED wide Val");
     exception
         when Constraint_Error => Put_Line ("wide Val");
@@ -63,7 +67,7 @@ begin
         when Constraint_Error => Put_Line ("modular predecessor");
     end;
     begin
-        C := Middle'Val (-1);
+        C := Middle'Val (Invalid_Position);
         Put_Line ("MISSED static enumeration endpoint");
     exception
         when Constraint_Error => Put_Line ("static enumeration endpoint");
@@ -76,13 +80,13 @@ begin
         when Constraint_Error => Put_Line ("float endpoint");
     end;
     begin
-        R := Float'Pred (Float'Base'First);
+        R := Float'Pred (Lowest_Real);
         Put_Line ("MISSED static float endpoint");
     exception
         when Constraint_Error => Put_Line ("static float endpoint");
     end;
     begin
-        F := Fixed'Succ (Fixed'Base'Last);
+        F := Fixed'Succ (Highest_Fixed);
         Put_Line ("MISSED fixed endpoint");
     exception
         when Constraint_Error => Put_Line ("fixed endpoint");

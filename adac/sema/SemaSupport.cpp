@@ -57,10 +57,17 @@ bool conformingExpressions(const Expr* left, const Expr* right)
         return true;
     };
     switch (left->kind) {
-    case ExprKind::IntegerLiteral:
-        return static_cast<const IntegerLiteralExpr*>(left)->value == static_cast<const IntegerLiteralExpr*>(right)->value;
+    case ExprKind::IntegerLiteral: {
+        ExactReal a = left->m_exactReal.m_valid ? left->m_exactReal
+            : ExactReal::make(static_cast<const IntegerLiteralExpr*>(left)->value);
+        ExactReal b = right->m_exactReal.m_valid ? right->m_exactReal
+            : ExactReal::make(static_cast<const IntegerLiteralExpr*>(right)->value);
+        return a.m_numerator == b.m_numerator;
+    }
     case ExprKind::RealLiteral:
-        return static_cast<const RealLiteralExpr*>(left)->value == static_cast<const RealLiteralExpr*>(right)->value;
+        return left->m_exactReal.m_valid && right->m_exactReal.m_valid
+            && left->m_exactReal.m_numerator == right->m_exactReal.m_numerator
+            && left->m_exactReal.m_denominator == right->m_exactReal.m_denominator;
     case ExprKind::StringLiteral:
         return static_cast<const StringLiteralExpr*>(left)->value == static_cast<const StringLiteralExpr*>(right)->value;
     case ExprKind::CharacterLiteral:
@@ -224,6 +231,9 @@ void adaptUniversal(Expr* expr, Type* type)
         expr->isStatic = !expr->m_fixedInvalid;
         expr->type = type;
         return;
+    }
+    if (isReal(type) && expr->type->kind == TypeKind::UniversalInteger && expr->m_exactReal.m_valid) {
+        expr->staticReal = expr->m_exactReal.real(typeSize(type) == 4 ? 24 : 53);
     }
     expr->type = type;
     if (expr->kind == ExprKind::Unary) {

@@ -214,6 +214,8 @@ private:
     // SemaStatic.cpp
     ExprPtr scalarBoundExpr(Type* type, bool first, const SourceLocation& location);
     bool foldStatic(Expr* expr, long long& value) const;
+    bool foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) const;
+    void validateStatic(Expr* expr, bool enclosingStatic = false, Type* expected = nullptr);
     bool exactValue(Expr* expr, ExactReal& value) const;
     bool foldFixed(Expr* expr, long long& value) const;
     bool foldStaticReal(Expr* expr, double& value) const;
@@ -231,6 +233,7 @@ private:
     // memoized domains before the next pass, when declarations may have changed.
     std::unordered_map<Expr*, std::unordered_map<Type*, std::vector<Type*>>> m_resolutionTypes;
     int m_resolutionDepth = 0;
+    int m_expressionDepth = 0;
 
     Diagnostics& m_diagnostics;
     TypeTable m_types;

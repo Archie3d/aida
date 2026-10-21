@@ -3,6 +3,8 @@
 #include "../common/Fixed.h"
 
 #include <string>
+#include <climits>
+#include <cmath>
 
 // Bounded exact rationals for static real expressions. Operations that exceed
 // the checked 128-bit capacity fail explicitly instead of using host doubles.
@@ -11,6 +13,64 @@ struct ExactReal
     __int128 m_numerator = 0;
     __int128 m_denominator = 1;
     bool m_valid = false;
+
+    bool integer(long long& result) const
+    {
+        if (!m_valid || m_denominator != 1 || m_numerator < LLONG_MIN || m_numerator > LLONG_MAX) {
+            return false;
+        }
+        result = static_cast<long long>(m_numerator);
+        return true;
+    }
+
+    // Round the exact fraction once to a binary machine value, nearest/even.
+    // Generate significand bits by division so neither cross-products nor a
+    // preliminary host-double rounding can lose a bit at a Float midpoint.
+    double real(int precision = 53) const
+    {
+        if (!m_valid || m_numerator == 0) {
+            return 0.0;
+        }
+        using Magnitude = unsigned __int128;
+        Magnitude numerator = m_numerator < 0 ? -m_numerator : m_numerator;
+        Magnitude denominator = m_denominator;
+        auto bits = [](Magnitude value) {
+            int count = 0;
+            for (; value != 0; value >>= 1) {
+                ++count;
+            }
+            return count;
+        };
+        int exponent = bits(numerator) - bits(denominator);
+        if (exponent >= 0 ? numerator < (denominator << exponent)
+                          : (numerator << -exponent) < denominator) {
+            --exponent;
+        }
+        if (exponent >= 0) {
+            denominator <<= exponent;
+        } else {
+            numerator <<= -exponent;
+        }
+        // A supported rational can reach Float subnormals, but not Double
+        // subnormals. Reduce precision to preserve the Float subnormal grid.
+        int digits = precision == 24 && exponent < -126 ? precision + exponent + 126 : precision;
+        unsigned long long significand = 1;
+        Magnitude remainder = numerator - denominator;
+        for (int i = 1; i < digits; ++i) {
+            remainder <<= 1;
+            significand <<= 1;
+            if (remainder >= denominator) {
+                remainder -= denominator;
+                significand |= 1;
+            }
+        }
+        if (remainder > denominator - remainder
+            || (remainder == denominator - remainder && (significand & 1))) {
+            ++significand;
+        }
+        double result = std::ldexp(static_cast<double>(significand), exponent - digits + 1);
+        return m_numerator < 0 ? -result : result;
+    }
 
     static __int128 gcd(__int128 a, __int128 b)
     {
@@ -92,9 +152,22 @@ struct ExactReal
         std::size_t hash = text.find('#');
         std::size_t exponentAt;
         if (hash != std::string::npos) {
-            base = std::stoi(text.substr(0, hash));
+            // The lexer diagnoses malformed bases; never throw while recovering.
+            base = 0;
+            for (std::size_t i = 0; i < hash; ++i) {
+                if (text[i] < '0' || text[i] > '9' || base > 16) {
+                    return {};
+                }
+                base = base * 10 + text[i] - '0';
+            }
+            if (base < 2 || base > 16) {
+                return {};
+            }
             start = hash + 1;
             end = text.find('#', start);
+            if (end == std::string::npos) {
+                return {};
+            }
             exponentAt = end + 1;
         } else {
             exponentAt = text.find_first_of("eE");
@@ -117,6 +190,9 @@ struct ExactReal
             }
         }
         value = operation('/', value, divisor);
+        if (!value.m_valid || value.m_numerator == 0) {
+            return value;
+        }
         if (exponentAt != std::string::npos && exponentAt < text.size()) {
             std::size_t pos = exponentAt + 1;
             bool negative = pos < text.size() && text[pos] == '-';

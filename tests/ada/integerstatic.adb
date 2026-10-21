@@ -6,14 +6,15 @@ procedure integerstatic is
     Result : Long_Integer;
     Exponent : Integer := -1;
     Two : Long_Integer := 2;
+    Largest : Long_Integer := Long_Integer'Last;
 begin
     Put_Line (Integer'Image (Integer (Remainder_Value)));
     Put_Line (Integer'Image (Integer (Modulo_Value)));
     begin
-        Result := 9223372036854775807 + 1;
-        Put_Line ("MISSED static overflow");
+        Result := Largest + 1;
+        Put_Line ("MISSED runtime overflow");
     exception
-        when Constraint_Error => Put_Line ("caught static overflow");
+        when Constraint_Error => Put_Line ("caught runtime overflow");
     end;
     begin
         Result := Two ** Exponent;

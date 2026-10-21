@@ -55,7 +55,8 @@ rows into individual legality/dynamic requirements and add missing units.
 
 | RM / class | Behavior | Restrictions / missing checks | Regressions | ACATS | Owner |
 | --- | --- | --- | --- | --- | --- |
-| 5.2 / Core | Scalar assignment checks preserve the old value on failure | Does not establish arbitrary-precision static evaluation | `scalarcopychecks` | C52005A PASS | P5 Static arithmetic; P8 |
+| 5.2 / Core | Scalar assignment checks preserve the old value on failure | Assignment subtype checks remain dynamic; bounded static arithmetic is recorded below | `scalarcopychecks` | C52005A PASS | P5 Static arithmetic; P8 |
+| 4.9, 4.5 / Core, Choice | Exact bounded scalar evaluation, universal integer named numbers, final binary rounding and static-check diagnostics | [127-bit integer/rational and 64-bit scaled fixed limits](static-arithmetic.md); full staticness/string/formal-type audit remains open | `staticarithmetic`, `staticarithmeticerrors`, `determinism.staticarithmetic`, `integerliteral*` | C49022A PASS | P5 Static arithmetic complete for the documented subset; P8 gap review |
 | 5.3, 4.5.1 / Core | Nested conditionals and Boolean short circuit | Selected control-flow paths only | `control` | C53007A PASS | P8 coverage |
 
 ## Predefined-unit inventory
@@ -68,7 +69,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 
 | RM | Unit(s) | Implemented subset / restrictions and missing checks | Regression evidence | Roadmap owner |
 | --- | --- | --- | --- | --- |
-| A.1 | Standard (built in) | Scalar/string types, exceptions; wider characters and exact static arithmetic pending | `arithmetic`, `integerliteral*`, `strings` | P5; P7 wide types |
+| A.1 | Standard (built in) | Scalar/string types, exceptions; wider characters pending; exact static evaluation is bounded (see above) | `arithmetic`, `integerliteral*`, `strings` | P5; P7 wide types |
 | A.2 | Ada | Root namespace | `hello` | P8 |
 | A.3.1–A.3.2 | Ada.Characters; Ada.Characters.Handling | Byte-character classification/conversion; wide facilities missing | `characterhandling` | P7 wide types |
 | A.3.3 | Ada.Characters.Latin_1 | Latin-1 constants | `characterhandling` | P7 wide types |

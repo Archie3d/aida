@@ -9,6 +9,7 @@ procedure integerwidth is
     X : Long_Integer := 4294967296;
     Y : Wide := 5000000000;
     N : Tiny_Sub := -7;
+    Largest : Long_Integer := Long_Integer'Last;
     function Echo (Value : Long_Integer) return Long_Integer is
     begin
         return Value;
@@ -32,7 +33,7 @@ begin
     end;
     Put_Line (Long_Integer'Image (Long_Integer'Val (4294967296)));
     begin
-        X := Long_Integer'Succ (Long_Integer'Last);
+        X := Long_Integer'Succ (Largest);
         Put_Line ("MISSED successor overflow");
     exception
         when Constraint_Error => Put_Line ("caught successor overflow");

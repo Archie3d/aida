@@ -28,7 +28,16 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
+    int errors = m_diagnostics.errorCount();
+    ++m_expressionDepth;
     Type* result = analyzeExprValue(expr, scope, expected);
+    if (result != nullptr && errors == m_diagnostics.errorCount()) {
+        noteStaticValue(expr);
+    }
+    --m_expressionDepth;
+    if (m_expressionDepth == 0 && errors == m_diagnostics.errorCount()) {
+        validateStatic(expr, false, expected);
+    }
     if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->m_tagged)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->m_usesFinalization = true;
@@ -99,7 +108,10 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         }
         expr->type = expected != nullptr && expected->kind == TypeKind::Float ? expected : m_types.universalReal();
         expr->isStatic = true;
-        expr->staticReal = literal->value;
+        expr->staticReal = expr->m_exactReal.real();
+        if (!expr->m_exactReal.m_valid) {
+            expr->staticFailure = StaticFailure::Capacity;
+        }
         return expr->type;
     }
     case ExprKind::CharacterLiteral: {
@@ -168,6 +180,21 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         }
         expr->staticValue = qualified->operand->staticValue;
         expr->staticReal = qualified->operand->staticReal;
+        if (type != nullptr && isScalar(type) && qualified->operand->isStatic
+            && type->m_scalarBoundsSymbol == nullptr && !type->m_formalFixed) {
+            expr->isStatic = true;
+            expr->staticFailure = qualified->operand->staticFailure == StaticFailure::None
+                ? StaticFailure::None : StaticFailure::Dependent;
+            expr->m_exactReal = qualified->operand->m_exactReal;
+            __int128 value = 0;
+            StaticFailure failure = StaticFailure::None;
+            bool valid = isReal(type)
+                ? (!type->hasRealRange || (expr->staticReal >= type->lowReal && expr->staticReal <= type->highReal))
+                : foldWideInteger(qualified->operand.get(), value, failure) && value >= type->low && value <= type->high;
+            if (!valid && expr->staticFailure == StaticFailure::None) {
+                expr->staticFailure = StaticFailure::Check;
+            }
+        }
         return type;
     }
     }

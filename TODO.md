@@ -264,11 +264,15 @@ and numeric work changes the generated code.
 
 ### Numeric and representation work
 
-- [ ] **Static arithmetic.** Separate universal/static arithmetic from machine
-  arithmetic. Diagnose invalid static expressions without host overflow or
-  premature narrowing; accept the most negative 64-bit literal. Evaluate
-  static expressions exactly (RM 4.9): replace the 128-bit `ExactReal` and
-  integer folding with arbitrary precision, or diagnose and document its limits.
+- [x] **Static arithmetic.** Universal integer named numbers and checked exact
+  scalar folding are separate from machine arithmetic; signed 64-bit literal
+  endpoints, maximal-expression base checks, static check failures and skipped
+  short-circuit operands are covered (`staticarithmetic*`, `integerliteral*`,
+  `determinism.staticarithmetic`, ACATS C49022A). Final real rounding is binary
+  nearest/even. The bounded implementation retains 127-bit integer/rational
+  magnitudes and 64-bit scaled fixed intermediates, with explicit diagnostics;
+  arbitrary precision and the full RM staticness audit remain unsupported/open
+  ([limits and evidence](docs/static-arithmetic.md); Phase 8 coverage matrix).
 - [ ] **Real edge cases.** Negative exponents and zero divisors. Document the
   supported floating-point model and its checks.
 - [ ] **Floating-point `'Value`.** `Sema` rejects real prefixes, although the run
