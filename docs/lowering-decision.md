@@ -1,6 +1,8 @@
 # Code-generation decision: retain direct QBE emission
 
-Status: accepted for the Phase 5 prelude. This records an architecture decision;
+Status: accepted for the Phase 5 prelude. The P5 descriptor migration gate is
+implemented in [array-descriptors.md](array-descriptors.md). The pressure points
+below describe the pre-migration baseline. This records an architecture decision;
 the implementation work below remains with its named roadmap items.
 
 Keep the analyzed AST -> QBE emission path through the descriptor rework.
@@ -72,10 +74,10 @@ resolution or evaluate an actual/component/bound twice.
 | Dispatch and interfaces | A call plan separates evaluated actuals, target/static link/receiver/controlling tag, hidden result arguments, raising checks and normal-return copy-backs. Interface work extends tag lookup behind that boundary. | P6f prefixed calls/interfaces |
 | Select and rendezvous | An operation plan must distinguish alternative registration, commitment, timeout/cancellation, normal completion and exceptional completion, including queue lifetime and parameter copy-back. Explicit control-flow blocks use the same exit plan; parser/legality and queue policy remain separate concerns. | P9 entry calls/select/requeue/abort |
 
-These are implementation requirements, not declarations that the listed features
-or plans already exist. In particular, the descriptor field widths, physical
-layout and admissible noncontiguous views still need specification in the P5
-descriptor item. A lowering decision must not silently choose a new ABI.
+These are implementation requirements; later feature plans do not yet exist.
+The descriptor widths, physical layouts and contiguous-view restriction are now
+specified by [the completed P5 ABI contract](array-descriptors.md). Later work
+must explicitly revise that contract before admitting new view representations.
 
 ## Migration order and completion gates
 

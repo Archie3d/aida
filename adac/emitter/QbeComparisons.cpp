@@ -23,28 +23,7 @@ Value QbeEmitter::compareObjects(const Value& left, const Value& right, Type* ty
 Value QbeEmitter::compareArrays(BinaryOp op, const Value& left, Type* leftType, const Value& right,
                                 Type* rightType)
 {
-    // Normalize null ranges to length zero, even for runtime bounds such as
-    // 10 .. 5. Widen before subtracting so the span does not overflow a word.
-    auto length = [&](const Value& value, Type* type) {
-        if (type->constrained) {
-            return std::to_string(arrayLength(type));
-        }
-        std::string first = newTemp();
-        std::string last = newTemp();
-        std::string span = newTemp();
-        std::string count = newTemp();
-        std::string positive = newTemp();
-        std::string widePositive = newTemp();
-        std::string result = newTemp();
-        line(first + " =l extsw " + value.first);
-        line(last + " =l extsw " + value.last);
-        line(span + " =l sub " + last + ", " + first);
-        line(count + " =l add " + span + ", 1");
-        line(positive + " =w csgtl " + count + ", 0");
-        line(widePositive + " =l extuw " + positive);
-        line(result + " =l mul " + count + ", " + widePositive);
-        return result;
-    };
+    auto length = [&](const Value& value, Type* type) { return lengthOf(value, type).name; };
     std::string leftLength = length(left, leftType);
     std::string rightLength = length(right, rightType);
     bool equality = op == BinaryOp::Equal || op == BinaryOp::NotEqual;

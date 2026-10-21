@@ -436,9 +436,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_taskIdType);
         } else if (name == "callable" || name == "terminated" || name == "machine_overflows" || name == "machine_rounds") {
             add(m_types.booleanType());
-        } else if (name == "pos") {
+        } else if (name == "pos" || name == "length" || name == "size") {
             add(m_types.universalInteger());
-        } else if (name == "length" || name == "size" || name == "width" || name == "digits" || name == "modulus") {
+        } else if (name == "width" || name == "digits" || name == "modulus") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {

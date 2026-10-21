@@ -106,13 +106,13 @@ int __ada_direct_size(AdaFileRef handle, int size);
 /* Stream_IO addresses the file by byte.  A Stream_Access is the file itself,
    which is all a stream needs to be without tagged types to build one on. */
 AdaFile* __ada_stream_of(AdaFileRef handle);
-void __ada_stream_read(AdaFile* stream, void* item, int size);
-void __ada_stream_write(AdaFile* stream, const void* item, int size);
+void __ada_stream_read(AdaFile* stream, void* item, int64_t size);
+void __ada_stream_write(AdaFile* stream, const void* item, int64_t size);
 
 /* 'Output writes the bounds of an array ahead of its elements, and 'Input
    reads them back into a caller-owned result descriptor. */
-void __ada_stream_write_bounds(AdaFile* stream, int first, int last);
-void __ada_stream_read_array(void* descriptor, AdaFile* stream, int elementSize);
+void __ada_stream_write_bounds(AdaFile* stream, int64_t first, int64_t last);
+void __ada_stream_read_array(void* descriptor, AdaFile* stream, int64_t elementSize);
 
 void __ada_stream_elements_read(AdaFileRef handle, void* item, int length, int first, int* last);
 void __ada_stream_elements_write(AdaFileRef handle, const void* item, int length);

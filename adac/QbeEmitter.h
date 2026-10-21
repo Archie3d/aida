@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Ast.h"
+#include "../common/Array.h"
 #include "../common/Modular.h"
 #include "../common/Real.h"
 #include "Diagnostics.h"
@@ -27,6 +28,18 @@ struct Value
     // their component bounds in the component type instead.
     std::vector<std::pair<std::string, std::string>> innerBounds;
 
+    std::vector<std::string> lengths;
+    std::vector<std::string> strides;
+
+    const std::string& axisFirst(int dimension) const
+    {
+        return dimension == 0 ? first : innerBounds[dimension - 1].first;
+    }
+    const std::string& axisLast(int dimension) const
+    {
+        return dimension == 0 ? last : innerBounds[dimension - 1].second;
+    }
+
     bool m_shared = false; // This value denotes shared scalar storage.
 
     bool hasBounds() const { return !first.empty() && !last.empty(); }
@@ -42,6 +55,9 @@ public:
     void emitUnit(const LibraryUnit& unit, std::ostream& out);
 
 private:
+    static constexpr long long m_arrayStackLimit = 65536;
+    static constexpr long long m_frameStackLimit = INT32_MAX - 16;
+
     struct ArrayAggregatePlan
     {
         std::unordered_map<Expr*, Value> choices;
@@ -161,6 +177,7 @@ private:
     Value taggedMembership(const Value& object, Type* target);
 
     // Storage and assignment (QbeStorage.cpp).
+    long long reserveFrame(long long size, long long alignment = 8);
     std::string allocScratch(long long size);
     std::string storageArena(bool temporary, bool allocate = false);
     StorageCheckpoint storageCheckpoint();
@@ -197,6 +214,11 @@ private:
     void emitScalarSubtype(Type* type, const SourceLocation& location);
     Value scalarBounds(Type* type);
     void emitTypeBounds(Type* type, const SourceLocation& location);
+    Value wideBound(Value value);
+    Value narrowArrayLength(Value value);
+    Value arrayView(Value value, Type* type);
+    Value loadArrayView(const std::string& descriptor, int rank, bool result);
+    void storeArrayView(const std::string& descriptor, Value value, Type* type, bool result);
     Value boundsFor(Symbol* symbol);
     Value withBounds(const Value& address, Type* type, Symbol* symbol);
     Value arrayRow(const Value& array, Type* type);

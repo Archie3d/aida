@@ -148,10 +148,10 @@ static void checkStreams(void)
     for (int scenario = 0; scenario < 3; ++scenario) {
         file.stream = tmpfile();
         CHECK(file.stream != NULL);
-        int first = 1;
+        int64_t first = 1;
         __ada_stream_write(&file, &first, sizeof first);
         if (scenario != 1) {
-            int last = scenario == 0 ? 20 : INT_MAX;
+            int64_t last = scenario == 0 ? 20 : INT64_MAX;
             __ada_stream_write(&file, &last, sizeof last);
         }
         rewind(file.stream);

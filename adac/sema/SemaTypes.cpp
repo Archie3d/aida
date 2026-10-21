@@ -9,6 +9,29 @@
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
 
+static bool checkArrayStorage(Type* type, Diagnostics& diagnostics, const SourceLocation& location)
+{
+    std::vector<Type*> axes;
+    Type* cell = type;
+    for (int i = 0; i < type->arrayRank; ++i) { axes.push_back(cell); cell = cell->element; }
+    long long size = typeSize(cell);
+    for (auto axis = axes.rbegin(); axis != axes.rend(); ++axis) {
+        if (!(*axis)->constrained) { return true; }
+        __int128 length = (*axis)->indexHigh < (*axis)->indexLow ? 0
+            : (__int128)(*axis)->indexHigh - (*axis)->indexLow + 1;
+        if (length > INT64_MAX) {
+            diagnostics.error(location, "array length exceeds signed 64-bit descriptor capacity");
+            return false;
+        }
+        if (__builtin_mul_overflow(size, (long long)length, &size)) {
+            diagnostics.error(location, type->arrayRank > 1 ? "multidimensional array storage size is too large"
+                : "array storage size is too large");
+            return false;
+        }
+    }
+    return true;
+}
+
 void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 {
     // A type already named here without being described is completed by this
@@ -295,8 +318,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             row->arrayRank = rank - dimension;
             row->constrained = !definition->unconstrainedIndexes;
             SubtypeIndication* index = definition->indexTypes[dimension].get();
-            Type* indexType = index->name.empty() ? m_types.integerType()
-                : resolveTypeName(index->lower, scope, index->location);
+            Type* indexType = index->name.empty() && index->rangeLow && index->rangeHigh
+                ? commonOperandType(index->rangeLow.get(), index->rangeHigh.get(), scope, nullptr)
+                : index->name.empty() ? m_types.integerType() : resolveTypeName(index->lower, scope, index->location);
+            if (indexType == nullptr || isUniversal(indexType)) { indexType = m_types.integerType(); }
             row->index = indexType;
             if (!isDiscrete(indexType)) {
                 m_diagnostics.error(index->location, "array indices require a discrete type");
@@ -341,26 +366,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         } else {
             type->m_boundExpressions.clear();
         }
-        if (rank > 1 && type->constrained) {
-            long long size = typeSize(cell);
-            std::vector<Type*> dimensions;
-            for (Type* dimension = type; dimension != cell; dimension = dimension->element) {
-                if (dimension->indexLow < std::numeric_limits<int>::min()
-                    || dimension->indexHigh > std::numeric_limits<int>::max()
-                    || dimension->indexLow > std::numeric_limits<int>::max()
-                    || dimension->indexHigh < std::numeric_limits<int>::min()) {
-                    m_diagnostics.error(definition->location, "multidimensional bounds must fit a 32-bit index");
-                    return;
-                }
-                dimensions.push_back(dimension);
-            }
-            for (auto dimension = dimensions.rbegin(); dimension != dimensions.rend(); ++dimension) {
-                if (__builtin_mul_overflow(size, arrayLength(*dimension), &size)) {
-                    m_diagnostics.error(definition->location, "multidimensional array storage size is too large");
-                    return;
-                }
-            }
-        }
+        if (type->constrained) { checkArrayStorage(type, m_diagnostics, definition->location); }
+
         break;
     }
     case TypeDefKind::Record: {
@@ -744,11 +751,20 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         }
 
         long long alignment = typeAlignment(info.type);
-        if (alignment > 0 && offset % alignment != 0) {
-            offset += alignment - offset % alignment;
+        __int128 aligned = offset;
+        if (alignment > 0 && offset % alignment != 0) { aligned += alignment - offset % alignment; }
+        __int128 end = aligned + typeSize(info.type);
+        long long recordAlignment = std::max(typeAlignment(type), alignment);
+        __int128 padded = end;
+        if (recordAlignment > 0 && padded % recordAlignment != 0) { padded += recordAlignment - padded % recordAlignment; }
+        if (padded > INT64_MAX) {
+            m_diagnostics.error(field.location, "record layout exceeds signed 64-bit storage capacity");
+            info.offset = 0;
+            offset = 0;
+        } else {
+            info.offset = (long long)aligned;
+            offset = (long long)end;
         }
-        info.offset = offset;
-        offset += typeSize(info.type);
         type->fields.push_back(info);
     };
 
@@ -1143,19 +1159,8 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 m_diagnostics.error(indication->location, "index constraints must be static");
                 return base;
             }
-            long long size = typeSize(row->element);
-            for (auto axis = rows.rbegin(); axis != rows.rend(); ++axis) {
-                (*axis)->constrained = allStatic;
-                if (allStatic && ((*axis)->indexLow < INT32_MIN || (*axis)->indexLow > INT32_MAX
-                    || (*axis)->indexHigh < INT32_MIN || (*axis)->indexHigh > INT32_MAX)) {
-                    m_diagnostics.error(indication->location, "multidimensional bounds must fit a 32-bit index");
-                    return base;
-                }
-                if (allStatic && __builtin_mul_overflow(size, arrayLength(*axis), &size)) {
-                    m_diagnostics.error(indication->location, "multidimensional array storage size is too large");
-                    return base;
-                }
-            }
+            for (Type* axis : rows) { axis->constrained = allStatic; }
+            if (allStatic) { checkArrayStorage(subtype, m_diagnostics, indication->location); }
             indication->resolved = subtype;
             return subtype;
         }
@@ -1193,6 +1198,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         subtype->constrained = true;
         subtype->indexLow = low;
         subtype->indexHigh = high;
+        checkArrayStorage(subtype, m_diagnostics, indication->location);
         indication->resolved = subtype;
         return subtype;
     }

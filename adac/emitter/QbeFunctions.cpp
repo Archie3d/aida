@@ -235,9 +235,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         Symbol* receiver = symbol->m_protectedReceiver;
         if (receiver->isUplevel) {
             context.hasFrame = true;
-            context.frameSize = (context.frameSize + 7) / 8 * 8;
-            receiver->frameOffset = context.frameSize;
-            context.frameSize += 8;
+            receiver->frameOffset = reserveFrame(8);
             std::string slot = newTemp();
             context.prologue << "    " << slot << " =l add " << context.frameTemp << ", " << receiver->frameOffset << "\n";
             context.prologue << "    storel %.protectedObject, " << slot << "\n";
@@ -253,11 +251,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
         signature += std::string(1, type) + " %p." + parameter->name;
         if (isUnconstrainedArray(parameter->type)) {
-            signature += ", w %p." + parameter->name + ".first, w %p." + parameter->name + ".last";
-            for (int dimension = 1; dimension < parameter->type->arrayRank; ++dimension) {
-                std::string suffix = std::to_string(dimension);
-                signature += ", w %p." + parameter->name + ".first" + suffix
-                    + ", w %p." + parameter->name + ".last" + suffix;
+            for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
+                std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
+                for (const char* field : { "first", "last", "length", "stride" }) {
+                    signature += ", l %p." + parameter->name + "." + field + suffix;
+                }
             }
         }
     }
@@ -266,15 +264,26 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     for (Symbol* parameter : symbol->parameters) {
         std::string incoming = "%p." + parameter->name;
         bool unconstrained = isUnconstrainedArray(parameter->type);
+        Value incomingView { incoming, 'l' };
+        if (unconstrained) {
+            incomingView.first = incoming + ".first";
+            incomingView.last = incoming + ".last";
+            for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
+                std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
+                if (dimension != 0) {
+                    incomingView.innerBounds.push_back({ incoming + ".first" + suffix, incoming + ".last" + suffix });
+                }
+                incomingView.lengths.push_back(incoming + ".length" + suffix);
+                incomingView.strides.push_back(incoming + ".stride" + suffix);
+            }
+        }
         if (parameter->isUplevel) {
             long long alignment = parameter->byReference ? 8 : typeAlignment(parameter->type);
-            context.frameSize = (context.frameSize + alignment - 1) / alignment * alignment;
-            parameter->frameOffset = context.frameSize;
             long long slotSize = parameter->byReference ? 8 : typeSize(parameter->type);
             if (unconstrained) {
-                slotSize = 8 + 8 * parameter->type->arrayRank; // Pointer followed by each pair of bounds.
+                slotSize = adaArrayLocalSize(parameter->type->arrayRank); // Pointer followed by dimension records.
             }
-            context.frameSize += slotSize;
+            parameter->frameOffset = reserveFrame(slotSize, alignment);
             std::string address = newTemp();
             context.prologue << "    " << address << " =l add " << context.frameTemp << ", "
                              << parameter->frameOffset << "\n";
@@ -287,34 +296,14 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                                  << address << "\n";
             }
             if (unconstrained) {
-                std::string firstAddress = newTemp();
-                std::string lastAddress = newTemp();
-                context.prologue << "    " << firstAddress << " =l add " << context.frameTemp << ", "
-                                 << parameter->frameOffset + 8 << "\n";
-                context.prologue << "    storew " << incoming << ".first, " << firstAddress << "\n";
-                context.prologue << "    " << lastAddress << " =l add " << context.frameTemp << ", "
-                                 << parameter->frameOffset + 12 << "\n";
-                context.prologue << "    storew " << incoming << ".last, " << lastAddress << "\n";
-                for (int dimension = 1; dimension < parameter->type->arrayRank; ++dimension) {
-                    std::string firstSlot = newTemp();
-                    std::string lastSlot = newTemp();
-                    context.prologue << "    " << firstSlot << " =l add " << address << ", " << 8 + dimension * 8 << "\n";
-                    context.prologue << "    " << lastSlot << " =l add " << firstSlot << ", 4\n";
-                    context.prologue << "    storew " << incoming << ".first" << dimension << ", " << firstSlot << "\n";
-                    context.prologue << "    storew " << incoming << ".last" << dimension << ", " << lastSlot << "\n";
-                }
+                storeArrayView(address, incomingView, parameter->type, false);
             }
             continue;
         }
         if (parameter->byReference) {
             context.locals[parameter] = incoming;
             if (unconstrained) {
-                Value bounds { incoming, 'l', incoming + ".first", incoming + ".last" };
-                for (int dimension = 1; dimension < parameter->type->arrayRank; ++dimension) {
-                    bounds.innerBounds.push_back({ incoming + ".first" + std::to_string(dimension),
-                                                   incoming + ".last" + std::to_string(dimension) });
-                }
-                context.bounds[parameter] = bounds;
+                context.bounds[parameter] = incomingView;
             }
             continue;
         }
@@ -338,9 +327,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         std::string slot = newTemp();
         if (identity->isUplevel) {
             context.hasFrame = true;
-            context.frameSize = (context.frameSize + 7) / 8 * 8;
-            identity->frameOffset = context.frameSize;
-            context.frameSize += 8;
+            identity->frameOffset = reserveFrame(8);
             context.prologue << "    " << slot << " =l add " << context.frameTemp << ", " << identity->frameOffset << "\n";
         } else {
             context.prologue << "    " << slot << " =l alloc8 8\n";

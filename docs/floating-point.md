@@ -86,6 +86,49 @@ Products/reciprocals use the selected machine precision; no libm real-exponent
 This is the implemented association/rounding strategy, not an Annex G accuracy
 promise.
 
+## Floating Value
+
+`S'Value (Text)` accepts a floating subtype mark and a String, returning
+`S'Base` as specified by [Ada 2005 RM 3.5](https://adaic.org/resources/add_content/standards/05rm/html/RM-3-5.html).
+The prefix's constraint is not checked by the attribute; assignment or
+qualification to a constrained subtype still checks it. Floating subtype bounds
+remain static; dynamic real constraints are not yet supported. Text is evaluated once,
+including functions and slices with non-one lower bounds.
+
+Accepted input includes leading/trailing spaces, an adjacent optional sign,
+decimal or based numerals (bases 2 through 16, `#` or matching `:` delimiters),
+underscores between digits, and decimal exponent numerals. Exponents scale by
+the literal's base. Integer-looking forms and forms with digits on just one
+side of the point are accepted too. Empty text, misplaced underscores, internal
+spaces, format effectors, mismatched delimiters, invalid digits, trailing junk,
+embedded NUL, C hex notation and NaN/infinity spellings raise `Constraint_Error`.
+
+The parser accumulates an exact rational in allocated integer limbs and rounds
+once to the destination binary precision, nearest/even, including subnormals.
+It avoids double rounding for Float and does not depend on the C locale or
+`strtod` grammar. Overflow raises `Constraint_Error`; underflow can round to
+zero. Huge exponents are scanned completely and classified without huge
+exponent loops; zero remains zero for any syntactically valid exponent.
+There is no fixed-length text buffer or 127-bit static evaluator limit here;
+allocation failure raises `Storage_Error`. Input length remains subject to the
+current String descriptor's Integer limit. All scratch storage is per call and
+exceptions use the current task context.
+
+This is a separate attribute entry point from `Float_IO`'s existing
+`__ada_real_value` scanner, whose token grammar, buffer and `Data_Error`
+behavior remain a Phase 7 I/O audit item. Fixed-point parsing shares only the
+integer-limb/digit primitives; its rounding and I/O contract are unchanged.
+
+`realvalue` covers generic Float/Long_Float/derived types, constrained and null
+prefixes, single evaluation, decimal/based syntax, malformed text and rounding.
+`realvaluetasking` repeats the generic checks in four Ada tasks; both have
+whole/separate and deterministic-IR checks. `realvalueerrors` pins prefix,
+argument and arity diagnostics. `runtime.real_value` covers format endpoints,
+ties, double-rounding traps, subnormals, all bases, long inputs and a decimal
+conversion comparison with host `strtof`/`strtod`, in four native contexts.
+Native and whole/separate Ada tasking checks pass with C runtime ASan/UBSan
+and ThreadSanitizer instrumentation; generated QBE accesses remain uninstrumented.
+
 ## Static evaluation and evidence
 
 Static expressions continue to use the

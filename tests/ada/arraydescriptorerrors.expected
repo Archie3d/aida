@@ -1,0 +1,5 @@
+arraydescriptorerrors.adb:2:23: error: array length exceeds signed 64-bit descriptor capacity
+arraydescriptorerrors.adb:3:27: error: array storage size is too large
+arraydescriptorerrors.adb:4:29: error: multidimensional array storage size is too large
+arraydescriptorerrors.adb:7:36: error: 'Size exceeds signed 64-bit result capacity
+arraydescriptorerrors.adb:10:9: error: record layout exceeds signed 64-bit storage capacity

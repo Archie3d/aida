@@ -4,9 +4,29 @@
 using QbeSupport::isUnconstrainedArray;
 using QbeSupport::isLiteralOperand;
 
+long long QbeEmitter::reserveFrame(long long size, long long alignment)
+{
+    __int128 offset = ((__int128)m_context->frameSize + alignment - 1) / alignment * alignment;
+    if (size < 0 || offset + size > INT64_MAX) {
+        m_diagnostics.error(m_context->sourceLocation, "activation frame exceeds signed 64-bit storage capacity");
+        return 0;
+    }
+    if (offset + size > m_frameStackLimit) {
+        m_diagnostics.error(m_context->sourceLocation, "activation frame exceeds backend stack capacity");
+        return 0;
+    }
+    m_context->frameSize = (long long)(offset + size);
+    return (long long)offset;
+}
+
 std::string QbeEmitter::allocScratch(long long size)
 {
     std::string temp = newTemp();
+    if (size > m_arrayStackLimit) {
+        line(temp + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + std::to_string(size) + ")");
+        emitExceptionCheck();
+        return temp;
+    }
     const char* instruction = size <= 4 ? "alloc4" : "alloc8";
     m_context->prologue << "    " << temp << " =l " << instruction << " " << size << "\n";
     return temp;
@@ -117,7 +137,8 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         if ((symbol->kind == SymbolKind::Parameter && symbol->byReference)
             || (symbol->kind == SymbolKind::Object && !symbol->m_objectReference
-                && isUnconstrainedArray(symbol->type))) {
+                && (isUnconstrainedArray(symbol->type)
+                    || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)))) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
             address.name = pointer;
@@ -330,7 +351,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             checkArrayShape(target, type, source, value->type);
             std::string elementSize = arrayElementSize(target, type);
             std::string size = newTemp();
-            line(size + " =l call $__ada_array_size(w " + target.first + ", w " + target.last + ", l " + elementSize + ")");
+            line(size + " =l call $__ada_array_size(l " + target.first + ", l " + target.last + ", l " + elementSize + ")");
             emitExceptionCheck();
             line("call $memmove(l " + target.name + ", l " + source.name + ", l " + size + ")");
             return;
@@ -340,7 +361,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             Value targetLength = lengthOf(address, type);
             Value sourceLength = lengthOf(source, value->type);
             std::string same = newTemp();
-            line(same + " =w ceqw " + targetLength.name + ", " + sourceLength.name);
+            line(same + " =w ceql " + targetLength.name + ", " + sourceLength.name);
             std::string ok = newLabel("lengthok");
             std::string bad = newLabel("lengthbad");
             branch(Value { same, 'w' }, ok, bad);
@@ -349,8 +370,9 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             label(ok);
             std::string wide = newTemp();
             std::string size = newTemp();
-            line(wide + " =l extuw " + targetLength.name);
-            line(size + " =l mul " + wide + ", " + std::to_string(typeSize(type->element)));
+            line(wide + " =l copy " + targetLength.name);
+            line(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + std::to_string(typeSize(type->element)) + ")");
+            emitExceptionCheck();
             line("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")");
             return;
         }
@@ -365,7 +387,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         } else {
             // Ada requires the lengths to match, so check them at run time.
             std::string same = newTemp();
-            line(same + " =w ceqw " + sourceLength.name + ", " + std::to_string(target));
+            line(same + " =w ceql " + sourceLength.name + ", " + std::to_string(target));
             std::string ok = newLabel("lengthok");
             std::string bad = newLabel("lengthbad");
             branch(Value { same, 'w' }, ok, bad);

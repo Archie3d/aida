@@ -11,11 +11,6 @@ using QbeSupport::isUnconstrainedArray;
 // their bounds while filling storage.
 Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* type, ArrayAggregatePlan& plan)
 {
-    auto widen = [&](const std::string& value) {
-        std::string wide = newTemp();
-        line(wide + " =l extsw " + value);
-        return wide;
-    };
     auto require = [&](const std::string& condition) {
         std::string ok = newLabel("aggregateshapeok");
         std::string bad = newLabel("aggregateshapebad");
@@ -25,24 +20,24 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
         label(ok);
     };
     Value indexBounds = scalarBounds(type->index);
-    std::string first = context.hasBounds() ? widen(context.first)
-        : (indexBounds.type == 'l' ? indexBounds.first : widen(indexBounds.first));
+    std::string first = context.hasBounds() ? context.first
+        : wideBound(Value { indexBounds.first, indexBounds.type }).name;
     std::string last;
     AggregateExpr* aggregate = nullptr;
     bool others = false;
     if (expr->kind == ExprKind::StringLiteral) {
         auto* literal = static_cast<StringLiteralExpr*>(expr);
         last = newTemp();
-        line(last + " =l add " + first + ", " + std::to_string(static_cast<long long>(literal->value.size()) - 1));
+        last = emitIntegerOperation(0, Value { first, 'l' }, Value { std::to_string(static_cast<long long>(literal->value.size()) - 1), 'l' }, 'l').name;
     } else if (expr->kind == ExprKind::Aggregate) {
         aggregate = static_cast<AggregateExpr*>(expr);
         std::vector<std::pair<std::string, std::string>> ranges;
         long long positional = 0;
         auto choiceValue = [&](Expr* choice) {
             Value value = emitExpr(choice);
-            emitRangeCheck(value, m_sema.typeTable().integerType(), choice->location);
+            emitRangeCheck(value, m_sema.typeTable().scalarBaseType(type->index), choice->location);
             plan.choices[choice] = value;
-            return value.type == 'l' ? value.name : widen(value.name);
+            return wideBound(value).name;
         };
         for (AggregateComponent& component : aggregate->components) {
             if (component.isOthers) {
@@ -62,7 +57,7 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
                 m_diagnostics.error(expr->location, "others requires bounds from the aggregate context");
                 return Value {};
             }
-            last = widen(context.last);
+            last = context.last;
             for (const auto& range : ranges) {
                 std::string low = newTemp();
                 std::string high = newTemp();
@@ -75,13 +70,13 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
             if (positional != 0) {
                 std::string end = newTemp();
                 std::string valid = newTemp();
-                line(end + " =l add " + first + ", " + std::to_string(positional - 1));
+                end = emitIntegerOperation(0, Value { first, 'l' }, Value { std::to_string(positional - 1), 'l' }, 'l').name;
                 line(valid + " =w cslel " + end + ", " + last);
                 require(valid);
             }
         } else if (ranges.empty()) {
             last = newTemp();
-            line(last + " =l add " + first + ", " + std::to_string(positional - 1));
+            last = emitIntegerOperation(0, Value { first, 'l' }, Value { std::to_string(positional - 1), 'l' }, 'l').name;
         } else if (ranges.size() == 1) {
             first = ranges.front().first;
             last = ranges.front().second;
@@ -103,8 +98,8 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
         m_diagnostics.error(expr->location, "multidimensional aggregate requires nested subaggregates");
         return Value {};
     }
-    emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().integerType(), expr->location);
-    emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().integerType(), expr->location);
+    emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().scalarBaseType(type->index), expr->location);
+    emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().scalarBaseType(type->index), expr->location);
     std::string nonNull = newTemp();
     std::string check = newLabel("aggregateindexbounds");
     std::string ready = newLabel("aggregateindexready");
@@ -120,21 +115,11 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
         // Compare normalized lengths using wide arithmetic, before any cells
         // are evaluated. Named aggregates may slide to the target's bounds.
         auto length = [&](const std::string& low, const std::string& high) {
-            std::string span = newTemp();
-            std::string count = newTemp();
-            std::string nonNull = newTemp();
-            std::string flag = newTemp();
-            std::string normalized = newTemp();
-            line(span + " =l sub " + high + ", " + low);
-            line(count + " =l add " + span + ", 1");
-            line(nonNull + " =w csgel " + high + ", " + low);
-            line(flag + " =l extuw " + nonNull);
-            line(normalized + " =l mul " + count + ", " + flag);
-            return normalized;
+            return lengthOf(Value { "", 'l', low, high }, nullptr).name;
         };
         std::string actual = length(first, last);
-        std::string targetFirst = widen(context.first);
-        std::string targetLast = widen(context.last);
+        std::string targetFirst = context.first;
+        std::string targetLast = context.last;
         std::string wanted = length(targetFirst, targetLast);
         std::string same = newTemp();
         line(same + " =w ceql " + actual + ", " + wanted);
@@ -208,27 +193,27 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     };
     Value indexBounds = scalarBounds(type->index);
     std::string first = inferred ? widen(Value { indexBounds.first, indexBounds.type })
-                                 : widen(Value { address.first, 'w' });
-    std::string last = inferred ? first : widen(Value { address.last, 'w' });
+                                 : widen(Value { address.first, 'l' });
+    std::string last = inferred ? first : widen(Value { address.last, 'l' });
     for (AggregateComponent& component : expr->components) {
         if (component.isOthers) {
             others = component.value.get();
         } else if (component.choiceLows.empty()) {
             std::string index = newTemp();
-            line(index + " =l add " + first + ", " + std::to_string(position++));
+            index = emitIntegerOperation(0, Value { first, 'l' }, Value { std::to_string(position++), 'l' }, 'l').name;
             choices.push_back({ index, index, component.value.get() });
         } else {
             named = true;
             for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
                 Value lowValue = plan != nullptr ? plan->choices.at(component.choiceLows[i].get())
                     : emitExpr(component.choiceLows[i].get());
-                emitRangeCheck(lowValue, m_sema.typeTable().integerType(), component.choiceLows[i]->location);
+                emitRangeCheck(lowValue, m_sema.typeTable().scalarBaseType(type->index), component.choiceLows[i]->location);
                 std::string low = widen(lowValue);
                 std::string high = low;
                 if (component.choiceHighs[i]) {
                     Value highValue = plan != nullptr ? plan->choices.at(component.choiceHighs[i].get())
                         : emitExpr(component.choiceHighs[i].get());
-                    emitRangeCheck(highValue, m_sema.typeTable().integerType(), component.choiceHighs[i]->location);
+                    emitRangeCheck(highValue, m_sema.typeTable().scalarBaseType(type->index), component.choiceHighs[i]->location);
                     high = widen(highValue);
                 }
                 choices.push_back({ low, high, component.value.get() });
@@ -255,13 +240,13 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
         }
     } else if (!named && others == nullptr) {
         last = newTemp();
-        line(last + " =l add " + first + ", " + std::to_string(position - 1));
+        last = emitIntegerOperation(0, Value { first, 'l' }, Value { std::to_string(position - 1), 'l' }, 'l').name;
     }
     std::string wideLength;
     if (!inferred) {
         Value length = lengthOf(address, type);
         wideLength = newTemp();
-        line(wideLength + " =l extuw " + length.name);
+        line(wideLength + " =l copy " + length.name);
     }
     // Check size and explicit choices before evaluating any component value.
     auto require = [&](const std::string& condition) {
@@ -272,17 +257,10 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
         raiseConstraintError();
         label(good);
     };
-    std::string span = newTemp();
-    std::string count = newTemp();
     std::string nonNull = newTemp();
-    std::string normalized = newTemp();
-    std::string same = newTemp();
-    line(span + " =l sub " + last + ", " + first);
-    line(count + " =l add " + span + ", 1");
     line(nonNull + " =w csgel " + last + ", " + first);
-    std::string flag = newTemp();
-    line(flag + " =l extuw " + nonNull);
-    line(normalized + " =l mul " + count + ", " + flag);
+    std::string normalized = lengthOf(Value { "", 'l', first, last }, nullptr).name;
+    std::string same = newTemp();
     if (inferred) {
         wideLength = normalized;
     } else {
@@ -291,8 +269,8 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     }
     // Source bounds must belong to the index subtype before sliding, even
     // when the destination is constrained. Null ranges have no index check.
-    emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().integerType(), expr->location);
-    emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().integerType(), expr->location);
+    emitRangeCheck(Value { first, 'l' }, m_sema.typeTable().scalarBaseType(type->index), expr->location);
+    emitRangeCheck(Value { last, 'l' }, m_sema.typeTable().scalarBaseType(type->index), expr->location);
     std::string check = newLabel("aggregatebounds");
     std::string ready = newLabel("aggregateboundsready");
     branch(Value { nonNull, 'w' }, check, ready);
@@ -320,7 +298,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     if (buffer.empty() || !needsFinalization(type)) {
         buffer = newTemp();
         line(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
-             + ", w " + resultFirst + ", w " + resultLast + ", l " + elementSize + ")");
+             + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")");
         emitExceptionCheck();
         if (needsFinalization(type)) {
             Value object { buffer, 'l', resultFirst, resultLast };

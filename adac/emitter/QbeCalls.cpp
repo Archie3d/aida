@@ -153,7 +153,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::string resultStorage;
     bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
     if (compositeResult) {
-        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? 24 + 8 * (subprogram->returnType->arrayRank - 1) : std::max(1LL, typeSize(subprogram->returnType)));
+        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? adaArrayResultSize(subprogram->returnType->arrayRank) : std::max(1LL, typeSize(subprogram->returnType)));
         if (!resultTarget.empty() && !taggedResult && !dynamicResult) {
             resultStorage = resultTarget;
         }
@@ -162,17 +162,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
         if (limitedResult && dynamicResult && !resultTarget.empty()) {
             line("storel " + resultTarget + ", " + resultStorage);
-            for (int dimension = 0; dimension < subprogram->returnType->arrayRank; ++dimension) {
-                std::string first = dimension == 0 ? resultShape.first : resultShape.innerBounds[dimension - 1].first;
-                std::string last = dimension == 0 ? resultShape.last : resultShape.innerBounds[dimension - 1].second;
-                std::string firstSlot = newTemp();
-                std::string lastSlot = newTemp();
-                int offset = dimension == 0 ? 8 : 16 + dimension * 8;
-                line(firstSlot + " =l add " + resultStorage + ", " + std::to_string(offset));
-                line(lastSlot + " =l add " + firstSlot + ", 4");
-                line("storew " + first + ", " + firstSlot);
-                line("storew " + last + ", " + lastSlot);
-            }
+            storeArrayView(resultStorage, resultShape, subprogram->returnType, true);
         }
         if (!resultDescriptor.empty()) {
             resultStorage = resultDescriptor;
@@ -289,11 +279,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 if (!value.hasBounds()) {
                     value = withBounds(value, argument->type, nullptr);
                 }
-                arguments.push_back("w " + (value.first.empty() ? std::string("1") : value.first));
-                arguments.push_back("w " + (value.last.empty() ? std::string("0") : value.last));
-                for (const auto& bounds : value.innerBounds) {
-                    arguments.push_back("w " + bounds.first);
-                    arguments.push_back("w " + bounds.second);
+                value = arrayView(value, argument->type);
+                for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
+                    arguments.push_back("l " + value.axisFirst(dimension));
+                    arguments.push_back("l " + value.axisLast(dimension));
+                    arguments.push_back("l " + value.lengths[dimension]);
+                    arguments.push_back("l " + value.strides[dimension]);
                 }
             }
         } else {
@@ -470,7 +461,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             if (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr) {
                 pointer = convertArrayBounds(pointer, argument->type, parameter->type, argument->location);
             }
-            Value length = lengthOf(pointer, argument->type);
+            Value length = narrowArrayLength(lengthOf(pointer, argument->type));
             arguments.push_back("l " + pointer.name);
             arguments.push_back("w " + length.name);
             continue;
@@ -525,7 +516,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     }
 
     if (subprogram->runtimeSymbol == "$__ada_file_name") {
-        std::string descriptor = allocScratch(24);
+        std::string descriptor = allocScratch(adaArrayResultSize(1));
         line("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")");
         emitExceptionCheck();
         Value result = consumeArrayResult(descriptor, 1, true);
@@ -541,7 +532,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         std::string size = newTemp();
         line(size + " =l call $strlen(l " + pointer + ")");
         std::string length = newTemp();
-        line(length + " =w copy " + size);
+        line(length + " =l copy " + size);
         copyBack();
         return Value { pointer, 'l', "1", length };
     }
@@ -558,29 +549,12 @@ Value QbeEmitter::consumeArrayResult(const std::string& resultStorage, int rank,
     // Adopt the transfer buffer into the caller's expression lifetime.
     std::string pointer = newTemp();
     line(pointer + " =l loadl " + resultStorage);
-    std::string firstAddress = newTemp();
-    std::string lastAddress = newTemp();
-    line(firstAddress + " =l add " + resultStorage + ", 8");
-    line(lastAddress + " =l add " + resultStorage + ", 12");
-    std::string first = newTemp();
-    std::string last = newTemp();
-    line(first + " =w loadw " + firstAddress);
-    line(last + " =w loadw " + lastAddress);
+    Value result = loadArrayView(resultStorage, rank, true);
+    result.name = pointer;
+    result.type = 'l';
     if (adopt) {
         line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
         emitExceptionCheck();
-    }
-    Value result { pointer, 'l', first, last };
-    for (int dimension = 1; dimension < rank; ++dimension) {
-        std::string firstSlot = newTemp();
-        std::string lastSlot = newTemp();
-        std::string rowFirst = newTemp();
-        std::string rowLast = newTemp();
-        line(firstSlot + " =l add " + resultStorage + ", " + std::to_string(16 + dimension * 8));
-        line(lastSlot + " =l add " + firstSlot + ", 4");
-        line(rowFirst + " =w loadsw " + firstSlot);
-        line(rowLast + " =w loadsw " + lastSlot);
-        result.innerBounds.push_back({ rowFirst, rowLast });
     }
     return result;
 }

@@ -9,6 +9,7 @@
 #include "adaprotected.h"
 #include "../common/Modular.h"
 #include "../common/Real.h"
+#include "../common/Array.h"
 
 typedef struct AdaDispatchEntry
 {
@@ -185,23 +186,17 @@ void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, 
    member finalizes its active controlled parts before releasing storage. */
 void* __ada_allocate(long size);
 void __ada_deallocate(void* address);
-int64_t __ada_array_size(int first, int last, int64_t elementSize);
-void* __ada_array_local(void** owner, int first, int last, int64_t elementSize);
+int64_t __ada_array_length(int64_t first, int64_t last);
+int __ada_array_narrow(int64_t length);
+int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t stride);
+int64_t __ada_array_slice_offset(int64_t low, int64_t high, int64_t first, int64_t last, int64_t stride);
+int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize);
+void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize);
 void __ada_array_release(void** owner);
 void __ada_array_rewind(void** owner, void* checkpoint);
 void __ada_array_adopt(void** owner, void* data);
 
-/* Internal unconstrained-array return descriptor: pointer, two 32-bit bounds,
-   and a 64-bit transfer size. The caller owns and releases the buffer. */
-typedef struct AdaArrayResult
-{
-    void* data;
-    int32_t first;
-    int32_t last;
-    int64_t size;
-} AdaArrayResult;
-
-void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize);
+void __ada_array_result(void* descriptor, const void* source, int64_t first, int64_t last, int64_t elementSize);
 
 /* Tagged descriptors preserve their first three layout words. Local tag
    metadata survives its master for tag queries; object escape checks protect
@@ -267,6 +262,8 @@ long long __ada_integer_operation(int operation, int bits, long long left, long 
    nonfinite inputs/results raise Constraint_Error in the bound task context. */
 float __ada_real_operation_f32(RealOperation operation, float left, float right);
 double __ada_real_operation(RealOperation operation, double left, double right);
+float __ada_value_real_f32(const char* text, int length);
+double __ada_value_real(const char* text, int length);
 float __ada_real_power_f32(float left, int exponent);
 double __ada_real_power(double left, int exponent);
 int __ada_value_enum(const char* text, int length, const char** names, int count);

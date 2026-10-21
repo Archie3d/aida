@@ -830,18 +830,25 @@ void __ada_unhandled(const AdaException* exception)
     context->pendingMessageLength = 0;
 }
 
-_Static_assert(sizeof(AdaArrayResult) == 24, "array result ABI");
-_Static_assert(offsetof(AdaArrayResult, first) == 8, "array result bounds ABI");
-_Static_assert(offsetof(AdaArrayResult, last) == 12, "array result bounds ABI");
-_Static_assert(offsetof(AdaArrayResult, size) == 16, "array result size ABI");
+static int arrayLengthChecked(int64_t first, int64_t last, int64_t* length);
+
+_Static_assert(sizeof(void*) == 8 && sizeof(ptrdiff_t) == 8, "64-bit array ABI required");
+_Static_assert(sizeof(AdaArrayDimension) == 32, "array dimension ABI");
+_Static_assert(offsetof(AdaArrayResult, length) == 32, "array length ABI");
+_Static_assert(offsetof(AdaArrayResult, stride) == 40, "array stride ABI");
+_Static_assert(sizeof(AdaArrayResult) == 48, "array result ABI");
+_Static_assert(offsetof(AdaArrayResult, first) == 16, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, last) == 24, "array result bounds ABI");
+_Static_assert(offsetof(AdaArrayResult, size) == 8, "array result size ABI");
 
 /* Internal Ada ABI: an unconstrained result carries a transfer buffer, its
    first dimension's bounds, and the buffer size. The emitter appends any
-   further dimension bounds after this 24-byte header. The caller adopts the
+   further dimension records after this 48-byte header. The caller adopts the
    buffer into its temporary allocation list; no callee stack pointer escapes. */
-void __ada_array_result(void* descriptor, const void* source, int first, int last, int64_t elementSize)
+void __ada_array_result(void* descriptor, const void* source, int64_t first, int64_t last, int64_t elementSize)
 {
-    int64_t length = last < first ? 0 : (int64_t)last - (int64_t)first + 1;
+    int64_t length;
+    if (!arrayLengthChecked(first, last, &length)) { return; }
     int64_t size;
     void* buffer;
 
@@ -863,13 +870,15 @@ void __ada_array_result(void* descriptor, const void* source, int first, int las
         memcpy(buffer, source, (size_t)size);
     }
     memcpy(descriptor, &buffer, sizeof buffer);
-    memcpy((char*)descriptor + 8, &first, sizeof first);
-    memcpy((char*)descriptor + 12, &last, sizeof last);
+    memcpy((char*)descriptor + adaArrayResultFirst(0), &first, sizeof first);
+    memcpy((char*)descriptor + adaArrayResultFirst(0) + AdaArrayBoundBytes, &last, sizeof last);
     /* alloc8 requires storage even for a null result. */
     if (size == 0) {
         size = 1;
     }
-    memcpy((char*)descriptor + 16, &size, sizeof size);
+    memcpy((char*)descriptor + AdaArrayTransferOffset, &size, sizeof size);
+    memcpy((char*)descriptor + adaArrayResultFirst(0) + 16, &length, sizeof length);
+    memcpy((char*)descriptor + adaArrayResultFirst(0) + 24, &elementSize, sizeof elementSize);
 }
 
 /* Each activation has separate local-object and temporary allocation lists.
@@ -880,30 +889,85 @@ typedef struct AdaArrayAllocation
     void* data;
 } AdaArrayAllocation;
 
-/* Checked row strides for multidimensional arrays. Descriptor lengths and
-   array loops currently use signed 32-bit counts. */
-int64_t __ada_array_size(int first, int last, int64_t elementSize)
+/* Counts and byte sizes are nonnegative signed 64-bit quantities. Return
+   status directly: allocation is also used while capturing a pending exception. */
+static int arrayLengthChecked(int64_t first, int64_t last, int64_t* length)
 {
-    int64_t length = last < first ? 0 : (int64_t)last - first + 1;
-    if (length > INT_MAX || elementSize < 0
-        || (elementSize != 0 && length > INT64_MAX / elementSize)) {
+    if (last < first) { *length = 0; return 1; }
+    uint64_t span = (uint64_t)last - (uint64_t)first;
+    if (span >= INT64_MAX) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+    *length = (int64_t)(span + 1);
+    return 1;
+}
+
+int64_t __ada_array_length(int64_t first, int64_t last)
+{
+    int64_t length = 0;
+    arrayLengthChecked(first, last, &length);
+    return length;
+}
+
+int __ada_array_narrow(int64_t length)
+{
+    if (length < 0 || length > INT_MAX) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    return (int)length;
+}
+
+int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t stride)
+{
+    if (index < first || index > last) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    uint64_t distance = (uint64_t)index - (uint64_t)first;
+    if (stride < 0 || (stride != 0 && distance > INT64_MAX / (uint64_t)stride)) {
         __ada_raise(ADA_STORAGE_ERROR);
         return 0;
     }
-    return length * elementSize;
+    return (int64_t)(distance * (uint64_t)stride);
 }
 
-void* __ada_array_local(void** owner, int first, int last, int64_t elementSize)
+int64_t __ada_array_slice_offset(int64_t low, int64_t high, int64_t first, int64_t last, int64_t stride)
 {
-    int64_t length = last < first ? 0 : (int64_t)last - first + 1;
+    /* Null slices preserve their bounds without forming an invalid pointer. */
+    if (high < low) { return 0; }
+    if (high > last) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+    return __ada_array_offset(low, first, last, stride);
+}
+
+static int arraySizeChecked(int64_t first, int64_t last, int64_t elementSize, int64_t* bytes)
+{
+    int64_t length;
+    if (!arrayLengthChecked(first, last, &length)) { return 0; }
+    if (elementSize < 0 || (elementSize != 0 && length > INT64_MAX / elementSize)) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    *bytes = length * elementSize;
+    return 1;
+}
+
+int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize)
+{
+    int64_t bytes = 0;
+    arraySizeChecked(first, last, elementSize, &bytes);
+    return bytes;
+}
+
+void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize)
+{
+    int64_t bytes;
+    if (!arraySizeChecked(first, last, elementSize, &bytes)) { return NULL; }
     AdaArrayAllocation* allocation;
     size_t size;
-    if (length > INT_MAX || elementSize < 0
-        || (elementSize != 0 && (uint64_t)length > SIZE_MAX / (uint64_t)elementSize)) {
+    if ((uint64_t)bytes > SIZE_MAX) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    size = (size_t)length * (size_t)elementSize;
+    size = (size_t)bytes;
     allocation = malloc(sizeof *allocation);
     if (allocation == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);

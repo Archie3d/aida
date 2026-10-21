@@ -252,9 +252,7 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
                 : static_cast<GenericDecl*>(decl.get())->symbol;
             if (symbol != nullptr && symbol->level > 0 && symbol->m_elaborationOffset < 0) {
                 m_context->hasFrame = true;
-                m_context->frameSize = (m_context->frameSize + 3) / 4 * 4;
-                symbol->m_elaborationOffset = m_context->frameSize;
-                m_context->frameSize += 4;
+                symbol->m_elaborationOffset = reserveFrame(4, 4);
                 Value flag = elaborationFlag(symbol);
                 line("storew 0, " + flag.name);
             }
@@ -321,9 +319,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         if (subprogram != nullptr && subprogram->m_addressTaken && subprogram->m_renamedAccess == nullptr
             && subprogram->level > 0
             && subprogram->m_descriptorOffset < 0) {
-            m_context->frameSize = (m_context->frameSize + 7) / 8 * 8;
-            subprogram->m_descriptorOffset = m_context->frameSize;
-            m_context->frameSize += 16;
+            subprogram->m_descriptorOffset = reserveFrame(16);
             std::string descriptor = newTemp();
             std::string linkSlot = newTemp();
             line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(subprogram->m_descriptorOffset));
@@ -378,7 +374,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     emitObjectReference(object, symbol);
                     continue;
                 }
-                if (isUnconstrainedArray(symbol->type)) {
+                if (isUnconstrainedArray(symbol->type)
+                    || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)) {
                     emitDynamicArray(object, symbol);
                     continue;
                 }
@@ -388,13 +385,17 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 }
                 if (symbol->isUplevel) {
                     long long alignment = typeAlignment(symbol->type);
-                    m_context->frameSize = (m_context->frameSize + alignment - 1) / alignment * alignment;
-                    symbol->frameOffset = m_context->frameSize;
-                    m_context->frameSize += size;
+                    symbol->frameOffset = reserveFrame(size, alignment);
                 } else {
                     std::string slot = "%v." + symbol->name + "." + std::to_string(m_tempCounter++);
-                    m_context->prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
-                                        << size << "\n";
+                    if (size > m_arrayStackLimit) {
+                        line(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
+                             + ", l 1, l 1, l " + std::to_string(size) + ")");
+                        emitExceptionCheck();
+                    } else {
+                        m_context->prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
+                                            << size << "\n";
+                    }
                     m_context->locals[symbol] = slot;
                 }
                 prepareControlledObject(addressOf(symbol), symbol->type);
@@ -507,9 +508,7 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
         return;
     }
     Symbol* symbol = type->m_scalarBoundsSymbol;
-    m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-    symbol->frameOffset = m_context->frameSize;
-    m_context->frameSize += 16;
+    symbol->frameOffset = reserveFrame(16);
     Value low = emitExpr(type->m_scalarLow);
     Value high = emitExpr(type->m_scalarHigh);
     Type* representation = m_sema.typeTable().scalarBaseType(type);
@@ -590,14 +589,12 @@ void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
 {
     Value actual = emitAddress(object->initializer.get());
     bool dynamic = isUnconstrainedArray(symbol->type);
-    long long size = dynamic ? 8 + 8 * symbol->type->arrayRank : 8;
+    long long size = dynamic ? adaArrayLocalSize(symbol->type->arrayRank) : 8;
     std::string slot;
     if (symbol->isGlobal) {
         slot = symbol->qbeName;
     } else if (symbol->isUplevel) {
-        m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-        symbol->frameOffset = m_context->frameSize;
-        m_context->frameSize += size;
+        symbol->frameOffset = reserveFrame(size);
         slot = newTemp();
         line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
     } else {
@@ -609,16 +606,7 @@ void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
     }
     line("storel " + actual.name + ", " + slot);
     if (dynamic && symbol->isUplevel) {
-        for (int dimension = 0; dimension < symbol->type->arrayRank; ++dimension) {
-            const std::string& first = dimension == 0 ? actual.first : actual.innerBounds[dimension - 1].first;
-            const std::string& last = dimension == 0 ? actual.last : actual.innerBounds[dimension - 1].second;
-            std::string firstSlot = newTemp();
-            std::string lastSlot = newTemp();
-            line(firstSlot + " =l add " + slot + ", " + std::to_string(8 + dimension * 8));
-            line(lastSlot + " =l add " + firstSlot + ", 4");
-            line("storew " + first + ", " + firstSlot);
-            line("storew " + last + ", " + lastSlot);
-        }
+        storeArrayView(slot, actual, symbol->type, false);
     }
 }
 
@@ -653,9 +641,7 @@ void QbeEmitter::initializeTypeTag(Type* type)
     if (type->m_tagOffset >= 0) {
         return; // The visible declaration and private completion share a tag.
     }
-    m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-    type->m_tagOffset = m_context->frameSize;
-    m_context->frameSize += 8;
+    type->m_tagOffset = reserveFrame(8);
     std::string slot = newTemp();
     std::string tag = newTemp();
     std::string parent = type->m_parentType == nullptr ? "0" : typeTag(type->m_parentType).name;
@@ -710,9 +696,7 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
     if (symbol->isGlobal) {
         slot = symbol->qbeName;
     } else if (symbol->isUplevel) {
-        m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-        symbol->frameOffset = m_context->frameSize;
-        m_context->frameSize += 8;
+        symbol->frameOffset = reserveFrame(8);
         slot = newTemp();
         line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
     } else {

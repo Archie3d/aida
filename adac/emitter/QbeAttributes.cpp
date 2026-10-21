@@ -166,7 +166,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")");
         }
         emitExceptionCheck();
-        return Value { buffer, 'l', "1", length };
+        return Value { buffer, 'l', "1", wideBound(Value { length, 'w' }).name };
     }
 
     if (name == "tag" || name == "external_tag") {
@@ -193,7 +193,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         line(text + " =l call $__ada_tag_name(l " + tag.name + ")");
         emitExceptionCheck();
         line(length + " =l call $strlen(l " + text + ")");
-        line(count + " =w copy " + length);
+        line(count + " =l copy " + length);
         return Value { text, 'l', "1", count };
     }
     if (name == "address") {
@@ -201,29 +201,40 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { address.name, 'l' };
     }
     if (name == "size") {
+        Value bytes;
         if (prefixType->m_classRoot != nullptr) {
             Value object = emitExpr(expr->prefix.get());
-            std::string tag = newTemp();
-            std::string slot = newTemp();
-            std::string size = newTemp();
-            std::string bits = newTemp();
-            std::string result = newTemp();
+            std::string tag = newTemp(), slot = newTemp(), size = newTemp();
             line(tag + " =l loadl " + object.name);
             line(slot + " =l add " + tag + ", 8");
             line(size + " =l loadl " + slot);
-            line(bits + " =l mul " + size + ", 8");
-            line(result + " =w copy " + bits);
-            return Value { result, 'w' };
+            bytes = Value { size, 'l' };
+        } else if (prefixType->kind == TypeKind::Array && !prefixType->constrained) {
+            Value object = emitExpr(expr->prefix.get());
+            bytes = Value { objectBytes(object, prefixType), 'l' };
+        } else {
+            bytes = Value { std::to_string(typeSize(prefixType)), 'l' };
         }
-        return constantValue(typeSize(prefixType) * 8, 'w');
+        Value bits = emitIntegerOperation(2, bytes, Value { "8", 'l' }, 'l');
+        emitRangeCheck(bits, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
+        if (qbeClass(expr->type) == 'w') {
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + bits.name);
+            return Value { narrow, 'w' };
+        }
+        return bits;
     }
     if (name == "value") {
         Value text = emitExpr(expr->arguments.front().get());
-        Value length = lengthOf(text, expr->arguments.front()->type);
+        Value length = narrowArrayLength(lengthOf(text, expr->arguments.front()->type));
         Value bounds = scalarBounds(prefixType);
         Type* base = baseType(prefixType);
         std::string temp = newTemp();
-        if (base != nullptr && base->kind == TypeKind::Fixed) {
+        if (base != nullptr && base->kind == TypeKind::Float) {
+            char precision = qbeClass(expr->type);
+            std::string helper = precision == 's' ? "__ada_value_real_f32" : "__ada_value_real";
+            line(temp + " =" + precision + " call $" + helper + "(l " + text.name + ", w " + length.name + ")");
+        } else if (base != nullptr && base->kind == TypeKind::Fixed) {
             line(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
                  + ", w " + std::to_string(base->m_fixedBits) + ", l -9223372036854775808, l 9223372036854775807)");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
@@ -240,7 +251,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + bounds.first + ", w " + bounds.last + ")");
         }
         emitExceptionCheck();
-        if (prefixType->m_scalarBoundsSymbol != nullptr) {
+        if (base->kind != TypeKind::Float && prefixType->m_scalarBoundsSymbol != nullptr) {
             emitRangeCheck(Value { temp, qbeClass(prefixType) }, prefixType, expr->location);
         }
         return Value { temp, qbeClass(prefixType) };
@@ -269,15 +280,24 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 axis = axis->element;
             }
             if (name == "length") {
-                return lengthOf(array, base);
+                Value length = lengthOf(array, axis);
+                emitRangeCheck(length, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
+                if (qbeClass(expr->type) == 'w') {
+                    std::string narrow = newTemp();
+                    line(narrow + " =w copy " + length.name);
+                    return Value { narrow, 'w' };
+                }
+                return length;
             }
             std::string bound = name == "first" ? array.first : array.last;
             if (qbeClass(expr->type) == 'l') {
                 std::string wide = newTemp();
-                line(wide + " =l extsw " + bound);
+                line(wide + " =l copy " + bound);
                 return Value { wide, 'l' };
             }
-            return Value { bound, 'w' };
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + bound);
+            return Value { narrow, 'w' };
         }
         long long value = base == nullptr ? 0 : (name == "first" ? base->low : base->high);
         return constantValue(value, qbeClass(expr->type));
@@ -298,16 +318,17 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 
     if (name == "input") {
         if (isUnconstrainedArray(prefixType)) {
-            std::string descriptor = allocScratch(24);
-            line("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", w "
+            std::string descriptor = allocScratch(adaArrayResultSize(1));
+            line("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", l "
                  + std::to_string(typeSize(prefixType->element)) + ")");
             emitExceptionCheck();
-            return consumeArrayResult(descriptor, 1, true);
+            Value result = consumeArrayResult(descriptor, 1, true);
+            return convertArrayBounds(result, prefixType, prefixType, expr->location);
         }
 
         long long size = typeSize(prefixType);
         std::string slot = allocScratch(size < 1 ? 1 : size);
-        line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", w " + std::to_string(size) + ")");
+        line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(size) + ")");
         emitExceptionCheck();
 
         Value address { slot, 'l' };
@@ -344,18 +365,20 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         }
         Value length = lengthOf(address, type);
         std::string bytes = newTemp();
-        line(bytes + " =w mul " + length.name + ", " + std::to_string(typeSize(array->element)));
+        line(bytes + " =l call $__ada_array_size(l " + address.first + ", l " + address.last
+             + ", l " + arrayElementSize(address, type) + ")");
+        emitExceptionCheck();
         size = bytes;
 
         if (name == "output" && isUnconstrainedArray(prefixType)) {
-            line("call $__ada_stream_write_bounds(l " + stream.name + ", w " + address.first + ", w "
+            line("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.first + ", l "
                  + address.last + ")");
             emitExceptionCheck();
         }
     }
 
     line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
-         + ", l " + address.name + ", w " + size + ")");
+         + ", l " + address.name + ", l " + size + ")");
     emitExceptionCheck();
     return Value { "0", 'w' };
 }

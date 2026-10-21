@@ -34,11 +34,17 @@ export function $hello() {
     jmp @elaborated.2
 @elaborated.2
     storel $.hello.str.4, %.traceLocation
-    call $__ada_put_line(l $.hello.str.3, w 13)
-    %.t8 =l loadl %.taskContext
-    %.t9 =w cnel %.t8, 0
-    jnz %.t9, @propagate.1, @nothrow.5
+    %.t8 =w call $__ada_array_narrow(l 13)
+    %.t9 =l loadl %.taskContext
+    %.t10 =w cnel %.t9, 0
+    jnz %.t10, @propagate.1, @nothrow.5
 @nothrow.5
+    storel $.hello.str.4, %.traceLocation
+    call $__ada_put_line(l $.hello.str.3, w %.t8)
+    %.t11 =l loadl %.taskContext
+    %.t12 =w cnel %.t11, 0
+    jnz %.t12, @propagate.1, @nothrow.6
+@nothrow.6
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 @propagate.1

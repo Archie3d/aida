@@ -25,6 +25,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/adafixed.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adanumerics.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adareal.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/adarealvalue.c
 )
 
 target_include_directories(${TARGET}

@@ -132,9 +132,12 @@ long long typeSize(const Type* type)
         long long elementSize = typeSize(type->element);
         long long alignment = typeAlignment(type->element);
         if (elementSize % alignment != 0) {
-            elementSize += alignment - elementSize % alignment;
+            if (__builtin_add_overflow(elementSize, alignment - elementSize % alignment, &elementSize)) {
+                return std::numeric_limits<long long>::max();
+            }
         }
-        return count * elementSize;
+        long long size;
+        return __builtin_mul_overflow(count, elementSize, &size) ? std::numeric_limits<long long>::max() : size;
     }
     case TypeKind::Record: {
         long long size = type->m_tagged || type->m_protectedScope != nullptr ? 8 : 0;
@@ -142,13 +145,18 @@ long long typeSize(const Type* type)
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
             // record reaches as far as the largest of them and no further.
-            long long end = field.offset + typeSize(field.type);
+            long long end;
+            if (__builtin_add_overflow(field.offset, typeSize(field.type), &end)) {
+                return std::numeric_limits<long long>::max();
+            }
             if (end > size) {
                 size = end;
             }
         }
         if (alignment > 0 && size % alignment != 0) {
-            size += alignment - size % alignment;
+            if (__builtin_add_overflow(size, alignment - size % alignment, &size)) {
+                return std::numeric_limits<long long>::max();
+            }
         }
         return size;
     }
@@ -187,8 +195,9 @@ long long arrayLength(const Type* type)
     if (type == nullptr || type->kind != TypeKind::Array || !type->constrained) {
         return 0;
     }
-    long long length = type->indexHigh - type->indexLow + 1;
-    return length < 0 ? 0 : length;
+    if (type->indexHigh < type->indexLow) { return 0; }
+    __int128 length = (__int128)type->indexHigh - type->indexLow + 1;
+    return length > std::numeric_limits<long long>::max() ? std::numeric_limits<long long>::max() : (long long)length;
 }
 
 char qbeClass(const Type* type)

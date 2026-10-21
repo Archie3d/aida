@@ -1,0 +1,3 @@
+realvalueerrors.adb:3:28: error: floating-point 'Value requires a subtype prefix
+realvalueerrors.adb:4:31: error: 'Value takes exactly one argument
+realvalueerrors.adb:5:34: error: 'Value reads its value from a string

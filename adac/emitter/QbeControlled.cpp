@@ -11,9 +11,7 @@ void QbeEmitter::initializeCollection(Type* type)
     std::string owner = "0";
     std::string arena = "0";
     if (type->m_collectionOwner != nullptr) {
-        m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-        type->m_collectionOffset = m_context->frameSize;
-        m_context->frameSize += 8;
+        type->m_collectionOffset = reserveFrame(8);
         slot = newTemp();
         line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->m_collectionOffset));
         owner = m_context->m_finalizationChain;
@@ -144,8 +142,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                 for (int dimension = 0; dimension < actual->arrayRank; ++dimension) {
                     Value first = emitExpr(object->subtype->indexLows[dimension].get());
                     Value last = emitExpr(object->subtype->indexHighs[dimension].get());
-                    emitRangeCheck(first, m_sema.typeTable().integerType(), object->location);
-                    emitRangeCheck(last, m_sema.typeTable().integerType(), object->location);
+                    first = wideBound(first);
+                    last = wideBound(last);
                     if (dimension == 0) {
                         destination.first = first.name;
                         destination.last = last.name;
@@ -155,7 +153,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                     std::string check = newLabel("returnboundscheck");
                     std::string readyBounds = newLabel("returnboundsready");
                     Value nonNull { newTemp(), 'w' };
-                    line(nonNull.name + " =w csgew " + last.name + ", " + first.name);
+                    line(nonNull.name + " =w csgel " + last.name + ", " + first.name);
                     branch(nonNull, check, readyBounds);
                     label(check);
                     emitRangeCheck(first, axis->index, object->location);
@@ -190,31 +188,14 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             label(allocate);
         }
         destination.name = newTemp();
-        line(destination.name + " =l call $__ada_array_local(l %.resultArena, w 1, w 1, l " + size + ")");
+        line(destination.name + " =l call $__ada_array_local(l %.resultArena, l 1, l 1, l " + size + ")");
         emitExceptionCheck();
         line("storel " + destination.name + ", %.result");
         if (!provided.empty()) {
             jump(allocated);
             label(provided);
             if (dynamic) {
-                Value target;
-                for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
-                    std::string firstSlot = newTemp();
-                    std::string lastSlot = newTemp();
-                    std::string first = newTemp();
-                    std::string last = newTemp();
-                    int offset = dimension == 0 ? 8 : 16 + dimension * 8;
-                    line(firstSlot + " =l add %.result, " + std::to_string(offset));
-                    line(lastSlot + " =l add " + firstSlot + ", 4");
-                    line(first + " =w loadw " + firstSlot);
-                    line(last + " =w loadw " + lastSlot);
-                    if (dimension == 0) {
-                        target.first = first;
-                        target.last = last;
-                    } else {
-                        target.innerBounds.push_back({ first, last });
-                    }
-                }
+                Value target = loadArrayView("%.result", type->arrayRank, true);
                 checkArrayShape(target, type, destination, type);
             }
             jump(allocated);
@@ -224,19 +205,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         }
     }
     if (dynamic) {
-        auto storeBounds = [&](const std::string& first, const std::string& last, int offset) {
-            std::string firstSlot = newTemp();
-            std::string lastSlot = newTemp();
-            line(firstSlot + " =l add %.result, " + std::to_string(offset));
-            line(lastSlot + " =l add " + firstSlot + ", 4");
-            line("storew " + first + ", " + firstSlot);
-            line("storew " + last + ", " + lastSlot);
-        };
-        storeBounds(destination.first, destination.last, 8);
-        for (std::size_t dimension = 0; dimension < destination.innerBounds.size(); ++dimension) {
-            storeBounds(destination.innerBounds[dimension].first, destination.innerBounds[dimension].second,
-                        24 + static_cast<int>(dimension) * 8);
-        }
+        storeArrayView("%.result", destination, type, true);
     }
     if (!constructed) {
         walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
@@ -255,23 +224,12 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             m_context->bounds[symbol] = destination;
         }
         if (symbol->isUplevel) {
-            m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-            symbol->frameOffset = m_context->frameSize;
-            m_context->frameSize += dynamic ? 8 + 8 * type->arrayRank : 8;
+            symbol->frameOffset = reserveFrame(dynamic ? adaArrayLocalSize(type->arrayRank) : 8);
             std::string slot = newTemp();
             line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
             line("storel " + destination.name + ", " + slot);
             if (dynamic) {
-                for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
-                    std::string first = dimension == 0 ? destination.first : destination.innerBounds[dimension - 1].first;
-                    std::string last = dimension == 0 ? destination.last : destination.innerBounds[dimension - 1].second;
-                    std::string firstSlot = newTemp();
-                    std::string lastSlot = newTemp();
-                    line(firstSlot + " =l add " + slot + ", " + std::to_string(8 + dimension * 8));
-                    line(lastSlot + " =l add " + firstSlot + ", 4");
-                    line("storew " + first + ", " + firstSlot);
-                    line("storew " + last + ", " + lastSlot);
-                }
+                storeArrayView(slot, destination, type, false);
             }
         } else {
             std::string slot = allocScratch(8);
@@ -365,7 +323,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
         Value array = withBounds(object, type, nullptr);
         Value length = lengthOf(array, type);
         std::string count = newTemp();
-        line(count + " =l extuw " + length.name);
+        line(count + " =l copy " + length.name);
         std::string elementSize = arrayElementSize(array, type);
         std::string cursor = allocScratch(8);
         line("storel 0, " + cursor);
@@ -497,7 +455,7 @@ std::string QbeEmitter::objectBytes(const Value& object, Type* type)
     Value array = withBounds(object, type, nullptr);
     std::string size = newTemp();
     std::string elementSize = arrayElementSize(array, type);
-    line(size + " =l call $__ada_array_size(w " + array.first + ", w " + array.last + ", l " + elementSize + ")");
+    line(size + " =l call $__ada_array_size(l " + array.first + ", l " + array.last + ", l " + elementSize + ")");
     emitExceptionCheck();
     return size;
 }
@@ -528,7 +486,7 @@ void QbeEmitter::copyControlledObject(const Value& target, const Value& source, 
     // slices, and an RHS whose resources are shared with the old target.
     Value snapshot = withBounds(target, type, nullptr);
     snapshot.name = newTemp();
-    line(snapshot.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", w 1, w 1, l " + size + ")");
+    line(snapshot.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + size + ")");
     emitExceptionCheck();
     bool saved = m_context->m_initializingTemporary;
     m_context->m_initializingTemporary = true;

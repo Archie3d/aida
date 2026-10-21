@@ -283,13 +283,20 @@ and numeric work changes the generated code.
   ThreadSanitizer checks pass. The [floating model](docs/floating-point.md)
   records default-environment requirements, underflow behavior and remaining
   static-capacity, model-attribute and Annex G restrictions.
-- [ ] **Floating-point `'Value`.** `Sema` rejects real prefixes, although the run
-  time already has `__ada_real_value` for `Float_IO`.
-- [ ] **Array descriptors.** Widen bounds and lengths beyond 32 bits, add
-  per-dimension strides, and audit size, offset and allocation-overflow
-  arithmetic. Lengths are limited to `Integer'Last` today. First centralize
-  existing layouts/view accessors across compiler and runtime as required by
-  the [lowering decision](docs/lowering-decision.md); then change the ABI.
+- [x] **Floating-point `'Value`.** Scalar base results for Float, Long_Float,
+  derived types and constrained prefixes; decimal/based Ada syntax with signs,
+  underscores and exponents. Exact rational parsing rounds once to binary32/64,
+  independent of locale; malformed text and overflow raise `Constraint_Error`,
+  underflow is gradual. No fixed input buffer (`realvalue*`, `runtime.real_value`,
+  whole/separate/determinism and task-context sanitizer checks).
+  [Contract and remaining I/O boundary](docs/floating-point.md#floating-value).
+- [x] **Array descriptors.** Shared local/parameter/result layouts and view
+  accessors precede ABI v2: signed 64-bit bounds, lengths and byte strides;
+  checked extents, offsets, byte/bit sizes and allocation arithmetic. Wide
+  indexing, slices, sliding, captures, aggregates, results and streams migrate
+  together; incompatible caches and serialized bounds require rebuilding.
+  (`arraydescriptor*`, `arrayframeerrors`, `runtime.array_descriptors`, whole/separate/determinism,
+  C runtime/task-context sanitizer checks). [Contract and limits](docs/array-descriptors.md).
 - [ ] **Concatenation.** General one-dimensional `&` with element/array
   combinations; it is currently specialized to character arrays. Handle
   components wider than a byte so Phase 7 wide strings reuse it.

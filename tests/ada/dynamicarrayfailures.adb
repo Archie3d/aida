@@ -1,8 +1,9 @@
 with Ada.Text_IO; use Ada.Text_IO;
 procedure DynamicArrayFailures is
+    type Huge_Vector is array (Long_Integer range <>) of Integer;
     type Vector is array (Integer range <>) of Integer;
-    procedure Too_Large (Low, High : Integer) is
-        Value : Vector (Low .. High);
+    procedure Too_Large (Low, High : Long_Integer) is
+        Value : Huge_Vector (Low .. High);
     begin
         raise Program_Error;
     end Too_Large;
@@ -27,7 +28,7 @@ procedure DynamicArrayFailures is
     Result : Integer;
 begin
     begin
-        Too_Large (Integer'First, Integer'Last);
+        Too_Large (Long_Integer'First, Long_Integer'Last);
     exception
         when Storage_Error => Put_Line ("oversized length rejected");
     end;

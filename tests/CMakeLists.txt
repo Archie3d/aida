@@ -1045,12 +1045,12 @@ foreach(identity_case taskidentity taskidentitylifecycle taskidentityobjects)
 endforeach()
 add_ada_error_test(taskidentityerrors SOURCES taskidentityerrors.adb)
 
-# Core floating arithmetic: precise runtime helpers, static legality, and
-# exception isolation in several Ada tasks and native runtime contexts.
-foreach(real_case realedges realtasking)
-    add_ada_test(${real_case} SOURCES ${real_case}.adb)
-    add_determinism_test(${real_case} SOURCE ${real_case}.adb)
-    add_test(NAME runtime.${real_case}_modes
+# Numeric and array boundaries in whole/separate compilation, deterministic
+# IR, and several independent Ada task contexts.
+foreach(boundary_case realedges realtasking realvalue realvaluetasking arraydescriptors arraydescriptortasking)
+    add_ada_test(${boundary_case} SOURCES ${boundary_case}.adb)
+    add_determinism_test(${boundary_case} SOURCE ${boundary_case}.adb)
+    add_test(NAME runtime.${boundary_case}_modes
         COMMAND ${CMAKE_COMMAND}
             -DADA=$<TARGET_FILE:ada>
             -DADAC=$<TARGET_FILE:adac>
@@ -1058,12 +1058,12 @@ foreach(real_case realedges realtasking)
             -DCC=${CMAKE_C_COMPILER}
             -DRUNTIME=$<TARGET_FILE:adart>
             -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
-            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${real_case}.adb
-            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${real_case}.expected
-            -DWORKDIR=${ADA_TEST_WORK_DIR}/${real_case}-modes
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${boundary_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${boundary_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${boundary_case}-modes
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
-    set_tests_properties(ada.${real_case} determinism.${real_case}
-        runtime.${real_case}_modes PROPERTIES TIMEOUT 60)
+    set_tests_properties(ada.${boundary_case} determinism.${boundary_case}
+        runtime.${boundary_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
 add_ada_error_test(realedgeerrors SOURCES realedgeerrors.adb)
 set_tests_properties(error.realedgeerrors PROPERTIES TIMEOUT 10)
@@ -1071,3 +1071,18 @@ add_executable(real_arithmetic_test RealArithmeticTest.c)
 target_link_libraries(real_arithmetic_test PRIVATE adart)
 add_test(NAME runtime.real_arithmetic COMMAND real_arithmetic_test)
 set_tests_properties(runtime.real_arithmetic PROPERTIES TIMEOUT 20)
+
+add_ada_error_test(realvalueerrors SOURCES realvalueerrors.adb)
+add_executable(real_value_test RealValueTest.c)
+target_link_libraries(real_value_test PRIVATE adart)
+add_test(NAME runtime.real_value COMMAND real_value_test)
+set_tests_properties(runtime.real_value PROPERTIES TIMEOUT 20)
+
+add_executable(array_descriptor_test ArrayDescriptorTest.c)
+target_link_libraries(array_descriptor_test PRIVATE adart)
+add_test(NAME runtime.array_descriptors COMMAND array_descriptor_test)
+set_tests_properties(runtime.array_descriptors PROPERTIES TIMEOUT 20)
+add_ada_error_test(arraydescriptorerrors SOURCES arraydescriptorerrors.adb)
+add_ada_error_test(arrayframeerrors SOURCES arrayframeerrors.adb)
+add_ada_test(arraydescriptorstreams SOURCES arraydescriptorstreams.adb)
+add_determinism_test(arraydescriptorstreams SOURCE arraydescriptorstreams.adb)

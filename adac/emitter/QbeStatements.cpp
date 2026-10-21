@@ -83,8 +83,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 size = 1;
             }
             if (variable->isUplevel) {
-                variable->frameOffset = m_context->frameSize;
-                m_context->frameSize += size;
+                variable->frameOffset = reserveFrame(size, 1);
             } else {
                 std::string slot = "%v." + variable->name + "." + std::to_string(m_tempCounter++);
                 m_context->prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " " << size
@@ -214,17 +213,10 @@ void QbeEmitter::emitStatement(Stmt* statement)
                     value.innerBounds = target.innerBounds;
                 }
                 std::string elementSize = arrayElementSize(value, resultType);
-                line("call $__ada_array_result(l %.result, l " + value.name + ", w " + value.first
-                     + ", w " + value.last + ", l " + elementSize + ")");
+                line("call $__ada_array_result(l %.result, l " + value.name + ", l " + value.first
+                     + ", l " + value.last + ", l " + elementSize + ")");
                 emitExceptionCheck();
-                for (std::size_t dimension = 0; dimension < value.innerBounds.size(); ++dimension) {
-                    std::string first = newTemp();
-                    std::string last = newTemp();
-                    line(first + " =l add %.result, " + std::to_string(24 + dimension * 8));
-                    line(last + " =l add " + first + ", 4");
-                    line("storew " + value.innerBounds[dimension].first + ", " + first);
-                    line("storew " + value.innerBounds[dimension].second + ", " + last);
-                }
+                storeArrayView("%.result", value, resultType, true);
             } else {
                 assignInto(Value { "%.result", 'l' }, resultType, returnStatement->value.get(), true);
             }

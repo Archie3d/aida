@@ -1152,7 +1152,7 @@ static AdaFile* __ada_stream_ofImpl(AdaFileRef handle)
     return __ada_file_checked(handle, ADA_MODE_ANY);
 }
 
-static void __ada_stream_readImpl(AdaFile* stream, void* item, int size)
+static void __ada_stream_readImpl(AdaFile* stream, void* item, int64_t size)
 {
     if (stream == 0 || !stream->isOpen) {
         __ada_raise(ADA_STATUS_ERROR);
@@ -1162,12 +1162,13 @@ static void __ada_stream_readImpl(AdaFile* stream, void* item, int size)
         __ada_raise(ADA_MODE_ERROR);
         return;
     }
+    if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
     if (fread(item, 1, (size_t)size, stream->stream) != (size_t)size) {
         __ada_raise(ADA_END_ERROR);
     }
 }
 
-static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int size)
+static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int64_t size)
 {
     if (stream == 0 || !stream->isOpen) {
         __ada_raise(ADA_STATUS_ERROR);
@@ -1177,12 +1178,13 @@ static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int size)
         __ada_raise(ADA_MODE_ERROR);
         return;
     }
+    if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
     if (fwrite(item, 1, (size_t)size, stream->stream) != (size_t)size) {
         __ada_raise(ADA_DEVICE_ERROR);
     }
 }
 
-static void __ada_stream_write_boundsImpl(AdaFile* stream, int first, int last)
+static void __ada_stream_write_boundsImpl(AdaFile* stream, int64_t first, int64_t last)
 {
     __ada_stream_writeImpl(stream, &first, (int)sizeof first);
     __ada_stream_writeImpl(stream, &last, (int)sizeof last);
@@ -1190,11 +1192,11 @@ static void __ada_stream_write_boundsImpl(AdaFile* stream, int first, int last)
 
 /* Transfer a successful read using the ordinary unconstrained-result ABI.
    Until publication, this helper owns the buffer and frees it on failure. */
-static void __ada_stream_read_arrayImpl(void* descriptor, AdaFile* stream, int elementSize)
+static void __ada_stream_read_arrayImpl(void* descriptor, AdaFile* stream, int64_t elementSize)
 {
     AdaArrayResult* result = descriptor;
     *result = (AdaArrayResult) { NULL, 1, 0, 0 };
-    int first = 1, last = 0;
+    int64_t first = 1, last = 0;
     __ada_stream_readImpl(stream, &first, sizeof first);
     if (__ada_exception != NULL) {
         return;
@@ -1207,23 +1209,18 @@ static void __ada_stream_read_arrayImpl(void* descriptor, AdaFile* stream, int e
     if (__ada_exception != NULL) {
         return;
     }
-    /* The stream helper's byte count is still a signed 32-bit integer. */
-    if (size > INT_MAX) {
-        __ada_raise(ADA_STORAGE_ERROR);
-        return;
-    }
     void* buffer = __ada_allocate(size == 0 ? 1 : (long)size);
     if (buffer == NULL) {
         return;
     }
     if (size != 0) {
-        __ada_stream_readImpl(stream, buffer, (int)size);
+        __ada_stream_readImpl(stream, buffer, size);
         if (__ada_exception != NULL) {
             free(buffer);
             return;
         }
     }
-    *result = (AdaArrayResult) { buffer, first, last, size == 0 ? 1 : size };
+    *result = (AdaArrayResult) { buffer, size == 0 ? 1 : size, first, last, __ada_array_length(first, last), elementSize };
 }
 
 /* Read and Write over a Stream_Element_Array work in bytes, since a stream

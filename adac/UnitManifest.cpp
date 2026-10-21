@@ -24,7 +24,7 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     if (!out) {
         return false;
     }
-    out << "format 5\n";
+    out << "format 6\n";
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
     }
@@ -61,7 +61,7 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
         return false;
     }
     std::string line;
-    if (!std::getline(in, line) || line != "format 5") {
+    if (!std::getline(in, line) || line != "format 6") {
         return false;
     }
     bool inUnit = false;
@@ -118,7 +118,7 @@ bool writeUnitRecord(const std::string& path, const UnitRecordFile& record)
     if (!out) {
         return false;
     }
-    out << "format 2\n";
+    out << "format 3\n";
     out << "compiler " << record.compilerDigest << "\n";
     out << "ir " << record.irDigest << "\n";
     out << "digest " << record.digest << "\n";
@@ -142,7 +142,7 @@ bool readUnitRecord(const std::string& path, UnitRecordFile& record)
         return false;
     }
     std::string line;
-    if (!std::getline(in, line) || line != "format 2") {
+    if (!std::getline(in, line) || line != "format 3") {
         return false;
     }
     while (std::getline(in, line)) {

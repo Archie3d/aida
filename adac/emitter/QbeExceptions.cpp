@@ -42,7 +42,7 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Ex
         line("call $__ada_reraise(l " + m_context->activeExceptions.back() + ")");
     } else if (message != nullptr) {
         Value text = emitExpr(message);
-        Value length = lengthOf(text, message->type);
+        Value length = narrowArrayLength(lengthOf(text, message->type));
         line("call $__ada_raise_message(l " + exception->exceptionObject + ", l " + text.name
              + ", w " + length.name + ")");
     } else {
@@ -128,9 +128,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
         std::string occurrence;
         if (Symbol* choice = handlers[i].choiceSymbol) {
             if (choice->isUplevel) {
-                m_context->frameSize = (m_context->frameSize + 7) & ~7LL;
-                choice->frameOffset = m_context->frameSize;
-                m_context->frameSize += typeSize(choice->type);
+                choice->frameOffset = reserveFrame(typeSize(choice->type));
             } else {
                 m_context->locals[choice] = allocScratch(typeSize(choice->type));
             }

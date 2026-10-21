@@ -605,7 +605,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "length") {
-        expr->type = m_types.integerType();
+        expr->type = expected != nullptr && expected->kind == TypeKind::Integer ? expected : m_types.universalInteger();
         if (base != nullptr && base->kind == TypeKind::Array && base->constrained && staticArrayPrefix) {
             expr->isStatic = true;
             expr->staticValue = arrayLength(base);
@@ -715,19 +715,27 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "'Size requires a type or an object");
             return nullptr;
         }
-        if (prefixType->m_boundsSymbol != nullptr) {
+        if (prefixIsType && prefixType->m_boundsSymbol != nullptr) {
             m_diagnostics.error(expr->location, "'Size for runtime-constrained array subtypes is not yet supported");
             return nullptr;
         }
-        expr->type = m_types.integerType();
+        expr->type = expected != nullptr && expected->kind == TypeKind::Integer ? expected : m_types.universalInteger();
         if (prefixType->m_classRoot != nullptr) {
             if (prefixIsType) {
                 m_diagnostics.error(expr->location, "class-wide subtype 'Size is not yet supported");
             }
             return expr->type;
         }
+        if (prefixType->kind == TypeKind::Array && !prefixType->constrained) {
+            if (prefixIsType) {
+                m_diagnostics.error(expr->location, "'Size for unconstrained array subtypes requires an object prefix");
+            }
+            return expr->type;
+        }
         expr->isStatic = true;
-        expr->staticValue = typeSize(prefixType) * 8;
+        if (__builtin_mul_overflow(typeSize(prefixType), 8LL, &expr->staticValue)) {
+            m_diagnostics.error(expr->location, "'Size exceeds signed 64-bit result capacity");
+        }
         return expr->type;
     }
 
@@ -755,18 +763,19 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "'Value takes exactly one argument");
             return nullptr;
         }
-        if (!isDiscrete(base) && (base == nullptr || base->kind != TypeKind::Fixed)) {
-            m_diagnostics.error(expr->location, "'Value requires a discrete or fixed-point prefix");
+        if (!isDiscrete(base) && (base == nullptr || (base->kind != TypeKind::Fixed && base->kind != TypeKind::Float))) {
+            m_diagnostics.error(expr->location, "'Value requires a scalar prefix");
             return nullptr;
         }
         Type* argumentType = expr->arguments.front()->type;
         if (argumentType != nullptr && !typesCompatible(m_types.stringType(), argumentType)) {
             m_diagnostics.error(expr->location, "'Value reads its value from a string");
         }
-        if (base != nullptr && base->kind == TypeKind::Fixed && !prefixIsType) {
-            m_diagnostics.error(expr->location, "fixed-point 'Value requires a subtype prefix");
+        if (base != nullptr && (base->kind == TypeKind::Fixed || base->kind == TypeKind::Float) && !prefixIsType) {
+            m_diagnostics.error(expr->location, base->kind == TypeKind::Fixed
+                ? "fixed-point 'Value requires a subtype prefix" : "floating-point 'Value requires a subtype prefix");
         }
-        expr->type = base != nullptr && base->kind == TypeKind::Fixed
+        expr->type = base != nullptr && (base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
             ? m_types.scalarBaseType(prefixType) : prefixType;
         return expr->type;
     }

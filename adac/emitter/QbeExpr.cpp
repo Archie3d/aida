@@ -169,7 +169,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 std::string bytes = objectBytes(converted, expr->type);
                 converted.name = newTemp();
                 line(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-                     + ", w 1, w 1, l " + bytes + ")");
+                     + ", l 1, l 1, l " + bytes + ")");
                 emitExceptionCheck();
                 if (needsFinalization(expr->type)) {
                     bool saved = m_context->m_initializingTemporary;
@@ -418,86 +418,24 @@ Value QbeEmitter::emitAddress(Expr* expr)
             if (array != nullptr && array->kind == TypeKind::Access) {
                 // The access value is already the address of the array.
                 checkNotNull(base);
-                array = baseType(array->target);
+                array = array->target;
             }
-            if (array->arrayRank > 1) {
-                Value address = base;
-                Type* dimension = array;
-                Value axis = base;
-                for (Expr* argument : call->resolvedArguments) {
-                    Value index = emitExpr(argument);
-                    std::string wide = index.name;
-                    if (index.type != 'l') {
-                        wide = newTemp();
-                        line(wide + " =l extsw " + index.name);
-                    }
-                    std::string lowBound = newTemp();
-                    std::string highBound = newTemp();
-                    line(lowBound + " =l extsw " + axis.first);
-                    line(highBound + " =l extsw " + axis.last);
-                    std::string low = newTemp();
-                    std::string high = newTemp();
-                    std::string valid = newTemp();
-                    line(low + " =w csgel " + wide + ", " + lowBound);
-                    line(high + " =w cslel " + wide + ", " + highBound);
-                    line(valid + " =w and " + low + ", " + high);
-                    std::string ok = newLabel("matrixindexok");
-                    std::string bad = newLabel("matrixindexbad");
-                    branch(Value { valid, 'w' }, ok, bad);
-                    label(bad);
-                    raiseConstraintError();
-                    label(ok);
-                    std::string offset = newTemp();
-                    std::string scaled = newTemp();
-                    std::string next = newTemp();
-                    std::string elementSize = arrayElementSize(axis, dimension);
-                    line(offset + " =l sub " + wide + ", " + lowBound);
-                    line(scaled + " =l mul " + offset + ", " + elementSize);
-                    line(next + " =l add " + address.name + ", " + scaled);
-                    address = Value { next, 'l' };
-                    axis = arrayRow(axis, dimension);
-                    dimension = dimension->element;
-                }
-                return address;
+            base = withBounds(base, array, nullptr);
+            Value address = base;
+            Value axis = base;
+            Type* dimension = array;
+            for (Expr* argument : call->resolvedArguments) {
+                Value index = wideBound(emitExpr(argument));
+                std::string offset = newTemp(), next = newTemp();
+                line(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
+                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")");
+                emitExceptionCheck();
+                line(next + " =l add " + address.name + ", " + offset);
+                address = Value { next, 'l' };
+                axis = arrayRow(axis, dimension);
+                dimension = dimension->element;
             }
-            Value index = emitExpr(call->resolvedArguments.front());
-            long long elementSize = typeSize(array->element);
-            std::string lowBound = array->constrained
-                                       ? std::to_string(array->indexLow)
-                                       : (base.hasBounds() ? base.first : std::string("1"));
-
-            if (!array->constrained && base.hasBounds()) {
-                std::string wideIndex = index.name;
-                if (index.type != 'l') {
-                    wideIndex = newTemp();
-                    line(wideIndex + " =l extsw " + index.name);
-                }
-                std::string first = newTemp();
-                std::string last = newTemp();
-                line(first + " =l extsw " + base.first);
-                line(last + " =l extsw " + base.last);
-                std::string low = newTemp();
-                std::string high = newTemp();
-                std::string valid = newTemp();
-                line(low + " =w csgel " + wideIndex + ", " + first);
-                line(high + " =w cslel " + wideIndex + ", " + last);
-                line(valid + " =w and " + low + ", " + high);
-                std::string ok = newLabel("indexok");
-                std::string bad = newLabel("indexbad");
-                branch(Value { valid, 'w' }, ok, bad);
-                label(bad);
-                raiseConstraintError();
-                label(ok);
-            }
-            std::string offset = newTemp();
-            line(offset + " =w sub " + index.name + ", " + lowBound);
-            std::string wide = newTemp();
-            line(wide + " =l extsw " + offset);
-            std::string scaled = newTemp();
-            line(scaled + " =l mul " + wide + ", " + std::to_string(elementSize));
-            std::string address = newTemp();
-            line(address + " =l add " + base.name + ", " + scaled);
-            return Value { address, 'l' };
+            return address;
         }
         break;
     }

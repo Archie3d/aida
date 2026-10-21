@@ -120,8 +120,8 @@ begin
     end;
     begin
         declare
-            First : Integer := Integer'First;
-            type Wide is array (Integer range <>) of Integer;
+            First : Long_Integer := Long_Integer'First;
+            type Wide is array (Long_Integer range <>) of Integer;
             subtype Too_Long is Wide (First .. 0);
         begin
             raise Program_Error;
