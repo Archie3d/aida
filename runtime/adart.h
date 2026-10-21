@@ -190,6 +190,9 @@ int64_t __ada_array_length(int64_t first, int64_t last);
 int __ada_array_narrow(int64_t length);
 int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t stride);
 int64_t __ada_array_slice_offset(int64_t low, int64_t high, int64_t first, int64_t last, int64_t stride);
+int64_t __ada_array_concat_shape(AdaArrayDimension* shape, int64_t leftFirst, int64_t leftLength,
+    int64_t rightFirst, int64_t rightLast, int64_t rightLength, int64_t indexFirst, int64_t indexLast,
+    int constrainedAncestor, int64_t elementSize);
 int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize);
 void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize);
 void __ada_array_release(void** owner);

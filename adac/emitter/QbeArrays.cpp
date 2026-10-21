@@ -420,111 +420,105 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
 
 Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
 {
-    std::vector<Expr*> parts;
-    std::vector<Expr*> pending = { expr };
-    while (!pending.empty()) {
-        Expr* current = pending.back();
-        pending.pop_back();
-        if (current->kind == ExprKind::Binary
-            && static_cast<BinaryExpr*>(current)->op == BinaryOp::Concatenate
-            && static_cast<BinaryExpr*>(current)->operatorCall == nullptr) {
-            auto* binary = static_cast<BinaryExpr*>(current);
-            pending.push_back(binary->right.get());
-            pending.push_back(binary->left.get());
-            continue;
-        }
-        parts.push_back(current);
-    }
-
+    Type* type = baseType(expr->type);
+    Type* component = type->element;
+    Type* ancestor = type;
+    while (ancestor->m_parentType != nullptr) { ancestor = baseType(ancestor->m_parentType); }
+    bool fixedAncestor = ancestor->constrained || ancestor->m_boundsSymbol != nullptr;
+    Value indexBounds = fixedAncestor ? withBounds(Value {}, ancestor, nullptr) : scalarBounds(type->index);
+    char boundClass = fixedAncestor ? 'l' : indexBounds.type;
+    std::string indexFirst = wideBound(Value { indexBounds.first, boundClass }).name;
+    std::string indexLast = wideBound(Value { indexBounds.last, boundClass }).name;
+    std::string stride = std::to_string(typeSize(component));
     struct Operand
     {
         Value value;
         Value length;
-        bool isCharacter = false;
+        std::string first;
+        std::string last;
+        bool array;
     };
-
     std::vector<Operand> operands;
-    bool allStatic = true;
-    long long staticTotal = 0;
-
-    for (Expr* part : parts) {
+    for (Expr* part : { expr->left.get(), expr->right.get() }) {
         Operand operand;
+        operand.array = rootType(part->type) == rootType(type);
         operand.value = emitExpr(part);
-        operand.isCharacter = part->type == nullptr || part->type->kind != TypeKind::Array;
-        if (operand.isCharacter) {
-            operand.length = constantValue(1, 'l');
-        } else {
-            if (typeSize(part->type->element) != 1) {
-                m_diagnostics.error(part->location, "'&' is only supported on arrays of characters");
-                return Value { "0", 'l' };
-            }
+        if (operand.array) {
             operand.length = lengthOf(operand.value, part->type);
-        }
-        if (isLiteralOperand(operand.length.name)) {
-            if (__builtin_add_overflow(staticTotal, std::stoll(operand.length.name), &staticTotal)) {
-                m_diagnostics.error(part->location, "concatenation length exceeds signed 64-bit descriptor capacity");
-                return Value { "0", 'l' };
+            operand.first = operand.value.first;
+            operand.last = operand.value.last;
+            if (part->kind == ExprKind::StringLiteral) {
+                operand.first = indexFirst;
+                Value delta = emitIntegerOperation(1, operand.length, Value { "1", 'l' }, 'l');
+                operand.last = emitIntegerOperation(0, Value { indexFirst, 'l' }, delta, 'l').name;
             }
         } else {
-            allStatic = false;
+            operand.length = constantValue(1, 'l');
+            operand.first = operand.last = indexFirst;
+            if (component->kind == TypeKind::Array) {
+                checkArrayShape(withBounds(Value {}, component, nullptr), component, operand.value, part->type);
+            } else if (component->kind == TypeKind::Record) {
+                emitRecordConstraintCheck(operand.value, component);
+            } else {
+                emitRangeCheck(operand.value, component, part->location);
+            }
         }
         operands.push_back(operand);
     }
-
-    std::string total = std::to_string(staticTotal);
-    for (const Operand& operand : operands) {
-        if (isLiteralOperand(operand.length.name)) {
-            continue;
-        }
-        total = emitIntegerOperation(0, Value { total, 'l' }, operand.length, 'l').name;
+    const Operand& left = operands[0];
+    const Operand& right = operands[1];
+    std::string shape = allocScratch(sizeof(AdaArrayDimension));
+    std::string bytes = newTemp();
+    line(bytes + " =l call $__ada_array_concat_shape(l " + shape + ", l " + left.first + ", l " + left.length.name
+         + ", l " + right.first + ", l " + right.last + ", l " + right.length.name
+         + ", l " + indexFirst + ", l " + indexLast + ", w " + (fixedAncestor ? "1" : "0") + ", l " + stride + ")");
+    emitExceptionCheck();
+    Value result { newTemp(), 'l' };
+    std::vector<std::string> fields;
+    for (int field = 0; field < 4; ++field) {
+        std::string slot = newTemp(), value = newTemp();
+        line(slot + " =l add " + shape + ", " + std::to_string(field * AdaArrayBoundBytes));
+        line(value + " =l loadl " + slot);
+        fields.push_back(value);
     }
-
-    std::string buffer;
-    if (allStatic) {
-        buffer = allocScratch(staticTotal > 0 ? staticTotal : 1);
-    } else {
-        buffer = newTemp();
-        line(buffer + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l " + total + ", l 1)");
-        emitExceptionCheck();
-    }
-
-    std::string running = buffer;
-    long long staticOffset = 0;
-    bool dynamic = false;
-
+    result.first = fields[0];
+    result.last = fields[1];
+    result.lengths = { fields[2] };
+    result.strides = { fields[3] };
+    line(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + bytes + ")");
+    emitExceptionCheck();
+    bool savedTemporary = m_context->m_initializingTemporary;
+    m_context->m_initializingTemporary = true;
+    prepareControlledObject(result, expr->type);
+    m_context->m_initializingTemporary = savedTemporary;
+    std::string destination = result.name;
     for (const Operand& operand : operands) {
-        std::string target = running;
-        if (!dynamic) {
-            target = buffer;
-            if (staticOffset > 0) {
-                target = newTemp();
-                line(target + " =l add " + buffer + ", " + std::to_string(staticOffset));
+        auto copyElement = [&](const Value& target, const Value& source) {
+            if (component->m_tagged) { line("storel " + typeTag(component).name + ", " + target.name); }
+            if (isComposite(component)) {
+                copyInto(target, source, component);
+            } else {
+                storeInto(target, source, component);
             }
-        }
-
-        if (operand.isCharacter) {
-            line("storeb " + operand.value.name + ", " + target);
-        } else if (isLiteralOperand(operand.length.name) && std::stoll(operand.length.name) <= m_arrayStackLimit) {
-            line("blit " + operand.value.name + ", " + target + ", " + operand.length.name);
+        };
+        std::string partBytes = stride;
+        if (operand.array) {
+            partBytes = newTemp();
+            line(partBytes + " =l call $__ada_array_size(l " + operand.first + ", l " + operand.last + ", l " + stride + ")");
+            emitExceptionCheck();
+            line("call $memcpy(l " + destination + ", l " + operand.value.name + ", l " + partBytes + ")");
         } else {
-            std::string bytes = newTemp();
-            line(bytes + " =l copy " + operand.length.name);
-            line(newTemp() + " =l call $memcpy(l " + target + ", l " + operand.value.name + ", l " + bytes + ")");
+            copyElement(Value { destination, 'l' }, operand.value);
         }
-
-        if (!dynamic && isLiteralOperand(operand.length.name)) {
-            staticOffset += std::stoll(operand.length.name);
-            continue;
-        }
-        dynamic = true;
-        std::string advance = newTemp();
-        line(advance + " =l copy " + operand.length.name);
         std::string next = newTemp();
-        line(next + " =l add " + target + ", " + advance);
-        running = next;
+        line(next + " =l add " + destination + ", " + partBytes);
+        destination = next;
     }
-
-    return Value { buffer, 'l', "1", total };
+    // Snapshot every component before invoking user Adjust operations; those
+    // callbacks may mutate source operands. The common walker also completes
+    // remaining adjustments before propagating Program_Error on failure.
+    if (needsFinalization(component)) { adjustControlledObject(result, expr->type); }
+    return result;
 }
 
 // Conversion changes the descriptor's bounds, never the source descriptor.

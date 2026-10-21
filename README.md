@@ -76,6 +76,7 @@ Supported:
 - Integer, floating-point, fixed-point, modular, array and record types
 - Checked binary32/64 arithmetic, integer powers and floating `'Value` ([floating model](docs/floating-point.md))
 - Arrays with 64-bit bounds, lengths and byte strides ([descriptor ABI](docs/array-descriptors.md))
+- One-dimensional concatenation with scalar, composite, private and controlled components
 - Checked record and array aggregates, including sliding and inferred bounds
 - Nested variant records with checked selection and constrained assignment
 - Array conversions and writable parameter views (identical component subtypes required)
@@ -101,7 +102,7 @@ Not supported yet:
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
-- String literals and concatenation with character components wider than a byte
+- Wide character types and their string literals
 - Several access-type features, many representation clauses and pragmas
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`

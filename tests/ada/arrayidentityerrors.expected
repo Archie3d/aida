@@ -12,4 +12,4 @@ arrayidentityerrors.adb:35:15: error: a qualified expression must have the named
 arrayidentityerrors.adb:36:10: error: the operands of a comparison must have the same type
 arrayidentityerrors.adb:39:5: error: the assigned value has an incompatible type
 arrayidentityerrors.adb:40:5: error: the assigned value has an incompatible type
-arrayidentityerrors.adb:41:12: error: concatenation requires characters or arrays of the same character array type
+arrayidentityerrors.adb:41:12: error: concatenation requires a nonlimited one-dimensional array type and matching operands

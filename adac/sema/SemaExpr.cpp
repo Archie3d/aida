@@ -271,6 +271,9 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
 // equality and nothing else; a limited one carries not even those.
 void Sema::checkPrivateOperands(BinaryExpr* expr)
 {
+    // Concatenation copies components; a visible array may have nonlimited
+    // private components without exposing their representation or arithmetic.
+    if (expr->op == BinaryOp::Concatenate) { return; }
     bool comparison = expr->op == BinaryOp::Equal || expr->op == BinaryOp::NotEqual;
 
     for (Expr* operand : { expr->left.get(), expr->right.get() }) {
@@ -449,51 +452,75 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     }
 
     case BinaryOp::Concatenate: {
-        Type* context = m_types.isString(expected) ? expected : nullptr;
-        Type* left = analyzeExpr(expr->left.get(), scope, operandContext != nullptr ? operandContext
-            : expr->left->kind == ExprKind::CharacterLiteral && context != nullptr ? context->element : context);
-        Type* right = analyzeExpr(expr->right.get(), scope, rightContext != nullptr ? rightContext
-            : expr->right->kind == ExprKind::CharacterLiteral && context != nullptr ? context->element
-            : context != nullptr ? context : left);
-        if (context == nullptr) {
-            context = m_types.isString(left) ? left : right;
-            if (isCharacterLiteralExpression(expr->left.get()) && m_types.isString(right)) {
-                context = right;
-                left = analyzeExpr(expr->left.get(), scope, context);
-            }
+        Type* context = expected != nullptr && expected->kind == TypeKind::Array ? baseType(expected) : nullptr;
+        if (context == nullptr || context->arrayRank != 1 || context->isLimited || context->element->isLimited
+            || hasLimitedControlledParts(context) || hasTasks(context) || hasProtected(context)
+            || operandContext == nullptr || rightContext == nullptr) {
+            analyzeExpr(expr->left.get(), scope);
+            analyzeExpr(expr->right.get(), scope);
+            m_diagnostics.error(expr->location, "concatenation requires a nonlimited one-dimensional array type and matching operands");
+            expr->type = context != nullptr ? context : m_types.stringType();
+            return expr->type;
         }
-        auto validOperand = [&](Type* type) {
-            return (m_types.isCharacter(type) && m_types.isString(context)
-                    && typesCompatible(context->element, type))
-                || (m_types.isString(type) && typesCompatible(context, type));
+        Type* left = analyzeExpr(expr->left.get(), scope, operandContext);
+        Type* right = analyzeExpr(expr->right.get(), scope, rightContext);
+        adaptUniversal(expr->left.get(), operandContext);
+        adaptUniversal(expr->right.get(), rightContext);
+        if (!typesCompatible(operandContext, left) || !typesCompatible(rightContext, right)) {
+            m_diagnostics.error(expr->location, "concatenation operands do not match the array or component type");
+        }
+        Type* ancestor = context;
+        while (ancestor->m_parentType != nullptr) { ancestor = baseType(ancestor->m_parentType); }
+        bool fixedAncestor = ancestor->constrained || ancestor->m_boundsSymbol != nullptr;
+        bool knownIndex = fixedAncestor ? ancestor->constrained : context->index->m_scalarBoundsSymbol == nullptr;
+        long long indexFirst = fixedAncestor ? ancestor->indexLow : context->index->low;
+        auto measure = [&](Expr* operand, Type* formal, long long& first, long long& last, long long& count) {
+            if (rootType(formal) != rootType(context)) {
+                first = last = indexFirst;
+                count = 1;
+                return knownIndex;
+            }
+            Type* type = operand->type;
+            if (!type->constrained) { return false; }
+            first = type->indexLow;
+            last = type->indexHigh;
+            count = arrayLength(type);
+            // A string literal is interpreted in the concatenation's array
+            // context, rather than borrowing predefined String's lower bound.
+            if (operand->kind == ExprKind::StringLiteral) {
+                if (!knownIndex) { return false; }
+                first = indexFirst;
+                __int128 high = (__int128)first + count - 1;
+                if (high < INT64_MIN || high > INT64_MAX) { return false; }
+                last = (long long)high;
+            }
+            return true;
         };
-        if (!validOperand(left) || !validOperand(right)) {
-            m_diagnostics.error(expr->location, "concatenation requires characters or arrays of the same character array type");
-        }
-        long long length = 0;
-        bool constrained = true;
-        auto measure = [&](Type* type) {
-            if (type == nullptr) {
-                constrained = false;
-                return;
-            }
-            if (type->kind == TypeKind::Array) {
-                if (!type->constrained) {
-                    constrained = false;
-                } else {
-                    length += arrayLength(type);
+        long long first = 0, last = 0, leftCount = 0, rightFirst = 0, rightLast = 0, rightCount = 0;
+        bool knownLeft = measure(expr->left.get(), operandContext, first, last, leftCount);
+        bool knownRight = measure(expr->right.get(), rightContext, rightFirst, rightLast, rightCount);
+        Type* result = m_types.makeSubtype(anonymousTypeName(), context, 0, 0);
+        result->m_boundsSymbol = nullptr;
+        result->m_boundExpressions.clear();
+        result->constrained = false;
+        if (knownLeft && knownRight) {
+            __int128 count = (__int128)leftCount + rightCount;
+            if (count > INT64_MAX || count * typeSize(context->element) > INT64_MAX) {
+                m_diagnostics.error(expr->location, "concatenation exceeds signed 64-bit storage capacity");
+            } else if (leftCount == 0) {
+                result->indexLow = rightFirst;
+                result->indexHigh = rightLast;
+                result->constrained = true;
+            } else if (!fixedAncestor || knownIndex) {
+                if (fixedAncestor) { first = indexFirst; }
+                __int128 high = (__int128)first + count - 1;
+                if (high >= INT64_MIN && high <= INT64_MAX) {
+                    result->indexLow = first;
+                    result->indexHigh = (long long)high;
+                    result->constrained = true;
                 }
-                return;
             }
-            length += 1;  // A single character operand.
-        };
-        measure(left);
-        measure(right);
-        Type* result = m_types.makeSubtype(anonymousTypeName(),
-                                         m_types.isString(context) ? rootType(context) : m_types.stringType(), 0, 0);
-        result->constrained = constrained;
-        result->indexLow = 1;
-        result->indexHigh = constrained ? length : 0;
+        }
         expr->type = result;
         return expr->type;
     }

@@ -156,12 +156,14 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         } else if (name == "&") {
             addType(m_types.stringType());
             for (Type* type : types) {
-                if (m_types.isString(type) && representationVisible(type) && representationVisible(type->element)) {
-                    Type* character = type->element;
+                if (type->kind == TypeKind::Array && type->arrayRank == 1 && !type->isLimited
+                    && !type->element->isLimited && !hasLimitedControlledParts(type)
+                    && !hasTasks(type) && !hasProtected(type) && representationVisible(type)) {
+                    Type* component = type->element;
                     predefined({ type, type }, type);
-                    predefined({ type, character }, type);
-                    predefined({ character, type }, type);
-                    predefined({ character, character }, type);
+                    predefined({ type, component }, type);
+                    predefined({ component, type }, type);
+                    predefined({ component, component }, type);
                 }
             }
         } else {

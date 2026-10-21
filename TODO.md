@@ -297,9 +297,13 @@ and numeric work changes the generated code.
   together; incompatible caches and serialized bounds require rebuilding.
   (`arraydescriptor*`, `arrayframeerrors`, `runtime.array_descriptors`, whole/separate/determinism,
   C runtime/task-context sanitizer checks). [Contract and limits](docs/array-descriptors.md).
-- [ ] **Concatenation.** General one-dimensional `&` with element/array
-  combinations; it is currently specialized to character arrays. Handle
-  components wider than a byte so Phase 7 wide strings reuse it.
+- [x] **Concatenation.** General nonlimited one-dimensional `&` in all four
+  element/array combinations, including components wider than a byte, private
+  and controlled components. Preserve RM bounds and binary-node checks;
+  checked sizes, component constraints and controlled temporary cleanup share
+  the descriptor and ownership machinery (`concatenation`, `concattasking`,
+  `concaterrors`, `runtime.concatenation`, mode/determinism and sanitizer checks,
+  ACATS C45347A). [Contract and limits](docs/array-descriptors.md#concatenation).
 - [ ] **Modular types.** Unsigned 64-bit storage and `mod 2 ** 64`, modular
   generic formals, the Ada 2005 `'Mod` attribute and `Ada.Text_IO.Modular_IO`.
 - [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,

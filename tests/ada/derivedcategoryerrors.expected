@@ -5,7 +5,7 @@ derivedcategoryerrors.adb:7:23: error: initial value is not compatible with the 
 derivedcategoryerrors.adb:8:23: error: logical operators require Boolean operands
 derivedcategoryerrors.adb:8:23: error: initial value is not compatible with the declared subtype
 derivedcategoryerrors.adb:11:19: error: initial value is not compatible with the declared subtype
-derivedcategoryerrors.adb:14:28: error: concatenation requires characters or arrays of the same character array type
+derivedcategoryerrors.adb:14:28: error: concatenation requires a nonlimited one-dimensional array type and matching operands
 derivedcategoryerrors.adb:18:25: error: initial value is not compatible with the declared subtype
 derivedcategoryerrors.adb:21:28: error: string literal element is outside the component subtype range
 derivedcategoryerrors.adb:30:25: error: initial value is not compatible with the declared subtype

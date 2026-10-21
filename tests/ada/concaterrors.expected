@@ -1,0 +1,5 @@
+concaterrors.adb:7:25: error: concatenation requires a nonlimited one-dimensional array type and matching operands
+concaterrors.adb:10:25: error: concatenation requires a nonlimited one-dimensional array type and matching operands
+concaterrors.adb:14:34: error: concatenation requires a nonlimited one-dimensional array type and matching operands
+concaterrors.adb:14:5: error: limited controlled objects cannot be copied
+concaterrors.adb:24:10: error: ambiguous subprogram call

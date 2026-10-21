@@ -957,6 +957,34 @@ int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize)
     return bytes;
 }
 
+/* RM 4.5.3: a null left operand yields the complete right bounds;
+   otherwise the ancestor definition determines the lower bound. */
+int64_t __ada_array_concat_shape(AdaArrayDimension* shape, int64_t leftFirst, int64_t leftLength,
+    int64_t rightFirst, int64_t rightLast, int64_t rightLength, int64_t indexFirst, int64_t indexLast,
+    int constrainedAncestor, int64_t elementSize)
+{
+    if (leftLength < 0 || rightLength < 0 || leftLength > INT64_MAX - rightLength) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    int64_t length = leftLength + rightLength;
+    int64_t first = rightFirst, last = rightLast;
+    if (leftLength != 0) {
+        first = constrainedAncestor ? indexFirst : leftFirst;
+        __int128 high = (__int128)first + length - 1;
+        if (high > INT64_MAX) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+        last = (int64_t)high;
+    }
+    if (length != 0 && (last < indexFirst || last > indexLast)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    int64_t bytes;
+    if (!arraySizeChecked(first, last, elementSize, &bytes)) { return 0; }
+    *shape = (AdaArrayDimension) { first, last, length, elementSize };
+    return bytes;
+}
+
 void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize)
 {
     int64_t bytes;

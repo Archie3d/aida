@@ -70,6 +70,43 @@ contiguous and overlap-safe where assignment requires it.
   are diagnosed or checked. Legacy runtime text/scalar APIs still take 32-bit
   lengths through an explicit checked bridge; they cannot silently truncate.
 
+## Concatenation
+
+Predefined `&` accepts nonlimited one-dimensional arrays in all four
+array/element combinations, following
+[RM 4.5.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-5-3.html).
+Components may be scalars, access values, constrained arrays or records,
+including nonlimited private and controlled components. Copies use the
+component byte size, rather than assuming byte characters. Wide character
+types and their literals remain Phase 7 work.
+
+A null left array preserves the right operand's complete bounds, including
+null endpoints. Otherwise an unconstrained ancestor preserves the left lower
+bound; an ancestor defined with an index constraint uses that constraint's
+lower bound. Element operands act as singleton arrays starting at the index
+subtype's lower bound. Nonempty result upper bounds must belong to that index
+subtype or `Constraint_Error` is raised. Count and byte-size capacity failures
+raise `Storage_Error` (statically known storage overflow is diagnosed).
+
+Operands are evaluated once per binary node. Nested concatenations retain
+their individual bounds and exception checks. Each result has fresh temporary
+storage; all components are copied before user `Adjust` callbacks run.
+Controlled results use the shared construction/finalization owners, including
+partial-adjustment failure and cleanup if evaluating a later operand fails.
+Explicit user-defined operators continue to take precedence over predefined
+homographs. Multidimensional, limited, task-containing and protected-containing
+array operands are diagnosed rather than copied.
+
+`concatenation` and `concattasking` exercise wide components and indexes,
+nulls, constrained ancestors, dynamic bounds, generics, private components,
+overload selection, all four profiles, component checks and controlled cleanup.
+They run in whole/separate modes with deterministic-IR checks. `concaterrors`
+checks rejected and ambiguous profiles; ACATS C45347A checks record components.
+`runtime.concatenation` covers count/byte overflow and index endpoints in four
+task contexts. Native and whole/separate Ada tasking runs use C runtime
+ASan/UBSan and ThreadSanitizer builds; frontend tests also run under UBSan.
+Generated QBE accesses remain uninstrumented.
+
 ## Compatibility and validation
 
 This deliberately changes the internal Ada call/result ABI. Unit manifests use
