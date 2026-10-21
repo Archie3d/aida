@@ -434,7 +434,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(task ? m_taskIdType : m_exceptionIdType);
         } else if (name == "caller") {
             add(m_taskIdType);
-        } else if (name == "callable" || name == "terminated") {
+        } else if (name == "callable" || name == "terminated" || name == "machine_overflows" || name == "machine_rounds") {
             add(m_types.booleanType());
         } else if (name == "pos") {
             add(m_types.universalInteger());

@@ -6,4 +6,7 @@ package Report is
     procedure Result;
     function Ident_Int (Value : Integer) return Integer;
     function Ident_Bool (Value : Boolean) return Boolean;
+    function Equal (Left, Right : Integer) return Boolean;
+    procedure Comment (Description : String);
+    procedure Not_Applicable (Description : String);
 end Report;

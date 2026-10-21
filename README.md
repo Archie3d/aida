@@ -74,6 +74,7 @@ Supported:
 - Package elaboration blocks with local storage, captures and scoped cleanup
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
+- Checked binary32/64 arithmetic and negative integer powers ([floating model](docs/floating-point.md))
 - Checked record and array aggregates, including sliding and inferred bounds
 - Nested variant records with checked selection and constrained assignment
 - Array conversions and writable parameter views (identical component subtypes required)

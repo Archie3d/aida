@@ -1,0 +1,8 @@
+realedgeerrors.adb:2:32: error: division by zero in static expression
+realedgeerrors.adb:3:34: error: division by zero in static expression
+realedgeerrors.adb:4:30: error: division by zero in static expression
+realedgeerrors.adb:5:35: error: division by zero in static expression
+realedgeerrors.adb:8:30: error: the exponent of '**' must have type Integer
+realedgeerrors.adb:9:36: error: 'Machine_Overflows requires a floating point subtype mark and no arguments
+realedgeerrors.adb:10:33: error: 'Machine_Rounds requires a floating point subtype mark and no arguments
+realedgeerrors.adb:11:30: error: 'Machine_Overflows requires a floating point subtype mark and no arguments

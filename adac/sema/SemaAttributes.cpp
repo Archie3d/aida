@@ -320,6 +320,17 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     const std::string& name = expr->lower;
+    if (name == "machine_overflows" || name == "machine_rounds") {
+        if (!prefixIsType || prefixType == nullptr || prefixType->kind != TypeKind::Float
+            || !representationVisible(prefixType) || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'" + expr->name + " requires a floating point subtype mark and no arguments");
+            return nullptr;
+        }
+        expr->type = m_types.booleanType();
+        expr->isStatic = true;
+        expr->staticValue = 1;
+        return expr->type;
+    }
     bool bounds = name == "first" || name == "last" || name == "length";
     bool discreteFunction = name == "pos" || name == "val";
     bool adjacent = name == "succ" || name == "pred";

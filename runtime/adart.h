@@ -8,6 +8,7 @@
 #include "adamaster.h"
 #include "adaprotected.h"
 #include "../common/Modular.h"
+#include "../common/Real.h"
 
 typedef struct AdaDispatchEntry
 {
@@ -262,6 +263,12 @@ long long __ada_value_long_integer(const char* text, int length, long long low, 
 /* Checked signed arithmetic: add, subtract, multiply, divide, rem, mod, power. */
 long long __ada_modular_operation(ModularOperation operation, long long modulus, long long left, long long right);
 long long __ada_integer_operation(int operation, int bits, long long left, long long right);
+/* Core real arithmetic preserves the operand precision. Zero divisors and
+   nonfinite inputs/results raise Constraint_Error in the bound task context. */
+float __ada_real_operation_f32(RealOperation operation, float left, float right);
+double __ada_real_operation(RealOperation operation, double left, double right);
+float __ada_real_power_f32(float left, int exponent);
+double __ada_real_power(double left, int exponent);
 int __ada_value_enum(const char* text, int length, const char** names, int count);
 int __ada_value_character(const char* text, int length);
 

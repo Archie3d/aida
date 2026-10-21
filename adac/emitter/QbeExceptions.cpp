@@ -2,6 +2,7 @@
 #include "QbeSupport.h"
 
 #include <cctype>
+#include <limits>
 
 using QbeSupport::realLiteral;
 using QbeSupport::comparisonInstruction;
@@ -149,17 +150,16 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLocation& location)
 {
     if (type != nullptr && type->kind == TypeKind::Float) {
-        if (!type->hasRealRange) {
-            return;
-        }
+        double maximum = typeSize(type) == 4 ? std::numeric_limits<float>::max()
+            : std::numeric_limits<double>::max();
         char type_ = value.type;
         std::string lowTest = newTemp();
         std::string highTest = newTemp();
         std::string combined = newTemp();
         line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type_) + " " + value.name + ", "
-             + realLiteral(type->lowReal, type_));
+             + realLiteral(type->hasRealRange ? type->lowReal : -maximum, type_));
         line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, type_) + " " + value.name + ", "
-             + realLiteral(type->highReal, type_));
+             + realLiteral(type->hasRealRange ? type->highReal : maximum, type_));
         line(combined + " =w and " + lowTest + ", " + highTest);
 
         std::string ok = newLabel("inrange");

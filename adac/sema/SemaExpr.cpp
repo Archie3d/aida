@@ -511,6 +511,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         }
         if (!isDiscrete(baseType(right))) {
             m_diagnostics.error(expr->right->location, "the exponent of '**' must be an integer");
+        } else if (right != nullptr && !isUniversal(right) && rootType(right) != m_types.integerType()) {
+            m_diagnostics.error(expr->right->location, "the exponent of '**' must have type Integer");
         }
         expr->type = left;
         noteStaticValue(expr);

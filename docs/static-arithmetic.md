@@ -33,8 +33,8 @@ as a double and then round it again to Float. Explicit real conversions and
 references to typed floating constants respect the machine value at that
 boundary; universal real named numbers keep their exact fraction. Fixed-point
 rounding remains nearest with ties away from zero through the existing scaled
-count helpers. The broader floating-point model/runtime edge-case audit remains
-the next Phase 5 item.
+count helpers. Dynamic checks and host requirements are recorded in the
+[floating-point model](floating-point.md).
 
 ## Bounded evaluator
 
@@ -49,13 +49,12 @@ These are explicit implementation restrictions, not Ada range rules:
   that capacity. An operation can therefore hit the limit even when a later
   cancellation or reduction would make the final result small. Fractions are
   compared by continued quotients, avoiding overflowing cross-products.
-- Nonzero literal radix exponents and exact real power exponents are limited
-  to magnitude 128. Based-literal exponents and decimal integer exponents must also
+- Nonzero literal radix exponents are limited to magnitude 128. Based-literal exponents and decimal integer exponents must also
   fit signed 64 bits in the lexer, including zero-valued literals; integer
   literal exponents must be nonnegative. Zero with
   a representable large exponent is handled without iterating over it.
-  Integer expression powers use checked exponentiation by squaring, bounded
-  by result capacity rather than a linear loop over the exponent.
+  Integer and real expression powers use checked exponentiation by squaring,
+  bounded by result capacity rather than a linear loop over the exponent.
 - Integer type bounds, runtime values and fixed-point scaled counts remain
   limited to 64-bit storage. Static fixed-point operations also require each
   scaled intermediate to fit signed 64 bits; otherwise they produce a named

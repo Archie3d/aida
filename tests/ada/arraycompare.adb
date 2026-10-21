@@ -77,8 +77,13 @@ begin
     Check (Byte_A < Byte_B, "signed byte element ordering");
     Check (Wide_A /= Wide_B and Wide_A < Wide_B, "64-bit elements");
     Check (Real_A = Real_B, "floating signed zeros are equal");
-    Real_B (2) := Zero / Zero;
-    Check (Real_B /= Real_B, "NaN element is unequal to itself");
+    begin
+        Real_B (2) := Zero / Zero;
+        raise Program_Error;
+    exception
+        when Constraint_Error =>
+            Check (Real_A = Real_B, "zero divisor preserves the array element");
+    end;
     Check (P = Q, "record elements");
     Q (2).Value := 256;
     Check (P /= Q, "record element difference");

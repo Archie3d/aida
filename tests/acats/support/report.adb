@@ -32,4 +32,20 @@ package body Report is
     begin
         return Value;
     end Ident_Bool;
+
+    function Equal (Left, Right : Integer) return Boolean is
+    begin
+        return Left = Right;
+    end Equal;
+
+    procedure Comment (Description : String) is
+    begin
+        null;
+    end Comment;
+
+    procedure Not_Applicable (Description : String) is
+    begin
+        -- The selected cases are required to be applicable on AIDA's model.
+        Failed ("not applicable: " & Description);
+    end Not_Applicable;
 end Report;

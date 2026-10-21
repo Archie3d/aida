@@ -273,8 +273,16 @@ and numeric work changes the generated code.
   magnitudes and 64-bit scaled fixed intermediates, with explicit diagnostics;
   arbitrary precision and the full RM staticness audit remain unsupported/open
   ([limits and evidence](docs/static-arithmetic.md); Phase 8 coverage matrix).
-- [ ] **Real edge cases.** Negative exponents and zero divisors. Document the
-  supported floating-point model and its checks.
+- [x] **Real edge cases.** Checked binary32/64 arithmetic and real powers with
+  Integer exponents, including negatives and `Integer'First`; zero divisors,
+  nonfinite results and narrowing overflow raise `Constraint_Error`. Static
+  zero-to-negative powers are diagnosed; exact powers use squaring without the
+  old exponent-128 restriction. `Machine_Overflows`/`Machine_Rounds` are True
+  (`realedges`, `realtasking`, `realedgeerrors`, `runtime.real_arithmetic`,
+  whole/separate/determinism checks, ACATS C45523A). C runtime ASan/UBSan and
+  ThreadSanitizer checks pass. The [floating model](docs/floating-point.md)
+  records default-environment requirements, underflow behavior and remaining
+  static-capacity, model-attribute and Annex G restrictions.
 - [ ] **Floating-point `'Value`.** `Sema` rejects real prefixes, although the run
   time already has `__ada_real_value` for `Float_IO`.
 - [ ] **Array descriptors.** Widen bounds and lengths beyond 32 bits, add

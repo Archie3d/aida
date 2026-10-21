@@ -57,6 +57,7 @@ rows into individual legality/dynamic requirements and add missing units.
 | --- | --- | --- | --- | --- | --- |
 | 5.2 / Core | Scalar assignment checks preserve the old value on failure | Assignment subtype checks remain dynamic; bounded static arithmetic is recorded below | `scalarcopychecks` | C52005A PASS | P5 Static arithmetic; P8 |
 | 4.9, 4.5 / Core, Choice | Exact bounded scalar evaluation, universal integer named numbers, final binary rounding and static-check diagnostics | [127-bit integer/rational and 64-bit scaled fixed limits](static-arithmetic.md); full staticness/string/formal-type audit remains open | `staticarithmetic`, `staticarithmeticerrors`, `determinism.staticarithmetic`, `integerliteral*` | C49022A PASS | P5 Static arithmetic complete for the documented subset; P8 gap review |
+| 3.5.7–3.5.8, 4.5.5–4.5.6 / Core, Choice | Checked binary32/64 arithmetic, negative integer powers, Machine_Overflows/Machine_Rounds True, zero-divisor and conversion checks | [Default floating environment and finite-value model](floating-point.md); static capacity limits, full model attributes and Annex G accuracy remain restricted/missing | `realedges`, `realtasking`, `realedgeerrors`, `runtime.real_arithmetic`, mode/determinism checks | C45523A PASS | P5 Real edge cases; P8 gap review |
 | 5.3, 4.5.1 / Core | Nested conditionals and Boolean short circuit | Selected control-flow paths only | `control` | C53007A PASS | P8 coverage |
 
 ## Predefined-unit inventory
@@ -79,7 +80,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.4.4 | Ada.Strings.Bounded | Bounded strings; byte components only | `boundedstrings` | P7 strings |
 | A.4.5 | Ada.Strings.Unbounded (missing) | Not implemented | — | P7 Unbounded |
 | A.5 | Ada.Numerics | Root constants/exceptions | `numerics` | P8 |
-| A.5.1 | Ada.Numerics.Generic_Elementary_Functions; Ada.Numerics.Elementary_Functions; Ada.Numerics.Long_Elementary_Functions | Host numeric functions; model/edge-case audit remains | `runtime.numerics_precision` | P5 real edge cases; P8 |
+| A.5.1 | Ada.Numerics.Generic_Elementary_Functions; Ada.Numerics.Elementary_Functions; Ada.Numerics.Long_Elementary_Functions | Host numeric functions; core arithmetic model documented, full library/Annex G accuracy audit remains | `runtime.numerics_precision` | P5 Real edge cases complete; P8 |
 | A.7 | Ada.IO_Exceptions | I/O exception declarations | `textfiles`, `seqio`, `directio` | P8 |
 | A.8.1 | Ada.Sequential_IO | Generic file I/O; representation-based elements | `seqio` | P7 streaming |
 | A.8.4 | Ada.Direct_IO | Generic direct files; representation-based elements | `directio` | P7 streaming |

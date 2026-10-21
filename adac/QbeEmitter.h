@@ -2,6 +2,7 @@
 
 #include "Ast.h"
 #include "../common/Modular.h"
+#include "../common/Real.h"
 #include "Diagnostics.h"
 #include "Sema.h"
 
@@ -234,8 +235,10 @@ private:
     Value emitUnary(UnaryExpr* expr);
     Value emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type);
     Value emitIntegerOperation(int operation, const Value& left, const Value& right, char type);
+    Value emitRealOperation(RealOperation operation, const Value& left, const Value& right, char type);
     Value emitShortCircuit(BinaryExpr* expr);
     Value emitModulo(const Value& left, const Value& right, char type);
+    // Floating ** Integer; integer powers use emitIntegerOperation instead.
     Value emitPower(const Value& left, const Value& right, char type);
 
     // Comparisons (QbeComparisons.cpp).

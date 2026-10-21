@@ -18,7 +18,7 @@ enumeration element ordering
 signed byte element ordering
 64-bit elements
 floating signed zeros are equal
-NaN element is unequal to itself
+zero divisor preserves the array element
 record elements
 record element difference
 nested array elements

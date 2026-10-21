@@ -538,9 +538,12 @@ void Sema::noteStaticValue(Expr* expr)
             auto* binary = static_cast<BinaryExpr*>(expr);
             if (!binary->operatorCall && binary->left->isStatic && binary->right->isStatic) {
                 expr->isStatic = true;
+                ExactReal exponent;
+                bool zeroPower = binary->op == BinaryOp::Power && binary->left->staticReal == 0.0
+                    && exactValue(binary->right.get(), exponent) && exponent.m_numerator < 0;
                 expr->staticFailure = binary->left->staticFailure != StaticFailure::None
                     || binary->right->staticFailure != StaticFailure::None ? StaticFailure::Dependent
-                    : binary->op == BinaryOp::Divide && binary->right->staticReal == 0.0
+                    : zeroPower || (binary->op == BinaryOp::Divide && binary->right->staticReal == 0.0)
                         ? StaticFailure::ZeroDivisor : StaticFailure::Capacity;
             }
         } else if (staticOperands) {
@@ -624,13 +627,23 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
             : binary->op == BinaryOp::Multiply ? '*' : binary->op == BinaryOp::Divide ? '/' : 0;
         if (op != 0) {
             value = ExactReal::operation(op, left, right);
-        } else if (binary->op == BinaryOp::Power && right.m_denominator == 1
-                   && right.m_numerator >= -128 && right.m_numerator <= 128) {
-            int exponent = static_cast<int>(right.m_numerator);
-            value = ExactReal::make(1);
-            for (int i = 0; i < (exponent < 0 ? -exponent : exponent); ++i) {
-                value = ExactReal::operation(exponent < 0 ? '/' : '*', value, left);
+        } else if (binary->op == BinaryOp::Power && right.m_denominator == 1) {
+            __int128 exponent = right.m_numerator;
+            if (exponent < 0) {
+                left = ExactReal::make(left.m_denominator, left.m_numerator);
+                exponent = -exponent;
             }
+            value = ExactReal::make(1);
+            while (exponent != 0 && value.m_valid && left.m_valid) {
+                if (exponent & 1) {
+                    value = ExactReal::operation('*', value, left);
+                }
+                exponent >>= 1;
+                if (exponent != 0) {
+                    left = ExactReal::operation('*', left, left);
+                }
+            }
+            return value.m_valid && left.m_valid;
         } else {
             return false;
         }

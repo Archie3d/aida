@@ -112,6 +112,12 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
     }
 
     const char* instruction = "add";
+    if (isFloatClass(type) && expr->op >= BinaryOp::Add && expr->op <= BinaryOp::Divide) {
+        RealOperation operation = expr->op == BinaryOp::Add ? RealAdd
+            : expr->op == BinaryOp::Subtract ? RealSubtract
+            : expr->op == BinaryOp::Multiply ? RealMultiply : RealDivide;
+        return emitRealOperation(operation, left, right, type);
+    }
     switch (expr->op) {
     case BinaryOp::Add:
         instruction = "add";
@@ -259,6 +265,16 @@ Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const V
     return Value { result, type };
 }
 
+Value QbeEmitter::emitRealOperation(RealOperation operation, const Value& left, const Value& right, char type)
+{
+    std::string result = newTemp();
+    std::string width(1, type);
+    line(result + " =" + width + " call $__ada_real_operation" + (type == 's' ? "_f32" : "")
+        + "(w " + std::to_string(operation) + ", " + width + " " + left.name + ", " + width + " " + right.name + ")");
+    emitExceptionCheck();
+    return Value { result, type };
+}
+
 Value QbeEmitter::emitShortCircuit(BinaryExpr* expr)
 {
     std::string slot = allocScratch(4);
@@ -316,42 +332,10 @@ Value QbeEmitter::emitModulo(const Value& left, const Value& right, char type)
 
 Value QbeEmitter::emitPower(const Value& left, const Value& right, char type)
 {
-    bool isFloat = isFloatClass(type);
-    std::string resultSlot = allocScratch(type == 'l' || type == 'd' ? 8 : 4);
-    std::string counterSlot = allocScratch(4);
-    const char* storeInstruction = isFloat ? (type == 'd' ? "stored" : "stores")
-                                          : (type == 'l' ? "storel" : "storew");
-    const char* loadInstruction = isFloat ? (type == 'd' ? "loadd" : "loads")
-                                          : (type == 'l' ? "loadl" : "loadsw");
-
-    line(std::string(storeInstruction) + " " + (isFloat ? realLiteral(1.0, type) : std::string("1")) + ", "
-         + resultSlot);
-    line("storew " + right.name + ", " + counterSlot);
-
-    std::string head = newLabel("power");
-    std::string body = newLabel("powerbody");
-    std::string done = newLabel("powerdone");
-
-    label(head);
-    std::string counter = newTemp();
-    line(counter + " =w loadsw " + counterSlot);
-    std::string test = newTemp();
-    line(test + " =w csgtw " + counter + ", 0");
-    branch(Value { test, 'w' }, body, done);
-
-    label(body);
-    std::string accumulator = newTemp();
-    line(accumulator + " =" + std::string(1, type) + " " + loadInstruction + " " + resultSlot);
-    std::string product = newTemp();
-    line(product + " =" + std::string(1, type) + " mul " + accumulator + ", " + left.name);
-    line(std::string(storeInstruction) + " " + product + ", " + resultSlot);
-    std::string decremented = newTemp();
-    line(decremented + " =w sub " + counter + ", 1");
-    line("storew " + decremented + ", " + counterSlot);
-    jump(head);
-
-    label(done);
     std::string result = newTemp();
-    line(result + " =" + std::string(1, type) + " " + loadInstruction + " " + resultSlot);
+    std::string width(1, type);
+    line(result + " =" + width + " call $__ada_real_power" + (type == 's' ? "_f32" : "")
+        + "(" + width + " " + left.name + ", w " + right.name + ")");
+    emitExceptionCheck();
     return Value { result, type };
 }
