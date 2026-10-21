@@ -4,6 +4,7 @@
 #define ADAIO_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include "adalock.h"
 
 /* Modes as the run time understands them.  Each package numbers its own
