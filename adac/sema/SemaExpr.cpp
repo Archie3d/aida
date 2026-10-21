@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <algorithm>
+#include <cstdint>
 
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
