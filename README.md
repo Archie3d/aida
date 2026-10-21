@@ -61,6 +61,8 @@ The repository consists of the following components:
 - `tests/`: compiler and runtime regressions.
 
 The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly -> system assembler/linker, with the AIDA runtime linked into the executable.
+The [lowering decision](docs/lowering-decision.md) retains direct QBE emission
+and records the representation and cleanup refactors required by later phases.
 
 ## Features and limits
 

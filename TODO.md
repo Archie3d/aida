@@ -255,11 +255,12 @@ and numeric work changes the generated code.
   notices and provenance. The local REPORT adapter supports only these C-tests;
   B-tests, full support protocol and Ada 2005-specific additions remain open
   (`tests/acats/README.md`). Phase 8 maintains and extends both baselines.
-- [ ] **Lowering decision.** Decide whether to introduce a lowering layer
-  between semantic analysis and QBE emission before the array-descriptor
-  rework. Weigh descriptors with strides, discriminant-dependent components,
-  build-in-place results, cleanup, dispatch and `select`; record the decision,
-  its scope and migration order in Phase 8.
+- [x] **Lowering decision.** Retain direct QBE emission with explicit layout,
+  call/result and scope-exit contracts rather than a separate lowering IR.
+  [Decision and migration gates](docs/lowering-decision.md) weigh strides,
+  discriminant-dependent components, build-in-place results, cleanup, dispatch
+  and `select`. Phase 8 records closure; implementation stays with the named
+  Phase 5/6/9 features.
 
 ### Numeric and representation work
 
@@ -274,7 +275,9 @@ and numeric work changes the generated code.
   time already has `__ada_real_value` for `Float_IO`.
 - [ ] **Array descriptors.** Widen bounds and lengths beyond 32 bits, add
   per-dimension strides, and audit size, offset and allocation-overflow
-  arithmetic. Lengths are limited to `Integer'Last` today.
+  arithmetic. Lengths are limited to `Integer'Last` today. First centralize
+  existing layouts/view accessors across compiler and runtime as required by
+  the [lowering decision](docs/lowering-decision.md); then change the ABI.
 - [ ] **Concatenation.** General one-dimensional `&` with element/array
   combinations; it is currently specialized to character arrays. Handle
   components wider than a byte so Phase 7 wide strings reuse it.
@@ -310,7 +313,9 @@ construction, cleanup and dispatch mechanisms.
   deferred regions for protected actions and finalization, and how abort is
   detected (polling at completion points, matching explicit exception checks).
   Apply it to existing finalization paths before 6c, 6e and 6f extend them;
-  Phase 9 implements abort itself.
+  make call effects and scope exits explicit through shared emitter helpers
+  first (see the [lowering decision](docs/lowering-decision.md)). Phase 9
+  implements abort itself.
 - [ ] Shared access-type collections across tasks (moved from Phase 9):
   allocation/deallocation, registry ownership and finalization after all
   dependent tasks terminate. Replaces the Phase 2 owner restriction before the
@@ -482,8 +487,15 @@ Ada 2005 additions and track annex packages separately.
   dependency changes or removal, search-path shadowing.
 - [ ] Driver: skip scan, bind and link when nothing changed; let `--clean` work
   without a source argument.
-- [ ] Lowering layer between semantic analysis and QBE emission: carry out the
-  Phase 5 prelude decision, or close this item if direct emission is kept.
+- [x] Lowering layer decision: keep direct semantic-AST-to-QBE emission;
+  no separate lowering IR before the descriptor rework.
+  [Rationale, scope and migration order](docs/lowering-decision.md) assign
+  shared layout/view contracts to Phase 5 descriptors, explicit call/exit
+  handling to Phase 6a, component/result/dispatch plans to Phase 6b–6f, and
+  select operation plans to Phase 9. These are pending feature prerequisites,
+  not completed refactors. Reopen before select emission if those contracts
+  cannot express its cleanup/cancellation paths without duplication, or when
+  an independent backend/pass requires a separate representation.
 
 ## Phase 9 — Full tasking
 
