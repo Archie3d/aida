@@ -247,11 +247,14 @@ and numeric work changes the generated code.
 
 ### Prelude
 
-- [ ] **Validation baseline.** Create the Phase 8 coverage-matrix skeleton by
-  RM clause and predefined unit, with rows for the completed Phases 1–4 items,
-  their restrictions and owning roadmap items. Add an ACATS harness to CTest
-  running a small selected set, with expected failures recorded. Later items
-  extend both.
+- [x] **Validation baseline.** RM-clause and predefined-unit skeleton in
+  `docs/ada2005-coverage.md` records completed Phases 1–4, restrictions, regression
+  evidence and roadmap owners. Offline CTest ACATS selection: C52005A/C53007A
+  pass; C59002A is an explicit compile XFAIL for goto/labels, with pinned
+  diagnostics and XPASS detection (`acats.*`). Sources retain upstream rights
+  notices and provenance. The local REPORT adapter supports only these C-tests;
+  B-tests, full support protocol and Ada 2005-specific additions remain open
+  (`tests/acats/README.md`). Phase 8 maintains and extends both baselines.
 - [ ] **Lowering decision.** Decide whether to introduce a lowering layer
   between semantic analysis and QBE emission before the array-descriptor
   rework. Weigh descriptors with strides, discriminant-dependent components,

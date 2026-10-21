@@ -1,0 +1,10 @@
+c59002a.ada:50:11: error: goto statements are not yet supported
+c59002a.ada:54:11: error: statement labels are not yet supported
+c59002a.ada:57:11: error: goto statements are not yet supported
+c59002a.ada:59:11: error: statement labels are not yet supported
+c59002a.ada:69:21: error: goto statements are not yet supported
+c59002a.ada:68:16: error: an exception handler requires at least one statement
+c59002a.ada:74:11: error: statement labels are not yet supported
+c59002a.ada:84:21: error: goto statements are not yet supported
+c59002a.ada:83:16: error: an exception handler requires at least one statement
+c59002a.ada:89:11: error: statement labels are not yet supported

@@ -1,5 +1,7 @@
 set(ADA_TEST_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/work)
 
+add_subdirectory(acats)
+
 # add_ada_test(<name> SOURCES <file>...)
 #
 # Builds the sources into a program with the ada driver and compares its
