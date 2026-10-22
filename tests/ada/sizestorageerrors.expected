@@ -1,0 +1,13 @@
+sizestorageerrors.adb:5:5: error: size-changing scalar subtypes require a static nonnull range
+sizestorageerrors.adb:7:5: error: size-changing scalar subtypes require a static nonnull range
+sizestorageerrors.adb:9:5: error: the range of 'Too_Wide' does not fit in 8 bits
+sizestorageerrors.adb:12:5: error: a size-changing clause must be adjacent to its type or subtype declaration, before representation use
+sizestorageerrors.adb:16:5: error: composite Size must cover its components and be a multiple of its alignment
+sizestorageerrors.adb:17:5: error: composite Size must cover its components and be a multiple of its alignment
+sizestorageerrors.adb:19:5: error: composite Size must cover its components and be a multiple of its alignment
+sizestorageerrors.adb:20:5: error: composite Size must cover its components and be a multiple of its alignment
+sizestorageerrors.adb:22:5: error: a composite Size clause requires a complete static layout
+sizestorageerrors.adb:24:5: error: a composite Size clause requires a complete static layout
+sizestorageerrors.adb:29:5: error: a size-changing clause must be adjacent to its type or subtype declaration, before representation use
+sizestorageerrors.adb:34:5: error: size-changing clauses for controlled, limited, task or protected composites are not yet supported
+sizestorageerrors.adb:36:5: error: size-changing clauses for controlled, limited, task or protected composites are not yet supported

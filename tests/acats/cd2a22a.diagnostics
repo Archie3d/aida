@@ -1,0 +1,1 @@
+lencheck.ada:37:11: error: unsupported or unknown pragma 'PACK'; supported pragmas are Import, Inline, Pure, Preelaborate, Atomic and Volatile

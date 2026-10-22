@@ -206,8 +206,12 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     std::string elementSize = arrayElementSize(bounds, type);
     std::string pointer = constructedResult ? source.name : newTemp();
     if (!constructedResult) {
-        line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l " + bounds.first
-             + ", l " + bounds.last + ", l " + elementSize + ")");
+        if (type->constrained && typeSize(type) != typeLayoutSize(type)) {
+            line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l 1, l 1, l " + std::to_string(typeSize(type)) + ")");
+        } else {
+            line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l " + bounds.first
+                 + ", l " + bounds.last + ", l " + elementSize + ")");
+        }
         emitExceptionCheck();
     }
     Value address = bounds;
@@ -485,7 +489,8 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     result.last = fields[1];
     result.lengths = { fields[2] };
     result.strides = { fields[3] };
-    line(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + bytes + ")");
+    line(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l "
+         + (expr->type->constrained && typeSize(expr->type) != typeLayoutSize(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")");
     emitExceptionCheck();
     bool savedTemporary = m_context->m_initializingTemporary;
     m_context->m_initializingTemporary = true;
@@ -578,7 +583,7 @@ Value QbeEmitter::emitArrayArgument(Expr* argument, ParameterMode mode, std::vec
     std::string bytes = objectBytes(view, argument->type);
     copy.temporary.name = newTemp();
     line(copy.temporary.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-         + ", l 1, l 1, l " + bytes + ")");
+         + ", l 1, l 1, l " + (argument->type->constrained ? std::to_string(typeSize(argument->type)) : bytes) + ")");
     emitExceptionCheck();
     line("call $memmove(l " + copy.temporary.name + ", l " + actual.name + ", l " + bytes + ")");
     copies.push_back(copy);

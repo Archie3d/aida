@@ -211,6 +211,8 @@ public:
     // A width the type carries instead of the one its kind implies, which is
     // how a Stream_Element comes out a byte wide.
     long long byteSize = 0;
+    long long m_compositeSize = 0;
+    std::vector<std::pair<long long, long long>> m_sizeBounds;
     // -1 selects the default; zero specifies no additional alignment promise.
     long long m_alignment = -1;
     long long m_specifiedSize = -1;
@@ -250,6 +252,8 @@ bool isScalar(const Type* type);
 bool isComposite(const Type* type);
 
 long long typeSize(const Type* type);
+long long typeLayoutSize(const Type* type);
+bool scalarStorageSigned(const Type* type);
 long long typeAlignment(const Type* type);
 
 // The QBE base type letter used for values of this type.
@@ -270,6 +274,7 @@ public:
     Type* makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high);
     void refreshRecordSubtypes(Type* completed);
     void refreshEnumerationRepresentation(Type* type);
+    void refreshStorageRepresentation(Type* type);
 
     Type* scalarBaseType(Type* type);
 

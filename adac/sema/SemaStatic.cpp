@@ -406,8 +406,8 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         __int128 value;
         StaticFailure failure = StaticFailure::None;
         if (foldWideInteger(expr, value, failure)) {
-            __int128 low = typeSize(target) <= 4 ? INT_MIN : LLONG_MIN;
-            __int128 high = typeSize(target) <= 4 ? INT_MAX : LLONG_MAX;
+            __int128 low = qbeClass(target) == 'w' ? INT_MIN : LLONG_MIN;
+            __int128 high = qbeClass(target) == 'w' ? INT_MAX : LLONG_MAX;
             if (target->m_modulus != 0) {
                 low = 0;
                 high = target->m_modulus - 1;

@@ -2,8 +2,8 @@
 
 Ada 2005 RM 13.1 and [13.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-3.html)
 and [13.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-4.html)
-are the baseline. Phase 5 implements alignment and enumeration mapping;
-size-changing subtype/composite layouts remain roadmap items. Record clauses
+are the baseline. Phase 5 implements byte-addressable Size, alignment and
+enumeration mapping. Record representation clauses
 follow discriminated records in Phase 6c.
 
 ## Alignment subset
@@ -17,8 +17,8 @@ clauses and unsupported targets produce diagnostics.
 
 Representation items must form an adjacent group after the type declaration,
 before any declaration can capture its layout. This conservative restriction
-stands in for general Ada freezing. Clauses on later subtype declarations or
-individual objects are unsupported, as are tagged/task/protected representations.
+stands in for general Ada freezing. Alignment clauses on later subtype declarations or individual objects are
+unsupported, as are tagged/task/protected representations.
 
 The layout helper propagates alignment to subtypes and derived types, array
 components, record field offsets, local/captured/global objects and allocations.
@@ -78,6 +78,56 @@ subtype bounds before updating the destination. Composite streams retain the
 existing representation-copy behavior rather than adding general type-aware
 streaming in this step.
 
+## Size and storage
+
+Size clauses accept positive byte multiples. Discrete scalar storage uses 8,
+16, 32 or 64 bits (enumerations stop at 32); floating widths must still match
+digits, and fixed/access storage remains 64 bits. A requested width must hold
+the static subtype range, including the corresponding codes for a mapped enum
+subtype. Null and dynamic scalar ranges cannot change storage.
+
+AIDA also permits `subtype Byte is Long_Integer range -128 .. 127;` followed
+by `for Byte'Size use 8;`. **This syntax is an AIDA extension:** Ada 2005
+RM 13.3(48) permits specification on first subtypes. It was already accepted
+for confirming sizes; the extension now changes named-subtype storage too.
+Changing clauses must be adjacent to their type/subtype declaration, before
+other declarations capture the layout. The parent type and sibling subtypes
+retain their storage. General Ada freezing remains unimplemented.
+
+Storage width and arithmetic width are separate. Byte above occupies one byte,
+but its expressions, arithmetic checks and scalar Ada ABI retain Long_Integer's
+64-bit range. An Integer subtype stored in eight bytes still uses Integer's
+32-bit arithmetic. Loads extend and stores narrow at memory boundaries;
+parameter slots, captures, imported writable actuals and atomic storage use the
+same conversion. Enum expressions continue to carry positions. Component
+layout uses subtype storage, so arrays of Byte have byte strides and records
+align subsequent fields using the selected component sizes.
+
+For static, complete, untagged noncontrolled composites, Size can add trailing
+storage or remove previously inherited trailing storage. It cannot shrink below
+the existing component layout or choose a size not divisible by alignment.
+Fields, variants and array elements retain their offsets; record representation
+clauses, component packing and dynamic layouts remain separate work. Changing
+sizes of limited, task/protected or controlled composites is diagnosed.
+Confirming clauses retain the existing behavior.
+
+Composite allocation uses the selected full storage size, including globals,
+heap objects, managed large arrays, temporaries and result buffers. Copies move
+the component layout rather than reading a larger subtype's trailing storage
+from a smaller object. Differently sized static composite formals get temporary
+storage, with constraint checks and normal-return-only copy-back. This is the
+implementation's copy choice for these ordinary composites. Conversions and
+inherited result profiles/buffers retain the selected storage. Static array
+padding belongs to its exact shape; new bounds do not inherit an obsolete total
+size. Slice views exclude the parent's trailing storage and use component
+alignment, since their first component may start at an interior offset.
+
+Scalar streams use the attribute prefix's storage format, then check the actual
+destination subtype before copy-back. Record streams retain native storage;
+array streams retain contiguous component data, omitting trailing array storage.
+Static array Input allocates the full subtype storage before reading that data.
+This remains representation-oriented streaming, not general Ada stream support.
+
 ## Evidence
 
 `alignmentclauses` checks attributes, inheritance, nested field padding, array
@@ -107,3 +157,20 @@ generic instantiation, including mappings inside a generic package. These tests
 check positional language behavior; the local C observer separately verifies
 that objects contain the requested codes. Broader representation ACATS cases
 requiring Unchecked_Conversion or general freezing remain unselected.
+
+`sizestorage` checks physical widths, narrow subtype field offsets, padded
+records/arrays, multidimensional and nested strides, global/heap/large local
+allocation, inherited profiles/results, conversions, slice views, arithmetic
+width, canaries around copied actuals and imported scalar/composite copy-back.
+`sizestreams` checks prefix formats and failed reads; `sizetasking` exercises
+narrow/wide atomic scalars from four tasks. All run in whole/separate modes with
+deterministic IR. `sizestorageerrors` and the updated `sizelayouterrors` pin the
+remaining restrictions. `semantics.type_storage` tests the layout/width contracts.
+ASan/UBSan pass for that unit test and the storage program with an instrumented
+runtime and C observer (QBE-generated accesses remain uninstrumented).
+
+ACATS CD2A22A and its official unmodified Length_Check helper are vendored as an
+explicit compile XFAIL for unsupported Pack/bit storage. This is a tracked gap,
+not an upstream pass; the normal ACATS suite and its strict XFAIL grading remain
+required. Other reviewed Size cases require packing, unchecked conversion,
+implementation substitutions or facilities outside this step.

@@ -13,12 +13,15 @@ original cases in `c5/`). C354002 comes from `c3/c354002.a`, retrieved
 retrieved 2026-10-22. CXF2002 and CXF2003 come from `cxf/cxf2002.a`
 and `cxf/cxf2003.a`, retrieved 2026-10-22 and stored with `.ada` extensions.
 CD3014A and CD3014D come from `cd/cd3014a.ada` and `cd/cd3014d.ada`, retrieved
-2026-10-22. Each file retains its grant of
-unlimited rights and disclaimer. The git blob IDs and SHA-256 digests below pin the exact content;
+2026-10-22. CD2A22A comes from `cd/cd2a22a.ada`; its unchanged official
+Length_Check helper comes from `support/lencheck.ada`, retrieved 2026-10-22.
+Test files retain their grant of unlimited rights and disclaimer; Length_Check
+retains its explicit public-domain authorization. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
 
 | Case | Ada 2005 RM | Expectation | Remaining gap / owner |
 | --- | --- | --- | --- |
+| CD2A22A | 13.3, 13.2 | Compile XFAIL: Pack in the unchanged official Length_Check dependency is unsupported; the case also needs three-bit enum storage | Byte-only Size remains the supported subset; bit packing/Unchecked_Conversion: Phase 8 |
 | CD3014A | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: mapped enums retain ordering, array indexing and generic swapping, including character literals | Broader representation checks: Phase 8 |
 | CD3014D | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: the same behaviors for enum mappings declared inside a generic package | Broader representation checks: Phase 8 |
 | CXF2002 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: repeated decimal multiplication/division, truncation and Round with matching operand types and both machine radices | Selected Annex F facility; full Annex F remains unclaimed |
@@ -34,6 +37,8 @@ GCC's release branch itself may change. No download is needed at build/test time
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
+| cd2a22a.ada | `37564d8078763ea4c931ff4eec4efb1b4919e752` | `8da952f626939e85ec9af9fd72d768b6f405abf87f4b0ea489b9961e2ba4cbf3` |
+| lencheck.ada | `f8ed1385bff145a2c8f44c6aee4f97d917c8f421` | `6599d2cfdae9dca7602a03d93bbb0a9c5abd14328d4da5ddc09585a13e55f9bd` |
 | cd3014a.ada | `ee37df82a196e51a6d4ed7402545e1735d64d8ed` | `7bb4d3f86b4dc71bd24853e92d92abc7fe35a2e2abb78b7cba37db473483fe46` |
 | cd3014d.ada | `6ce3f4ce855a4dacb9aeb2c7f7234424d82ad721` | `259ddc783c7433531c1527c4a650a3d63cb3df72b610fc89ce30d49fc778eef6` |
 | cxf2002.ada | `984daa97bca695a0dd1b5184849c0fa4233bb245` | `e380eceda0aed84eca205587853f69d69902a2b46dcb25342590fc17edb76183` |
@@ -65,6 +70,10 @@ nonzero compiler exit with those exact diagnostics counts as XFAIL. Crashes,
 timeouts, unrelated/changed diagnostics, and unexpected compilation success
 (XPASS) fail CTest. XFAIL is reported as a passing CTest expectation; verbose
 CTest output identifies it as XFAIL. This is not an upstream test pass.
+CD2A22A is graded with its unchanged official Length_Check dependency from
+`upstream/lencheck.ada`; it is not replaced with a weaker attribute-only check.
+The pinned diagnostic is the first dependency's unsupported Pack pragma.
+
 Compilation and execution logs remain under `build/tests/acats/work/<case>/`.
 Each case has its own build directory and bounded compilation/execution time.
 `acats.harness` tests failed checks, missing RESULT, unrelated compilation

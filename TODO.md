@@ -323,7 +323,7 @@ and numeric work changes the generated code.
   mixed numeric conversions, decimal formals and Decimal_IO (`decimal*`,
   `runtime.decimal`, whole/separate/determinism and sanitizer checks;
   unchanged ACATS CXF2002/CXF2003). [Contract and limits](docs/decimal-fixed-point.md).
-- [ ] **Representation clauses.** Implement alignment and enumeration
+- [x] **Representation clauses.** Implement alignment and enumeration
   representation clauses, one at a time, replacing their Phase 1 rejections.
   Also let `'Size` change subtype storage and composite layouts. Record
   representation clauses follow discriminated records in Phase 6.
@@ -342,7 +342,15 @@ and numeric work changes the generated code.
     whole/separate/determinism and unchanged ACATS CD3014A/CD3014D).
     Boolean/Character-derived mappings, wider codes, general freezing and
     clauses after a private-view subtype remain unsupported. [Contract](docs/representation-clauses.md).
-  - [ ] Size-changing subtype and composite layouts.
+  - [x] Size-changing subtype and composite layouts: static scalar subtype
+    storage with base-width arithmetic; byte-aligned trailing record/array
+    storage, component strides, adapted actuals/results and checked streams
+    (`sizestorage`, `sizestreams`, `sizetasking`, `sizestorageerrors`,
+    `semantics.type_storage`, whole/separate/determinism and ASan/UBSan).
+    Named-subtype Size clauses are an AIDA extension to Ada 2005. Bit packing,
+    dynamic layouts and nonconfirming tagged/controlled/limited/task/protected
+    sizes remain diagnosed; ACATS CD2A22A is an explicit packing XFAIL, using
+    unchanged official Length_Check support. [Contract](docs/representation-clauses.md).
 - [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
   helpers, keeping the same failure behavior.
 

@@ -1231,3 +1231,28 @@ target_link_libraries(enumeration_runtime_test PRIVATE adart)
 add_test(NAME runtime.enumeration COMMAND enumeration_runtime_test)
 set_tests_properties(runtime.enumeration PROPERTIES TIMEOUT 20)
 set_tests_properties(error.enumrepresentationerrors ada.enumstreams PROPERTIES TIMEOUT 60)
+
+add_ada_error_test(sizestorageerrors SOURCES sizestorageerrors.adb)
+foreach(size_case sizestorage sizestreams sizetasking)
+    add_determinism_test(${size_case} SOURCE ${size_case}.adb)
+    add_test(NAME runtime.${size_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/SizeStorage.c
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${size_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${size_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${size_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${size_case}_modes determinism.${size_case} PROPERTIES TIMEOUT 60)
+endforeach()
+set_tests_properties(error.sizestorageerrors PROPERTIES TIMEOUT 60)
+
+add_executable(type_storage_test TypeStorageTest.cpp ${PROJECT_SOURCE_DIR}/adac/Type.cpp)
+target_compile_features(type_storage_test PRIVATE cxx_std_17)
+add_test(NAME semantics.type_storage COMMAND type_storage_test)
+set_tests_properties(semantics.type_storage PROPERTIES TIMEOUT 20)

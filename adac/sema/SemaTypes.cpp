@@ -1042,6 +1042,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         }
         type->m_alignment = alignment;
         type->m_alignmentSpecified = true;
+        m_types.refreshStorageRepresentation(type);
         if (type->kind == TypeKind::Enumeration) { m_types.refreshEnumerationRepresentation(type); }
         return;
     }
@@ -1107,12 +1108,41 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
 
     long long bytes = bits / 8;
     if (type->kind == TypeKind::Array || type->kind == TypeKind::Record) {
-        if ((type->kind == TypeKind::Array && !type->constrained) || bytes != typeSize(type)) {
-            m_diagnostics.error(decl->location,
-                "composite size clauses must match the existing static layout");
-        } else {
-            type->m_specifiedSize = bytes;
+        if (type->m_boundsSymbol != nullptr || (type->kind == TypeKind::Array && !type->constrained)
+            || type->m_incompleteLayout || hasIncompleteParts(type)) {
+            m_diagnostics.error(decl->location, "a composite Size clause requires a complete static layout");
+            return;
         }
+        if (bytes < typeLayoutSize(type) || bytes % typeAlignment(type) != 0) {
+            m_diagnostics.error(decl->location, "composite Size must cover its components and be a multiple of its alignment");
+            return;
+        }
+        if (bytes != typeSize(type)) {
+            if (type != precedingType) {
+                m_diagnostics.error(decl->location, "a size-changing clause must be adjacent to its type or subtype declaration, before representation use");
+                return;
+            }
+            if (needsFinalization(type) || hasTasks(type) || hasProtected(type) || type->isLimited) {
+                m_diagnostics.error(decl->location, "size-changing clauses for controlled, limited, task or protected composites are not yet supported");
+                return;
+            }
+            type->m_compositeSize = bytes;
+            type->m_sizeBounds.clear();
+            if (type->kind == TypeKind::Array) {
+                Type* axis = type;
+                for (int i = 0; i < type->arrayRank; ++i) {
+                    type->m_sizeBounds.push_back({axis->indexLow, axis->indexHigh});
+                    axis = axis->element;
+                }
+            }
+        }
+        type->m_specifiedSize = bytes;
+        m_types.refreshStorageRepresentation(type);
+        return;
+    }
+    if (bytes != typeSize(type) && type->isSubtype
+        && (type->m_scalarBoundsSymbol != nullptr || type->low > type->high || type->isIncomplete)) {
+        m_diagnostics.error(decl->location, "size-changing scalar subtypes require a static nonnull range");
         return;
     }
     if (bits != 8 && bits != 16 && bits != 32 && bits != 64) {
@@ -1129,13 +1159,13 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             ? (__int128)UINT64_MAX : std::numeric_limits<long long>::max();
         if (bits == 64) {
             low = std::numeric_limits<long long>::min();
-        } else if (bits == 32 || (!type->m_enumCodes.empty() ? type->m_enumCodes.front() < 0 : type->low < 0)) {
+        } else if (bits == 32 || scalarStorageSigned(type)) {
             low = -(1LL << (bits - 1));
             high = (1LL << (bits - 1)) - 1;
         } else {
             high = (1LL << bits) - 1;
         }
-        if (type->m_modulus != 0 && type->m_modulus - 1 > high) {
+        if (!type->isSubtype && type->m_modulus != 0 && type->m_modulus - 1 > high) {
             m_diagnostics.error(decl->location, "unsupported representation size for this modular type");
             return;
         }
@@ -1143,8 +1173,14 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             m_diagnostics.error(decl->location, "enumeration storage supports only 8, 16 or 32 bits");
             return;
         }
-        if ((!type->m_enumCodes.empty() ? type->m_enumCodes.front() : type->low) < low
-            || (!type->m_enumCodes.empty() ? type->m_enumCodes.back() : type->high) > high) {
+        __int128 storageLow = type->low;
+        __int128 storageHigh = type->high;
+        if (!type->m_enumCodes.empty() && type->low >= 0 && type->high >= type->low
+            && type->high < static_cast<long long>(type->m_enumCodes.size())) {
+            storageLow = type->m_enumCodes[static_cast<std::size_t>(type->low)];
+            storageHigh = type->m_enumCodes[static_cast<std::size_t>(type->high)];
+        }
+        if (storageLow < low || storageHigh > high) {
             m_diagnostics.error(decl->location, "the range of '" + decl->name
                 + "' does not fit in " + std::to_string(bits) + " bits");
             return;
@@ -1181,13 +1217,9 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     // Subtypes, field offsets and folded attributes can already contain the
     // old width. Until full freezing is implemented, change storage only at
     // the declaration, before another declaration can depend on its layout.
-    if (type->isSubtype) {
-        m_diagnostics.error(decl->location, "size clauses cannot change subtype storage");
-        return;
-    }
-    if (type != precedingType || type->m_scalarBase != nullptr) {
+    if (type != precedingType || (!type->isSubtype && type->m_scalarBase != nullptr)) {
         m_diagnostics.error(decl->location,
-            "a size-changing clause must immediately follow its type declaration, before representation use");
+            "a size-changing clause must be adjacent to its type or subtype declaration, before representation use");
         return;
     }
     if (type->m_alignment > bytes) {
@@ -1196,7 +1228,8 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
     type->byteSize = bytes;
     type->m_specifiedSize = bytes;
-    if (type->kind == TypeKind::Enumeration) { m_types.refreshEnumerationRepresentation(type); }
+    m_types.refreshStorageRepresentation(type);
+    if (type->kind == TypeKind::Enumeration && !type->isSubtype) { m_types.refreshEnumerationRepresentation(type); }
 }
 
 Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic, bool allowDynamicScalar)
@@ -1664,6 +1697,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         *subtype = *original;
         subtype->base = type;
         subtype->isSubtype = true;
+        subtype->m_specifiedSize = -1;
         subtype->m_primitives.clear();
         if (original->kind == TypeKind::Record) {
             subtype->m_discriminantConstraintSource = original;

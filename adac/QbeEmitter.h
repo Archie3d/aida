@@ -206,6 +206,15 @@ private:
     Value addressOf(Symbol* symbol);
     Value loadFrom(const Value& address, Type* type);
     void storeInto(const Value& address, const Value& value, Type* type);
+    struct StorageCopyBack
+    {
+        Value actual;
+        Value temporary;
+        Type* type;
+    };
+    Value adaptCompositeStorage(Value actual, Type* actualType, Type* formal, ParameterMode mode,
+                                std::vector<StorageCopyBack>& copies);
+    void emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies);
     void copyInto(const Value& destination, const Value& source, Type* type);
     void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false);
 

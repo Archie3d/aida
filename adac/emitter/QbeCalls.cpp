@@ -35,6 +35,15 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         inherited.type = expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
         Value result = emitCall(&inherited);
+        if (isComposite(expr->type) && !expr->type->m_tagged
+            && (expr->type->kind != TypeKind::Array || expr->type->constrained)
+            && typeSize(expr->type) != typeSize(inherited.subprogram->returnType)
+            && (typeSize(expr->type) != typeLayoutSize(expr->type)
+                || typeSize(inherited.subprogram->returnType) != typeLayoutSize(inherited.subprogram->returnType))) {
+            Value converted = withBounds(Value {allocScratch(std::max(1LL, typeSize(expr->type)), typeAlignment(expr->type)), 'l'}, expr->type, nullptr);
+            copyInto(converted, result, expr->type);
+            result = converted;
+        }
         if (expr->type != nullptr && expr->type->m_tagged
             && rootType(expr->type) != rootType(inherited.subprogram->returnType)) {
             line("storel " + typeTag(expr->type).name + ", " + result.name);
@@ -143,6 +152,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         Expr* argument;
     };
     std::vector<ScalarCopyBack> copyBacks;
+    std::vector<StorageCopyBack> storageCopies;
     std::vector<ArrayCopyBack> arrayCopies;
     std::vector<std::string> arguments;
     bool compositeResult = isComposite(subprogram->returnType);
@@ -274,6 +284,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                     label(valid);
                 }
             }
+            value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies);
             arguments.push_back("l " + value.name);
             if (isUnconstrainedArray(parameter->type)) {
                 if (!value.hasBounds()) {
@@ -416,6 +427,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         emitRangeCheck(value, copy.argument->type, copy.argument->location);
         storeInto(copy.actual, value, copy.argument->type);
     }
+    emitStorageCopyBacks(storageCopies);
     emitArrayCopyBacks(arrayCopies);
     return result;
 }
@@ -427,6 +439,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 {
     std::vector<std::string> arguments;
     std::vector<ArrayCopyBack> arrayCopies;
+    std::vector<StorageCopyBack> storageCopies;
     struct SharedCopyBack
     {
         Value actual;
@@ -444,6 +457,10 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
                 storeInto(copy.actual, value, copy.argument->type);
             }
         }
+        if (!storageCopies.empty()) {
+            emitExceptionCheck();
+            emitStorageCopyBacks(storageCopies);
+        }
         if (!arrayCopies.empty()) {
             emitExceptionCheck();
             emitArrayCopyBacks(arrayCopies);
@@ -453,7 +470,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];
-        Type* formal = baseType(parameter->type);
+        Type* formal = parameter->type;
         char formalClass = qbeClass(parameter->type);
 
         if (formal != nullptr && formal->kind == TypeKind::Array) {
@@ -461,6 +478,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             if (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr) {
                 pointer = convertArrayBounds(pointer, argument->type, parameter->type, argument->location);
             }
+            pointer = adaptCompositeStorage(pointer, argument->type, formal, parameter->mode, storageCopies);
             Value length = narrowArrayLength(lengthOf(pointer, argument->type));
             arguments.push_back("l " + pointer.name);
             arguments.push_back("w " + length.name);
@@ -468,7 +486,8 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         }
 
         if (parameter->byReference && isScalar(formal)
-            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->m_enumCodes.empty())) {
+            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->m_enumCodes.empty()
+                || typeSize(formal) != typeSize(argument->type))) {
             Value temporary { allocScratch(typeSize(formal)), 'l' };
             Value actual;
             if (parameter->mode != ParameterMode::In) {
@@ -490,6 +509,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             if (parameter->type->kind == TypeKind::Record) {
                 emitRecordConstraintCheck(address, parameter->type);
             }
+            address = adaptCompositeStorage(address, argument->type, formal, parameter->mode, storageCopies);
             arguments.push_back("l " + address.name);
             continue;
         }

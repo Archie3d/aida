@@ -289,7 +289,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                              << parameter->frameOffset << "\n";
             if (parameter->byReference) {
                 context.prologue << "    storel " << incoming << ", " << address << "\n";
-            } else if (sharedTypeKind(parameter->type) != 0 || !parameter->type->m_enumCodes.empty()) {
+            } else if (sharedTypeKind(parameter->type) != 0 || !parameter->type->m_enumCodes.empty()
+                || (isDiscrete(parameter->type) && ((qbeClass(parameter->type) == 'l' && typeSize(parameter->type) < 8)
+                    || (qbeClass(parameter->type) == 'w' && typeSize(parameter->type) == 8)))) {
                 storeInto(Value { address, 'l' }, Value { incoming, qbeClass(parameter->type) }, parameter->type);
             } else {
                 context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", "
@@ -311,7 +313,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         long long size = typeSize(parameter->type);
         context.prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
                          << (size < 1 ? 1 : size) << "\n";
-        if (sharedTypeKind(parameter->type) != 0 || !parameter->type->m_enumCodes.empty()) {
+        if (sharedTypeKind(parameter->type) != 0 || !parameter->type->m_enumCodes.empty()
+                || (isDiscrete(parameter->type) && ((qbeClass(parameter->type) == 'l' && typeSize(parameter->type) < 8)
+                    || (qbeClass(parameter->type) == 'w' && typeSize(parameter->type) == 8)))) {
             storeInto(Value { slot, 'l' }, Value { incoming, qbeClass(parameter->type) }, parameter->type);
         } else {
             context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", " << slot

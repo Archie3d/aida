@@ -173,8 +173,7 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
             std::string converted = newTemp();
             line(converted + " =" + std::string(1, resultType) + " cast " + temp);
             temp = converted;
-        } else if ((bits == 8 || bits == 16) && ((type->kind == TypeKind::Integer && type->low < 0)
-                || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0))) {
+        } else if ((bits == 8 || bits == 16) && scalarStorageSigned(type)) {
             std::string extended = newTemp();
             line(extended + " =w " + (bits == 8 ? "extsb " : "extsh ") + temp);
             temp = extended;
@@ -184,7 +183,17 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
             temp = masked;
         }
     } else {
-        line(temp + " =" + std::string(1, resultType) + " " + qbeLoadInstruction(type) + " " + address.name);
+        char loadType = resultType == 'w' && typeSize(type) == 8 ? 'l' : resultType;
+        line(temp + " =" + std::string(1, loadType) + " " + qbeLoadInstruction(type) + " " + address.name);
+    }
+    if (resultType == 'l' && typeSize(type) < 8 && (address.m_shared || sharedTypeKind(type) != 0)) {
+        std::string wide = newTemp();
+        line(wide + " =l " + (scalarStorageSigned(type) ? "extsw " : "extuw ") + temp);
+        temp = wide;
+    } else if (resultType == 'w' && typeSize(type) == 8) {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + temp);
+        temp = narrow;
     }
     return enumPosition(Value { temp, resultType }, type);
 }
@@ -192,6 +201,15 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
 void QbeEmitter::storeInto(const Value& address, const Value& position, Type* type)
 {
     Value value = enumCode(position, type);
+    if (value.type == 'w' && typeSize(type) == 8) {
+        std::string wide = newTemp();
+        line(wide + " =l " + (scalarStorageSigned(type) ? "extsw " : "extuw ") + value.name);
+        value = Value {wide, 'l'};
+    } else if (value.type == 'l' && typeSize(type) < 8) {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + value.name);
+        value = Value {narrow, 'w'};
+    }
     if (address.m_shared || sharedTypeKind(type) != 0) {
         long long bits = typeSize(type) * 8;
         char rawClass = bits == 64 ? 'l' : 'w';
@@ -231,7 +249,11 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")");
         return;
     }
-    long long size = typeSize(type);
+    if (type->kind == TypeKind::Array && !type->constrained) {
+        line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")");
+        return;
+    }
+    long long size = type->m_tagged ? typeSize(type) : typeLayoutSize(type);
     if (size <= 0) {
         return;
     }
@@ -616,4 +638,29 @@ Value QbeEmitter::enumPosition(const Value& code, Type* type)
         + ", w " + std::to_string(type->m_enumCodes.size()) + ")");
     emitExceptionCheck();
     return Value { result, 'w' };
+}
+
+Value QbeEmitter::adaptCompositeStorage(Value actual, Type* actualType, Type* formal, ParameterMode mode,
+                                       std::vector<StorageCopyBack>& copies)
+{
+    if (!isComposite(formal) || (formal->kind == TypeKind::Array && !formal->constrained)
+        || typeSize(formal) == typeSize(actualType)
+        || (typeSize(formal) == typeLayoutSize(formal) && typeSize(actualType) == typeLayoutSize(actualType))) {
+        return actual;
+    }
+    if (formal->kind == TypeKind::Array) {
+        checkArrayShape(withBounds(Value {}, formal, nullptr), formal, actual, actualType);
+    }
+    Value temporary = withBounds(Value {allocScratch(std::max(1LL, typeSize(formal)), typeAlignment(formal)), 'l'}, formal, nullptr);
+    copyInto(temporary, actual, formal);
+    if (mode != ParameterMode::In) { copies.push_back({actual, temporary, actualType}); }
+    return temporary;
+}
+
+void QbeEmitter::emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies)
+{
+    for (const auto& copy : copies) {
+        if (copy.type->kind == TypeKind::Record) { emitRecordConstraintCheck(copy.temporary, copy.type); }
+        copyInto(copy.actual, copy.temporary, copy.type);
+    }
 }

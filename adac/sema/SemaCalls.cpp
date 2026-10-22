@@ -126,6 +126,11 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         Type* result = m_types.makeSubtype(anonymousTypeName(), rootType(prefixType), 0, 0);
         result->element = prefixType->element;
         result->index = prefixType->index;
+        // A slice describes its components, not the parent's trailing storage.
+        // Its first element can also be less aligned than the complete array.
+        result->m_compositeSize = 0;
+        result->m_sizeBounds.clear();
+        result->m_alignment = -1;
         long long lowBound = 0;
         long long highBound = 0;
         if (foldStatic(low, lowBound) && foldStatic(high, highBound)) {

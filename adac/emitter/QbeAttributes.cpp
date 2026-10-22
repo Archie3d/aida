@@ -403,6 +403,32 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     Type* prefixType = expr->prefixType;
     Value stream = emitExpr(expr->arguments.front().get());
 
+    if (isScalar(prefixType)) {
+        long long size = typeSize(prefixType);
+        Value slot {allocScratch(size, typeAlignment(prefixType)), 'l'};
+        bool reading = name == "read" || name == "input";
+        Value destination;
+        Type* targetType = prefixType;
+        if (name == "read") {
+            Expr* item = expr->arguments[1].get();
+            destination = emitAddress(item);
+            targetType = item->type;
+        } else if (!reading) {
+            Value value = emitExpr(expr->arguments[1].get());
+            storeInto(slot, value, prefixType);
+        }
+        line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write")
+            + "(l " + stream.name + ", l " + slot.name + ", l " + std::to_string(size) + ")");
+        emitExceptionCheck();
+        if (reading) {
+            Value value = loadFrom(slot, prefixType);
+            emitRangeCheck(value, targetType, expr->location);
+            if (name == "input") { return value; }
+            storeInto(destination, value, targetType);
+        }
+        return Value {"0", 'w'};
+    }
+
     if (name == "input") {
         if (isUnconstrainedArray(prefixType)) {
             std::string descriptor = allocScratch(adaArrayResultSize(1));
@@ -415,7 +441,8 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 
         long long size = typeSize(prefixType);
         std::string slot = allocScratch(size < 1 ? 1 : size, typeAlignment(prefixType));
-        line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(size) + ")");
+        long long streamSize = prefixType->kind == TypeKind::Array ? typeLayoutSize(prefixType) : size;
+        line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(streamSize) + ")");
         emitExceptionCheck();
 
         Value address { slot, 'l' };
@@ -468,6 +495,11 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         }
     }
 
+    std::vector<StorageCopyBack> storageCopies;
+    if (type->kind == TypeKind::Record) {
+        address = adaptCompositeStorage(address, type, prefixType, reading ? ParameterMode::InOut : ParameterMode::In, storageCopies);
+        size = std::to_string(typeSize(prefixType));
+    }
     Value destination = address;
     if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
         address = Value { allocScratch(typeSize(type)), 'l' };
@@ -480,6 +512,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         emitRangeCheck(value, type, expr->location);
         storeInto(destination, value, type);
     }
+    emitStorageCopyBacks(storageCopies);
     return Value { "0", 'w' };
 }
 

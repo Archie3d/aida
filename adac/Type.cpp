@@ -107,6 +107,19 @@ long long typeSize(const Type* type)
     if (type->m_tagged && type->isSubtype && type->base != nullptr) {
         return typeSize(type->base);
     }
+    if (type->m_compositeSize > 0) {
+        bool matches = type->kind == TypeKind::Record;
+        if (type->kind == TypeKind::Array && type->constrained
+            && type->m_sizeBounds.size() == static_cast<std::size_t>(type->arrayRank)) {
+            matches = true;
+            const Type* axis = type;
+            for (const auto& bounds : type->m_sizeBounds) {
+                matches = matches && axis->constrained && axis->indexLow == bounds.first && axis->indexHigh == bounds.second;
+                axis = axis->element;
+            }
+        }
+        if (matches) { return type->m_compositeSize; }
+    }
     if (type->byteSize > 0) {
         return type->byteSize;
     }
@@ -165,6 +178,23 @@ long long typeSize(const Type* type)
     return 0;
 }
 
+// Size clauses add trailing storage without changing component offsets.
+long long typeLayoutSize(const Type* type)
+{
+    if (type == nullptr || !isComposite(type)) { return typeSize(type); }
+    Type layout = *type;
+    layout.m_compositeSize = 0;
+    return typeSize(&layout);
+}
+
+bool scalarStorageSigned(const Type* type)
+{
+    if (type->kind == TypeKind::Integer) { return type->low < 0; }
+    return !type->m_enumCodes.empty() && type->low >= 0
+        && type->low < static_cast<long long>(type->m_enumCodes.size())
+        && type->m_enumCodes[static_cast<std::size_t>(type->low)] < 0;
+}
+
 long long typeAlignment(const Type* type)
 {
     if (type == nullptr) {
@@ -214,8 +244,12 @@ char qbeClass(const Type* type)
         return typeSize(type) == 8 ? 'd' : 's';
     case TypeKind::UniversalReal:
         return 'd';
-    case TypeKind::Integer:
-        return typeSize(type) == 8 ? 'l' : 'w';
+    case TypeKind::Integer: {
+        const Type* valueType = type;
+        while (valueType->isSubtype && valueType->base != nullptr) { valueType = valueType->base; }
+        return typeSize(valueType) == 8
+            || (valueType->m_parentType != nullptr && qbeClass(valueType->m_parentType) == 'l') ? 'l' : 'w';
+    }
     case TypeKind::UniversalInteger:
     case TypeKind::Fixed:
     case TypeKind::Access:
@@ -231,11 +265,9 @@ const char* qbeLoadInstruction(const Type* type)
 {
     switch (typeSize(type)) {
     case 1:
-        return (type->kind == TypeKind::Integer && type->low < 0)
-            || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0) ? "loadsb" : "loadub";
+        return scalarStorageSigned(type) ? "loadsb" : "loadub";
     case 2:
-        return (type->kind == TypeKind::Integer && type->low < 0)
-            || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0) ? "loadsh" : "loaduh";
+        return scalarStorageSigned(type) ? "loadsh" : "loaduh";
     case 8:
         if (isReal(type)) {
             return "loadd";
@@ -330,6 +362,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
 {
     Type* subtype = create(parent->kind, name);
     subtype->m_alignment = parent->m_alignment;
+    subtype->m_compositeSize = parent->m_compositeSize;
+    subtype->m_sizeBounds = parent->m_sizeBounds;
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->m_tagged = parent->m_tagged;
@@ -411,6 +445,22 @@ void TypeTable::refreshEnumerationRepresentation(Type* type)
         if (subtype->isSubtype && baseType(subtype) == type) {
             subtype->byteSize = type->byteSize;
             subtype->m_enumCodes = type->m_enumCodes;
+            subtype->m_alignment = type->m_alignment;
+        }
+    }
+}
+
+void TypeTable::refreshStorageRepresentation(Type* type)
+{
+    for (const auto& stored : m_types) {
+        Type* subtype = stored.get();
+        if (subtype == type || !subtype->isSubtype) { continue; }
+        Type* ancestor = subtype->base;
+        while (ancestor != nullptr && ancestor != type && ancestor->isSubtype) { ancestor = ancestor->base; }
+        if (ancestor == type && subtype->m_specifiedSize < 0) {
+            subtype->byteSize = type->byteSize;
+            subtype->m_compositeSize = type->m_compositeSize;
+            subtype->m_sizeBounds = type->m_sizeBounds;
             subtype->m_alignment = type->m_alignment;
         }
     }

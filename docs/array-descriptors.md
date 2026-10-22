@@ -139,3 +139,12 @@ exception allocation in four task contexts. Existing result-buffer allocation
 failure, stream truncation, controlled-result, conversion and lifetime tests
 continue to pass. Native and whole/separate Ada tasking runs exercise C runtime
 ASan/UBSan and ThreadSanitizer builds; generated QBE accesses remain uninstrumented.
+
+## Explicit static Size
+
+A static array Size clause can add trailing object storage. Descriptors still
+measure contiguous component data; component sizes and byte strides include
+any storage selected for the component subtype. Full objects and static result
+buffers allocate the specified storage, while copies and array streams move
+only component data. Padding follows an exact static shape and is dropped by
+slice views and changed bounds. See [representation clauses](representation-clauses.md).

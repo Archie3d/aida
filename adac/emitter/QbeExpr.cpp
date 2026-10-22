@@ -173,7 +173,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 std::string bytes = objectBytes(converted, expr->type);
                 converted.name = newTemp();
                 line(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-                     + ", l 1, l 1, l " + bytes + ")");
+                     + ", l 1, l 1, l " + (expr->type->constrained ? std::to_string(typeSize(expr->type)) : bytes) + ")");
                 emitExceptionCheck();
                 if (needsFinalization(expr->type)) {
                     bool saved = m_context->m_initializingTemporary;
@@ -197,6 +197,12 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             }
             if (expr->type->kind == TypeKind::Record && !expr->type->m_tagged) {
                 emitRecordConstraintCheck(value, expr->type);
+                if (typeSize(expr->type) != typeSize(operand->type)
+                    && (typeSize(expr->type) != typeLayoutSize(expr->type) || typeSize(operand->type) != typeLayoutSize(operand->type))) {
+                    Value converted {allocScratch(std::max(1LL, typeSize(expr->type)), typeAlignment(expr->type)), 'l'};
+                    copyInto(converted, value, expr->type);
+                    return converted;
+                }
                 return value;
             }
             char from = value.type;

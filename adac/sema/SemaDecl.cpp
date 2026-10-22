@@ -51,7 +51,8 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
             }
         }
         precedingType = decl->kind == DeclKind::Type
-            ? static_cast<TypeDecl*>(decl.get())->declaredType : nullptr;
+            ? static_cast<TypeDecl*>(decl.get())->declaredType
+            : decl->kind == DeclKind::Subtype ? static_cast<SubtypeDecl*>(decl.get())->declaredType : nullptr;
     }
     if (reportIncomplete) {
         reportIncompleteTypes(declarations);
