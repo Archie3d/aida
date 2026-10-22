@@ -1,4 +1,5 @@
 #include "Type.h"
+#include "../common/Fixed.h"
 
 #include <limits>
 #include <algorithm>
@@ -301,7 +302,7 @@ TypeTable::TypeTable()
 
     // Runtime time ABI: signed 64-bit counts of 2**(-30) seconds.
     m_duration = create(TypeKind::Fixed, "Duration");
-    m_duration->m_fixedBits = 30;
+    m_duration->m_fixedScale = 30;
     m_duration->m_fixedAft = 10;
     m_duration->low = std::numeric_limits<long long>::min();
     m_duration->high = std::numeric_limits<long long>::max();
@@ -339,8 +340,9 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->needsZeroInit = parent->needsZeroInit;
     subtype->literals = parent->literals;
     subtype->digits = parent->digits;
-    subtype->m_fixedBits = parent->m_fixedBits;
+    subtype->m_fixedScale = parent->m_fixedScale;
     subtype->m_fixedAft = parent->m_fixedAft;
+    subtype->m_fixedRadix = parent->m_fixedRadix;
     subtype->m_formalFixed = parent->m_formalFixed;
     subtype->m_delta = parent->m_delta;
     subtype->hasRealRange = parent->hasRealRange;
@@ -500,6 +502,7 @@ Type* TypeTable::scalarBaseType(Type* type)
     } else if (type->kind == TypeKind::Float) {
         result->hasRealRange = false;
     }
+    if (type->kind == TypeKind::Fixed && fixedIsDecimal(type->m_fixedScale)) { result->digits = 18; }
     type->m_scalarBase = result;
     return result;
 }

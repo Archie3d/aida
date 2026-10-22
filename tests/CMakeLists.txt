@@ -1158,3 +1158,31 @@ endforeach()
 
 add_ada_test(fixedoperators SOURCES fixedoperators.adb)
 add_determinism_test(fixedoperators SOURCE fixedoperators.adb)
+
+add_ada_test(decimalpoint SOURCES decimalpoint.adb)
+add_determinism_test(decimalpoint SOURCE decimalpoint.adb)
+add_ada_test(decimalchecks SOURCES decimalchecks.adb)
+add_ada_error_test(decimalerrors SOURCES decimalerrors.adb)
+add_ada_test(decimalstreams SOURCES decimalstreams.adb)
+add_determinism_test(decimalstreams SOURCE decimalstreams.adb)
+add_ada_test(decimaltasking SOURCES decimaltasking.adb)
+add_determinism_test(decimaltasking SOURCE decimaltasking.adb)
+foreach(decimal_case decimalpoint decimalchecks decimalstreams decimaltasking)
+    add_test(NAME runtime.${decimal_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${CMAKE_BINARY_DIR}/qbe/qbe
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${decimal_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${decimal_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_executable(decimal_runtime_test DecimalRuntimeTest.c)
+target_link_libraries(decimal_runtime_test PRIVATE adart)
+add_test(NAME runtime.decimal COMMAND decimal_runtime_test)
+set_tests_properties(runtime.decimal PROPERTIES TIMEOUT 20)

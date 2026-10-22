@@ -298,7 +298,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             ExactReal exact;
             long long value = 0;
-            if (exactValue(operand, exact) && exact.scaled(expr->type->m_fixedBits, value)
+            if (exactValue(operand, exact) && exact.scaled(expr->type->m_fixedScale, value)
                 && value >= expr->type->low && value <= expr->type->high) {
                 expr->isStatic = true;
                 expr->staticValue = value;

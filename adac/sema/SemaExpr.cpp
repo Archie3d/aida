@@ -101,7 +101,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->m_fixedBits, expr->staticValue);
+            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->m_fixedScale, expr->staticValue);
             if (expr->m_fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }
@@ -631,7 +631,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !exact.scaled(expected->m_fixedBits, expr->staticValue);
+            expr->m_fixedInvalid = !exact.scaled(expected->m_fixedScale, expr->staticValue);
             if (expr->m_fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }

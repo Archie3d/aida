@@ -48,10 +48,10 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         auto* binary = static_cast<BinaryExpr*>(expr);
         long long left, right, rounded;
         if (foldFixed(binary->left.get(), left) && foldFixed(binary->right.get(), right)) {
-            int leftBits = binary->left->type->m_fixedBits, rightBits = binary->right->type->m_fixedBits;
+            int leftBits = binary->left->type->m_fixedScale, rightBits = binary->right->type->m_fixedScale;
             bool multiply = binary->op == BinaryOp::Multiply;
-            if (fixedRatioMode(multiply ? (__int128)left * right : left, multiply ? 1 : right,
-                    multiply ? -leftBits - rightBits : rightBits - leftBits, expr->type->m_modulus != 0, &rounded)) {
+            if (fixedNumericOperation(multiply ? FixedMultiply : FixedDivide, left, leftBits,
+                    right, rightBits, expr->type->m_modulus != 0, &rounded)) {
                 value = expr->type->m_modulus != 0 ? (__int128)(uint64_t)rounded : (__int128)rounded;
                 return true;
             }
@@ -590,9 +590,8 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         if (!foldFixed(expr, counts)) {
             return false;
         }
-        int bits = expr->type->m_fixedBits;
-        value = bits >= 0 ? ExactReal::make(counts, (__int128)1 << bits)
-                          : ExactReal::make((__int128)counts * ((__int128)1 << -bits));
+        int bits = expr->type->m_fixedScale;
+        value = ExactReal::fixed(counts, bits);
         return true;
     }
     if (expr->m_exactReal.m_valid) {
@@ -702,12 +701,12 @@ bool Sema::foldFixed(Expr* expr, long long& value) const
         switch (binary->op) {
         case BinaryOp::Add: op = FixedAdd; break;
         case BinaryOp::Subtract: op = FixedSubtract; break;
-        case BinaryOp::Multiply: op = FixedMultiply; break;
-        case BinaryOp::Divide: op = FixedDivide; break;
+        case BinaryOp::Multiply: op = binary->m_roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
+        case BinaryOp::Divide: op = binary->m_roundFixed ? FixedDivideRounded : FixedDivide; break;
         default: break;
         }
-        return fixedOperation(op, left, binary->left->type->m_fixedBits,
-            right, binary->right->type->m_fixedBits, expr->type->m_fixedBits, &value);
+        return fixedOperation(op, left, binary->left->type->m_fixedScale,
+            right, binary->right->type->m_fixedScale, expr->type->m_fixedScale, &value);
     }
     if (expr->kind == ExprKind::Qualified) {
         auto* qualified = static_cast<QualifiedExpr*>(expr);
@@ -723,7 +722,7 @@ bool Sema::foldFixed(Expr* expr, long long& value) const
         if (!exactValue(call->resolvedArguments.front(), exact)) {
             return false;
         }
-        return exact.scaled(expr->type->m_fixedBits, value)
+        return exact.scaled(expr->type->m_fixedScale, value)
             && value >= expr->type->low && value <= expr->type->high;
     }
     return false;

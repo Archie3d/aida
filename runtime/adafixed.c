@@ -1,5 +1,5 @@
-/* Exact ordinary fixed-point text conversion. No binary floating conversion
-   is used for values; Small is an exact power of two in the generic ABI. */
+/* Exact binary and decimal fixed-point text conversion. No binary floating conversion
+   is used for values; the scale tag identifies the exact Small. */
 #include "adart.h"
 #include "../common/Fixed.h"
 #include "adaio.h"
@@ -14,7 +14,7 @@
 static int parseFixed(const char* text, int length, int bits, long long low, long long high,
                       int partial, int* last, long long* result)
 {
-    if (bits < ADA_FIXED_MIN_BITS || bits > ADA_FIXED_MAX_BITS) { return 0; }
+    if (!fixedValidScale(bits)) { return 0; }
     BigNatural numerator = {0}, denominator = {0}, product = {0};
     int ok = 0, cursor = 0, negative = 0, base = 10, before = 0, after = 0;
     int exponentNegative = 0;
@@ -86,7 +86,13 @@ static int parseFixed(const char* text, int length, int bits, long long low, lon
     for (long long i = 0; i < (power < 0 ? -power : power); ++i) {
         if (!multiplyAdd(power < 0 ? &denominator : &numerator, (uint64_t)base, 0)) { goto done; }
     }
-    if (!multiplyAdd(bits >= 0 ? &numerator : &denominator, UINT64_C(1) << (bits >= 0 ? bits : -bits), 0)) { goto done; }
+    int twos = fixedTwos(bits), fives = fixedFives(bits);
+    for (int i = 0; i < (twos < 0 ? -twos : twos); ++i) {
+        if (!multiplyAdd(twos < 0 ? &denominator : &numerator, 2, 0)) { goto done; }
+    }
+    for (int i = 0; i < (fives < 0 ? -fives : fives); ++i) {
+        if (!multiplyAdd(fives < 0 ? &denominator : &numerator, 5, 0)) { goto done; }
+    }
     /* Find floor(numerator / denominator), with a sentinel just above the
        largest representable magnitude. */
     uint64_t lower = 0, upper = (UINT64_C(1) << 63) + 1;
@@ -143,19 +149,22 @@ int __ada_fixed_scale(double small)
     return 0;
 }
 
-/* Produce exact terminating decimal digits (at most 19+30), then round in
+/* Produce exact terminating decimal digits (at most 38+62), then round in
    decimal. Requested padding never changes which digits are significant. */
 static char* formatFixed(long long value, int bits, int fore, int aft, int exponent, int image,
                          char* target, int capacity)
 {
-    if (bits < ADA_FIXED_MIN_BITS || bits > ADA_FIXED_MAX_BITS) {
+    if (!fixedValidScale(bits)) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
         return NULL;
     }
     char digits[160], rounded[160], exponentDigits[24];
     unsigned __int128 magnitude = value < 0 ? (uint64_t)(-(value + 1)) + 1 : (uint64_t)value;
-    unsigned __int128 divisor = bits >= 0 ? (unsigned __int128)1 << bits : 1;
-    if (bits < 0) { magnitude <<= -bits; }
+    int scale = fixedTwos(bits);
+    unsigned __int128 factor = fixedIsDecimal(bits) ? (unsigned __int128)fixedPower10(scale < 0 ? -scale : scale)
+        : (unsigned __int128)1 << (scale < 0 ? -scale : scale);
+    unsigned __int128 divisor = scale >= 0 ? factor : 1;
+    if (scale < 0) { magnitude *= factor; }
     unsigned __int128 whole = magnitude / divisor;
     char reverse[64];
     int integerDigits = 0;

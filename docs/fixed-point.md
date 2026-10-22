@@ -36,7 +36,7 @@ formatting does not approximate the stored value through a floating type.
 ## Operators and attributes
 
 Fixed-by-fixed multiplication and division accept a numeric result type
-identified by context or explicit conversion: ordinary fixed, signed integer,
+identified by context or explicit conversion: ordinary/decimal fixed, signed integer,
 modular or floating point. Operands may have different fixed types and scales.
 The result is converted once, without first rounding to either operand's scale.
 Floating results use the same exact rational-to-binary rounding as floating
@@ -74,8 +74,8 @@ their runtime bounds. No new mutable runtime global state is introduced.
 ## Limits and evidence
 
 Storage remains 64 bits; compact fixed-point Size clauses are still unsupported.
-Only binary ordinary Smalls are supported, as permitted by RM 3.5.9; decimal
-fixed point is the next roadmap item. Anonymous/library-level runtime scalar
+Only binary ordinary Smalls are supported, as permitted by RM 3.5.9.
+[Decimal fixed point](decimal-fixed-point.md) has its own exact decimal scale. Anonymous/library-level runtime scalar
 constraints, legacy delta constraints (J.3), complete freezing rules, portable
 user-defined stream representations and Annex G guarantees remain outside this
 stage. Unsupported syntax or representations are diagnosed.

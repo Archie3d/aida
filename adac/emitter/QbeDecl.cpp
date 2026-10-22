@@ -504,7 +504,17 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
 
 void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
 {
-    if (type == nullptr || type->m_scalarLow == nullptr) {
+    if (type == nullptr) { return; }
+    if (type->m_scalarLow == nullptr) {
+        if (type->m_decimalConstraint != nullptr) {
+            Value low { scalarText(type->low), 'l' }, high { scalarText(type->high), 'l' };
+            emitRangeCheck(low, type->m_decimalConstraint, location);
+            emitRangeCheck(high, type->m_decimalConstraint, location);
+            if (type->low <= type->high) {
+                emitRangeCheck(low, type->m_scalarConstraintBase, location);
+                emitRangeCheck(high, type->m_scalarConstraintBase, location);
+            }
+        }
         return;
     }
     Symbol* symbol = type->m_scalarBoundsSymbol;
@@ -514,6 +524,10 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
     Type* representation = m_sema.typeTable().scalarBaseType(type);
     emitRangeCheck(low, representation, location);
     emitRangeCheck(high, representation, location);
+    if (type->m_decimalConstraint != nullptr) {
+        emitRangeCheck(low, type->m_decimalConstraint, location);
+        emitRangeCheck(high, type->m_decimalConstraint, location);
+    }
     char width = qbeClass(type);
     std::string nonNull = newTemp();
     line(nonNull + " =w " + QbeSupport::comparisonInstruction(BinaryOp::GreaterEqual, width, type->m_modulus != 0)

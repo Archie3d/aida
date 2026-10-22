@@ -75,6 +75,7 @@ Supported:
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types
 - Ordinary fixed point with wider binary scales, Small clauses and dynamic local bounds ([limits](docs/fixed-point.md))
+- Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))
 - Modular types through `2 ** 64`, modular generics, `'Mod` and `Modular_IO` ([limits](docs/modular-types.md))
 - Checked binary32/64 arithmetic, integer powers and floating `'Value` ([floating model](docs/floating-point.md))
 - Arrays with 64-bit bounds, lengths and byte strides ([descriptor ABI](docs/array-descriptors.md))

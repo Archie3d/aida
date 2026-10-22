@@ -1,0 +1,19 @@
+decimalerrors.adb:4:24: error: decimal delta must be a power of ten from 10.0**(-18) through 10.0**18
+decimalerrors.adb:5:22: error: decimal delta must be a power of ten from 10.0**(-18) through 10.0**18
+decimalerrors.adb:6:24: error: decimal delta must be a power of ten from 10.0**(-18) through 10.0**18
+decimalerrors.adb:7:46: error: no visible interpretation of 'True' matches this context
+decimalerrors.adb:7:28: error: decimal fixed-point types require 1 to 18 static digits
+decimalerrors.adb:8:23: error: decimal fixed-point types require 1 to 18 static digits
+decimalerrors.adb:9:18: error: decimal fixed-point types require 1 to 18 static digits
+decimalerrors.adb:10:23: error: decimal bounds exceed the range permitted by digits
+decimalerrors.adb:11:29: error: decimal bounds exceed the range permitted by digits
+decimalerrors.adb:12:24: error: a decimal fixed-point type requires a non-null range
+decimalerrors.adb:14:5: error: a Small clause requires a nonderived ordinary fixed-point first subtype
+decimalerrors.adb:16:21: error: a subtype cannot ask for more digits than Money provides
+decimalerrors.adb:17:22: error: a digits constraint requires a decimal fixed-point or floating point type
+decimalerrors.adb:18:57: error: 'Ada.Text_IO.Fixed_IO' expects an ordinary fixed-point type, and 'Money' is not one
+decimalerrors.adb:19:58: error: 'Ada.Text_IO.Decimal_IO' expects a decimal fixed-point type, and 'Binary' is not one
+decimalerrors.adb:21:5: error: decimal Machine_Radix must be the static value 2 or 10
+decimalerrors.adb:24:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
+decimalerrors.adb:27:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
+decimalerrors.adb:28:15: error: decimal digits constraints requiring an elaboration check need a local subtype declaration

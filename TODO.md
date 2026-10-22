@@ -89,7 +89,7 @@ diagnostics; later phases replace each rejection as they implement it.
   `interface` and `synchronized` are reserved; their unsupported constructs are
   rejected, including in generic formals (`reserved*`).
 - [x] **Generic formal types.** Private, limited private, discrete, integer,
-  floating, ordinary fixed and array formals only; other categories and trailing
+  floating, ordinary/decimal fixed and array formals only; other categories and trailing
   tokens are rejected (`genericformal*errors`, `deallocationformalerrors`).
 - [x] **Unsupported syntax.** Abstract subprograms, `goto`/labels, `select`,
   task entries, `limited with` and `private with` get named diagnostics with
@@ -318,8 +318,11 @@ and numeric work changes the generated code.
   `fixedoperator*`, `fixedstreams`, `fixedtasking`, `runtime.fixed_arithmetic`,
   whole/separate/determinism, sanitizer checks and ACATS C35A08B).
   [Contract and remaining restrictions](docs/fixed-point.md).
-- [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
-  rounding and checks.
+- [x] **Decimal fixed point.** Exact decimal scales `10.0**(-18)` through
+  `10.0**18`, 1–18 digits, digits constraints, truncating arithmetic and Round,
+  mixed numeric conversions, decimal formals and Decimal_IO (`decimal*`,
+  `runtime.decimal`, whole/separate/determinism and sanitizer checks;
+  unchanged ACATS CXF2002/CXF2003). [Contract and limits](docs/decimal-fixed-point.md).
 - [ ] **Representation clauses.** Implement alignment and enumeration
   representation clauses, one at a time, replacing their Phase 1 rejections.
   Also let `'Size` change subtype storage and composite layouts. Record
@@ -423,7 +426,7 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
 
 - [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
-  Phase 1 rejections with derived, access, modular, decimal and interface formals
+  Phase 1 rejections with derived, access and interface formals (modular/decimal added in Phase 5)
   as those types become available.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.

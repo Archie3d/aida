@@ -187,6 +187,7 @@ bool staticallyMatches(Type* actual, Type* formal)
     if (isScalar(actual)) {
         return actual->m_scalarBoundsSymbol == formal->m_scalarBoundsSymbol
             && actual->low == formal->low && actual->high == formal->high
+            && (actual->kind != TypeKind::Fixed || actual->digits == formal->digits)
             && actual->hasRealRange == formal->hasRealRange
             && actual->lowReal == formal->lowReal && actual->highReal == formal->highReal;
     }
@@ -227,7 +228,7 @@ void adaptUniversal(Expr* expr, Type* type)
             expr->isStatic = false;
             return;
         }
-        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->m_fixedBits, expr->staticValue);
+        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->m_fixedScale, expr->staticValue);
         expr->isStatic = !expr->m_fixedInvalid;
         expr->type = type;
         return;

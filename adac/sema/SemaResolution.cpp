@@ -451,7 +451,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.booleanType());
         } else if (name == "modulus" || name == "pos" || name == "length" || name == "size") {
             add(m_types.universalInteger());
-        } else if (name == "width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
+        } else if (name == "scale" || name == "width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
@@ -483,7 +483,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     if (prefix->kind == TypeKind::Array) {
                         add(prefix->index);
                     }
-                } else if (name == "min" || name == "max" || name == "mod" || name == "base" || name == "val" || name == "succ" || name == "pred") {
+                } else if (name == "min" || name == "max" || name == "mod" || name == "round" || name == "base" || name == "val" || name == "succ" || name == "pred") {
                     add(m_types.scalarBaseType(prefix));
                 } else if (name == "first" || name == "last" || name == "value" || name == "input") {
                     add(prefix);

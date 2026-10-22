@@ -75,11 +75,29 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "read" || name == "write" || name == "input" || name == "output") {
         return emitStreamAttribute(expr);
     }
+    if (name == "round" && prefixType->kind == TypeKind::Fixed) {
+        Expr* argument = expr->arguments[0].get();
+        Value value = emitExpr(argument);
+        std::string result = newTemp();
+        if (argument->type->kind == TypeKind::Fixed) {
+            line(result + " =l call $__ada_fixed_rescale(l " + value.name + ", w "
+                + std::to_string(argument->type->m_fixedScale) + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
+        } else {
+            if (value.type == 's') {
+                std::string wide = newTemp();
+                line(wide + " =d exts " + value.name);
+                value = Value { wide, 'd' };
+            }
+            line(result + " =l call $__ada_float_to_fixed(d " + value.name + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
+        }
+        emitExceptionCheck();
+        return Value { result, 'l' };
+    }
     if (name == "fore" && prefixType->kind == TypeKind::Fixed) {
         Value bounds = scalarBounds(prefixType);
         std::string result = newTemp();
         line(result + " =l call $__ada_fixed_fore(l " + bounds.first + ", l " + bounds.last
-            + ", w " + std::to_string(prefixType->m_fixedBits) + ")");
+            + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -200,7 +218,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         std::string destination = "l " + buffer + ", w " + std::to_string(capacity) + ", ";
         if (base != nullptr && base->kind == TypeKind::Fixed) {
             line(length + " =w call $__ada_image_fixed(" + destination + "l " + value.name + ", w "
-                 + std::to_string(base->m_fixedBits) + ", w " + std::to_string(base->m_fixedAft) + ")");
+                 + std::to_string(base->m_fixedScale) + ", w " + std::to_string(base->m_fixedAft) + ")");
         } else if (isFloatClass(value.type)) {
             std::string wide = widenToDouble(value);
             line(length + " =w call $__ada_image_float(" + destination + "d " + wide + ", w "
@@ -288,7 +306,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             line(temp + " =" + precision + " call $" + helper + "(l " + text.name + ", w " + length.name + ")");
         } else if (base != nullptr && base->kind == TypeKind::Fixed) {
             line(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
-                 + ", w " + std::to_string(base->m_fixedBits) + ", l -9223372036854775808, l 9223372036854775807)");
+                 + ", w " + std::to_string(base->m_fixedScale) + ", l -9223372036854775808, l 9223372036854775807)");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
             line(temp + " =w call $__ada_value_enum(l " + text.name + ", w " + length.name + ", l "
                  + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");

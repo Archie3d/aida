@@ -151,6 +151,8 @@ public:
     struct Expr* m_scalarLow = nullptr;
     struct Expr* m_scalarHigh = nullptr;
     Type* m_scalarConstraintBase = nullptr;
+    // Decimal digits limits are checked independently of range compatibility.
+    Type* m_decimalConstraint = nullptr;
 
     // Enumeration types.
     std::vector<std::string> literals;
@@ -159,8 +161,11 @@ public:
     // machine representation, and the bounds are kept separately from the
     // discrete ones because they do not fit in an integer.
     int digits = 0;
-    int m_fixedBits = 0;
+    // Binary fractional bits, or ADA_FIXED_DECIMAL_TAG + decimal scale.
+    int m_fixedScale = 0;
     int m_fixedAft = 1;
+    int m_fixedRadix = 2;
+    bool m_fixedRadixSpecified = false;
     // Contract-only fixed-point types have no scale or bounds until instantiation.
     bool m_formalFixed = false;
     struct Expr* m_delta = nullptr;

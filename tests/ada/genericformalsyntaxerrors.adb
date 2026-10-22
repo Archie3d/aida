@@ -29,7 +29,7 @@ package Bad_Form_5 is
 end Bad_Form_5;
 
 generic
-    type T is delta <> digits <>;
+    type T is delta <> digits <> range <>;
 package Bad_Form_6 is
 end Bad_Form_6;
 

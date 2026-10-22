@@ -10,12 +10,15 @@ or a claim of conformity assessment. Ada 2005-specific additions still need test
 retrieved 2026-10-21 (C49022A, C45523A and C45347A in `c4/`, the other
 original cases in `c5/`). C354002 comes from `c3/c354002.a`, retrieved
 2026-10-22 and stored as `c354002.ada`. C35A08B comes from `c3/c35a08b.ada`,
-retrieved 2026-10-22. Each file retains its grant of
+retrieved 2026-10-22. CXF2002 and CXF2003 come from `cxf/cxf2002.a`
+and `cxf/cxf2003.a`, retrieved 2026-10-22 and stored with `.ada` extensions. Each file retains its grant of
 unlimited rights and disclaimer. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
 
 | Case | Ada 2005 RM | Expectation | Remaining gap / owner |
 | --- | --- | --- | --- |
+| CXF2002 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: repeated decimal multiplication/division, truncation and Round with matching operand types and both machine radices | Selected Annex F facility; full Annex F remains unclaimed |
+| CXF2003 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: decimal multiplication/division, truncation and Round with different operand types/scales and both machine radices | Ordinary decimal Small and Ada.Decimal.Divide cases remain outside the selection |
 | C35A08B | 4.5.5 | PASS: same/mixed fixed operands and explicit Standard multiplication/division | Broader fixed and numeric-context coverage: Phase 8 |
 | C354002 | 3.5, 3.5.4 | PASS: modular bounds, Modulus, Min/Max, wrapping Succ/Pred, Image/Value, Pos/Val and Width, including maximum supported moduli | Wide attributes: Phase 7; further modular coverage: Phase 8 |
 | C52005A | 5.2 | PASS: scalar assignment range checks and unchanged target on failure | Broader static arithmetic audit: Phase 5 |
@@ -27,6 +30,8 @@ GCC's release branch itself may change. No download is needed at build/test time
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
+| cxf2002.ada | `984daa97bca695a0dd1b5184849c0fa4233bb245` | `e380eceda0aed84eca205587853f69d69902a2b46dcb25342590fc17edb76183` |
+| cxf2003.ada | `133dc48e6c22e9799a3dffa0f78ee2e50e624ee3` | `497d639ae33488b99d04caf6e8887c7838615bee5e823506f2d8e03a87a7fce1` |
 | c35a08b.ada | `1750bfa12a21118feff9168d17d05d88c368cab6` | `eabeb71d8bf3a9f9d3324012541e4b119bc6191f531418e05eb62637dbef9b18` |
 | c354002.ada | `3129182b70406d33dca826d0f4f505d21ac7f329` | `53ccaca62f66e628b479b53456fa35ca723201093338b93745975b1ecb8d4d90` |
 | c52005a.ada | `2c70049c8080ca53f3e5d4fe070915500da5287d` | `927e5fd3db80dfd38fd59619ca65b354893844d64b276a2dfe9c2870626d32bf` |
@@ -64,5 +69,5 @@ rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).
 When closing a known gap, remove its rejection expectation and run the executable
 case. B-tests, multi-stage/multi-file ACATS construction, implementation-defined
-substitutions, annex tests and the full official REPORT protocol are future
+substitutions, broader annex selections and the full official REPORT protocol are future
 harness work; do not route them through this C-test runner unchanged.

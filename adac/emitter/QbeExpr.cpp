@@ -207,10 +207,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     std::string converted = newTemp();
                     if (operand->type->m_modulus != 0) {
                         line(converted + " =l call $__ada_modular_to_fixed(l " + wide.name
-                            + ", w " + std::to_string(expr->type->m_fixedBits) + ")");
+                            + ", w " + std::to_string(expr->type->m_fixedScale) + ")");
                     } else {
                         line(converted + " =l call $__ada_fixed_numeric_operation(w 2, l " + wide.name
-                            + ", w " + std::to_string(operand->type->m_fixedBits) + ", l 1, w 0, w 1)");
+                            + ", w " + std::to_string(operand->type->m_fixedScale) + ", l 1, w 0, w 1)");
                     }
                     emitExceptionCheck();
                     Value result { converted, 'l' };
@@ -223,8 +223,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     return result;
                 }
                 std::string result = newTemp();
-                int fromBits = operand->type->m_fixedBits;
-                int toBits = expr->type->m_fixedBits;
+                int fromBits = operand->type->m_fixedScale;
+                int toBits = expr->type->m_fixedScale;
                 if (isFloatClass(from)) {
                     std::string wide = value.name;
                     if (from == 's') {
@@ -234,9 +234,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     line(result + " =l call $__ada_float_to_fixed(d " + wide + ", w " + std::to_string(toBits) + ")");
                     emitExceptionCheck();
                 } else if (isFloatClass(to)) {
-                    std::string wide = newTemp();
-                    line(wide + " =d sltof " + value.name);
-                    line(result + " =d div " + wide + ", " + QbeSupport::realLiteral(std::ldexp(1.0, fromBits), 'd'));
+                    line(result + " =d call $__ada_fixed_real_operation(w 2, l " + value.name
+                        + ", w " + std::to_string(fromBits) + ", l 1, w 0, w " + (to == 's' ? "24" : "53") + ")");
+                    emitExceptionCheck();
                     if (to == 's') {
                         std::string narrow = newTemp();
                         line(narrow + " =s truncd " + result);

@@ -195,6 +195,7 @@ struct BinaryExpr : Expr
 
     BinaryOp op = BinaryOp::Add;
     bool m_fixedResult = false;
+    bool m_roundFixed = false;
     bool m_explicitFixedContext = false;
     bool m_standardFixed = false;
     ExprPtr left;
@@ -940,6 +941,7 @@ enum class FormalTypeClass
     ModularType,
     FloatType,
     FixedType,
+    DecimalType,
     ArrayType
 };
 

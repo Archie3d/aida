@@ -144,20 +144,20 @@ double __ada_value_real(const char* text, int length)
     return result;
 }
 
-/* The input counts and binary scales describe an exact rational, independent
+/* The input counts and binary/decimal scales describe an exact rational, independent
    of the destination floating format. Round it directly to that format. */
 double __ada_fixed_real_operation(int operation, long long left, int leftBits,
                                   long long right, int rightBits, int precision)
 {
     if ((operation != 2 && operation != 3) || (precision != 24 && precision != 53)
-        || leftBits < ADA_FIXED_MIN_BITS || leftBits > ADA_FIXED_MAX_BITS
-        || rightBits < ADA_FIXED_MIN_BITS || rightBits > ADA_FIXED_MAX_BITS) {
+        || !fixedValidScale(leftBits) || !fixedValidScale(rightBits)) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
         return 0;
     }
     __int128 n = operation == 2 ? (__int128)left * right : left;
     __int128 d = operation == 2 ? 1 : right;
-    int power = operation == 2 ? -leftBits - rightBits : rightBits - leftBits;
+    int power = -fixedTwos(leftBits) + (operation == 2 ? -fixedTwos(rightBits) : fixedTwos(rightBits));
+    int fives = -fixedFives(leftBits) + (operation == 2 ? -fixedFives(rightBits) : fixedFives(rightBits));
     int negative = (n < 0) != (d < 0);
     unsigned __int128 a = n < 0 ? 0 - (unsigned __int128)n : (unsigned __int128)n;
     unsigned __int128 b = d < 0 ? 0 - (unsigned __int128)d : (unsigned __int128)d;
@@ -171,8 +171,11 @@ double __ada_fixed_real_operation(int operation, long long left, int leftBits,
     if (ok && numerator.size == 0) {
         result = negative ? -0.0 : 0.0;
     } else if (ok) {
-        ok = shift(power >= 0 ? &numerator : &denominator, power >= 0 ? power : -power)
-            && roundRealRatio(&numerator, &denominator, negative, precision, &result);
+        ok = shift(power >= 0 ? &numerator : &denominator, power >= 0 ? power : -power);
+        for (int i = 0; ok && i < (fives < 0 ? -fives : fives); ++i) {
+            ok = multiplyAdd(fives < 0 ? &denominator : &numerator, 5, 0);
+        }
+        ok = ok && roundRealRatio(&numerator, &denominator, negative, precision, &result);
     }
     free(numerator.words);
     free(denominator.words);

@@ -1,1 +1,1 @@
-fixeddecimalerrors.adb:2:30: error: decimal fixed-point types are not yet supported
+fixeddecimalerrors.adb:2:19: error: decimal delta must be a power of ten from 10.0**(-18) through 10.0**18

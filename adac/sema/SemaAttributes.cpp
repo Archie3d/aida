@@ -365,7 +365,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     for (const ExprPtr& argument : expr->arguments) {
         // An aggregate waits for the stream attributes below, which know the
         // type it is meant to have.
-        if (argument->kind != ExprKind::Aggregate) {
+        if (argument->kind != ExprKind::Aggregate && name != "round") {
             bool contextual = expr->lower == "min" || expr->lower == "max" || expr->lower == "image" || expr->lower == "pos"
                 || expr->lower == "succ" || expr->lower == "pred";
             Type* context = contextual ? prefixType : nullptr;
@@ -416,10 +416,71 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = true;
-        expr->staticValue = 2;
+        expr->staticValue = base->m_fixedRadix;
         return expr->type;
     }
     if (base != nullptr && base->kind == TypeKind::Fixed) {
+        if (fixedIsDecimal(base->m_fixedScale) && (name == "digits" || name == "scale")) {
+            if (!prefixIsType || !representationVisible(base) || !expr->arguments.empty()) {
+                m_diagnostics.error(expr->location, "decimal scale attributes require a subtype and no arguments");
+            }
+            expr->type = m_types.universalInteger();
+            expr->isStatic = !base->m_formalFixed;
+            expr->staticValue = name == "digits" ? base->digits : fixedFives(base->m_fixedScale);
+            return expr->type;
+        }
+        if (fixedIsDecimal(base->m_fixedScale) && name == "round") {
+            if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 1) {
+                m_diagnostics.error(expr->location, "decimal Round requires a visible subtype and one real argument");
+                return nullptr;
+            }
+            Expr* operand = expr->arguments[0].get();
+            Type* context = nullptr;
+            Expr* operation = operand;
+            while (true) {
+                if (operation->kind == ExprKind::Unary) {
+                    operation = static_cast<UnaryExpr*>(operation)->operand.get();
+                } else if (operation->kind == ExprKind::Call) {
+                    auto* call = static_cast<CallExpr*>(operation);
+                    if (call->operatorExpression == nullptr) { call->operatorExpression = explicitOperator(call, scope); }
+                    if (call->operatorExpression == nullptr) { break; }
+                    operation = call->operatorExpression.get();
+                } else { break; }
+            }
+            if (operation->kind == ExprKind::Binary) {
+                auto* binary = static_cast<BinaryExpr*>(operation);
+                if (binary->op == BinaryOp::Multiply || binary->op == BinaryOp::Divide) {
+                    for (Type* candidate : expressionTypes(binary->left.get(), scope)) {
+                        if (candidate->kind == TypeKind::Fixed) { context = m_types.scalarBaseType(base); }
+                    }
+                    for (Type* candidate : expressionTypes(binary->right.get(), scope)) {
+                        if (candidate->kind == TypeKind::Fixed) { context = m_types.scalarBaseType(base); }
+                    }
+                    binary->m_roundFixed = context != nullptr;
+                }
+            }
+            if (context == nullptr) {
+                auto candidates = expressionTypes(operand, scope);
+                if (!candidates.empty() && std::all_of(candidates.begin(), candidates.end(), [](Type* type) {
+                        return type->kind == TypeKind::UniversalInteger || type->kind == TypeKind::UniversalReal;
+                    })) { context = m_types.universalReal(); }
+            }
+            Type* argument = analyzeExpr(operand, scope, context);
+            if (context == m_types.universalReal()) {
+                SemaSupport::adaptUniversal(operand, context);
+                argument = operand->type;
+            }
+            if (!isReal(argument) && (argument == nullptr || argument->kind != TypeKind::Fixed)) {
+                m_diagnostics.error(expr->location, "decimal Round requires a real argument");
+            }
+            expr->type = m_types.scalarBaseType(base);
+            ExactReal value;
+            if (!base->m_formalFixed && exactValue(expr->arguments[0].get(), value)) {
+                expr->isStatic = value.scaled(base->m_fixedScale, expr->staticValue);
+                if (!expr->isStatic) { m_diagnostics.error(expr->location, "decimal Round result exceeds the base range"); }
+            }
+            return expr->type;
+        }
         if (name == "fore" || name == "aft") {
             if (!prefixIsType || !representationVisible(base) || !expr->arguments.empty()) {
                 m_diagnostics.error(expr->location, "fixed-point formatting attributes require a subtype and no arguments");
@@ -435,8 +496,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 if (high < 0) {
                     high = -high;
                 }
-                __int128 whole = base->m_fixedBits >= 0 ? std::max(low, high) >> base->m_fixedBits
-                    : std::max(low, high) * ((__int128)1 << -base->m_fixedBits);
+                int scale = fixedTwos(base->m_fixedScale);
+                __int128 factor = fixedIsDecimal(base->m_fixedScale) ? fixedPower10(scale < 0 ? -scale : scale)
+                    : (__int128)1 << (scale < 0 ? -scale : scale);
+                __int128 whole = scale >= 0 ? std::max(low, high) / factor : std::max(low, high) * factor;
                 expr->staticValue = 2;
                 while (whole >= 10) {
                     whole /= 10;
@@ -458,9 +521,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_exactReal = base->m_fixedBits >= 0
-                ? ExactReal::make(1, (__int128)1 << base->m_fixedBits)
-                : ExactReal::make((__int128)1 << -base->m_fixedBits);
+            expr->m_exactReal = ExactReal::fixed(1, base->m_fixedScale);
             if (name == "delta" && base->m_delta != nullptr) {
                 exactValue(base->m_delta, expr->m_exactReal);
             }

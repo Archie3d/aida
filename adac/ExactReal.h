@@ -216,9 +216,17 @@ struct ExactReal
         return value;
     }
 
+    static ExactReal fixed(long long counts, int scale)
+    {
+        int power = fixedTwos(scale);
+        __int128 factor = fixedIsDecimal(scale) ? fixedPower10(power < 0 ? -power : power)
+            : (__int128)1 << (power < 0 ? -power : power);
+        return power >= 0 ? make(counts, factor) : make((__int128)counts * factor);
+    }
+
     bool scaled(int bits, long long& result) const
     {
-        ExactReal value = operation(bits >= 0 ? '*' : '/', *this, make((__int128)1 << (bits >= 0 ? bits : -bits)));
-        return value.m_valid && fixedRound(value.m_numerator, value.m_denominator, &result);
+        return m_valid && fixedValidScale(bits)
+            && fixedScaleRatio(m_numerator, m_denominator, fixedTwos(bits), fixedFives(bits), 0, 0, &result);
     }
 };

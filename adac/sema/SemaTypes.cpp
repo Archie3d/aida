@@ -231,6 +231,57 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(definition->location, "fixed-point delta must be a positive exact static real expression");
             delta = ExactReal::make(1);
         }
+        if (definition->digits) {
+            Type* digitsType = analyzeExpr(definition->digits.get(), scope, m_types.integerType());
+            long long digits = 0;
+            if (digitsType == nullptr || (digitsType->kind != TypeKind::Integer && digitsType->kind != TypeKind::UniversalInteger)
+                || !foldStatic(definition->digits.get(), digits) || digits < 1 || digits > 18) {
+                m_diagnostics.error(definition->location, "decimal fixed-point types require 1 to 18 static digits");
+                digits = 1;
+            }
+            int scale = ADA_FIXED_MIN_SCALE;
+            for (; scale <= ADA_FIXED_MAX_SCALE; ++scale) {
+                ExactReal candidate = scale >= 0 ? ExactReal::make(1, fixedPower10(scale)) : ExactReal::make(fixedPower10(-scale));
+                if (candidate.m_numerator == delta.m_numerator && candidate.m_denominator == delta.m_denominator) { break; }
+            }
+            if (scale > ADA_FIXED_MAX_SCALE) {
+                m_diagnostics.error(definition->location, "decimal delta must be a power of ten from 10.0**(-18) through 10.0**18");
+                scale = 0;
+            }
+            type->m_fixedScale = ADA_FIXED_DECIMAL_TAG + scale;
+            type->m_fixedAft = std::max(1, scale);
+            type->m_fixedRadix = 10;
+            type->digits = static_cast<int>(digits);
+            type->m_delta = definition->m_delta.get();
+            long long limit = static_cast<long long>(fixedPower10(static_cast<int>(digits)) - 1);
+            long long lowCounts = -limit, highCounts = limit;
+            if (definition->rangeLow && definition->rangeHigh) {
+                Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);
+                Type* highType = analyzeExpr(definition->rangeHigh.get(), scope, nullptr);
+                ExactReal low, high;
+                if (!isReal(lowType) || !isReal(highType) || !exactValue(definition->rangeLow.get(), low)
+                    || !exactValue(definition->rangeHigh.get(), high)
+                    || !low.scaled(type->m_fixedScale, lowCounts) || !high.scaled(type->m_fixedScale, highCounts)) {
+                    m_diagnostics.error(definition->location, "decimal bounds must be exact static real expressions within 64-bit scaled storage");
+                } else {
+                    // Check the mathematical bounds before rounding, as required
+                    // by the digits definition, including fractional endpoints.
+                    ExactReal min = ExactReal::fixed(-limit, type->m_fixedScale);
+                    ExactReal max = ExactReal::fixed(limit, type->m_fixedScale);
+                    ExactReal below = ExactReal::operation('-', low, min);
+                    ExactReal above = ExactReal::operation('-', max, high);
+                    if (!below.m_valid || !above.m_valid || below.m_numerator < 0 || above.m_numerator < 0) {
+                        m_diagnostics.error(definition->location, "decimal bounds exceed the range permitted by digits");
+                    }
+                }
+            }
+            type->low = lowCounts;
+            type->high = highCounts;
+            if (lowCounts > highCounts) {
+                m_diagnostics.error(definition->location, "a decimal fixed-point type requires a non-null range");
+            }
+            break;
+        }
         int bits = ADA_FIXED_MIN_BITS;
         auto belowSmall = [&]() {
             return bits >= 0 ? delta.m_numerator <= (delta.m_denominator - 1) / ((__int128)1 << bits)
@@ -269,7 +320,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
             }
         }
-        type->m_fixedBits = bits;
+        type->m_fixedScale = bits;
         __int128 decimalScale = 10;
         while (type->m_fixedAft < 20
             && delta.m_numerator < (delta.m_denominator - 1) / decimalScale + 1) {
@@ -694,6 +745,8 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
         return;
     }
     Type* type = m_types.makeSubtype(decl->name, base, base->low, base->high);
+    type->m_decimalConstraint = base->m_decimalConstraint;
+    if (base->m_decimalConstraint != nullptr) { type->m_scalarConstraintBase = base->m_scalarConstraintBase; }
     decl->declaredType = type;
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
     symbol->type = type;
@@ -939,9 +992,27 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
         return;
     }
+    if (decl->attribute == "machine_radix") {
+        Type* type = symbol->type;
+        if (type->kind != TypeKind::Fixed || !fixedIsDecimal(type->m_fixedScale)
+            || type->isSubtype || type->m_parentType != nullptr || type != precedingType || type->m_scalarBase != nullptr
+            || type->m_fixedRadixSpecified || !representationVisible(type)) {
+            m_diagnostics.error(decl->location, "Machine_Radix requires an adjacent decimal fixed-point first subtype");
+            return;
+        }
+        analyzeExpr(decl->value.get(), scope, m_types.integerType());
+        long long radix = 0;
+        if (!foldStatic(decl->value.get(), radix) || (radix != 2 && radix != 10)) {
+            m_diagnostics.error(decl->location, "decimal Machine_Radix must be the static value 2 or 10");
+            return;
+        }
+        type->m_fixedRadix = static_cast<int>(radix);
+        type->m_fixedRadixSpecified = true;
+        return;
+    }
     if (decl->attribute == "small") {
         Type* type = symbol->type;
-        if (type->kind != TypeKind::Fixed || type->isSubtype || type->m_parentType != nullptr
+        if (type->kind != TypeKind::Fixed || fixedIsDecimal(type->m_fixedScale) || type->isSubtype || type->m_parentType != nullptr
             || !representationVisible(type)) {
             m_diagnostics.error(decl->location, "a Small clause requires a nonderived ordinary fixed-point first subtype");
         } else if (type->m_smallClause != decl->value.get()) {
@@ -1076,16 +1147,39 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     }
     indication->resolved = base;
 
+    Type* decimalConstraint = nullptr;
+    int decimalDigits = 0;
     if (indication->digits) {
-        analyzeExpr(indication->digits.get(), scope, m_types.integerType());
+        Type* digitsType = analyzeExpr(indication->digits.get(), scope, m_types.integerType());
         long long digits = 0;
-        if (!isReal(base)) {
-            m_diagnostics.error(indication->location, "an accuracy constraint requires a floating point type");
-        } else if (!foldStatic(indication->digits.get(), digits)) {
+        bool decimal = base->kind == TypeKind::Fixed && fixedIsDecimal(base->m_fixedScale);
+        if (!isReal(base) && !decimal) {
+            m_diagnostics.error(indication->location, "a digits constraint requires a decimal fixed-point or floating point type");
+        } else if (digitsType == nullptr || (digitsType->kind != TypeKind::Integer && digitsType->kind != TypeKind::UniversalInteger)
+            || !foldStatic(indication->digits.get(), digits)) {
             m_diagnostics.error(indication->location, "an accuracy constraint must be static");
         } else if (digits < 1 || digits > base->digits) {
             m_diagnostics.error(indication->location,
                                 "a subtype cannot ask for more digits than " + base->name + " provides");
+        } else if (decimal) {
+            decimalDigits = static_cast<int>(digits);
+            long long limit = static_cast<long long>(fixedPower10(decimalDigits) - 1);
+            decimalConstraint = m_types.makeSubtype(anonymousTypeName(), base, -limit, limit);
+            decimalConstraint->m_scalarBoundsSymbol = nullptr;
+            decimalConstraint->digits = decimalDigits;
+            if (!indication->rangeLow) {
+                if (!allowDynamicScalar && (base->m_scalarBoundsSymbol != nullptr
+                    || -(__int128)limit < base->low || (__int128)limit > base->high)) {
+                    m_diagnostics.error(indication->location, "decimal digits constraints requiring an elaboration check need a local subtype declaration");
+                }
+                Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, -limit, limit);
+                subtype->m_scalarBoundsSymbol = nullptr;
+                subtype->digits = decimalDigits;
+                subtype->m_scalarConstraintBase = base;
+                subtype->m_decimalConstraint = decimalConstraint;
+                indication->resolved = subtype;
+                return subtype;
+            }
         }
     }
 
@@ -1128,6 +1222,10 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 return base;
             }
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            if (decimalConstraint != nullptr) {
+                subtype->digits = decimalDigits;
+                subtype->m_decimalConstraint = decimalConstraint;
+            }
             subtype->m_scalarLow = indication->rangeLow.get();
             subtype->m_scalarHigh = indication->rangeHigh.get();
             subtype->m_scalarConstraintBase = base;
@@ -1135,6 +1233,16 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             return subtype;
         }
         Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, low, high);
+        if (decimalConstraint != nullptr) {
+            if (!allowDynamicScalar && (low < decimalConstraint->low || low > decimalConstraint->high
+                || high < decimalConstraint->low || high > decimalConstraint->high
+                || (low <= high && (low < base->low || high > base->high)))) {
+                m_diagnostics.error(indication->location, "decimal digits constraints requiring an elaboration check need a local subtype declaration");
+            }
+            subtype->digits = decimalDigits;
+            subtype->m_decimalConstraint = decimalConstraint;
+            subtype->m_scalarConstraintBase = base;
+        }
         indication->resolved = subtype;
         return subtype;
     }

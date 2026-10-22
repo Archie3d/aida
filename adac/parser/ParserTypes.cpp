@@ -132,10 +132,11 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::FixedDelta);
         definition->location = location;
         definition->m_delta = parseSimpleExpression();
-        if (check(TokenKind::KwDigits)) {
-            fail("decimal fixed-point types are not yet supported");
+        if (match(TokenKind::KwDigits)) {
+            definition->digits = parseSimpleExpression();
+            if (!check(TokenKind::KwRange)) { return definition; }
         }
-        expect(TokenKind::KwRange, "in ordinary fixed-point definition");
+        expect(TokenKind::KwRange, "in fixed-point definition");
         definition->rangeLow = parseSimpleExpression();
         expect(TokenKind::DoubleDot, "in fixed-point range");
         definition->rangeHigh = parseSimpleExpression();

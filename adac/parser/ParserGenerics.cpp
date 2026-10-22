@@ -77,8 +77,9 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 advance();
                 formal.typeClass = FormalTypeClass::FixedType;
                 expect(TokenKind::Box, "after delta in ordinary fixed-point formal type");
-                if (check(TokenKind::KwDigits)) {
-                    fail("decimal fixed-point generic formal types are not yet supported");
+                if (match(TokenKind::KwDigits)) {
+                    formal.typeClass = FormalTypeClass::DecimalType;
+                    expect(TokenKind::Box, "after digits in decimal fixed-point formal type");
                 }
                 if (!check(TokenKind::Semicolon)) {
                     fail("expected ';' after ordinary fixed-point formal type");

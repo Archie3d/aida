@@ -1,1 +1,1 @@
-generic_fixed_decimal.adb:3:31: error: decimal fixed-point generic formal types are not yet supported
+generic_fixed_decimal.adb:3:38: error: expected '<>' after digits in decimal fixed-point formal type, found '10'

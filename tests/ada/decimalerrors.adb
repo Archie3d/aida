@@ -1,0 +1,31 @@
+with Ada.Text_IO.Fixed_IO;
+with Ada.Text_IO.Decimal_IO;
+procedure DecimalErrors is
+    type Nondecimal is delta 0.02 digits 4;
+    type Too_Fine is delta 1.0E-19 digits 4;
+    type Too_Coarse is delta 1.0E19 digits 4;
+    type Boolean_Digits is delta 0.01 digits True;
+    type No_Digits is delta 0.01 digits 0;
+    type Wide is delta 0.01 digits 19;
+    type Bad_Range is delta 0.01 digits 2 range -1.0 .. 1.0;
+    type Fraction_Bounds is delta 0.01 digits 2 range -0.991 .. 0.99;
+    type Null_Range is delta 0.01 digits 2 range 0.5 .. -0.5;
+    type Money is delta 0.01 digits 6;
+    for Money'Small use 0.01;
+    type Binary is delta 0.125 range -10.0 .. 10.0;
+    subtype More is Money digits 7;
+    subtype Wrong is Binary digits 2;
+    package Wrong_Ordinary is new Ada.Text_IO.Fixed_IO (Money);
+    package Wrong_Decimal is new Ada.Text_IO.Decimal_IO (Binary);
+    type Bad_Radix is delta 0.01 digits 4;
+    for Bad_Radix'Machine_Radix use 3;
+    type Duplicate_Radix is delta 0.01 digits 4;
+    for Duplicate_Radix'Machine_Radix use 2;
+    for Duplicate_Radix'Machine_Radix use 10;
+    type Late_Radix is delta 0.01 digits 4;
+    Item : Late_Radix := 1.0;
+    for Late_Radix'Machine_Radix use 2;
+    Invalid : Money digits 3 range -12.0 .. 12.0;
+begin
+    null;
+end DecimalErrors;

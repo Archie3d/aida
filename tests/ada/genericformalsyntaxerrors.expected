@@ -4,5 +4,5 @@ genericformalsyntaxerrors.adb:12:16: error: expected '<>' in discrete generic fo
 genericformalsyntaxerrors.adb:17:20: error: expected ';' after generic formal parameter, found 'range'
 genericformalsyntaxerrors.adb:22:23: error: expected ';' after generic formal parameter, found 'new'
 genericformalsyntaxerrors.adb:27:23: error: generic formal type definition 'tagged' is not yet supported
-genericformalsyntaxerrors.adb:32:24: error: decimal fixed-point generic formal types are not yet supported
+genericformalsyntaxerrors.adb:32:34: error: expected ';' after ordinary fixed-point formal type
 genericformalsyntaxerrors.adb:37:57: error: expected an expression

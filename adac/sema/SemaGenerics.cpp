@@ -350,7 +350,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             }
             TypeKind kind = (formal.typeClass == FormalTypeClass::IntegerType || formal.typeClass == FormalTypeClass::ModularType) ? TypeKind::Integer
                 : formal.typeClass == FormalTypeClass::FloatType ? TypeKind::Float
-                : formal.typeClass == FormalTypeClass::FixedType ? TypeKind::Fixed
+                : (formal.typeClass == FormalTypeClass::FixedType || formal.typeClass == FormalTypeClass::DecimalType) ? TypeKind::Fixed
                 : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
             type = m_types.create(kind, formal.name);
             type->low = std::numeric_limits<int>::min();
@@ -361,6 +361,10 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 type->high = type->m_modulus - 1;
             }
             type->digits = 6;
+            if (formal.typeClass == FormalTypeClass::DecimalType) {
+                type->m_fixedScale = ADA_FIXED_DECIMAL_TAG;
+                type->digits = 18;
+            }
             type->m_formalFixed = kind == TypeKind::Fixed;
             if (formal.typeClass == FormalTypeClass::Any) {
                 type->privateTo = decl->symbol;
@@ -435,8 +439,13 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
             wanted = "a floating point type";
         }
         break;
+    case FormalTypeClass::DecimalType:
+        if (base->kind != TypeKind::Fixed || !fixedIsDecimal(base->m_fixedScale)) {
+            wanted = "a decimal fixed-point type";
+        }
+        break;
     case FormalTypeClass::FixedType:
-        if (base->kind != TypeKind::Fixed) {
+        if (base->kind != TypeKind::Fixed || fixedIsDecimal(base->m_fixedScale)) {
             wanted = "an ordinary fixed-point type";
         }
         break;

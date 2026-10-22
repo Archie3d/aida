@@ -26,8 +26,8 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         std::string result = newTemp();
         bool real = isReal(expr->type);
         std::string arguments = "(w " + std::to_string(expr->op == BinaryOp::Multiply ? 2 : 3)
-            + ", l " + left.name + ", w " + std::to_string(expr->left->type->m_fixedBits)
-            + ", l " + right.name + ", w " + std::to_string(expr->right->type->m_fixedBits);
+            + ", l " + left.name + ", w " + std::to_string(expr->left->type->m_fixedScale)
+            + ", l " + right.name + ", w " + std::to_string(expr->right->type->m_fixedScale);
         line(result + (real ? " =d call $__ada_fixed_real_operation" : " =l call $__ada_fixed_numeric_operation")
             + arguments + ", w " + (real ? (qbeClass(expr->type) == 's' ? "24" : "53")
                                          : (expr->type->m_modulus != 0 ? "1" : "0")) + ")");
@@ -57,14 +57,14 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         switch (expr->op) {
         case BinaryOp::Add: operation = FixedAdd; break;
         case BinaryOp::Subtract: operation = FixedSubtract; break;
-        case BinaryOp::Multiply: operation = FixedMultiply; break;
-        case BinaryOp::Divide: operation = FixedDivide; break;
+        case BinaryOp::Multiply: operation = expr->m_roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
+        case BinaryOp::Divide: operation = expr->m_roundFixed ? FixedDivideRounded : FixedDivide; break;
         default: break;
         }
         std::string result = newTemp();
         line(result + " =l call $__ada_fixed_operation(w " + std::to_string(operation) + ", l " + left.name
-            + ", w " + std::to_string(expr->left->type->m_fixedBits) + ", l " + right.name
-            + ", w " + std::to_string(expr->right->type->m_fixedBits) + ", w " + std::to_string(expr->type->m_fixedBits) + ")");
+            + ", w " + std::to_string(expr->left->type->m_fixedScale) + ", l " + right.name
+            + ", w " + std::to_string(expr->right->type->m_fixedScale) + ", w " + std::to_string(expr->type->m_fixedScale) + ")");
         emitExceptionCheck();
         return Value { result, 'l' };
     }
