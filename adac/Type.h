@@ -207,6 +207,10 @@ public:
     // A width the type carries instead of the one its kind implies, which is
     // how a Stream_Element comes out a byte wide.
     long long byteSize = 0;
+    // -1 selects the default; zero specifies no additional alignment promise.
+    long long m_alignment = -1;
+    long long m_specifiedSize = -1;
+    bool m_alignmentSpecified = false;
 };
 
 // True when an object of this type, or one holding it, must be cleared.

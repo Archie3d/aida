@@ -1,0 +1,17 @@
+alignmenterrors.adb:4:5: error: supported Alignment values are 0, 1, 2, 4 and 8 storage elements
+alignmenterrors.adb:6:5: error: supported Alignment values are 0, 1, 2, 4 and 8 storage elements
+alignmenterrors.adb:8:5: error: supported Alignment values are 0, 1, 2, 4 and 8 storage elements
+alignmenterrors.adb:10:5: error: an Alignment clause requires a static integer
+alignmenterrors.adb:12:5: error: an Alignment clause requires a static integer
+alignmenterrors.adb:14:5: error: Alignment cannot be smaller than the natural alignment
+alignmenterrors.adb:17:5: error: duplicate Alignment clause
+alignmenterrors.adb:20:5: error: an Alignment clause must be adjacent to its type declaration, before representation use
+alignmenterrors.adb:22:5: error: an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts
+alignmenterrors.adb:24:5: error: Alignment requiring scalar or array stride padding is not yet supported
+alignmenterrors.adb:28:5: error: Alignment requiring scalar or array stride padding is not yet supported
+alignmenterrors.adb:32:5: error: an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts
+alignmenterrors.adb:34:5: error: an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts
+alignmenterrors.adb:36:5: error: 'Object' is not a type declared here
+alignmenterrors.adb:40:5: error: Size cannot be smaller than the specified Alignment
+alignmenterrors.adb:45:5: error: Alignment conflicts with the preceding Size clause
+alignmenterrors.adb:46:39: error: 'Alignment requires a complete, visible specific subtype or object and no arguments

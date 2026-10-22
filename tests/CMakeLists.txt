@@ -1187,3 +1187,21 @@ add_executable(decimal_runtime_test DecimalRuntimeTest.c)
 target_link_libraries(decimal_runtime_test PRIVATE adart)
 add_test(NAME runtime.decimal COMMAND decimal_runtime_test)
 set_tests_properties(runtime.decimal PROPERTIES TIMEOUT 20)
+
+add_ada_error_test(alignmenterrors SOURCES alignmenterrors.adb)
+add_determinism_test(alignmentclauses SOURCE alignmentclauses.adb)
+add_test(NAME runtime.alignmentclauses_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/Alignment.c
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/alignmentclauses.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/alignmentclauses.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/alignmentclauses-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(error.alignmenterrors determinism.alignmentclauses runtime.alignmentclauses_modes
+    PROPERTIES TIMEOUT 60)

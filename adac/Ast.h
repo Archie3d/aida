@@ -270,6 +270,7 @@ struct AttributeExpr : Expr
     Symbol* m_accessSubprogram = nullptr;
     Symbol* m_countEntry = nullptr;
     bool m_taskAttribute = false;
+    bool m_alignmentObjectView = false;
     Symbol* m_taskCurrentInstance = nullptr;
 };
 

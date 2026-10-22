@@ -992,6 +992,54 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
         return;
     }
+    if (decl->attribute == "alignment") {
+        Type* type = symbol->type;
+        if (type->isSubtype || type->isIncomplete || !representationVisible(type)
+            || type->m_tagged || hasTasks(type) || hasProtected(type)) {
+            m_diagnostics.error(decl->location, "an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts");
+            return;
+        }
+        if (type->m_alignmentSpecified) {
+            m_diagnostics.error(decl->location, "duplicate Alignment clause");
+            return;
+        }
+        if (type != precedingType || type->m_scalarBase != nullptr) {
+            m_diagnostics.error(decl->location, "an Alignment clause must be adjacent to its type declaration, before representation use");
+            return;
+        }
+        Type* valueType = analyzeExpr(decl->value.get(), scope, nullptr);
+        long long alignment = 0;
+        if (valueType == nullptr || (valueType->kind != TypeKind::Integer && valueType->kind != TypeKind::UniversalInteger)
+            || !foldStatic(decl->value.get(), alignment)) {
+            m_diagnostics.error(decl->location, "an Alignment clause requires a static integer");
+            return;
+        }
+        if (alignment < 0 || alignment > 8 || (alignment != 0 && (alignment & (alignment - 1)) != 0)) {
+            m_diagnostics.error(decl->location, "supported Alignment values are 0, 1, 2, 4 and 8 storage elements");
+            return;
+        }
+        if (alignment != 0 && alignment < typeAlignment(type)) {
+            m_diagnostics.error(decl->location, "Alignment cannot be smaller than the natural alignment");
+            return;
+        }
+        // Scalar widths also select load/store instructions. Array strides use
+        // the element's size, so do not promise alignment requiring extra stride
+        // padding. Records already round their size to their alignment.
+        if (alignment != 0 && type->kind != TypeKind::Record
+            && (type->kind == TypeKind::Array && !type->constrained
+                ? typeSize(type->element) % alignment != 0 : typeSize(type) % alignment != 0)) {
+            m_diagnostics.error(decl->location, "Alignment requiring scalar or array stride padding is not yet supported");
+            return;
+        }
+        if (alignment > 0 && type->kind == TypeKind::Record && type->m_specifiedSize >= 0
+            && typeSize(type) % alignment != 0) {
+            m_diagnostics.error(decl->location, "Alignment conflicts with the preceding Size clause");
+            return;
+        }
+        type->m_alignment = alignment;
+        type->m_alignmentSpecified = true;
+        return;
+    }
     if (decl->attribute == "machine_radix") {
         Type* type = symbol->type;
         if (type->kind != TypeKind::Fixed || !fixedIsDecimal(type->m_fixedScale)
@@ -1057,6 +1105,8 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         if ((type->kind == TypeKind::Array && !type->constrained) || bytes != typeSize(type)) {
             m_diagnostics.error(decl->location,
                 "composite size clauses must match the existing static layout");
+        } else {
+            type->m_specifiedSize = bytes;
         }
         return;
     }
@@ -1119,6 +1169,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         return;
     }
     if (bytes == typeSize(type)) {
+        type->m_specifiedSize = bytes;
         return;
     }
     // Subtypes, field offsets and folded attributes can already contain the
@@ -1133,7 +1184,12 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             "a size-changing clause must immediately follow its type declaration, before representation use");
         return;
     }
+    if (type->m_alignment > bytes) {
+        m_diagnostics.error(decl->location, "Size cannot be smaller than the specified Alignment");
+        return;
+    }
     type->byteSize = bytes;
+    type->m_specifiedSize = bytes;
 }
 
 Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic, bool allowDynamicScalar)

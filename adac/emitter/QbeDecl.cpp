@@ -393,7 +393,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                              + ", l 1, l 1, l " + std::to_string(size) + ")");
                         emitExceptionCheck();
                     } else {
-                        m_context->prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
+                        m_context->prologue << "    " << slot << " =l " << (size <= 4 && typeAlignment(symbol->type) <= 4 ? "alloc4" : "alloc8") << " "
                                             << size << "\n";
                     }
                     m_context->locals[symbol] = slot;

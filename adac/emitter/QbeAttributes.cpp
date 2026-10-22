@@ -270,6 +270,15 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value address = isComposite(prefixType) ? emitExpr(expr->prefix.get()) : emitAddress(expr->prefix.get());
         return Value { address.name, 'l' };
     }
+    if (name == "alignment") {
+        // Evaluating an object view must not read an uninitialized scalar.
+        if (expr->m_alignmentObjectView) {
+            emitAddress(expr->prefix.get());
+        } else {
+            emitExpr(expr->prefix.get());
+        }
+        return Value { std::to_string(typeAlignment(prefixType)), qbeClass(expr->type) };
+    }
     if (name == "size") {
         Value bytes;
         if (prefixType->m_classRoot != nullptr) {
@@ -405,7 +414,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         }
 
         long long size = typeSize(prefixType);
-        std::string slot = allocScratch(size < 1 ? 1 : size);
+        std::string slot = allocScratch(size < 1 ? 1 : size, typeAlignment(prefixType));
         line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(size) + ")");
         emitExceptionCheck();
 

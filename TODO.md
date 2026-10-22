@@ -327,6 +327,15 @@ and numeric work changes the generated code.
   representation clauses, one at a time, replacing their Phase 1 rejections.
   Also let `'Size` change subtype storage and composite layouts. Record
   representation clauses follow discriminated records in Phase 6.
+  - [x] Alignment first-subtype clauses and subtype/object attributes: 0 and
+    powers of two through 8, adjacent representation items, inherited alignment,
+    record padding and aligned composite storage (`alignmentclauses`,
+    `alignmenterrors`, whole/separate/determinism and concurrent tasks).
+    Natural alignment cannot be weakened; scalar/array stride padding,
+    object clauses, tagged/task/protected types and general freezing remain
+    unsupported. [Contract](docs/representation-clauses.md).
+  - [ ] Enumeration representation clauses.
+  - [ ] Size-changing subtype and composite layouts.
 - [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
   helpers, keeping the same failure behavior.
 

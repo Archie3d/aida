@@ -25,7 +25,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
     for (const DeclPtr& decl : declarations) {
         if (decl->kind == DeclKind::Representation) {
             analyzeRepresentation(static_cast<RepresentationDecl*>(decl.get()), scope, precedingType);
-            precedingType = nullptr;
+            // Adjacent representation items can jointly settle size/alignment.
             continue;
         }
         std::size_t firstSymbol = m_symbolTable.symbols().size();

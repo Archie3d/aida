@@ -257,9 +257,8 @@ DeclPtr Parser::parsePragma(bool allowShared)
     return pragma;
 }
 
-// Only Size attribute definition clauses are implemented. Diagnose other
-// forms here, including record clauses whose internal semicolons need special
-// recovery, instead of dropping their requested layout.
+// Diagnose unsupported forms here, including record clauses whose internal
+// semicolons need special recovery, instead of dropping their requested layout.
 DeclPtr Parser::parseRepresentationClause()
 {
     SourceLocation location = current().location;
@@ -291,9 +290,9 @@ DeclPtr Parser::parseRepresentationClause()
 
     const Token& attribute = expect(TokenKind::Identifier, "in representation clause");
     decl->attribute = attribute.lower;
-    if (decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "machine_radix") {
+    if (decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "machine_radix") {
         m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text
-            + "'; only 'Size, 'Small and decimal 'Machine_Radix clauses are supported");
+            + "'; only 'Alignment, 'Size, 'Small and decimal 'Machine_Radix clauses are supported");
         skipToSemicolon();
         return nullptr;
     }

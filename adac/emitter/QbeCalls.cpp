@@ -153,7 +153,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::string resultStorage;
     bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
     if (compositeResult) {
-        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? adaArrayResultSize(subprogram->returnType->arrayRank) : std::max(1LL, typeSize(subprogram->returnType)));
+        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? adaArrayResultSize(subprogram->returnType->arrayRank) : std::max(1LL, typeSize(subprogram->returnType)), typeAlignment(subprogram->returnType));
         if (!resultTarget.empty() && !taggedResult && !dynamicResult) {
             resultStorage = resultTarget;
         }
@@ -221,7 +221,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 if (parameter->mode == ParameterMode::In) {
                     Value value = emitExpr(argument);
                     emitRangeCheck(value, parameter->type, argument->location);
-                    Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type))), 'l' };
+                    Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type)), typeAlignment(parameter->type)), 'l' };
                     storeInto(temporary, value, parameter->type);
                     arguments.push_back("l " + temporary.name);
                     continue;
@@ -229,7 +229,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 // Keep the pointer ABI, but give each formal a distinct object.
                 // Evaluate the actual's address once, including indexed names.
                 Value actual = emitAddress(argument);
-                Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type))), 'l' };
+                Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type)), typeAlignment(parameter->type)), 'l' };
                 if (parameter->mode == ParameterMode::InOut || parameter->type->kind == TypeKind::Access) {
                     Value value = loadFrom(actual, argument->type);
                     if (parameter->mode == ParameterMode::InOut) {

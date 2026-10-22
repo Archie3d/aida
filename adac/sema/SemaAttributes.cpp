@@ -858,6 +858,19 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    if (name == "alignment") {
+        if (prefixType == nullptr || !representationVisible(prefixType) || prefixType->isIncomplete
+            || prefixType->m_classRoot != nullptr || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'Alignment requires a complete, visible specific subtype or object and no arguments");
+            return nullptr;
+        }
+        expr->type = m_types.universalInteger();
+        expr->isStatic = prefixIsType;
+        expr->m_alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
+        expr->staticValue = prefixIsType && prefixType->m_alignment == 0 ? 0 : typeAlignment(prefixType);
+        return expr->type;
+    }
+
     if (name == "size") {
         if (prefixType == nullptr) {
             m_diagnostics.error(expr->location, "'Size requires a type or an object");

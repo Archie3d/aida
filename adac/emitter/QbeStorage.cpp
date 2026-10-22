@@ -19,7 +19,7 @@ long long QbeEmitter::reserveFrame(long long size, long long alignment)
     return (long long)offset;
 }
 
-std::string QbeEmitter::allocScratch(long long size)
+std::string QbeEmitter::allocScratch(long long size, long long alignment)
 {
     std::string temp = newTemp();
     if (size > m_arrayStackLimit) {
@@ -27,7 +27,7 @@ std::string QbeEmitter::allocScratch(long long size)
         emitExceptionCheck();
         return temp;
     }
-    const char* instruction = size <= 4 ? "alloc4" : "alloc8";
+    const char* instruction = size <= 4 && alignment <= 4 ? "alloc4" : "alloc8";
     m_context->prologue << "    " << temp << " =l " << instruction << " " << size << "\n";
     return temp;
 }

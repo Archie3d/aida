@@ -178,7 +178,7 @@ private:
 
     // Storage and assignment (QbeStorage.cpp).
     long long reserveFrame(long long size, long long alignment = 8);
-    std::string allocScratch(long long size);
+    std::string allocScratch(long long size, long long alignment = 1);
     std::string storageArena(bool temporary, bool allocate = false);
     StorageCheckpoint storageCheckpoint();
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);

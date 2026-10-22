@@ -64,6 +64,17 @@ Each case has its own build directory and bounded compilation/execution time.
 `acats.harness` tests failed checks, missing RESULT, unrelated compilation
 failures, changed XFAIL diagnostics, and XPASS grading through real compiler/program invocations.
 
+Alignment selection assessment (2026-10-22): upstream `cd/cd30002.a` directly
+covers specified type/object alignments and address divisibility (RM 13.3).
+It requires implementation-defined `Impdef` constants, `System.Storage_Elements`,
+object alignment clauses and several library units. These are not yet supported
+by this subset and single-source C-test harness, so it is deferred rather than
+modified or counted as a pass. The local `alignmentclauses` test checks actual
+addresses via a C helper in whole/separate modes, including components,
+allocators, captured locals and concurrent tasks. CD30001 additionally needs
+aliased objects/address conversions; CD30003 tests object Size and packing.
+The existing offline ACATS selection remains the regression baseline.
+
 To extend the selection, vendor unchanged upstream sources with provenance and
 rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).

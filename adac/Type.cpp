@@ -170,6 +170,9 @@ long long typeAlignment(const Type* type)
     if (type == nullptr) {
         return 1;
     }
+    if (type->m_alignment > 0) {
+        return type->m_alignment;
+    }
     if (type->m_taskBody != nullptr) {
         return 8;
     }
@@ -324,6 +327,7 @@ Type* TypeTable::create(TypeKind kind, const std::string& name)
 Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high)
 {
     Type* subtype = create(parent->kind, name);
+    subtype->m_alignment = parent->m_alignment;
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->m_tagged = parent->m_tagged;

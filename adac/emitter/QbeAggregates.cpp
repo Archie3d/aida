@@ -435,7 +435,7 @@ Value QbeEmitter::emitAggregate(AggregateExpr* expr)
         result = emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
     } else {
         long long size = typeSize(expr->type);
-        std::string buffer = allocScratch(size > 0 ? size : 1);
+        std::string buffer = allocScratch(size > 0 ? size : 1, typeAlignment(expr->type));
         result = withBounds(Value { buffer, 'l' }, expr->type, nullptr);
         prepareControlledObject(result, expr->type);
         emitAggregateInto(expr, result, expr->type);
