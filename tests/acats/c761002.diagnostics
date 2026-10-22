@@ -1,0 +1,2 @@
+c761002.ada:170:11: error: goto statements are not yet supported
+c761002.ada:176:1: error: statement labels are not yet supported

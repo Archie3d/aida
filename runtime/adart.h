@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "adamaster.h"
+#include "adathread.h"
 #include "adaprotected.h"
 #include "../common/Modular.h"
 #include "../common/Fixed.h"
@@ -107,7 +108,8 @@ typedef struct AdaTraceFrame
 /* One context belongs to one task and may be used by only one thread at a
    time. Zero initialization creates an empty context. Chains and arenas still
    belong to generated stack frames; these registries only index their records.
-   Allocation/finalization operations must run in the owning context. */
+   Stack finalization stays task-local. Collection allocations and their records
+   use the environment context's locked indexes and outlive allocating tasks. */
 typedef struct AdaTaskContext
 {
     const AdaException* exception;
@@ -118,7 +120,7 @@ typedef struct AdaTaskContext
     int pendingTraceCount;
     AdaTraceEntry pendingTrace[ADA_TRACE_CAPACITY];
     struct AdaFinalization* registeredFinalizations;
-    struct AdaAllocation* registeredAllocations;
+    struct AdaAllocation* registeredAllocations; // Environment-owned shared index.
     /* Only the environment task may use library lifetime storage. */
     struct AdaFinalization* libraryFinalizations;
     void* libraryFinalizationArena;
@@ -131,6 +133,13 @@ typedef struct AdaTaskContext
     /* Task-owned nesting depth; cross-task abort requests belong to the
        synchronized task state when abort is implemented in Phase 9. */
     unsigned int abortDeferralDepth;
+    /* Only the environment context uses these shared service fields. Keep
+       their initialized synchronization objects alive across context disposal. */
+    AdaMutex sharedStorageMutex;
+    struct AdaFinalization* sharedFinalizations;
+    AdaMutex sharedMasterMutex;
+    AdaCondition sharedMasterChanged;
+    struct AdaMasterState* sharedMasters;
 } AdaTaskContext;
 
 /* Internal balanced regions. These never deliver abort or replace a pending
@@ -322,6 +331,9 @@ void __ada_library_reserve(void* object, void (*finalize)(void*));
 void __ada_library_finalize(void);
 void __ada_library_enter(void);
 void __ada_library_activate(void);
+/* Collection identity belongs to the declaring master. Members and their
+   heap finalization records may be used by any synchronized task. Callbacks
+   run in the executing task; only stack chains require their original context. */
 void* __ada_collection_create(AdaFinalization** owner, void** arena);
 void* __ada_collection_allocate(void* collection, long size);
 /* Called after successful allocator initialization, never on a partial object. */

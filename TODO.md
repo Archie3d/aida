@@ -106,8 +106,8 @@ moved to Phase 8.
 - [x] **Per-task context.** Pending exception, message, trace frame and the
   finalization/allocation registries live in one context record, bound through
   C11 thread-local storage. The environment task owns library lifetime storage;
-  registry operations require the owning context (`runtime.task_context`,
-  `runtime.array_storage`).
+  stack registry operations require the owning context (`runtime.task_context`,
+  `runtime.array_storage`). Phase 6a subsequently shares collection registries.
 - [x] **Generated access to the context.** QBE `thread` data is unusable for
   arm64 Linux externs and Windows amd64, so the traceback-entry call returns the
   context; generated code loads the pending exception at offset zero and passes
@@ -387,10 +387,17 @@ construction, cleanup and dispatch mechanisms.
   identical IR. [Design and Phase 9 delivery gates](docs/abort-deferral.md).
   Abort delivery, blocking cancellation, deferred Initialize/whole controlled
   assignments and master waits remain Phase 9; no abort ACATS pass is claimed.
-- [ ] Shared access-type collections across tasks (moved from Phase 9):
-  allocation/deallocation, registry ownership and finalization after all
-  dependent tasks terminate. Replaces the Phase 2 owner restriction before the
-  Phase 7 library allocates on behalf of several tasks.
+- [x] Shared access-type collections: environment-context indexes synchronize
+  allocation/deallocation and heap finalization records across tasks; plain
+  scalar/composite allocators now use the same lifetime/cleanup path. Derived
+  access types retain their ancestor's collection. Collection tasks belong to
+  the access type's original master, whose waits resample concurrent dependents
+  before local finalization. Callbacks and joins run outside service locks
+  (`sharedcollections`, `sharedtaskcollections`, `runtime.shared_collections`,
+  whole/separate/determinism, ASan/UBSan and runtime ThreadSanitizer).
+  ACATS C761002 is an unchanged goto/label XFAIL pending 6e, not an executable
+  pass. Foreign stack chains, custom pools and general access extensions remain
+  unsupported. [Ownership and limits](docs/shared-collections.md).
 
 ### 6b. Dynamic data
 

@@ -520,7 +520,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         emitCallInstruction("call $__ada_collection_activate(l " + collection.name + ")", CallEffects::CheckException);
         return object;
     }
-    if ((needsFinalization(designated) || hasTasks(designated)) && designated->m_classRoot == nullptr) {
+    {
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
         emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
@@ -577,38 +577,6 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         label(ready);
         return object;
     }
-    if (designated->m_classRoot != nullptr || (expr->type->target != nullptr && expr->type->target->m_classRoot != nullptr)) {
-        Value source;
-        if (designated->m_classRoot != nullptr) {
-            source = emitExpr(expr->value.get());
-        } else {
-            source = Value { allocScratch(size), 'l' };
-            if (expr->value != nullptr) {
-                assignInto(source, designated, expr->value.get(), true);
-            } else {
-                emitDefaultInit(source, designated);
-            }
-        }
-        checkTagLevel(source, expr->type->m_accessLevel);
-        Value bytes = taggedSize(source);
-        std::string pointer = newTemp();
-        emitCallInstruction(pointer + " =l call $__ada_allocate(l " + bytes.name + ")", CallEffects::CheckException);
-        emitCallInstruction("call $memmove(l " + pointer + ", l " + source.name + ", l " + bytes.name + ")", CallEffects::DeferredCheck);
-        return Value { pointer, 'l' };
-    }
-
-    // The run time hands back cleared storage, so an access component of the
-    // new object starts out null even when no value is given.
-    std::string pointer = newTemp();
-    emitCallInstruction(pointer + " =l call $__ada_allocate(l " + std::to_string(size) + ")", CallEffects::CheckException);
-
-    Value address { pointer, 'l' };
-    if (expr->value != nullptr) {
-        assignInto(address, designated, expr->value.get(), true);
-    } else {
-        emitDefaultInit(address, designated);
-    }
-    return address;
 }
 
 // Whether anything inside the type carries a value of its own to start from.

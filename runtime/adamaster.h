@@ -4,7 +4,8 @@
 typedef struct AdaTaskContext AdaTaskContext;
 
 /* Caller-owned identity, live until its dependents have terminated and local
-   finalization has finished. Empty masters need no allocation. */
+   finalization has finished. Empty lexical masters need no allocation;
+   collections register ownership before foreign tasks can use them. */
 typedef struct AdaMaster
 {
     void* state;

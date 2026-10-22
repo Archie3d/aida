@@ -1,11 +1,31 @@
-data $.ada_text_io.str.0 = { b "ada-text_io (spec elaboration)" 0 }
-data $.ada_text_io.str.1 = { b "<unknown>" 0 }
+export data $ada__text_io__file_handle__collection = align 8 { l 0 }
+data $.ada_text_io.str.0 = { b "ada-text_io.ads:11:5" 0 }
+data $.ada_text_io.str.1 = { b "ada-text_io (spec elaboration)" 0 }
+data $.ada_text_io.str.2 = { b "<unknown>" 0 }
 
 export function $ada_elab.ada_text_io_spec() {
 @start
+    %.t0 =l alloc8 8
+    %.t1 =l alloc8 8
+    storel 0, %.t0
+    storel 0, %.t1
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
-    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.0, l $.ada_text_io.str.1)
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.1, l $.ada_text_io.str.2)
+    storel $.ada_text_io.str.0, %.traceLocation
+    %.t2 =l call $__ada_collection_create(l 0, l 0)
+    %.t3 =l loadl %.taskContext
+    %.t4 =w cnel %.t3, 0
+    jnz %.t4, @propagate.0, @nothrow.1
+@nothrow.1
+    storel %.t2, $ada__text_io__file_handle__collection
+    call $__ada_finalize_to(l %.t1, l 0)
+    call $__ada_finalize_to(l %.t0, l 0)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+@propagate.0
+    call $__ada_finalize_to(l %.t1, l 0)
+    call $__ada_finalize_to(l %.t0, l 0)
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }

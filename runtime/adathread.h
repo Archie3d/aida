@@ -16,6 +16,9 @@
    detached threads are deliberately outside this API. */
 typedef pthread_t AdaThread;
 typedef pthread_cond_t AdaCondition;
+/* Static conditions support untimed waits only; initialize explicitly for
+   monotonic timed waits. */
+#define ADA_CONDITION_INITIALIZER PTHREAD_COND_INITIALIZER
 typedef void* (*AdaThreadEntry)(void*);
 
 int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument);

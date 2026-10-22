@@ -111,8 +111,8 @@ Not supported yet:
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`
 
-Access-type collections remain owned by their creating task; allocation or
-deallocation through another task raises `Program_Error`.
+Access-type collections support allocation and deallocation across tasks, with
+master-based lifetime and finalization ([contract](docs/shared-collections.md)).
 
 [Static arithmetic](docs/static-arithmetic.md) uses checked exact evaluation,
 bounded to 127-bit integer/rational magnitudes and 64-bit scaled fixed-point

@@ -38,6 +38,13 @@ GCC's release branch itself may change. No download is needed at build/test time
 | C45523A | 4.5.5, 3.5.8 | PASS: Machine_Overflows multiplication and zero-division checks | Finite-value floating model: Phase 5; full coverage: Phase 8 |
 | C49022A | 4.9, 4.5 | PASS: integer named-number arithmetic and comparisons | Bounded exact evaluation: Phase 5; broader coverage: Phase 8 |
 | C59002A | 5.8, 11.2 | XFAIL at compilation: goto and labels unsupported | Phase 6e labels/goto |
+| C761002 | 7.6.1, 13.11.2 | XFAIL at compilation: goto and labels in collection lifetime/deallocation test | P6a runtime regressions; P6e transfer cases |
+
+C761002 was retrieved from the same GCC release branch on 2026-10-23.
+It exercises collection lifetime, explicit deallocation and exits through nested
+scopes, return, goto and exceptions. It is retained unchanged as a compile XFAIL
+for the two unsupported goto/label constructs; no upstream executable pass is
+claimed. The local TCTouch adapter now also records Touch/Validate traces.
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
@@ -58,10 +65,11 @@ GCC's release branch itself may change. No download is needed at build/test time
 | c45523a.ada | `ff78eaba756f3d6e2f65475f84281f372a4a6b70` | `60ce8ce3b865cc3651bbef9f79a91586c5ab14aea61015cf6fe9a4380184fe45` |
 | c49022a.ada | `d0cfa9d9769d40e1d23ae7f37aae5f71d5791886` | `aaa5fc8afb6ca2d7e77d8d361184f1a727ac53fa78e6914b55ed74c17ca585cb` |
 | c59002a.ada | `5210719729379dd00b93c9c304f4aa9abea519e2` | `b8f6fb43975a783abce7384a620acee1278e43d4b75e4d8ff0ad646ea548c9a9` |
+| c761002.ada | `5b807bba720ad3cc8b4b0845f33dd704a3e6c00e` | `c71a0098c5bc221924eac3cffed1b4c9fb88cb57fbe8ecd2d6c128ecb9f908d4` |
 
 `support/report.*` is a local adapter implementing only TEST, FAILED, RESULT,
 IDENT_INT, IDENT_STR, IDENT_BOOL, EQUAL, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official
-REPORT implementation. `support/tctouch.*` supplies the local Assert and Assert_Not adapter for C354002. Identity functions return their argument through an
+REPORT implementation. `support/tctouch.*` supplies local Assert/Assert_Not assertions for C354002 and Touch/Validate traces for C761002. Identity functions return their argument through an
 ordinary separately compiled function; no cross-unit optimization is used.
 FAILED records failure and prints its description; RESULT raises Program_Error
 on failure. A pass requires normal exit, empty stderr, and exactly the test's

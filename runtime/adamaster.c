@@ -20,9 +20,10 @@ typedef struct AdaTaskState
     AdaMutex mutex;
     AdaCondition condition;
     int started;
+    int activating;
+    int joining;
     int activated;
     int activationFailed;
-    int activationObserved;
     int joined;
     atomic_int completed;
     atomic_int terminated;
@@ -33,6 +34,9 @@ typedef struct AdaTaskState
 typedef struct AdaMasterState
 {
     struct AdaMasterState* next;
+    struct AdaMasterState* registeredNext;
+    AdaTaskContext* owner;
+    AdaMaster* parent;
     AdaMaster* master;
     AdaTaskState* tasks;
     int collection;
@@ -95,9 +99,12 @@ void __ada_environment_task_state(int completed, int terminated)
     atomic_store(&environmentTask.terminated, terminated);
 }
 
-static AdaMasterState* findMaster(AdaTaskContext* context, AdaMaster* master)
+/* List and scheduling ownership is protected by the environment context's
+   master mutex. Never hold it while starting/joining tasks or calling Ada. */
+static AdaMasterState* findMaster(AdaMaster* master)
 {
-    for (AdaMasterState* state = context->taskMasters; state != NULL; state = state->next) {
+    for (AdaMasterState* state = __ada_main_context.sharedMasters; state != NULL;
+         state = state->registeredNext) {
         if (state->master == master) {
             return state;
         }
@@ -105,12 +112,34 @@ static AdaMasterState* findMaster(AdaTaskContext* context, AdaMaster* master)
     return NULL;
 }
 
+static AdaMasterState* registerMaster(AdaTaskContext* context, AdaMaster* master, int collection)
+{
+    AdaMasterState* state = calloc(1, sizeof *state);
+    if (state == NULL) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return NULL;
+    }
+    state->master = master;
+    state->owner = context;
+    state->parent = master->state;
+    state->collection = collection;
+    state->next = context->taskMasters;
+    context->taskMasters = state;
+    state->registeredNext = __ada_main_context.sharedMasters;
+    __ada_main_context.sharedMasters = state;
+    return state;
+}
+
 void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 {
-    // Empty masters remain allocation-free. The caller-owned identity stores
-    // its lexical predecessor; dependent lists are allocated only on creation.
     master->state = context->currentMaster;
-    if (kind != ADA_MASTER_COLLECTION) {
+    if (kind == ADA_MASTER_COLLECTION) {
+        // Register the access type's owner before foreign tasks can allocate.
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        registerMaster(context, master, 1);
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    } else {
+        // Statically empty lexical masters remain allocation-free.
         context->currentMaster = master;
     }
 }
@@ -173,18 +202,6 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    AdaMasterState* state = findMaster(context, master);
-    if (state == NULL) {
-        state = calloc(1, sizeof *state);
-        if (state == NULL) {
-            __ada_raise(ADA_STORAGE_ERROR);
-            return;
-        }
-        state->master = master;
-        state->collection = collection != NULL;
-        state->next = context->taskMasters;
-        context->taskMasters = state;
-    }
     AdaTaskState* task = calloc(1, sizeof *task);
     if (task == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
@@ -209,49 +226,97 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
     task->link = link;
     task->group = group;
     task->elaborated = elaborated;
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaMasterState* state = findMaster(master);
+    if (state == NULL) {
+        state = registerMaster(context, master, collection != NULL);
+    }
+    if (state == NULL) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_condition_destroy(&task->condition);
+        __ada_mutex_destroy(&task->mutex);
+        free(task);
+        return;
+    }
     task->next = state->tasks;
     state->tasks = task;
     *object = task;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
 static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* group)
 {
-    AdaMasterState* state = findMaster(context, master);
+    (void)context;
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaMasterState* state = findMaster(master);
     if (state == NULL) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
         return;
     }
-    // RM 3.11: check every body before starting any member of this group.
+    size_t count = 0;
     for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
-        if (!task->started && !task->joined && (group == NULL || group == task->group) && !*task->elaborated) {
-            __ada_raise(ADA_PROGRAM_ERROR);
-            return;
-        }
-    }
-    int failed = 0;
-    for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
-        if (!task->started && !task->joined && (group == NULL || group == task->group)) {
-            if (__ada_thread_create(&task->thread, executeTask, task) == 0) {
-                task->started = 1;
-            } else {
-                atomic_store(&task->completed, 1);
-                atomic_store(&task->terminated, 1);
-                task->joined = 1;
-                failed = 1;
-            }
-        }
-    }
-    for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
-        if (task->started && !task->joined && !task->activationObserved
+        if (!task->activating && !task->joining && !task->started && !task->joined
             && (group == NULL || group == task->group)) {
+            // RM 3.11: check the whole group before starting any member.
+            if (!*task->elaborated) {
+                __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+                __ada_raise(ADA_PROGRAM_ERROR);
+                return;
+            }
+            ++count;
+        }
+    }
+    if (count == 0) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        return;
+    }
+    AdaTaskState** batch = malloc(count * sizeof *batch);
+    if (batch == NULL) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_raise(ADA_STORAGE_ERROR);
+        return;
+    }
+    size_t index = 0;
+    for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
+        if (!task->activating && !task->joining && !task->started && !task->joined
+            && (group == NULL || group == task->group)) {
+            task->activating = 1;
+            batch[index++] = task;
+        }
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    int failed = 0;
+    for (size_t i = 0; i < count; ++i) {
+        AdaTaskState* task = batch[i];
+        if (__ada_thread_create(&task->thread, executeTask, task) == 0) {
+            // The claim keeps await/discard from inspecting scheduling fields
+            // until the complete activation transaction has been published.
+            task->started = 1;
+        } else {
+            atomic_store(&task->completed, 1);
+            atomic_store(&task->terminated, 1);
+            task->joined = 1;
+            failed = 1;
+        }
+    }
+    for (size_t i = 0; i < count; ++i) {
+        AdaTaskState* task = batch[i];
+        if (task->started) {
             __ada_mutex_lock(&task->mutex);
             while (!task->activated) {
                 __ada_condition_wait(&task->condition, &task->mutex);
             }
             failed |= task->activationFailed;
-            task->activationObserved = 1;
             __ada_mutex_unlock(&task->mutex);
         }
     }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    for (size_t i = 0; i < count; ++i) {
+        batch[i]->activating = 0;
+    }
+    __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    free(batch);
     if (failed) {
         __ada_raise(ADA_TASKING_ERROR);
     }
@@ -272,57 +337,119 @@ static void awaitTask(AdaTaskState* task)
     if (task->started && !task->joined) {
         __ada_thread_join(task->thread, NULL);
     }
-    // Tasks whose activator never reached activation terminate without running.
+    // An unactivated task terminates without running after declaration failure.
     atomic_store(&task->completed, 1);
     atomic_store(&task->terminated, 1);
-    task->joined = 1;
+}
+
+static int dependsOn(AdaMasterState* state, AdaMaster* master)
+{
+    if (state->master == master) {
+        return 1;
+    }
+    while (state->collection) {
+        if (state->parent == master) {
+            return 1;
+        }
+        state = findMaster(state->parent);
+        if (state == NULL) {
+            break;
+        }
+    }
+    return 0;
+}
+
+/* Await one task at a time, resampling after every join. A running dependent
+   may allocate another task in any collection of this lexical master. A fixed
+   snapshot or a one-pass collection-first traversal would miss that task. */
+static void awaitTasks(AdaMaster* master, void* object, long size, int discard)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    for (;;) {
+        AdaTaskState* selected = NULL;
+        AdaTaskState* unactivated = NULL;
+        int busy = 0;
+        for (AdaMasterState* state = __ada_main_context.sharedMasters; state != NULL;
+             state = state->registeredNext) {
+            if (discard ? state->master != master : !dependsOn(state, master)) {
+                continue;
+            }
+            for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
+                uintptr_t offset = (uintptr_t)task->object - (uintptr_t)object;
+                if (discard && ((uintptr_t)task->object < (uintptr_t)object || offset >= (uintptr_t)size)) {
+                    continue;
+                }
+                // Do not inspect scheduling fields owned by another activation.
+                if (task->activating || task->joining) {
+                    busy = 1;
+                } else if (!task->joined) {
+                    if (task->started) {
+                        selected = task;
+                        break;
+                    }
+                    unactivated = task;
+                }
+            }
+            if (selected != NULL) {
+                break;
+            }
+        }
+        if (selected == NULL) {
+            if (busy) {
+                __ada_condition_wait(&__ada_main_context.sharedMasterChanged,
+                    &__ada_main_context.sharedMasterMutex);
+                continue;
+            }
+            if (unactivated == NULL) {
+                break;
+            }
+            selected = unactivated;
+        }
+        selected->joining = 1;
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        awaitTask(selected);
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        selected->joined = 1;
+        selected->joining = 0;
+        __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
 void __ada_master_await(AdaTaskContext* context, AdaMaster* master)
 {
-    // Allocated tasks depend on the master of their access type, even when
-    // allocation happened in a shorter-lived subprogram. Join collections
-    // before any controlled local of that master can be finalized.
-    for (AdaMasterState* child = context->taskMasters; child != NULL; child = child->next) {
-        if (child->collection && child->master->state == master) {
-            __ada_master_await(context, child->master);
-        }
-    }
-    AdaMasterState* state = findMaster(context, master);
-    if (state != NULL) {
-        for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
-            awaitTask(task);
-        }
-    }
+    (void)context;
+    awaitTasks(master, NULL, 0, 0);
 }
 
 void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object, long size)
 {
-    AdaMasterState* state = findMaster(context, master);
-    if (state != NULL) {
-        uintptr_t first = (uintptr_t)object;
-        for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
-            uintptr_t address = (uintptr_t)task->object;
-            if (address >= first && address - first < (uintptr_t)size) {
-                awaitTask(task);
-            }
-        }
-    }
+    (void)context;
+    awaitTasks(master, object, size, 1);
 }
 
 void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
 {
-    AdaMasterState** entry = &context->taskMasters;
-    while (*entry != NULL && (*entry)->master != master) {
-        entry = &(*entry)->next;
-    }
-    if (*entry != NULL) {
-        AdaMasterState* state = *entry;
+    __ada_master_await(context, master);
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaMasterState* state = findMaster(master);
+    if (state != NULL) {
+        AdaMasterState** entry = &state->owner->taskMasters;
+        while (*entry != state) {
+            entry = &(*entry)->next;
+        }
         *entry = state->next;
+        entry = &__ada_main_context.sharedMasters;
+        while (*entry != state) {
+            entry = &(*entry)->registeredNext;
+        }
+        *entry = state->registeredNext;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (state != NULL) {
         while (state->tasks != NULL) {
             AdaTaskState* task = state->tasks;
             state->tasks = task->next;
-            awaitTask(task);
             __ada_condition_destroy(&task->condition);
             __ada_mutex_destroy(&task->mutex);
             free(task);

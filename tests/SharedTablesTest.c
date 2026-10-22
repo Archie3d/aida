@@ -54,13 +54,17 @@ static void finalize(void* object)
     }
 }
 
-static void checkLibraryRejection(void)
+static void checkLibraryAccess(void)
 {
     int object = 0;
-    CHECK(__ada_collection_allocate(libraryCollection, 16) == NULL && __ada_exception == ADA_PROGRAM_ERROR);
-    __ada_exception = NULL;
-    CHECK(__ada_collection_begin(libraryCollection) == NULL && __ada_exception == ADA_PROGRAM_ERROR);
-    __ada_exception = NULL;
+    void* allocation = __ada_collection_allocate(libraryCollection, 16);
+    CHECK(allocation != NULL && __ada_exception == NULL);
+    __ada_deallocate(allocation);
+    void* pending = __ada_collection_begin(libraryCollection);
+    CHECK(pending != NULL && __ada_exception == NULL);
+    __ada_deallocate(NULL);
+    __ada_collection_abort(pending);
+    CHECK(__ada_exception == NULL);
     __ada_library_reserve(&object, finalize);
     CHECK(__ada_exception == ADA_PROGRAM_ERROR);
     __ada_exception = NULL;
@@ -88,7 +92,7 @@ static void* worker(void* argument)
     CHECK(files[id] != NULL && __ada_exception == NULL);
     __ada_tag_register(&root);
     CHECK(__ada_tag_descendant(root.name, (int)strlen(root.name), &root) == &root);
-    checkLibraryRejection();
+    checkLibraryAccess();
     meet();
     for (int i = 0; i < iterations; ++i) {
         AdaFile* scratch = NULL;

@@ -13,7 +13,7 @@ set(extra_support "")
 if(NAME STREQUAL "cd2a22a")
     list(APPEND extra_support "${ROOT}/upstream/lencheck.ada")
 endif()
-if(NAME STREQUAL "c354002")
+if(NAME STREQUAL "c354002" OR NAME STREQUAL "c761002")
     list(APPEND extra_support "${ROOT}/support/tctouch.ads" "${ROOT}/support/tctouch.adb")
 endif()
 execute_process(

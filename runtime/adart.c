@@ -31,7 +31,11 @@ const AdaException __ada_exc_data_error = { "DATA_ERROR" };
 const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
 
 /* C TLS stays inside the runtime: generated QBE never refers to a TLS symbol. */
-AdaTaskContext __ada_main_context;
+AdaTaskContext __ada_main_context = {
+    .sharedStorageMutex = ADA_MUTEX_INITIALIZER,
+    .sharedMasterMutex = ADA_MUTEX_INITIALIZER,
+    .sharedMasterChanged = ADA_CONDITION_INITIALIZER
+};
 static _Thread_local AdaTaskContext* currentTaskContext = &__ada_main_context;
 
 _Static_assert(offsetof(AdaTaskContext, exception) == 0, "pending exception context ABI");
@@ -52,16 +56,32 @@ AdaTaskContext* __ada_task_context_bind(AdaTaskContext* context)
 
 int __ada_task_context_dispose(AdaTaskContext* context)
 {
-    if (context == NULL || context->currentTrace != NULL
-        || context->registeredFinalizations != NULL || context->registeredAllocations != NULL
-        || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
-        || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
-        || context->protectedActions != NULL || context->abortDeferralDepth != 0) {
+    if (context == NULL) {
         return 0;
     }
-    free(context->pendingMessage);
-    memset(context, 0, sizeof *context);
-    return 1;
+    int environment = context == &__ada_main_context;
+    if (environment) {
+        __ada_mutex_lock(&context->sharedStorageMutex);
+        __ada_mutex_lock(&context->sharedMasterMutex);
+    }
+    int live = context->currentTrace != NULL || context->registeredFinalizations != NULL
+        || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
+        || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
+        || context->protectedActions != NULL || context->abortDeferralDepth != 0;
+    if (environment) {
+        live |= context->registeredAllocations != NULL || context->sharedFinalizations != NULL
+            || context->sharedMasters != NULL;
+    }
+    if (!live) {
+        free(context->pendingMessage);
+        size_t bytes = environment ? offsetof(AdaTaskContext, sharedStorageMutex) : sizeof *context;
+        memset(context, 0, bytes);
+    }
+    if (environment) {
+        __ada_mutex_unlock(&context->sharedMasterMutex);
+        __ada_mutex_unlock(&context->sharedStorageMutex);
+    }
+    return !live;
 }
 
 void __ada_abort_defer(AdaTaskContext* context)
@@ -397,6 +417,9 @@ static int releaseControlledAllocation(void* address);
 
 void __ada_deallocate(void* address)
 {
+    if (address == NULL) {
+        return;
+    }
     if (!releaseControlledAllocation(address)) {
         free(address);
     }
@@ -1216,6 +1239,8 @@ static int requireLibraryOwner(void)
     return 1;
 }
 
+static int allocationOwnsChain(AdaFinalization** owner);
+
 static AdaFinalization* findFinalization(void* object)
 {
     AdaTaskContext* context = __ada_task_context();
@@ -1225,20 +1250,35 @@ static AdaFinalization* findFinalization(void* object)
             return record;
         }
     }
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaFinalization* shared = __ada_main_context.sharedFinalizations;
+    while (shared != NULL && shared->object != object) {
+        shared = shared->registeredNext;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (shared != NULL) {
+        return shared;
+    }
     __ada_raise(ADA_PROGRAM_ERROR);
     return NULL;
 }
 
-static void unregisterFinalization(AdaFinalization* record)
+static void unlinkFinalization(AdaFinalization** link, AdaFinalization* record)
 {
-    AdaTaskContext* context = __ada_task_context();
-    AdaFinalization** link = &context->registeredFinalizations;
     while (*link != NULL && *link != record) {
         link = &(*link)->registeredNext;
     }
     if (*link != NULL) {
         *link = record->registeredNext;
     }
+}
+
+static void unregisterFinalization(AdaFinalization* record)
+{
+    unlinkFinalization(&__ada_task_context()->registeredFinalizations, record);
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    unlinkFinalization(&__ada_main_context.sharedFinalizations, record);
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
 }
 
 void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
@@ -1248,10 +1288,14 @@ void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
     record->next = *owner;
     record->object = object;
     record->finalize = finalize;
-    record->registeredNext = context->registeredFinalizations;
     record->active = 1;
-    context->registeredFinalizations = record;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaFinalization** registry = allocationOwnsChain(owner)
+        ? &__ada_main_context.sharedFinalizations : &context->registeredFinalizations;
+    record->registeredNext = *registry;
+    *registry = record;
     *owner = record;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
 }
 
 void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
@@ -1391,27 +1435,41 @@ struct AdaCollection
 };
 
 
-static AdaAllocation* findAllocation(void* address)
+/* The storage mutex protects indexes and collection membership, not user
+   objects. A program must synchronize publication and access to each object. */
+static int allocationOwnsChain(AdaFinalization** owner)
 {
-    AdaTaskContext* context = __ada_task_context();
-    for (AdaAllocation* allocation = context->registeredAllocations; allocation != NULL;
+    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
          allocation = allocation->registeredNext) {
-        if (allocation->object == address) {
-            return allocation;
+        if (&allocation->finalizations == owner) {
+            return 1;
         }
     }
-    return NULL;
+    return 0;
+}
+
+static AdaAllocation* findAllocation(void* address)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* allocation = __ada_main_context.registeredAllocations;
+    while (allocation != NULL && allocation->object != address) {
+        allocation = allocation->registeredNext;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    return allocation;
 }
 
 void __ada_collection_activate(void* owner)
 {
     AdaCollection* collection = owner;
-    AdaTaskContext* context = __ada_task_context();
-    if (collection == NULL || collection->context != context || collection->closing) {
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    int invalid = collection == NULL || collection->closing;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (invalid) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    __ada_master_activate(context, &collection->master);
+    __ada_master_activate(__ada_task_context(), &collection->master);
 }
 
 static void releaseAllocation(AdaAllocation* allocation)
@@ -1419,16 +1477,18 @@ static void releaseAllocation(AdaAllocation* allocation)
     AdaTaskContext* context = __ada_task_context();
     // Unlink before calling user code: a finalizer may deallocate another
     // member of this collection. Keep the object alive until all parts finish.
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     AdaAllocation** link = &allocation->collection->allocations;
     while (*link != allocation) {
         link = &(*link)->next;
     }
     *link = allocation->next;
-    link = &context->registeredAllocations;
+    link = &__ada_main_context.registeredAllocations;
     while (*link != allocation) {
         link = &(*link)->registeredNext;
     }
     *link = allocation->registeredNext;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     __ada_task_discard(context, &allocation->collection->master, allocation->object, allocation->size);
     __ada_finalize_to(&allocation->finalizations, NULL);
     __ada_array_release(&allocation->arena);
@@ -1451,8 +1511,10 @@ static int releaseControlledAllocation(void* address)
 static void finalizeCollection(void* object)
 {
     AdaCollection* collection = object;
-    collection->closing = 1;
     __ada_master_await(collection->context, &collection->master);
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    collection->closing = 1;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     while (collection->allocations != NULL) {
         releaseAllocation(collection->allocations);
     }
@@ -1484,30 +1546,37 @@ void* __ada_collection_create(AdaFinalization** owner, void** arena)
     return collection;
 }
 
+static int registerAllocation(AdaCollection* collection, AdaAllocation* allocation)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    if (collection == NULL || collection->closing) {
+        __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return 0;
+    }
+    allocation->collection = collection;
+    allocation->next = collection->allocations;
+    collection->allocations = allocation;
+    allocation->registeredNext = __ada_main_context.registeredAllocations;
+    __ada_main_context.registeredAllocations = allocation;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    return 1;
+}
+
 void* __ada_collection_allocate(void* owner, long size)
 {
-    AdaTaskContext* context = __ada_task_context();
-    AdaCollection* collection = owner;
-    if (collection == NULL || collection->context != context || collection->closing) {
-        __ada_raise(ADA_PROGRAM_ERROR);
-        return NULL;
-    }
     AdaAllocation* allocation = calloc(1, sizeof *allocation);
     if (allocation == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
     allocation->object = __ada_allocate(size);
-    if (allocation->object == NULL) {
+    if (allocation->object == NULL || !registerAllocation(owner, allocation)) {
+        free(allocation->object);
         free(allocation);
         return NULL;
     }
     allocation->size = size;
-    allocation->collection = collection;
-    allocation->next = collection->allocations;
-    collection->allocations = allocation;
-    allocation->registeredNext = context->registeredAllocations;
-    context->registeredAllocations = allocation;
     return allocation->object;
 }
 
@@ -1743,23 +1812,16 @@ int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*),
 // allocation-owned arena before calling it, then publish its resulting address.
 void* __ada_collection_begin(void* owner)
 {
-    AdaTaskContext* context = __ada_task_context();
-    AdaCollection* collection = owner;
-    if (collection == NULL || collection->context != context || collection->closing) {
-        __ada_raise(ADA_PROGRAM_ERROR);
-        return NULL;
-    }
     AdaAllocation* allocation = calloc(1, sizeof *allocation);
     if (allocation == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
     allocation->arenaOwnsObject = 1;
-    allocation->collection = collection;
-    allocation->next = collection->allocations;
-    collection->allocations = allocation;
-    allocation->registeredNext = context->registeredAllocations;
-    context->registeredAllocations = allocation;
+    if (!registerAllocation(owner, allocation)) {
+        free(allocation);
+        return NULL;
+    }
     return allocation;
 }
 
@@ -1775,7 +1837,9 @@ void* __ada_collection_result_arena(void* pending)
 
 void __ada_collection_finish(void* pending, void* object)
 {
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     ((AdaAllocation*)pending)->object = object;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     __ada_collection_activate(((AdaAllocation*)pending)->collection);
 }
 

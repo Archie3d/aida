@@ -1330,3 +1330,26 @@ add_test(NAME runtime.abortdeferral_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}/abortdeferral-modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(determinism.abortdeferral runtime.abortdeferral_modes PROPERTIES TIMEOUT 60)
+
+add_executable(shared_collections_test SharedCollectionsTest.c)
+target_link_libraries(shared_collections_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.shared_collections COMMAND shared_collections_test)
+set_tests_properties(runtime.shared_collections PROPERTIES TIMEOUT 60)
+foreach(collection_case sharedcollections sharedtaskcollections)
+    add_ada_test(${collection_case} SOURCES ${collection_case}.adb)
+    add_determinism_test(${collection_case} SOURCE ${collection_case}.adb)
+    add_test(NAME runtime.${collection_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${collection_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${collection_case} determinism.${collection_case}
+        runtime.${collection_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()

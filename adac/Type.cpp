@@ -622,9 +622,10 @@ bool hasTasks(const Type* type)
 
 bool needsCollection(const Type* type)
 {
+    // Every named object access type owns a collection, including scalar and
+    // plain composite designations. Access-to-subprogram values own no storage.
     return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
-        // An uncontrolled root may have descendants with controlled fields.
-        && (type->target->m_classRoot != nullptr || needsFinalization(type->target) || hasTasks(type->target));
+        && type->m_accessProfile == nullptr;
 }
 
 bool hasLimitedControlledParts(const Type* type)
