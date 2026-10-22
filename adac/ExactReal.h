@@ -218,7 +218,7 @@ struct ExactReal
 
     bool scaled(int bits, long long& result) const
     {
-        ExactReal value = operation('*', *this, make((__int128)1 << bits));
+        ExactReal value = operation(bits >= 0 ? '*' : '/', *this, make((__int128)1 << (bits >= 0 ? bits : -bits)));
         return value.m_valid && fixedRound(value.m_numerator, value.m_denominator, &result);
     }
 };

@@ -79,7 +79,7 @@ diagnostics; later phases replace each rejection as they implement it.
 
 - [x] **Pragmas.** `Import` is implemented; `Inline`, `Pure` and `Preelaborate`
   are advisory; every other pragma is rejected (`pragmas`, `pragma*errors`).
-- [x] **Representation clauses.** Only validated `'Size` clauses are accepted
+- [x] **Representation clauses.** Validated `'Size` clauses (Phase 5 adds Small) are accepted
   (`sizeclauses`, `representationerrors`, `size*errors`).
 - [x] **Imports.** C and Ada conventions only, with exactly three positional
   arguments and a nonempty external name (`importconvention*`).
@@ -311,9 +311,13 @@ and numeric work changes the generated code.
   ACATS C354002). Array index subtypes and variant choices retain signed 64-bit
   bounds; compact unsigned 32-bit storage remains unsupported.
   [Contract and limits](docs/modular-types.md).
-- [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,
-  dynamic subtype bounds, remaining attributes and streaming. Apply the Ada 2005
-  fixed-by-fixed multiplication and division rules.
+- [x] **Ordinary fixed point.** Binary scales `2.0**(-62)` through `2.0**62`,
+  adjacent explicit Small clauses, named local dynamic bounds, scalar attributes
+  and checked fixed streams. Ada 2005 fixed-by-fixed numeric result contexts,
+  explicit Standard operations and primitive-selection rules (`fixedwide*`,
+  `fixedoperator*`, `fixedstreams`, `fixedtasking`, `runtime.fixed_arithmetic`,
+  whole/separate/determinism, sanitizer checks and ACATS C35A08B).
+  [Contract and remaining restrictions](docs/fixed-point.md).
 - [ ] **Decimal fixed point.** `delta ... digits` types with decimal scaling,
   rounding and checks.
 - [ ] **Representation clauses.** Implement alignment and enumeration

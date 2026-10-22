@@ -109,6 +109,13 @@ void Sema::setupStandardScope()
         system->scope->add(number);
     }
 
+    Symbol* fineDelta = m_symbolTable.createSymbol(SymbolKind::Number, "fine_delta", "Fine_Delta");
+    fineDelta->type = m_types.universalReal();
+    fineDelta->hasStaticValue = true;
+    fineDelta->m_exactReal = ExactReal::make(1, (__int128)1 << 62);
+    fineDelta->staticReal = fineDelta->m_exactReal.real();
+    system->scope->add(fineDelta);
+
     addException(m_standardScope, "Constraint_Error");
     addException(m_standardScope, "Program_Error");
     addException(m_standardScope, "Storage_Error");

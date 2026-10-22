@@ -44,6 +44,21 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         value = expr->staticValue;
         return true;
     }
+    if (expr->kind == ExprKind::Binary && static_cast<BinaryExpr*>(expr)->m_fixedResult) {
+        auto* binary = static_cast<BinaryExpr*>(expr);
+        long long left, right, rounded;
+        if (foldFixed(binary->left.get(), left) && foldFixed(binary->right.get(), right)) {
+            int leftBits = binary->left->type->m_fixedBits, rightBits = binary->right->type->m_fixedBits;
+            bool multiply = binary->op == BinaryOp::Multiply;
+            if (fixedRatioMode(multiply ? (__int128)left * right : left, multiply ? 1 : right,
+                    multiply ? -leftBits - rightBits : rightBits - leftBits, expr->type->m_modulus != 0, &rounded)) {
+                value = expr->type->m_modulus != 0 ? (__int128)(uint64_t)rounded : (__int128)rounded;
+                return true;
+            }
+            failure = binary->op == BinaryOp::Divide && right == 0 ? StaticFailure::ZeroDivisor : StaticFailure::Check;
+        }
+        return false;
+    }
     auto checked = [&](bool overflow, __int128 result) {
         if (overflow || !ExactReal::make(result).m_valid) {
             failure = StaticFailure::Capacity;
@@ -575,7 +590,9 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         if (!foldFixed(expr, counts)) {
             return false;
         }
-        value = ExactReal::make(counts, (__int128)1 << expr->type->m_fixedBits);
+        int bits = expr->type->m_fixedBits;
+        value = bits >= 0 ? ExactReal::make(counts, (__int128)1 << bits)
+                          : ExactReal::make((__int128)counts * ((__int128)1 << -bits));
         return true;
     }
     if (expr->m_exactReal.m_valid) {
@@ -694,12 +711,12 @@ bool Sema::foldFixed(Expr* expr, long long& value) const
     }
     if (expr->kind == ExprKind::Qualified) {
         auto* qualified = static_cast<QualifiedExpr*>(expr);
-        return foldFixed(qualified->operand.get(), value)
+        return expr->type->m_scalarBoundsSymbol == nullptr && foldFixed(qualified->operand.get(), value)
             && value >= expr->type->low && value <= expr->type->high;
     }
     if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
-        if (call->form != CallForm::Conversion) {
+        if (call->form != CallForm::Conversion || expr->type->m_scalarBoundsSymbol != nullptr) {
             return false;
         }
         ExactReal exact;

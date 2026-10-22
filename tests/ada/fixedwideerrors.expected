@@ -1,0 +1,15 @@
+fixedwideerrors.adb:4:21: error: Small must be a positive static power of two from 2.0**(-62) through 2.0**62
+fixedwideerrors.adb:6:21: error: Small must not exceed the type's delta
+fixedwideerrors.adb:8:21: error: Small must be a positive static power of two from 2.0**(-62) through 2.0**62
+fixedwideerrors.adb:10:21: error: Small must be a positive static power of two from 2.0**(-62) through 2.0**62
+fixedwideerrors.adb:13:5: error: a Small clause must occur once, adjacent to its type declaration before representation use
+fixedwideerrors.adb:15:5: error: a Small clause requires a nonderived ordinary fixed-point first subtype
+fixedwideerrors.adb:17:5: error: a Small clause requires a nonderived ordinary fixed-point first subtype
+fixedwideerrors.adb:18:5: error: 'Integer' is not a type declared here
+fixedwideerrors.adb:21:5: error: a Small clause must occur once, adjacent to its type declaration before representation use
+fixedwideerrors.adb:22:29: error: Machine_Radix requires a fixed-point subtype and no arguments
+fixedwideerrors.adb:23:28: error: fixed-point 'Image requires an argument of the prefix type
+fixedwideerrors.adb:24:35: error: 'Machine_Rounds requires a floating or fixed point subtype mark and no arguments
+fixedwideerrors.adb:30:42: error: fixed-point scale attributes require a subtype and no arguments
+fixedwideerrors.adb:32:40: error: Small cannot refer to itself in its defining clause
+fixedwideerrors.adb:32:40: error: Small must be a positive static power of two from 2.0**(-62) through 2.0**62

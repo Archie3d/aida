@@ -8,6 +8,19 @@ using SemaSupport::objectView;
 
 void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool reportIncomplete)
 {
+    // Resolve adjacent representation clauses before choosing counts for the
+    // type bounds. The expression remains owned by its representation item.
+    for (std::size_t i = 0; i < declarations.size(); ++i) {
+        if (declarations[i]->kind != DeclKind::Type) { continue; }
+        auto* type = static_cast<TypeDecl*>(declarations[i].get());
+        type->m_smallClause = nullptr;
+        for (std::size_t j = i + 1; j < declarations.size() && declarations[j]->kind == DeclKind::Representation; ++j) {
+            auto* clause = static_cast<RepresentationDecl*>(declarations[j].get());
+            if (clause->lower == type->lower && clause->attribute == "small" && type->m_smallClause == nullptr) {
+                type->m_smallClause = clause->value.get();
+            }
+        }
+    }
     Type* precedingType = nullptr;
     for (const DeclPtr& decl : declarations) {
         if (decl->kind == DeclKind::Representation) {

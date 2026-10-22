@@ -1,0 +1,4 @@
+fixedoperatorerrors.adb:9:16: error: fixed-by-fixed arithmetic with a user-defined primitive requires an explicit result conversion
+fixedoperatorerrors.adb:11:16: error: fixed-point multiplication or division requires a resolvable fixed-point result context
+fixedoperatorerrors.adb:11:16: error: the operands of an arithmetic operator must have the same type
+fixedoperatorerrors.adb:12:24: error: static expression is outside the base range of its expected type

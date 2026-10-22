@@ -327,9 +327,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     const std::string& name = expr->lower;
     if (name == "machine_overflows" || name == "machine_rounds") {
-        if (!prefixIsType || prefixType == nullptr || prefixType->kind != TypeKind::Float
+        if (!prefixIsType || prefixType == nullptr || (prefixType->kind != TypeKind::Float && prefixType->kind != TypeKind::Fixed)
             || !representationVisible(prefixType) || !expr->arguments.empty()) {
-            m_diagnostics.error(expr->location, "'" + expr->name + " requires a floating point subtype mark and no arguments");
+            m_diagnostics.error(expr->location, "'" + expr->name + " requires a floating or fixed point subtype mark and no arguments");
             return nullptr;
         }
         expr->type = m_types.booleanType();
@@ -410,13 +410,22 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     // Subtypes carry their own constraint, so the prefix type is used as written.
     Type* base = prefixType;
+    if (name == "machine_radix" && base != nullptr && base->kind == TypeKind::Fixed) {
+        if (!prefixIsType || !expr->arguments.empty() || !representationVisible(base)) {
+            m_diagnostics.error(expr->location, "Machine_Radix requires a fixed-point subtype and no arguments");
+        }
+        expr->type = m_types.universalInteger();
+        expr->isStatic = true;
+        expr->staticValue = 2;
+        return expr->type;
+    }
     if (base != nullptr && base->kind == TypeKind::Fixed) {
         if (name == "fore" || name == "aft") {
-            if (!prefixIsType || !expr->arguments.empty()) {
+            if (!prefixIsType || !representationVisible(base) || !expr->arguments.empty()) {
                 m_diagnostics.error(expr->location, "fixed-point formatting attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalInteger();
-            expr->isStatic = !base->m_formalFixed;
+            expr->isStatic = !base->m_formalFixed && (name == "aft" || base->m_scalarBoundsSymbol == nullptr);
             expr->staticValue = base->m_fixedAft;
             if (name == "fore") {
                 __int128 low = base->low, high = base->high;
@@ -426,7 +435,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 if (high < 0) {
                     high = -high;
                 }
-                __int128 whole = std::max(low, high) >> base->m_fixedBits;
+                __int128 whole = base->m_fixedBits >= 0 ? std::max(low, high) >> base->m_fixedBits
+                    : std::max(low, high) * ((__int128)1 << -base->m_fixedBits);
                 expr->staticValue = 2;
                 while (whole >= 10) {
                     whole /= 10;
@@ -435,8 +445,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
+        if (name == "small" && base->m_smallPending) {
+            m_diagnostics.error(expr->location, "Small cannot refer to itself in its defining clause");
+            return nullptr;
+        }
         if (name == "small" || name == "delta") {
-            if (!prefixIsType || !expr->arguments.empty()) {
+            if (!prefixIsType || !representationVisible(base) || !expr->arguments.empty()) {
                 m_diagnostics.error(expr->location, "fixed-point scale attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalReal();
@@ -444,7 +458,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_exactReal = ExactReal::make(1, (__int128)1 << base->m_fixedBits);
+            expr->m_exactReal = base->m_fixedBits >= 0
+                ? ExactReal::make(1, (__int128)1 << base->m_fixedBits)
+                : ExactReal::make((__int128)1 << -base->m_fixedBits);
             if (name == "delta" && base->m_delta != nullptr) {
                 exactValue(base->m_delta, expr->m_exactReal);
             }
@@ -454,7 +470,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (name == "first" || name == "last") {
             expr->type = prefixType;
-            expr->isStatic = !base->m_formalFixed;
+            expr->isStatic = !base->m_formalFixed && base->m_scalarBoundsSymbol == nullptr;
             if (expr->isStatic) {
                 expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
                 expr->m_exactReal.integer(expr->staticValue);
@@ -462,7 +478,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return expr->type;
         }
         if (name != "base" && name != "size" && name != "address"
-            && name != "image" && name != "value" && name != "succ" && name != "pred") {
+            && name != "image" && name != "value" && name != "succ" && name != "pred"
+            && name != "min" && name != "max" && name != "machine_radix"
+            && name != "read" && name != "write" && name != "input" && name != "output") {
             m_diagnostics.error(expr->location, "this attribute is not yet supported for fixed-point types");
             return nullptr;
         }
@@ -510,7 +528,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;
         }
-        if (base != nullptr && base->m_scalarBoundsSymbol != nullptr) {
+        if (base != nullptr && base->m_scalarBoundsSymbol != nullptr && base->kind != TypeKind::Fixed) {
             m_diagnostics.error(expr->location, "stream attributes for runtime scalar subtypes are not yet supported");
             return nullptr;
         }
@@ -567,9 +585,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    if ((name == "min" || name == "max") && base != nullptr && base->m_modulus != 0) {
+    if ((name == "min" || name == "max") && base != nullptr && (base->m_modulus != 0 || base->kind == TypeKind::Fixed)) {
         if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 2) {
-            m_diagnostics.error(expr->location, "Min and Max require a modular subtype and two arguments");
+            m_diagnostics.error(expr->location, "Min and Max require a modular or fixed subtype and two arguments");
             return nullptr;
         }
         expr->type = m_types.scalarBaseType(prefixType);
@@ -581,7 +599,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 m_diagnostics.error(argument->location, "Min and Max arguments must have the prefix type");
             }
         }
-        if (foldWideInteger(expr->arguments[0].get(), left, failure)
+        long long fixedLeft = 0, fixedRight = 0;
+        bool fixed = base->kind == TypeKind::Fixed;
+        bool staticFixed = fixed && foldFixed(expr->arguments[0].get(), fixedLeft)
+            && foldFixed(expr->arguments[1].get(), fixedRight);
+        if (staticFixed) {
+            expr->isStatic = true;
+            expr->staticValue = name == "min" ? std::min(fixedLeft, fixedRight) : std::max(fixedLeft, fixedRight);
+        } else if (!fixed && foldWideInteger(expr->arguments[0].get(), left, failure)
             && foldWideInteger(expr->arguments[1].get(), right, failure)) {
             expr->isStatic = true;
             expr->m_exactReal = ExactReal::make(name == "min" ? std::min(left, right) : std::max(left, right));

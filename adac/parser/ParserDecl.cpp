@@ -291,9 +291,9 @@ DeclPtr Parser::parseRepresentationClause()
 
     const Token& attribute = expect(TokenKind::Identifier, "in representation clause");
     decl->attribute = attribute.lower;
-    if (decl->attribute != "size") {
+    if (decl->attribute != "size" && decl->attribute != "small") {
         m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text
-            + "'; only 'Size clauses are supported");
+            + "'; only 'Size and 'Small clauses are supported");
         skipToSemicolon();
         return nullptr;
     }

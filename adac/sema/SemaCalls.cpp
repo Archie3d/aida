@@ -9,7 +9,7 @@ using SemaSupport::adaptUniversal;
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
     if (expr->operatorExpression == nullptr) {
-        expr->operatorExpression = explicitOperator(expr);
+        expr->operatorExpression = explicitOperator(expr, scope);
     }
     if (expr->operatorExpression != nullptr) {
         expr->type = analyzeExpr(expr->operatorExpression.get(), scope, expected);
@@ -200,15 +200,23 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
             Type* conversion = candidates.front()->type;
             Type* context = nullptr;
-            if (conversion->kind == TypeKind::Fixed && source->kind == ExprKind::Binary) {
-                auto* binary = static_cast<BinaryExpr*>(source);
+            Expr* operation = source;
+            if (source->kind == ExprKind::Call) {
+                auto* call = static_cast<CallExpr*>(source);
+                if (call->operatorExpression == nullptr) { call->operatorExpression = explicitOperator(call, scope); }
+                if (call->operatorExpression != nullptr) { operation = call->operatorExpression.get(); }
+            }
+            if (isNumeric(conversion) && operation->kind == ExprKind::Binary) {
+                auto* binary = static_cast<BinaryExpr*>(operation);
                 if (binary->op == BinaryOp::Multiply || binary->op == BinaryOp::Divide) {
-                    for (Expr* part : { binary->left.get(), binary->right.get() }) {
-                        for (Type* type : expressionTypes(part, scope)) {
-                            if (type->kind == TypeKind::Fixed) {
-                                context = conversion;
-                            }
-                        }
+                    auto left = expressionTypes(binary->left.get(), scope);
+                    auto right = expressionTypes(binary->right.get(), scope);
+                    auto fixed = [](Type* type) { return type->kind == TypeKind::Fixed; };
+                    auto realOperand = [&](Type* type) { return fixed(type) || type->kind == TypeKind::UniversalReal; };
+                    if ((std::any_of(left.begin(), left.end(), fixed) && std::any_of(right.begin(), right.end(), realOperand))
+                        || (std::any_of(right.begin(), right.end(), fixed) && std::any_of(left.begin(), left.end(), realOperand))) {
+                        context = conversion;
+                        binary->m_explicitFixedContext = true;
                     }
                 }
             }
@@ -285,7 +293,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {
-            if (expr->type->m_formalFixed) {
+            if (expr->type->m_formalFixed || expr->type->m_scalarBoundsSymbol != nullptr) {
                 return expr->type;
             }
             ExactReal exact;

@@ -20,7 +20,7 @@ rows into individual legality/dynamic requirements and add missing units.
 | --- | --- | --- | --- | --- | --- |
 | 2.9 / Core | Reserved words recognized | Unsupported syntax diagnosed, not implemented | `reserved*` | — | P1 Reserved words; P6/P9 |
 | 2.8, 10.2.1 / Core | Import; advisory Inline/Pure/Preelaborate | Other pragmas rejected; categorization not enforced | `pragma*`, `pragmas` | — | P1 Pragmas; P6h/P7 |
-| 13.1, 13.3 / Core, Choice | Validated Size clauses | Alignment, enum/record clauses rejected; storage/layout changes incomplete | `size*`, `representationerrors` | — | P1 Representation clauses; P5/P6c |
+| 13.1, 13.3 / Core, Choice | Validated Size and ordinary fixed Small clauses | Alignment, enum/record clauses rejected; storage/layout changes incomplete | `size*`, `representationerrors` | — | P1 Representation clauses; P5/P6c |
 | B.1 / Annex | C/Ada imports, three positional arguments, nonempty external name | Other conventions and imported controlled-result ownership unsupported | `importconvention*` | — | P1 Imports; P7 ABI |
 | 10.1.3 / Core | Body stubs diagnosed with recovery | Separate subunits not implemented | `subprogramstuberrors` | — | P1 Stubs; P6e |
 | 12.5 / Core | Supported formal categories parsed strictly | Derived/access/decimal/interface formals and trailing syntax rejected | `genericformal*`, `deallocationformalerrors` | — | P1 Generic formal types; P6g |
@@ -65,6 +65,10 @@ rows into individual legality/dynamic requirements and add missing units.
 | 3.5, 3.5.4, 4.5, 4.6, 5.4 / Core, Choice | Unsigned modular storage and all moduli 1..2**64; arithmetic/logic, comparisons, conversions, case choices, scalar attributes and Ada 2005 Mod | Signed 64-bit array-index subtypes and variant choices; no compact unsigned 32-bit storage; wide attributes pending | `modular*`, `attributeaudit`, `runtime.modular`, mode/determinism and sanitizer checks | C354002 | P5 Modular types; P7 wide attributes |
 | 12.5.2 / Core | Modular formal types, matching and signed/modular distinction | Broader generic staticness/contract audit remains | `modularwide`, `modularwideerrors`, `genericformalerrors` | — | P5 Modular types; P6g/P8 |
 | A.10.8 / Core | Modular_IO file/default/string Get and Put; decimal/based syntax, widths, delimiters, growing file input and Data_Error/Layout_Error | General Text_IO line/page accounting follows existing implementation; full library audit pending | `modulario`, mode/determinism and sanitizer checks | — | P5 Modular types; P7 I/O |
+| 3.5.9–3.5.10, A.5.4 / Core, Choice | Signed 64-bit counts, wider binary scales, explicit Small, dynamic local bounds, scalar/formatting/machine attributes and exact text conversion | [Binary Small range and adjacent clauses](fixed-point.md); compact storage, legacy delta constraints and general freezing pending | `fixedwide*`, `fixedtext*`, `fixedtasking`, `runtime.fixed_arithmetic`, mode/determinism and sanitizer checks | — | P5 Ordinary fixed point; P6b/P8 |
+| 4.5.5 / Core | Mixed fixed operands with numeric result contexts, Integer scaling, Standard operations and Ada 2005 primitive restrictions | Existing bounded static evaluation; decimal results await decimal fixed support | `fixedoperators`, `fixedoperatorerrors`, `fixedwide`, `runtime.fixed_arithmetic` | C35A08B PASS | P5 Ordinary fixed point; P8 |
+| 13.13.2 / Core, Choice | Checked eight-byte fixed counts; Input subtype checks and Read copy-back checks, including dynamic bounds | Native-order representation; general type-aware/user-defined streaming pending | `fixedstreams`, whole/separate/determinism and sanitizer checks | — | P5 Ordinary fixed point; P7 streaming |
+
 
 ## Predefined-unit inventory
 
@@ -94,7 +98,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.10.8 | Ada.Text_IO.Modular_IO | Unsigned 64-bit decimal/based file and string I/O; full Text_IO audit pending | `modulario`, mode/determinism and sanitizer checks | P5 Modular types; P7 I/O |
 | A.10.8 | Ada.Text_IO.Integer_IO; Ada.Integer_Text_IO | Integer input/output subset | `typeio` | P7 numeric grammar |
 | A.10.9 | Ada.Text_IO.Float_IO; Ada.Float_Text_IO | Real input/output subset; floating model audit pending | `floats`, `typeio` | P5 real edge cases; P7 |
-| A.10.10 | Ada.Text_IO.Fixed_IO | Ordinary fixed text subset; scale choices limited | `fixed*` | P5 fixed point; P7 |
+| A.10.10 | Ada.Text_IO.Fixed_IO | Binary scales 2**(-62)..2**62, exact text conversion and local dynamic subtype instances; broader I/O audit pending | `fixed*` | P5 fixed point; P7 |
 | A.10.11 | Ada.Text_IO.Enumeration_IO | Enumeration input/output subset | `enumio` | P7 Text_IO |
 | A.12.1 | Ada.Streams | Representation-oriented stream support; full abstraction/attributes pending | `streamio`, `streamresults` | P7 streaming |
 | A.12.1 | Ada.Streams.Stream_IO | File stream subset; type-aware/class-wide streaming pending | `streamio` | P7 streaming |

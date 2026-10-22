@@ -1,6 +1,8 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+#include <cmath>
+
 using QbeSupport::constantValue;
 using QbeSupport::realLiteral;
 using QbeSupport::isFloatClass;
@@ -200,8 +202,25 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             char from = value.type;
             char to = qbeClass(expr->type);
             if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {
-                if (operand->type->m_modulus != 0) {
-                    value = emitDiscreteConversion(value, operand->type, m_sema.typeTable().longIntegerType());
+                if (operand->type->m_modulus != 0 || expr->type->m_modulus != 0) {
+                    Value wide = wideBound(value);
+                    std::string converted = newTemp();
+                    if (operand->type->m_modulus != 0) {
+                        line(converted + " =l call $__ada_modular_to_fixed(l " + wide.name
+                            + ", w " + std::to_string(expr->type->m_fixedBits) + ")");
+                    } else {
+                        line(converted + " =l call $__ada_fixed_numeric_operation(w 2, l " + wide.name
+                            + ", w " + std::to_string(operand->type->m_fixedBits) + ", l 1, w 0, w 1)");
+                    }
+                    emitExceptionCheck();
+                    Value result { converted, 'l' };
+                    emitRangeCheck(result, expr->type, expr->location);
+                    if (to == 'w') {
+                        std::string narrow = newTemp();
+                        line(narrow + " =w copy " + converted);
+                        result = Value { narrow, 'w' };
+                    }
+                    return result;
                 }
                 std::string result = newTemp();
                 int fromBits = operand->type->m_fixedBits;
@@ -217,7 +236,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 } else if (isFloatClass(to)) {
                     std::string wide = newTemp();
                     line(wide + " =d sltof " + value.name);
-                    line(result + " =d div " + wide + ", " + QbeSupport::realLiteral(static_cast<double>(1LL << fromBits), 'd'));
+                    line(result + " =d div " + wide + ", " + QbeSupport::realLiteral(std::ldexp(1.0, fromBits), 'd'));
                     if (to == 's') {
                         std::string narrow = newTemp();
                         line(narrow + " =s truncd " + result);
@@ -234,9 +253,6 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     emitExceptionCheck();
                 }
                 Value converted { result, isFloatClass(to) ? to : 'l' };
-                if (expr->type->m_modulus != 0) {
-                    return emitDiscreteConversion(converted, m_sema.typeTable().longIntegerType(), expr->type);
-                }
                 emitRangeCheck(converted, expr->type, expr->location);
                 if (to == 'w') {
                     std::string narrow = newTemp();

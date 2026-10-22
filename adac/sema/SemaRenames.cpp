@@ -324,7 +324,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             argument.value = std::move(operand);
             call.arguments.push_back(std::move(argument));
         }
-        implementation = explicitOperator(&call);
+        implementation = explicitOperator(&call, operandsScope);
         if (implementation != nullptr) {
             analyzeExpr(implementation.get(), operandsScope, alias->returnType);
         }

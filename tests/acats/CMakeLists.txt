@@ -14,6 +14,7 @@ function(add_acats_test name)
 endfunction()
 
 add_acats_test(c354002)
+add_acats_test(c35a08b)
 add_acats_test(c52005a)
 add_acats_test(c53007a)
 add_acats_test(c49022a)

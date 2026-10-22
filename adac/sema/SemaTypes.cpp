@@ -231,20 +231,47 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(definition->location, "fixed-point delta must be a positive exact static real expression");
             delta = ExactReal::make(1);
         }
-        int bits = 0;
-        // Compare delta with 2**(-bits) without overflowing cross-products.
+        int bits = ADA_FIXED_MIN_BITS;
         auto belowSmall = [&]() {
-            return delta.m_numerator <= (delta.m_denominator - 1) / ((__int128)1 << bits);
+            return bits >= 0 ? delta.m_numerator <= (delta.m_denominator - 1) / ((__int128)1 << bits)
+                             : delta.m_numerator / delta.m_denominator < ((__int128)1 << -bits);
         };
-        while (bits < 30 && belowSmall()) {
-            ++bits;
+        while (bits < ADA_FIXED_MAX_BITS && belowSmall()) { ++bits; }
+        if (belowSmall() || delta.m_numerator / delta.m_denominator > ((__int128)1 << -ADA_FIXED_MIN_BITS)) {
+            m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-62) through 2.0**62");
         }
-        if (belowSmall() || delta.m_numerator > delta.m_denominator) {
-            m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-30) through 1.0");
+        if (decl->m_smallClause != nullptr) {
+            type->m_smallClause = decl->m_smallClause;
+            // Delta may be referenced in the clause before the final type
+            // symbol is published; Small itself is still being defined.
+            type->m_delta = definition->m_delta.get();
+            Scope* representationScope = m_symbolTable.createScope(scope);
+            Symbol* self = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
+            self->type = type;
+            representationScope->add(self);
+            type->m_smallPending = true;
+            Type* smallType = analyzeExpr(decl->m_smallClause, representationScope, nullptr);
+            type->m_smallPending = false;
+            ExactReal small;
+            bool valid = isReal(smallType) && exactValue(decl->m_smallClause, small) && small.m_numerator > 0;
+            int selected = ADA_FIXED_MIN_BITS;
+            for (; valid && selected <= ADA_FIXED_MAX_BITS; ++selected) {
+                ExactReal candidate = selected >= 0 ? ExactReal::make(1, (__int128)1 << selected)
+                                                    : ExactReal::make((__int128)1 << -selected);
+                if (candidate.m_numerator == small.m_numerator && candidate.m_denominator == small.m_denominator) { break; }
+            }
+            if (!valid || selected > ADA_FIXED_MAX_BITS) {
+                m_diagnostics.error(decl->m_smallClause->location, "Small must be a positive static power of two from 2.0**(-62) through 2.0**62");
+            } else {
+                bits = selected;
+                if (belowSmall()) {
+                    m_diagnostics.error(decl->m_smallClause->location, "Small must not exceed the type's delta");
+                }
+            }
         }
         type->m_fixedBits = bits;
         __int128 decimalScale = 10;
-        while (type->m_fixedAft < 10
+        while (type->m_fixedAft < 20
             && delta.m_numerator < (delta.m_denominator - 1) / decimalScale + 1) {
             ++type->m_fixedAft;
             decimalScale *= 10;
@@ -912,6 +939,16 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
         return;
     }
+    if (decl->attribute == "small") {
+        Type* type = symbol->type;
+        if (type->kind != TypeKind::Fixed || type->isSubtype || type->m_parentType != nullptr
+            || !representationVisible(type)) {
+            m_diagnostics.error(decl->location, "a Small clause requires a nonderived ordinary fixed-point first subtype");
+        } else if (type->m_smallClause != decl->value.get()) {
+            m_diagnostics.error(decl->location, "a Small clause must occur once, adjacent to its type declaration before representation use");
+        }
+        return;
+    }
     if (decl->attribute != "size") {
         m_diagnostics.error(decl->location, "only a 'Size clause is understood");
         return;
@@ -1079,10 +1116,23 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             return indication->resolved;
         }
         long long low = 0, high = 0;
-        if (!typesCompatible(base, lowType) || !typesCompatible(base, highType)
-            || !foldFixed(indication->rangeLow.get(), low) || !foldFixed(indication->rangeHigh.get(), high)) {
-            m_diagnostics.error(indication->location, "fixed-point subtype bounds must be static");
+        if (!typesCompatible(base, lowType) || !typesCompatible(base, highType)) {
+            m_diagnostics.error(indication->location, "fixed-point subtype bounds must have the subtype's type");
             return base;
+        }
+        bool staticLow = foldFixed(indication->rangeLow.get(), low);
+        bool staticHigh = foldFixed(indication->rangeHigh.get(), high);
+        if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
+            if (!allowDynamicScalar) {
+                m_diagnostics.error(indication->location, "runtime fixed-point constraints require a local subtype declaration");
+                return base;
+            }
+            Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            subtype->m_scalarLow = indication->rangeLow.get();
+            subtype->m_scalarHigh = indication->rangeHigh.get();
+            subtype->m_scalarConstraintBase = base;
+            indication->resolved = subtype;
+            return subtype;
         }
         Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, low, high);
         indication->resolved = subtype;

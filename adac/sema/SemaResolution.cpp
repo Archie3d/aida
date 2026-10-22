@@ -240,8 +240,21 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         if (call->operatorExpression != nullptr) {
             return expressionTypes(call->operatorExpression.get(), scope, expected);
         }
+        std::string operatorText;
+        bool standardOperator = false;
         if (call->callee->kind == ExprKind::Identifier) {
-            std::string name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
+            operatorText = static_cast<IdentifierExpr*>(call->callee.get())->lower;
+        } else if (call->callee->kind == ExprKind::Selected) {
+            auto* selected = static_cast<SelectedExpr*>(call->callee.get());
+            auto prefixes = expressionNames(selected->prefix.get(), scope);
+            if (prefixes.size() == 1 && prefixes.front()->scope == m_standardScope
+                && (selected->selectorLower == "*" || selected->selectorLower == "/")) {
+                operatorText = selected->selectorLower;
+                standardOperator = true;
+            }
+        }
+        if (!operatorText.empty()) {
+            const std::string& name = operatorText;
             bool positional = std::all_of(call->arguments.begin(), call->arguments.end(),
                 [](const Association& argument) { return argument.nameLower.empty() && argument.high == nullptr; });
             if (!operatorSymbol(name).empty() && positional) {
@@ -249,7 +262,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 for (const Association& argument : call->arguments) {
                     operands.push_back(argument.value.get());
                 }
-                for (const OperatorCandidate& candidate : operatorCandidates(name, operands, scope, expected)) {
+                for (const OperatorCandidate& candidate : operatorCandidates(name, operands, scope, expected, standardOperator)) {
                     add(candidate.result);
                 }
                 break;
@@ -374,7 +387,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
         } else {
             for (const OperatorCandidate& candidate : operatorCandidates(operatorName(binary->op),
-                    { binary->left.get(), binary->right.get() }, scope, expected)) {
+                    { binary->left.get(), binary->right.get() }, scope, expected, binary->m_standardFixed)) {
                 add(candidate.result);
             }
         }
@@ -438,7 +451,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.booleanType());
         } else if (name == "modulus" || name == "pos" || name == "length" || name == "size") {
             add(m_types.universalInteger());
-        } else if (name == "width" || name == "digits") {
+        } else if (name == "width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {

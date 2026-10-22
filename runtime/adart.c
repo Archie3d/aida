@@ -1110,14 +1110,55 @@ void __ada_array_adopt(void** owner, void* data)
 }
 
 
-#include "../common/Fixed.h"
-#include <math.h>
-
 long long __ada_fixed_operation(FixedOperation operation, long long left, int leftBits,
                                long long right, int rightBits, int resultBits)
 {
     long long result = 0;
     if (!fixedOperation(operation, left, leftBits, right, rightBits, resultBits, &result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+    return result;
+}
+
+long long __ada_fixed_minmax(long long left, long long right, int maximum)
+{
+    return (maximum ? left > right : left < right) ? left : right;
+}
+
+long long __ada_fixed_fore(long long low, long long high, int bits)
+{
+    unsigned __int128 a = low < 0 ? 0 - (unsigned __int128)low : (unsigned __int128)low;
+    unsigned __int128 b = high < 0 ? 0 - (unsigned __int128)high : (unsigned __int128)high;
+    unsigned __int128 whole = a > b ? a : b;
+    whole = bits >= 0 ? whole >> bits : whole << -bits;
+    long long width = 2;
+    while (whole >= 10) { whole /= 10; ++width; }
+    return width;
+}
+
+long long __ada_fixed_numeric_operation(FixedOperation operation, long long left, int leftBits,
+                                       long long right, int rightBits, int isUnsigned)
+{
+    long long result = 0;
+    if ((operation != FixedMultiply && operation != FixedDivide)
+        || leftBits < ADA_FIXED_MIN_BITS || leftBits > ADA_FIXED_MAX_BITS
+        || rightBits < ADA_FIXED_MIN_BITS || rightBits > ADA_FIXED_MAX_BITS) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    int multiply = operation == FixedMultiply;
+    if (!fixedRatioMode(multiply ? (__int128)left * right : left, multiply ? 1 : right,
+            multiply ? -leftBits - rightBits : rightBits - leftBits, isUnsigned, &result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
+    return result;
+}
+
+long long __ada_modular_to_fixed(unsigned long long value, int bits)
+{
+    long long result = 0;
+    if (bits < ADA_FIXED_MIN_BITS || bits > ADA_FIXED_MAX_BITS
+        || !fixedRatio((__int128)value, 1, bits, &result)) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
     }
     return result;

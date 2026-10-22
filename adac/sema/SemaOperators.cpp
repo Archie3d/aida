@@ -7,7 +7,7 @@ using SemaSupport::adaptUniversal;
 using SemaSupport::isUniversal;
 
 std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string& name,
-    const std::vector<Expr*>& operands, Scope* scope, Type* expected)
+    const std::vector<Expr*>& operands, Scope* scope, Type* expected, bool predefinedOnly)
 {
     std::vector<OperatorCandidate> candidates;
     auto symbols = scope->lookup(name);
@@ -25,6 +25,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             symbols = fixedSymbol == nullptr ? std::vector<Symbol*> {} : std::vector<Symbol*> { fixedSymbol };
         }
     }
+    if (predefinedOnly) { symbols.clear(); }
     for (Symbol* symbol : symbols) {
         if (symbol->kind != SymbolKind::Subprogram || symbol->parameters.size() != operands.size()
             || symbol->returnType == nullptr || !matchesResult(symbol, expected)) {
@@ -182,13 +183,13 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                     }
                 } else if (type->kind == TypeKind::Fixed && (name == "*" || name == "/")) {
                     for (Type* other : types) {
-                        if (other->kind == TypeKind::Integer || other->kind == TypeKind::UniversalInteger) {
-                            predefined({ type, other }, type);
+                        if (rootType(other) == m_types.integerType() || other->kind == TypeKind::UniversalInteger) {
+                            predefined({ type, m_types.integerType() }, type);
                             if (name == "*") {
-                                predefined({ other, type }, type);
+                                predefined({ m_types.integerType(), type }, type);
                             }
                         } else if (other->kind == TypeKind::Fixed && expected != nullptr
-                                   && expected->kind == TypeKind::Fixed) {
+                                   && isNumeric(expected)) {
                             predefined({ type, other }, expected);
                         }
                     }
@@ -274,12 +275,20 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
     return call;
 }
 
-ExprPtr Sema::explicitOperator(CallExpr* call)
+ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope)
 {
-    if (call->callee->kind != ExprKind::Identifier) {
-        return nullptr;
+    std::string name;
+    bool standard = false;
+    if (call->callee->kind == ExprKind::Identifier) {
+        name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
+    } else if (call->callee->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(call->callee.get());
+        auto prefixes = expressionNames(selected->prefix.get(), scope);
+        standard = prefixes.size() == 1 && prefixes.front()->scope == m_standardScope;
+        if (standard && (selected->selectorLower == "*" || selected->selectorLower == "/")) {
+            name = selected->selectorLower;
+        }
     }
-    std::string name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
     if (operatorSymbol(name).empty() || std::any_of(call->arguments.begin(), call->arguments.end(),
             [](const Association& argument) { return !argument.nameLower.empty() || argument.high != nullptr; })) {
         return nullptr;
@@ -301,6 +310,8 @@ ExprPtr Sema::explicitOperator(CallExpr* call)
                 auto binary = std::make_unique<BinaryExpr>();
                 binary->location = call->location;
                 binary->op = op;
+                binary->m_standardFixed = standard;
+                binary->m_explicitFixedContext = standard;
                 binary->left = std::move(call->arguments[0].value);
                 binary->right = std::move(call->arguments[1].value);
                 return binary;

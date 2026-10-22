@@ -654,7 +654,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
             argument.value = std::move(operand);
             call.arguments.push_back(std::move(argument));
         }
-        implementation = explicitOperator(&call);
+        implementation = explicitOperator(&call, operandsScope);
         if (implementation != nullptr) {
             analyzeExpr(implementation.get(), operandsScope, wrapper->returnType);
         }

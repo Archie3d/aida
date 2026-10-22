@@ -173,10 +173,10 @@ private:
         Type* result = nullptr;
     };
     std::vector<OperatorCandidate> operatorCandidates(const std::string& name, const std::vector<Expr*>& operands,
-                                                     Scope* scope, Type* expected);
+                                                     Scope* scope, Type* expected, bool predefinedOnly = false);
     ExprPtr bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope* scope,
                          const SourceLocation& location);
-    ExprPtr explicitOperator(CallExpr* call);
+    ExprPtr explicitOperator(CallExpr* call, Scope* scope);
 
     // SemaExpr.cpp
     Type* analyzeCondition(Expr* expr, Scope* scope);

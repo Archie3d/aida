@@ -317,7 +317,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     Type* operandContext = nullptr;
     Type* rightContext = nullptr;
     if (!name.empty()) {
-        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected);
+        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->m_standardFixed);
         if (expected != nullptr && expected->kind == TypeKind::Fixed
             && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
             auto universal = expressionTypes(expr, scope);
@@ -361,6 +361,24 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 adaptUniversal(expr->left.get(), chosen.parameters[0]);
                 adaptUniversal(expr->right.get(), chosen.parameters[1]);
                 expr->type = chosen.result;
+                expr->m_fixedResult = chosen.parameters[0]->kind == TypeKind::Fixed
+                    && chosen.parameters[1]->kind == TypeKind::Fixed;
+                if (expr->m_fixedResult && !expr->m_explicitFixedContext) {
+                    bool requiresConversion = false;
+                    for (Type* operand : chosen.parameters) {
+                        for (Symbol* primitive : rootType(operand)->m_primitives) {
+                            if (primitive->name == name && primitive->parameters.size() == 2
+                                && primitive->parameters[0]->type->kind == TypeKind::Fixed
+                                && primitive->parameters[1]->type->kind == TypeKind::Fixed) {
+                                requiresConversion = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (requiresConversion) {
+                        m_diagnostics.error(expr->location, "fixed-by-fixed arithmetic with a user-defined primitive requires an explicit result conversion");
+                    }
+                }
                 noteStaticValue(expr);
                 checkPrivateOperands(expr);
                 return expr->type;

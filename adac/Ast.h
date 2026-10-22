@@ -194,6 +194,9 @@ struct BinaryExpr : Expr
     }
 
     BinaryOp op = BinaryOp::Add;
+    bool m_fixedResult = false;
+    bool m_explicitFixedContext = false;
+    bool m_standardFixed = false;
     ExprPtr left;
     ExprPtr right;
     ExprPtr operatorCall; // Resolved user-defined operator.
@@ -784,6 +787,7 @@ struct TypeDecl : Decl
     std::vector<RecordField> discriminants;
     TypeDefinitionPtr definition;
     Type* declaredType = nullptr;
+    Expr* m_smallClause = nullptr;
     DeclList m_taskObjects; // Anonymous type followed by its single concurrent object.
     DeclList m_protectedDeclarations;
     bool m_protectedBody = false;
@@ -800,6 +804,7 @@ struct SubtypeDecl : Decl
     std::string lower;
     SubtypeIndicationPtr subtype;
     Type* declaredType = nullptr;
+    Expr* m_smallClause = nullptr;
 };
 
 struct SubprogramDecl : Decl

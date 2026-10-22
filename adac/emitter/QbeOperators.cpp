@@ -22,6 +22,26 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
     Value left = emitExpr(expr->left.get());
     Value right = emitExpr(expr->right.get());
+    if (expr->m_fixedResult && expr->type->kind != TypeKind::Fixed) {
+        std::string result = newTemp();
+        bool real = isReal(expr->type);
+        std::string arguments = "(w " + std::to_string(expr->op == BinaryOp::Multiply ? 2 : 3)
+            + ", l " + left.name + ", w " + std::to_string(expr->left->type->m_fixedBits)
+            + ", l " + right.name + ", w " + std::to_string(expr->right->type->m_fixedBits);
+        line(result + (real ? " =d call $__ada_fixed_real_operation" : " =l call $__ada_fixed_numeric_operation")
+            + arguments + ", w " + (real ? (qbeClass(expr->type) == 's' ? "24" : "53")
+                                         : (expr->type->m_modulus != 0 ? "1" : "0")) + ")");
+        emitExceptionCheck();
+        Value value { result, real ? 'd' : 'l' };
+        emitRangeCheck(value, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
+        char width = qbeClass(expr->type);
+        if (width == 's' || width == 'w') {
+            std::string narrow = newTemp();
+            line(narrow + " =" + width + (width == 's' ? " truncd " : " copy ") + result);
+            value = Value { narrow, width };
+        }
+        return value;
+    }
     if (expr->type->kind == TypeKind::Fixed) {
         auto wide = [&](Value value) {
             if (value.type == 'w') {

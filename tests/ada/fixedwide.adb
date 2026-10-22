@@ -1,0 +1,65 @@
+with Ada.Text_IO; use Ada.Text_IO;
+with System;
+with Ada.Text_IO.Fixed_IO;
+procedure FixedWide is
+    type Fine is delta 2.0 ** (-62) range -1.0 .. 1.0;
+    type Coarse is delta 8.0 range -1024.0 .. 1024.0;
+    type Quarter is delta 0.25 range -100.0 .. 100.0;
+    for Quarter'Small use Quarter'Delta / 2.0;
+    package IO is new Ada.Text_IO.Fixed_IO (Coarse);
+    A : Fine := 0.5;
+    B : Fine := 0.25;
+    C : Coarse := 24.0;
+    X : Quarter := 1.25;
+    Lower : Quarter := 1.0;
+    Upper : Quarter := 2.0;
+    subtype Window is Quarter range Lower .. Upper;
+    W : Window := 1.5;
+    package Window_IO is new Ada.Text_IO.Fixed_IO (Window);
+    F : Long_Float;
+    I : Integer;
+    type Word is mod 2 ** 64;
+    type Wide_A is delta 2.0 ** 32 range -2.0 ** 40 .. 2.0 ** 40;
+    type Wide_B is delta 2.0 ** 31 range -2.0 ** 40 .. 2.0 ** 40;
+    CA : constant Wide_A := 2.0 ** 32;
+    CB : constant Wide_B := 2.0 ** 31;
+    Static_Word : constant Word := CA * CB;
+    M : Word;
+    type Very_Coarse is delta 2.0 ** 62 range -2.0 ** 100 .. 2.0 ** 100;
+    Big : Very_Coarse := 2.0 ** 63;
+    Text : String (1 .. 10);
+    Last : Positive;
+    procedure Check (Condition : Boolean) is
+    begin
+        if not Condition then
+            raise Program_Error;
+        end if;
+    end Check;
+begin
+    Check (Fine'Small = System.Fine_Delta);
+    Check (Fine'Small = 2.0 ** (-62) and Coarse'Small = 8.0 and Quarter'Small = 0.125);
+    Check (Quarter'Delta = 0.25 and Fine'Aft = 19 and Coarse'Aft = 1);
+    Check (Window'Fore = 2 and Quarter'Machine_Radix = 2);
+    Check (Quarter'Machine_Rounds and Quarter'Machine_Overflows);
+    Check (Quarter'Min (X, W) = X and Quarter'Max (X, W) = W);
+    Check (Window'First = 1.0 and Window'Last = 2.0 and W in Window);
+    Check (A * B = Fine'(0.125));
+    F := A * B;
+    I := X * X;
+    M := X * X;
+    Check (Static_Word = 2 ** 63);
+    M := Word (Big);
+    Check (M = 2 ** 63 and Very_Coarse (M) = Big);
+    M := 2;
+    Check (F = 0.125 and I = 2 and M = 2);
+    F := Long_Float (A / B);
+    Check (F = 2.0 and Coarse (F * 12.0) = C and Long_Float (C) = 24.0);
+    IO.Put (Text, C, Aft => 1);
+    Check (Text = "      24.0");
+    IO.Get ("40.0", C, Last);
+    Check (C = 40.0 and Last = 4);
+    Check (Coarse'Image (C) = " 40.0");
+    Window_IO.Put (Text, W, Aft => 2);
+    Check (Text = "      1.50");
+    Put_Line ("wide fixed-point scales, Small, contexts and dynamic bounds");
+end FixedWide;

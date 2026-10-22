@@ -8,6 +8,7 @@
 #include "adamaster.h"
 #include "adaprotected.h"
 #include "../common/Modular.h"
+#include "../common/Fixed.h"
 #include "../common/Real.h"
 #include "../common/Array.h"
 
@@ -229,6 +230,18 @@ void* __ada_tag_descendant(const char* name, int length, void* ancestor);
 int __ada_tag_is_abstract(void* tag);
 void __ada_tag_check_copy(const void* object);
 
+/* Fixed-point arithmetic uses signed count storage and binary scale exponents. */
+long long __ada_fixed_operation(FixedOperation operation, long long left, int leftBits,
+                               long long right, int rightBits, int resultBits);
+long long __ada_modular_to_fixed(unsigned long long value, int bits);
+long long __ada_fixed_rescale(long long value, int fromBits, int toBits);
+long long __ada_float_to_fixed(double value, int bits);
+long long __ada_fixed_minmax(long long left, long long right, int maximum);
+long long __ada_fixed_fore(long long low, long long high, int bits);
+double __ada_fixed_real_operation(int operation, long long left, int leftBits, long long right, int rightBits, int precision);
+long long __ada_fixed_numeric_operation(FixedOperation operation, long long left, int leftBits,
+                                       long long right, int rightBits, int isUnsigned);
+
 /* Exact fixed-point text conversion; values use signed scaled counts. */
 int __ada_image_fixed(char* buffer, int capacity, long long value, int bits, int aft);
 long long __ada_value_fixed(const char* text, int length, int bits, long long low, long long high);
@@ -245,7 +258,7 @@ void __ada_format_float(char* buffer, int size, double value, int fore, int aft,
 /* Images write into caller-owned storage, including a trailing C zero, and
    return the Ada length (which may include an embedded zero). The emitter
    reserves 64 bytes for numeric images, at least max literal length + 1 for enums,
-   and at least max(aft, 1) + 24 bytes for fixed-point images. A short buffer
+   and at least max(aft, 1) + 42 bytes for fixed-point images. A short buffer
    raises Storage_Error. No pointer to runtime scratch storage escapes. */
 int __ada_image_float(char* buffer, int capacity, double value, int aft, int exponent);
 int __ada_image_integer(char* buffer, int capacity, int value);

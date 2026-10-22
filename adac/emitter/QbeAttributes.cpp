@@ -75,12 +75,24 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "read" || name == "write" || name == "input" || name == "output") {
         return emitStreamAttribute(expr);
     }
+    if (name == "fore" && prefixType->kind == TypeKind::Fixed) {
+        Value bounds = scalarBounds(prefixType);
+        std::string result = newTemp();
+        line(result + " =l call $__ada_fixed_fore(l " + bounds.first + ", l " + bounds.last
+            + ", w " + std::to_string(prefixType->m_fixedBits) + ")");
+        if (qbeClass(expr->type) == 'w') {
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + result);
+            result = narrow;
+        }
+        return Value { result, qbeClass(expr->type) };
+    }
     if (name == "min" || name == "max") {
         Value left = emitExpr(expr->arguments[0].get());
         Value right = emitExpr(expr->arguments[1].get());
         std::string result = newTemp();
         Value a = wideBound(left), b = wideBound(right);
-        line(result + " =l call $__ada_modular_minmax(l " + a.name + ", l " + b.name
+        line(result + " =l call $" + (prefixType->kind == TypeKind::Fixed ? "__ada_fixed_minmax" : "__ada_modular_minmax") + "(l " + a.name + ", l " + b.name
             + ", w " + (name == "min" ? "0" : "1") + ")");
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
@@ -306,7 +318,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "first" || name == "last" || name == "length") {
         Type* base = prefixType;
-        if (base != nullptr && isDiscrete(base) && base->m_scalarBoundsSymbol != nullptr) {
+        if (base != nullptr && (isDiscrete(base) || base->kind == TypeKind::Fixed) && base->m_scalarBoundsSymbol != nullptr) {
             Value bounds = scalarBounds(base);
             return Value { name == "first" ? bounds.first : bounds.last, bounds.type };
         }
@@ -383,7 +395,11 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         if (isComposite(prefixType)) {
             return withBounds(address, prefixType, nullptr);
         }
-        return loadFrom(address, prefixType);
+        Value value = loadFrom(address, prefixType);
+        if (prefixType->kind == TypeKind::Fixed) {
+            emitRangeCheck(value, prefixType, expr->location);
+        }
+        return value;
     }
 
     Expr* item = expr->arguments[1].get();
@@ -425,9 +441,18 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         }
     }
 
+    Value destination = address;
+    if (reading && type->kind == TypeKind::Fixed) {
+        address = Value { allocScratch(8), 'l' };
+    }
     line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
          + ", l " + address.name + ", l " + size + ")");
     emitExceptionCheck();
+    if (reading && type->kind == TypeKind::Fixed) {
+        Value value = loadFrom(address, type);
+        emitRangeCheck(value, type, expr->location);
+        storeInto(destination, value, type);
+    }
     return Value { "0", 'w' };
 }
 

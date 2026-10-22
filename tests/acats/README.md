@@ -9,12 +9,14 @@ or a claim of conformity assessment. Ada 2005-specific additions still need test
 [GCC ACATS mirror](https://github.com/gcc-mirror/gcc/tree/releases/gcc-14/gcc/testsuite/ada/acats/tests),
 retrieved 2026-10-21 (C49022A, C45523A and C45347A in `c4/`, the other
 original cases in `c5/`). C354002 comes from `c3/c354002.a`, retrieved
-2026-10-22 and stored as `c354002.ada`. Each file retains its grant of
+2026-10-22 and stored as `c354002.ada`. C35A08B comes from `c3/c35a08b.ada`,
+retrieved 2026-10-22. Each file retains its grant of
 unlimited rights and disclaimer. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
 
 | Case | Ada 2005 RM | Expectation | Remaining gap / owner |
 | --- | --- | --- | --- |
+| C35A08B | 4.5.5 | PASS: same/mixed fixed operands and explicit Standard multiplication/division | Broader fixed and numeric-context coverage: Phase 8 |
 | C354002 | 3.5, 3.5.4 | PASS: modular bounds, Modulus, Min/Max, wrapping Succ/Pred, Image/Value, Pos/Val and Width, including maximum supported moduli | Wide attributes: Phase 7; further modular coverage: Phase 8 |
 | C52005A | 5.2 | PASS: scalar assignment range checks and unchanged target on failure | Broader static arithmetic audit: Phase 5 |
 | C53007A | 5.3, 4.5.1 | PASS: nested if and Boolean control flow | Extend selection: Phase 8 |
@@ -25,6 +27,7 @@ GCC's release branch itself may change. No download is needed at build/test time
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
+| c35a08b.ada | `1750bfa12a21118feff9168d17d05d88c368cab6` | `eabeb71d8bf3a9f9d3324012541e4b119bc6191f531418e05eb62637dbef9b18` |
 | c354002.ada | `3129182b70406d33dca826d0f4f505d21ac7f329` | `53ccaca62f66e628b479b53456fa35ca723201093338b93745975b1ecb8d4d90` |
 | c52005a.ada | `2c70049c8080ca53f3e5d4fe070915500da5287d` | `927e5fd3db80dfd38fd59619ca65b354893844d64b276a2dfe9c2870626d32bf` |
 | c53007a.ada | `bda27b9193b984cd0fd06535e665601e8d910092` | `67662c243b822ba47286d4e52488a6457027afb417a36761f1b56d34f84bfe22` |

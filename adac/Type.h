@@ -164,6 +164,8 @@ public:
     // Contract-only fixed-point types have no scale or bounds until instantiation.
     bool m_formalFixed = false;
     struct Expr* m_delta = nullptr;
+    struct Expr* m_smallClause = nullptr;
+    bool m_smallPending = false;
     bool hasRealRange = false;
     double lowReal = 0.0;
     double highReal = 0.0;

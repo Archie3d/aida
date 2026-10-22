@@ -1121,3 +1121,40 @@ foreach(modular_case modularwide modulario modulartasking)
     set_tests_properties(ada.${modular_case} determinism.${modular_case}
         runtime.${modular_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
+
+add_ada_test(fixedwide SOURCES fixedwide.adb)
+add_determinism_test(fixedwide SOURCE fixedwide.adb)
+
+add_ada_test(fixedstreams SOURCES fixedstreams.adb)
+add_determinism_test(fixedstreams SOURCE fixedstreams.adb)
+
+add_ada_test(fixedwidechecks SOURCES fixedwidechecks.adb)
+add_ada_error_test(fixedwideerrors SOURCES fixedwideerrors.adb)
+add_ada_error_test(fixedoperatorerrors SOURCES fixedoperatorerrors.adb)
+
+add_executable(fixed_arithmetic_test FixedArithmeticTest.c)
+target_link_libraries(fixed_arithmetic_test PRIVATE adart)
+add_test(NAME runtime.fixed_arithmetic COMMAND fixed_arithmetic_test)
+set_tests_properties(runtime.fixed_arithmetic PROPERTIES TIMEOUT 20)
+
+add_ada_test(fixedtasking SOURCES fixedtasking.adb)
+add_determinism_test(fixedtasking SOURCE fixedtasking.adb)
+foreach(fixed_case fixedwide fixedstreams fixedtasking)
+    add_test(NAME runtime.${fixed_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${fixed_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${fixed_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${fixed_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${fixed_case} determinism.${fixed_case}
+        runtime.${fixed_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_ada_test(fixedoperators SOURCES fixedoperators.adb)
+add_determinism_test(fixedoperators SOURCE fixedoperators.adb)
