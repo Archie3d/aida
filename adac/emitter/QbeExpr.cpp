@@ -37,12 +37,14 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         // Universal named numbers may be wider than every machine type.
         // Refuse an unrepresentable materialization instead of using the
         // deliberately unset machine-value cache as zero.
-        if (expr->m_exactReal.m_valid && !expr->m_exactReal.integer(expr->staticValue)) {
+        if (expr->m_exactReal.m_valid && expr->type->m_modulus != 0) {
+            expr->staticValue = static_cast<long long>(expr->m_exactReal.m_numerator);
+        } else if (expr->m_exactReal.m_valid && !expr->m_exactReal.integer(expr->staticValue)) {
             m_diagnostics.error(expr->location, "static value exceeds supported 64-bit machine storage");
             return Value { "0", qbeClass(expr->type) };
         }
         if (expr->type->m_modulus != 0
-            && (expr->staticValue < 0 || expr->staticValue >= expr->type->m_modulus)) {
+            && (static_cast<__int128>(static_cast<uint64_t>(expr->staticValue)) >= expr->type->m_modulus)) {
             raiseConstraintError();
         }
         // Check before narrowing the literal to a QBE word. Subtype bounds
@@ -198,6 +200,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             char from = value.type;
             char to = qbeClass(expr->type);
             if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {
+                if (operand->type->m_modulus != 0) {
+                    value = emitDiscreteConversion(value, operand->type, m_sema.typeTable().longIntegerType());
+                }
                 std::string result = newTemp();
                 int fromBits = operand->type->m_fixedBits;
                 int toBits = expr->type->m_fixedBits;
@@ -229,6 +234,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     emitExceptionCheck();
                 }
                 Value converted { result, isFloatClass(to) ? to : 'l' };
+                if (expr->type->m_modulus != 0) {
+                    return emitDiscreteConversion(converted, m_sema.typeTable().longIntegerType(), expr->type);
+                }
                 emitRangeCheck(converted, expr->type, expr->location);
                 if (to == 'w') {
                     std::string narrow = newTemp();
@@ -236,6 +244,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     return Value { narrow, 'w' };
                 }
                 return converted;
+            }
+            if (isDiscrete(operand->type) && isDiscrete(expr->type)
+                && (operand->type->m_modulus != 0 || expr->type->m_modulus != 0)) {
+                return emitDiscreteConversion(value, operand->type, expr->type);
             }
             if (from == to) {
                 emitRangeCheck(value, expr->type, expr->location);
@@ -251,14 +263,15 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     line(wide + " =d exts " + value.name);
                 }
                 std::string rounded = newTemp();
-                line(rounded + " =l call $__ada_round_to_integer(d " + wide + ")");
+                line(rounded + " =l call $" + (expr->type->m_modulus != 0 ? "__ada_round_to_modular" : "__ada_round_to_integer") + "(d " + wide + ")");
                 emitExceptionCheck();
                 emitRangeCheck(Value { rounded, 'l' }, expr->type, expr->location);
                 line(temp + " =" + std::string(1, to) + " copy " + rounded);
             } else {
                 std::string instruction;
                 if (!isFloatClass(from) && isFloatClass(to)) {
-                    instruction = from == 'w' ? "swtof" : "sltof";
+                    instruction = operand->type->m_modulus != 0
+                        ? (from == 'w' ? "uwtof" : "ultof") : (from == 'w' ? "swtof" : "sltof");
                 } else if (from == 's' && to == 'd') {
                     instruction = "exts";
                 } else if (from == 'd' && to == 's') {
@@ -323,9 +336,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         std::string lowTest = newTemp();
         std::string highTest = newTemp();
         std::string combined = newTemp();
-        line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, operand.type) + " " + operand.name
+        line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, operand.type, membership->operand->type->m_modulus != 0) + " " + operand.name
              + ", " + low.name);
-        line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, operand.type) + " " + operand.name
+        line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, operand.type, membership->operand->type->m_modulus != 0) + " " + operand.name
              + ", " + high.name);
         line(combined + " =w and " + lowTest + ", " + highTest);
         if (!membership->negated) {

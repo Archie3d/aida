@@ -516,7 +516,8 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
     emitRangeCheck(high, representation, location);
     char width = qbeClass(type);
     std::string nonNull = newTemp();
-    line(nonNull + " =w csge" + width + " " + high.name + ", " + low.name);
+    line(nonNull + " =w " + QbeSupport::comparisonInstruction(BinaryOp::GreaterEqual, width, type->m_modulus != 0)
+        + " " + high.name + ", " + low.name);
     std::string check = newLabel("subtypecheck");
     std::string ready = newLabel("subtypeready");
     branch(Value { nonNull, 'w' }, check, ready);
@@ -539,8 +540,8 @@ Value QbeEmitter::scalarBounds(Type* type)
     bounds.type = qbeClass(type);
     Symbol* symbol = type->m_scalarBoundsSymbol;
     if (symbol == nullptr) {
-        bounds.first = std::to_string(type->low);
-        bounds.last = std::to_string(type->high);
+        bounds.first = scalarText(type->low);
+        bounds.last = scalarText(type->high);
         return bounds;
     }
     Value frame = symbol->owner == m_context->symbol ? Value { m_context->frameTemp, 'l' }

@@ -49,8 +49,17 @@ bool isLiteralOperand(const std::string& operand)
     return true;
 }
 
-const char* comparisonInstruction(BinaryOp op, char type)
+const char* comparisonInstruction(BinaryOp op, char type, bool isUnsigned)
 {
+    if (isUnsigned) {
+        switch (op) {
+        case BinaryOp::Less: return type == 'l' ? "cultl" : "cultw";
+        case BinaryOp::LessEqual: return type == 'l' ? "culel" : "culew";
+        case BinaryOp::Greater: return type == 'l' ? "cugtl" : "cugtw";
+        case BinaryOp::GreaterEqual: return type == 'l' ? "cugel" : "cugew";
+        default: break;
+        }
+    }
     bool isFloat = type == 's' || type == 'd';
     switch (op) {
     case BinaryOp::Equal:

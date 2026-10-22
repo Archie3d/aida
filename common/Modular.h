@@ -25,18 +25,19 @@ typedef enum ModularOperation
     ModularNot = 10
 } ModularOperation;
 
-/* Shared by static evaluation and the runtime. Operands are canonical modular
-   values, except the signed exponent. Moduli are limited to 2**32, so the
-   product of two reduced operands fits in uint64_t. */
+/* Zero encodes modulus 2**64 at the runtime ABI. Unsigned 128-bit
+   intermediates also handle nonbinary moduli without overflow. */
 static inline int modularOperation(ModularOperation operation, long long modulus, long long left,
                                   long long right, long long* result)
 {
-    uint64_t m = (uint64_t)modulus;
-    uint64_t a = (uint64_t)left;
-    uint64_t b = (uint64_t)right;
-    uint64_t value = 0;
-    if (modulus < 1 || modulus > 4294967296LL || left < 0 || a >= m
-        || (operation != ModularPower && (right < 0 || b >= m))) {
+    unsigned __int128 m = (uint64_t)modulus;
+    if (m == 0) {
+        m = (unsigned __int128)1 << 64;
+    }
+    unsigned __int128 a = (uint64_t)left;
+    unsigned __int128 b = (uint64_t)right;
+    unsigned __int128 value = 0;
+    if (a >= m || (operation != ModularPower && b >= m)) {
         return 0;
     }
     switch (operation) {

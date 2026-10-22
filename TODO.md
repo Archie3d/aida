@@ -304,8 +304,13 @@ and numeric work changes the generated code.
   the descriptor and ownership machinery (`concatenation`, `concattasking`,
   `concaterrors`, `runtime.concatenation`, mode/determinism and sanitizer checks,
   ACATS C45347A). [Contract and limits](docs/array-descriptors.md#concatenation).
-- [ ] **Modular types.** Unsigned 64-bit storage and `mod 2 ** 64`, modular
-  generic formals, the Ada 2005 `'Mod` attribute and `Ada.Text_IO.Modular_IO`.
+- [x] **Modular types.** Unsigned 64-bit storage through `mod 2 ** 64`, modular
+  generic formals, Ada 2005 `'Mod` and `Ada.Text_IO.Modular_IO`; unsigned
+  arithmetic, conversions, attributes, case choices and task-local failures
+  (`modular*`, whole/separate/determinism, `runtime.modular`, sanitizer checks,
+  ACATS C354002). Array index subtypes and variant choices retain signed 64-bit
+  bounds; compact unsigned 32-bit storage remains unsupported.
+  [Contract and limits](docs/modular-types.md).
 - [ ] **Ordinary fixed point.** Wider scale choices, explicit `Small` clauses,
   dynamic subtype bounds, remaining attributes and streaming. Apply the Ada 2005
   fixed-by-fixed multiplication and division rules.
@@ -546,7 +551,7 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
 For orientation; extend these rather than restart them. Details are in the README.
 
-- Scalars: checked 32/64-bit integers, modular types up to `2 ** 32`, floating
+- Scalars: checked 32/64-bit integers, modular types up to `2 ** 64`, floating
   point, ordinary fixed point, and local runtime subtype bounds.
 - Arrays: one- and multi-dimensional, runtime-bounded locals, aggregate bound
   inference, sliding, identity rules, overlap-safe slice assignment, scoped

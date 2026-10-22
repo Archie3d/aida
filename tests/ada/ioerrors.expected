@@ -1,4 +1,4 @@
-ioerrors.adb:20:56: error: 'Ada.Text_IO.Integer_IO' expects an integer type, and 'Point' is not one
+ioerrors.adb:20:56: error: 'Ada.Text_IO.Integer_IO' expects a signed integer type, and 'Point' is not one
 ioerrors.adb:21:52: error: 'Ada.Text_IO.Float_IO' expects a floating point type, and 'Integer' is not one
 ioerrors.adb:22:57: error: 'Ada.Text_IO.Enumeration_IO' expects a discrete type, and 'Point' is not one
 ioerrors.adb:23:5: error: 'Element_Type' is not a formal of 'Ada.Text_IO.Integer_IO', which takes 'Num'

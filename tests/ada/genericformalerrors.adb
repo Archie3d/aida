@@ -1,5 +1,5 @@
 generic
-    type T is mod <>;
+    type T is mod <> range <>;
 package Modular_Formal is
 end Modular_Formal;
 

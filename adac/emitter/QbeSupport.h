@@ -15,6 +15,6 @@ std::string realLiteral(double value, char type);
 bool isFloatClass(char type);
 bool isUnconstrainedArray(const Type* type);
 bool isLiteralOperand(const std::string& operand);
-const char* comparisonInstruction(BinaryOp op, char type);
+const char* comparisonInstruction(BinaryOp op, char type, bool isUnsigned = false);
 
 }

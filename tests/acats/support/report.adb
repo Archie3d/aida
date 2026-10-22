@@ -23,6 +23,11 @@ package body Report is
         Ada.Text_IO.Put_Line ("PASSED");
     end Result;
 
+    function Ident_Str (Value : String) return String is
+    begin
+        return Value;
+    end Ident_Str;
+
     function Ident_Int (Value : Integer) return Integer is
     begin
         return Value;

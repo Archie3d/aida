@@ -61,6 +61,12 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 if (!check(TokenKind::Semicolon)) {
                     fail("expected ';' after formal array type");
                 }
+            } else if (match(TokenKind::KwMod)) {
+                formal.typeClass = FormalTypeClass::ModularType;
+                expect(TokenKind::Box, "after mod in generic formal type");
+                if (!check(TokenKind::Semicolon)) {
+                    fail("generic formal modular definition must end after '<>'");
+                }
             } else if (match(TokenKind::KwRange)) {
                 formal.typeClass = FormalTypeClass::IntegerType;
                 expect(TokenKind::Box, "after range in generic formal type");

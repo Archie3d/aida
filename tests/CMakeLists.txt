@@ -402,6 +402,14 @@ foreach(case generic order compiler paths binding)
 endforeach()
 
 add_ada_test(modular SOURCES modular.adb)
+add_ada_test(modularwide SOURCES modularwide.adb)
+add_ada_test(modularwidechecks SOURCES modularwidechecks.adb)
+add_ada_test(modulartasking SOURCES modulartasking.adb)
+add_determinism_test(modulartasking SOURCE modulartasking.adb)
+add_ada_error_test(modularwideerrors SOURCES modularwideerrors.adb)
+add_ada_test(modulario SOURCES modulario.adb)
+add_determinism_test(modulario SOURCE modulario.adb)
+add_determinism_test(modularwide SOURCE modularwide.adb)
 add_ada_test(modularchecks SOURCES modularchecks.adb)
 add_ada_error_test(modularerrors SOURCES modularerrors.adb)
 
@@ -1091,3 +1099,25 @@ add_executable(concat_runtime_test ConcatRuntimeTest.c)
 target_link_libraries(concat_runtime_test PRIVATE adart)
 add_test(NAME runtime.concatenation COMMAND concat_runtime_test)
 set_tests_properties(runtime.concatenation PROPERTIES TIMEOUT 20)
+
+add_executable(modular_runtime_test ModularRuntimeTest.c)
+target_link_libraries(modular_runtime_test PRIVATE adart)
+add_test(NAME runtime.modular COMMAND modular_runtime_test)
+set_tests_properties(runtime.modular PROPERTIES TIMEOUT 20)
+
+foreach(modular_case modularwide modulario modulartasking)
+    add_test(NAME runtime.${modular_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${modular_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${modular_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${modular_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${modular_case} determinism.${modular_case}
+        runtime.${modular_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()

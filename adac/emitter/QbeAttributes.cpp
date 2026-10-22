@@ -75,8 +75,38 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "read" || name == "write" || name == "input" || name == "output") {
         return emitStreamAttribute(expr);
     }
+    if (name == "min" || name == "max") {
+        Value left = emitExpr(expr->arguments[0].get());
+        Value right = emitExpr(expr->arguments[1].get());
+        std::string result = newTemp();
+        Value a = wideBound(left), b = wideBound(right);
+        line(result + " =l call $__ada_modular_minmax(l " + a.name + ", l " + b.name
+            + ", w " + (name == "min" ? "0" : "1") + ")");
+        if (qbeClass(expr->type) == 'w') {
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + result);
+            result = narrow;
+        }
+        return Value { result, qbeClass(expr->type) };
+    }
+    if (name == "mod") {
+        Expr* argument = expr->arguments.front().get();
+        Value value = wideBound(emitExpr(argument));
+        std::string result = newTemp();
+        line(result + " =l call $__ada_modular_reduce(l " + value.name + ", w "
+            + (argument->type->m_modulus != 0 ? "1" : "0") + ", l " + scalarText(prefixType->m_modulus) + ")");
+        if (qbeClass(expr->type) == 'w') {
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + result);
+            result = narrow;
+        }
+        return Value { result, qbeClass(expr->type) };
+    }
     if (name == "pos") {
         Value value = emitExpr(expr->arguments.front().get());
+        if (prefixType->m_modulus != 0 && expr->type->kind != TypeKind::UniversalInteger) {
+            return emitDiscreteConversion(value, prefixType, m_sema.typeTable().scalarBaseType(expr->type));
+        }
         if (value.type == 'w' && qbeClass(expr->type) == 'l') {
             std::string wide = newTemp();
             line(wide + " =l extsw " + value.name);
@@ -95,6 +125,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "val") {
         Value value = emitExpr(expr->arguments.front().get());
+        if (prefixType->m_modulus != 0) {
+            return emitDiscreteConversion(value, expr->arguments.front()->type, expr->type);
+        }
         if (value.type == 'w' && qbeClass(expr->type) == 'l') {
             std::string wide = newTemp();
             line(wide + " =l extsw " + value.name);
@@ -131,6 +164,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 + "(" + value.type + " " + value.name + ", " + value.type + " " + bound + ")");
             return Value { result, value.type };
         }
+        if (prefixType->m_modulus != 0) {
+            return emitModularOperation(name == "succ" ? ModularAdd : ModularSubtract, value,
+                Value { prefixType->m_modulus == 1 ? "0" : "1", value.type }, expr->type);
+        }
         Value result = emitIntegerOperation(name == "succ" ? 0 : 1, value, Value { "1", value.type }, value.type);
         emitRangeCheck(result, expr->type, expr->location);
         return result;
@@ -161,6 +198,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             line(length + " =w call $__ada_image_character(" + destination + "w " + value.name + ")");
+        } else if (base->m_modulus != 0) {
+            Value wide = wideBound(value);
+            line(length + " =w call $__ada_image_modular(" + destination + "l " + wide.name + ")");
         } else {
             line(length + " =w call $" + (value.type == 'l' ? "__ada_image_long_integer(" : "__ada_image_integer(")
                  + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")");
@@ -243,6 +283,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             // Character, whose values are named by their spelling.
             line(temp + " =w call $__ada_value_character(l " + text.name + ", w " + length.name + ")");
+        } else if (base->m_modulus != 0) {
+            line(temp + " =l call $__ada_value_modular(l " + text.name + ", w " + length.name
+                + ", l " + scalarText(base->m_modulus) + ")");
+            if (qbeClass(prefixType) == 'w') {
+                std::string narrow = newTemp();
+                line(narrow + " =w copy " + temp);
+                temp = narrow;
+            }
         } else if (qbeClass(prefixType) == 'l') {
             line(temp + " =l call $__ada_value_long_integer(l " + text.name + ", w " + length.name + ", l "
                  + bounds.first + ", l " + bounds.last + ")");
@@ -251,7 +299,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + bounds.first + ", w " + bounds.last + ")");
         }
         emitExceptionCheck();
-        if (base->kind != TypeKind::Float && prefixType->m_scalarBoundsSymbol != nullptr) {
+        if (base->m_modulus == 0 && base->kind != TypeKind::Float && prefixType->m_scalarBoundsSymbol != nullptr) {
             emitRangeCheck(Value { temp, qbeClass(prefixType) }, prefixType, expr->location);
         }
         return Value { temp, qbeClass(prefixType) };

@@ -1,0 +1,10 @@
+modularwideerrors.adb:12:35: error: 'G' expects a modular type, and 'Integer' is not one
+modularwideerrors.adb:13:34: error: 'H' expects a signed integer type, and 'Word' is not one
+modularwideerrors.adb:17:30: error: array index subtypes require signed 64-bit bounds
+modularwideerrors.adb:19:17: error: Mod requires a modular subtype prefix and one integer argument
+modularwideerrors.adb:20:11: error: Mod requires a modular subtype prefix and one integer argument
+modularwideerrors.adb:21:14: error: Mod requires a modular subtype prefix and one integer argument
+modularwideerrors.adb:22:14: error: Mod requires a modular subtype prefix and one integer argument
+modularwideerrors.adb:23:20: error: Mod requires an integer argument
+modularwideerrors.adb:24:18: error: constraint check fails in static expression
+modularwideerrors.adb:25:15: error: constraint check fails in static expression

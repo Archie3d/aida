@@ -13,6 +13,7 @@ function(add_acats_test name)
     set_tests_properties(acats.${name} PROPERTIES TIMEOUT 60 LABELS "acats")
 endfunction()
 
+add_acats_test(c354002)
 add_acats_test(c52005a)
 add_acats_test(c53007a)
 add_acats_test(c49022a)

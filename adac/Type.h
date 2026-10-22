@@ -138,11 +138,12 @@ public:
     bool discriminantsKnown = false;
     std::vector<long long> discriminantValues;
 
-    // Discrete types (integer and enumeration).
-    long long low = 0;
-    long long high = 0;
+    // Semantic bounds include the unsigned 64-bit endpoint. Runtime values
+    // still occupy at most 64 bits.
+    __int128 low = 0;
+    __int128 high = 0;
     // Zero denotes signed integers; modular types retain this across subtypes.
-    long long m_modulus = 0;
+    __int128 m_modulus = 0;
 
     // Named local scalar constraints use full-width bounds in the owning
     // activation. Aliases share the symbol; only the declaration owns expressions.
@@ -251,7 +252,7 @@ public:
     TypeTable();
 
     Type* create(TypeKind kind, const std::string& name);
-    Type* makeSubtype(const std::string& name, Type* parent, long long low, long long high);
+    Type* makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high);
     void refreshRecordSubtypes(Type* completed);
 
     Type* scalarBaseType(Type* type);
@@ -297,3 +298,9 @@ bool hasPrivateOrTaggedParts(const Type* type);
 int sharedTypeKind(const Type* type);
 bool hasSharedParts(const Type* type);
 bool hasSharedAccessParts(const Type* type);
+
+// QBE constants carry the low 64 bits; semantic bounds retain unsigned endpoints.
+inline std::string scalarText(__int128 value)
+{
+    return std::to_string(static_cast<long long>(value));
+}

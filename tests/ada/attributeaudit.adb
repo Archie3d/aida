@@ -40,12 +40,11 @@ begin
     Put_Line (Boolean'Image (Fixed'Pred (F) = 0.75));
     Put_Line (Boolean'Image (Float'Succ (R) > R));
     Put_Line (Boolean'Image (Float'Pred (R) < R));
-    begin
-        M := Modulo'Succ (M);
-        Put_Line ("MISSED modular endpoint");
-    exception
-        when Constraint_Error => Put_Line ("modular endpoint");
-    end;
+    M := Modulo'Succ (M);
+    if M /= 0 then
+        raise Program_Error;
+    end if;
+    Put_Line ("modular endpoint");
     Wide := Long_Integer'Last;
     begin
         Wide := Long_Integer'Succ (Wide);
@@ -60,12 +59,11 @@ begin
         when Constraint_Error => Put_Line ("wide Val");
     end;
     M := 0;
-    begin
-        M := Modulo'Pred (M);
-        Put_Line ("MISSED modular predecessor");
-    exception
-        when Constraint_Error => Put_Line ("modular predecessor");
-    end;
+    M := Modulo'Pred (M);
+    if M /= Modulo'Last then
+        raise Program_Error;
+    end if;
+    Put_Line ("modular predecessor");
     begin
         C := Middle'Val (Invalid_Position);
         Put_Line ("MISSED static enumeration endpoint");

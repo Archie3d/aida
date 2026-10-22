@@ -35,6 +35,9 @@ double floatHighBound(const Type* type)
 // digits plus the column the sign or its blank occupies.
 long long widthOf(const Type* type)
 {
+    if (type->low > type->high) {
+        return 0;
+    }
     const Type* base = type;
     while (base != nullptr && base->base != nullptr && base->literals.empty()
            && base->kind == TypeKind::Enumeration) {
@@ -54,8 +57,11 @@ long long widthOf(const Type* type)
         return static_cast<long long>(longest);
     }
 
-    auto imageWidth = [](long long value) {
-        return static_cast<long long>(std::to_string(value).size()) + (value >= 0 ? 1 : 0);
+    auto imageWidth = [](__int128 value) {
+        long long width = 1;
+        unsigned __int128 magnitude = value < 0 ? -value : value;
+        do { ++width; magnitude /= 10; } while (magnitude != 0);
+        return width;
     };
     return std::max(imageWidth(type->low), imageWidth(type->high));
 }
@@ -360,10 +366,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         // An aggregate waits for the stream attributes below, which know the
         // type it is meant to have.
         if (argument->kind != ExprKind::Aggregate) {
-            bool contextual = expr->lower == "image" || expr->lower == "pos"
+            bool contextual = expr->lower == "min" || expr->lower == "max" || expr->lower == "image" || expr->lower == "pos"
                 || expr->lower == "succ" || expr->lower == "pred";
             Type* context = contextual ? prefixType : nullptr;
-            if ((discreteFunction || adjacent) && name != "val") {
+            if ((discreteFunction || adjacent || name == "min" || name == "max") && name != "val") {
                 context = m_types.scalarBaseType(prefixType);
             }
             analyzeExpr(argument.get(), scope, context);
@@ -449,7 +455,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         if (name == "first" || name == "last") {
             expr->type = prefixType;
             expr->isStatic = !base->m_formalFixed;
-            expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
+            if (expr->isStatic) {
+                expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
+                expr->m_exactReal.integer(expr->staticValue);
+            }
             return expr->type;
         }
         if (name != "base" && name != "size" && name != "address"
@@ -558,13 +567,58 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    if ((name == "min" || name == "max") && base != nullptr && base->m_modulus != 0) {
+        if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 2) {
+            m_diagnostics.error(expr->location, "Min and Max require a modular subtype and two arguments");
+            return nullptr;
+        }
+        expr->type = m_types.scalarBaseType(prefixType);
+        __int128 left = 0, right = 0;
+        StaticFailure failure = StaticFailure::None;
+        for (auto& argument : expr->arguments) {
+            adaptUniversal(argument.get(), expr->type);
+            if (!typesCompatible(expr->type, argument->type)) {
+                m_diagnostics.error(argument->location, "Min and Max arguments must have the prefix type");
+            }
+        }
+        if (foldWideInteger(expr->arguments[0].get(), left, failure)
+            && foldWideInteger(expr->arguments[1].get(), right, failure)) {
+            expr->isStatic = true;
+            expr->m_exactReal = ExactReal::make(name == "min" ? std::min(left, right) : std::max(left, right));
+            expr->m_exactReal.integer(expr->staticValue);
+        }
+        return expr->type;
+    }
+    if (name == "mod") {
+        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->m_modulus == 0 || expr->arguments.size() != 1) {
+            m_diagnostics.error(expr->location, "Mod requires a modular subtype prefix and one integer argument");
+            return nullptr;
+        }
+        Expr* argument = expr->arguments.front().get();
+        if (!isDiscrete(argument->type) || argument->type->kind == TypeKind::Enumeration) {
+            m_diagnostics.error(argument->location, "Mod requires an integer argument");
+        }
+        expr->type = m_types.scalarBaseType(prefixType);
+        __int128 value = 0;
+        StaticFailure failure = StaticFailure::None;
+        if (foldWideInteger(argument, value, failure)) {
+            value %= base->m_modulus;
+            if (value < 0) { value += base->m_modulus; }
+            expr->isStatic = true;
+            expr->m_exactReal = ExactReal::make(value);
+            expr->m_exactReal.integer(expr->staticValue);
+        }
+        return expr->type;
+    }
+
     if (name == "modulus") {
-        if (!prefixIsType || base == nullptr || base->m_modulus == 0 || !expr->arguments.empty()) {
+        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->m_modulus == 0 || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "Modulus requires a modular type prefix and no arguments");
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = true;
-        expr->staticValue = base != nullptr ? base->m_modulus : 0;
+        expr->m_exactReal = ExactReal::make(base != nullptr ? base->m_modulus : 0);
+        expr->m_exactReal.integer(expr->staticValue);
         return expr->type;
     }
 
@@ -580,7 +634,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         if (isDiscrete(base)) {
             expr->type = prefixType;
             expr->isStatic = prefixType->m_scalarBoundsSymbol == nullptr;
-            expr->staticValue = name == "first" ? prefixType->low : prefixType->high;
+            if (expr->isStatic) {
+                expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
+                expr->m_exactReal.integer(expr->staticValue);
+            }
             return expr->type;
         }
         if (base != nullptr && base->kind == TypeKind::Float) {
@@ -622,6 +679,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->type = m_types.universalInteger();
         expr->isStatic = expr->arguments.front()->isStatic;
         expr->staticValue = expr->arguments.front()->staticValue;
+        expr->m_exactReal = expr->arguments.front()->m_exactReal;
         if (expr->arguments.front()->staticFailure != StaticFailure::None) {
             expr->staticFailure = StaticFailure::Dependent;
         }
@@ -673,10 +731,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                     return expr->type;
                 }
                 value += name == "succ" ? 1 : name == "pred" ? -1 : 0;
+                if (resultType->m_modulus != 0 && name != "val") {
+                    value = (value + resultType->m_modulus) % resultType->m_modulus;
+                }
                 if (value < resultType->low || value > resultType->high) {
                     expr->staticFailure = StaticFailure::Check;
                 } else {
                     expr->staticValue = static_cast<long long>(value);
+                    expr->m_exactReal = ExactReal::make(value);
                 }
             }
         }
@@ -775,7 +837,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, base->kind == TypeKind::Fixed
                 ? "fixed-point 'Value requires a subtype prefix" : "floating-point 'Value requires a subtype prefix");
         }
-        expr->type = base != nullptr && (base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
+        expr->type = base != nullptr && (base->m_modulus != 0 || base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
             ? m_types.scalarBaseType(prefixType) : prefixType;
         return expr->type;
     }

@@ -100,7 +100,7 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
             return equal;
         }
         std::string temp = newTemp();
-        line(temp + " =w " + comparisonInstruction(expr->op, type) + " " + left.name + ", " + right.name);
+        line(temp + " =w " + comparisonInstruction(expr->op, type, expr->left->type->m_modulus != 0) + " " + left.name + ", " + right.name);
         return Value { temp, 'w' };
     }
     case BinaryOp::Modulo:
@@ -217,6 +217,25 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
     return operand;
 }
 
+Value QbeEmitter::emitDiscreteConversion(const Value& value, Type* source, Type* target)
+{
+    Value wide = wideBound(value);
+    Value bounds = scalarBounds(target);
+    Value low = wideBound(Value { bounds.first, bounds.type });
+    Value high = wideBound(Value { bounds.last, bounds.type });
+    std::string result = newTemp();
+    line(result + " =l call $__ada_modular_convert(l " + wide.name + ", w "
+        + (source->m_modulus != 0 ? "1" : "0") + ", l " + low.name
+        + ", l " + high.name + ", w " + (target->m_modulus != 0 ? "1" : "0") + ")");
+    emitExceptionCheck();
+    if (qbeClass(target) == 'w') {
+        std::string narrow = newTemp();
+        line(narrow + " =w copy " + result);
+        result = narrow;
+    }
+    return Value { result, qbeClass(target) };
+}
+
 Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type)
 {
     auto widen = [&](const Value& value) {
@@ -231,7 +250,7 @@ Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& 
     std::string rightWide = widen(right);
     std::string result = newTemp();
     line(result + " =l call $__ada_modular_operation(w " + std::to_string(static_cast<int>(operation))
-         + ", l " + std::to_string(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")");
+         + ", l " + scalarText(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")");
     emitExceptionCheck();
     if (qbeClass(type) == 'w') {
         std::string narrow = newTemp();

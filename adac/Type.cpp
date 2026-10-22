@@ -320,7 +320,7 @@ Type* TypeTable::create(TypeKind kind, const std::string& name)
     return m_types.back().get();
 }
 
-Type* TypeTable::makeSubtype(const std::string& name, Type* parent, long long low, long long high)
+Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high)
 {
     Type* subtype = create(parent->kind, name);
     subtype->base = parent;

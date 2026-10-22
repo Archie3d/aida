@@ -156,4 +156,7 @@ void __ada_get_integer(void* item, int size, int low, int high);
 void __ada_put_enum(int item, int width, int set, const char** names, int count);
 void __ada_get_enum(void* item, int size, const char** names, int count);
 
+long long __ada_text_get_modular(AdaFileRef handle, long long last, int width);
+long long __ada_get_modular(long long last, int width);
+
 #endif

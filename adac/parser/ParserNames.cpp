@@ -32,6 +32,7 @@ bool isAttributeName(TokenKind kind)
 {
     switch (kind) {
     case TokenKind::Identifier:
+    case TokenKind::KwMod:
     case TokenKind::KwRange:
     case TokenKind::KwAccess:
     case TokenKind::KwDelta:

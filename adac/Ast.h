@@ -361,8 +361,8 @@ struct AllocatorExpr : Expr
 // subtype covers, so the emitter has only the one shape to deal with.
 struct CaseChoice
 {
-    long long low = 0;
-    long long high = 0;
+    __int128 low = 0;
+    __int128 high = 0;
 };
 
 enum class TypeDefKind
@@ -932,6 +932,7 @@ enum class FormalTypeClass
     Any,
     Discrete,
     IntegerType,
+    ModularType,
     FloatType,
     FixedType,
     ArrayType

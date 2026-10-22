@@ -309,9 +309,23 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             } else if (!exactValue(operand, exact)) {
                 expr->staticFailure = StaticFailure::Capacity;
             } else if (isDiscrete(expr->type)) {
-                long long value;
-                bool integral = isReal(operand->type) || operand->type->kind == TypeKind::Fixed
-                    ? exact.scaled(0, value) : exact.integer(value);
+                long long rounded = 0;
+                __int128 value = exact.m_numerator;
+                bool integral = exact.m_denominator == 1;
+                if (isReal(operand->type) || operand->type->kind == TypeKind::Fixed) {
+                    if (expr->type->m_modulus != 0) {
+                        value = exact.m_numerator / exact.m_denominator;
+                        __int128 remainder = exact.m_numerator % exact.m_denominator;
+                        __int128 magnitude = remainder < 0 ? -remainder : remainder;
+                        if (magnitude >= (exact.m_denominator / 2 + exact.m_denominator % 2)) {
+                            value += exact.m_numerator < 0 ? -1 : 1;
+                        }
+                        integral = true;
+                    } else {
+                        integral = exact.scaled(0, rounded);
+                        value = rounded;
+                    }
+                }
                 if (!integral || value < expr->type->low || value > expr->type->high) {
                     expr->staticFailure = StaticFailure::Check;
                 } else {

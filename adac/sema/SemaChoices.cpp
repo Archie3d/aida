@@ -33,12 +33,13 @@ bool Sema::resolveChoice(Expr* lowExpr, Expr* highExpr, Type* selectorType, cons
         if (selectorType == nullptr || !isDiscrete(selectorType)) {
             return false;
         }
-        if (!foldStatic(lowExpr, choice.low)) {
+        StaticFailure failure = StaticFailure::None;
+        if (!foldWideInteger(lowExpr, choice.low, failure)) {
             m_diagnostics.error(lowExpr->location, "choices have to be static");
             return false;
         }
         choice.high = choice.low;
-        if (highExpr != nullptr && !foldStatic(highExpr, choice.high)) {
+        if (highExpr != nullptr && !foldWideInteger(highExpr, choice.high, failure)) {
             m_diagnostics.error(highExpr->location, "choices have to be static");
             return false;
         }
@@ -81,7 +82,7 @@ void Sema::reportUncovered(std::vector<CaseChoice> covered, Type* selectorType, 
     std::sort(covered.begin(), covered.end(),
               [](const CaseChoice& left, const CaseChoice& right) { return left.low < right.low; });
 
-    auto reportGap = [&](long long low, long long high) {
+    auto reportGap = [&](__int128 low, __int128 high) {
         std::string gap = describeValue(selectorType, low);
         if (high != low) {
             gap += " .. " + describeValue(selectorType, high);
@@ -89,7 +90,7 @@ void Sema::reportUncovered(std::vector<CaseChoice> covered, Type* selectorType, 
         m_diagnostics.error(location, std::string("the ") + what + " leaves " + gap + " uncovered");
     };
 
-    long long next = selectorType->low;
+    __int128 next = selectorType->low;
     for (const CaseChoice& choice : covered) {
         if (choice.low > next) {
             reportGap(next, choice.low - 1);
@@ -118,18 +119,18 @@ Type* Sema::choiceSubtypeMark(Expr* expr, Scope* scope)
 
 // A value of the selector's type as a reader would write it, so that a
 // complaint about a case on days talks about SAT rather than about 5.
-std::string Sema::describeValue(Type* type, long long value) const
+std::string Sema::describeValue(Type* type, __int128 value) const
 {
     Type* base = baseType(type);
     if (base == nullptr || base->kind != TypeKind::Enumeration) {
-        return std::to_string(value);
+        return value > LLONG_MAX ? std::to_string(static_cast<unsigned long long>(value)) : scalarText(value);
     }
     if (base->literals.empty()) {
         // Character, which names its values by their spelling.
         return std::string("'") + static_cast<char>(value) + "'";
     }
     if (value < 0 || value >= static_cast<long long>(base->literals.size())) {
-        return std::to_string(value);
+        return value > LLONG_MAX ? std::to_string(static_cast<unsigned long long>(value)) : scalarText(value);
     }
 
     std::string name = base->literals[static_cast<std::size_t>(value)];

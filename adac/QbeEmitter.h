@@ -255,6 +255,7 @@ private:
     // Operators (QbeOperators.cpp).
     Value emitBinary(BinaryExpr* expr);
     Value emitUnary(UnaryExpr* expr);
+    Value emitDiscreteConversion(const Value& value, Type* source, Type* target);
     Value emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type);
     Value emitIntegerOperation(int operation, const Value& left, const Value& right, char type);
     Value emitRealOperation(RealOperation operation, const Value& left, const Value& right, char type);

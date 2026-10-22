@@ -94,10 +94,20 @@ void Sema::setupStandardScope()
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.task_identification", "Ada.Task_Identification");
 
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
-    storageUnit->type = m_types.integerType();
+    storageUnit->type = m_types.universalInteger();
+    storageUnit->m_exactReal = ExactReal::make(8);
     storageUnit->hasStaticValue = true;
     storageUnit->staticValue = 8;
     system->scope->add(storageUnit);
+    for (const auto& limit : { std::pair<const char*, __int128> { "max_binary_modulus", (__int128)1 << 64 },
+                              { "max_nonbinary_modulus", ((__int128)1 << 64) - 1 } }) {
+        Symbol* number = m_symbolTable.createSymbol(SymbolKind::Number, limit.first, limit.first);
+        number->type = m_types.universalInteger();
+        number->isConstant = true;
+        number->hasStaticValue = true;
+        number->m_exactReal = ExactReal::make(limit.second);
+        system->scope->add(number);
+    }
 
     addException(m_standardScope, "Constraint_Error");
     addException(m_standardScope, "Program_Error");

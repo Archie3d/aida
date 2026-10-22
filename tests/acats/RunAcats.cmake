@@ -9,9 +9,13 @@ endforeach()
 set(work "${WORKDIR}/${NAME}")
 file(MAKE_DIRECTORY "${work}")
 set(program "${work}/${NAME}${CMAKE_EXECUTABLE_SUFFIX}")
+set(extra_support "")
+if(NAME STREQUAL "c354002")
+    list(APPEND extra_support "${ROOT}/support/tctouch.ads" "${ROOT}/support/tctouch.adb")
+endif()
 execute_process(
     COMMAND "${ADA}" -o "${program}"
-        "${ROOT}/support/report.ads" "${ROOT}/support/report.adb"
+        "${ROOT}/support/report.ads" "${ROOT}/support/report.adb" ${extra_support}
         "${ROOT}/upstream/${NAME}.ada"
     WORKING_DIRECTORY "${work}"
     TIMEOUT 40

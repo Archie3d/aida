@@ -55,6 +55,7 @@ begin
     Check (Large * Large = 1 and Large + 1 = 0 and Large ** Exponent = 1);
     Check (Static_Power = 145 and (not Digit'(3)) = 6);
     Check (Packed_Value + 1 = 0 and Octet'Size = 8);
+    Check (One'Succ (Z) = 0 and One'Pred (Z) = 0);
     Check (Z + Z = 0 and Z * Z = 0 and Z ** 0 = 0 and (not Z) = 0);
     Check (Add (255, 2) = 1 and Derived (B) + 1 = 0);
     Check (Word (B) = 255 and Long_Integer (W) = 4294967295);

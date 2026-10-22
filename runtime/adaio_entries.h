@@ -72,3 +72,6 @@ ADA_IO_VOID(__ada_stream_elements_write, (AdaFileRef handle, const void* item, i
 ADA_IO_VOID(__ada_stream_set_index, (AdaFileRef handle, int index), (handle, index), handle, 0)
 ADA_IO_VALUE(int, __ada_stream_index, (AdaFileRef handle), (handle), handle, 0)
 ADA_IO_VALUE(int, __ada_stream_size, (AdaFileRef handle), (handle), handle, 0)
+
+ADA_IO_VALUE(long long, __ada_text_get_modular, (AdaFileRef handle, long long last, int width), (handle, last, width), handle, 0)
+ADA_IO_VALUE(long long, __ada_get_modular, (long long last, int width), (last, width), &currentInputHandle, 0)

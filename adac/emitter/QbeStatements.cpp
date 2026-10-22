@@ -98,7 +98,8 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 std::string nonNull = newTemp();
                 std::string check = newLabel("looprangecheck");
                 std::string ready = newLabel("looprangeready");
-                line(nonNull + " =w csge" + type + " " + high.name + ", " + low.name);
+                line(nonNull + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, variable->type->m_modulus != 0)
+                    + " " + high.name + ", " + low.name);
                 branch(Value { nonNull, 'w' }, check, ready);
                 label(check);
                 emitRangeCheck(low, variable->type, loop->location);
@@ -117,7 +118,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             std::string bound = newTemp();
             line(bound + " =" + std::string(1, type) + (type == 'l' ? " loadl " : " loadsw ") + boundSlot);
             std::string test = newTemp();
-            line(test + " =w " + comparisonInstruction(loop->isReverse ? BinaryOp::GreaterEqual : BinaryOp::LessEqual, type)
+            line(test + " =w " + comparisonInstruction(loop->isReverse ? BinaryOp::GreaterEqual : BinaryOp::LessEqual, type, variable->type->m_modulus != 0)
                  + " " + current.name + ", " + bound);
             branch(Value { test, 'w' }, bodyLabel, exit);
             label(bodyLabel);
@@ -257,14 +258,14 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 std::string test = newTemp();
                 if (choice.low == choice.high) {
                     line(test + " =w " + comparisonInstruction(BinaryOp::Equal, type) + " " + selector.name + ", "
-                         + std::to_string(choice.low));
+                         + scalarText(choice.low));
                 } else {
                     std::string lowTest = newTemp();
                     std::string highTest = newTemp();
-                    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type) + " "
-                         + selector.name + ", " + std::to_string(choice.low));
-                    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, type) + " " + selector.name
-                         + ", " + std::to_string(choice.high));
+                    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, caseStatement->selector->type->m_modulus != 0) + " "
+                         + selector.name + ", " + scalarText(choice.low));
+                    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, type, caseStatement->selector->type->m_modulus != 0) + " " + selector.name
+                         + ", " + scalarText(choice.high));
                     line(test + " =w and " + lowTest + ", " + highTest);
                 }
                 if (match.empty()) {

@@ -1,3 +1,4 @@
+#include "adamodulartext.h"
 /* File handling shared by Text_IO, Sequential_IO, Direct_IO and Stream_IO.
 
    An Ada File_Type is a one component record holding a pointer into the pool
@@ -760,6 +761,76 @@ static void __ada_text_get_wordImpl(AdaFileRef handle, char* item, int length, i
         ungetc(c, file->stream);
     }
     *last = written;
+}
+
+/* This operation stays under the ordinary per-file pin and lock. Its buffer
+   belongs to this call, including across token growth and parse failures. */
+static long long __ada_text_get_modularImpl(AdaFileRef handle, long long last, int width)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
+    if (file == NULL) { return 0; }
+    size_t capacity = 64;
+    size_t length = 0;
+    char* text = malloc(capacity);
+    if (text == NULL) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    int character = fgetc(file->stream);
+    if (width == 0) {
+        while (character != EOF && isspace((unsigned char)character)) {
+            character = fgetc(file->stream);
+        }
+    }
+    if (character == EOF) {
+        free(text);
+        __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
+        return 0;
+    }
+    int state = 0;
+    while (character != EOF && character != '\n' && character != '\r') {
+        if (width == 0) {
+            state = modularTokenState(state, character);
+            if (state < 0) { break; }
+        } else if (length == (size_t)width) {
+            break;
+        }
+        if (length == capacity) {
+            if (capacity > INT_MAX / 2) {
+                free(text);
+                __ada_raise(ADA_STORAGE_ERROR);
+                return 0;
+            }
+            capacity *= 2;
+            char* grown = realloc(text, capacity);
+            if (grown == NULL) {
+                free(text);
+                __ada_raise(ADA_STORAGE_ERROR);
+                return 0;
+            }
+            text = grown;
+        }
+        text[length++] = (char)character;
+        character = fgetc(file->stream);
+    }
+    if (character != EOF) { ungetc(character, file->stream); }
+    if (ferror(file->stream)) {
+        free(text);
+        __ada_raise(ADA_DEVICE_ERROR);
+        return 0;
+    }
+    long long value = __ada_value_modular(text, (int)length, (long long)((uint64_t)last + 1));
+    free(text);
+    AdaTaskContext* context = __ada_task_context();
+    if (context->exception == ADA_CONSTRAINT_ERROR) {
+        __ada_raise(ADA_DATA_ERROR);
+    }
+    return value;
+}
+
+static long long __ada_get_modularImpl(long long last, int width)
+{
+    return __ada_text_get_modularImpl(__ada_current_inputImpl(), last, width);
 }
 
 static void __ada_get_wordImpl(char* item, int length, int* last)

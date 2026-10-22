@@ -227,7 +227,7 @@ private:
     void reportUncovered(std::vector<CaseChoice> covered, Type* selectorType, const SourceLocation& location,
                          const char* what);
     Type* choiceSubtypeMark(Expr* expr, Scope* scope);
-    std::string describeValue(Type* type, long long value) const;
+    std::string describeValue(Type* type, __int128 value) const;
 
     // A discovery pass uses one scope and never changes bindings. Discard its
     // memoized domains before the next pass, when declarations may have changed.

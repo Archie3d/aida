@@ -60,16 +60,9 @@ begin
     exception
         when Constraint_Error => Count := Count + 1;
     end;
-    begin
-        B := Byte'Succ (B);
-    exception
-        when Constraint_Error => Count := Count + 1;
-    end;
-    begin
-        B := Byte'Pred (Zero);
-    exception
-        when Constraint_Error => Count := Count + 1;
-    end;
+    if Byte'Succ (B) /= 0 or Byte'Pred (Zero) /= Byte'Last then
+        raise Program_Error;
+    end if;
     begin
         B := Byte (Outside_Byte);
     exception
@@ -90,7 +83,7 @@ begin
     exception
         when Constraint_Error => Count := Count + 1;
     end;
-    if Count /= 15 then
+    if Count /= 13 then
         Put_Line (Integer'Image (Count));
         raise Program_Error;
     end if;

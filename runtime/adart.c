@@ -3,9 +3,11 @@
 #include "adart.h"
 
 #include "adaio.h"
+#include "adamodulartext.h"
 
 #include <ctype.h>
 #include <limits.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -490,7 +492,7 @@ static int readValueNumeral(const char* text, int stop, int* position, unsigned 
     return hasDigit && !separator;
 }
 
-long long __ada_value_long_integer(const char* text, int length, long long low, long long high)
+static long long valueInteger(const char* text, int length, long long low, long long high, int isUnsigned)
 {
     int start;
     int stop;
@@ -505,7 +507,7 @@ long long __ada_value_long_integer(const char* text, int length, long long low, 
         negative = text[start] == '-';
         ++start;
     }
-    limit = (unsigned long long)LLONG_MAX + negative;
+    limit = isUnsigned ? ULLONG_MAX : (unsigned long long)LLONG_MAX + negative;
     i = start;
     if (!readValueNumeral(text, stop, &i, 10, limit, &value)) {
         goto invalid;
@@ -560,9 +562,13 @@ long long __ada_value_long_integer(const char* text, int length, long long low, 
     if (i != stop) {
         goto invalid;
     }
+    if (isUnsigned && negative) {
+        goto invalid;
+    }
     result = negative ? (value == (unsigned long long)LLONG_MAX + 1 ? LLONG_MIN : -(long long)value)
                       : (long long)value;
-    if (result < low || result > high) {
+    if (isUnsigned ? value < (unsigned long long)low || value > (unsigned long long)high
+                   : result < low || result > high) {
         goto invalid;
     }
     return result;
@@ -570,6 +576,67 @@ long long __ada_value_long_integer(const char* text, int length, long long low, 
 invalid:
     __ada_raise(ADA_CONSTRAINT_ERROR);
     return low;
+}
+
+long long __ada_value_long_integer(const char* text, int length, long long low, long long high)
+{
+    return valueInteger(text, length, low, high, 0);
+}
+
+int __ada_modular_token(const char* text, int length)
+{
+    int state = 0;
+    int position = 0;
+    while (position < length) {
+        state = modularTokenState(state, (unsigned char)text[position]);
+        if (state < 0) { break; }
+        ++position;
+    }
+    return position;
+}
+
+long long __ada_value_modular(const char* text, int length, long long modulus)
+{
+    return valueInteger(text, length, 0, (long long)((uint64_t)modulus - 1), 1);
+}
+
+int __ada_image_modular(char* buffer, int capacity, unsigned long long value)
+{
+    return imageLength(snprintf(buffer, capacity > 0 ? (size_t)capacity : 0, " %llu", value), capacity);
+}
+
+long long __ada_modular_minmax(unsigned long long left, unsigned long long right, int maximum)
+{
+    return (long long)((maximum ? left > right : left < right) ? left : right);
+}
+
+long long __ada_round_to_modular(double value)
+{
+    value = round(value);
+    if (!(value >= 0 && value < 18446744073709551616.0)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    return (long long)(unsigned long long)value;
+}
+
+long long __ada_modular_reduce(long long value, int isUnsigned, long long modulus)
+{
+    __int128 m = (uint64_t)modulus;
+    if (m == 0) { m = (__int128)1 << 64; }
+    __int128 reduced = isUnsigned ? (__int128)(uint64_t)value : (__int128)value;
+    reduced %= m;
+    if (reduced < 0) { reduced += m; }
+    return (long long)reduced;
+}
+
+long long __ada_modular_convert(long long value, int isUnsigned, long long low, long long high, int targetUnsigned)
+{
+    __int128 v = isUnsigned ? (__int128)(uint64_t)value : (__int128)value;
+    __int128 first = targetUnsigned ? (__int128)(uint64_t)low : (__int128)low;
+    __int128 last = targetUnsigned ? (__int128)(uint64_t)high : (__int128)high;
+    if (v < first || v > last) { __ada_raise(ADA_CONSTRAINT_ERROR); }
+    return value;
 }
 
 int __ada_value_integer(const char* text, int length, int low, int high)

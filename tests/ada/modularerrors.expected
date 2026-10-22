@@ -1,8 +1,8 @@
 modularerrors.adb:3:29: error: the modulus must be a static integer expression
 modularerrors.adb:4:26: error: the modulus must be a static integer expression
-modularerrors.adb:5:26: error: supported moduli are 1 through 2 ** 32
-modularerrors.adb:6:30: error: supported moduli are 1 through 2 ** 32
-modularerrors.adb:7:27: error: supported moduli are 1 through 2 ** 32
+modularerrors.adb:5:26: error: supported moduli are 1 through 2 ** 64
+modularerrors.adb:6:30: error: supported moduli are 1 through 2 ** 64
+modularerrors.adb:7:27: error: supported moduli are 1 through 2 ** 64
 modularerrors.adb:14:5: error: unsupported representation size for this modular type
 modularerrors.adb:16:10: error: abs is not defined for modular types
 modularerrors.adb:17:12: error: the operands of an arithmetic operator must have the same type

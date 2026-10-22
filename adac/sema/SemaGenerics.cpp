@@ -348,13 +348,18 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 formal.m_arrayDefinition = std::move(array.definition);
                 continue;
             }
-            TypeKind kind = formal.typeClass == FormalTypeClass::IntegerType ? TypeKind::Integer
+            TypeKind kind = (formal.typeClass == FormalTypeClass::IntegerType || formal.typeClass == FormalTypeClass::ModularType) ? TypeKind::Integer
                 : formal.typeClass == FormalTypeClass::FloatType ? TypeKind::Float
                 : formal.typeClass == FormalTypeClass::FixedType ? TypeKind::Fixed
                 : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
             type = m_types.create(kind, formal.name);
             type->low = std::numeric_limits<int>::min();
             type->high = std::numeric_limits<int>::max();
+            if (formal.typeClass == FormalTypeClass::ModularType) {
+                type->m_modulus = (__int128)1 << 64;
+                type->low = 0;
+                type->high = type->m_modulus - 1;
+            }
             type->digits = 6;
             type->m_formalFixed = kind == TypeKind::Fixed;
             if (formal.typeClass == FormalTypeClass::Any) {
@@ -416,8 +421,13 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
 
     switch (formal.typeClass) {
     case FormalTypeClass::IntegerType:
-        if (base->kind != TypeKind::Integer) {
-            wanted = "an integer type";
+        if (base->kind != TypeKind::Integer || base->m_modulus != 0) {
+            wanted = "a signed integer type";
+        }
+        break;
+    case FormalTypeClass::ModularType:
+        if (base->m_modulus == 0) {
+            wanted = "a modular type";
         }
         break;
     case FormalTypeClass::FloatType:

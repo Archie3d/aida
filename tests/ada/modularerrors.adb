@@ -4,7 +4,7 @@ procedure ModularErrors is
     type Real_Modulus is mod 10.0;
     type Zero_Modulus is mod 0;
     type Negative_Modulus is mod -10;
-    type Large_Modulus is mod 2 ** 32 + 1;
+    type Large_Modulus is mod 2 ** 64 + 1;
     type Byte is mod 256;
     type Other is mod 256;
     type Word is mod 2 ** 32;

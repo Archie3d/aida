@@ -24,4 +24,12 @@ package Ada.Text_IO.Scanning is
     function Real_Value (Text : in String) return Long_Float;
     pragma Import (C, Real_Value, "__ada_real_value");
 
+    type Modular_Word is mod 2 ** 64;
+    function Get_Modular (Last : Modular_Word; Width : Field) return Modular_Word;
+    pragma Import (C, Get_Modular, "__ada_get_modular");
+    function Get_Modular (File : File_Type; Last : Modular_Word; Width : Field) return Modular_Word;
+    pragma Import (C, Get_Modular, "__ada_text_get_modular");
+    function Modular_Token (Text : String) return Natural;
+    pragma Import (C, Modular_Token, "__ada_modular_token");
+
 end Ada.Text_IO.Scanning;

@@ -259,6 +259,13 @@ int __ada_value_integer(const char* text, int length, int low, int high);
 long long __ada_value_long_integer(const char* text, int length, long long low, long long high);
 
 /* Checked signed arithmetic: add, subtract, multiply, divide, rem, mod, power. */
+long long __ada_modular_minmax(unsigned long long left, unsigned long long right, int maximum);
+long long __ada_round_to_modular(double value);
+long long __ada_modular_reduce(long long value, int isUnsigned, long long modulus);
+long long __ada_modular_convert(long long value, int isUnsigned, long long low, long long high, int targetUnsigned);
+int __ada_image_modular(char* buffer, int capacity, unsigned long long value);
+int __ada_modular_token(const char* text, int length);
+long long __ada_value_modular(const char* text, int length, long long modulus);
 long long __ada_modular_operation(ModularOperation operation, long long modulus, long long left, long long right);
 long long __ada_integer_operation(int operation, int bits, long long left, long long right);
 /* Core real arithmetic preserves the operand precision. Zero divisors and

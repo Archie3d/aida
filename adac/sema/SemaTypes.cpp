@@ -193,14 +193,15 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Modular: {
         type = makeType(TypeKind::Integer);
         Type* modulusType = analyzeExpr(definition->rangeHigh.get(), scope, nullptr);
-        long long modulus = 0;
+        __int128 modulus = 0;
+        StaticFailure failure = StaticFailure::None;
         if (modulusType == nullptr || (modulusType->kind != TypeKind::Integer
             && modulusType->kind != TypeKind::UniversalInteger)
-            || !foldStatic(definition->rangeHigh.get(), modulus)) {
+            || !foldWideInteger(definition->rangeHigh.get(), modulus, failure)) {
             m_diagnostics.error(definition->location, "the modulus must be a static integer expression");
             modulus = 1;
-        } else if (modulus < 1 || modulus > 4294967296LL) {
-            m_diagnostics.error(definition->location, "supported moduli are 1 through 2 ** 32");
+        } else if (modulus < 1 || modulus > ((__int128)1 << 64)) {
+            m_diagnostics.error(definition->location, "supported moduli are 1 through 2 ** 64");
             modulus = 1;
         }
         type->m_modulus = modulus;
@@ -250,13 +251,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type->m_delta = definition->m_delta.get();
         ExactReal low, high;
+        long long lowCounts = 0, highCounts = 0;
         Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);
         Type* highType = analyzeExpr(definition->rangeHigh.get(), scope, nullptr);
         if (!isReal(lowType) || !isReal(highType) || !exactValue(definition->rangeLow.get(), low)
             || !exactValue(definition->rangeHigh.get(), high)
-            || !low.scaled(bits, type->low) || !high.scaled(bits, type->high)) {
+            || !low.scaled(bits, lowCounts) || !high.scaled(bits, highCounts)) {
             m_diagnostics.error(definition->location, "fixed-point bounds must be exact static real expressions within 64-bit scaled storage");
         }
+        type->low = lowCounts;
+        type->high = highCounts;
         if (type->low > type->high) {
             m_diagnostics.error(definition->location, "a fixed-point type requires a non-null range");
         }
@@ -323,6 +327,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 : index->name.empty() ? m_types.integerType() : resolveTypeName(index->lower, scope, index->location);
             if (indexType == nullptr || isUniversal(indexType)) { indexType = m_types.integerType(); }
             row->index = indexType;
+            if (indexType->high > LLONG_MAX) {
+                m_diagnostics.error(index->location, "array index subtypes require signed 64-bit bounds");
+            }
             if (!isDiscrete(indexType)) {
                 m_diagnostics.error(index->location, "array indices require a discrete type");
             }
@@ -843,7 +850,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
                 }
                 covered.push_back(choice);
                 variant.choices.push_back(choice);
-                info.choices.push_back(VariantChoice { choice.low, choice.high });
+                if (choice.low < LLONG_MIN || choice.high > LLONG_MAX) {
+                    m_diagnostics.error(definition->location, "variant choices require signed 64-bit values");
+                }
+                info.choices.push_back(VariantChoice { static_cast<long long>(choice.low), static_cast<long long>(choice.high) });
             }
             int index = static_cast<int>(type->variants.size());
             type->variants.push_back(info);
@@ -952,7 +962,8 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         // Byte and halfword loads can be unsigned. Word arithmetic and loads
         // are signed; types needing the full unsigned word range use 64 bits.
         long long low = 0;
-        long long high = std::numeric_limits<long long>::max();
+        __int128 high = type->m_modulus != 0 && bits == 64
+            ? (__int128)UINT64_MAX : std::numeric_limits<long long>::max();
         if (bits == 64) {
             low = std::numeric_limits<long long>::min();
         } else if (bits == 32 || type->low < 0) {
@@ -1085,10 +1096,10 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             m_diagnostics.error(indication->location, "range bounds must have the subtype's discrete type");
             return base;
         }
-        long long low = 0;
-        long long high = 0;
-        bool staticLow = foldStatic(indication->rangeLow.get(), low);
-        bool staticHigh = foldStatic(indication->rangeHigh.get(), high);
+        __int128 low = 0, high = 0;
+        StaticFailure failure = StaticFailure::None;
+        bool staticLow = foldWideInteger(indication->rangeLow.get(), low, failure);
+        bool staticHigh = foldWideInteger(indication->rangeHigh.get(), high, failure);
         if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
             if (!allowDynamicScalar) {
                 m_diagnostics.error(indication->location, "runtime scalar constraints require a local subtype declaration");
@@ -1317,6 +1328,7 @@ ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& loca
         literal->type = type;
         literal->isStatic = true;
         literal->staticValue = literal->value;
+        literal->m_exactReal = ExactReal::make(first ? type->low : type->high);
         return literal;
     }
     auto prefix = std::make_unique<IdentifierExpr>();

@@ -23,7 +23,7 @@ rows into individual legality/dynamic requirements and add missing units.
 | 13.1, 13.3 / Core, Choice | Validated Size clauses | Alignment, enum/record clauses rejected; storage/layout changes incomplete | `size*`, `representationerrors` | — | P1 Representation clauses; P5/P6c |
 | B.1 / Annex | C/Ada imports, three positional arguments, nonempty external name | Other conventions and imported controlled-result ownership unsupported | `importconvention*` | — | P1 Imports; P7 ABI |
 | 10.1.3 / Core | Body stubs diagnosed with recovery | Separate subunits not implemented | `subprogramstuberrors` | — | P1 Stubs; P6e |
-| 12.5 / Core | Supported formal categories parsed strictly | Derived/access/modular/decimal/interface formals and trailing syntax rejected | `genericformal*`, `deallocationformalerrors` | — | P1 Generic formal types; P6g |
+| 12.5 / Core | Supported formal categories parsed strictly | Derived/access/decimal/interface formals and trailing syntax rejected | `genericformal*`, `deallocationformalerrors` | — | P1 Generic formal types; P6g |
 | 3.9.3, 5.8–5.9, 9.5–9.8, 10.1.2 / Core | Named diagnostics for unsupported constructs | Abstract operations, goto/labels, task entries/select, limited/private with missing | `unsupported*` | C59002A XFAIL (goto) | P1 Unsupported syntax; P6e/P6f/P9 |
 | 11, 7.6.1 / Core | Exception, trace, allocation and finalization state per task | Collections restricted to owning context | `runtime.task_context`, `runtime.array_storage` | — | P2 Per-task context; P6a |
 | 11 / Core | Generated context access via traceback entry/exit | No hidden TLS operand; cross-host validation still open | `runtime.generated_contexts`, `determinism.generatedcontexts` | — | P2 Generated access; P8 hosts |
@@ -62,6 +62,9 @@ rows into individual legality/dynamic requirements and add missing units.
 | 3.5 / Core, Choice | Floating Value, base results, decimal/based syntax, exact single rounding, malformed/overflow checks | [Floating Value contract](floating-point.md#floating-value); Float_IO token audit remains Phase 7; String length still Integer | `realvalue*`, `runtime.real_value`, whole/separate/determinism and sanitizer checks | — | P5 Floating Value; P7 I/O |
 | 3.5.7–3.5.8, 4.5.5–4.5.6 / Core, Choice | Checked binary32/64 arithmetic, negative integer powers, Machine_Overflows/Machine_Rounds True, zero-divisor and conversion checks | [Default floating environment and finite-value model](floating-point.md); static capacity limits, full model attributes and Annex G accuracy remain restricted/missing | `realedges`, `realtasking`, `realedgeerrors`, `runtime.real_arithmetic`, mode/determinism checks | C45523A PASS | P5 Real edge cases; P8 gap review |
 | 5.3, 4.5.1 / Core | Nested conditionals and Boolean short circuit | Selected control-flow paths only | `control` | C53007A PASS | P8 coverage |
+| 3.5, 3.5.4, 4.5, 4.6, 5.4 / Core, Choice | Unsigned modular storage and all moduli 1..2**64; arithmetic/logic, comparisons, conversions, case choices, scalar attributes and Ada 2005 Mod | Signed 64-bit array-index subtypes and variant choices; no compact unsigned 32-bit storage; wide attributes pending | `modular*`, `attributeaudit`, `runtime.modular`, mode/determinism and sanitizer checks | C354002 | P5 Modular types; P7 wide attributes |
+| 12.5.2 / Core | Modular formal types, matching and signed/modular distinction | Broader generic staticness/contract audit remains | `modularwide`, `modularwideerrors`, `genericformalerrors` | — | P5 Modular types; P6g/P8 |
+| A.10.8 / Core | Modular_IO file/default/string Get and Put; decimal/based syntax, widths, delimiters, growing file input and Data_Error/Layout_Error | General Text_IO line/page accounting follows existing implementation; full library audit pending | `modulario`, mode/determinism and sanitizer checks | — | P5 Modular types; P7 I/O |
 
 ## Predefined-unit inventory
 
@@ -88,6 +91,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.8.1 | Ada.Sequential_IO | Generic file I/O; representation-based elements | `seqio` | P7 streaming |
 | A.8.4 | Ada.Direct_IO | Generic direct files; representation-based elements | `directio` | P7 streaming |
 | A.10 | Ada.Text_IO | Text files and formatting subset; remaining grammar cases pending | `textfiles`, `filesnapshots` | P7 Text_IO |
+| A.10.8 | Ada.Text_IO.Modular_IO | Unsigned 64-bit decimal/based file and string I/O; full Text_IO audit pending | `modulario`, mode/determinism and sanitizer checks | P5 Modular types; P7 I/O |
 | A.10.8 | Ada.Text_IO.Integer_IO; Ada.Integer_Text_IO | Integer input/output subset | `typeio` | P7 numeric grammar |
 | A.10.9 | Ada.Text_IO.Float_IO; Ada.Float_Text_IO | Real input/output subset; floating model audit pending | `floats`, `typeio` | P5 real edge cases; P7 |
 | A.10.10 | Ada.Text_IO.Fixed_IO | Ordinary fixed text subset; scale choices limited | `fixed*` | P5 fixed point; P7 |

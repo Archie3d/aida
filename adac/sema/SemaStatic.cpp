@@ -79,7 +79,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         }
         if (expr->type != nullptr && expr->type->m_modulus != 0) {
             long long result;
-            if (operand < LLONG_MIN || operand > LLONG_MAX) {
+            if (operand < 0 || operand > (__int128)UINT64_MAX) {
                 failure = StaticFailure::Capacity;
                 return false;
             }
@@ -88,7 +88,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                     unary->op == UnaryOp::Not ? 0 : operand, &result)) {
                 return false;
             }
-            value = unary->op == UnaryOp::Plus ? operand : result;
+            value = unary->op == UnaryOp::Plus ? operand : (__int128)(uint64_t)result;
             return true;
         }
         value = unary->op == UnaryOp::Not ? operand == 0
@@ -195,7 +195,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
             default: break;
             }
             long long modular;
-            if (left < LLONG_MIN || left > LLONG_MAX || right < LLONG_MIN || right > LLONG_MAX) {
+            if (left < 0 || left > (__int128)UINT64_MAX || right < LLONG_MIN || right > (__int128)UINT64_MAX) {
                 failure = StaticFailure::Capacity;
                 return false;
             }
@@ -203,7 +203,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                 failure = right == 0 ? StaticFailure::ZeroDivisor : StaticFailure::NegativeExponent;
                 return false;
             }
-            value = modular;
+            value = (uint64_t)modular;
             return true;
         }
         switch (binary->op) {
@@ -391,8 +391,8 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         __int128 value;
         StaticFailure failure = StaticFailure::None;
         if (foldWideInteger(expr, value, failure)) {
-            long long low = typeSize(target) <= 4 ? INT_MIN : LLONG_MIN;
-            long long high = typeSize(target) <= 4 ? INT_MAX : LLONG_MAX;
+            __int128 low = typeSize(target) <= 4 ? INT_MIN : LLONG_MIN;
+            __int128 high = typeSize(target) <= 4 ? INT_MAX : LLONG_MAX;
             if (target->m_modulus != 0) {
                 low = 0;
                 high = target->m_modulus - 1;

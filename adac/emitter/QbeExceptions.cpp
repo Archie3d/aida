@@ -192,9 +192,9 @@ void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLoca
     std::string lowTest = newTemp();
     std::string highTest = newTemp();
     std::string combined = newTemp();
-    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, width) + " " + checked.name + ", "
+    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, width, type->m_modulus != 0) + " " + checked.name + ", "
          + bounds.first);
-    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, width) + " " + checked.name + ", "
+    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, width, type->m_modulus != 0) + " " + checked.name + ", "
          + bounds.last);
     line(combined + " =w and " + lowTest + ", " + highTest);
 
