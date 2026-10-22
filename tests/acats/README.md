@@ -11,12 +11,16 @@ retrieved 2026-10-21 (C49022A, C45523A and C45347A in `c4/`, the other
 original cases in `c5/`). C354002 comes from `c3/c354002.a`, retrieved
 2026-10-22 and stored as `c354002.ada`. C35A08B comes from `c3/c35a08b.ada`,
 retrieved 2026-10-22. CXF2002 and CXF2003 come from `cxf/cxf2002.a`
-and `cxf/cxf2003.a`, retrieved 2026-10-22 and stored with `.ada` extensions. Each file retains its grant of
+and `cxf/cxf2003.a`, retrieved 2026-10-22 and stored with `.ada` extensions.
+CD3014A and CD3014D come from `cd/cd3014a.ada` and `cd/cd3014d.ada`, retrieved
+2026-10-22. Each file retains its grant of
 unlimited rights and disclaimer. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
 
 | Case | Ada 2005 RM | Expectation | Remaining gap / owner |
 | --- | --- | --- | --- |
+| CD3014A | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: mapped enums retain ordering, array indexing and generic swapping, including character literals | Broader representation checks: Phase 8 |
+| CD3014D | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: the same behaviors for enum mappings declared inside a generic package | Broader representation checks: Phase 8 |
 | CXF2002 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: repeated decimal multiplication/division, truncation and Round with matching operand types and both machine radices | Selected Annex F facility; full Annex F remains unclaimed |
 | CXF2003 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: decimal multiplication/division, truncation and Round with different operand types/scales and both machine radices | Ordinary decimal Small and Ada.Decimal.Divide cases remain outside the selection |
 | C35A08B | 4.5.5 | PASS: same/mixed fixed operands and explicit Standard multiplication/division | Broader fixed and numeric-context coverage: Phase 8 |
@@ -30,6 +34,8 @@ GCC's release branch itself may change. No download is needed at build/test time
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
+| cd3014a.ada | `ee37df82a196e51a6d4ed7402545e1735d64d8ed` | `7bb4d3f86b4dc71bd24853e92d92abc7fe35a2e2abb78b7cba37db473483fe46` |
+| cd3014d.ada | `6ce3f4ce855a4dacb9aeb2c7f7234424d82ad721` | `259ddc783c7433531c1527c4a650a3d63cb3df72b610fc89ce30d49fc778eef6` |
 | cxf2002.ada | `984daa97bca695a0dd1b5184849c0fa4233bb245` | `e380eceda0aed84eca205587853f69d69902a2b46dcb25342590fc17edb76183` |
 | cxf2003.ada | `133dc48e6c22e9799a3dffa0f78ee2e50e624ee3` | `497d639ae33488b99d04caf6e8887c7838615bee5e823506f2d8e03a87a7fce1` |
 | c35a08b.ada | `1750bfa12a21118feff9168d17d05d88c368cab6` | `eabeb71d8bf3a9f9d3324012541e4b119bc6191f531418e05eb62637dbef9b18` |

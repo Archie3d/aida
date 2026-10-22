@@ -1205,3 +1205,29 @@ add_test(NAME runtime.alignmentclauses_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(error.alignmenterrors determinism.alignmentclauses runtime.alignmentclauses_modes
     PROPERTIES TIMEOUT 60)
+
+add_ada_error_test(enumrepresentationerrors SOURCES enumrepresentationerrors.adb)
+add_ada_test(enumstreams SOURCES enumstreams.adb)
+foreach(enum_case enumrepresentation enumstreams enumtasking)
+    add_determinism_test(${enum_case} SOURCE ${enum_case}.adb)
+    add_test(NAME runtime.${enum_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/EnumRepresentation.c
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${enum_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${enum_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${enum_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${enum_case}_modes determinism.${enum_case} PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_executable(enumeration_runtime_test EnumerationRuntimeTest.c)
+target_link_libraries(enumeration_runtime_test PRIVATE adart)
+add_test(NAME runtime.enumeration COMMAND enumeration_runtime_test)
+set_tests_properties(runtime.enumeration PROPERTIES TIMEOUT 20)
+set_tests_properties(error.enumrepresentationerrors ada.enumstreams PROPERTIES TIMEOUT 60)

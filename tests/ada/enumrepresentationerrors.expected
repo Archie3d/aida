@@ -1,0 +1,30 @@
+enumrepresentationerrors.adb:4:5: error: an enumeration representation clause requires a complete, visible, nonboolean first subtype
+enumrepresentationerrors.adb:6:5: error: an enumeration representation clause requires a complete, visible, nonboolean first subtype
+enumrepresentationerrors.adb:9:5: error: duplicate enumeration representation clause
+enumrepresentationerrors.adb:11:5: error: an enumeration representation clause requires a complete, visible, nonboolean first subtype
+enumrepresentationerrors.adb:14:5: error: an enumeration representation clause must be adjacent to its type declaration, before representation use
+enumrepresentationerrors.adb:16:5: error: enumeration representation clause must cover every literal
+enumrepresentationerrors.adb:18:30: error: A is covered by an earlier choice
+enumrepresentationerrors.adb:20:27: error: enumeration representation choices must have the enumeration type
+enumrepresentationerrors.adb:20:5: error: enumeration representation clause must cover every literal
+enumrepresentationerrors.adb:22:24: error: enumeration representation codes must be static integers
+enumrepresentationerrors.adb:24:26: error: enumeration representation codes must be static integers
+enumrepresentationerrors.adb:26:23: error: enumeration representation codes must fit signed 32 bits
+enumrepresentationerrors.adb:28:20: error: enumeration representation codes must fit signed 32 bits
+enumrepresentationerrors.adb:30:5: error: enumeration representation codes must be distinct and increasing in declaration order
+enumrepresentationerrors.adb:32:5: error: enumeration representation codes must be distinct and increasing in declaration order
+enumrepresentationerrors.adb:34:27: error: too many enumeration representation codes
+enumrepresentationerrors.adb:36:5: error: positional and named enumeration representation associations cannot be mixed
+enumrepresentationerrors.adb:38:5: error: enumeration representation codes must be distinct and increasing in declaration order
+enumrepresentationerrors.adb:40:5: error: enumeration representation codes must be distinct and increasing in declaration order
+enumrepresentationerrors.adb:42:40: error: others must appear once, as the final representation association
+enumrepresentationerrors.adb:42:53: error: others must appear once, as the final representation association
+enumrepresentationerrors.adb:45:5: error: enumeration representation codes do not fit the specified Size
+enumrepresentationerrors.adb:48:5: error: the range of 'Sized_After' does not fit in 8 bits
+enumrepresentationerrors.adb:54:5: error: an enumeration representation clause requires a one-dimensional array aggregate
+enumrepresentationerrors.adb:56:28: error: character literal 'a' is not declared by 'Bad_Character'
+enumrepresentationerrors.adb:56:28: error: 97 is not a value the selector can take
+enumrepresentationerrors.adb:56:5: error: enumeration representation clause must cover every literal
+enumrepresentationerrors.adb:58:5: error: representation clauses for Character and its descendants are not yet supported
+enumrepresentationerrors.adb:63:9: error: enumeration representation requires a statically known literal list
+enumrepresentationerrors.adb:70:9: error: enumeration representation after a subtype of a private view is not yet supported

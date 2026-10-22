@@ -105,6 +105,7 @@ struct Symbol
     // Run time builtins.  The symbol names the C entry point, and a call into it
     // may leave an exception pending.
     std::string runtimeSymbol;
+    bool importAda = false;
     bool canRaise = false;
 
     // Packages.  A child names the parent it was declared in, which is what

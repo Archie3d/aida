@@ -423,7 +423,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             return withBounds(address, prefixType, nullptr);
         }
         Value value = loadFrom(address, prefixType);
-        if (prefixType->kind == TypeKind::Fixed) {
+        if (prefixType->kind == TypeKind::Fixed || !prefixType->m_enumCodes.empty()) {
             emitRangeCheck(value, prefixType, expr->location);
         }
         return value;
@@ -469,13 +469,13 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     }
 
     Value destination = address;
-    if (reading && type->kind == TypeKind::Fixed) {
-        address = Value { allocScratch(8), 'l' };
+    if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
+        address = Value { allocScratch(typeSize(type)), 'l' };
     }
     line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
          + ", l " + address.name + ", l " + size + ")");
     emitExceptionCheck();
-    if (reading && type->kind == TypeKind::Fixed) {
+    if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
         Value value = loadFrom(address, type);
         emitRangeCheck(value, type, expr->location);
         storeInto(destination, value, type);

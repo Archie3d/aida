@@ -72,7 +72,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         value = static_cast<IntegerLiteralExpr*>(expr)->value;
         return true;
     case ExprKind::CharacterLiteral:
-        value = static_cast<unsigned char>(static_cast<CharacterLiteralExpr*>(expr)->value);
+        value = expr->isStatic ? expr->staticValue : static_cast<unsigned char>(static_cast<CharacterLiteralExpr*>(expr)->value);
         return true;
     case ExprKind::Membership: {
         auto* membership = static_cast<MembershipExpr*>(expr);

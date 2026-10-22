@@ -231,9 +231,11 @@ const char* qbeLoadInstruction(const Type* type)
 {
     switch (typeSize(type)) {
     case 1:
-        return type->kind == TypeKind::Integer && type->low < 0 ? "loadsb" : "loadub";
+        return (type->kind == TypeKind::Integer && type->low < 0)
+            || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0) ? "loadsb" : "loadub";
     case 2:
-        return type->kind == TypeKind::Integer && type->low < 0 ? "loadsh" : "loaduh";
+        return (type->kind == TypeKind::Integer && type->low < 0)
+            || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0) ? "loadsh" : "loaduh";
     case 8:
         if (isReal(type)) {
             return "loadd";
@@ -343,6 +345,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->byteSize = parent->kind == TypeKind::Integer ? typeSize(parent) : parent->byteSize;
     subtype->needsZeroInit = parent->needsZeroInit;
     subtype->literals = parent->literals;
+    subtype->m_enumCodes = parent->m_enumCodes;
     subtype->digits = parent->digits;
     subtype->m_fixedScale = parent->m_fixedScale;
     subtype->m_fixedAft = parent->m_fixedAft;
@@ -395,6 +398,20 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->m_protectedScope = completed->m_protectedScope;
         if (completed->m_taskBody != nullptr) {
             subtype->byteSize = completed->byteSize;
+        }
+    }
+}
+
+// Inherited primitive profiles create corresponding subtypes during the type
+// declaration, before adjacent representation items settle its storage.
+void TypeTable::refreshEnumerationRepresentation(Type* type)
+{
+    for (const auto& stored : m_types) {
+        Type* subtype = stored.get();
+        if (subtype->isSubtype && baseType(subtype) == type) {
+            subtype->byteSize = type->byteSize;
+            subtype->m_enumCodes = type->m_enumCodes;
+            subtype->m_alignment = type->m_alignment;
         }
     }
 }

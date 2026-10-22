@@ -263,6 +263,8 @@ void __ada_format_float(char* buffer, int size, double value, int fore, int aft,
 int __ada_image_float(char* buffer, int capacity, double value, int aft, int exponent);
 int __ada_image_integer(char* buffer, int capacity, int value);
 int __ada_image_long_integer(char* buffer, int capacity, long long value);
+int __ada_enum_code(int position, const int32_t* codes, int count);
+int __ada_enum_position(int code, const int32_t* codes, int count);
 int __ada_image_enum(char* buffer, int capacity, int value, const char** names, int count);
 int __ada_image_character(char* buffer, int capacity, int value);
 

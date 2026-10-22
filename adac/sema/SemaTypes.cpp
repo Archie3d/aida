@@ -992,6 +992,10 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
         return;
     }
+    if (decl->attribute == "enumeration") {
+        analyzeEnumerationRepresentation(decl, scope, symbol->type, precedingType);
+        return;
+    }
     if (decl->attribute == "alignment") {
         Type* type = symbol->type;
         if (type->isSubtype || type->isIncomplete || !representationVisible(type)
@@ -1038,6 +1042,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         }
         type->m_alignment = alignment;
         type->m_alignmentSpecified = true;
+        if (type->kind == TypeKind::Enumeration) { m_types.refreshEnumerationRepresentation(type); }
         return;
     }
     if (decl->attribute == "machine_radix") {
@@ -1124,7 +1129,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             ? (__int128)UINT64_MAX : std::numeric_limits<long long>::max();
         if (bits == 64) {
             low = std::numeric_limits<long long>::min();
-        } else if (bits == 32 || type->low < 0) {
+        } else if (bits == 32 || (!type->m_enumCodes.empty() ? type->m_enumCodes.front() < 0 : type->low < 0)) {
             low = -(1LL << (bits - 1));
             high = (1LL << (bits - 1)) - 1;
         } else {
@@ -1138,7 +1143,8 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             m_diagnostics.error(decl->location, "enumeration storage supports only 8, 16 or 32 bits");
             return;
         }
-        if (type->low < low || type->high > high) {
+        if ((!type->m_enumCodes.empty() ? type->m_enumCodes.front() : type->low) < low
+            || (!type->m_enumCodes.empty() ? type->m_enumCodes.back() : type->high) > high) {
             m_diagnostics.error(decl->location, "the range of '" + decl->name
                 + "' does not fit in " + std::to_string(bits) + " bits");
             return;
@@ -1190,6 +1196,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
     type->byteSize = bytes;
     type->m_specifiedSize = bytes;
+    if (type->kind == TypeKind::Enumeration) { m_types.refreshEnumerationRepresentation(type); }
 }
 
 Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic, bool allowDynamicScalar)
@@ -1735,4 +1742,148 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             scope->add(inherited);
         }
     }
+}
+
+void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType)
+{
+    if (type->kind != TypeKind::Enumeration || type->isSubtype || type->isIncomplete
+        || !representationVisible(type) || m_types.isBoolean(type)) {
+        m_diagnostics.error(decl->location, "an enumeration representation clause requires a complete, visible, nonboolean first subtype");
+        return;
+    }
+    if (m_types.isCharacter(type)) {
+        m_diagnostics.error(decl->location, "representation clauses for Character and its descendants are not yet supported");
+        return;
+    }
+    if (type->literals.empty()) {
+        m_diagnostics.error(decl->location, "enumeration representation requires a statically known literal list");
+        return;
+    }
+    for (const auto& prior : m_symbolTable.symbols()) {
+        if (prior->kind == SymbolKind::TypeName && prior->type != nullptr && prior->type->isSubtype
+            && rootType(prior->type) == type && prior->type->kind != TypeKind::Enumeration) {
+            m_diagnostics.error(decl->location, "enumeration representation after a subtype of a private view is not yet supported");
+            return;
+        }
+    }
+    if (type->m_enumCodesSpecified) {
+        m_diagnostics.error(decl->location, "duplicate enumeration representation clause");
+        return;
+    }
+    if (type != precedingType || type->m_scalarBase != nullptr) {
+        m_diagnostics.error(decl->location, "an enumeration representation clause must be adjacent to its type declaration, before representation use");
+        return;
+    }
+    if (decl->value == nullptr || decl->value->kind != ExprKind::Aggregate) {
+        m_diagnostics.error(decl->location, "an enumeration representation clause requires a one-dimensional array aggregate");
+        return;
+    }
+    auto* aggregate = static_cast<AggregateExpr*>(decl->value.get());
+    if (aggregate->m_ancestor != nullptr || aggregate->m_nullRecord) {
+        m_diagnostics.error(decl->location, "an enumeration representation clause requires a one-dimensional array aggregate");
+        return;
+    }
+    std::vector<long long> codes(type->literals.size());
+    std::vector<bool> assigned(codes.size(), false);
+    std::vector<CaseChoice> covered;
+    Type* index = m_types.makeSubtype(type->name, type, 0, (long long)codes.size() - 1);
+    bool valid = true, named = false, positional = false, others = false;
+    std::size_t next = 0;
+    auto assign = [&](long long low, long long high, long long code) {
+        for (long long i = low; i <= high; ++i) {
+            if (assigned[i]) {
+                m_diagnostics.error(decl->location, "enumeration representation choices overlap");
+                valid = false;
+                return;
+            }
+            assigned[i] = true;
+            codes[i] = code;
+        }
+    };
+    for (std::size_t c = 0; c < aggregate->components.size(); ++c) {
+        AggregateComponent& component = aggregate->components[c];
+        Type* valueType = analyzeExpr(component.value.get(), scope, nullptr);
+        long long code = 0;
+        if (valueType == nullptr || (valueType->kind != TypeKind::Integer && valueType->kind != TypeKind::UniversalInteger)
+            || !foldStatic(component.value.get(), code)) {
+            m_diagnostics.error(component.value->location, "enumeration representation codes must be static integers");
+            valid = false;
+        } else if (code < INT32_MIN || code > INT32_MAX) {
+            m_diagnostics.error(component.value->location, "enumeration representation codes must fit signed 32 bits");
+            valid = false;
+        }
+        if (component.isOthers) {
+            if (others || c + 1 != aggregate->components.size()) {
+                m_diagnostics.error(component.value->location, "others must appear once, as the final representation association");
+                valid = false;
+            }
+            others = true;
+            for (std::size_t i = 0; i < codes.size(); ++i) {
+                if (!assigned[i]) { assign(i, i, code); }
+            }
+        } else if (component.choiceLows.empty()) {
+            positional = true;
+            if (next >= codes.size()) {
+                m_diagnostics.error(component.value->location, "too many enumeration representation codes");
+                valid = false;
+            } else {
+                assign(next, next, code);
+                ++next;
+            }
+        } else {
+            named = true;
+            for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
+                CaseChoice choice;
+                if (resolveChoice(component.choiceLows[i].get(), component.choiceHighs[i].get(), index, covered, scope, choice)) {
+                    Type* lowType = component.choiceLows[i]->type;
+                    Type* highType = component.choiceHighs[i] ? component.choiceHighs[i]->type : lowType;
+                    if (lowType == nullptr || highType == nullptr || lowType->kind != TypeKind::Enumeration
+                        || highType->kind != TypeKind::Enumeration || rootType(lowType) != rootType(type)
+                        || rootType(highType) != rootType(type)) {
+                        m_diagnostics.error(component.choiceLows[i]->location, "enumeration representation choices must have the enumeration type");
+                        valid = false;
+                    } else {
+                        covered.push_back(choice);
+                        assign((long long)choice.low, (long long)choice.high, code);
+                    }
+                } else { valid = false; }
+            }
+        }
+    }
+    if (named && positional) {
+        m_diagnostics.error(decl->location, "positional and named enumeration representation associations cannot be mixed");
+        valid = false;
+    }
+    if (std::find(assigned.begin(), assigned.end(), false) != assigned.end()) {
+        m_diagnostics.error(decl->location, "enumeration representation clause must cover every literal");
+        valid = false;
+    }
+    if (!valid) { return; }
+    for (std::size_t i = 1; i < codes.size(); ++i) {
+        if (codes[i] <= codes[i - 1]) {
+            m_diagnostics.error(decl->location, "enumeration representation codes must be distinct and increasing in declaration order");
+            return;
+        }
+    }
+    long long bytes = codes.front() >= 0 && codes.back() <= 255 ? 1
+        : codes.front() >= -128 && codes.back() <= 127 ? 1
+        : codes.front() >= 0 && codes.back() <= 65535 ? 2
+        : codes.front() >= -32768 && codes.back() <= 32767 ? 2 : 4;
+    if (type->m_specifiedSize >= 0) {
+        bytes = type->m_specifiedSize;
+        long long low = codes.front() < 0 ? -(1LL << (bytes * 8 - 1)) : 0;
+        long long high = bytes == 4 || codes.front() < 0 ? (1LL << (bytes * 8 - 1)) - 1 : (1LL << (bytes * 8)) - 1;
+        if (codes.front() < low || codes.back() > high) {
+            m_diagnostics.error(decl->location, "enumeration representation codes do not fit the specified Size");
+            return;
+        }
+    }
+    if (type->m_alignment > bytes) {
+        m_diagnostics.error(decl->location, "enumeration storage cannot be smaller than its specified Alignment");
+        return;
+    }
+    type->m_enumCodes = std::move(codes);
+    type->m_enumCodesSpecified = true;
+    type->byteSize = bytes;
+    m_types.refreshEnumerationRepresentation(type);
 }

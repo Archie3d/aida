@@ -808,6 +808,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "imported controlled function results are not yet supported");
     }
     target->runtimeSymbol = "$" + decl->linkName;
+    target->importAda = decl->conventionAda;
     target->canRaise = true;
     target->hasBody = true;
 }

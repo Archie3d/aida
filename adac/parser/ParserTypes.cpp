@@ -88,8 +88,9 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         while (true) {
             if (check(TokenKind::Identifier) || check(TokenKind::CharacterLiteral)) {
                 const Token& literal = advance();
-                definition->literals.push_back(literal.text);
-                definition->literalsLower.push_back(literal.lower);
+                bool character = literal.kind == TokenKind::CharacterLiteral;
+                definition->literals.push_back(character ? "'" + literal.text + "'" : literal.text);
+                definition->literalsLower.push_back(character ? "'" + literal.text + "'" : literal.lower);
             } else {
                 fail("expected an enumeration literal");
             }

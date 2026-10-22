@@ -225,6 +225,7 @@ DeclPtr Parser::parsePragma(bool allowShared)
         skipToSemicolon();
         return nullptr;
     }
+    pragma->conventionAda = convention.lower == "ada";
     expect(TokenKind::Comma, "after Import convention");
     rejectNamedArgument();
     if (check(TokenKind::Identifier)
@@ -268,6 +269,12 @@ DeclPtr Parser::parseRepresentationClause()
     decl->location = location;
     decl->name = parseCompoundName(decl->lower);
     if (match(TokenKind::KwUse)) {
+        if (check(TokenKind::LeftParen)) {
+            decl->attribute = "enumeration";
+            decl->value = parseParenthesizedOrAggregate();
+            expect(TokenKind::Semicolon, "after enumeration representation clause");
+            return decl;
+        }
         if (match(TokenKind::KwRecord)) {
             m_diagnostics.error(location, "record representation clauses are not yet supported");
             while (!check(TokenKind::EndOfFile)) {

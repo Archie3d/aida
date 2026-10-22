@@ -121,6 +121,17 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
             ? expected : m_types.characterType();
         expr->isStatic = true;
         expr->staticValue = static_cast<unsigned char>(literal->value);
+        if (expected != nullptr && expected->kind == TypeKind::Enumeration
+            && !expected->literals.empty() && representationVisible(expected)) {
+            std::string name = "'" + std::string(1, literal->value) + "'";
+            auto found = std::find(expected->literals.begin(), expected->literals.end(), name);
+            if (found == expected->literals.end()) {
+                m_diagnostics.error(expr->location, "character literal " + name + " is not declared by '" + expected->name + "'");
+            } else {
+                expr->type = expected;
+                expr->staticValue = found - expected->literals.begin();
+            }
+        }
         return expr->type;
     }
     case ExprKind::StringLiteral: {

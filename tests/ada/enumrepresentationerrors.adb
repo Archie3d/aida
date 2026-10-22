@@ -1,0 +1,74 @@
+procedure EnumRepresentationErrors is
+    Dynamic : Integer := 3;
+    type Number is range 0 .. 10;
+    for Number use (1, 2);
+    type Flag is new Boolean;
+    for Flag use (0, 3);
+    type Code is (A, B, C);
+    for Code use (0, 2, 5);
+    for Code use (0, 3, 7);
+    subtype View is Code;
+    for View use (0, 1, 2);
+    type Late is (A, B);
+    Object : Late;
+    for Late use (0, 5);
+    type Missing is (A, B, C);
+    for Missing use (A => 0, B => 1);
+    type Overlap is (A, B);
+    for Overlap use (A => 0, A => 1, B => 3);
+    type Wrong_Choice is (A, B);
+    for Wrong_Choice use (0 => 2, B => 3);
+    type Nonstatic is (A, B);
+    for Nonstatic use (Dynamic, 5);
+    type Not_Integer is (A, B);
+    for Not_Integer use (0.0, 5);
+    type Large is (A, B);
+    for Large use (0, 2147483648);
+    type Small is (A, B);
+    for Small use (-2147483649, 0);
+    type Duplicate_Code is (A, B);
+    for Duplicate_Code use (3, 3);
+    type Descending is (A, B);
+    for Descending use (5, 2);
+    type Excess is (A, B);
+    for Excess use (1, 2, 3);
+    type Mixed is (A, B);
+    for Mixed use (1, B => 5);
+    type Range_Choice is (A, B);
+    for Range_Choice use (A .. B => 3);
+    type Others_Choice is (A, B, C);
+    for Others_Choice use (others => 3);
+    type Repeated_Others is (A, B);
+    for Repeated_Others use (others => 3, others => 5);
+    type Sized is (A, B);
+    for Sized'Size use 8;
+    for Sized use (-128, 128);
+    type Sized_After is (A, B);
+    for Sized_After use (-128, 128);
+    for Sized_After'Size use 8;
+    type Aligned is (A, B);
+    for Aligned'Size use 32;
+    for Aligned'Alignment use 4;
+    for Aligned use (3, 5);
+    type Single is (A);
+    for Single use (3);
+    type Bad_Character is ('A', 'B');
+    for Bad_Character use ('a' => 1, 'B' => 2);
+    type Standard_Character is new Character;
+    for Standard_Character use (0, 1);
+    generic
+        type Formal is (<>);
+    package Unknown_Literals is
+        type Derived is new Formal;
+        for Derived use (others => 1);
+    end Unknown_Literals;
+    package Hidden is
+        type Private_Code is private;
+        subtype Alias is Private_Code;
+    private
+        type Private_Code is (First, Last);
+        for Private_Code use (7, 10);
+    end Hidden;
+begin
+    null;
+end EnumRepresentationErrors;

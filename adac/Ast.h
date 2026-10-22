@@ -1025,6 +1025,7 @@ struct PragmaDecl : Decl
     std::string entity;
     std::string entityLower;
     std::string linkName;
+    bool conventionAda = false;
 };
 
 // How wide a type is to be laid out, which is how Ada says that a stream

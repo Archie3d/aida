@@ -468,7 +468,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         }
 
         if (parameter->byReference && isScalar(formal)
-            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0)) {
+            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->m_enumCodes.empty())) {
             Value temporary { allocScratch(typeSize(formal)), 'l' };
             Value actual;
             if (parameter->mode != ParameterMode::In) {
@@ -496,6 +496,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
         Value value = emitExpr(argument);
         emitRangeCheck(value, parameter->type, argument->location);
+        if (!subprogram->importAda) { value = enumCode(value, parameter->type); }
         // Imported C functions use the declared scalar parameter class:
         // Float travels as s and Long_Float as d, without default promotion.
         arguments.push_back(std::string(1, formalClass) + " " + value.name);
@@ -541,6 +542,12 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     std::string temp = newTemp();
     line(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
     copyBack();
+    if (!subprogram->importAda && !subprogram->returnType->m_enumCodes.empty()) {
+        emitExceptionCheck();
+        Value value = enumPosition(Value { temp, type }, subprogram->returnType);
+        emitRangeCheck(value, subprogram->returnType, expr->location);
+        return value;
+    }
     return Value { temp, type };
 }
 

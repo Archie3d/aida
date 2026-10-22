@@ -334,7 +334,14 @@ and numeric work changes the generated code.
     Natural alignment cannot be weakened; scalar/array stride padding,
     object clauses, tagged/task/protected types and general freezing remain
     unsupported. [Contract](docs/representation-clauses.md).
-  - [ ] Enumeration representation clauses.
+  - [x] Enumeration representation clauses: adjacent positional/named static
+    mappings with distinct increasing signed 32-bit codes, 8/16/32-bit storage,
+    inherited and overridden derived mappings, checked imports/streams and
+    positional attributes/indexing/loops (`enumrepresentation`, `enumstreams`,
+    `enumtasking`, `enumrepresentationerrors`, `runtime.enumeration`,
+    whole/separate/determinism and unchanged ACATS CD3014A/CD3014D).
+    Boolean/Character-derived mappings, wider codes, general freezing and
+    clauses after a private-view subtype remain unsupported. [Contract](docs/representation-clauses.md).
   - [ ] Size-changing subtype and composite layouts.
 - [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
   helpers, keeping the same failure behavior.

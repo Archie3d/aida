@@ -155,9 +155,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::RealLiteral:
         add(m_types.universalReal());
         break;
-    case ExprKind::CharacterLiteral:
+    case ExprKind::CharacterLiteral: {
         add(m_types.isCharacter(expected) && representationVisible(expected) ? expected : m_types.characterType());
+        std::string name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
+        for (Symbol* literal : scope->lookup(name)) {
+            if (literal->kind == SymbolKind::EnumerationLiteral && representationVisible(literal->type)) {
+                add(literal->type);
+            }
+        }
         break;
+    }
     case ExprKind::StringLiteral:
         add(m_types.isString(expected) && representationVisible(expected)
             && representationVisible(expected->element) ? expected : m_types.stringType());

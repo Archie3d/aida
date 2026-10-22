@@ -136,6 +136,9 @@ private:
     void branch(const Value& condition, const std::string& ifTrue, const std::string& ifFalse);
     std::string stringData(const std::string& text);
     std::string enumTableFor(const Type* type);
+    std::string enumCodeTableFor(Type* type);
+    Value enumCode(const Value& position, Type* type);
+    Value enumPosition(const Value& code, Type* type);
 
     // Declarations (QbeDecl.cpp).
     void emitTypeTag(Type* type);
@@ -290,6 +293,7 @@ private:
     std::vector<SubprogramBody*> m_pendingSubprograms;
     std::unordered_map<std::string, std::string> m_stringPool;
     std::unordered_map<const Type*, std::string> m_enumTables;
+    std::unordered_map<const Type*, std::string> m_enumCodeTables;
     std::unordered_map<Type*, bool> m_emittedTags;
     std::unordered_map<Type*, bool> m_emittedCollections;
     std::unordered_map<Type*, bool> m_initializedCollections;

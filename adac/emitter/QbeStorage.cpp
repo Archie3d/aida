@@ -173,7 +173,8 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
             std::string converted = newTemp();
             line(converted + " =" + std::string(1, resultType) + " cast " + temp);
             temp = converted;
-        } else if ((bits == 8 || bits == 16) && type->kind == TypeKind::Integer && type->low < 0) {
+        } else if ((bits == 8 || bits == 16) && ((type->kind == TypeKind::Integer && type->low < 0)
+                || (!type->m_enumCodes.empty() && type->m_enumCodes.front() < 0))) {
             std::string extended = newTemp();
             line(extended + " =w " + (bits == 8 ? "extsb " : "extsh ") + temp);
             temp = extended;
@@ -185,11 +186,12 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
     } else {
         line(temp + " =" + std::string(1, resultType) + " " + qbeLoadInstruction(type) + " " + address.name);
     }
-    return Value { temp, resultType };
+    return enumPosition(Value { temp, resultType }, type);
 }
 
-void QbeEmitter::storeInto(const Value& address, const Value& value, Type* type)
+void QbeEmitter::storeInto(const Value& address, const Value& position, Type* type)
 {
+    Value value = enumCode(position, type);
     if (address.m_shared || sharedTypeKind(type) != 0) {
         long long bits = typeSize(type) * 8;
         char rawClass = bits == 64 ? 'l' : 'w';
@@ -579,4 +581,39 @@ void QbeEmitter::emitFinalizer(Type* type)
         finishFunction("export function " + type->m_tagName + ".view_" + operation + "(l %object, l %tag)");
     }
     m_context = saved;
+}
+
+std::string QbeEmitter::enumCodeTableFor(Type* type)
+{
+    const Type* base = baseType(type);
+    auto found = m_enumCodeTables.find(base);
+    if (found != m_enumCodeTables.end()) { return found->second; }
+    std::string table = "$." + m_unitTag + ".enum_codes." + std::to_string(m_dataCounter++);
+    m_data << "data " << table << " = align 4 { ";
+    for (std::size_t i = 0; i < base->m_enumCodes.size(); ++i) {
+        m_data << (i == 0 ? "w " : ", w ") << base->m_enumCodes[i];
+    }
+    m_data << " }\n";
+    m_enumCodeTables.emplace(base, table);
+    return table;
+}
+
+Value QbeEmitter::enumCode(const Value& position, Type* type)
+{
+    if (type->m_enumCodes.empty()) { return position; }
+    std::string result = newTemp();
+    line(result + " =w call $__ada_enum_code(w " + position.name + ", l " + enumCodeTableFor(type)
+        + ", w " + std::to_string(type->m_enumCodes.size()) + ")");
+    emitExceptionCheck();
+    return Value { result, 'w' };
+}
+
+Value QbeEmitter::enumPosition(const Value& code, Type* type)
+{
+    if (type->m_enumCodes.empty()) { return code; }
+    std::string result = newTemp();
+    line(result + " =w call $__ada_enum_position(w " + code.name + ", l " + enumCodeTableFor(type)
+        + ", w " + std::to_string(type->m_enumCodes.size()) + ")");
+    emitExceptionCheck();
+    return Value { result, 'w' };
 }

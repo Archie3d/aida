@@ -156,6 +156,10 @@ public:
 
     // Enumeration types.
     std::vector<std::string> literals;
+    // Expressions and the Ada scalar call ABI use positions; storage and C
+    // scalar calls use these signed 32-bit codes. Empty means positional codes.
+    std::vector<long long> m_enumCodes;
+    bool m_enumCodesSpecified = false;
 
     // Floating point types.  The requested number of decimal digits selects the
     // machine representation, and the bounds are kept separately from the
@@ -265,6 +269,7 @@ public:
     Type* create(TypeKind kind, const std::string& name);
     Type* makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high);
     void refreshRecordSubtypes(Type* completed);
+    void refreshEnumerationRepresentation(Type* type);
 
     Type* scalarBaseType(Type* type);
 

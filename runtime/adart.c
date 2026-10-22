@@ -419,7 +419,7 @@ int __ada_image_enum(char* buffer, int capacity, int value, const char** names, 
         return 0;
     }
     for (size_t i = 0; i < length; ++i) {
-        buffer[i] = (char)toupper((unsigned char)name[i]);
+        buffer[i] = name[0] == '\'' ? name[i] : (char)toupper((unsigned char)name[i]);
     }
     buffer[length] = '\0';
     return (int)length;
@@ -737,7 +737,8 @@ int __ada_value_enum(const char* text, int length, const char** names, int count
         int j;
 
         for (j = 0; j < stop - start && name[j] != '\0'; ++j) {
-            if (tolower((unsigned char)text[start + j]) != tolower((unsigned char)name[j])) {
+            if (name[0] == '\'' ? text[start + j] != name[j]
+                : tolower((unsigned char)text[start + j]) != tolower((unsigned char)name[j])) {
                 break;
             }
         }
@@ -1761,4 +1762,31 @@ void __ada_collection_finish(void* pending, void* object)
 void __ada_collection_abort(void* pending)
 {
     releaseAllocation(pending);
+}
+
+/* Enumeration objects contain codes; Ada scalar expressions use positions. */
+int __ada_enum_code(int position, const int32_t* codes, int count)
+{
+    if (position < 0 || position >= count) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    return codes[position];
+}
+
+int __ada_enum_position(int code, const int32_t* codes, int count)
+{
+    int first = 0;
+    int last = count;
+    while (first < last) {
+        int middle = first + (last - first) / 2;
+        if (codes[middle] < code) {
+            first = middle + 1;
+        } else {
+            last = middle;
+        }
+    }
+    if (first < count && codes[first] == code) { return first; }
+    __ada_raise(ADA_CONSTRAINT_ERROR);
+    return 0;
 }
