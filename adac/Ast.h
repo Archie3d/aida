@@ -742,6 +742,7 @@ struct Decl : Node
     }
 
     DeclKind kind;
+    std::vector<Type*> m_scalarConstraints; // Elaborated once with this declaration.
     bool m_elaborateBody = false;
 };
 

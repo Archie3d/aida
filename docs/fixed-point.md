@@ -58,8 +58,9 @@ base range, independently of a constrained prefix.
 
 ## Dynamic bounds and streaming
 
-Named local fixed-point subtypes may evaluate bounds at elaboration. Bounds
-are evaluated once into the existing scalar-bound frame slots and checked
+Named and anonymous fixed-point constraints may evaluate bounds at local or
+library elaboration ([runtime scalar contract](runtime-scalars.md)). Bounds
+are evaluated once into owning frame slots or library storage and checked
 against their parent for nonnull ranges. Assignment, conversions,
 qualifications, membership, calls, copy-back and returns share those bounds.
 Fixed_IO instances can use these subtypes and capture their bounds.
@@ -75,8 +76,8 @@ their runtime bounds. No new mutable runtime global state is introduced.
 
 Storage remains 64 bits; compact fixed-point Size clauses are still unsupported.
 Only binary ordinary Smalls are supported, as permitted by RM 3.5.9.
-[Decimal fixed point](decimal-fixed-point.md) has its own exact decimal scale. Anonymous/library-level runtime scalar
-constraints, legacy delta constraints (J.3), complete freezing rules, portable
+[Decimal fixed point](decimal-fixed-point.md) has its own exact decimal scale.
+Legacy delta constraints (J.3), complete freezing rules, portable
 user-defined stream representations and Annex G guarantees remain outside this
 stage. Unsupported syntax or representations are diagnosed.
 

@@ -589,10 +589,6 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;
         }
-        if (base != nullptr && base->m_scalarBoundsSymbol != nullptr && base->kind != TypeKind::Fixed) {
-            m_diagnostics.error(expr->location, "stream attributes for runtime scalar subtypes are not yet supported");
-            return nullptr;
-        }
         if (base != nullptr && base->m_boundsSymbol != nullptr) {
             m_diagnostics.error(expr->location, "stream attributes for runtime-constrained array subtypes are not yet supported");
             return nullptr;
@@ -728,8 +724,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (base != nullptr && base->kind == TypeKind::Float) {
             expr->type = prefixType;
-            expr->isStatic = true;
-            expr->staticReal = name == "first" ? floatLowBound(base) : floatHighBound(base);
+            expr->isStatic = prefixType->m_scalarBoundsSymbol == nullptr;
+            expr->staticReal = name == "first" ? floatLowBound(prefixType) : floatHighBound(prefixType);
             return expr->type;
         }
         m_diagnostics.error(expr->location, "'" + expr->name + " requires an array or scalar prefix");
@@ -903,6 +899,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     // How wide the longest image of the type is, which is what a generic body
     // uses to lay a value out in a column without knowing the type.
     if (name == "width") {
+        if (!prefixIsType || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'Width requires a discrete subtype prefix and no arguments");
+            return nullptr;
+        }
         if (!isDiscrete(base)) {
             m_diagnostics.error(expr->location, "'Width requires a discrete prefix");
             return nullptr;
@@ -911,8 +911,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->isStatic = true;
         if (prefixType->m_scalarBoundsSymbol != nullptr) {
             expr->isStatic = false;
-            m_diagnostics.error(expr->location, "'Width for runtime scalar subtypes is not yet supported");
-            return nullptr;
+            return expr->type;
         }
         expr->staticValue = widthOf(prefixType);
         return expr->type;

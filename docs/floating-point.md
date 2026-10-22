@@ -92,7 +92,7 @@ promise.
 `S'Base` as specified by [Ada 2005 RM 3.5](https://adaic.org/resources/add_content/standards/05rm/html/RM-3-5.html).
 The prefix's constraint is not checked by the attribute; assignment or
 qualification to a constrained subtype still checks it. Floating subtype bounds
-remain static; dynamic real constraints are not yet supported. Text is evaluated once,
+can be captured at local or library elaboration ([runtime scalar contract](runtime-scalars.md)). Text is evaluated once,
 including functions and slices with non-one lower bounds.
 
 Accepted input includes leading/trailing spaces, an adjacent optional sign,

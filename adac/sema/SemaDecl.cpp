@@ -93,6 +93,9 @@ void Sema::reportMissingBodies(const DeclList& declarations)
 
 void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
+    Decl* savedConstraintDeclaration = m_scalarConstraintDeclaration;
+    m_scalarConstraintDeclaration = decl;
+    decl->m_scalarConstraints.clear();
     switch (decl->kind) {
     case DeclKind::Object:
         analyzeObjectDecl(static_cast<ObjectDecl*>(decl), scope);
@@ -160,12 +163,17 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         analyzeRepresentation(static_cast<RepresentationDecl*>(decl), scope);
         break;
     }
+    m_scalarConstraintDeclaration = savedConstraintDeclaration;
 }
 
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
-                                          m_currentSubprogram != nullptr || m_recordContract != nullptr);
+                                          m_currentSubprogram != nullptr || m_recordContract != nullptr, !decl->m_isRenaming);
+
+    bool ownsScalarConstraint = type != nullptr && std::find(decl->m_scalarConstraints.begin(),
+        decl->m_scalarConstraints.end(), type) != decl->m_scalarConstraints.end();
+    if (ownsScalarConstraint) { type->m_scalarObjectConstraint = true; }
 
     if (hasTasks(type) && !m_packages.empty()) {
         m_packages.back()->m_containsTasks = true;
@@ -270,6 +278,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             if (rootType(deferred->type) != rootType(type)) {
                 m_diagnostics.error(decl->location, "'" + decl->names[i] + "' was named as a '" + deferred->type->name
                                                         + "' in the visible part");
+            } else if (isScalar(type) && !SemaSupport::staticallyMatches(deferred->type, type)) {
+                m_diagnostics.error(decl->location,
+                    "a deferred constant completion must statically match its declared scalar subtype");
             }
             deferred->awaitsValue = false;
             decl->symbols.push_back(deferred);
@@ -283,6 +294,15 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
+        if (ownsScalarConstraint && i != 0) {
+            Type* distinct = m_types.makeSubtype(anonymousTypeName(), type, type->low, type->high);
+            distinct->m_scalarLow = type->m_scalarLow;
+            distinct->m_scalarHigh = type->m_scalarHigh;
+            distinct->m_scalarConstraintBase = type->m_scalarConstraintBase;
+            distinct->m_decimalConstraint = type->m_decimalConstraint;
+            recordScalarConstraint(distinct, decl->subtype->location, true);
+            symbol->type = distinct;
+        }
         symbol->m_objectReference = decl->m_isRenaming;
         symbol->m_sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
         symbol->m_classWideObject = type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming;

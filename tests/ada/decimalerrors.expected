@@ -16,4 +16,3 @@ decimalerrors.adb:19:58: error: 'Ada.Text_IO.Decimal_IO' expects a decimal fixed
 decimalerrors.adb:21:5: error: decimal Machine_Radix must be the static value 2 or 10
 decimalerrors.adb:24:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
 decimalerrors.adb:27:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
-decimalerrors.adb:28:15: error: decimal digits constraints requiring an elaboration check need a local subtype declaration

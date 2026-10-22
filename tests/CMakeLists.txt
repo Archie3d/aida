@@ -1353,3 +1353,27 @@ foreach(collection_case sharedcollections sharedtaskcollections)
     set_tests_properties(ada.${collection_case} determinism.${collection_case}
         runtime.${collection_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
+
+add_executable(scalar_bounds_test ScalarBoundsTest.c)
+target_link_libraries(scalar_bounds_test PRIVATE adart)
+add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
+set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
+add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
+foreach(scalar_case scalardynamic scalarstreams scalartasking)
+    add_ada_test(${scalar_case} SOURCES ${scalar_case}.adb)
+    add_determinism_test(${scalar_case} SOURCE ${scalar_case}.adb)
+    add_test(NAME runtime.${scalar_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${scalar_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${scalar_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${scalar_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${scalar_case} determinism.${scalar_case}
+        runtime.${scalar_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()

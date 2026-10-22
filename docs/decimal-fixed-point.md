@@ -25,12 +25,10 @@ clauses remain available only for ordinary fixed types. Fixed Size is 64 bits.
 
 Digits constraints retain the requested Digits value. Without an explicit range
 they supply the implicit digits range; with a range they check both bounds
-against the digits limit. Named local subtype declarations check parent
-compatibility and digits limits at elaboration, including bounds computed at
-runtime. Digits limits are checked even for null explicit ranges. Other static
-digits constraints are supported when compatibility is provable; constraints
-requiring an elaboration check outside a named local subtype are diagnosed.
-Anonymous and library-level runtime scalar constraints remain unsupported.
+against the digits limit. Named and anonymous local/library constraints check
+parent compatibility and digits limits at elaboration, including runtime bounds.
+Digits limits are checked even for null explicit ranges. See the shared
+[runtime scalar contract](runtime-scalars.md). Accuracy expressions remain static.
 
 ## Arithmetic and rounding
 

@@ -2,6 +2,7 @@
 #include "QbeSupport.h"
 
 #include <cctype>
+#include <cfloat>
 
 using QbeSupport::isUnconstrainedArray;
 
@@ -89,6 +90,12 @@ void QbeEmitter::emitTypeTag(Type* type)
 void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        for (Type* constraint : decl->m_scalarConstraints) {
+            Symbol* bounds = constraint->m_scalarBoundsSymbol;
+            if (bounds != nullptr && bounds->isGlobal) {
+                m_data << "export data " << bounds->qbeName << " = align 8 { z 16 }\n";
+            }
+        }
         switch (decl->kind) {
         case DeclKind::Type: {
             auto* taskDecl = static_cast<TypeDecl*>(decl.get());
@@ -157,6 +164,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
+        for (Type* constraint : decl->m_scalarConstraints) {
+            if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+        }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
             if (generic->m_hasBody) {
@@ -188,6 +198,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
+                if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.m_shared = sharedSymbolKind(symbol) != 0;
                 if (!symbol->m_objectReference && !symbol->m_classWideObject) {
@@ -309,6 +320,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     }
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
+        for (Type* constraint : decl->m_scalarConstraints) {
+            if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+        }
         Symbol* subprogram = nullptr;
         if (decl->kind == DeclKind::SubprogramBody) {
             subprogram = static_cast<SubprogramBody*>(decl.get())->symbol;
@@ -354,7 +368,6 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             break;
         }
         case DeclKind::Subtype:
-            emitScalarSubtype(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
             emitTypeBounds(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
             break;
         case DeclKind::Object: {
@@ -366,6 +379,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
+                if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 if (symbol->m_classWideObject) {
                     emitClassWideObject(object, symbol);
                     continue;
@@ -502,6 +516,16 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
 {
     if (type == nullptr) { return; }
     if (type->m_scalarLow == nullptr) {
+        if (isReal(type) && type->m_scalarConstraintBase != nullptr) {
+            Value bounds = scalarBounds(type);
+            Value low {bounds.first, bounds.type}, high {bounds.last, bounds.type};
+            emitRangeCheck(low, m_sema.typeTable().scalarBaseType(type), location);
+            emitRangeCheck(high, m_sema.typeTable().scalarBaseType(type), location);
+            if (type->lowReal <= type->highReal) {
+                emitRangeCheck(low, type->m_scalarConstraintBase, location);
+                emitRangeCheck(high, type->m_scalarConstraintBase, location);
+            }
+        }
         if (type->m_decimalConstraint != nullptr) {
             Value low { scalarText(type->low), 'l' }, high { scalarText(type->high), 'l' };
             emitRangeCheck(low, type->m_decimalConstraint, location);
@@ -514,7 +538,7 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
         return;
     }
     Symbol* symbol = type->m_scalarBoundsSymbol;
-    symbol->frameOffset = reserveFrame(16);
+    if (!symbol->isGlobal && symbol->frameOffset < 0) { symbol->frameOffset = reserveFrame(16); }
     Value low = emitExpr(type->m_scalarLow);
     Value high = emitExpr(type->m_scalarHigh);
     Type* representation = m_sema.typeTable().scalarBaseType(type);
@@ -536,12 +560,23 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
     emitRangeCheck(high, type->m_scalarConstraintBase, location);
     jump(ready);
     label(ready);
-    std::string lowSlot = newTemp();
+    Value slot = scalarBoundsAddress(type);
+    std::string lowSlot = slot.name;
     std::string highSlot = newTemp();
-    line(lowSlot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
     line(highSlot + " =l add " + lowSlot + ", 8");
     line(std::string("store") + width + " " + low.name + ", " + lowSlot);
     line(std::string("store") + width + " " + high.name + ", " + highSlot);
+}
+
+Value QbeEmitter::scalarBoundsAddress(Type* type)
+{
+    Symbol* symbol = type->m_scalarBoundsSymbol;
+    if (symbol->isGlobal) { return Value {symbol->qbeName, 'l'}; }
+    Value frame = symbol->owner == m_context->symbol ? Value {m_context->frameTemp, 'l'}
+        : staticLinkFor(symbol->owner->level);
+    Value slot {newTemp(), 'l'};
+    line(slot.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
+    return slot;
 }
 
 Value QbeEmitter::scalarBounds(Type* type)
@@ -550,19 +585,19 @@ Value QbeEmitter::scalarBounds(Type* type)
     bounds.type = qbeClass(type);
     Symbol* symbol = type->m_scalarBoundsSymbol;
     if (symbol == nullptr) {
-        bounds.first = scalarText(type->low);
-        bounds.last = scalarText(type->high);
+        bounds.first = isReal(type) ? QbeSupport::realLiteral(type->hasRealRange ? type->lowReal
+            : (typeSize(type) == 4 ? -static_cast<double>(FLT_MAX) : -DBL_MAX), bounds.type) : scalarText(type->low);
+        bounds.last = isReal(type) ? QbeSupport::realLiteral(type->hasRealRange ? type->highReal
+            : (typeSize(type) == 4 ? static_cast<double>(FLT_MAX) : DBL_MAX), bounds.type) : scalarText(type->high);
         return bounds;
     }
-    Value frame = symbol->owner == m_context->symbol ? Value { m_context->frameTemp, 'l' }
-                                                     : staticLinkFor(symbol->owner->level);
-    std::string lowSlot = newTemp();
+    std::string lowSlot = scalarBoundsAddress(type).name;
     std::string highSlot = newTemp();
     bounds.first = newTemp();
     bounds.last = newTemp();
-    line(lowSlot + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
     line(highSlot + " =l add " + lowSlot + ", 8");
-    std::string load = bounds.type == 'l' ? " =l loadl " : " =w loadsw ";
+    std::string load = bounds.type == 'l' ? " =l loadl " : bounds.type == 'w' ? " =w loadsw "
+        : " =" + std::string(1, bounds.type) + " load" + bounds.type + " ";
     line(bounds.first + load + lowSlot);
     line(bounds.last + load + highSlot);
     return bounds;

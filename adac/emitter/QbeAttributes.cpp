@@ -14,6 +14,34 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     Type* prefixType = expr->prefixType;
     // Protected entry bodies execute in the calling task. Current_Task in an
     // entry body uses this same identity (the RM C.7.1 bounded-error choice).
+    if (name == "width") {
+        Value bounds = scalarBounds(prefixType);
+        Value result {newTemp(), 'w'};
+        if (prefixType->kind == TypeKind::Enumeration) {
+            if (prefixType->literals.empty()) {
+                std::string nonNull = newTemp();
+                line(nonNull + " =w csgew " + bounds.last + ", " + bounds.first);
+                line(result.name + " =w mul " + nonNull + ", 3");
+            } else {
+                emitCallInstruction(result.name + " =w call $__ada_width_enum(w " + bounds.first
+                    + ", w " + bounds.last + ", l " + enumTableFor(prefixType) + ", w "
+                    + std::to_string(prefixType->literals.size()) + ")", CallEffects::CheckException);
+            }
+        } else {
+            if (bounds.type == 'w') {
+                std::string low = newTemp(), high = newTemp();
+                std::string extend = prefixType->m_modulus != 0 ? "extuw " : "extsw ";
+                line(low + " =l " + extend + bounds.first);
+                line(high + " =l " + extend + bounds.last);
+                bounds.first = low;
+                bounds.last = high;
+            }
+            emitCallInstruction(result.name + " =w call $__ada_width_integer(l " + bounds.first
+                + ", l " + bounds.last + ", w " + std::to_string(prefixType->m_modulus != 0) + ")",
+                CallEffects::CheckException);
+        }
+        return result;
+    }
     if (name == "caller") {
         std::string identity = newTemp();
         emitCallInstruction(identity + " =l call $__ada_current_task()", CallEffects::DeferredCheck);
@@ -342,7 +370,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "first" || name == "last" || name == "length") {
         Type* base = prefixType;
-        if (base != nullptr && (isDiscrete(base) || base->kind == TypeKind::Fixed) && base->m_scalarBoundsSymbol != nullptr) {
+        if (base != nullptr && (isScalar(base)) && base->m_scalarBoundsSymbol != nullptr) {
             Value bounds = scalarBounds(base);
             return Value { name == "first" ? bounds.first : bounds.last, bounds.type };
         }

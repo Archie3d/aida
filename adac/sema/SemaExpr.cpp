@@ -224,6 +224,13 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    if (expr->subtype->rangeLow || expr->subtype->digits || expr->subtype->m_delta) {
+        Type* mark = resolveTypeName(expr->subtype->lower, scope, expr->subtype->location);
+        if (mark != nullptr && isScalar(mark)) {
+            m_diagnostics.error(expr->location, "a scalar allocator cannot have an explicit constraint");
+            return nullptr;
+        }
+    }
     Type* designated = resolveSubtypeIndication(expr->subtype.get(), scope);
     if (designated == nullptr) {
         return nullptr;
@@ -702,8 +709,8 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
     if (!expr->typeLower.empty()) {
         Type* type = mark;
         if (type != nullptr) {
-            if ((!isDiscrete(type) && type->kind != TypeKind::Fixed) || !typesCompatible(type, operand)) {
-                m_diagnostics.error(expr->location, "membership subtype must match the operand's discrete type");
+            if ((!isDiscrete(type) && !isReal(type) && type->kind != TypeKind::Fixed) || !typesCompatible(type, operand)) {
+                m_diagnostics.error(expr->location, "membership subtype must match the operand's scalar type");
             }
             expr->low = scalarBoundExpr(type, true, expr->location);
             expr->high = scalarBoundExpr(type, false, expr->location);

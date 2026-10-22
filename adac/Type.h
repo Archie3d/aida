@@ -145,9 +145,10 @@ public:
     // Zero denotes signed integers; modular types retain this across subtypes.
     __int128 m_modulus = 0;
 
-    // Named local scalar constraints use full-width bounds in the owning
+    // Scalar constraints use full-width bounds in the owning
     // activation. Aliases share the symbol; only the declaration owns expressions.
     Symbol* m_scalarBoundsSymbol = nullptr;
+    bool m_scalarObjectConstraint = false;
     struct Expr* m_scalarLow = nullptr;
     struct Expr* m_scalarHigh = nullptr;
     Type* m_scalarConstraintBase = nullptr;

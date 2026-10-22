@@ -236,6 +236,7 @@ private:
     void emitArrayFill(const Value& address, Type* type, Expr* value);
     void emitScalarSubtype(Type* type, const SourceLocation& location);
     Value scalarBounds(Type* type);
+    Value scalarBoundsAddress(Type* type);
     void emitTypeBounds(Type* type, const SourceLocation& location);
     Value wideBound(Value value);
     Value narrowArrayLength(Value value);

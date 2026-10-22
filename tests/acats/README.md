@@ -16,6 +16,7 @@ CD3014A and CD3014D come from `cd/cd3014a.ada` and `cd/cd3014d.ada`, retrieved
 2026-10-22. CD2A22A comes from `cd/cd2a22a.ada`; its unchanged official
 Length_Check helper comes from `support/lencheck.ada`, retrieved 2026-10-22.
 C45504A, C45503A and C45611A come from `c4/`, retrieved 2026-10-22.
+C35507A comes from `c3/c35507a.ada`, retrieved 2026-10-23.
 Test files retain their grant of unlimited rights and disclaimer; Length_Check
 retains its explicit public-domain authorization. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
@@ -29,6 +30,7 @@ GCC's release branch itself may change. No download is needed at build/test time
 | CXF2003 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: decimal multiplication/division, truncation and Round with different operand types/scales and both machine radices | Ordinary decimal Small and Ada.Decimal.Divide cases remain outside the selection |
 | C35A08B | 4.5.5 | PASS: same/mixed fixed operands and explicit Standard multiplication/division | Broader fixed and numeric-context coverage: Phase 8 |
 | C354002 | 3.5, 3.5.4 | PASS: modular bounds, Modulus, Min/Max, wrapping Succ/Pred, Image/Value, Pos/Val and Width, including maximum supported moduli | Wide attributes: Phase 7; further modular coverage: Phase 8 |
+| C35507A | 3.5, 3.5.2 | PASS: Character, derived and null subtype Width, including image-length consistency | Dynamic scalar bounds use P6b regressions; broader character images/widths: P7/P8 |
 | C52005A | 5.2 | PASS: scalar assignment range checks and unchanged target on failure | Broader static arithmetic audit: Phase 5 |
 | C53007A | 5.3, 4.5.1 | PASS: nested if and Boolean control flow | Extend selection: Phase 8 |
 | C45347A | 4.5.3 | PASS: array/record concatenation in all operand combinations | Broader concatenation selection: Phase 8 |
@@ -66,6 +68,7 @@ claimed. The local TCTouch adapter now also records Touch/Validate traces.
 | c49022a.ada | `d0cfa9d9769d40e1d23ae7f37aae5f71d5791886` | `aaa5fc8afb6ca2d7e77d8d361184f1a727ac53fa78e6914b55ed74c17ca585cb` |
 | c59002a.ada | `5210719729379dd00b93c9c304f4aa9abea519e2` | `b8f6fb43975a783abce7384a620acee1278e43d4b75e4d8ff0ad646ea548c9a9` |
 | c761002.ada | `5b807bba720ad3cc8b4b0845f33dd704a3e6c00e` | `c71a0098c5bc221924eac3cffed1b4c9fb88cb57fbe8ecd2d6c128ecb9f908d4` |
+| c35507a.ada | `0a67765603fe62285e1cadd6d3994392dc3f5b66` | `dbd2ad559f2b315b4ec5fa9eabb853afd2d88292dd2826a78d9cf7f27be42456` |
 
 `support/report.*` is a local adapter implementing only TEST, FAILED, RESULT,
 IDENT_INT, IDENT_STR, IDENT_BOOL, EQUAL, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official

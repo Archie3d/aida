@@ -1,1 +1,1 @@
-runtimescalarlibraryerrors.ads:3:24: error: runtime scalar constraints require a local subtype declaration
+runtimescalarlibraryerrors.ads:4:25: error: the bounds of an integer type must be static

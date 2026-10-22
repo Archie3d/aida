@@ -401,8 +401,16 @@ construction, cleanup and dispatch mechanisms.
 
 ### 6b. Dynamic data
 
-- [ ] Runtime scalar constraints in anonymous subtype indications, library
-  declarations, real subtypes, `'Width` and streaming.
+- [x] Runtime scalar constraints: declaration-owned plans for named/anonymous
+  local and library bounds, independent grouped objects/components, binary32/64
+  real bounds and membership, runtime discrete Width and checked scalar streams.
+  Generic instances, aliases, calls/results and designated scalar initialization
+  reuse the captured bounds (`scalardynamic`, `scalarstreams`, `scalartasking`,
+  `scalardynamicerrors`, `runtime.scalar_bounds`, whole/separate/determinism and
+  instrumented runtime checks). Deferred completions require static matching;
+  explicit scalar allocator constraints remain illegal. ACATS C35507A passes.
+  Wide attributes, legacy delta constraints and dynamic array layouts remain
+  separately tracked. [Contract and limits](docs/runtime-scalars.md).
 - [ ] Library-level arrays and types with runtime bounds, including runtime-bound
   generic array objects (`runtimearraylibraryerrors.ads` lists the cases).
 - [ ] Runtime-constrained array components and allocators, with `'Size` and

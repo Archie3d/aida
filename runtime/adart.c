@@ -1874,3 +1874,29 @@ int __ada_enum_position(int code, const int32_t* codes, int count)
     __ada_raise(ADA_CONSTRAINT_ERROR);
     return 0;
 }
+
+/* Width uses positions, not enumeration representation codes. Integer images
+   have one sign/blank column, including unsigned modular values. */
+int __ada_width_integer(uint64_t low, uint64_t high, int isUnsigned)
+{
+    if (isUnsigned ? low > high : (int64_t)low > (int64_t)high) { return 0; }
+    uint64_t left = !isUnsigned && (int64_t)low < 0 ? 0 - low : low;
+    uint64_t right = !isUnsigned && (int64_t)high < 0 ? 0 - high : high;
+    uint64_t magnitude = left > right ? left : right;
+    int width = 1;
+    do { ++width; magnitude /= 10; } while (magnitude != 0);
+    return width;
+}
+
+int __ada_width_enum(int low, int high, const char** names, int count)
+{
+    if (low > high) { return 0; }
+    if (low < 0 || high >= count) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+    int width = 0;
+    for (int i = low; i <= high; ++i) {
+        size_t length = strlen(names[i]);
+        if (length > INT_MAX) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+        if ((int)length > width) { width = (int)length; }
+    }
+    return width;
+}

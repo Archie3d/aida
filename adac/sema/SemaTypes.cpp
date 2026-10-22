@@ -5,6 +5,8 @@
 #include "SemaSupport.h"
 #include <cstdint>
 #include <limits>
+#include <filesystem>
+#include <cctype>
 
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
@@ -379,7 +381,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Array: {
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
-        Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope);
+        Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, false, true);
         type->m_incompleteLayout = hasIncompleteParts(cell);
         if (cell != nullptr && cell->m_abstract) {
             m_diagnostics.error(decl->location, "abstract array components are not supported");
@@ -462,7 +464,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         break;
     }
     case TypeDefKind::Derived: {
-        Type* parent = resolveSubtypeIndication(definition->parent.get(), scope);
+        Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
         if (parent == nullptr) {
             return;
         }
@@ -614,7 +616,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             type->m_accessProfile = profile;
             type->m_accessScope = scope;
         } else {
-            type->target = resolveSubtypeIndication(definition->parent.get(), scope);
+            type->target = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
         }
         break;
     }
@@ -740,7 +742,7 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
     // Generic formal objects are unknown while checking the contract. Keep
     // symbolic constraints here; instantiation resolves the actual layout.
     bool symbolicBounds = m_currentSubprogram != nullptr || m_recordContract != nullptr;
-    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, symbolicBounds, symbolicBounds);
+    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, symbolicBounds, true);
     if (base == nullptr) {
         return;
     }
@@ -751,16 +753,6 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
     symbol->type = type;
     symbol->location = decl->location;
-    if (decl->subtype->rangeLow != nullptr && base->m_scalarLow != nullptr) {
-        type->m_scalarBoundsSymbol = symbol;
-        type->m_scalarLow = base->m_scalarLow;
-        type->m_scalarHigh = base->m_scalarHigh;
-        type->m_scalarConstraintBase = base->m_scalarConstraintBase;
-        symbol->owner = m_currentSubprogram;
-        if (m_currentSubprogram != nullptr) {
-            m_currentSubprogram->needsFrame = true;
-        }
-    }
     if (type->kind == TypeKind::Array && !type->constrained
         && !decl->subtype->indexLows.empty() && symbolicBounds) {
         type->m_boundsSymbol = symbol;
@@ -801,7 +793,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         FieldInfo info;
         info.name = field.lower;
         info.displayName = field.name;
-        info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr);
+        info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr, true);
         type->m_incompleteLayout = type->m_incompleteLayout || hasIncompleteParts(info.type);
         if (info.type != nullptr && info.type->m_abstract) {
             m_diagnostics.error(field.location, "abstract record components are not supported");
@@ -1232,6 +1224,31 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     if (type->kind == TypeKind::Enumeration && !type->isSubtype) { m_types.refreshEnumerationRepresentation(type); }
 }
 
+void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bool objectConstraint)
+{
+    type->m_scalarObjectConstraint = objectConstraint;
+    if (type->m_scalarLow != nullptr) {
+        std::string file = std::filesystem::path(m_diagnostics.fileName(location.file)).filename().string();
+        for (char& c : file) {
+            if (!std::isalnum(static_cast<unsigned char>(c))) { c = '_'; }
+        }
+        std::string name = "scalar_bounds_" + file + "_" + std::to_string(location.line)
+            + "_" + std::to_string(location.column) + "_"
+            + std::to_string(m_scalarConstraintDeclaration == nullptr ? 0 : m_scalarConstraintDeclaration->m_scalarConstraints.size());
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, name, name);
+        symbol->type = type;
+        symbol->location = location;
+        symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(name);
+        type->m_scalarBoundsSymbol = symbol;
+        if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
+    }
+    if (m_scalarConstraintDeclaration != nullptr) {
+        m_scalarConstraintDeclaration->m_scalarConstraints.push_back(type);
+    }
+}
+
 Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic, bool allowDynamicScalar)
 {
     if (indication == nullptr) {
@@ -1273,6 +1290,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 subtype->digits = decimalDigits;
                 subtype->m_scalarConstraintBase = base;
                 subtype->m_decimalConstraint = decimalConstraint;
+                recordScalarConstraint(subtype, indication->location, false);
                 indication->resolved = subtype;
                 return subtype;
             }
@@ -1280,19 +1298,32 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     }
 
     if (indication->rangeLow && indication->rangeHigh && isReal(base)) {
-        analyzeExpr(indication->rangeLow.get(), scope, base);
-        analyzeExpr(indication->rangeHigh.get(), scope, base);
-        double low = 0.0;
-        double high = 0.0;
-        if (!foldStaticReal(indication->rangeLow.get(), low)
-            || !foldStaticReal(indication->rangeHigh.get(), high)) {
-            m_diagnostics.error(indication->location, "range constraints must be static");
+        Type* lowType = analyzeExpr(indication->rangeLow.get(), scope, base);
+        Type* highType = analyzeExpr(indication->rangeHigh.get(), scope, base);
+        if (!typesCompatible(base, lowType) || !typesCompatible(base, highType)) {
+            m_diagnostics.error(indication->location, "real subtype bounds must have the subtype's type");
+            return base;
+        }
+        double low = 0.0, high = 0.0;
+        bool known = foldStaticReal(indication->rangeLow.get(), low)
+            && foldStaticReal(indication->rangeHigh.get(), high) && base->m_scalarBoundsSymbol == nullptr;
+        if (!known && !allowDynamicScalar) {
+            m_diagnostics.error(indication->location, "runtime real constraints are not supported in this context");
             return base;
         }
         Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
         subtype->hasRealRange = true;
         subtype->lowReal = low;
         subtype->highReal = high;
+        if (!known) {
+            subtype->m_scalarLow = indication->rangeLow.get();
+            subtype->m_scalarHigh = indication->rangeHigh.get();
+            subtype->m_scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
+        } else if (allowDynamicScalar) {
+            subtype->m_scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
+        }
         indication->resolved = subtype;
         return subtype;
     }
@@ -1314,7 +1345,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         bool staticHigh = foldFixed(indication->rangeHigh.get(), high);
         if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
             if (!allowDynamicScalar) {
-                m_diagnostics.error(indication->location, "runtime fixed-point constraints require a local subtype declaration");
+                m_diagnostics.error(indication->location, "runtime fixed-point constraints are not supported in this context");
                 return base;
             }
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
@@ -1325,6 +1356,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             subtype->m_scalarLow = indication->rangeLow.get();
             subtype->m_scalarHigh = indication->rangeHigh.get();
             subtype->m_scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
             indication->resolved = subtype;
             return subtype;
         }
@@ -1338,6 +1370,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             subtype->digits = decimalDigits;
             subtype->m_decimalConstraint = decimalConstraint;
             subtype->m_scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
         }
         indication->resolved = subtype;
         return subtype;
@@ -1356,13 +1389,14 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         bool staticHigh = foldWideInteger(indication->rangeHigh.get(), high, failure);
         if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
             if (!allowDynamicScalar) {
-                m_diagnostics.error(indication->location, "runtime scalar constraints require a local subtype declaration");
+                m_diagnostics.error(indication->location, "runtime scalar constraints are not supported in this context");
                 return base;
             }
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
             subtype->m_scalarLow = indication->rangeLow.get();
             subtype->m_scalarHigh = indication->rangeHigh.get();
             subtype->m_scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
             indication->resolved = subtype;
             return subtype;
         }
@@ -1575,7 +1609,7 @@ bool Sema::typesCompatible(Type* target, Type* source) const
 // subtype's placeholder limits into loops, membership tests, or array types.
 ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& location)
 {
-    if (type->m_scalarBoundsSymbol == nullptr) {
+    if (type->m_scalarBoundsSymbol == nullptr && !isReal(type)) {
         auto literal = std::make_unique<IntegerLiteralExpr>();
         literal->location = location;
         literal->value = first ? type->low : type->high;
@@ -1595,6 +1629,13 @@ ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& loca
     attribute->prefixType = type;
     attribute->type = type;
     attribute->name = attribute->lower = first ? "first" : "last";
+    if (isReal(type) && type->m_scalarBoundsSymbol == nullptr) {
+        double maximum = typeSize(type) == 4 ? std::numeric_limits<float>::max()
+            : std::numeric_limits<double>::max();
+        attribute->isStatic = true;
+        attribute->staticReal = type->hasRealRange ? (first ? type->lowReal : type->highReal)
+            : (first ? -maximum : maximum);
+    }
     return attribute;
 }
 

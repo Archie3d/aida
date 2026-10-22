@@ -141,6 +141,7 @@ private:
     void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,
                                   bool allowDynamicScalar = false);
+    void recordScalarConstraint(Type* type, const SourceLocation& location, bool objectConstraint);
     Type* constrainDiscriminants(SubtypeIndication* indication, Type* base, Scope* scope);
     bool hasKnownDiscriminants(Type* type) const;
     bool discriminantValue(Type* type, int index, long long& value) const;
@@ -277,6 +278,7 @@ private:
     std::vector<std::pair<Expr*, Type*>> m_sharedGenericActuals;
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
+    Decl* m_scalarConstraintDeclaration = nullptr;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;
     Type* m_currentProtectedType = nullptr;
     Scope* m_protectedBodyScope = nullptr;

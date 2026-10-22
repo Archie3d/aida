@@ -1,0 +1,7 @@
+scalardynamicerrors.adb:5:24: error: the bounds of an integer type must be static
+scalardynamicerrors.adb:6:27: error: real subtype bounds must have the subtype's type
+scalardynamicerrors.adb:7:32: error: 'Width requires a discrete subtype prefix and no arguments
+scalardynamicerrors.adb:8:40: error: 'Width requires a discrete subtype prefix and no arguments
+scalardynamicerrors.adb:10:25: error: a scalar allocator cannot have an explicit constraint
+scalardynamicerrors.adb:12:17: error: range bounds must have the subtype's discrete type
+scalardynamicerrors.adb:18:9: error: a deferred constant completion must statically match its declared scalar subtype

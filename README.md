@@ -85,7 +85,7 @@ Supported:
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
 - Derived Boolean operations and byte-character literals and strings
-- Scalar position, value and adjacent-value attributes; scalar and array bounds
+- Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics, access types, tagged types with dispatching
 - Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization with protected/finalizer abort-deferral regions ([design](docs/abort-deferral.md))

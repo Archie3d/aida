@@ -483,7 +483,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
 Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
-    long long size = typeSize(designated);
+    long long size = typeSize(isScalar(designated) ? expr->type->target : designated);
     if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
@@ -544,7 +544,12 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")", CallEffects::DeferredCheck);
             emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")", CallEffects::DeferredCheck);
         }
-        if (expr->value != nullptr) {
+        if (expr->value != nullptr && isScalar(designated)) {
+            Value value = emitExpr(expr->value.get());
+            emitRangeCheck(value, designated, expr->location);
+            emitRangeCheck(value, expr->type->target, expr->location);
+            storeInto(object, value, expr->type->target);
+        } else if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
         } else {
             emitDefaultInit(object, designated);

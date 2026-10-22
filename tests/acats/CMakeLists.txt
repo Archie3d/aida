@@ -44,3 +44,5 @@ add_acats_test(c45611a)
 
 # Collection/deallocation coverage retained unchanged; transfer cases await P6e.
 add_acats_test(c761002 REJECTION "goto statements are not yet supported")
+
+add_acats_test(c35507a)
