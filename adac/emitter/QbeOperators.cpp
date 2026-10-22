@@ -282,6 +282,22 @@ Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& 
 
 Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const Value& right, char type)
 {
+    // Operands have already been evaluated. Keep the successful path entirely
+    // in QBE, and use the ordinary exception edge only when a check fails.
+    auto instruction = [&](char resultType, const std::string& op,
+                           const std::string& a, const std::string& b) {
+        std::string result = newTemp();
+        line(result + " =" + resultType + " " + op + " " + a + ", " + b);
+        return result;
+    };
+    auto check = [&](const std::string& invalid) {
+        std::string bad = newLabel("arithmeticbad");
+        std::string good = newLabel("arithmeticok");
+        branch(Value { invalid, 'w' }, bad, good);
+        label(bad);
+        raiseConstraintError();
+        label(good);
+    };
     auto widen = [&](const Value& value) {
         if (value.type == 'l') {
             return value.name;
@@ -290,16 +306,137 @@ Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const V
         line(wide + " =l extsw " + value.name);
         return wide;
     };
-    std::string leftWide = widen(left);
-    std::string rightWide = widen(right);
-    std::string result = newTemp();
-    line(result + " =l call $__ada_integer_operation(w " + std::to_string(operation) + ", w "
-         + (type == 'l' ? "64" : "32") + ", l " + leftWide + ", l " + rightWide + ")");
-    emitExceptionCheck();
-    if (type == 'w') {
-        std::string narrowed = newTemp();
-        line(narrowed + " =w copy " + result);
-        result = narrowed;
+    std::string suffix(1, type);
+    std::string low = type == 'w' ? "-2147483648" : "-9223372036854775808";
+    if (operation == ModularPower) {
+        check(instruction('w', "cslt" + std::string(1, right.type), right.name, "0"));
+        std::string resultSlot = allocScratch(8);
+        std::string baseSlot = allocScratch(8);
+        std::string exponentSlot = allocScratch(8);
+        line("store" + suffix + " 1, " + resultSlot);
+        line("store" + suffix + " " + left.name + ", " + baseSlot);
+        line("storel " + widen(right) + ", " + exponentSlot);
+        std::string test = newLabel("powtest");
+        std::string body = newLabel("powbody");
+        std::string multiply = newLabel("powmultiply");
+        std::string shift = newLabel("powshift");
+        std::string square = newLabel("powsquare");
+        std::string done = newLabel("powdone");
+        auto load = [&](const std::string& slot, char loadType) {
+            std::string value = newTemp();
+            line(value + " =" + loadType + (loadType == 'l' ? " loadl " : " loadsw ") + slot);
+            return Value { value, loadType };
+        };
+        jump(test);
+        label(test);
+        Value exponent = load(exponentSlot, 'l');
+        branch(Value { instruction('w', "cnel", exponent.name, "0"), 'w' }, body, done);
+        label(body);
+        Value base = load(baseSlot, type);
+        branch(Value { instruction('l', "and", exponent.name, "1"), 'l' }, multiply, shift);
+        label(multiply);
+        Value product = emitIntegerOperation(ModularMultiply, load(resultSlot, type), base, type);
+        line("store" + suffix + " " + product.name + ", " + resultSlot);
+        jump(shift);
+        label(shift);
+        std::string next = instruction('l', "shr", exponent.name, "1");
+        line("storel " + next + ", " + exponentSlot);
+        branch(Value { instruction('w', "cnel", next, "0"), 'w' }, square, done);
+        label(square);
+        Value squared = emitIntegerOperation(ModularMultiply, base, base, type);
+        line("store" + suffix + " " + squared.name + ", " + baseSlot);
+        jump(test);
+        label(done);
+        return load(resultSlot, type);
+    }
+    if (operation <= ModularMultiply) {
+        const char* op = operation == ModularAdd ? "add" : operation == ModularSubtract ? "sub" : "mul";
+        if (type == 'w') {
+            // Every product of two signed words fits in a signed long.
+            std::string result = instruction('l', op, widen(left), widen(right));
+            std::string below = instruction('w', "csltl", result, low);
+            std::string above = instruction('w', "csgtl", result, "2147483647");
+            check(instruction('w', "or", below, above));
+            std::string narrowed = newTemp();
+            line(narrowed + " =w copy " + result);
+            return Value { narrowed, type };
+        }
+        if (operation == ModularMultiply) {
+            // The common case needs no division: two signed words always
+            // have a representable signed-long product.
+            std::string aWord = newTemp();
+            std::string bWord = newTemp();
+            line(aWord + " =l extsw " + left.name);
+            line(bWord + " =l extsw " + right.name);
+            std::string fits = instruction('w', "and", instruction('w', "ceql", left.name, aWord),
+                                           instruction('w', "ceql", right.name, bWord));
+            std::string multiply = newLabel("mulfit");
+            std::string wide = newLabel("mulwide");
+            branch(Value { fits, 'w' }, multiply, wide);
+            label(wide);
+            // Unsigned magnitudes include abs(Long_Integer'First). Bound the
+            // product before multiplying; b | (b = 0) makes the division safe
+            // even for zero, without a second branch on the hot path.
+            std::string signA = instruction('l', "sar", left.name, "63");
+            std::string signB = instruction('l', "sar", right.name, "63");
+            std::string a = instruction('l', "sub", instruction('l', "xor", left.name, signA), signA);
+            std::string b = instruction('l', "sub", instruction('l', "xor", right.name, signB), signB);
+            std::string negative = instruction('l', "and", instruction('l', "xor", signA, signB), "1");
+            std::string limit = instruction('l', "add", "9223372036854775807", negative);
+            std::string zero = instruction('w', "ceql", b, "0");
+            std::string zeroLong = newTemp();
+            line(zeroLong + " =l extuw " + zero);
+            std::string divisor = instruction('l', "or", b, zeroLong);
+            std::string bound = instruction('l', "udiv", limit, divisor);
+            // A zero multiplier permits every magnitude, including 2**63.
+            std::string tooLarge = instruction('w', "cugtl", a, bound);
+            std::string nonzero = instruction('w', "cnel", b, "0");
+            check(instruction('w', "and", tooLarge, nonzero));
+            jump(multiply);
+            label(multiply);
+            return Value { instruction('l', "mul", left.name, right.name), type };
+        }
+        std::string result = instruction('l', op, left.name, right.name);
+        // Add overflows when equal-sign operands produce a different sign;
+        // subtract overflows when differing-sign operands change the left sign.
+        std::string changed = instruction('l', "xor", left.name, result);
+        std::string other = instruction('l', "xor", operation == ModularAdd ? right.name : left.name,
+                                        operation == ModularAdd ? result : right.name);
+        std::string signs = instruction('l', "and", changed, other);
+        check(instruction('w', "csltl", signs, "0"));
+        return Value { result, type };
+    }
+    check(instruction('w', "ceq" + suffix, right.name, "0"));
+    std::string minimum = instruction('w', "ceq" + suffix, left.name, low);
+    std::string minusOne = instruction('w', "ceq" + suffix, right.name, "-1");
+    std::string special = instruction('w', "and", minimum, minusOne);
+    if (operation == ModularDivide) {
+        check(special);
+        return Value { instruction(type, "div", left.name, right.name), type };
+    }
+    // MIN rem -1 and MIN mod -1 are zero, but hardware signed division
+    // may trap even when only its remainder is requested. Use divisor +1.
+    std::string specialWide = special;
+    if (type == 'l') {
+        specialWide = newTemp();
+        line(specialWide + " =l extuw " + special);
+    }
+    std::string divisor = instruction(type, "add", right.name, instruction(type, "shl", specialWide, "1"));
+    std::string result = instruction(type, "rem", left.name, divisor);
+    if (operation == ModularModulo) {
+        std::string differentSigns = instruction('w', "cslt" + suffix,
+                                                 instruction(type, "xor", result, right.name), "0");
+        std::string adjust = instruction('w', "and", differentSigns,
+                                         instruction('w', "cne" + suffix, result, "0"));
+        // A mask selects either zero or the divisor; the adjusted result is
+        // always in range and has the divisor's sign.
+        std::string wideAdjust = adjust;
+        if (type == 'l') {
+            wideAdjust = newTemp();
+            line(wideAdjust + " =l extuw " + adjust);
+        }
+        std::string mask = instruction(type, "sub", "0", wideAdjust);
+        result = instruction(type, "add", result, instruction(type, "and", mask, right.name));
     }
     return Value { result, type };
 }

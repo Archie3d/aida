@@ -37,3 +37,8 @@ add_test(NAME acats.harness
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckHarness.cmake
 )
 set_tests_properties(acats.harness PROPERTIES TIMEOUT 90 LABELS "acats")
+
+add_acats_test(c45504a)
+# Predefined operator calls with named associations are an existing gap.
+add_acats_test(c45503a REJECTION "'REM' is not declared")
+add_acats_test(c45611a)

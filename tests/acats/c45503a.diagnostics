@@ -1,0 +1,12 @@
+c45503a.ada:75:14: error: 'REM' is not declared
+c45503a.ada:94:14: error: 'REM' is not declared
+c45503a.ada:113:14: error: 'REM' is not declared
+c45503a.ada:132:14: error: 'REM' is not declared
+c45503a.ada:151:14: error: 'REM' is not declared
+c45503a.ada:170:14: error: 'REM' is not declared
+c45503a.ada:198:14: error: 'MOD' is not declared
+c45503a.ada:217:14: error: 'MOD' is not declared
+c45503a.ada:236:14: error: 'MOD' is not declared
+c45503a.ada:255:14: error: 'MOD' is not declared
+c45503a.ada:274:14: error: 'MOD' is not declared
+c45503a.ada:293:14: error: 'MOD' is not declared

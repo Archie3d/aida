@@ -175,3 +175,46 @@ text, stream, and fixed-point readers blocked on pipes, queues Close or Reset
 on that same file, and completes unrelated file operations before releasing
 the reader. Same-file operations still serialize. These timings do not measure
 contended throughput.
+
+## Checked integer arithmetic
+
+`checkedarithmetic.adb` runs ten million mixed add/multiply/rem iterations at
+both signed widths. `checkedmultiply.adb` runs ten million long multiply/add/rem
+iterations with a changing multiplier. Each validates an exact final checksum.
+The operands in these workloads fit signed words, exercising the common
+64-bit multiplication path; the general wide-product bound division, powers
+and exception paths are not timed.
+
+On macOS arm64, nine alternating before/after runs on 2026-10-22 measured the
+following wall-time medians (process startup included):
+
+| Workload | C helpers, development runtime | Inline, development runtime | C helpers, optimized runtime | Inline, optimized runtime |
+| --- | ---: | ---: | ---: | ---: |
+| Mixed 32/64-bit arithmetic | 0.37052 s | 0.10304 s | 0.18959 s | 0.10331 s |
+| Changing long multiplier | 0.31726 s | 0.09257 s | 0.16169 s | 0.09245 s |
+
+The baseline emitter is revision `3614c9c`; both compilers use the same QBE
+backend and runtime for each pair. The development C runtime has no optimization
+flag; the Release C runtime uses `-O3 -DNDEBUG`. Generated Ada code uses QBE's
+normal optimization in both cases. No LTO is used. These workloads improve by
+about 3.4–3.6 times with the development runtime and 1.7–1.8 times with the
+optimized runtime. Timings are host- and workload-specific; in particular they
+do not establish a speed improvement for general wide multiplication.
+
+To reproduce, retain the previous `adac` executable before rebuilding the new
+compiler, then build both workloads with each emitter. For example:
+
+```sh
+ADAC=/absolute/path/to/previous/adac build/ada/ada \
+    -o /tmp/arithmetic-before tests/benchmarks/checkedarithmetic.adb
+build/ada/ada -o /tmp/arithmetic-after tests/benchmarks/checkedarithmetic.adb
+cmake -S . -B build-bench -DCMAKE_BUILD_TYPE=Release
+cmake --build build-bench --target adart -j 4
+```
+
+For the optimized-runtime pair, set `ADA_RUNTIME` to the absolute path of
+`build-bench/runtime/libadart.a` on **both** compile commands. Repeat with
+`checkedmultiply.adb`. Alternate run order nine times and take the median of
+wall-clock durations from a monotonic timer. Timing is not a CTest threshold;
+`runtime.checkedarithmetic_modes` separately tests results and exceptions and
+rejects generated integer-helper references.

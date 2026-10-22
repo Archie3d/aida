@@ -15,6 +15,7 @@ and `cxf/cxf2003.a`, retrieved 2026-10-22 and stored with `.ada` extensions.
 CD3014A and CD3014D come from `cd/cd3014a.ada` and `cd/cd3014d.ada`, retrieved
 2026-10-22. CD2A22A comes from `cd/cd2a22a.ada`; its unchanged official
 Length_Check helper comes from `support/lencheck.ada`, retrieved 2026-10-22.
+C45504A, C45503A and C45611A come from `c4/`, retrieved 2026-10-22.
 Test files retain their grant of unlimited rights and disclaimer; Length_Check
 retains its explicit public-domain authorization. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
@@ -31,12 +32,18 @@ GCC's release branch itself may change. No download is needed at build/test time
 | C52005A | 5.2 | PASS: scalar assignment range checks and unchanged target on failure | Broader static arithmetic audit: Phase 5 |
 | C53007A | 5.3, 4.5.1 | PASS: nested if and Boolean control flow | Extend selection: Phase 8 |
 | C45347A | 4.5.3 | PASS: array/record concatenation in all operand combinations | Broader concatenation selection: Phase 8 |
+| C45504A | 4.5.5, 3.5.4 | PASS: Constraint_Error for products outside Integer base range | Further signed arithmetic selection: Phase 8 |
+| C45611A | 4.5.6 | PASS: dynamic Integer powers, zero and negative bases, 0**0 | Further signed arithmetic selection: Phase 8 |
+| C45503A | 4.5.5 | Compile XFAIL: predefined REM/MOD calls with named associations are unsupported | Named predefined operator profiles: Phase 8; infix arithmetic covered by differential tests |
 | C45523A | 4.5.5, 3.5.8 | PASS: Machine_Overflows multiplication and zero-division checks | Finite-value floating model: Phase 5; full coverage: Phase 8 |
 | C49022A | 4.9, 4.5 | PASS: integer named-number arithmetic and comparisons | Bounded exact evaluation: Phase 5; broader coverage: Phase 8 |
 | C59002A | 5.8, 11.2 | XFAIL at compilation: goto and labels unsupported | Phase 6e labels/goto |
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
+| c45504a.ada | `7cc4af4bcbc77c91afe3c47d83dcdb12ba09af9f` | `33daf0e3e0ef55f4c0443f09f4b4bbe6725f80b1ca59aba9fdbbb36d77d4b97c` |
+| c45503a.ada | `0461b0151af5d07aa4f9f62d365da1416307a1ea` | `11726cefb75e74b60dca2eb1e9fc6a9361b91d9ac8990e6d0a43492676bde1d8` |
+| c45611a.ada | `3f7a690fb8fdb780e0fa7b59f63dbfefd286671e` | `82b4a12b9a7241ad28979c04490a3c03a3af22d249e3e4093c0f3414348ac444` |
 | cd2a22a.ada | `37564d8078763ea4c931ff4eec4efb1b4919e752` | `8da952f626939e85ec9af9fd72d768b6f405abf87f4b0ea489b9961e2ba4cbf3` |
 | lencheck.ada | `f8ed1385bff145a2c8f44c6aee4f97d917c8f421` | `6599d2cfdae9dca7602a03d93bbb0a9c5abd14328d4da5ddc09585a13e55f9bd` |
 | cd3014a.ada | `ee37df82a196e51a6d4ed7402545e1735d64d8ed` | `7bb4d3f86b4dc71bd24853e92d92abc7fe35a2e2abb78b7cba37db473483fe46` |

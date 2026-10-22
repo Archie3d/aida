@@ -241,9 +241,9 @@ Ravenscar compliance remain for later phases.
 
 ## Phase 5 — Numeric and representation foundations
 
-These unblock several Phase 6 features, especially wider arrays. The prelude
-sets up validation and the code-generation structure before the descriptor
-and numeric work changes the generated code.
+Complete for the documented subsets below. These foundations unblock several
+Phase 6 features, especially wider arrays. Remaining language and conformance
+gaps retain their later-phase owners in the coverage matrix.
 
 ### Prelude
 
@@ -351,8 +351,15 @@ and numeric work changes the generated code.
     dynamic layouts and nonconfirming tagged/controlled/limited/task/protected
     sizes remain diagnosed; ACATS CD2A22A is an explicit packing XFAIL, using
     unchanged official Length_Check support. [Contract](docs/representation-clauses.md).
-- [ ] **Checked arithmetic speed.** Inline the overflow checks that now call C
-  helpers, keeping the same failure behavior.
+- [x] **Checked arithmetic speed.** Signed 32/64-bit add, subtract, multiply,
+  divide, rem/mod, negation, abs and powers now check inline, with the same
+  Constraint_Error and cleanup paths. Common 64-bit products avoid the general
+  unsigned bound division. Whole/separate differential tests cover 88,000
+  boundary/generated cases per mode; concurrent protected cleanup, deterministic
+  IL and helper-call exclusion are checked. ACATS C45504A/C45611A pass;
+  C45503A records the existing named-operator-call gap as an exact compile XFAIL.
+  [Contract](docs/checked-arithmetic.md) and
+  [measurements](tests/benchmarks/README.md#checked-integer-arithmetic).
 
 Tests: an ACATS harness smoke run, literal endpoints, `2.0 ** (-3)`, huge
 array sizes, integer array concatenation, signed small representations,

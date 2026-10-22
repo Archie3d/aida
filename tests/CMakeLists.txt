@@ -1256,3 +1256,38 @@ add_executable(type_storage_test TypeStorageTest.cpp ${PROJECT_SOURCE_DIR}/adac/
 target_compile_features(type_storage_test PRIVATE cxx_std_17)
 add_test(NAME semantics.type_storage COMMAND type_storage_test)
 set_tests_properties(semantics.type_storage PROPERTIES TIMEOUT 20)
+
+add_determinism_test(checkedarithmetic SOURCE checkedarithmetic.adb)
+add_test(NAME runtime.checkedarithmetic_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/CheckedArithmetic.c
+        -DFORBIDDEN_SYMBOL=__ada_integer_operation
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedarithmetic.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedarithmetic.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/checkedarithmetic-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.checkedarithmetic_modes determinism.checkedarithmetic PROPERTIES TIMEOUT 60)
+
+add_ada_test(checkedtasking SOURCES checkedtasking.adb)
+add_determinism_test(checkedtasking SOURCE checkedtasking.adb)
+add_test(NAME runtime.checkedtasking_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DFORBIDDEN_SYMBOL=__ada_integer_operation
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedtasking.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedtasking.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/checkedtasking-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.checkedtasking runtime.checkedtasking_modes
+    determinism.checkedtasking PROPERTIES TIMEOUT 60)
