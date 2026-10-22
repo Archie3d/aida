@@ -1172,9 +1172,10 @@ foreach(decimal_case decimalpoint decimalchecks decimalstreams decimaltasking)
         COMMAND ${CMAKE_COMMAND}
             -DADA=$<TARGET_FILE:ada>
             -DADAC=$<TARGET_FILE:adac>
-            -DQBE=${CMAKE_BINARY_DIR}/qbe/qbe
+            -DQBE=${QBE_EXECUTABLE}
             -DCC=${CMAKE_C_COMPILER}
             -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${decimal_case}-modes
