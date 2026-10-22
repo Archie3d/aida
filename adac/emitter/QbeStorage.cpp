@@ -23,8 +23,7 @@ std::string QbeEmitter::allocScratch(long long size, long long alignment)
 {
     std::string temp = newTemp();
     if (size > m_arrayStackLimit) {
-        line(temp + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + std::to_string(size) + ")");
-        emitExceptionCheck();
+        emitCallInstruction(temp + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + std::to_string(size) + ")", CallEffects::CheckException);
         return temp;
     }
     const char* instruction = size <= 4 && alignment <= 4 ? "alloc4" : "alloc8";
@@ -67,14 +66,14 @@ QbeEmitter::StorageCheckpoint QbeEmitter::storageCheckpoint()
 void QbeEmitter::rewindStorage(const StorageCheckpoint& checkpoint, bool checkException)
 {
     if (!checkpoint.m_temporaryFinalization.empty()) {
-        line("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain
-             + ", l " + checkpoint.m_temporaryFinalization + ")");
+        emitCallInstruction("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain
+             + ", l " + checkpoint.m_temporaryFinalization + ")", CallEffects::DeferredCheck);
     }
     if (!checkpoint.m_finalization.empty()) {
-        line("call $__ada_finalize_to(l " + m_context->m_finalizationChain + ", l " + checkpoint.m_finalization + ")");
+        emitCallInstruction("call $__ada_finalize_to(l " + m_context->m_finalizationChain + ", l " + checkpoint.m_finalization + ")", CallEffects::DeferredCheck);
     }
-    line("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.m_temporary + ")");
-    line("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.m_local + ")");
+    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.m_temporary + ")", CallEffects::RuntimeHook);
+    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.m_local + ")", CallEffects::RuntimeHook);
     if (!checkpoint.m_finalization.empty() && checkException) {
         emitExceptionCheck();
     }
@@ -87,9 +86,9 @@ void QbeEmitter::emitBlockExits(std::size_t depth)
     // inner scope before awaiting the next outer scope.
     for (std::size_t i = m_context->m_blockMasters.size(); i > depth; --i) {
         const auto& master = m_context->m_blockMasters[i - 1];
-        line("call $__ada_master_await(l %.taskContext, l " + master.m_record + ")");
+        emitCallInstruction("call $__ada_master_await(l %.taskContext, l " + master.m_record + ")", CallEffects::RuntimeHook);
         rewindStorage(master.m_storage, false);
-        line("call $__ada_master_leave(l %.taskContext, l " + master.m_record + ")");
+        emitCallInstruction("call $__ada_master_leave(l %.taskContext, l " + master.m_record + ")", CallEffects::RuntimeHook);
     }
 }
 
@@ -167,8 +166,8 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
     if (address.m_shared || sharedTypeKind(type) != 0) {
         long long bits = typeSize(type) * 8;
         char rawClass = bits == 64 ? 'l' : 'w';
-        line(temp + " =" + std::string(1, rawClass) + " call $__ada_atomic_load_"
-            + std::to_string(bits) + "(l " + address.name + ")");
+        emitCallInstruction(temp + " =" + std::string(1, rawClass) + " call $__ada_atomic_load_"
+            + std::to_string(bits) + "(l " + address.name + ")", CallEffects::DeferredCheck);
         if (resultType == 's' || resultType == 'd') {
             std::string converted = newTemp();
             line(converted + " =" + std::string(1, resultType) + " cast " + temp);
@@ -218,8 +217,8 @@ void QbeEmitter::storeInto(const Value& address, const Value& position, Type* ty
             raw = newTemp();
             line(raw + " =" + std::string(1, rawClass) + " cast " + value.name);
         }
-        line("call $__ada_atomic_store_" + std::to_string(bits) + "(l " + address.name
-            + ", " + std::string(1, rawClass) + " " + raw + ")");
+        emitCallInstruction("call $__ada_atomic_store_" + std::to_string(bits) + "(l " + address.name
+            + ", " + std::string(1, rawClass) + " " + raw + ")", CallEffects::DeferredCheck);
     } else {
         line(std::string(qbeStoreInstruction(type)) + " " + value.name + ", " + address.name);
     }
@@ -228,8 +227,7 @@ void QbeEmitter::storeInto(const Value& address, const Value& position, Type* ty
 void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* type)
 {
     if (type->m_classRoot != nullptr) {
-        line("call $__ada_tag_check_copy(l " + source.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_tag_check_copy(l " + source.name + ")", CallEffects::CheckException);
         std::string targetTag = newTemp();
         std::string sourceTag = newTemp();
         std::string same = newTemp();
@@ -246,11 +244,11 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         std::string size = newTemp();
         line(sizeSlot + " =l add " + targetTag + ", 8");
         line(size + " =l loadl " + sizeSlot);
-        line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")");
+        emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
         return;
     }
     if (type->kind == TypeKind::Array && !type->constrained) {
-        line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")");
+        emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")", CallEffects::DeferredCheck);
         return;
     }
     long long size = type->m_tagged ? typeSize(type) : typeLayoutSize(type);
@@ -265,12 +263,12 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
             std::string value = newTemp();
             line(target + " =l add " + destination.name + ", 8");
             line(value + " =l add " + source.name + ", 8");
-            line("call $memmove(l " + target + ", l " + value + ", l " + std::to_string(size - 8) + ")");
+            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + std::to_string(size - 8) + ")", CallEffects::DeferredCheck);
         }
         return;
     }
     // Source and destination may refer to overlapping slices of the same array.
-    line("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")");
+    emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")", CallEffects::DeferredCheck);
 }
 
 void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool initialize)
@@ -285,9 +283,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         m_context->m_controllingTag = tag;
         Value source = emitExpr(value);
         m_context->m_controllingTag = saved;
-        line("call $__ada_tagged_assign(l " + address.name + ", l " + source.name
-             + ", l " + m_context->m_temporaryFinalizationChain + ", l " + storageArena(true, true) + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_tagged_assign(l " + address.name + ", l " + source.name
+             + ", l " + m_context->m_temporaryFinalizationChain + ", l " + storageArena(true, true) + ")", CallEffects::CheckException);
         return;
     }
     if (needsFinalization(type)) {
@@ -375,9 +372,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             checkArrayShape(target, type, source, value->type);
             std::string elementSize = arrayElementSize(target, type);
             std::string size = newTemp();
-            line(size + " =l call $__ada_array_size(l " + target.first + ", l " + target.last + ", l " + elementSize + ")");
-            emitExceptionCheck();
-            line("call $memmove(l " + target.name + ", l " + source.name + ", l " + size + ")");
+            emitCallInstruction(size + " =l call $__ada_array_size(l " + target.first + ", l " + target.last + ", l " + elementSize + ")", CallEffects::CheckException);
+            emitCallInstruction("call $memmove(l " + target.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
             return;
         }
         if (!type->constrained) {
@@ -395,9 +391,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             std::string wide = newTemp();
             std::string size = newTemp();
             line(wide + " =l copy " + targetLength.name);
-            line(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + std::to_string(typeSize(type->element)) + ")");
-            emitExceptionCheck();
-            line("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")");
+            emitCallInstruction(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + std::to_string(typeSize(type->element)) + ")", CallEffects::CheckException);
+            emitCallInstruction("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
             return;
         }
         Value source = emitExpr(value);
@@ -519,8 +514,7 @@ Value QbeEmitter::taggedSize(const Value& object)
 
 void QbeEmitter::checkTagLevel(const Value& object, int level)
 {
-    line("call $__ada_tag_check_level(l " + object.name + ", w " + std::to_string(level) + ")");
-    emitExceptionCheck();
+    emitCallInstruction("call $__ada_tag_check_level(l " + object.name + ", w " + std::to_string(level) + ")", CallEffects::CheckException);
 }
 
 void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::string& operation, const std::string& explicitTag)
@@ -565,7 +559,7 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
         line(link + " =l loadl " + linkSlot);
         arguments = "l " + link + ", ";
     }
-    line("call " + code + "(" + arguments + "l " + object.name + ")");
+    emitCallInstruction("call " + code + "(" + arguments + "l " + object.name + ")", CallEffects::DeferredCheck);
 }
 
 void QbeEmitter::emitFinalizer(Type* type)
@@ -576,7 +570,7 @@ void QbeEmitter::emitFinalizer(Type* type)
     FunctionContext* saved = m_context;
     m_context = &context;
     emitControlledCall(Value { "%object", 'l' }, type, "finalize");
-    line("ret");
+    emitReturn();
     context.terminated = true;
     finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
     if (!type->isLimited) {
@@ -585,7 +579,7 @@ void QbeEmitter::emitFinalizer(Type* type)
         adjust.propagateLabel = newLabel("adjustpropagate");
         m_context = &adjust;
         emitControlledCall(Value { "%object", 'l' }, type, "adjust");
-        line("ret");
+        emitReturn();
         adjust.terminated = true;
         finishFunction("export function " + type->m_tagName + ".adjust(l %object)");
     }
@@ -598,7 +592,7 @@ void QbeEmitter::emitFinalizer(Type* type)
         view.propagateLabel = newLabel("viewpropagate");
         m_context = &view;
         emitControlledCall(Value { "%object", 'l' }, type, operation, "%tag");
-        line("ret");
+        emitReturn();
         view.terminated = true;
         finishFunction("export function " + type->m_tagName + ".view_" + operation + "(l %object, l %tag)");
     }
@@ -624,9 +618,8 @@ Value QbeEmitter::enumCode(const Value& position, Type* type)
 {
     if (type->m_enumCodes.empty()) { return position; }
     std::string result = newTemp();
-    line(result + " =w call $__ada_enum_code(w " + position.name + ", l " + enumCodeTableFor(type)
-        + ", w " + std::to_string(type->m_enumCodes.size()) + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result + " =w call $__ada_enum_code(w " + position.name + ", l " + enumCodeTableFor(type)
+        + ", w " + std::to_string(type->m_enumCodes.size()) + ")", CallEffects::CheckException);
     return Value { result, 'w' };
 }
 
@@ -634,9 +627,8 @@ Value QbeEmitter::enumPosition(const Value& code, Type* type)
 {
     if (type->m_enumCodes.empty()) { return code; }
     std::string result = newTemp();
-    line(result + " =w call $__ada_enum_position(w " + code.name + ", l " + enumCodeTableFor(type)
-        + ", w " + std::to_string(type->m_enumCodes.size()) + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result + " =w call $__ada_enum_position(w " + code.name + ", l " + enumCodeTableFor(type)
+        + ", w " + std::to_string(type->m_enumCodes.size()) + ")", CallEffects::CheckException);
     return Value { result, 'w' };
 }
 

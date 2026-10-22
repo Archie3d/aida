@@ -24,9 +24,8 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Delay: {
         auto* delay = static_cast<DelayStmt*>(statement);
         Value value = emitExpr(delay->expression.get());
-        line(std::string("call $__ada_delay_") + (delay->until ? "until" : "relative")
-            + "(l %.taskContext, l " + value.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(std::string("call $__ada_delay_") + (delay->until ? "until" : "relative")
+            + "(l %.taskContext, l " + value.name + ")", CallEffects::CheckException);
         break;
     }
     case StmtKind::Null:
@@ -199,7 +198,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
         }
         if (returnStatement->m_object != nullptr) {
             emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->m_object.get()), returnStatement);
-            line("ret");
+            emitReturn();
         } else if (returnStatement->value && isComposite(resultType)) {
             if (needsFinalization(resultType) || resultType->m_tagged) {
                 emitControlledResult(returnStatement->value.get());
@@ -214,22 +213,21 @@ void QbeEmitter::emitStatement(Stmt* statement)
                     value.innerBounds = target.innerBounds;
                 }
                 std::string elementSize = arrayElementSize(value, resultType);
-                line("call $__ada_array_result(l %.result, l " + value.name + ", l " + value.first
-                     + ", l " + value.last + ", l " + elementSize + ")");
-                emitExceptionCheck();
+                emitCallInstruction("call $__ada_array_result(l %.result, l " + value.name + ", l " + value.first
+                     + ", l " + value.last + ", l " + elementSize + ")", CallEffects::CheckException);
                 storeArrayView("%.result", value, resultType, true);
             } else {
                 assignInto(Value { "%.result", 'l' }, resultType, returnStatement->value.get(), true);
             }
-            line("ret");
+            emitReturn();
         } else if (returnStatement->value) {
             Value value = emitExpr(returnStatement->value.get());
             if (m_context->symbol != nullptr) {
                 emitRangeCheck(value, m_context->symbol->returnType, returnStatement->location);
             }
-            line("ret " + value.name);
+            emitReturn(value.name);
         } else {
-            line("ret");
+            emitReturn();
         }
         m_context->terminated = true;
         break;
@@ -296,11 +294,10 @@ void QbeEmitter::emitStatement(Stmt* statement)
         auto* block = static_cast<BlockStmt*>(statement);
         auto checkpoint = storageCheckpoint();
         std::string master = allocScratch(8);
-        line("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)");
+        emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook);
         m_context->m_blockMasters.push_back({ master, checkpoint });
         emitLocalDeclarations(block->declarations);
-        line("call $__ada_master_activate(l %.taskContext, l " + master + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + master + ")", CallEffects::CheckedRuntimeHook);
         if (block->handlers.empty()) {
             emitStatements(block->body);
         } else {

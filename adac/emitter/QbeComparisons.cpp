@@ -165,8 +165,7 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
     Type* record = baseType(type);
     if (record->m_classRoot != nullptr) {
         std::string result = newTemp();
-        line(result + " =w call $__ada_tagged_equal(l " + left.name + ", l " + right.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(result + " =w call $__ada_tagged_equal(l " + left.name + ", l " + right.name + ")", CallEffects::CheckException);
         return Value { result, 'w' };
     }
     std::string resultSlot = allocScratch(4);

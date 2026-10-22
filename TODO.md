@@ -378,13 +378,15 @@ construction, cleanup and dispatch mechanisms.
 
 ### 6a. Tasking prerequisites
 
-- [ ] Abort-deferral design: a deferral counter in the per-task context,
-  deferred regions for protected actions and finalization, and how abort is
-  detected (polling at completion points, matching explicit exception checks).
-  Apply it to existing finalization paths before 6c, 6e and 6f extend them;
-  make call effects and scope exits explicit through shared emitter helpers
-  first (see the [lowering decision](docs/lowering-decision.md)). Phase 9
-  implements abort itself.
+- [x] Abort-deferral foundation: task-owned nesting counter, balanced protected
+  actions (including entry servicing/queue failures) and existing chain/view
+  finalization paths. Explicit call effects and return insertion points replace
+  textual call/return recognition; shared master exits retain cleanup order.
+  Four-task runtime/Ada, whole/separate and determinism tests (`abortdeferral`,
+  `runtime.abort_deferral`, protected/entry lifecycle); 83 baseline units retain
+  identical IR. [Design and Phase 9 delivery gates](docs/abort-deferral.md).
+  Abort delivery, blocking cancellation, deferred Initialize/whole controlled
+  assignments and master waits remain Phase 9; no abort ACATS pass is claimed.
 - [ ] Shared access-type collections across tasks (moved from Phase 9):
   allocation/deallocation, registry ownership and finalization after all
   dependent tasks terminate. Replaces the Phase 2 owner restriction before the

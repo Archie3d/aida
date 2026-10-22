@@ -133,3 +133,11 @@ Phase 8 closes the standalone lowering-layer item under this decision. The
 feature-owned implementation gates above remain required work in Phases 5, 6
 and 9. Revisit also if a second backend, a concrete optimization pass or a
 generated-access instrumentation design needs an independent representation.
+
+Phase 6a update: [explicit call effects and exits](abort-deferral.md) now replace
+call/return recognition in `line` and `finishFunction`. All body calls use the
+shared call helper; returns record insertion points for one activation-exit plan.
+Lexical master exits share the existing depth-aware helper across transfers.
+The extraction preserved 83 baseline units byte for byte. Runtime deferral now
+covers protected actions and existing finalization paths; Phase 9 delivery gates
+remain explicit in that contract.

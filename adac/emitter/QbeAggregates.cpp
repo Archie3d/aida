@@ -297,9 +297,8 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     std::string buffer = address.name;
     if (buffer.empty() || !needsFinalization(type)) {
         buffer = newTemp();
-        line(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
-             + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")");
-        emitExceptionCheck();
+        emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
+             + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")", CallEffects::CheckException);
         if (needsFinalization(type)) {
             Value object { buffer, 'l', resultFirst, resultLast };
             object.innerBounds = resultShape.innerBounds;
@@ -365,7 +364,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     std::string size = newTemp();
     line(size + " =l mul " + wideLength + ", " + elementSize);
     if (!address.name.empty() && !needsFinalization(type)) {
-        line("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")");
+        emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck);
     }
     Value result { buffer, 'l', resultFirst, resultLast };
     result.innerBounds = resultShape.innerBounds;

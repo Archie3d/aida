@@ -77,6 +77,7 @@ private:
         Symbol* symbol = nullptr;
         std::ostringstream prologue;
         std::ostringstream body;
+        std::vector<std::size_t> m_returnOffsets;
         std::string frameAllocation;
         std::string arrayArena;
         std::string temporaryArena;
@@ -130,6 +131,16 @@ private:
     std::string newTemp();
     std::string newLabel(const char* prefix);
     void line(const std::string& text);
+    enum class CallEffects
+    {
+        DeferredCheck, // Caller must check after its transaction/lock cleanup.
+        CheckException, // Inspect pending status immediately after the call.
+        RuntimeHook, // Keep the triggering location; caller controls checks.
+        CheckedRuntimeHook // Keep the triggering location and check immediately.
+    };
+    void emitCallInstruction(const std::string& instruction, CallEffects effects);
+    void emitReturn(const std::string& operand = "");
+    std::string functionExitActions(const FunctionContext& context);
     std::string sourceLocationData(const SourceLocation& location);
     void label(const std::string& name);
     void jump(const std::string& target);

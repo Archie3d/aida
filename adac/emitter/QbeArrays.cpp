@@ -19,8 +19,7 @@ Value QbeEmitter::wideBound(Value value)
 Value QbeEmitter::narrowArrayLength(Value value)
 {
     std::string narrow = newTemp();
-    line(narrow + " =w call $__ada_array_narrow(l " + value.name + ")");
-    emitExceptionCheck();
+    emitCallInstruction(narrow + " =w call $__ada_array_narrow(l " + value.name + ")", CallEffects::CheckException);
     return Value { narrow, 'w' };
 }
 
@@ -45,9 +44,8 @@ Value QbeEmitter::arrayView(Value value, Type* type)
                 if (bytes <= INT64_MAX) { stride = std::to_string((long long)bytes); continue; }
             }
             std::string bytes = newTemp();
-            line(bytes + " =l call $__ada_array_size(l " + value.axisFirst(i) + ", l " + value.axisLast(i)
-                 + ", l " + stride + ")");
-            emitExceptionCheck();
+            emitCallInstruction(bytes + " =l call $__ada_array_size(l " + value.axisFirst(i) + ", l " + value.axisLast(i)
+                 + ", l " + stride + ")", CallEffects::CheckException);
             stride = bytes;
         }
     }
@@ -89,8 +87,7 @@ void QbeEmitter::storeArrayView(const std::string& descriptor, Value value, Type
     }
     if (result) {
         std::string bytes = newTemp(), empty = newTemp(), padded = newTemp(), slot = newTemp();
-        line(bytes + " =l call $__ada_array_size(l " + value.first + ", l " + value.last + ", l " + value.strides.front() + ")");
-        emitExceptionCheck();
+        emitCallInstruction(bytes + " =l call $__ada_array_size(l " + value.first + ", l " + value.last + ", l " + value.strides.front() + ")", CallEffects::CheckException);
         line(empty + " =w ceql " + bytes + ", 0");
         std::string wideEmpty = wideBound(Value { empty, 'w' }).name;
         line(padded + " =l add " + bytes + ", " + wideEmpty);
@@ -207,10 +204,10 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     std::string pointer = constructedResult ? source.name : newTemp();
     if (!constructedResult) {
         if (type->constrained && typeSize(type) != typeLayoutSize(type)) {
-            line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l 1, l 1, l " + std::to_string(typeSize(type)) + ")");
+            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l 1, l 1, l " + std::to_string(typeSize(type)) + ")", CallEffects::DeferredCheck);
         } else {
-            line(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l " + bounds.first
-                 + ", l " + bounds.last + ", l " + elementSize + ")");
+            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l " + bounds.first
+                 + ", l " + bounds.last + ", l " + elementSize + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
     }
@@ -239,12 +236,11 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     } else if (object->initializer) {
         checkArrayShape(address, type, source, object->initializer->type);
         std::string size = newTemp();
-        line(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + elementSize + ")");
-        emitExceptionCheck();
+        emitCallInstruction(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + elementSize + ")", CallEffects::CheckException);
         if (needsFinalization(type)) {
             copyControlledObject(address, source, type, true);
         } else {
-            line("call $memmove(l " + pointer + ", l " + source.name + ", l " + size + ")");
+            emitCallInstruction("call $memmove(l " + pointer + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
         }
     } else if (hasComponentDefaults(type->element)) {
         emitArrayFill(address, type, nullptr);
@@ -395,8 +391,7 @@ Value QbeEmitter::lengthOf(const Value& array, Type* type)
         if (length <= INT64_MAX) { return constantValue(length < 0 ? 0 : (long long)length, 'l'); }
     }
     std::string length = newTemp();
-    line(length + " =l call $__ada_array_length(l " + array.first + ", l " + array.last + ")");
-    emitExceptionCheck();
+    emitCallInstruction(length + " =l call $__ada_array_length(l " + array.first + ", l " + array.last + ")", CallEffects::CheckException);
     return Value { length, 'l' };
 }
 
@@ -415,9 +410,8 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
     low = wideBound(low);
     high = wideBound(high);
     std::string offset = newTemp(), address = newTemp();
-    line(offset + " =l call $__ada_array_slice_offset(l " + low.name + ", l " + high.name
-         + ", l " + base.first + ", l " + base.last + ", l " + arrayElementSize(base, array) + ")");
-    emitExceptionCheck();
+    emitCallInstruction(offset + " =l call $__ada_array_slice_offset(l " + low.name + ", l " + high.name
+         + ", l " + base.first + ", l " + base.last + ", l " + arrayElementSize(base, array) + ")", CallEffects::CheckException);
     line(address + " =l add " + base.name + ", " + offset);
     return Value { address, 'l', low.name, high.name };
 }
@@ -473,10 +467,9 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     const Operand& right = operands[1];
     std::string shape = allocScratch(sizeof(AdaArrayDimension));
     std::string bytes = newTemp();
-    line(bytes + " =l call $__ada_array_concat_shape(l " + shape + ", l " + left.first + ", l " + left.length.name
+    emitCallInstruction(bytes + " =l call $__ada_array_concat_shape(l " + shape + ", l " + left.first + ", l " + left.length.name
          + ", l " + right.first + ", l " + right.last + ", l " + right.length.name
-         + ", l " + indexFirst + ", l " + indexLast + ", w " + (fixedAncestor ? "1" : "0") + ", l " + stride + ")");
-    emitExceptionCheck();
+         + ", l " + indexFirst + ", l " + indexLast + ", w " + (fixedAncestor ? "1" : "0") + ", l " + stride + ")", CallEffects::CheckException);
     Value result { newTemp(), 'l' };
     std::vector<std::string> fields;
     for (int field = 0; field < 4; ++field) {
@@ -489,9 +482,8 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     result.last = fields[1];
     result.lengths = { fields[2] };
     result.strides = { fields[3] };
-    line(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l "
-         + (expr->type->constrained && typeSize(expr->type) != typeLayoutSize(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l "
+         + (expr->type->constrained && typeSize(expr->type) != typeLayoutSize(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
     bool savedTemporary = m_context->m_initializingTemporary;
     m_context->m_initializingTemporary = true;
     prepareControlledObject(result, expr->type);
@@ -509,9 +501,8 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
         std::string partBytes = stride;
         if (operand.array) {
             partBytes = newTemp();
-            line(partBytes + " =l call $__ada_array_size(l " + operand.first + ", l " + operand.last + ", l " + stride + ")");
-            emitExceptionCheck();
-            line("call $memcpy(l " + destination + ", l " + operand.value.name + ", l " + partBytes + ")");
+            emitCallInstruction(partBytes + " =l call $__ada_array_size(l " + operand.first + ", l " + operand.last + ", l " + stride + ")", CallEffects::CheckException);
+            emitCallInstruction("call $memcpy(l " + destination + ", l " + operand.value.name + ", l " + partBytes + ")", CallEffects::DeferredCheck);
         } else {
             copyElement(Value { destination, 'l' }, operand.value);
         }
@@ -582,10 +573,9 @@ Value QbeEmitter::emitArrayArgument(Expr* argument, ParameterMode mode, std::vec
     ArrayCopyBack copy { actual, view, argument->type, operand->type, argument->location };
     std::string bytes = objectBytes(view, argument->type);
     copy.temporary.name = newTemp();
-    line(copy.temporary.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-         + ", l 1, l 1, l " + (argument->type->constrained ? std::to_string(typeSize(argument->type)) : bytes) + ")");
-    emitExceptionCheck();
-    line("call $memmove(l " + copy.temporary.name + ", l " + actual.name + ", l " + bytes + ")");
+    emitCallInstruction(copy.temporary.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+         + ", l 1, l 1, l " + (argument->type->constrained ? std::to_string(typeSize(argument->type)) : bytes) + ")", CallEffects::CheckException);
+    emitCallInstruction("call $memmove(l " + copy.temporary.name + ", l " + actual.name + ", l " + bytes + ")", CallEffects::DeferredCheck);
     copies.push_back(copy);
     return copy.temporary;
 }
@@ -596,6 +586,6 @@ void QbeEmitter::emitArrayCopyBacks(const std::vector<ArrayCopyBack>& copies)
         Value value = convertArrayBounds(copy.temporary, copy.sourceType, copy.targetType, copy.location);
         checkArrayShape(copy.actual, copy.targetType, value, copy.targetType);
         std::string bytes = objectBytes(copy.actual, copy.targetType);
-        line("call $memmove(l " + copy.actual.name + ", l " + value.name + ", l " + bytes + ")");
+        emitCallInstruction("call $memmove(l " + copy.actual.name + ", l " + value.name + ", l " + bytes + ")", CallEffects::DeferredCheck);
     }
 }

@@ -39,14 +39,14 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Ex
             m_diagnostics.error(location, "internal error: bare raise without an active handler");
             return;
         }
-        line("call $__ada_reraise(l " + m_context->activeExceptions.back() + ")");
+        emitCallInstruction("call $__ada_reraise(l " + m_context->activeExceptions.back() + ")", CallEffects::DeferredCheck);
     } else if (message != nullptr) {
         Value text = emitExpr(message);
         Value length = narrowArrayLength(lengthOf(text, message->type));
-        line("call $__ada_raise_message(l " + exception->exceptionObject + ", l " + text.name
-             + ", w " + length.name + ")");
+        emitCallInstruction("call $__ada_raise_message(l " + exception->exceptionObject + ", l " + text.name
+             + ", w " + length.name + ")", CallEffects::DeferredCheck);
     } else {
-        line("call $__ada_raise(l " + exception->exceptionObject + ")");
+        emitCallInstruction("call $__ada_raise(l " + exception->exceptionObject + ")", CallEffects::DeferredCheck);
     }
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
@@ -136,8 +136,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
         } else {
             occurrence = allocScratch(typeSize(m_sema.exceptionOccurrenceType()));
         }
-        line("call $__ada_exception_capture(l " + occurrence + ", l " + storageArena(false, true) + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_exception_capture(l " + occurrence + ", l " + storageArena(false, true) + ")", CallEffects::CheckException);
         m_context->activeExceptions.push_back(occurrence);
         emitStatements(handlers[i].body);
         m_context->activeExceptions.pop_back();
@@ -294,7 +293,7 @@ void QbeEmitter::checkNotNull(const Value& pointer)
 
 void QbeEmitter::raiseConstraintError()
 {
-    line("call $__ada_raise(l $__ada_exc_constraint_error)");
+    emitCallInstruction("call $__ada_raise(l $__ada_exc_constraint_error)", CallEffects::DeferredCheck);
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
     } else {

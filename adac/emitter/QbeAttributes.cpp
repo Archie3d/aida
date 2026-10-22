@@ -16,7 +16,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     // entry body uses this same identity (the RM C.7.1 bounded-error choice).
     if (name == "caller") {
         std::string identity = newTemp();
-        line(identity + " =l call $__ada_current_task()");
+        emitCallInstruction(identity + " =l call $__ada_current_task()", CallEffects::DeferredCheck);
         return Value { identity, 'l' };
     }
     if (expr->m_taskAttribute) {
@@ -29,23 +29,21 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 checkNotNull(object);
             }
             std::string result = newTemp();
-            line(result + " =l call $__ada_task_identity(l " + object.name + ")");
-            emitExceptionCheck();
+            emitCallInstruction(result + " =l call $__ada_task_identity(l " + object.name + ")", CallEffects::CheckException);
             identity = Value { result, 'l' };
         }
         if (name == "identity") {
             return identity;
         }
         std::string result = newTemp();
-        line(result + " =w call $__ada_task_is_" + name + "(l " + identity.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(result + " =w call $__ada_task_is_" + name + "(l " + identity.name + ")", CallEffects::CheckException);
         return Value { result, 'w' };
     }
     if (name == "count") {
         Value object = addressOf(expr->m_protectedReceiver);
         std::string count = newTemp();
-        line(count + " =w call $__ada_protected_count(l " + object.name
-            + ", l " + expr->m_countEntry->qbeName + ".barrier)");
+        emitCallInstruction(count + " =w call $__ada_protected_count(l " + object.name
+            + ", l " + expr->m_countEntry->qbeName + ".barrier)", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'l') {
             std::string wide = newTemp();
             line(wide + " =l extsw " + count);
@@ -80,15 +78,15 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value value = emitExpr(argument);
         std::string result = newTemp();
         if (argument->type->kind == TypeKind::Fixed) {
-            line(result + " =l call $__ada_fixed_rescale(l " + value.name + ", w "
-                + std::to_string(argument->type->m_fixedScale) + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
+            emitCallInstruction(result + " =l call $__ada_fixed_rescale(l " + value.name + ", w "
+                + std::to_string(argument->type->m_fixedScale) + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
         } else {
             if (value.type == 's') {
                 std::string wide = newTemp();
                 line(wide + " =d exts " + value.name);
                 value = Value { wide, 'd' };
             }
-            line(result + " =l call $__ada_float_to_fixed(d " + value.name + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
+            emitCallInstruction(result + " =l call $__ada_float_to_fixed(d " + value.name + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
         return Value { result, 'l' };
@@ -96,8 +94,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "fore" && prefixType->kind == TypeKind::Fixed) {
         Value bounds = scalarBounds(prefixType);
         std::string result = newTemp();
-        line(result + " =l call $__ada_fixed_fore(l " + bounds.first + ", l " + bounds.last
-            + ", w " + std::to_string(prefixType->m_fixedScale) + ")");
+        emitCallInstruction(result + " =l call $__ada_fixed_fore(l " + bounds.first + ", l " + bounds.last
+            + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -110,8 +108,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value right = emitExpr(expr->arguments[1].get());
         std::string result = newTemp();
         Value a = wideBound(left), b = wideBound(right);
-        line(result + " =l call $" + (prefixType->kind == TypeKind::Fixed ? "__ada_fixed_minmax" : "__ada_modular_minmax") + "(l " + a.name + ", l " + b.name
-            + ", w " + (name == "min" ? "0" : "1") + ")");
+        emitCallInstruction(result + " =l call $" + (prefixType->kind == TypeKind::Fixed ? "__ada_fixed_minmax" : "__ada_modular_minmax") + "(l " + a.name + ", l " + b.name
+            + ", w " + (name == "min" ? "0" : "1") + ")", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -123,8 +121,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Expr* argument = expr->arguments.front().get();
         Value value = wideBound(emitExpr(argument));
         std::string result = newTemp();
-        line(result + " =l call $__ada_modular_reduce(l " + value.name + ", w "
-            + (argument->type->m_modulus != 0 ? "1" : "0") + ", l " + scalarText(prefixType->m_modulus) + ")");
+        emitCallInstruction(result + " =l call $__ada_modular_reduce(l " + value.name + ", w "
+            + (argument->type->m_modulus != 0 ? "1" : "0") + ", l " + scalarText(prefixType->m_modulus) + ")", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -190,8 +188,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             raiseConstraintError();
             label(good);
             std::string result = newTemp();
-            line(result + " =" + value.type + " call $" + (value.type == 's' ? "nextafterf" : "nextafter")
-                + "(" + value.type + " " + value.name + ", " + value.type + " " + bound + ")");
+            emitCallInstruction(result + " =" + value.type + " call $" + (value.type == 's' ? "nextafterf" : "nextafter")
+                + "(" + value.type + " " + value.name + ", " + value.type + " " + bound + ")", CallEffects::DeferredCheck);
             return Value { result, value.type };
         }
         if (prefixType->m_modulus != 0) {
@@ -217,23 +215,23 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         std::string length = newTemp();
         std::string destination = "l " + buffer + ", w " + std::to_string(capacity) + ", ";
         if (base != nullptr && base->kind == TypeKind::Fixed) {
-            line(length + " =w call $__ada_image_fixed(" + destination + "l " + value.name + ", w "
-                 + std::to_string(base->m_fixedScale) + ", w " + std::to_string(base->m_fixedAft) + ")");
+            emitCallInstruction(length + " =w call $__ada_image_fixed(" + destination + "l " + value.name + ", w "
+                 + std::to_string(base->m_fixedScale) + ", w " + std::to_string(base->m_fixedAft) + ")", CallEffects::DeferredCheck);
         } else if (isFloatClass(value.type)) {
             std::string wide = widenToDouble(value);
-            line(length + " =w call $__ada_image_float(" + destination + "d " + wide + ", w "
-                 + std::to_string(defaultAft(prefixType)) + ", w 3)");
+            emitCallInstruction(length + " =w call $__ada_image_float(" + destination + "d " + wide + ", w "
+                 + std::to_string(defaultAft(prefixType)) + ", w 3)", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
-            line(length + " =w call $__ada_image_enum(" + destination + "w " + value.name + ", l "
-                 + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");
+            emitCallInstruction(length + " =w call $__ada_image_enum(" + destination + "w " + value.name + ", l "
+                 + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
-            line(length + " =w call $__ada_image_character(" + destination + "w " + value.name + ")");
+            emitCallInstruction(length + " =w call $__ada_image_character(" + destination + "w " + value.name + ")", CallEffects::DeferredCheck);
         } else if (base->m_modulus != 0) {
             Value wide = wideBound(value);
-            line(length + " =w call $__ada_image_modular(" + destination + "l " + wide.name + ")");
+            emitCallInstruction(length + " =w call $__ada_image_modular(" + destination + "l " + wide.name + ")", CallEffects::DeferredCheck);
         } else {
-            line(length + " =w call $" + (value.type == 'l' ? "__ada_image_long_integer(" : "__ada_image_integer(")
-                 + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")");
+            emitCallInstruction(length + " =w call $" + (value.type == 'l' ? "__ada_image_long_integer(" : "__ada_image_integer(")
+                 + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
         return Value { buffer, 'l', "1", wideBound(Value { length, 'w' }).name };
@@ -260,9 +258,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         std::string text = newTemp();
         std::string length = newTemp();
         std::string count = newTemp();
-        line(text + " =l call $__ada_tag_name(l " + tag.name + ")");
-        emitExceptionCheck();
-        line(length + " =l call $strlen(l " + text + ")");
+        emitCallInstruction(text + " =l call $__ada_tag_name(l " + tag.name + ")", CallEffects::CheckException);
+        emitCallInstruction(length + " =l call $strlen(l " + text + ")", CallEffects::DeferredCheck);
         line(count + " =l copy " + length);
         return Value { text, 'l', "1", count };
     }
@@ -312,30 +309,30 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         if (base != nullptr && base->kind == TypeKind::Float) {
             char precision = qbeClass(expr->type);
             std::string helper = precision == 's' ? "__ada_value_real_f32" : "__ada_value_real";
-            line(temp + " =" + precision + " call $" + helper + "(l " + text.name + ", w " + length.name + ")");
+            emitCallInstruction(temp + " =" + precision + " call $" + helper + "(l " + text.name + ", w " + length.name + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Fixed) {
-            line(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
-                 + ", w " + std::to_string(base->m_fixedScale) + ", l -9223372036854775808, l 9223372036854775807)");
+            emitCallInstruction(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
+                 + ", w " + std::to_string(base->m_fixedScale) + ", l -9223372036854775808, l 9223372036854775807)", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
-            line(temp + " =w call $__ada_value_enum(l " + text.name + ", w " + length.name + ", l "
-                 + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")");
+            emitCallInstruction(temp + " =w call $__ada_value_enum(l " + text.name + ", w " + length.name + ", l "
+                 + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             // Character, whose values are named by their spelling.
-            line(temp + " =w call $__ada_value_character(l " + text.name + ", w " + length.name + ")");
+            emitCallInstruction(temp + " =w call $__ada_value_character(l " + text.name + ", w " + length.name + ")", CallEffects::DeferredCheck);
         } else if (base->m_modulus != 0) {
-            line(temp + " =l call $__ada_value_modular(l " + text.name + ", w " + length.name
-                + ", l " + scalarText(base->m_modulus) + ")");
+            emitCallInstruction(temp + " =l call $__ada_value_modular(l " + text.name + ", w " + length.name
+                + ", l " + scalarText(base->m_modulus) + ")", CallEffects::DeferredCheck);
             if (qbeClass(prefixType) == 'w') {
                 std::string narrow = newTemp();
                 line(narrow + " =w copy " + temp);
                 temp = narrow;
             }
         } else if (qbeClass(prefixType) == 'l') {
-            line(temp + " =l call $__ada_value_long_integer(l " + text.name + ", w " + length.name + ", l "
-                 + bounds.first + ", l " + bounds.last + ")");
+            emitCallInstruction(temp + " =l call $__ada_value_long_integer(l " + text.name + ", w " + length.name + ", l "
+                 + bounds.first + ", l " + bounds.last + ")", CallEffects::DeferredCheck);
         } else {
-            line(temp + " =w call $__ada_value_integer(l " + text.name + ", w " + length.name + ", w "
-                 + bounds.first + ", w " + bounds.last + ")");
+            emitCallInstruction(temp + " =w call $__ada_value_integer(l " + text.name + ", w " + length.name + ", w "
+                 + bounds.first + ", w " + bounds.last + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
         if (base->m_modulus == 0 && base->kind != TypeKind::Float && prefixType->m_scalarBoundsSymbol != nullptr) {
@@ -417,9 +414,8 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             Value value = emitExpr(expr->arguments[1].get());
             storeInto(slot, value, prefixType);
         }
-        line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write")
-            + "(l " + stream.name + ", l " + slot.name + ", l " + std::to_string(size) + ")");
-        emitExceptionCheck();
+        emitCallInstruction(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write")
+            + "(l " + stream.name + ", l " + slot.name + ", l " + std::to_string(size) + ")", CallEffects::CheckException);
         if (reading) {
             Value value = loadFrom(slot, prefixType);
             emitRangeCheck(value, targetType, expr->location);
@@ -432,9 +428,8 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     if (name == "input") {
         if (isUnconstrainedArray(prefixType)) {
             std::string descriptor = allocScratch(adaArrayResultSize(1));
-            line("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", l "
-                 + std::to_string(typeSize(prefixType->element)) + ")");
-            emitExceptionCheck();
+            emitCallInstruction("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", l "
+                 + std::to_string(typeSize(prefixType->element)) + ")", CallEffects::CheckException);
             Value result = consumeArrayResult(descriptor, 1, true);
             return convertArrayBounds(result, prefixType, prefixType, expr->location);
         }
@@ -442,8 +437,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         long long size = typeSize(prefixType);
         std::string slot = allocScratch(size < 1 ? 1 : size, typeAlignment(prefixType));
         long long streamSize = prefixType->kind == TypeKind::Array ? typeLayoutSize(prefixType) : size;
-        line("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(streamSize) + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(streamSize) + ")", CallEffects::CheckException);
 
         Value address { slot, 'l' };
         if (isComposite(prefixType)) {
@@ -483,15 +477,13 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         }
         Value length = lengthOf(address, type);
         std::string bytes = newTemp();
-        line(bytes + " =l call $__ada_array_size(l " + address.first + ", l " + address.last
-             + ", l " + arrayElementSize(address, type) + ")");
-        emitExceptionCheck();
+        emitCallInstruction(bytes + " =l call $__ada_array_size(l " + address.first + ", l " + address.last
+             + ", l " + arrayElementSize(address, type) + ")", CallEffects::CheckException);
         size = bytes;
 
         if (name == "output" && isUnconstrainedArray(prefixType)) {
-            line("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.first + ", l "
-                 + address.last + ")");
-            emitExceptionCheck();
+            emitCallInstruction("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.first + ", l "
+                 + address.last + ")", CallEffects::CheckException);
         }
     }
 
@@ -504,9 +496,8 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
         address = Value { allocScratch(typeSize(type)), 'l' };
     }
-    line(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
-         + ", l " + address.name + ", l " + size + ")");
-    emitExceptionCheck();
+    emitCallInstruction(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
+         + ", l " + address.name + ", l " + size + ")", CallEffects::CheckException);
     if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
         Value value = loadFrom(address, type);
         emitRangeCheck(value, type, expr->location);

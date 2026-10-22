@@ -128,7 +128,16 @@ typedef struct AdaTaskContext
     struct AdaMasterState* taskMasters;
     struct AdaTaskState* taskSelf;
     AdaProtectedAction* protectedActions;
+    /* Task-owned nesting depth; cross-task abort requests belong to the
+       synchronized task state when abort is implemented in Phase 9. */
+    unsigned int abortDeferralDepth;
 } AdaTaskContext;
+
+/* Internal balanced regions. These never deliver abort or replace a pending
+   exception; the outermost leave only makes the next completion point eligible.
+   Misbalanced regions are runtime invariant failures. See docs/abort-deferral.md. */
+void __ada_abort_defer(AdaTaskContext* context);
+void __ada_abort_undefer(AdaTaskContext* context);
 
 /* Generated-code ABI: pending exception at offset zero. Subprograms cache the
    context returned by trace entry; binder entry uses __ada_task_context. */

@@ -14,7 +14,7 @@ void QbeEmitter::emitTypeTag(Type* type)
         context.traceName = type->name + " protected finalization";
         FunctionContext* saved = m_context;
         m_context = &context;
-        line("call $__ada_protected_destroy(l %object)");
+        emitCallInstruction("call $__ada_protected_destroy(l %object)", CallEffects::DeferredCheck);
         finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
         m_context = saved;
         return;
@@ -74,7 +74,7 @@ void QbeEmitter::emitTypeTag(Type* type)
     FunctionContext* saved = m_context;
     m_context = &equality;
     Value result = comparePrimitiveRecord(Value { "%left", 'l' }, Value { "%right", 'l' }, type);
-    line("ret " + result.name);
+    emitReturn(result.name);
     equality.terminated = true;
     finishFunction("export function w " + type->m_tagName + ".equal(l %.link, l %left, l %right)");
     m_context = saved;
@@ -281,8 +281,7 @@ void QbeEmitter::emitElaborationCheck(Symbol* symbol)
     std::string unelaborated = newLabel("unelaborated");
     branch(Value { ready, 'w' }, elaborated, unelaborated);
     label(unelaborated);
-    line("call $__ada_raise(l $__ada_exc_program_error)");
-    emitExceptionCheck();
+    emitCallInstruction("call $__ada_raise(l $__ada_exc_program_error)", CallEffects::CheckException);
     jump(elaborated);
     label(elaborated);
 }
@@ -389,9 +388,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 } else {
                     std::string slot = "%v." + symbol->name + "." + std::to_string(m_tempCounter++);
                     if (size > m_arrayStackLimit) {
-                        line(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
-                             + ", l 1, l 1, l " + std::to_string(size) + ")");
-                        emitExceptionCheck();
+                        emitCallInstruction(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
+                             + ", l 1, l 1, l " + std::to_string(size) + ")", CallEffects::CheckException);
                     } else {
                         m_context->prologue << "    " << slot << " =l " << (size <= 4 && typeAlignment(symbol->type) <= 4 ? "alloc4" : "alloc8") << " "
                                             << size << "\n";
@@ -407,7 +405,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                         // opens it, so its storage cannot be left as it was
                         // found.
                         Value slot = addressOf(symbol);
-                        line("call $memset(l " + slot.name + ", w 0, l " + std::to_string(size) + ")");
+                        emitCallInstruction("call $memset(l " + slot.name + ", w 0, l " + std::to_string(size) + ")", CallEffects::DeferredCheck);
                     }
                     emitDefaultInit(addressOf(symbol), symbol->type);
                 }
@@ -442,8 +440,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             emitLocalDeclarations(package->publicPart);
             emitLocalDeclarations(package->privatePart);
             if (package->symbol->m_containsTasks && !package->symbol->hasBody) {
-                line("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")");
-                emitExceptionCheck();
+                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
             }
             m_context->m_taskGroup = savedGroup;
             break;
@@ -460,8 +457,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             }
             emitLocalDeclarations(package->declarations);
             if (package->symbol->m_containsTasks) {
-                line("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")");
-                emitExceptionCheck();
+                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
             }
             m_context->m_taskGroup = savedGroup;
             if (package->handlers.empty()) {
@@ -493,9 +489,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     }
     if (!m_context->terminated) {
         if (!finalizationMark.empty()) {
-            line("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain + ", l " + finalizationMark + ")");
+            emitCallInstruction("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain + ", l " + finalizationMark + ")", CallEffects::DeferredCheck);
         }
-        line("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")");
+        emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")", CallEffects::RuntimeHook);
         if (!finalizationMark.empty()) {
             emitExceptionCheck();
         }
@@ -582,8 +578,8 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
     if (symbol->isGlobal && hasLimitedControlledParts(type)) {
         m_context->m_constructionOwner = newTemp();
         m_context->m_constructionArena = newTemp();
-        line(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)");
-        line(m_context->m_constructionArena + " =l call $__ada_construction_arena(l 0)");
+        emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
+        emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
     }
     if (!needsFinalization(type) && symbol->m_genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
@@ -649,8 +645,7 @@ void QbeEmitter::initializeTypeTag(Type* type)
         return;
     }
     if (type->m_tagOwner == nullptr) {
-        line("call $__ada_tag_register(l " + type->m_tagName + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_tag_register(l " + type->m_tagName + ")", CallEffects::CheckException);
         return;
     }
     if (type->m_tagOffset >= 0) {
@@ -661,9 +656,8 @@ void QbeEmitter::initializeTypeTag(Type* type)
     std::string tag = newTemp();
     std::string parent = type->m_parentType == nullptr ? "0" : typeTag(type->m_parentType).name;
     line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->m_tagOffset));
-    line(tag + " =l call $__ada_tag_create(l " + type->m_tagName + ", l " + parent
-         + ", l " + m_context->frameTemp + ")");
-    emitExceptionCheck();
+    emitCallInstruction(tag + " =l call $__ada_tag_create(l " + type->m_tagName + ", l " + parent
+         + ", l " + m_context->frameTemp + ")", CallEffects::CheckException);
     line("storel " + tag + ", " + slot);
     std::string tableSlot = newTemp();
     std::string table = newTemp();
@@ -693,19 +687,17 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
         if (symbol->isGlobal) {
             owner = newTemp();
             arena = newTemp();
-            line(owner + " =l call $__ada_construction_owner(l 0)");
-            line(arena + " =l call $__ada_construction_arena(l 0)");
+            emitCallInstruction(owner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
+            emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
         }
         m_context->m_resultTargetOwner = owner;
         m_context->m_resultTargetArena = arena;
     }
     Value source = emitExpr(object->initializer.get());
-    line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->m_accessibilityLevel) + ")");
-    emitExceptionCheck();
+    emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->m_accessibilityLevel) + ")", CallEffects::CheckException);
     std::string pointer = limited ? source.name : newTemp();
     if (!limited) {
-        line(pointer + " =l call $__ada_tagged_owned_copy(l " + owner + ", l " + arena + ", l " + source.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(pointer + " =l call $__ada_tagged_owned_copy(l " + owner + ", l " + arena + ", l " + source.name + ")", CallEffects::CheckException);
     }
     std::string slot;
     if (symbol->isGlobal) {

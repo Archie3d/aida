@@ -25,12 +25,14 @@ typedef struct Worker
 
 static int canPut(void* link, void* object)
 {
+    CHECK(__ada_task_context()->abortDeferralDepth > 0);
     CHECK(link == object);
     return !((Buffer*)object)->full;
 }
 
 static int canGet(void* link, void* object)
 {
+    CHECK(__ada_task_context()->abortDeferralDepth > 0);
     CHECK(link == object);
     return ((Buffer*)object)->full;
 }
@@ -62,6 +64,7 @@ static void* exchange(void* argument)
         __ada_protected_entry_enter(&context, &buffer->lock, &action,
             worker->producer ? canPut : canGet, buffer);
         CHECK(context.exception == NULL && context.protectedActions == &action);
+        CHECK(context.abortDeferralDepth == 1);
         if (worker->producer) {
             buffer->value = i;
             buffer->full = 1;
@@ -71,6 +74,7 @@ static void* exchange(void* argument)
         }
         __ada_protected_complete(&context, &action);
         CHECK(context.exception == NULL && context.protectedActions == NULL);
+        CHECK(context.abortDeferralDepth == 0);
     }
     CHECK(__ada_task_context_dispose(&context));
     return NULL;
@@ -86,6 +90,7 @@ static void* failQueued(void* argument)
     __ada_protected_entry_enter(&context, &buffer->lock, &action,
         worker->producer ? brokenBarrier : closedBarrier, buffer);
     CHECK(context.exception == ADA_PROGRAM_ERROR && context.protectedActions == NULL);
+    CHECK(context.abortDeferralDepth == 0);
     CHECK(__ada_task_context_dispose(&context));
     return NULL;
 }

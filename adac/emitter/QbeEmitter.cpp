@@ -109,24 +109,43 @@ std::string QbeEmitter::newLabel(const char* prefix)
 
 void QbeEmitter::line(const std::string& text)
 {
-    if (text == "ret" || text.starts_with("ret ")) {
-        emitBlockExits(0);
-    }
     if (m_context->terminated) {
         m_context->body << newLabel("unreachable") << "\n";
         m_context->terminated = false;
     }
-    // All potentially raising calls use the active AST location. Centralizing
-    // this also covers imported routines and compiler-generated check helpers.
-    bool call = text.starts_with("call ") || text.find(" call ") != std::string::npos;
-    bool cleanup = text.find("$__ada_array_rewind(") != std::string::npos
-        || text.find("$__ada_array_release(") != std::string::npos
-        || text.find("$__ada_master_") != std::string::npos;
-    if (call && !cleanup && m_context->sourceLocation.line > 0) {
+    m_context->body << "    " << text << "\n";
+}
+
+// Call effects are chosen at the emission site, never inferred from QBE text.
+// Some calls deliberately defer the exception check until a protected action
+// has released its resource or a construction transaction has been cleaned up.
+void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects effects)
+{
+    if (m_context->terminated) {
+        label(newLabel("unreachable"));
+    }
+    bool publishLocation = effects == CallEffects::DeferredCheck || effects == CallEffects::CheckException;
+    if (publishLocation && m_context->sourceLocation.line > 0) {
         m_context->body << "    storel " << sourceLocationData(m_context->sourceLocation)
                         << ", %.traceLocation\n";
     }
-    m_context->body << "    " << text << "\n";
+    line(instruction);
+    if (effects == CallEffects::CheckException || effects == CallEffects::CheckedRuntimeHook) {
+        emitExceptionCheck();
+    }
+}
+
+void QbeEmitter::emitReturn(const std::string& operand)
+{
+    emitBlockExits(0);
+    if (m_context->terminated) {
+        label(newLabel("unreachable"));
+    }
+    // Activation resources are only all known once every branch is emitted.
+    // Record the insertion point explicitly for finishFunction's exit actions.
+    m_context->m_returnOffsets.push_back(static_cast<std::size_t>(m_context->body.tellp()));
+    line(operand.empty() ? "ret" : "ret " + operand);
+    m_context->terminated = true;
 }
 
 std::string QbeEmitter::sourceLocationData(const SourceLocation& location)

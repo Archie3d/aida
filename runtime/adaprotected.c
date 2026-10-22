@@ -149,6 +149,7 @@ void __ada_protected_enter(AdaTaskContext* context, void** object, AdaProtectedA
             return;
         }
     }
+    __ada_abort_defer(context);
     __ada_mutex_lock(&lock->mutex);
     while (lock->servicing) {
         waitForChange(lock);
@@ -167,6 +168,7 @@ void __ada_protected_leave(AdaTaskContext* context, AdaProtectedAction* action)
     context->protectedActions = action->previous;
     AdaProtectedLock* lock = action->lock;
     __ada_mutex_unlock(&lock->mutex);
+    __ada_abort_undefer(context);
 }
 
 void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
@@ -205,6 +207,7 @@ void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
     *tail = &waiter;
     serviceQueue(context, lock);
     context->protectedActions = action->previous;
+    __ada_abort_undefer(context);
     while (waiter.ready == 0) {
         waitForChange(lock);
     }
@@ -213,6 +216,7 @@ void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
+    __ada_abort_defer(context);
     context->protectedActions = action;
 }
 
@@ -239,6 +243,7 @@ void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* actio
         notify(lock);
     }
     __ada_mutex_unlock(&lock->mutex);
+    __ada_abort_undefer(context);
 }
 
 int __ada_protected_count(void** object, AdaProtectedBarrier barrier)

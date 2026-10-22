@@ -30,8 +30,10 @@ static void* update(void* argument)
         AdaProtectedAction action;
         __ada_protected_enter(&context, &worker->object->lock, &action);
         CHECK(context.exception == NULL && context.protectedActions == &action);
+        CHECK(context.abortDeferralDepth == 1);
         ++worker->object->value;
         __ada_protected_leave(&context, &action);
+        CHECK(context.abortDeferralDepth == 0);
     }
     CHECK(__ada_task_context_dispose(&context));
     return NULL;
@@ -90,9 +92,12 @@ int main(void)
     __ada_protected_enter(&context, &first.lock, &inner);
     CHECK(context.exception == &__ada_exc_program_error && context.protectedActions == &outer);
     __ada_raise_message(&__ada_exc_constraint_error, "preserved", 9);
+    CHECK(context.abortDeferralDepth == 1);
     __ada_protected_enter(&context, &second.lock, &inner);
+    CHECK(context.abortDeferralDepth == 2);
     __ada_protected_leave(&context, &inner);
     __ada_protected_leave(&context, &outer);
+    CHECK(context.abortDeferralDepth == 0);
     CHECK(context.exception == &__ada_exc_constraint_error && context.pendingMessageLength == 9);
     CHECK(memcmp(context.pendingMessage, "preserved", 9) == 0 && context.protectedActions == NULL);
     __ada_protected_destroy(&first.lock);

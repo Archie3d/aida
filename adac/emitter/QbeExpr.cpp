@@ -172,9 +172,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 Value converted = convertArrayBounds(value, operand->type, expr->type, expr->location);
                 std::string bytes = objectBytes(converted, expr->type);
                 converted.name = newTemp();
-                line(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-                     + ", l 1, l 1, l " + (expr->type->constrained ? std::to_string(typeSize(expr->type)) : bytes) + ")");
-                emitExceptionCheck();
+                emitCallInstruction(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+                     + ", l 1, l 1, l " + (expr->type->constrained ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
                 if (needsFinalization(expr->type)) {
                     bool saved = m_context->m_initializingTemporary;
                     m_context->m_initializingTemporary = true;
@@ -182,7 +181,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     m_context->m_initializingTemporary = saved;
                     copyControlledObject(converted, value, expr->type, true);
                 } else {
-                    line("call $memmove(l " + converted.name + ", l " + value.name + ", l " + bytes + ")");
+                    emitCallInstruction("call $memmove(l " + converted.name + ", l " + value.name + ", l " + bytes + ")", CallEffects::DeferredCheck);
                 }
                 return converted;
             }
@@ -212,11 +211,11 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     Value wide = wideBound(value);
                     std::string converted = newTemp();
                     if (operand->type->m_modulus != 0) {
-                        line(converted + " =l call $__ada_modular_to_fixed(l " + wide.name
-                            + ", w " + std::to_string(expr->type->m_fixedScale) + ")");
+                        emitCallInstruction(converted + " =l call $__ada_modular_to_fixed(l " + wide.name
+                            + ", w " + std::to_string(expr->type->m_fixedScale) + ")", CallEffects::DeferredCheck);
                     } else {
-                        line(converted + " =l call $__ada_fixed_numeric_operation(w 2, l " + wide.name
-                            + ", w " + std::to_string(operand->type->m_fixedScale) + ", l 1, w 0, w 1)");
+                        emitCallInstruction(converted + " =l call $__ada_fixed_numeric_operation(w 2, l " + wide.name
+                            + ", w " + std::to_string(operand->type->m_fixedScale) + ", l 1, w 0, w 1)", CallEffects::DeferredCheck);
                     }
                     emitExceptionCheck();
                     Value result { converted, 'l' };
@@ -237,12 +236,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                         wide = newTemp();
                         line(wide + " =d exts " + value.name);
                     }
-                    line(result + " =l call $__ada_float_to_fixed(d " + wide + ", w " + std::to_string(toBits) + ")");
-                    emitExceptionCheck();
+                    emitCallInstruction(result + " =l call $__ada_float_to_fixed(d " + wide + ", w " + std::to_string(toBits) + ")", CallEffects::CheckException);
                 } else if (isFloatClass(to)) {
-                    line(result + " =d call $__ada_fixed_real_operation(w 2, l " + value.name
-                        + ", w " + std::to_string(fromBits) + ", l 1, w 0, w " + (to == 's' ? "24" : "53") + ")");
-                    emitExceptionCheck();
+                    emitCallInstruction(result + " =d call $__ada_fixed_real_operation(w 2, l " + value.name
+                        + ", w " + std::to_string(fromBits) + ", l 1, w 0, w " + (to == 's' ? "24" : "53") + ")", CallEffects::CheckException);
                     if (to == 's') {
                         std::string narrow = newTemp();
                         line(narrow + " =s truncd " + result);
@@ -254,9 +251,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                         wide = newTemp();
                         line(wide + " =l extsw " + value.name);
                     }
-                    line(result + " =l call $__ada_fixed_rescale(l " + wide + ", w " + std::to_string(fromBits)
-                        + ", w " + std::to_string(toBits) + ")");
-                    emitExceptionCheck();
+                    emitCallInstruction(result + " =l call $__ada_fixed_rescale(l " + wide + ", w " + std::to_string(fromBits)
+                        + ", w " + std::to_string(toBits) + ")", CallEffects::CheckException);
                 }
                 Value converted { result, isFloatClass(to) ? to : 'l' };
                 emitRangeCheck(converted, expr->type, expr->location);
@@ -285,8 +281,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     line(wide + " =d exts " + value.name);
                 }
                 std::string rounded = newTemp();
-                line(rounded + " =l call $" + (expr->type->m_modulus != 0 ? "__ada_round_to_modular" : "__ada_round_to_integer") + "(d " + wide + ")");
-                emitExceptionCheck();
+                emitCallInstruction(rounded + " =l call $" + (expr->type->m_modulus != 0 ? "__ada_round_to_modular" : "__ada_round_to_integer") + "(d " + wide + ")", CallEffects::CheckException);
                 emitRangeCheck(Value { rounded, 'l' }, expr->type, expr->location);
                 line(temp + " =" + std::string(1, to) + " copy " + rounded);
             } else {
@@ -462,9 +457,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
             for (Expr* argument : call->resolvedArguments) {
                 Value index = wideBound(emitExpr(argument));
                 std::string offset = newTemp(), next = newTemp();
-                line(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
-                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")");
-                emitExceptionCheck();
+                emitCallInstruction(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
+                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")", CallEffects::CheckException);
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
                 axis = arrayRow(axis, dimension);
@@ -493,24 +487,21 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
     if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
-        line(pending + " =l call $__ada_collection_begin(l " + collection.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
         std::string failed = newLabel("limitedallocationfailed");
         std::string ready = newLabel("limitedallocationready");
         pushHandler(failed);
         m_context->m_resultTargetOwner = newTemp();
         m_context->m_resultTargetArena = newTemp();
-        line(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")");
-        line(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")");
+        emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
+        emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
         Value source = emitExpr(expr->value.get());
-        line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")");
-        emitExceptionCheck();
-        line("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")", CallEffects::CheckException);
         m_context->handlerLabels.pop_back();
         jump(ready);
         label(failed);
-        line("call $__ada_collection_abort(l " + pending + ")");
+        emitCallInstruction("call $__ada_collection_abort(l " + pending + ")", CallEffects::DeferredCheck);
         if (!m_context->handlerLabels.empty()) {
             jump(m_context->handlerLabels.back());
         } else {
@@ -522,29 +513,24 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
     }
     if (designated->m_classRoot != nullptr) {
         Value source = emitExpr(expr->value.get());
-        line("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
-        line(object.name + " =l call $__ada_tagged_allocation(l " + collection.name + ", l " + source.name + ")");
-        emitExceptionCheck();
-        line("call $__ada_collection_activate(l " + collection.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction(object.name + " =l call $__ada_tagged_allocation(l " + collection.name + ", l " + source.name + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_collection_activate(l " + collection.name + ")", CallEffects::CheckException);
         return object;
     }
     if ((needsFinalization(designated) || hasTasks(designated)) && designated->m_classRoot == nullptr) {
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
-        line(object.name + " =l call $__ada_collection_allocate(l " + collection.name
-             + ", l " + std::to_string(size) + ")");
-        emitExceptionCheck();
+        emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
+             + ", l " + std::to_string(size) + ")", CallEffects::CheckException);
         std::string failed = newLabel("allocationfailed");
         std::string ready = newLabel("allocationready");
         pushHandler(failed);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
-            line("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
-                 + ", l " + rootType(partType)->m_tagName + ".finalize)");
-            emitExceptionCheck();
+            emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
+                 + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
         });
         std::string savedTaskCollection = m_context->m_taskCollection;
         std::string savedTaskGroup = m_context->m_taskGroup;
@@ -555,8 +541,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         if (hasLimitedControlledParts(designated)) {
             m_context->m_constructionOwner = newTemp();
             m_context->m_constructionArena = newTemp();
-            line(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")");
-            line(m_context->m_constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")");
+            emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")", CallEffects::DeferredCheck);
         }
         if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
@@ -568,21 +554,20 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         m_context->m_constructionOwner = savedOwner;
         m_context->m_constructionArena = savedArena;
         if (hasTasks(designated)) {
-            line("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")");
+            emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")", CallEffects::DeferredCheck);
         } else {
-            line("call $__ada_collection_activate(l " + collection.name + ")");
+            emitCallInstruction("call $__ada_collection_activate(l " + collection.name + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
         if (expr->type->target->m_classRoot != nullptr) {
             // Ownership is already recorded; only accessibility remains to check.
-            line("call $__ada_tag_check_accessibility(l " + object.name + ", w "
-                 + std::to_string(expr->type->m_accessLevel) + ")");
-            emitExceptionCheck();
+            emitCallInstruction("call $__ada_tag_check_accessibility(l " + object.name + ", w "
+                 + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
         }
         m_context->handlerLabels.pop_back();
         jump(ready);
         label(failed);
-        line("call $__ada_deallocate(l " + object.name + ")");
+        emitCallInstruction("call $__ada_deallocate(l " + object.name + ")", CallEffects::DeferredCheck);
         if (!m_context->handlerLabels.empty()) {
             jump(m_context->handlerLabels.back());
         } else {
@@ -607,17 +592,15 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         checkTagLevel(source, expr->type->m_accessLevel);
         Value bytes = taggedSize(source);
         std::string pointer = newTemp();
-        line(pointer + " =l call $__ada_allocate(l " + bytes.name + ")");
-        emitExceptionCheck();
-        line("call $memmove(l " + pointer + ", l " + source.name + ", l " + bytes.name + ")");
+        emitCallInstruction(pointer + " =l call $__ada_allocate(l " + bytes.name + ")", CallEffects::CheckException);
+        emitCallInstruction("call $memmove(l " + pointer + ", l " + source.name + ", l " + bytes.name + ")", CallEffects::DeferredCheck);
         return Value { pointer, 'l' };
     }
 
     // The run time hands back cleared storage, so an access component of the
     // new object starts out null even when no value is given.
     std::string pointer = newTemp();
-    line(pointer + " =l call $__ada_allocate(l " + std::to_string(size) + ")");
-    emitExceptionCheck();
+    emitCallInstruction(pointer + " =l call $__ada_allocate(l " + std::to_string(size) + ")", CallEffects::CheckException);
 
     Value address { pointer, 'l' };
     if (expr->value != nullptr) {
@@ -681,10 +664,9 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         Symbol* body = base->m_taskBody;
         Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
         Value flag = elaborationFlag(body);
-        line("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
+        emitCallInstruction("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
              + ", l " + link.name + ", l " + flag.name + ", l " + m_context->m_taskCollection + ", l "
-             + m_context->m_taskGroup + ")");
-        emitExceptionCheck();
+             + m_context->m_taskGroup + ")", CallEffects::CheckException);
         return;
     }
     if (type->kind == TypeKind::Array && !type->constrained) {
@@ -739,8 +721,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         }
     }
     if (base->m_protectedScope != nullptr) {
-        line("call $__ada_protected_init(l " + address.name + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_protected_init(l " + address.name + ")", CallEffects::CheckException);
         activateControlledObject(address, type);
     }
     if (base->m_controlled) {

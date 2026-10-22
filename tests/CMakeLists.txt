@@ -1310,3 +1310,23 @@ set_tests_properties(ada.namedoperators determinism.namedoperators
     runtime.namedoperators_modes PROPERTIES TIMEOUT 60)
 add_ada_error_test(namedoperatorerrors SOURCES namedoperatorerrors.adb)
 set_tests_properties(error.namedoperatorerrors PROPERTIES TIMEOUT 60)
+
+add_executable(abort_deferral_test AbortDeferralTest.c)
+target_link_libraries(abort_deferral_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.abort_deferral COMMAND abort_deferral_test)
+set_tests_properties(runtime.abort_deferral PROPERTIES TIMEOUT 30)
+add_determinism_test(abortdeferral SOURCE abortdeferral.adb)
+add_test(NAME runtime.abortdeferral_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/abortdeferral.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/AbortDeferralProbe.c
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/abortdeferral.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/abortdeferral-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(determinism.abortdeferral runtime.abortdeferral_modes PROPERTIES TIMEOUT 60)

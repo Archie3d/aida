@@ -338,7 +338,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
             context.locals[identity] = slot;
         }
         std::string current = newTemp();
-        line(current + " =l call $__ada_current_task()");
+        emitCallInstruction(current + " =l call $__ada_current_task()", CallEffects::DeferredCheck);
         line("storel " + current + ", " + slot);
     }
 
@@ -349,12 +349,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     emitLocalDeclarations(body->declarations);
     if (context.m_hasMaster) {
-        line("call $__ada_master_activate(l %.taskContext, l %.master)");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);
     }
 
     if (body->m_taskBody) {
-        line("call $__ada_task_activated(l %.taskContext)");
+        emitCallInstruction("call $__ada_task_activated(l %.taskContext)", CallEffects::DeferredCheck);
     }
     if (body->handlers.empty()) {
         emitStatements(body->body);
@@ -387,36 +386,31 @@ void QbeEmitter::finishFunction(const std::string& signature)
         if (context.symbol != nullptr && context.symbol->returnType != nullptr) {
             // A missing result is a failure for every result representation.
             context.sourceLocation = context.symbol->location;
-            line("call $__ada_raise(l $__ada_exc_program_error)");
+            emitCallInstruction("call $__ada_raise(l $__ada_exc_program_error)", CallEffects::DeferredCheck);
             char type = qbeClass(context.symbol->returnType);
             if (isComposite(context.symbol->returnType)) {
-                line("ret");
+                emitReturn();
             } else if (type == 's' || type == 'd') {
                 std::string zero = newTemp();
                 line(zero + " =" + std::string(1, type) + " copy " + (type == 's' ? "s_0" : "d_0"));
-                line("ret " + zero);
+                emitReturn(zero);
             } else {
-                line("ret 0");
+                emitReturn("0");
             }
         } else {
-            line("ret");
+            emitReturn();
         }
         context.terminated = true;
     }
 
     if (context.usesPropagate) {
-        context.body << context.propagateLabel << "\n";
-        if (context.symbol != nullptr && context.symbol->returnType != nullptr) {
+        label(context.propagateLabel);
+        if (context.symbol != nullptr && context.symbol->returnType != nullptr
+            && !isComposite(context.symbol->returnType)) {
             char type = qbeClass(context.symbol->returnType);
-            if (isComposite(context.symbol->returnType)) {
-                context.body << "    ret\n";
-            } else if (type == 's' || type == 'd') {
-                context.body << "    ret " << (type == 's' ? "s_0" : "d_0") << "\n";
-            } else {
-                context.body << "    ret 0\n";
-            }
+            emitReturn(type == 's' ? "s_0" : type == 'd' ? "d_0" : "0");
         } else {
-            context.body << "    ret\n";
+            emitReturn();
         }
     }
 
@@ -444,35 +438,15 @@ void QbeEmitter::finishFunction(const std::string& signature)
     }
     // Allocations may occur in a branch emitted after an early return. Once
     // the whole body is known, release the activation's list at every exit.
-    std::istringstream bodyLines(context.body.str());
-    std::string bodyLine;
-    while (std::getline(bodyLines, bodyLine)) {
-        if (context.symbol != nullptr && context.symbol->m_taskBody
-            && bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_task_activation_failed(l %.taskContext)\n";
-            text += "    call $__ada_task_complete(l %.taskContext)\n";
-        }
-        if (context.m_hasMaster && bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_master_await(l %.taskContext, l %.master)\n";
-        }
-        if (!context.m_finalizationChain.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_finalize_to(l " + context.m_temporaryFinalizationChain + ", l 0)\n";
-            text += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
-        }
-        if (!context.arrayArena.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_array_release(l " + context.arrayArena + ")\n";
-        }
-        if (!context.temporaryArena.empty() && bodyLine.compare(0, 7, "    ret") == 0) {
-            text += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
-        }
-        if (bodyLine.compare(0, 7, "    ret") == 0) {
-            if (context.m_hasMaster) {
-                text += "    call $__ada_master_leave(l %.taskContext, l %.master)\n";
-            }
-            text += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
-        }
-        text += bodyLine + "\n";
+    std::string body = context.body.str();
+    std::string exitActions = functionExitActions(context);
+    std::size_t previous = 0;
+    for (std::size_t offset : context.m_returnOffsets) {
+        text.append(body, previous, offset - previous);
+        text += exitActions;
+        previous = offset;
     }
+    text.append(body, previous, std::string::npos);
     text += "}\n";
     // Checkpoints are emitted before all branches have been visited. Remove
     // bookkeeping for an arena if no branch ever allocates into it. Arena
@@ -500,4 +474,33 @@ void QbeEmitter::finishFunction(const std::string& signature)
         text = filtered;
     }
     m_functions.push_back(text);
+}
+
+// One ordered activation-exit plan for ordinary returns and propagation.
+// Lexical master exits have already been emitted by emitReturn/jump.
+std::string QbeEmitter::functionExitActions(const FunctionContext& context)
+{
+    std::string actions;
+    if (context.symbol != nullptr && context.symbol->m_taskBody) {
+        actions += "    call $__ada_task_activation_failed(l %.taskContext)\n";
+        actions += "    call $__ada_task_complete(l %.taskContext)\n";
+    }
+    if (context.m_hasMaster) {
+        actions += "    call $__ada_master_await(l %.taskContext, l %.master)\n";
+    }
+    if (!context.m_finalizationChain.empty()) {
+        actions += "    call $__ada_finalize_to(l " + context.m_temporaryFinalizationChain + ", l 0)\n";
+        actions += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
+    }
+    if (!context.arrayArena.empty()) {
+        actions += "    call $__ada_array_release(l " + context.arrayArena + ")\n";
+    }
+    if (!context.temporaryArena.empty()) {
+        actions += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
+    }
+    if (context.m_hasMaster) {
+        actions += "    call $__ada_master_leave(l %.taskContext, l %.master)\n";
+    }
+    actions += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
+    return actions;
 }

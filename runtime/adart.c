@@ -56,12 +56,28 @@ int __ada_task_context_dispose(AdaTaskContext* context)
         || context->registeredFinalizations != NULL || context->registeredAllocations != NULL
         || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
         || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
-        || context->protectedActions != NULL) {
+        || context->protectedActions != NULL || context->abortDeferralDepth != 0) {
         return 0;
     }
     free(context->pendingMessage);
     memset(context, 0, sizeof *context);
     return 1;
+}
+
+void __ada_abort_defer(AdaTaskContext* context)
+{
+    if (context != __ada_task_context() || context->abortDeferralDepth == UINT_MAX) {
+        abort();
+    }
+    ++context->abortDeferralDepth;
+}
+
+void __ada_abort_undefer(AdaTaskContext* context)
+{
+    if (context != __ada_task_context() || context->abortDeferralDepth == 0) {
+        abort();
+    }
+    --context->abortDeferralDepth;
 }
 
 static int argumentCount;
@@ -1244,6 +1260,7 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
     if (*owner == checkpoint) {
         return;
     }
+    __ada_abort_defer(context);
     /* Suspend the complete pending occurrence without allocating. Ada calls
        made by a finalizer must start with a clear pending exception status. */
     const AdaException* savedException = context->exception;
@@ -1285,6 +1302,7 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
         context->pendingTraceCount = savedCount;
         memcpy(context->pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
     }
+    __ada_abort_undefer(context);
 }
 
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*))
@@ -1713,9 +1731,11 @@ int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*),
         return 0;
     }
     record->active = 0;
+    __ada_abort_defer(context);
     finalize(object, tag);
     int failed = context->exception != NULL;
     context->exception = NULL;
+    __ada_abort_undefer(context);
     return failed;
 }
 

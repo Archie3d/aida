@@ -343,10 +343,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         protectedAction = allocScratch(16);
         if (subprogram->m_entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
-            line("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
-                + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")");
+            emitCallInstruction("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
+                + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")", CallEffects::DeferredCheck);
         } else {
-            line("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")");
+            emitCallInstruction("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
     }
@@ -355,10 +355,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         if (subprogram->returnType != nullptr && !compositeResult) {
             char type = qbeClass(subprogram->returnType);
             std::string temp = newTemp();
-            line(temp + " =" + std::string(1, type) + " call " + callee + "(" + actuals + ")");
+            emitCallInstruction(temp + " =" + std::string(1, type) + " call " + callee + "(" + actuals + ")", CallEffects::DeferredCheck);
             return Value { temp, type };
         }
-        line("call " + callee + "(" + actuals + ")");
+        emitCallInstruction("call " + callee + "(" + actuals + ")", CallEffects::DeferredCheck);
         return Value { "0", 'w' };
     };
     if (expr->m_indirect || expr->m_dispatching) {
@@ -396,9 +396,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 
     if (!protectedAction.empty()) {
         if (subprogram->returnType == nullptr) {
-            line("call $__ada_protected_complete(l %.taskContext, l " + protectedAction + ")");
+            emitCallInstruction("call $__ada_protected_complete(l %.taskContext, l " + protectedAction + ")", CallEffects::DeferredCheck);
         } else {
-            line("call $__ada_protected_leave(l %.taskContext, l " + protectedAction + ")");
+            emitCallInstruction("call $__ada_protected_leave(l %.taskContext, l " + protectedAction + ")", CallEffects::DeferredCheck);
         }
     }
     emitExceptionCheck();
@@ -531,15 +531,14 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     }
 
     if (subprogram->returnType == nullptr) {
-        line("call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
+        emitCallInstruction("call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
         copyBack();
         return Value { "0", 'w' };
     }
 
     if (subprogram->runtimeSymbol == "$__ada_file_name") {
         std::string descriptor = allocScratch(adaArrayResultSize(1));
-        line("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")", CallEffects::CheckException);
         Value result = consumeArrayResult(descriptor, 1, true);
         copyBack();
         return result;
@@ -549,9 +548,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         // A run time function that yields a string hands back a C string, so
         // its bounds are recovered here.
         std::string pointer = newTemp();
-        line(pointer + " =l call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
+        emitCallInstruction(pointer + " =l call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
         std::string size = newTemp();
-        line(size + " =l call $strlen(l " + pointer + ")");
+        emitCallInstruction(size + " =l call $strlen(l " + pointer + ")", CallEffects::DeferredCheck);
         std::string length = newTemp();
         line(length + " =l copy " + size);
         copyBack();
@@ -560,7 +559,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
     char type = qbeClass(subprogram->returnType);
     std::string temp = newTemp();
-    line(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")");
+    emitCallInstruction(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
     copyBack();
     if (!subprogram->importAda && !subprogram->returnType->m_enumCodes.empty()) {
         emitExceptionCheck();
@@ -580,8 +579,7 @@ Value QbeEmitter::consumeArrayResult(const std::string& resultStorage, int rank,
     result.name = pointer;
     result.type = 'l';
     if (adopt) {
-        line("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")");
-        emitExceptionCheck();
+        emitCallInstruction("call $__ada_array_adopt(l " + storageArena(true, true) + ", l " + pointer + ")", CallEffects::CheckException);
     }
     return result;
 }

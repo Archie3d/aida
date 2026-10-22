@@ -28,10 +28,9 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         std::string arguments = "(w " + std::to_string(expr->op == BinaryOp::Multiply ? 2 : 3)
             + ", l " + left.name + ", w " + std::to_string(expr->left->type->m_fixedScale)
             + ", l " + right.name + ", w " + std::to_string(expr->right->type->m_fixedScale);
-        line(result + (real ? " =d call $__ada_fixed_real_operation" : " =l call $__ada_fixed_numeric_operation")
+        emitCallInstruction(result + (real ? " =d call $__ada_fixed_real_operation" : " =l call $__ada_fixed_numeric_operation")
             + arguments + ", w " + (real ? (qbeClass(expr->type) == 's' ? "24" : "53")
-                                         : (expr->type->m_modulus != 0 ? "1" : "0")) + ")");
-        emitExceptionCheck();
+                                         : (expr->type->m_modulus != 0 ? "1" : "0")) + ")", CallEffects::CheckException);
         Value value { result, real ? 'd' : 'l' };
         emitRangeCheck(value, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
         char width = qbeClass(expr->type);
@@ -62,10 +61,9 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         default: break;
         }
         std::string result = newTemp();
-        line(result + " =l call $__ada_fixed_operation(w " + std::to_string(operation) + ", l " + left.name
+        emitCallInstruction(result + " =l call $__ada_fixed_operation(w " + std::to_string(operation) + ", l " + left.name
             + ", w " + std::to_string(expr->left->type->m_fixedScale) + ", l " + right.name
-            + ", w " + std::to_string(expr->right->type->m_fixedScale) + ", w " + std::to_string(expr->type->m_fixedScale) + ")");
-        emitExceptionCheck();
+            + ", w " + std::to_string(expr->right->type->m_fixedScale) + ", w " + std::to_string(expr->type->m_fixedScale) + ")", CallEffects::CheckException);
         return Value { result, 'l' };
     }
     char type = left.type == 'l' || right.type == 'l' ? 'l' : left.type;
@@ -244,10 +242,9 @@ Value QbeEmitter::emitDiscreteConversion(const Value& value, Type* source, Type*
     Value low = wideBound(Value { bounds.first, bounds.type });
     Value high = wideBound(Value { bounds.last, bounds.type });
     std::string result = newTemp();
-    line(result + " =l call $__ada_modular_convert(l " + wide.name + ", w "
+    emitCallInstruction(result + " =l call $__ada_modular_convert(l " + wide.name + ", w "
         + (source->m_modulus != 0 ? "1" : "0") + ", l " + low.name
-        + ", l " + high.name + ", w " + (target->m_modulus != 0 ? "1" : "0") + ")");
-    emitExceptionCheck();
+        + ", l " + high.name + ", w " + (target->m_modulus != 0 ? "1" : "0") + ")", CallEffects::CheckException);
     if (qbeClass(target) == 'w') {
         std::string narrow = newTemp();
         line(narrow + " =w copy " + result);
@@ -269,9 +266,8 @@ Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& 
     std::string leftWide = widen(left);
     std::string rightWide = widen(right);
     std::string result = newTemp();
-    line(result + " =l call $__ada_modular_operation(w " + std::to_string(static_cast<int>(operation))
-         + ", l " + scalarText(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result + " =l call $__ada_modular_operation(w " + std::to_string(static_cast<int>(operation))
+         + ", l " + scalarText(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")", CallEffects::CheckException);
     if (qbeClass(type) == 'w') {
         std::string narrow = newTemp();
         line(narrow + " =w copy " + result);
@@ -445,9 +441,8 @@ Value QbeEmitter::emitRealOperation(RealOperation operation, const Value& left, 
 {
     std::string result = newTemp();
     std::string width(1, type);
-    line(result + " =" + width + " call $__ada_real_operation" + (type == 's' ? "_f32" : "")
-        + "(w " + std::to_string(operation) + ", " + width + " " + left.name + ", " + width + " " + right.name + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result + " =" + width + " call $__ada_real_operation" + (type == 's' ? "_f32" : "")
+        + "(w " + std::to_string(operation) + ", " + width + " " + left.name + ", " + width + " " + right.name + ")", CallEffects::CheckException);
     return Value { result, type };
 }
 
@@ -510,8 +505,7 @@ Value QbeEmitter::emitPower(const Value& left, const Value& right, char type)
 {
     std::string result = newTemp();
     std::string width(1, type);
-    line(result + " =" + width + " call $__ada_real_power" + (type == 's' ? "_f32" : "")
-        + "(" + width + " " + left.name + ", w " + right.name + ")");
-    emitExceptionCheck();
+    emitCallInstruction(result + " =" + width + " call $__ada_real_power" + (type == 's' ? "_f32" : "")
+        + "(" + width + " " + left.name + ", w " + right.name + ")", CallEffects::CheckException);
     return Value { result, type };
 }
