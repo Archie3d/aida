@@ -172,12 +172,16 @@ private:
         Symbol* symbol = nullptr; // Null denotes a predefined operator.
         std::vector<Type*> parameters;
         Type* result = nullptr;
+        std::vector<std::size_t> argumentOrder; // Formal order for an explicit named call.
     };
     std::vector<OperatorCandidate> operatorCandidates(const std::string& name, const std::vector<Expr*>& operands,
-                                                     Scope* scope, Type* expected, bool predefinedOnly = false);
+                                                     Scope* scope, Type* expected, bool predefinedOnly = false,
+                                                     const std::vector<std::string>& argumentNames = {});
     ExprPtr bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope* scope,
                          const SourceLocation& location);
-    ExprPtr explicitOperator(CallExpr* call, Scope* scope);
+    std::string explicitOperatorName(CallExpr* call, Scope* scope, bool& standard);
+    std::vector<OperatorCandidate> explicitOperatorCandidates(CallExpr* call, Scope* scope, Type* expected);
+    ExprPtr explicitOperator(CallExpr* call, Scope* scope, Type* expected = nullptr);
 
     // SemaExpr.cpp
     Type* analyzeCondition(Expr* expr, Scope* scope);

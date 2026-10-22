@@ -7,10 +7,20 @@ using SemaSupport::adaptUniversal;
 using SemaSupport::isUniversal;
 
 std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string& name,
-    const std::vector<Expr*>& operands, Scope* scope, Type* expected, bool predefinedOnly)
+    const std::vector<Expr*>& operands, Scope* scope, Type* expected, bool predefinedOnly,
+    const std::vector<std::string>& argumentNames)
 {
     std::vector<OperatorCandidate> candidates;
     auto symbols = scope->lookup(name);
+    auto matchesNames = [&](const std::vector<std::string>& formals) {
+        for (std::size_t i = 0; i < argumentNames.size(); ++i) {
+            if (!argumentNames[i].empty() && argumentNames[i] != formals[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+    std::vector<OperatorCandidate> hiddenProfiles;
     bool fixed = false;
     Symbol* fixedSymbol = nullptr;
     if (m_replayContract != nullptr) {
@@ -60,7 +70,16 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             candidate.result = classWideType(symbol->m_controllingType);
         }
         if (matches) {
-            candidates.push_back(std::move(candidate));
+            // A homograph hides the predefined profile even when its formal
+            // names do not match this particular named call.
+            hiddenProfiles.push_back(candidate);
+            std::vector<std::string> formals;
+            for (Symbol* formal : symbol->parameters) {
+                formals.push_back(formal->name);
+            }
+            if (matchesNames(formals)) {
+                candidates.push_back(std::move(candidate));
+            }
         }
     }
 
@@ -99,14 +118,22 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             }
         }
         OperatorCandidate candidate { nullptr, std::move(parameters), result };
-        for (const OperatorCandidate& existing : candidates) {
+        for (const OperatorCandidate& existing : hiddenProfiles) {
             // An explicit homograph replaces its predefined operation. A
             // different profile remains a competing interpretation.
             if (sameProfile(existing, candidate)) {
                 return;
             }
         }
-        candidates.push_back(std::move(candidate));
+        if (std::any_of(candidates.begin(), candidates.end(), [&](const OperatorCandidate& existing) {
+                return sameProfile(existing, candidate);
+            })) {
+            return;
+        }
+        if (matchesNames(candidate.parameters.size() == 1 ? std::vector<std::string> { "right" }
+                                                       : std::vector<std::string> { "left", "right" })) {
+            candidates.push_back(std::move(candidate));
+        }
     };
 
     std::vector<Type*> types;
@@ -275,10 +302,10 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
     return call;
 }
 
-ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope)
+std::string Sema::explicitOperatorName(CallExpr* call, Scope* scope, bool& standard)
 {
     std::string name;
-    bool standard = false;
+    standard = false;
     if (call->callee->kind == ExprKind::Identifier) {
         name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
     } else if (call->callee->kind == ExprKind::Selected) {
@@ -289,8 +316,112 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope)
             name = selected->selectorLower;
         }
     }
+    return operatorSymbol(name);
+}
+
+std::vector<Sema::OperatorCandidate> Sema::explicitOperatorCandidates(CallExpr* call, Scope* scope, Type* expected)
+{
+    bool standard = false;
+    std::string name = explicitOperatorName(call, scope, standard);
+    std::size_t count = call->arguments.size();
+    if (name.empty() || count == 0 || count > 2) {
+        return {};
+    }
+    std::vector<OperatorCandidate> result;
+    // At most two operands: try each formal order without mutating the AST.
+    // A positional actual is fixed to its source position; named actuals are
+    // checked against each user-defined or predefined candidate's own names.
+    for (bool reverse : { false, true }) {
+        if (reverse && count != 2) {
+            continue;
+        }
+        std::vector<Expr*> operands(count);
+        std::vector<std::string> names(count);
+        std::vector<std::size_t> order(count);
+        bool valid = true;
+        bool sawNamed = false;
+        for (std::size_t i = 0; i < count; ++i) {
+            const Association& argument = call->arguments[i];
+            std::size_t position = reverse ? count - i - 1 : i;
+            if (argument.high != nullptr || (argument.nameLower.empty() && (sawNamed || position != i))) {
+                valid = false;
+            }
+            sawNamed = sawNamed || !argument.nameLower.empty();
+            operands[position] = argument.value.get();
+            names[position] = argument.nameLower;
+            order[position] = i;
+        }
+        if (!valid) {
+            continue;
+        }
+        for (OperatorCandidate candidate : operatorCandidates(name, operands, scope, expected, standard, names)) {
+            candidate.argumentOrder = order;
+            result.push_back(std::move(candidate));
+        }
+    }
+    return result;
+}
+
+ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
+{
+    bool standard = false;
+    std::string name = explicitOperatorName(call, scope, standard);
+    if (name.empty()) {
+        return nullptr;
+    }
+    bool named = std::any_of(call->arguments.begin(), call->arguments.end(),
+        [](const Association& argument) { return !argument.nameLower.empty(); });
+    bool predefinedOnly = false;
+    ExprPtr boundCall;
+    Type* boundResult = nullptr;
+    if (named) {
+        bool sawNamed = false;
+        std::vector<std::string> names;
+        for (const Association& argument : call->arguments) {
+            if (argument.nameLower.empty() && sawNamed) {
+                m_diagnostics.error(argument.value->location, "a positional argument cannot follow a named argument");
+                return nullptr;
+            }
+            if (!argument.nameLower.empty()) {
+                sawNamed = true;
+                if (std::find(names.begin(), names.end(), argument.nameLower) != names.end()) {
+                    m_diagnostics.error(argument.value->location, "a parameter cannot be supplied more than once");
+                    return nullptr;
+                }
+                names.push_back(argument.nameLower);
+            }
+        }
+        auto candidates = explicitOperatorCandidates(call, scope, expected);
+        if (candidates.size() != 1) {
+            m_diagnostics.error(call->location, candidates.empty()
+                ? "no visible operator matches the argument names and types in this call"
+                : "ambiguous operator '" + name + "'");
+            return nullptr;
+        }
+        const OperatorCandidate& chosen = candidates.front();
+        std::vector<ExprPtr> operands;
+        for (std::size_t index : chosen.argumentOrder) {
+            operands.push_back(std::move(call->arguments[index].value));
+        }
+        if (chosen.symbol != nullptr) {
+            std::vector<Expr*> pointers;
+            for (const ExprPtr& operand : operands) {
+                pointers.push_back(operand.get());
+            }
+            if (m_recordContract != nullptr) {
+                m_recordContract->m_operators[operatorContractKey(name, pointers)] = chosen.symbol;
+            }
+            boundCall = bindOperator(chosen.symbol, std::move(operands), scope, call->location);
+            boundResult = chosen.result;
+        } else {
+            for (std::size_t i = 0; i < operands.size(); ++i) {
+                call->arguments[i].value = std::move(operands[i]);
+            }
+            predefinedOnly = true;
+        }
+    }
     if (operatorSymbol(name).empty() || std::any_of(call->arguments.begin(), call->arguments.end(),
-            [](const Association& argument) { return !argument.nameLower.empty() || argument.high != nullptr; })) {
+            [](const Association& argument) { return argument.high != nullptr; })) {
         return nullptr;
     }
     if (call->arguments.size() == 1) {
@@ -299,7 +430,13 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope)
                 auto unary = std::make_unique<UnaryExpr>();
                 unary->location = call->location;
                 unary->op = op;
+                unary->predefinedOnly = predefinedOnly || standard;
                 unary->operand = std::move(call->arguments[0].value);
+                if (boundCall != nullptr) {
+                    unary->type = boundResult;
+                    unary->m_tagIndeterminate = boundCall->m_tagIndeterminate;
+                    unary->operatorCall = std::move(boundCall);
+                }
                 return unary;
             }
         }
@@ -310,10 +447,16 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope)
                 auto binary = std::make_unique<BinaryExpr>();
                 binary->location = call->location;
                 binary->op = op;
+                binary->predefinedOnly = predefinedOnly;
                 binary->m_standardFixed = standard;
                 binary->m_explicitFixedContext = standard;
                 binary->left = std::move(call->arguments[0].value);
                 binary->right = std::move(call->arguments[1].value);
+                if (boundCall != nullptr) {
+                    binary->type = boundResult;
+                    binary->m_tagIndeterminate = boundCall->m_tagIndeterminate;
+                    binary->operatorCall = std::move(boundCall);
+                }
                 return binary;
             }
         }

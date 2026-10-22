@@ -34,7 +34,7 @@ GCC's release branch itself may change. No download is needed at build/test time
 | C45347A | 4.5.3 | PASS: array/record concatenation in all operand combinations | Broader concatenation selection: Phase 8 |
 | C45504A | 4.5.5, 3.5.4 | PASS: Constraint_Error for products outside Integer base range | Further signed arithmetic selection: Phase 8 |
 | C45611A | 4.5.6 | PASS: dynamic Integer powers, zero and negative bases, 0**0 | Further signed arithmetic selection: Phase 8 |
-| C45503A | 4.5.5 | Compile XFAIL: predefined REM/MOD calls with named associations are unsupported | Named predefined operator profiles: Phase 8; infix arithmetic covered by differential tests |
+| C45503A | 4.5, 4.5.5, 6.4.1 | PASS: predefined Integer REM/MOD, including named Left/Right associations and all operand sign combinations | Broader explicit-operator selection: Phase 8 |
 | C45523A | 4.5.5, 3.5.8 | PASS: Machine_Overflows multiplication and zero-division checks | Finite-value floating model: Phase 5; full coverage: Phase 8 |
 | C49022A | 4.9, 4.5 | PASS: integer named-number arithmetic and comparisons | Bounded exact evaluation: Phase 5; broader coverage: Phase 8 |
 | C59002A | 5.8, 11.2 | XFAIL at compilation: goto and labels unsupported | Phase 6e labels/goto |

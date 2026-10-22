@@ -1291,3 +1291,22 @@ add_test(NAME runtime.checkedtasking_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.checkedtasking runtime.checkedtasking_modes
     determinism.checkedtasking PROPERTIES TIMEOUT 60)
+
+add_ada_test(namedoperators SOURCES namedoperators.adb)
+add_determinism_test(namedoperators SOURCE namedoperators.adb)
+add_test(NAME runtime.namedoperators_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/namedoperators.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/namedoperators.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/namedoperators-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.namedoperators determinism.namedoperators
+    runtime.namedoperators_modes PROPERTIES TIMEOUT 60)
+add_ada_error_test(namedoperatorerrors SOURCES namedoperatorerrors.adb)
+set_tests_properties(error.namedoperatorerrors PROPERTIES TIMEOUT 60)

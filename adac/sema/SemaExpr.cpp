@@ -328,7 +328,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     Type* operandContext = nullptr;
     Type* rightContext = nullptr;
     if (!name.empty()) {
-        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->m_standardFixed);
+        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->m_standardFixed || expr->predefinedOnly);
         if (expected != nullptr && expected->kind == TypeKind::Fixed
             && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
             auto universal = expressionTypes(expr, scope);
@@ -613,7 +613,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     std::string name = operatorName(expr->op);
-    auto candidates = operatorCandidates(name, { expr->operand.get() }, scope, expected);
+    auto candidates = operatorCandidates(name, { expr->operand.get() }, scope, expected, expr->predefinedOnly);
     if (candidates.size() > 1) {
         m_diagnostics.error(expr->location, "ambiguous operator '" + name + "'");
         return nullptr;

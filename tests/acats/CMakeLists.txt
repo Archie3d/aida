@@ -39,6 +39,5 @@ add_test(NAME acats.harness
 set_tests_properties(acats.harness PROPERTIES TIMEOUT 90 LABELS "acats")
 
 add_acats_test(c45504a)
-# Predefined operator calls with named associations are an existing gap.
-add_acats_test(c45503a REJECTION "'REM' is not declared")
+add_acats_test(c45503a)
 add_acats_test(c45611a)

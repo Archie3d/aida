@@ -194,6 +194,7 @@ struct BinaryExpr : Expr
     }
 
     BinaryOp op = BinaryOp::Add;
+    bool predefinedOnly = false;
     bool m_fixedResult = false;
     bool m_roundFixed = false;
     bool m_explicitFixedContext = false;
@@ -211,6 +212,7 @@ struct UnaryExpr : Expr
     }
 
     UnaryOp op = UnaryOp::Plus;
+    bool predefinedOnly = false;
     ExprPtr operand;
     ExprPtr operatorCall;
 };

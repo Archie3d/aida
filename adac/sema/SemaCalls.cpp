@@ -9,7 +9,11 @@ using SemaSupport::adaptUniversal;
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
     if (expr->operatorExpression == nullptr) {
-        expr->operatorExpression = explicitOperator(expr, scope);
+        int errors = m_diagnostics.errorCount();
+        expr->operatorExpression = explicitOperator(expr, scope, expected);
+        if (m_diagnostics.errorCount() != errors) {
+            return nullptr;
+        }
     }
     if (expr->operatorExpression != nullptr) {
         expr->type = analyzeExpr(expr->operatorExpression.get(), scope, expected);

@@ -1,0 +1,11 @@
+namedoperatorerrors.adb:21:14: error: ambiguous operator '+'
+namedoperatorerrors.adb:22:40: error: a parameter cannot be supplied more than once
+namedoperatorerrors.adb:23:32: error: a positional argument cannot follow a named argument
+namedoperatorerrors.adb:24:20: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:25:20: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:26:18: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:27:20: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:28:20: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:29:19: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:30:20: error: no visible operator matches the argument names and types in this call
+namedoperatorerrors.adb:38:24: error: no visible operator matches the argument names and types in this call

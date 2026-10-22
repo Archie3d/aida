@@ -356,8 +356,11 @@ gaps retain their later-phase owners in the coverage matrix.
   Constraint_Error and cleanup paths. Common 64-bit products avoid the general
   unsigned bound division. Whole/separate differential tests cover 88,000
   boundary/generated cases per mode; concurrent protected cleanup, deterministic
-  IL and helper-call exclusion are checked. ACATS C45504A/C45611A pass;
-  C45503A records the existing named-operator-call gap as an exact compile XFAIL.
+  IL and helper-call exclusion are checked. ACATS C45504A/C45611A pass.
+  Named operator calls now resolve Left/Right (unary Right), reordered/mixed
+  associations and user-defined formal names without changing overload selection;
+  malformed calls get operator/association diagnostics (`namedoperators`,
+  `namedoperatorerrors`, whole/separate/determinism). ACATS C45503A now passes.
   [Contract](docs/checked-arithmetic.md) and
   [measurements](tests/benchmarks/README.md#checked-integer-arithmetic).
 

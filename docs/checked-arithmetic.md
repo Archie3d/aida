@@ -44,9 +44,30 @@ whole/separate determinism and tests forbidding integer-helper references in IL.
 Existing overflow, sized-storage and exception tests remain in the full suite.
 
 Unmodified ACATS C45504A and C45611A cover multiplication overflow and powers.
-C45503A is an exact compile XFAIL for the existing named predefined REM/MOD
-operator-call gap; it is not an upstream pass. Infix rem/mod are covered by the
-oracle tests. See the [ACATS inventory](../tests/acats/README.md).
+C45503A also passes unchanged, covering REM/MOD with named Left/Right
+associations. See the [ACATS inventory](../tests/acats/README.md).
+
+## Explicit operator associations
+
+Predefined operator calls use Left/Right for binary operators and Right for
+unary operators, as specified by [Ada 2005 RM 4.5(9)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-5.html).
+For example, `"rem" (Right => B, Left => A)` has the same operands as `A rem B`.
+Named and mixed calls use the same candidate discovery as ordinary operator
+expressions, filtering associations against each candidate's formal names before
+applying overload preferences. User-defined operators retain their declared
+names and homograph hiding; selection is preserved when the call is lowered.
+
+Type discovery tries formal orders without moving, analyzing or evaluating the
+actuals. Analysis commits one matching profile and reorders ownership once.
+Predefined calls then use existing arithmetic/constant-folding paths; user calls
+keep their selected binding. The existing expanded-name restrictions remain.
+
+`namedoperators` checks reordered and mixed associations, case folding, unary
+and binary numeric/Boolean/string operations, contextual overloads, generic
+formal subprogram bindings, static expressions, evaluation counts and exception
+behavior. `namedoperatorerrors` checks duplicates, positional-after-named calls,
+unknown/missing/extra names, wrong operand types, hidden predefined profiles and
+ambiguity. Whole/separate execution and deterministic IL are required.
 
 The [benchmarks](../tests/benchmarks/README.md#checked-integer-arithmetic) compare
 both normal and optimized runtime builds. They measure successful arithmetic,
