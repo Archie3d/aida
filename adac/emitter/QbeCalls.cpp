@@ -35,7 +35,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         inherited.type = expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
         Value result = emitCall(&inherited);
-        if (isComposite(expr->type) && !expr->type->m_tagged
+        if (isComposite(expr->type) && !expr->type->tagged
             && (expr->type->kind != TypeKind::Array || expr->type->constrained)
             && typeSize(expr->type) != typeSize(inherited.subprogram->returnType)
             && (typeSize(expr->type) != typeLayoutSize(expr->type)
@@ -44,7 +44,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             copyInto(converted, result, expr->type);
             result = converted;
         }
-        if (expr->type != nullptr && expr->type->m_tagged
+        if (expr->type != nullptr && expr->type->tagged
             && rootType(expr->type) != rootType(inherited.subprogram->returnType)) {
             line("storel " + typeTag(expr->type).name + ", " + result.name);
         }
@@ -89,7 +89,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             callee->location = expr->location;
             renamed.callee = std::move(callee);
             renamed.m_indirect = true;
-            renamed.subprogram = binding->type->m_accessProfile;
+            renamed.subprogram = binding->type->accessProfile;
         }
         return emitCall(&renamed);
     }
@@ -98,7 +98,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         if (subprogram->canRaise) {
             emitExceptionCheck();
         }
-        if (subprogram->returnType != nullptr && subprogram->returnType->m_scalarBoundsSymbol != nullptr) {
+        if (subprogram->returnType != nullptr && subprogram->returnType->scalarBoundsSymbol != nullptr) {
             emitRangeCheck(result, subprogram->returnType, expr->location);
         }
         return result;
@@ -157,9 +157,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::vector<std::string> arguments;
     bool compositeResult = isComposite(subprogram->returnType);
     bool controlledResult = needsFinalization(subprogram->returnType)
-        || (subprogram->returnType != nullptr && subprogram->returnType->m_tagged);
+        || (subprogram->returnType != nullptr && subprogram->returnType->tagged);
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
-    bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->m_tagged;
+    bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->tagged;
     std::string resultStorage;
     bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
     if (compositeResult) {
@@ -263,7 +263,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 emitRecordConstraintCheck(value, parameter->type);
             }
             if (parameter->type->kind == TypeKind::Array
-                && (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr)) {
+                && (parameter->type->constrained || parameter->type->boundsSymbol != nullptr)) {
                 Value target = withBounds(Value {}, parameter->type, nullptr);
                 checkArrayShape(target, parameter->type, value, argument->type);
                 value.first = target.first;
@@ -477,7 +477,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
 
         if (formal != nullptr && formal->kind == TypeKind::Array) {
             Value pointer = emitArrayArgument(argument, parameter->mode, arrayCopies);
-            if (parameter->type->constrained || parameter->type->m_boundsSymbol != nullptr) {
+            if (parameter->type->constrained || parameter->type->boundsSymbol != nullptr) {
                 pointer = convertArrayBounds(pointer, argument->type, parameter->type, argument->location);
             }
             pointer = adaptCompositeStorage(pointer, argument->type, formal, parameter->mode, storageCopies);
@@ -488,7 +488,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         }
 
         if (parameter->byReference && isScalar(formal)
-            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->m_enumCodes.empty()
+            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->enumCodes.empty()
                 || typeSize(formal) != typeSize(argument->type))) {
             Value temporary { allocTypeScratch(formal), 'l' };
             Value actual;
@@ -563,7 +563,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
     std::string temp = newTemp();
     emitCallInstruction(temp + " =" + std::string(1, type) + " call " + subprogram->runtimeSymbol + "(" + argumentList + ")", CallEffects::DeferredCheck);
     copyBack();
-    if (!subprogram->importAda && !subprogram->returnType->m_enumCodes.empty()) {
+    if (!subprogram->importAda && !subprogram->returnType->enumCodes.empty()) {
         emitExceptionCheck();
         Value value = enumPosition(Value { temp, type }, subprogram->returnType);
         emitRangeCheck(value, subprogram->returnType, expr->location);

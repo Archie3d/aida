@@ -39,9 +39,9 @@ bool Sema::isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope)
         return false;
     }
     auto names = expressionNames(expr, scope);
-    return names.size() == 1 && (names.front() == type->m_protectedObject
+    return names.size() == 1 && (names.front() == type->protectedObject
         || (names.front()->kind == SymbolKind::TypeName && names.front()->type == type
-            && names.front()->name == type->m_protectedName));
+            && names.front()->name == type->protectedName));
 }
 
 void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope)
@@ -96,7 +96,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
     if (decl->m_protectedBody) {
         Symbol* named = lookupName(decl->lower, scope);
         type = named == nullptr ? nullptr : baseType(named->type);
-        if (type == nullptr || type->m_protectedScope == nullptr) {
+        if (type == nullptr || type->protectedScope == nullptr) {
             m_diagnostics.error(decl->location, "protected body requires a protected declaration in the same declarative region");
             return;
         }
@@ -106,16 +106,16 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             local = local || candidate == named;
         }
         bool declaration = (named->kind == SymbolKind::TypeName && named->type == type && !type->isSubtype)
-            || named == type->m_protectedObject;
-        if (!local || !declaration || type->m_protectedName != decl->lower) {
+            || named == type->protectedObject;
+        if (!local || !declaration || type->protectedName != decl->lower) {
             m_diagnostics.error(decl->location, "protected body must complete its local protected declaration");
             return;
         }
-        if (type->m_protectedBodySeen) {
+        if (type->protectedBodySeen) {
             m_diagnostics.error(decl->location, "protected unit already has a body");
             return;
         }
-        type->m_protectedBodySeen = true;
+        type->protectedBodySeen = true;
         decl->declaredType = type;
     }
     if (type == nullptr) {
@@ -124,12 +124,12 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
     m_namePrefix.push_back(decl->m_protectedBody ? decl->lower
         : decl->m_taskObjects.empty() ? decl->lower
         : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
-    Scope* inner = type->m_protectedScope;
+    Scope* inner = type->protectedScope;
     if (!decl->m_protectedBody) {
-        type->m_protectedName = decl->m_taskObjects.empty() ? decl->lower
+        type->protectedName = decl->m_taskObjects.empty() ? decl->lower
             : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front();
         for (const FieldInfo& field : type->fields) {
-            if (field.name == type->m_protectedName) {
+            if (field.name == type->protectedName) {
                 m_diagnostics.error(decl->location, "protected component conflicts with the current instance name");
             }
             Symbol* component = m_symbolTable.createSymbol(SymbolKind::Object, field.name, field.displayName);
@@ -141,7 +141,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
         }
     } else {
         inner = m_symbolTable.createScope(inner);
-        inner->setCompletionScope(type->m_protectedScope);
+        inner->setCompletionScope(type->protectedScope);
     }
     Type* savedType = m_currentProtectedType;
     Scope* savedScope = m_protectedBodyScope;
@@ -154,7 +154,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
         } else {
             spec = &static_cast<SubprogramBody*>(operation.get())->spec;
         }
-        if (spec->lower == type->m_protectedName) {
+        if (spec->lower == type->protectedName) {
             m_diagnostics.error(operation->location, "protected operation conflicts with the current instance name");
         }
         if (operation->kind == DeclKind::SubprogramDeclaration) {

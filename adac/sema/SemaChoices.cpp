@@ -15,7 +15,7 @@ bool Sema::resolveChoice(Expr* lowExpr, Expr* highExpr, Type* selectorType, cons
                                 "'" + mark->name + "' is not a discrete type, so it names no choices");
             return false;
         }
-        if (mark->m_scalarBoundsSymbol != nullptr) {
+        if (mark->scalarBoundsSymbol != nullptr) {
             m_diagnostics.error(lowExpr->location, "choices have to be static");
             return false;
         }

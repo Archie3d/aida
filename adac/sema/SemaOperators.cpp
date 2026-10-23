@@ -51,7 +51,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             Type* context = formal->type;
             if (symbol->m_controllingType != nullptr && rootType(formal->type) == symbol->m_controllingType) {
                 for (Type* actual : expressionTypes(operands[i], scope)) {
-                    if (actual->m_classRoot == symbol->m_controllingType) {
+                    if (actual->classRoot == symbol->m_controllingType) {
                         context = actual;
                         dispatching = true;
                     }
@@ -160,13 +160,13 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (name == "not") {
             predefined({ m_types.booleanType() }, m_types.booleanType());
             for (Type* type : types) {
-                if ((type->m_modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
+                if ((type->modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
                     predefined({ type }, type);
                 }
             }
         } else if (name == "+" || name == "-" || name == "abs") {
             for (Type* type : types) {
-                if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->m_modulus != 0)) {
+                if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->modulus != 0)) {
                     predefined({ type }, type);
                 }
             }
@@ -177,7 +177,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (name == "and" || name == "or" || name == "xor") {
             predefined({ m_types.booleanType(), m_types.booleanType() }, m_types.booleanType());
             for (Type* type : types) {
-                if ((type->m_modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
+                if ((type->modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
                     predefined({ type, type }, type);
                 }
             }
@@ -220,7 +220,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                             predefined({ type, other }, expected);
                         }
                     }
-                } else if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->m_modulus != 0)) {
+                } else if (isNumeric(type) && representationVisible(type) && !(name == "abs" && type->modulus != 0)) {
                     if (((name == "mod" || name == "rem") && (isReal(type) || type->kind == TypeKind::Fixed))
                         || (name == "**" && type->kind == TypeKind::Fixed)) {
                         continue;
@@ -265,7 +265,7 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
         Type* context = symbol->parameters[i]->type;
         if (symbol->m_controllingType != nullptr && rootType(context) == symbol->m_controllingType) {
             for (Type* actual : expressionTypes(operands[i].get(), scope)) {
-                if (actual->m_classRoot == symbol->m_controllingType) {
+                if (actual->classRoot == symbol->m_controllingType) {
                     context = actual;
                     call->m_dispatching = true;
                 }
@@ -294,7 +294,7 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
                 dispatchIndeterminate(call->resolvedArguments[i], symbol->m_controllingType);
             }
             if (rootType(symbol->parameters[i]->type) == symbol->m_controllingType
-                && call->resolvedArguments[i]->type != nullptr && call->resolvedArguments[i]->type->m_classRoot == nullptr) {
+                && call->resolvedArguments[i]->type != nullptr && call->resolvedArguments[i]->type->classRoot == nullptr) {
                 m_diagnostics.error(location, "all controlling operands of a dispatching call must be class-wide");
             }
         }

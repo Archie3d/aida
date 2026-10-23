@@ -98,15 +98,15 @@ void QbeEmitter::storeArrayView(const std::string& descriptor, Value value, Type
 
 void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
 {
-    if (type == nullptr || type->m_boundExpressions.empty()) {
+    if (type == nullptr || type->boundExpressions.empty()) {
         return;
     }
-    Symbol* symbol = type->m_boundsSymbol;
+    Symbol* symbol = type->boundsSymbol;
     if (!symbol->isGlobal) { symbol->frameOffset = reserveFrame(adaArrayLocalSize(type->arrayRank)); }
     Value bounds;
     Type* axis = type;
     for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
-        auto [low, high] = type->m_boundExpressions[dimension];
+        auto [low, high] = type->boundExpressions[dimension];
         Value first = low ? emitExpr(low) : constantValue(axis->indexLow, 'l');
         Value last = high ? emitExpr(high) : constantValue(axis->indexHigh, 'l');
         first = wideBound(first);
@@ -147,10 +147,10 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         arena = storageArena(false, true);
     }
     Value bounds;
-    bool explicitBounds = type->constrained || !object->subtype->indexLows.empty() || type->m_boundsSymbol != nullptr;
+    bool explicitBounds = type->constrained || !object->subtype->indexLows.empty() || type->boundsSymbol != nullptr;
     if (type->constrained) { bounds = withBounds(Value {}, type, nullptr); }
-    if (type->m_boundsSymbol != nullptr) {
-        bounds = boundsFor(type->m_boundsSymbol);
+    if (type->boundsSymbol != nullptr) {
+        bounds = boundsFor(type->boundsSymbol);
     } else if (explicitBounds && !type->constrained) {
         Type* axis = type;
         for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
@@ -342,9 +342,9 @@ Value QbeEmitter::withBounds(const Value& address, Type* type, Symbol* symbol)
             row = row->element;
             result.innerBounds.push_back({ std::to_string(row->indexLow), std::to_string(row->indexHigh) });
         }
-    } else if (symbol != nullptr || (!result.hasBounds() && type->m_boundsSymbol != nullptr)) {
+    } else if (symbol != nullptr || (!result.hasBounds() && type->boundsSymbol != nullptr)) {
         Value bounds = boundsFor(symbol != nullptr && symbol->kind != SymbolKind::TypeName
-                                    ? symbol : type->m_boundsSymbol);
+                                    ? symbol : type->boundsSymbol);
         result.first = bounds.first;
         result.last = bounds.last;
         result.innerBounds = bounds.innerBounds;
@@ -442,8 +442,8 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     Type* type = baseType(expr->type);
     Type* component = type->element;
     Type* ancestor = type;
-    while (ancestor->m_parentType != nullptr) { ancestor = baseType(ancestor->m_parentType); }
-    bool fixedAncestor = ancestor->constrained || ancestor->m_boundsSymbol != nullptr;
+    while (ancestor->parentType != nullptr) { ancestor = baseType(ancestor->parentType); }
+    bool fixedAncestor = ancestor->constrained || ancestor->boundsSymbol != nullptr;
     Value indexBounds = fixedAncestor ? withBounds(Value {}, ancestor, nullptr) : scalarBounds(type->index);
     char boundClass = fixedAncestor ? 'l' : indexBounds.type;
     std::string indexFirst = wideBound(Value { indexBounds.first, boundClass }).name;
@@ -512,7 +512,7 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     std::string destination = result.name;
     for (const Operand& operand : operands) {
         auto copyElement = [&](const Value& target, const Value& source) {
-            if (component->m_tagged) { line("storel " + typeTag(component).name + ", " + target.name); }
+            if (component->tagged) { line("storel " + typeTag(component).name + ", " + target.name); }
             if (isComposite(component)) {
                 copyInto(target, source, component);
             } else {
@@ -542,7 +542,7 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
 Value QbeEmitter::convertArrayBounds(Value value, Type* source, Type* target, const SourceLocation& location)
 {
     value = withBounds(value, source, nullptr);
-    if (target->constrained || target->m_boundsSymbol != nullptr) {
+    if (target->constrained || target->boundsSymbol != nullptr) {
         Value shape = withBounds(Value {}, target, nullptr);
         checkArrayShape(shape, target, value, source);
         shape.name = value.name;

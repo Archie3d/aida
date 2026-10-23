@@ -3,7 +3,7 @@
 #include <string>
 
 struct Value;
-class Type;
+struct Type;
 enum class BinaryOp;
 
 // Helpers shared by the QBE emitter implementation.

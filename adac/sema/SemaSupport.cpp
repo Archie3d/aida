@@ -186,14 +186,14 @@ bool staticallyMatches(Type* actual, Type* formal)
         return true;
     }
     if (isScalar(actual)) {
-        return actual->m_scalarBoundsSymbol == formal->m_scalarBoundsSymbol
+        return actual->scalarBoundsSymbol == formal->scalarBoundsSymbol
             && actual->low == formal->low && actual->high == formal->high
             && (actual->kind != TypeKind::Fixed || actual->digits == formal->digits)
             && actual->hasRealRange == formal->hasRealRange
             && actual->lowReal == formal->lowReal && actual->highReal == formal->highReal;
     }
     if (actual->kind == TypeKind::Array) {
-        if (actual->constrained != formal->constrained || actual->m_boundsSymbol != formal->m_boundsSymbol) {
+        if (actual->constrained != formal->constrained || actual->boundsSymbol != formal->boundsSymbol) {
             return false;
         }
         int rank = actual->arrayRank;
@@ -224,12 +224,12 @@ void adaptUniversal(Expr* expr, Type* type)
         return;
     }
     if (type->kind == TypeKind::Fixed) {
-        if (type->m_formalFixed) {
+        if (type->formalFixed) {
             expr->type = type;
             expr->isStatic = false;
             return;
         }
-        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->m_fixedScale, expr->staticValue);
+        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->fixedScale, expr->staticValue);
         expr->isStatic = !expr->m_fixedInvalid;
         expr->type = type;
         return;
@@ -291,7 +291,7 @@ int objectView(Expr* expr)
         }
     } else if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
-        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
+        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->tagged) {
             return objectView(call->resolvedArguments.front());
         }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {

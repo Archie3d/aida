@@ -127,7 +127,7 @@ Value QbeEmitter::compareArrays(BinaryOp op, const Value& left, Type* leftType, 
 Value QbeEmitter::comparePrimitiveRecord(const Value& left, const Value& right, Type* type)
 {
     Type* identity = rootType(type);
-    for (Symbol* primitive : identity->m_primitives) {
+    for (Symbol* primitive : identity->primitives) {
         if (primitive->name != "=" || !m_sema.typeTable().isBoolean(primitive->returnType)
             || primitive->parameters.size() != 2
             || rootType(primitive->parameters[0]->type) != identity
@@ -163,7 +163,7 @@ Value QbeEmitter::comparePrimitiveRecord(const Value& left, const Value& right, 
 Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* type)
 {
     Type* record = baseType(type);
-    if (record->m_classRoot != nullptr) {
+    if (record->classRoot != nullptr) {
         std::string result = newTemp();
         emitCallInstruction(result + " =w call $__ada_tagged_equal(l " + left.name + ", l " + right.name + ")", CallEffects::CheckException);
         return Value { result, 'w' };
@@ -176,21 +176,21 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
     auto compareField = [&](const FieldInfo& field) {
         Value leftField = fieldAddress(left, record, field);
         Value rightField = fieldAddress(right, record, field);
-        Value equal = record->m_tagged && field.type->kind == TypeKind::Record
+        Value equal = record->tagged && field.type->kind == TypeKind::Record
             ? comparePrimitiveRecord(leftField, rightField, field.type)
             : compareObjects(leftField, rightField, field.type);
         std::string next = newLabel("recordnextfield");
         branch(equal, next, different);
         label(next);
     };
-    if (record->m_tagged && record->m_parentType != nullptr) {
-        Value equal = comparePrimitiveRecord(left, right, record->m_parentType);
+    if (record->tagged && record->parentType != nullptr) {
+        Value equal = comparePrimitiveRecord(left, right, record->parentType);
         std::string next = newLabel("compareparent");
         branch(equal, next, different);
         label(next);
     }
     for (const FieldInfo& field : record->fields) {
-        if (record->m_tagged && field.index < record->m_parentFieldCount) {
+        if (record->tagged && field.index < record->parentFieldCount) {
             continue;
         }
         if (field.variant < 0) {

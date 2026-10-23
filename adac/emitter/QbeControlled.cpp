@@ -3,17 +3,17 @@
 
 void QbeEmitter::initializeCollection(Type* type)
 {
-    if (!needsCollection(type) || type->m_parentType != nullptr || m_initializedCollections.contains(type)) {
+    if (!needsCollection(type) || type->parentType != nullptr || m_initializedCollections.contains(type)) {
         return;
     }
     m_initializedCollections[type] = true;
-    std::string slot = type->m_collectionName;
+    std::string slot = type->collectionName;
     std::string owner = "0";
     std::string arena = "0";
-    if (type->m_collectionOwner != nullptr) {
-        type->m_collectionOffset = reserveFrame(8);
+    if (type->collectionOwner != nullptr) {
+        type->collectionOffset = reserveFrame(8);
         slot = newTemp();
-        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->m_collectionOffset));
+        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->collectionOffset));
         owner = m_context->m_finalizationChain;
         arena = storageArena(false, true);
     }
@@ -26,15 +26,15 @@ Value QbeEmitter::collectionFor(Type* type)
 {
     type = rootType(type);
     // Derived access types share the parent's pool and collection lifetime.
-    while (type->m_parentType != nullptr) {
-        type = type->m_parentType;
+    while (type->parentType != nullptr) {
+        type = type->parentType;
     }
-    std::string slot = type->m_collectionName;
-    if (type->m_collectionOwner != nullptr) {
-        Value frame = type->m_collectionOwner == m_context->symbol
-            ? Value { m_context->frameTemp, 'l' } : staticLinkFor(type->m_collectionOwner->level);
+    std::string slot = type->collectionName;
+    if (type->collectionOwner != nullptr) {
+        Value frame = type->collectionOwner == m_context->symbol
+            ? Value { m_context->frameTemp, 'l' } : staticLinkFor(type->collectionOwner->level);
         slot = newTemp();
-        line(slot + " =l add " + frame.name + ", " + std::to_string(type->m_collectionOffset));
+        line(slot + " =l add " + frame.name + ", " + std::to_string(type->collectionOffset));
     }
     Value collection { newTemp(), 'l' };
     line(collection.name + " =l loadl " + slot);
@@ -44,9 +44,9 @@ Value QbeEmitter::collectionFor(Type* type)
 void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, ReturnStmt* extended)
 {
     Type* returnType = m_context->symbol->returnType;
-    bool wideExtended = object != nullptr && returnType->m_classRoot != nullptr;
+    bool wideExtended = object != nullptr && returnType->classRoot != nullptr;
     Type* type = wideExtended ? object->symbols.front()->type : returnType;
-    if (type->m_classRoot != nullptr) {
+    if (type->classRoot != nullptr) {
         bool limited = hasLimitedControlledParts(type) || hasLimitedControlledParts(expression->type);
         std::string mark = newTemp();
         std::string arenaMark = newTemp();
@@ -167,17 +167,17 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             source = withBounds(source, expression->type, nullptr);
             destination = source;
         }
-        if (type->m_boundsSymbol != nullptr) {
+        if (type->boundsSymbol != nullptr) {
             destination = withBounds(Value {}, type, nullptr);
             checkArrayShape(destination, type, source, expression->type);
         }
     }
-    if (!constructed && (dynamic || type->m_tagged)) {
+    if (!constructed && (dynamic || type->tagged)) {
         std::string size = dynamic ? objectBytes(destination, type) : std::to_string(typeSize(type));
         std::string provided;
         std::string allocate;
         std::string allocated;
-        if (hasLimitedControlledParts(type) && (type->m_tagged || dynamic)) {
+        if (hasLimitedControlledParts(type) && (type->tagged || dynamic)) {
             provided = newLabel("resultprovided");
             allocate = newLabel("resultallocate");
             allocated = newLabel("resultallocated");
@@ -206,7 +206,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     if (!constructed) {
         walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
             emitCallInstruction("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
-                 + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
+                 + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
     }
     std::string savedOwner = m_context->m_constructionOwner;
@@ -306,11 +306,11 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     if (!needsFinalization(type)) {
         return;
     }
-    if (type->m_protectedScope != nullptr) {
+    if (type->protectedScope != nullptr) {
         action(object, type);
         return;
     }
-    if (parentFirst && type->m_controlled) {
+    if (parentFirst && type->controlled) {
         action(object, type);
     }
     if (type->kind == TypeKind::Array) {
@@ -350,7 +350,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
             }
         }
     }
-    if (!parentFirst && type->m_controlled) {
+    if (!parentFirst && type->controlled) {
         action(object, type);
     }
 }
@@ -359,20 +359,20 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
 {
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
         if (library) {
-            emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
+            emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
             return;
         }
         bool temporary = m_context->m_initializingTemporary;
         std::string owner = temporary ? m_context->m_temporaryFinalizationChain : m_context->m_finalizationChain;
         emitCallInstruction("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)
-             + ", l " + part.name + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
+             + ", l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
     });
 }
 
 void QbeEmitter::activateControlledObject(const Value& object, Type* type)
 {
-    if (type->m_controlled || type->m_protectedScope != nullptr) {
-        emitCallInstruction("call $__ada_controlled_activate(l " + object.name + ", l " + rootType(type)->m_tagName + ".finalize)", CallEffects::CheckException);
+    if (type->controlled || type->protectedScope != nullptr) {
+        emitCallInstruction("call $__ada_controlled_activate(l " + object.name + ", l " + rootType(type)->tagName + ".finalize)", CallEffects::CheckException);
     }
 }
 
@@ -386,10 +386,10 @@ void QbeEmitter::adjustControlledObject(const Value& object, Type* type, const s
         std::string combined = newTemp();
         if (!viewTag.empty() && part.name == object.name && partType == type) {
             emitCallInstruction(failed + " =w call $__ada_controlled_adjust_view(l " + part.name + ", l "
-                 + rootType(partType)->m_tagName + ".view_adjust, l " + viewTag + ")", CallEffects::DeferredCheck);
+                 + rootType(partType)->tagName + ".view_adjust, l " + viewTag + ")", CallEffects::DeferredCheck);
         } else {
             emitCallInstruction(failed + " =w call $__ada_controlled_adjust(l " + part.name + ", l "
-                 + rootType(partType)->m_tagName + ".adjust)", CallEffects::DeferredCheck);
+                 + rootType(partType)->tagName + ".adjust)", CallEffects::DeferredCheck);
         }
         line(previous + " =w loadw " + failure);
         line(combined + " =w or " + previous + ", " + failed);
@@ -416,7 +416,7 @@ void QbeEmitter::finalizeControlledObject(const Value& object, Type* type, const
         std::string combined = newTemp();
         if (!viewTag.empty() && part.name == object.name && partType == type) {
             emitCallInstruction(failed + " =w call $__ada_controlled_finalize_view(l " + part.name + ", l "
-                 + rootType(partType)->m_tagName + ".view_finalize, l " + viewTag + ")", CallEffects::DeferredCheck);
+                 + rootType(partType)->tagName + ".view_finalize, l " + viewTag + ")", CallEffects::DeferredCheck);
         } else {
             emitCallInstruction(failed + " =w call $__ada_controlled_finalize(l " + part.name + ")", CallEffects::DeferredCheck);
         }
@@ -449,10 +449,10 @@ std::string QbeEmitter::objectBytes(const Value& object, Type* type)
 
 void QbeEmitter::copyControlledObject(const Value& target, const Value& source, Type* type, bool initialize)
 {
-    std::string viewTag = type->m_tagged ? typeTag(type).name : "";
+    std::string viewTag = type->tagged ? typeTag(type).name : "";
     std::string size = objectBytes(target, type);
     auto copy = [&](const Value& to, const Value& from) {
-        if (type->m_tagged) {
+        if (type->tagged) {
             copyInto(to, from, type);
         } else {
             emitCallInstruction("call $memmove(l " + to.name + ", l " + from.name + ", l " + size + ")", CallEffects::DeferredCheck);
@@ -478,7 +478,7 @@ void QbeEmitter::copyControlledObject(const Value& target, const Value& source, 
     m_context->m_initializingTemporary = true;
     prepareControlledObject(snapshot, type);
     m_context->m_initializingTemporary = saved;
-    if (type->m_tagged) {
+    if (type->tagged) {
         line("storel " + typeTag(type).name + ", " + snapshot.name);
     }
     copy(snapshot, source);
@@ -499,8 +499,8 @@ void QbeEmitter::emitControlledParts(Type* type)
     m_context = &context;
     auto visit = [&](const Value& part, Type* partType) {
         Type* root = rootType(partType);
-        emitCallInstruction("call %visit(l " + part.name + ", l " + root->m_tagName + ".finalize, l "
-             + (root->isLimited ? "0" : root->m_tagName + ".adjust") + ", l %context)", CallEffects::CheckException);
+        emitCallInstruction("call %visit(l " + part.name + ", l " + root->tagName + ".finalize, l "
+             + (root->isLimited ? "0" : root->tagName + ".adjust") + ", l %context)", CallEffects::CheckException);
     };
     std::string parent = newLabel("partsparent");
     std::string child = newLabel("partschild");
@@ -513,7 +513,7 @@ void QbeEmitter::emitControlledParts(Type* type)
     walkControlled(Value { "%object", 'l' }, type, false, visit);
     emitReturn();
     context.terminated = true;
-    finishFunction("export function " + type->m_tagName
+    finishFunction("export function " + type->tagName
                    + ".parts(l %object, l %visit, l %context, w %parentFirst)");
     m_context = saved;
 }

@@ -5,7 +5,7 @@
 
 Value QbeEmitter::layoutAddress(Type* type)
 {
-    Symbol* symbol = type->m_layoutSymbol;
+    Symbol* symbol = type->layoutSymbol;
     if (symbol->isGlobal) { return Value {symbol->qbeName, 'l'}; }
     Value frame = symbol->owner == m_context->symbol ? Value {m_context->frameTemp, 'l'}
         : staticLinkFor(symbol->owner->level);
@@ -41,7 +41,7 @@ std::string QbeEmitter::allocTypeScratch(Type* type)
 
 std::string QbeEmitter::fieldOffset(Type* type, const FieldInfo& field)
 {
-    if (type->m_layoutSymbol == nullptr) { return std::to_string(field.offset); }
+    if (type->layoutSymbol == nullptr) { return std::to_string(field.offset); }
     Value layout = layoutAddress(type);
     std::string slot = newTemp(), offset = newTemp();
     line(slot + " =l add " + layout.name + ", " + std::to_string((field.index + 1) * 8));
@@ -51,7 +51,7 @@ std::string QbeEmitter::fieldOffset(Type* type, const FieldInfo& field)
 
 Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo& field)
 {
-    if (type->m_layoutSymbol == nullptr && field.offset == 0) { return withBounds(Value {object.name, 'l'}, field.type, nullptr); }
+    if (type->layoutSymbol == nullptr && field.offset == 0) { return withBounds(Value {object.name, 'l'}, field.type, nullptr); }
     std::string offset = fieldOffset(type, field);
     Value address {newTemp(), 'l'};
     line(address.name + " =l add " + object.name + ", " + offset);
@@ -60,12 +60,12 @@ Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo&
 
 void QbeEmitter::emitRecordLayout(Type* type)
 {
-    if (type == nullptr || type->m_layoutSymbol == nullptr || type->m_layoutSymbol->type != type) { return; }
-    Symbol* symbol = type->m_layoutSymbol;
+    if (type == nullptr || type->layoutSymbol == nullptr || type->layoutSymbol->type != type) { return; }
+    Symbol* symbol = type->layoutSymbol;
     if (!symbol->isGlobal) { symbol->frameOffset = reserveFrame((type->fields.size() + 1) * 8); }
     Value layout = layoutAddress(type);
     std::map<int, std::string> cursors;
-    cursors[-1] = type->m_protectedScope != nullptr ? "8" : "0";
+    cursors[-1] = type->protectedScope != nullptr ? "8" : "0";
     std::string maximum = allocScratch(8);
     line("storel " + cursors[-1] + ", " + maximum);
     auto append = [&](const std::string& offset, const std::string& size, long long alignment) {
@@ -112,7 +112,7 @@ void QbeEmitter::emitRecordLayout(Type* type)
 
 Value QbeEmitter::allocatedArrayView(Value pointer, Type* type)
 {
-    if (type->constrained || type->m_boundsSymbol != nullptr) { return withBounds(pointer, type, nullptr); }
+    if (type->constrained || type->boundsSymbol != nullptr) { return withBounds(pointer, type, nullptr); }
     std::string descriptor = newTemp();
     emitCallInstruction(descriptor + " =l call $__ada_allocation_array_bounds(l " + pointer.name
         + ", w " + std::to_string(type->arrayRank) + ")", CallEffects::CheckException);

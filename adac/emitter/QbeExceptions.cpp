@@ -172,7 +172,7 @@ void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLoca
     Value bounds = scalarBounds(type);
     Value checked = value;
     char width = value.type;
-    if (type->m_scalarBoundsSymbol != nullptr && (value.type == 'l' || bounds.type == 'l')) {
+    if (type->scalarBoundsSymbol != nullptr && (value.type == 'l' || bounds.type == 'l')) {
         width = 'l';
         if (checked.type == 'w') {
             checked.name = newTemp();
@@ -190,9 +190,9 @@ void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLoca
     std::string lowTest = newTemp();
     std::string highTest = newTemp();
     std::string combined = newTemp();
-    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, width, type->m_modulus != 0) + " " + checked.name + ", "
+    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, width, type->modulus != 0) + " " + checked.name + ", "
          + bounds.first);
-    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, width, type->m_modulus != 0) + " " + checked.name + ", "
+    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, width, type->modulus != 0) + " " + checked.name + ", "
          + bounds.last);
     line(combined + " =w and " + lowTest + ", " + highTest);
 

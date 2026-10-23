@@ -83,7 +83,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
         if (selected->isDereference) {
             for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
-                if (type->m_accessProfile != nullptr) {
+                if (type->accessProfile != nullptr) {
                     ExprPtr prefix = std::move(selected->prefix);
                     expr->callee = std::move(prefix);
                     break;
@@ -96,9 +96,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     });
     if (!direct) {
         for (Type* type : expressionTypes(expr->callee.get(), scope)) {
-            if (type->m_accessProfile != nullptr) {
+            if (type->accessProfile != nullptr) {
                 analyzeExpr(expr->callee.get(), scope, type);
-                candidates = { type->m_accessProfile };
+                candidates = { type->accessProfile };
                 expr->m_indirect = true;
                 break;
             }
@@ -132,9 +132,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         result->index = prefixType->index;
         // A slice describes its components, not the parent's trailing storage.
         // Its first element can also be less aligned than the complete array.
-        result->m_compositeSize = 0;
-        result->m_sizeBounds.clear();
-        result->m_alignment = -1;
+        result->compositeSize = 0;
+        result->sizeBounds.clear();
+        result->alignment = -1;
         long long lowBound = 0;
         long long highBound = 0;
         if (foldStatic(low, lowBound) && foldStatic(high, highBound)) {
@@ -278,19 +278,19 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             arrayConversion = arrayConversion && targetAxis == sourceAxis;
         }
-        Type* sourceRoot = operand->type == nullptr ? nullptr : operand->type->m_classRoot;
-        Type* targetRoot = expr->type->m_classRoot != nullptr ? expr->type->m_classRoot : expr->type;
+        Type* sourceRoot = operand->type == nullptr ? nullptr : operand->type->classRoot;
+        Type* targetRoot = expr->type->classRoot != nullptr ? expr->type->classRoot : expr->type;
         bool relatedUntagged = false;
-        if (operand->type != nullptr && !expr->type->m_tagged) {
+        if (operand->type != nullptr && !expr->type->tagged) {
             Type* targetAncestor = rootType(expr->type);
             Type* sourceAncestor = rootType(operand->type);
-            while (targetAncestor->m_parentType != nullptr
-                && (targetAncestor->m_parentVisible || representationVisible(targetAncestor))) {
-                targetAncestor = targetAncestor->m_parentType;
+            while (targetAncestor->parentType != nullptr
+                && (targetAncestor->parentVisible || representationVisible(targetAncestor))) {
+                targetAncestor = targetAncestor->parentType;
             }
-            while (sourceAncestor->m_parentType != nullptr
-                && (sourceAncestor->m_parentVisible || representationVisible(sourceAncestor))) {
-                sourceAncestor = sourceAncestor->m_parentType;
+            while (sourceAncestor->parentType != nullptr
+                && (sourceAncestor->parentVisible || representationVisible(sourceAncestor))) {
+                sourceAncestor = sourceAncestor->parentType;
             }
             relatedUntagged = targetAncestor == sourceAncestor;
         }
@@ -302,12 +302,12 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }
         if (expr->type->kind == TypeKind::Fixed) {
-            if (expr->type->m_formalFixed || expr->type->m_scalarBoundsSymbol != nullptr) {
+            if (expr->type->formalFixed || expr->type->scalarBoundsSymbol != nullptr) {
                 return expr->type;
             }
             ExactReal exact;
             long long value = 0;
-            if (exactValue(operand, exact) && exact.scaled(expr->type->m_fixedScale, value)
+            if (exactValue(operand, exact) && exact.scaled(expr->type->fixedScale, value)
                 && value >= expr->type->low && value <= expr->type->high) {
                 expr->isStatic = true;
                 expr->staticValue = value;
@@ -318,7 +318,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
-        if (numeric && operand->isStatic && expr->type->m_scalarBoundsSymbol == nullptr) {
+        if (numeric && operand->isStatic && expr->type->scalarBoundsSymbol == nullptr) {
             ExactReal exact;
             expr->isStatic = true;
             if (operand->staticFailure != StaticFailure::None) {
@@ -330,7 +330,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 __int128 value = exact.m_numerator;
                 bool integral = exact.m_denominator == 1;
                 if (isReal(operand->type) || operand->type->kind == TypeKind::Fixed) {
-                    if (expr->type->m_modulus != 0) {
+                    if (expr->type->modulus != 0) {
                         value = exact.m_numerator / exact.m_denominator;
                         __int128 remainder = exact.m_numerator % exact.m_denominator;
                         __int128 magnitude = remainder < 0 ? -remainder : remainder;
@@ -429,7 +429,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             Type* context = formal;
             if (rootType(formal) == chosen->m_controllingType) {
                 for (Type* actual : expressionTypes(argument, scope)) {
-                    if (actual->m_classRoot == chosen->m_controllingType) {
+                    if (actual->classRoot == chosen->m_controllingType) {
                         context = actual;
                         expr->m_dispatching = true;
                     }
@@ -470,7 +470,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
                     && expr->resolvedArguments[i] != nullptr
                     && expr->resolvedArguments[i]->type != nullptr
-                    && expr->resolvedArguments[i]->type->m_classRoot == nullptr) {
+                    && expr->resolvedArguments[i]->type->classRoot == nullptr) {
                     m_diagnostics.error(expr->location, "all controlling operands of a dispatching call must be class-wide");
                 }
             }

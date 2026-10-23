@@ -48,11 +48,11 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         auto* binary = static_cast<BinaryExpr*>(expr);
         long long left, right, rounded;
         if (foldFixed(binary->left.get(), left) && foldFixed(binary->right.get(), right)) {
-            int leftBits = binary->left->type->m_fixedScale, rightBits = binary->right->type->m_fixedScale;
+            int leftBits = binary->left->type->fixedScale, rightBits = binary->right->type->fixedScale;
             bool multiply = binary->op == BinaryOp::Multiply;
             if (fixedNumericOperation(multiply ? FixedMultiply : FixedDivide, left, leftBits,
-                    right, rightBits, expr->type->m_modulus != 0, &rounded)) {
-                value = expr->type->m_modulus != 0 ? (__int128)(uint64_t)rounded : (__int128)rounded;
+                    right, rightBits, expr->type->modulus != 0, &rounded)) {
+                value = expr->type->modulus != 0 ? (__int128)(uint64_t)rounded : (__int128)rounded;
                 return true;
             }
             failure = binary->op == BinaryOp::Divide && right == 0 ? StaticFailure::ZeroDivisor : StaticFailure::Check;
@@ -92,14 +92,14 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         if (unary->operatorCall || !foldWideInteger(unary->operand.get(), operand, failure)) {
             return false;
         }
-        if (expr->type != nullptr && expr->type->m_modulus != 0) {
+        if (expr->type != nullptr && expr->type->modulus != 0) {
             long long result;
             if (operand < 0 || operand > (__int128)UINT64_MAX) {
                 failure = StaticFailure::Capacity;
                 return false;
             }
             if (!modularOperation(unary->op == UnaryOp::Not ? ModularNot : ModularSubtract,
-                    expr->type->m_modulus, unary->op == UnaryOp::Not ? operand : 0,
+                    expr->type->modulus, unary->op == UnaryOp::Not ? operand : 0,
                     unary->op == UnaryOp::Not ? 0 : operand, &result)) {
                 return false;
             }
@@ -194,7 +194,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                 return false;
             }
         }
-        if (expr->type != nullptr && expr->type->m_modulus != 0) {
+        if (expr->type != nullptr && expr->type->modulus != 0) {
             ModularOperation operation = ModularInvalid;
             switch (binary->op) {
             case BinaryOp::Add: operation = ModularAdd; break;
@@ -214,7 +214,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                 failure = StaticFailure::Capacity;
                 return false;
             }
-            if (!modularOperation(operation, expr->type->m_modulus, left, right, &modular)) {
+            if (!modularOperation(operation, expr->type->modulus, left, right, &modular)) {
                 failure = right == 0 ? StaticFailure::ZeroDivisor : StaticFailure::NegativeExponent;
                 return false;
             }
@@ -408,9 +408,9 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         if (foldWideInteger(expr, value, failure)) {
             __int128 low = qbeClass(target) == 'w' ? INT_MIN : LLONG_MIN;
             __int128 high = qbeClass(target) == 'w' ? INT_MAX : LLONG_MAX;
-            if (target->m_modulus != 0) {
+            if (target->modulus != 0) {
                 low = 0;
-                high = target->m_modulus - 1;
+                high = target->modulus - 1;
             }
             if (value < low || value > high) {
                 m_diagnostics.error(expr->location, "static expression is outside the base range of its expected type");
@@ -530,7 +530,7 @@ void Sema::noteStaticValue(Expr* expr)
         } else if (expr->kind == ExprKind::Binary) {
             auto* binary = static_cast<BinaryExpr*>(expr);
             if (!binary->operatorCall && binary->left->isStatic && binary->right->isStatic
-                && !expr->type->m_formalFixed) {
+                && !expr->type->formalFixed) {
                 expr->isStatic = true;
                 expr->staticFailure = binary->left->staticFailure != StaticFailure::None
                     || binary->right->staticFailure != StaticFailure::None ? StaticFailure::Dependent
@@ -590,7 +590,7 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         if (!foldFixed(expr, counts)) {
             return false;
         }
-        int bits = expr->type->m_fixedScale;
+        int bits = expr->type->fixedScale;
         value = ExactReal::fixed(counts, bits);
         return true;
     }
@@ -671,7 +671,7 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
 bool Sema::foldFixed(Expr* expr, long long& value) const
 {
     if (expr == nullptr || expr->staticFailure != StaticFailure::None || expr->m_fixedInvalid
-        || (expr->type != nullptr && expr->type->m_formalFixed)) {
+        || (expr->type != nullptr && expr->type->formalFixed)) {
         return false;
     }
     if (expr->isStatic) {
@@ -705,24 +705,24 @@ bool Sema::foldFixed(Expr* expr, long long& value) const
         case BinaryOp::Divide: op = binary->m_roundFixed ? FixedDivideRounded : FixedDivide; break;
         default: break;
         }
-        return fixedOperation(op, left, binary->left->type->m_fixedScale,
-            right, binary->right->type->m_fixedScale, expr->type->m_fixedScale, &value);
+        return fixedOperation(op, left, binary->left->type->fixedScale,
+            right, binary->right->type->fixedScale, expr->type->fixedScale, &value);
     }
     if (expr->kind == ExprKind::Qualified) {
         auto* qualified = static_cast<QualifiedExpr*>(expr);
-        return expr->type->m_scalarBoundsSymbol == nullptr && foldFixed(qualified->operand.get(), value)
+        return expr->type->scalarBoundsSymbol == nullptr && foldFixed(qualified->operand.get(), value)
             && value >= expr->type->low && value <= expr->type->high;
     }
     if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
-        if (call->form != CallForm::Conversion || expr->type->m_scalarBoundsSymbol != nullptr) {
+        if (call->form != CallForm::Conversion || expr->type->scalarBoundsSymbol != nullptr) {
             return false;
         }
         ExactReal exact;
         if (!exactValue(call->resolvedArguments.front(), exact)) {
             return false;
         }
-        return exact.scaled(expr->type->m_fixedScale, value)
+        return exact.scaled(expr->type->fixedScale, value)
             && value >= expr->type->low && value <= expr->type->high;
     }
     return false;

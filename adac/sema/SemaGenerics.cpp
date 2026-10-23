@@ -58,7 +58,7 @@ void renameUnit(Decl* decl, const std::string& name, const std::string& lower, c
 bool isDefinite(Type* type)
 {
     Type* base = baseType(type);
-    return base == nullptr || base->kind != TypeKind::Array || base->constrained || base->m_boundsSymbol != nullptr;
+    return base == nullptr || base->kind != TypeKind::Array || base->constrained || base->boundsSymbol != nullptr;
 }
 
 // Copying a limited object requires build-in-place support, even when it is
@@ -356,16 +356,16 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             type->low = std::numeric_limits<int>::min();
             type->high = std::numeric_limits<int>::max();
             if (formal.typeClass == FormalTypeClass::ModularType) {
-                type->m_modulus = (__int128)1 << 64;
+                type->modulus = (__int128)1 << 64;
                 type->low = 0;
-                type->high = type->m_modulus - 1;
+                type->high = type->modulus - 1;
             }
             type->digits = 6;
             if (formal.typeClass == FormalTypeClass::DecimalType) {
-                type->m_fixedScale = ADA_FIXED_DECIMAL_TAG;
+                type->fixedScale = ADA_FIXED_DECIMAL_TAG;
                 type->digits = 18;
             }
-            type->m_formalFixed = kind == TypeKind::Fixed;
+            type->formalFixed = kind == TypeKind::Fixed;
             if (formal.typeClass == FormalTypeClass::Any) {
                 type->privateTo = decl->symbol;
                 type->isLimited = formal.m_limited;
@@ -425,12 +425,12 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
 
     switch (formal.typeClass) {
     case FormalTypeClass::IntegerType:
-        if (base->kind != TypeKind::Integer || base->m_modulus != 0) {
+        if (base->kind != TypeKind::Integer || base->modulus != 0) {
             wanted = "a signed integer type";
         }
         break;
     case FormalTypeClass::ModularType:
-        if (base->m_modulus == 0) {
+        if (base->modulus == 0) {
             wanted = "a modular type";
         }
         break;
@@ -440,12 +440,12 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
         }
         break;
     case FormalTypeClass::DecimalType:
-        if (base->kind != TypeKind::Fixed || !fixedIsDecimal(base->m_fixedScale)) {
+        if (base->kind != TypeKind::Fixed || !fixedIsDecimal(base->fixedScale)) {
             wanted = "a decimal fixed-point type";
         }
         break;
     case FormalTypeClass::FixedType:
-        if (base->kind != TypeKind::Fixed || fixedIsDecimal(base->m_fixedScale)) {
+        if (base->kind != TypeKind::Fixed || fixedIsDecimal(base->fixedScale)) {
             wanted = "an ordinary fixed-point type";
         }
         break;
@@ -482,7 +482,7 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
 {
     const TypeDefinition& definition = *formal.m_arrayDefinition;
     bool matches = actual->arrayRank == static_cast<int>(definition.indexTypes.size())
-        && actual->constrained != definition.unconstrainedIndexes && actual->m_boundsSymbol == nullptr;
+        && actual->constrained != definition.unconstrainedIndexes && actual->boundsSymbol == nullptr;
     Type* axis = actual;
     for (const auto& index : definition.indexTypes) {
         Type* expected = resolveSubtypeIndication(index.get(), bindings);
@@ -494,7 +494,7 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
         if (definition.unconstrainedIndexes) {
             matches = matches && staticallyMatches(axis->index, expected);
         } else {
-            matches = matches && expected->m_scalarBoundsSymbol == nullptr
+            matches = matches && expected->scalarBoundsSymbol == nullptr
                 && axis->indexLow == expected->low && axis->indexHigh == expected->high;
         }
         axis = axis->element;
@@ -675,7 +675,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         // controlled or tagged actual at instantiation.
         if (implementation != nullptr) {
             Type* result = implementation->type;
-            if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->m_tagged)) {
+            if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->tagged)) {
                 wrapper->m_usesFinalization = true;
             }
         }
@@ -873,7 +873,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             SemaSupport::adaptUniversal(actual, type);
             // An unconstrained constant acquires its bounds/discriminants from
             // its initializer. A dynamic array keeps its per-object descriptor.
-            if ((type->kind == TypeKind::Array && !type->constrained && type->m_boundsSymbol == nullptr)
+            if ((type->kind == TypeKind::Array && !type->constrained && type->boundsSymbol == nullptr)
                 || (type->kind == TypeKind::Record && !hasKnownDiscriminants(type))) {
                 type = actualType;
             }
@@ -922,7 +922,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         Symbol* name = lookupName("name", bindings);
         Type* access = name != nullptr ? baseType(name->type) : nullptr;
         if (object == nullptr || access == nullptr || access->kind != TypeKind::Access
-            || access->m_accessProfile != nullptr
+            || access->accessProfile != nullptr
             || !SemaSupport::staticallyMatches(access->target, object->type)) {
             m_diagnostics.error(decl->location,
                 "Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object");
@@ -1205,11 +1205,11 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             bool runtimeComponents = type->kind == TypeKind::Array ? hasRuntimeLayout(type->element)
                 : type->kind == TypeKind::Record && std::any_of(type->fields.begin(), type->fields.end(),
                     [](const FieldInfo& field) { return hasRuntimeLayout(field.type); });
-            if (runtimeComponents && type->m_incompleteLayout) {
+            if (runtimeComponents && type->incompleteLayout) {
                 m_diagnostics.error(symbol->location,
                     "runtime component layouts require complete component types at declaration");
             }
-            if (hasProtected(type) && (type->m_incompleteLayout || type->m_tagged || type->variantOn >= 0)) {
+            if (hasProtected(type) && (type->incompleteLayout || type->tagged || type->variantOn >= 0)) {
                 m_diagnostics.error(symbol->location,
                     "protected components require a complete ordinary record or array layout at declaration");
             }

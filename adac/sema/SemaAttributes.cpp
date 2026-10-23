@@ -81,10 +81,10 @@ int digitsOf(const Type* type)
 
 bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 {
-    if (access == nullptr || access->m_accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
+    if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
         return false;
     }
-    Symbol* profile = access->m_accessProfile;
+    Symbol* profile = access->accessProfile;
     bool sameResult = candidate->returnType == profile->returnType
         || SemaSupport::staticallyMatches(candidate->returnType, profile->returnType);
     if (!sameResult || candidate->parameters.size() != profile->parameters.size()) {
@@ -136,7 +136,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "access") {
-        if (expected == nullptr || expected->m_accessProfile == nullptr || !expr->arguments.empty()) {
+        if (expected == nullptr || expected->accessProfile == nullptr || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "subprogram 'Access requires an access-to-subprogram type context");
             return nullptr;
         }
@@ -163,9 +163,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             chosen = chosen->m_renamedSubprogram;
         }
         if (chosen->m_inheritedFrom != nullptr) {
-            bool tagged = chosen->returnType != nullptr && chosen->returnType->m_tagged;
+            bool tagged = chosen->returnType != nullptr && chosen->returnType->tagged;
             for (Symbol* parameter : chosen->parameters) {
-                tagged = tagged || parameter->type->m_tagged;
+                tagged = tagged || parameter->type->tagged;
             }
             if (tagged) {
                 m_diagnostics.error(expr->location, "'Access of inherited tagged subprograms is not yet supported");
@@ -178,8 +178,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         bool accessible = false;
         Scope* declarationScope = chosen->m_renamedAccess != nullptr
-            ? chosen->m_renamedAccess->type->m_accessScope : chosen->m_declarationScope;
-        for (Scope* enclosing = expected->m_accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
+            ? chosen->m_renamedAccess->type->accessScope : chosen->m_declarationScope;
+        for (Scope* enclosing = expected->accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
             accessible = accessible || enclosing == declarationScope;
         }
         // Library subprograms have no captured activation.
@@ -245,7 +245,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             task = task->target;
         }
         task = baseType(task);
-        if (task != nullptr && task->m_taskBody != nullptr
+        if (task != nullptr && task->taskBody != nullptr
             && representationVisible(prefixType) && representationVisible(task)) {
             bool valid = expr->arguments.empty();
             if (prefixIsType) {
@@ -254,7 +254,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                     : (expr->prefix->kind == ExprKind::Selected
                         ? static_cast<SelectedExpr*>(expr->prefix.get())->symbol : nullptr);
                 for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
-                    if (owner == task->m_taskBody && named != nullptr && !named->type->isSubtype
+                    if (owner == task->taskBody && named != nullptr && !named->type->isSubtype
                         && owner->name == "__task_" + named->name) {
                         expr->m_taskCurrentInstance = owner->m_taskIdentity;
                         noteReference(expr->m_taskCurrentInstance);
@@ -295,7 +295,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "class") {
-        if (!prefixIsType || !taggedViewVisible(prefixType) || prefixType->m_classRoot != nullptr) {
+        if (!prefixIsType || !taggedViewVisible(prefixType) || prefixType->classRoot != nullptr) {
             m_diagnostics.error(expr->location, "'Class requires a specific tagged type");
             return nullptr;
         }
@@ -304,7 +304,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
     if (expr->lower == "tag" || expr->lower == "external_tag") {
         if (!taggedViewVisible(prefixType) || !expr->arguments.empty()
-            || (prefixIsType && prefixType->m_classRoot != nullptr)
+            || (prefixIsType && prefixType->classRoot != nullptr)
             || (expr->lower == "external_tag" && !prefixIsType)) {
             m_diagnostics.error(expr->location, "tag attributes require a specific tagged subtype or a tagged object");
             return nullptr;
@@ -416,20 +416,20 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = true;
-        expr->staticValue = base->m_fixedRadix;
+        expr->staticValue = base->fixedRadix;
         return expr->type;
     }
     if (base != nullptr && base->kind == TypeKind::Fixed) {
-        if (fixedIsDecimal(base->m_fixedScale) && (name == "digits" || name == "scale")) {
+        if (fixedIsDecimal(base->fixedScale) && (name == "digits" || name == "scale")) {
             if (!prefixIsType || !representationVisible(base) || !expr->arguments.empty()) {
                 m_diagnostics.error(expr->location, "decimal scale attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalInteger();
-            expr->isStatic = !base->m_formalFixed;
-            expr->staticValue = name == "digits" ? base->digits : fixedFives(base->m_fixedScale);
+            expr->isStatic = !base->formalFixed;
+            expr->staticValue = name == "digits" ? base->digits : fixedFives(base->fixedScale);
             return expr->type;
         }
-        if (fixedIsDecimal(base->m_fixedScale) && name == "round") {
+        if (fixedIsDecimal(base->fixedScale) && name == "round") {
             if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 1) {
                 m_diagnostics.error(expr->location, "decimal Round requires a visible subtype and one real argument");
                 return nullptr;
@@ -475,8 +475,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             expr->type = m_types.scalarBaseType(base);
             ExactReal value;
-            if (!base->m_formalFixed && exactValue(expr->arguments[0].get(), value)) {
-                expr->isStatic = value.scaled(base->m_fixedScale, expr->staticValue);
+            if (!base->formalFixed && exactValue(expr->arguments[0].get(), value)) {
+                expr->isStatic = value.scaled(base->fixedScale, expr->staticValue);
                 if (!expr->isStatic) { m_diagnostics.error(expr->location, "decimal Round result exceeds the base range"); }
             }
             return expr->type;
@@ -486,8 +486,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 m_diagnostics.error(expr->location, "fixed-point formatting attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalInteger();
-            expr->isStatic = !base->m_formalFixed && (name == "aft" || base->m_scalarBoundsSymbol == nullptr);
-            expr->staticValue = base->m_fixedAft;
+            expr->isStatic = !base->formalFixed && (name == "aft" || base->scalarBoundsSymbol == nullptr);
+            expr->staticValue = base->fixedAft;
             if (name == "fore") {
                 __int128 low = base->low, high = base->high;
                 if (low < 0) {
@@ -496,8 +496,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 if (high < 0) {
                     high = -high;
                 }
-                int scale = fixedTwos(base->m_fixedScale);
-                __int128 factor = fixedIsDecimal(base->m_fixedScale) ? fixedPower10(scale < 0 ? -scale : scale)
+                int scale = fixedTwos(base->fixedScale);
+                __int128 factor = fixedIsDecimal(base->fixedScale) ? fixedPower10(scale < 0 ? -scale : scale)
                     : (__int128)1 << (scale < 0 ? -scale : scale);
                 __int128 whole = scale >= 0 ? std::max(low, high) / factor : std::max(low, high) * factor;
                 expr->staticValue = 2;
@@ -508,7 +508,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
-        if (name == "small" && base->m_smallPending) {
+        if (name == "small" && base->smallPending) {
             m_diagnostics.error(expr->location, "Small cannot refer to itself in its defining clause");
             return nullptr;
         }
@@ -517,13 +517,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 m_diagnostics.error(expr->location, "fixed-point scale attributes require a subtype and no arguments");
             }
             expr->type = m_types.universalReal();
-            if (base->m_formalFixed) {
+            if (base->formalFixed) {
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_exactReal = ExactReal::fixed(1, base->m_fixedScale);
-            if (name == "delta" && base->m_delta != nullptr) {
-                exactValue(base->m_delta, expr->m_exactReal);
+            expr->m_exactReal = ExactReal::fixed(1, base->fixedScale);
+            if (name == "delta" && base->delta != nullptr) {
+                exactValue(base->delta, expr->m_exactReal);
             }
             expr->staticReal = static_cast<double>(expr->m_exactReal.m_numerator)
                 / static_cast<double>(expr->m_exactReal.m_denominator);
@@ -531,7 +531,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (name == "first" || name == "last") {
             expr->type = prefixType;
-            expr->isStatic = !base->m_formalFixed && base->m_scalarBoundsSymbol == nullptr;
+            expr->isStatic = !base->formalFixed && base->scalarBoundsSymbol == nullptr;
             if (expr->isStatic) {
                 expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
                 expr->m_exactReal.integer(expr->staticValue);
@@ -549,7 +549,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     if (base != nullptr && base->kind == TypeKind::Array
         && (name == "first" || name == "last" || name == "length")) {
-        if (prefixIsType && !base->constrained && base->m_boundsSymbol == nullptr) {
+        if (prefixIsType && !base->constrained && base->boundsSymbol == nullptr) {
             m_diagnostics.error(expr->location, "array bound attributes require an object or a constrained array subtype");
             return nullptr;
         }
@@ -581,7 +581,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "types containing tasks do not support streaming yet");
             return nullptr;
         }
-        if (base != nullptr && base->m_classRoot != nullptr) {
+        if (base != nullptr && base->classRoot != nullptr) {
             m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
             return nullptr;
         }
@@ -634,7 +634,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    if ((name == "min" || name == "max") && base != nullptr && (base->m_modulus != 0 || base->kind == TypeKind::Fixed)) {
+    if ((name == "min" || name == "max") && base != nullptr && (base->modulus != 0 || base->kind == TypeKind::Fixed)) {
         if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 2) {
             m_diagnostics.error(expr->location, "Min and Max require a modular or fixed subtype and two arguments");
             return nullptr;
@@ -664,7 +664,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (name == "mod") {
-        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->m_modulus == 0 || expr->arguments.size() != 1) {
+        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->modulus == 0 || expr->arguments.size() != 1) {
             m_diagnostics.error(expr->location, "Mod requires a modular subtype prefix and one integer argument");
             return nullptr;
         }
@@ -676,8 +676,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         __int128 value = 0;
         StaticFailure failure = StaticFailure::None;
         if (foldWideInteger(argument, value, failure)) {
-            value %= base->m_modulus;
-            if (value < 0) { value += base->m_modulus; }
+            value %= base->modulus;
+            if (value < 0) { value += base->modulus; }
             expr->isStatic = true;
             expr->m_exactReal = ExactReal::make(value);
             expr->m_exactReal.integer(expr->staticValue);
@@ -686,12 +686,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "modulus") {
-        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->m_modulus == 0 || !expr->arguments.empty()) {
+        if (!prefixIsType || base == nullptr || !representationVisible(base) || base->modulus == 0 || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "Modulus requires a modular type prefix and no arguments");
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = true;
-        expr->m_exactReal = ExactReal::make(base != nullptr ? base->m_modulus : 0);
+        expr->m_exactReal = ExactReal::make(base != nullptr ? base->modulus : 0);
         expr->m_exactReal.integer(expr->staticValue);
         return expr->type;
     }
@@ -707,7 +707,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (isDiscrete(base)) {
             expr->type = prefixType;
-            expr->isStatic = prefixType->m_scalarBoundsSymbol == nullptr;
+            expr->isStatic = prefixType->scalarBoundsSymbol == nullptr;
             if (expr->isStatic) {
                 expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
                 expr->m_exactReal.integer(expr->staticValue);
@@ -716,7 +716,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (base != nullptr && base->kind == TypeKind::Float) {
             expr->type = prefixType;
-            expr->isStatic = prefixType->m_scalarBoundsSymbol == nullptr;
+            expr->isStatic = prefixType->scalarBoundsSymbol == nullptr;
             expr->staticReal = name == "first" ? floatLowBound(prefixType) : floatHighBound(prefixType);
             return expr->type;
         }
@@ -805,8 +805,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                     return expr->type;
                 }
                 value += name == "succ" ? 1 : name == "pred" ? -1 : 0;
-                if (resultType->m_modulus != 0 && name != "val") {
-                    value = (value + resultType->m_modulus) % resultType->m_modulus;
+                if (resultType->modulus != 0 && name != "val") {
+                    value = (value + resultType->modulus) % resultType->modulus;
                 }
                 if (value < resultType->low || value > resultType->high) {
                     expr->staticFailure = StaticFailure::Check;
@@ -848,14 +848,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 
     if (name == "alignment") {
         if (prefixType == nullptr || !representationVisible(prefixType) || prefixType->isIncomplete
-            || prefixType->m_classRoot != nullptr || !expr->arguments.empty()) {
+            || prefixType->classRoot != nullptr || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "'Alignment requires a complete, visible specific subtype or object and no arguments");
             return nullptr;
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = prefixIsType;
         expr->m_alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
-        expr->staticValue = prefixIsType && prefixType->m_alignment == 0 ? 0 : typeAlignment(prefixType);
+        expr->staticValue = prefixIsType && prefixType->alignment == 0 ? 0 : typeAlignment(prefixType);
         return expr->type;
     }
 
@@ -866,14 +866,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         expr->type = expected != nullptr && expected->kind == TypeKind::Integer ? expected : m_types.universalInteger();
-        if (prefixType->m_classRoot != nullptr) {
+        if (prefixType->classRoot != nullptr) {
             if (prefixIsType) {
                 m_diagnostics.error(expr->location, "class-wide subtype 'Size is not yet supported");
             }
             return expr->type;
         }
         if (hasRuntimeLayout(prefixType)) {
-            if (prefixIsType && prefixType->kind == TypeKind::Array && !prefixType->constrained && prefixType->m_boundsSymbol == nullptr) {
+            if (prefixIsType && prefixType->kind == TypeKind::Array && !prefixType->constrained && prefixType->boundsSymbol == nullptr) {
                 m_diagnostics.error(expr->location, "'Size for unconstrained array subtypes requires an object prefix");
             }
             return expr->type;
@@ -898,7 +898,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.integerType();
         expr->isStatic = true;
-        if (prefixType->m_scalarBoundsSymbol != nullptr) {
+        if (prefixType->scalarBoundsSymbol != nullptr) {
             expr->isStatic = false;
             return expr->type;
         }
@@ -924,7 +924,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, base->kind == TypeKind::Fixed
                 ? "fixed-point 'Value requires a subtype prefix" : "floating-point 'Value requires a subtype prefix");
         }
-        expr->type = base != nullptr && (base->m_modulus != 0 || base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
+        expr->type = base != nullptr && (base->modulus != 0 || base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
             ? m_types.scalarBaseType(prefixType) : prefixType;
         return expr->type;
     }

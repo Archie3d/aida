@@ -51,7 +51,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         if (specific == nullptr) {
             return nullptr;
         }
-        if (!taggedViewVisible(specific) || specific->m_classRoot != nullptr) {
+        if (!taggedViewVisible(specific) || specific->classRoot != nullptr) {
             m_diagnostics.error(location, "'Class requires a specific tagged type");
             return nullptr;
         }
@@ -91,8 +91,8 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
     if (m_recordContract != nullptr) {
         m_recordContract->m_typeNames[key] = symbol;
     }
-    if (symbol->type != nullptr && symbol->type->m_protectedScope != nullptr
-        && m_currentProtectedType == symbol->type && symbol->name == symbol->type->m_protectedName) {
+    if (symbol->type != nullptr && symbol->type->protectedScope != nullptr
+        && m_currentProtectedType == symbol->type && symbol->name == symbol->type->protectedName) {
         m_diagnostics.error(location, "the current protected instance cannot be used as a subtype mark");
         return nullptr;
     }
@@ -171,9 +171,9 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
     if (chosen == nullptr) {
         return nullptr;
     }
-    if (chosen->type != nullptr && chosen->type->m_protectedScope != nullptr
-        && (chosen->kind == SymbolKind::TypeName || chosen == chosen->type->m_protectedObject)
-        && chosen->name == chosen->type->m_protectedName) {
+    if (chosen->type != nullptr && chosen->type->protectedScope != nullptr
+        && (chosen->kind == SymbolKind::TypeName || chosen == chosen->type->protectedObject)
+        && chosen->name == chosen->type->protectedName) {
         if (Symbol* receiver = protectedReceiver(chosen->type)) {
             chosen = receiver;
         }
@@ -341,7 +341,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         m_diagnostics.error(expr->location, "'" + expr->selector + "' is not a component of a record");
         return nullptr;
     }
-    if (record->m_protectedScope != nullptr) {
+    if (record->protectedScope != nullptr) {
         if (!checkNotPrivate(record, expr->location, "protected operations require the full view")) {
             return nullptr;
         }
@@ -402,17 +402,17 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
 Type* Sema::classWideType(Type* specific)
 {
     specific = rootType(specific);
-    if (specific->m_classWide == nullptr) {
+    if (specific->classWide == nullptr) {
         Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
         *wide = *specific;
         wide->base = nullptr;
         wide->name = specific->name + "'Class";
-        wide->m_classRoot = specific;
-        wide->m_primitives.clear();
-        wide->m_declarationScope = nullptr;
-        specific->m_classWide = wide;
+        wide->classRoot = specific;
+        wide->primitives.clear();
+        wide->declarationScope = nullptr;
+        specific->classWide = wide;
     }
-    return specific->m_classWide;
+    return specific->classWide;
 }
 
 // Resolution has already selected the specific operation. A surrounding

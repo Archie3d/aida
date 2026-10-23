@@ -19,7 +19,7 @@ enum class TypeKind
     Access
 };
 
-class Type;
+struct Type;
 struct Symbol;
 class Scope;
 
@@ -62,9 +62,8 @@ struct VariantInfo
     bool isOthers = false;
 };
 
-class Type
+struct Type
 {
-public:
     Type(TypeKind typeKind, std::string typeName)
         : kind(typeKind)
         , name(std::move(typeName))
@@ -78,32 +77,32 @@ public:
     Type* base = nullptr;
     bool isSubtype = false;
     // Derivation ancestry and primitive declarations are independent of layout.
-    Type* m_parentType = nullptr;
+    Type* parentType = nullptr;
     // A private completion's derivation ancestry is hidden outside its package.
-    bool m_parentVisible = true;
+    bool parentVisible = true;
     // Tagged records reserve the leading pointer and retain a parent prefix.
-    bool m_tagged = false;
+    bool tagged = false;
     // The partial view can hide tagging while the full layout remains tagged.
-    bool m_privateViewTagged = false;
-    bool m_abstract = false;
-    bool m_controlled = false;
+    bool privateViewTagged = false;
+    bool abstract = false;
+    bool controlled = false;
     // Class-wide identity is distinct from subtype identity and derivation.
-    bool m_dispatchFrozen = false;
-    Symbol* m_tagOwner = nullptr;
-    Symbol* m_collectionOwner = nullptr;
-    std::string m_collectionName;
-    long long m_collectionOffset = -1;
-    long long m_tagOffset = -1;
-    int m_accessLevel = 0;
-    Type* m_classRoot = nullptr;
-    Type* m_classWide = nullptr;
+    bool dispatchFrozen = false;
+    Symbol* tagOwner = nullptr;
+    Symbol* collectionOwner = nullptr;
+    std::string collectionName;
+    long long collectionOffset = -1;
+    long long tagOffset = -1;
+    int accessLevel = 0;
+    Type* classRoot = nullptr;
+    Type* classWide = nullptr;
     // Includes hidden inherited slots, independently of source visibility.
-    std::vector<Symbol*> m_dispatchSlots;
-    int m_parentFieldCount = 0;
-    std::string m_tagName;
-    Scope* m_declarationScope = nullptr;
-    std::vector<Symbol*> m_primitives;
-    Type* m_scalarBase = nullptr;
+    std::vector<Symbol*> dispatchSlots;
+    int parentFieldCount = 0;
+    std::string tagName;
+    Scope* declarationScope = nullptr;
+    std::vector<Symbol*> primitives;
+    Type* scalarBase = nullptr;
 
     // Named but not yet described.  'type Node;' declares one so that an access
     // type can point at a record declared further down, and the full definition
@@ -115,12 +114,12 @@ public:
     // assignment or equality to the outside.
     Symbol* privateTo = nullptr;
     bool isLimited = false;
-    Scope* m_protectedScope = nullptr;
-    std::string m_protectedName;
-    Symbol* m_protectedObject = nullptr;
-    bool m_protectedBodySeen = false;
-    bool m_incompleteLayout = false;
-    Symbol* m_taskBody = nullptr; // Task identity occupies one pointer-sized slot.
+    Scope* protectedScope = nullptr;
+    std::string protectedName;
+    Symbol* protectedObject = nullptr;
+    bool protectedBodySeen = false;
+    bool incompleteLayout = false;
+    Symbol* taskBody = nullptr; // Task identity occupies one pointer-sized slot.
 
     // Discriminants and the variant part they may select.  The discriminants
     // are the first components of the record; variantOn identifies the outer
@@ -134,7 +133,7 @@ public:
     // 'subtype Round is Shape (Circle)'.
     // An inherited profile keeps the parent's constraint, independently of
     // the derived first subtype reached through its type-identity base link.
-    Type* m_discriminantConstraintSource = nullptr;
+    Type* discriminantConstraintSource = nullptr;
     bool discriminantsKnown = false;
     std::vector<long long> discriminantValues;
 
@@ -143,39 +142,39 @@ public:
     __int128 low = 0;
     __int128 high = 0;
     // Zero denotes signed integers; modular types retain this across subtypes.
-    __int128 m_modulus = 0;
+    __int128 modulus = 0;
 
     // Scalar constraints use full-width bounds in the owning
     // activation. Aliases share the symbol; only the declaration owns expressions.
-    Symbol* m_scalarBoundsSymbol = nullptr;
-    bool m_scalarObjectConstraint = false;
-    struct Expr* m_scalarLow = nullptr;
-    struct Expr* m_scalarHigh = nullptr;
-    Type* m_scalarConstraintBase = nullptr;
+    Symbol* scalarBoundsSymbol = nullptr;
+    bool scalarObjectConstraint = false;
+    struct Expr* scalarLow = nullptr;
+    struct Expr* scalarHigh = nullptr;
+    Type* scalarConstraintBase = nullptr;
     // Decimal digits limits are checked independently of range compatibility.
-    Type* m_decimalConstraint = nullptr;
+    Type* decimalConstraint = nullptr;
 
     // Enumeration types.
     std::vector<std::string> literals;
     // Expressions and the Ada scalar call ABI use positions; storage and C
     // scalar calls use these signed 32-bit codes. Empty means positional codes.
-    std::vector<long long> m_enumCodes;
-    bool m_enumCodesSpecified = false;
+    std::vector<long long> enumCodes;
+    bool enumCodesSpecified = false;
 
     // Floating point types.  The requested number of decimal digits selects the
     // machine representation, and the bounds are kept separately from the
     // discrete ones because they do not fit in an integer.
     int digits = 0;
     // Binary fractional bits, or ADA_FIXED_DECIMAL_TAG + decimal scale.
-    int m_fixedScale = 0;
-    int m_fixedAft = 1;
-    int m_fixedRadix = 2;
-    bool m_fixedRadixSpecified = false;
+    int fixedScale = 0;
+    int fixedAft = 1;
+    int fixedRadix = 2;
+    bool fixedRadixSpecified = false;
     // Contract-only fixed-point types have no scale or bounds until instantiation.
-    bool m_formalFixed = false;
-    struct Expr* m_delta = nullptr;
-    struct Expr* m_smallClause = nullptr;
-    bool m_smallPending = false;
+    bool formalFixed = false;
+    struct Expr* delta = nullptr;
+    struct Expr* smallClause = nullptr;
+    bool smallPending = false;
     bool hasRealRange = false;
     double lowReal = 0.0;
     double highReal = 0.0;
@@ -192,11 +191,11 @@ public:
 
     // A dynamically constrained declaration keeps its bounds in its owner's
     // activation. `constrained` continues to mean a static storage layout.
-    Symbol* m_boundsSymbol = nullptr;
-    std::vector<std::pair<struct Expr*, struct Expr*>> m_boundExpressions;
+    Symbol* boundsSymbol = nullptr;
+    std::vector<std::pair<struct Expr*, struct Expr*>> boundExpressions;
 
     // Runtime record layout: total size followed by one offset per field.
-    Symbol* m_layoutSymbol = nullptr;
+    Symbol* layoutSymbol = nullptr;
 
     // Record types.
     std::vector<FieldInfo> fields;
@@ -204,23 +203,23 @@ public:
     // Access types.
     Type* target = nullptr;
     // Subprogram access uses a signature instead of an object target.
-    Symbol* m_accessProfile = nullptr;
-    Scope* m_accessScope = nullptr;
+    Symbol* accessProfile = nullptr;
+    Scope* accessScope = nullptr;
 
     // Objects of this type start out cleared.  A File_Type has to, because the
     // run time reads the handle before anything has opened it.
     bool needsZeroInit = false;
-    int m_shared = 0; // 1: Volatile, 2: Atomic (also volatile).
+    int shared = 0; // 1: Volatile, 2: Atomic (also volatile).
 
     // A width the type carries instead of the one its kind implies, which is
     // how a Stream_Element comes out a byte wide.
     long long byteSize = 0;
-    long long m_compositeSize = 0;
-    std::vector<std::pair<long long, long long>> m_sizeBounds;
+    long long compositeSize = 0;
+    std::vector<std::pair<long long, long long>> sizeBounds;
     // -1 selects the default; zero specifies no additional alignment promise.
-    long long m_alignment = -1;
-    long long m_specifiedSize = -1;
-    bool m_alignmentSpecified = false;
+    long long alignment = -1;
+    long long specifiedSize = -1;
+    bool alignmentSpecified = false;
 };
 
 // True when an object of this type, or one holding it, must be cleared.

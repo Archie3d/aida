@@ -25,10 +25,10 @@ bool isTaggedAncestor(Type* ancestor, Type* type)
 {
     ancestor = rootType(ancestor);
     type = rootType(type);
-    if (ancestor == nullptr || type == nullptr || !ancestor->m_tagged || !type->m_tagged) {
+    if (ancestor == nullptr || type == nullptr || !ancestor->tagged || !type->tagged) {
         return false;
     }
-    for (; type != nullptr; type = type->m_parentType) {
+    for (; type != nullptr; type = type->parentType) {
         if (type == ancestor) {
             return true;
         }
@@ -104,21 +104,21 @@ long long typeSize(const Type* type)
     if (type == nullptr) {
         return 0;
     }
-    if (type->m_tagged && type->isSubtype && type->base != nullptr) {
+    if (type->tagged && type->isSubtype && type->base != nullptr) {
         return typeSize(type->base);
     }
-    if (type->m_compositeSize > 0) {
+    if (type->compositeSize > 0) {
         bool matches = type->kind == TypeKind::Record;
         if (type->kind == TypeKind::Array && type->constrained
-            && type->m_sizeBounds.size() == static_cast<std::size_t>(type->arrayRank)) {
+            && type->sizeBounds.size() == static_cast<std::size_t>(type->arrayRank)) {
             matches = true;
             const Type* axis = type;
-            for (const auto& bounds : type->m_sizeBounds) {
+            for (const auto& bounds : type->sizeBounds) {
                 matches = matches && axis->constrained && axis->indexLow == bounds.first && axis->indexHigh == bounds.second;
                 axis = axis->element;
             }
         }
-        if (matches) { return type->m_compositeSize; }
+        if (matches) { return type->compositeSize; }
     }
     if (type->byteSize > 0) {
         return type->byteSize;
@@ -154,7 +154,7 @@ long long typeSize(const Type* type)
         return __builtin_mul_overflow(count, elementSize, &size) ? std::numeric_limits<long long>::max() : size;
     }
     case TypeKind::Record: {
-        long long size = type->m_tagged || type->m_protectedScope != nullptr ? 8 : 0;
+        long long size = type->tagged || type->protectedScope != nullptr ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
@@ -183,16 +183,16 @@ long long typeLayoutSize(const Type* type)
 {
     if (type == nullptr || !isComposite(type)) { return typeSize(type); }
     Type layout = *type;
-    layout.m_compositeSize = 0;
+    layout.compositeSize = 0;
     return typeSize(&layout);
 }
 
 bool scalarStorageSigned(const Type* type)
 {
     if (type->kind == TypeKind::Integer) { return type->low < 0; }
-    return !type->m_enumCodes.empty() && type->low >= 0
-        && type->low < static_cast<long long>(type->m_enumCodes.size())
-        && type->m_enumCodes[static_cast<std::size_t>(type->low)] < 0;
+    return !type->enumCodes.empty() && type->low >= 0
+        && type->low < static_cast<long long>(type->enumCodes.size())
+        && type->enumCodes[static_cast<std::size_t>(type->low)] < 0;
 }
 
 long long typeAlignment(const Type* type)
@@ -200,17 +200,17 @@ long long typeAlignment(const Type* type)
     if (type == nullptr) {
         return 1;
     }
-    if (type->m_alignment > 0) {
-        return type->m_alignment;
+    if (type->alignment > 0) {
+        return type->alignment;
     }
-    if (type->m_taskBody != nullptr) {
+    if (type->taskBody != nullptr) {
         return 8;
     }
     switch (type->kind) {
     case TypeKind::Array:
         return typeAlignment(type->element);
     case TypeKind::Record: {
-        long long alignment = type->m_tagged || type->m_protectedScope != nullptr ? 8 : 1;
+        long long alignment = type->tagged || type->protectedScope != nullptr ? 8 : 1;
         for (const FieldInfo& field : type->fields) {
             long long fieldAlignment = typeAlignment(field.type);
             if (fieldAlignment > alignment) {
@@ -248,7 +248,7 @@ char qbeClass(const Type* type)
         const Type* valueType = type;
         while (valueType->isSubtype && valueType->base != nullptr) { valueType = valueType->base; }
         return typeSize(valueType) == 8
-            || (valueType->m_parentType != nullptr && qbeClass(valueType->m_parentType) == 'l') ? 'l' : 'w';
+            || (valueType->parentType != nullptr && qbeClass(valueType->parentType) == 'l') ? 'l' : 'w';
     }
     case TypeKind::UniversalInteger:
     case TypeKind::Fixed:
@@ -339,8 +339,8 @@ TypeTable::TypeTable()
 
     // Runtime time ABI: signed 64-bit counts of 2**(-30) seconds.
     m_duration = create(TypeKind::Fixed, "Duration");
-    m_duration->m_fixedScale = 30;
-    m_duration->m_fixedAft = 10;
+    m_duration->fixedScale = 30;
+    m_duration->fixedAft = 10;
     m_duration->low = std::numeric_limits<long long>::min();
     m_duration->high = std::numeric_limits<long long>::max();
 
@@ -361,31 +361,31 @@ Type* TypeTable::create(TypeKind kind, const std::string& name)
 Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low, __int128 high)
 {
     Type* subtype = create(parent->kind, name);
-    subtype->m_alignment = parent->m_alignment;
-    subtype->m_compositeSize = parent->m_compositeSize;
-    subtype->m_sizeBounds = parent->m_sizeBounds;
+    subtype->alignment = parent->alignment;
+    subtype->compositeSize = parent->compositeSize;
+    subtype->sizeBounds = parent->sizeBounds;
     subtype->base = parent;
     subtype->isSubtype = true;
-    subtype->m_tagged = parent->m_tagged;
-    subtype->m_privateViewTagged = parent->m_privateViewTagged;
-    subtype->m_abstract = parent->m_abstract;
-    subtype->m_controlled = parent->m_controlled;
-    subtype->m_tagName = parent->m_tagName;
-    subtype->m_parentFieldCount = parent->m_parentFieldCount;
-    subtype->m_modulus = parent->m_modulus;
+    subtype->tagged = parent->tagged;
+    subtype->privateViewTagged = parent->privateViewTagged;
+    subtype->abstract = parent->abstract;
+    subtype->controlled = parent->controlled;
+    subtype->tagName = parent->tagName;
+    subtype->parentFieldCount = parent->parentFieldCount;
+    subtype->modulus = parent->modulus;
     subtype->low = low;
     subtype->high = high;
-    subtype->m_scalarBoundsSymbol = parent->m_scalarBoundsSymbol;
+    subtype->scalarBoundsSymbol = parent->scalarBoundsSymbol;
     subtype->byteSize = parent->kind == TypeKind::Integer ? typeSize(parent) : parent->byteSize;
     subtype->needsZeroInit = parent->needsZeroInit;
     subtype->literals = parent->literals;
-    subtype->m_enumCodes = parent->m_enumCodes;
+    subtype->enumCodes = parent->enumCodes;
     subtype->digits = parent->digits;
-    subtype->m_fixedScale = parent->m_fixedScale;
-    subtype->m_fixedAft = parent->m_fixedAft;
-    subtype->m_fixedRadix = parent->m_fixedRadix;
-    subtype->m_formalFixed = parent->m_formalFixed;
-    subtype->m_delta = parent->m_delta;
+    subtype->fixedScale = parent->fixedScale;
+    subtype->fixedAft = parent->fixedAft;
+    subtype->fixedRadix = parent->fixedRadix;
+    subtype->formalFixed = parent->formalFixed;
+    subtype->delta = parent->delta;
     subtype->hasRealRange = parent->hasRealRange;
     subtype->lowReal = parent->lowReal;
     subtype->highReal = parent->highReal;
@@ -396,17 +396,17 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->indexLow = parent->indexLow;
     subtype->indexHigh = parent->indexHigh;
     subtype->constrained = parent->constrained;
-    subtype->m_boundsSymbol = parent->m_boundsSymbol;
+    subtype->boundsSymbol = parent->boundsSymbol;
     subtype->fields = parent->fields;
-    subtype->m_layoutSymbol = parent->m_layoutSymbol;
+    subtype->layoutSymbol = parent->layoutSymbol;
     subtype->target = parent->target;
-    subtype->m_accessProfile = parent->m_accessProfile;
-    subtype->m_accessScope = parent->m_accessScope;
+    subtype->accessProfile = parent->accessProfile;
+    subtype->accessScope = parent->accessScope;
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
-    subtype->m_taskBody = parent->m_taskBody;
-    subtype->m_protectedScope = parent->m_protectedScope;
-    subtype->m_incompleteLayout = parent->m_incompleteLayout;
+    subtype->taskBody = parent->taskBody;
+    subtype->protectedScope = parent->protectedScope;
+    subtype->incompleteLayout = parent->incompleteLayout;
     subtype->discriminantCount = parent->discriminantCount;
     subtype->variantOn = parent->variantOn;
     subtype->variants = parent->variants;
@@ -422,17 +422,17 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         if (!subtype->isSubtype || rootType(subtype) != completed) {
             continue;
         }
-        subtype->m_tagged = completed->m_tagged;
-        subtype->m_privateViewTagged = completed->m_privateViewTagged;
-        subtype->m_controlled = completed->m_controlled;
-        subtype->m_tagName = completed->m_tagName;
-        subtype->m_parentFieldCount = completed->m_parentFieldCount;
+        subtype->tagged = completed->tagged;
+        subtype->privateViewTagged = completed->privateViewTagged;
+        subtype->controlled = completed->controlled;
+        subtype->tagName = completed->tagName;
+        subtype->parentFieldCount = completed->parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->fields = completed->fields;
-        subtype->m_layoutSymbol = completed->m_layoutSymbol;
-        subtype->m_taskBody = completed->m_taskBody;
-        subtype->m_protectedScope = completed->m_protectedScope;
-        if (completed->m_taskBody != nullptr) {
+        subtype->layoutSymbol = completed->layoutSymbol;
+        subtype->taskBody = completed->taskBody;
+        subtype->protectedScope = completed->protectedScope;
+        if (completed->taskBody != nullptr) {
             subtype->byteSize = completed->byteSize;
         }
     }
@@ -446,8 +446,8 @@ void TypeTable::refreshEnumerationRepresentation(Type* type)
         Type* subtype = stored.get();
         if (subtype->isSubtype && baseType(subtype) == type) {
             subtype->byteSize = type->byteSize;
-            subtype->m_enumCodes = type->m_enumCodes;
-            subtype->m_alignment = type->m_alignment;
+            subtype->enumCodes = type->enumCodes;
+            subtype->alignment = type->alignment;
         }
     }
 }
@@ -459,11 +459,11 @@ void TypeTable::refreshStorageRepresentation(Type* type)
         if (subtype == type || !subtype->isSubtype) { continue; }
         Type* ancestor = subtype->base;
         while (ancestor != nullptr && ancestor != type && ancestor->isSubtype) { ancestor = ancestor->base; }
-        if (ancestor == type && subtype->m_specifiedSize < 0) {
+        if (ancestor == type && subtype->specifiedSize < 0) {
             subtype->byteSize = type->byteSize;
-            subtype->m_compositeSize = type->m_compositeSize;
-            subtype->m_sizeBounds = type->m_sizeBounds;
-            subtype->m_alignment = type->m_alignment;
+            subtype->compositeSize = type->compositeSize;
+            subtype->sizeBounds = type->sizeBounds;
+            subtype->alignment = type->alignment;
         }
     }
 }
@@ -471,8 +471,8 @@ void TypeTable::refreshStorageRepresentation(Type* type)
 bool discriminantValueOf(const Type* type, int index, long long& value)
 {
     for (const Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
-        if (walk->m_discriminantConstraintSource != nullptr) {
-            return discriminantValueOf(walk->m_discriminantConstraintSource, index, value);
+        if (walk->discriminantConstraintSource != nullptr) {
+            return discriminantValueOf(walk->discriminantConstraintSource, index, value);
         }
         if (!walk->discriminantsKnown || index < 0
             || static_cast<std::size_t>(index) >= walk->discriminantValues.size()) {
@@ -523,8 +523,8 @@ int variantPresence(Type* type, int variant)
 bool TypeTable::isBoolean(const Type* type) const
 {
     type = rootType(const_cast<Type*>(type));
-    while (type != nullptr && type->m_parentType != nullptr) {
-        type = type->m_parentType;
+    while (type != nullptr && type->parentType != nullptr) {
+        type = type->parentType;
     }
     return type == m_boolean;
 }
@@ -532,8 +532,8 @@ bool TypeTable::isBoolean(const Type* type) const
 bool TypeTable::isCharacter(const Type* type) const
 {
     type = rootType(const_cast<Type*>(type));
-    while (type != nullptr && type->m_parentType != nullptr) {
-        type = type->m_parentType;
+    while (type != nullptr && type->parentType != nullptr) {
+        type = type->parentType;
     }
     return type == m_character;
 }
@@ -553,21 +553,21 @@ Type* TypeTable::scalarBaseType(Type* type)
     if (type == nullptr || (!isDiscrete(type) && !isReal(type) && type->kind != TypeKind::Fixed)) {
         return nullptr;
     }
-    if (type->m_scalarBase != nullptr) {
-        return type->m_scalarBase;
+    if (type->scalarBase != nullptr) {
+        return type->scalarBase;
     }
     Type* result = makeSubtype(type->name + "'Base", type, type->low, type->high);
-    result->m_scalarBoundsSymbol = nullptr;
-    if (type->m_parentType != nullptr) {
-        Type* parentBase = scalarBaseType(type->m_parentType);
+    result->scalarBoundsSymbol = nullptr;
+    if (type->parentType != nullptr) {
+        Type* parentBase = scalarBaseType(type->parentType);
         result->low = parentBase->low;
         result->high = parentBase->high;
         result->hasRealRange = parentBase->hasRealRange;
         result->lowReal = parentBase->lowReal;
         result->highReal = parentBase->highReal;
-    } else if (type->m_modulus != 0) {
+    } else if (type->modulus != 0) {
         result->low = 0;
-        result->high = type->m_modulus - 1;
+        result->high = type->modulus - 1;
     } else if (type->kind == TypeKind::Integer || type->kind == TypeKind::Fixed) {
         bool wide = typeSize(type) == 8;
         result->low = wide ? std::numeric_limits<long long>::min() : -2147483648LL;
@@ -575,8 +575,8 @@ Type* TypeTable::scalarBaseType(Type* type)
     } else if (type->kind == TypeKind::Float) {
         result->hasRealRange = false;
     }
-    if (type->kind == TypeKind::Fixed && fixedIsDecimal(type->m_fixedScale)) { result->digits = 18; }
-    type->m_scalarBase = result;
+    if (type->kind == TypeKind::Fixed && fixedIsDecimal(type->fixedScale)) { result->digits = 18; }
+    type->scalarBase = result;
     return result;
 }
 
@@ -585,7 +585,7 @@ bool needsFinalization(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_protectedScope != nullptr || type->m_controlled || type->m_classRoot != nullptr) {
+    if (type->protectedScope != nullptr || type->controlled || type->classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -606,7 +606,7 @@ bool hasTasks(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_taskBody != nullptr) {
+    if (type->taskBody != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -627,7 +627,7 @@ bool needsCollection(const Type* type)
     // Every named object access type owns a collection, including scalar and
     // plain composite designations. Access-to-subprogram values own no storage.
     return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
-        && type->m_accessProfile == nullptr;
+        && type->accessProfile == nullptr;
 }
 
 bool hasLimitedControlledParts(const Type* type)
@@ -656,7 +656,7 @@ bool hasPrivateOrTaggedParts(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_tagged || type->privateTo != nullptr) {
+    if (type->tagged || type->privateTo != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -677,7 +677,7 @@ bool hasProtected(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->m_protectedScope != nullptr) {
+    if (type->protectedScope != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -699,7 +699,7 @@ bool hasIncompleteParts(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->isIncomplete || type->m_incompleteLayout) {
+    if (type->isIncomplete || type->incompleteLayout) {
         return true;
     }
     return type->kind == TypeKind::Array && hasIncompleteParts(type->element);
@@ -708,8 +708,8 @@ bool hasIncompleteParts(const Type* type)
 int sharedTypeKind(const Type* type)
 {
     int kind = 0;
-    for (; type != nullptr; type = type->base != nullptr ? type->base : type->m_parentType) {
-        kind = std::max(kind, type->m_shared);
+    for (; type != nullptr; type = type->base != nullptr ? type->base : type->parentType) {
+        kind = std::max(kind, type->shared);
     }
     return kind;
 }
@@ -774,7 +774,7 @@ bool hasRuntimeLayout(const Type* type)
         return !type->constrained || hasRuntimeLayout(type->element);
     }
     if (type->kind == TypeKind::Record) {
-        if (type->m_layoutSymbol != nullptr) { return true; }
+        if (type->layoutSymbol != nullptr) { return true; }
         for (const FieldInfo& field : type->fields) {
             if (hasRuntimeLayout(field.type)) { return true; }
         }

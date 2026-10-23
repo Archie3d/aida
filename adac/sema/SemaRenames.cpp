@@ -77,13 +77,13 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     if (name->kind == ExprKind::Selected && static_cast<SelectedExpr*>(name)->isDereference) {
         auto* selected = static_cast<SelectedExpr*>(name);
         for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
-            if (type->m_accessProfile != nullptr && matches(type->m_accessProfile)) {
+            if (type->accessProfile != nullptr && matches(type->accessProfile)) {
                 if (access != nullptr) {
                     m_diagnostics.error(name->location, "ambiguous renamed subprogram");
                     return;
                 }
                 access = type;
-                chosen = type->m_accessProfile;
+                chosen = type->accessProfile;
             }
         }
     }

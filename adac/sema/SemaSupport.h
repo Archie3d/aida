@@ -4,7 +4,7 @@
 #include <vector>
 
 struct Expr;
-class Type;
+struct Type;
 
 // Helpers shared by the semantic analyzer implementation.
 namespace SemaSupport

@@ -107,7 +107,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
         if (symbol == nullptr) {
             return;
         }
-        if (target->type != nullptr && (target->type->m_tagged || target->type->kind == TypeKind::Array)
+        if (target->type != nullptr && (target->type->tagged || target->type->kind == TypeKind::Array)
             && symbol->kind == SymbolKind::Subprogram) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
             return;
@@ -122,7 +122,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
     case ExprKind::Selected: {
         auto* selected = static_cast<SelectedExpr*>(target);
         if (selected->symbol != nullptr && selected->symbol->kind == SymbolKind::Subprogram
-            && target->type != nullptr && (target->type->m_tagged || target->type->kind == TypeKind::Array)) {
+            && target->type != nullptr && (target->type->tagged || target->type->kind == TypeKind::Array)) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
             return;
         }
@@ -150,7 +150,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
             checkAssignable(operand, scope, true);
             return;
         }
-        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->m_tagged) {
+        if (call->form == CallForm::Conversion && call->type != nullptr && call->type->tagged) {
             checkAssignable(call->resolvedArguments.front(), scope, allowLimited);
             return;
         }
@@ -166,7 +166,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
                 checkAssignable(call->callee.get(), scope, true);
             }
         } else if (target->type != nullptr
-            && (target->type->m_tagged || target->type->kind == TypeKind::Array)) {
+            && (target->type->tagged || target->type->kind == TypeKind::Array)) {
             m_diagnostics.error(target->location, "the target of an assignment must be a variable");
         }
         return;
@@ -227,19 +227,19 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
         }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);
-        if (targetType != nullptr && targetType->m_classRoot != nullptr
+        if (targetType != nullptr && targetType->classRoot != nullptr
             && needsFinalization(valueType) && !needsFinalization(targetType)) {
             m_diagnostics.error(assign->location, "class-wide controlled assignment is not yet supported");
         }
         if (!typesCompatible(targetType, valueType)) {
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
         }
-        if (targetType != nullptr && targetType->m_classRoot != nullptr
-            && valueType != nullptr && valueType->m_classRoot == nullptr && !assign->value->m_tagIndeterminate) {
+        if (targetType != nullptr && targetType->classRoot != nullptr
+            && valueType != nullptr && valueType->classRoot == nullptr && !assign->value->m_tagIndeterminate) {
             m_diagnostics.error(assign->location, "class-wide assignment requires a dynamically tagged value");
         }
-        if (targetType != nullptr && targetType->m_classRoot != nullptr && assign->value->m_tagIndeterminate) {
-            dispatchIndeterminate(assign->value.get(), targetType->m_classRoot);
+        if (targetType != nullptr && targetType->classRoot != nullptr && assign->value->m_tagIndeterminate) {
+            dispatchIndeterminate(assign->value.get(), targetType->classRoot);
         }
         adaptUniversal(assign->value.get(), targetType);
         break;
@@ -251,7 +251,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         Expr* expression = call->call.get();
         if (expression->kind == ExprKind::Identifier || expression->kind == ExprKind::Selected) {
             for (Type* type : expressionTypes(expression, scope)) {
-                if (type->m_accessProfile != nullptr) {
+                if (type->accessProfile != nullptr) {
                     auto indirect = std::make_unique<CallExpr>();
                     indirect->location = expression->location;
                     indirect->callee = std::move(call->call);
@@ -401,7 +401,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             analyzeObjectDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
             if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
-                || !needsFinalization(expected) || actual->m_classRoot != nullptr) {
+                || !needsFinalization(expected) || actual->classRoot != nullptr) {
                 m_diagnostics.error(returnStatement->location,
                     "extended return requires the specific controlled result subtype");
             }
@@ -497,7 +497,7 @@ void Sema::analyzeCaseStatement(CaseStmt* statement, Scope* scope)
         validateStatic(statement->selector.get());
     }
 
-    if (selectorType != nullptr && selectorType->m_scalarBoundsSymbol != nullptr) {
+    if (selectorType != nullptr && selectorType->scalarBoundsSymbol != nullptr) {
         selectorType = m_types.scalarBaseType(selectorType);
     }
     bool discrete = selectorType != nullptr && isDiscrete(selectorType);

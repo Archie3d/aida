@@ -148,7 +148,7 @@ std::vector<Symbol*> Scope::lookup(const std::string& name) const
             if (!allowUse || (privacy != scope->m_privateUseTypes.end() && !privateVisible(privacy->second))) {
                 continue;
             }
-            for (Symbol* symbol : type->m_primitives) {
+            for (Symbol* symbol : type->primitives) {
                 if (symbol->name == name && (all || !operatorSymbol(name).empty())) {
                     if (privateVisible(symbol->m_privatePrimitiveTo)) {
                         imported.push_back(symbol);

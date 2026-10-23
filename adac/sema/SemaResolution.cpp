@@ -41,9 +41,9 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
             if (type != nullptr && type->kind == TypeKind::Access) {
                 type = baseType(type->target);
             }
-            if (type != nullptr && type->m_protectedScope != nullptr && representationVisible(type)
+            if (type != nullptr && type->protectedScope != nullptr && representationVisible(type)
                 && !selected->isDereference) {
-                for (Symbol* operation : type->m_protectedScope->lookupLocal(selected->selectorLower)) {
+                for (Symbol* operation : type->protectedScope->lookupLocal(selected->selectorLower)) {
                     bool current = isProtectedCurrentInstance(selected->prefix.get(), type, scope);
                     if ((operation->kind == SymbolKind::Subprogram && !operation->m_protectedPrivate)
                         || current) {
@@ -103,7 +103,7 @@ bool Sema::matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
             bool dispatch = false;
             if (controlling != nullptr && rootType(candidate->parameters[positions[i]]->type) == controlling) {
                 for (Type* actual : expressionTypes(expr->arguments[i].value.get(), scope)) {
-                    dispatch = dispatch || actual->m_classRoot == controlling;
+                    dispatch = dispatch || actual->classRoot == controlling;
                 }
             }
             if (!dispatch) {
@@ -185,7 +185,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                         add(expected);
                     }
                 }
-            } else if (!expected->m_tagged || rootType(expected)->m_parentType == nullptr) {
+            } else if (!expected->tagged || rootType(expected)->parentType == nullptr) {
                 add(expected);
             }
         }
@@ -221,9 +221,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             for (Type* prefix : expressionTypes(selected->prefix.get(), scope)) {
                 Type* record = baseType(prefix);
                 if (record->kind == TypeKind::Access) {
-                    if (record->m_accessProfile != nullptr && selected->isDereference) {
-                        if (record->m_accessProfile->parameters.empty()) {
-                            add(record->m_accessProfile->returnType);
+                    if (record->accessProfile != nullptr && selected->isDereference) {
+                        if (record->accessProfile->parameters.empty()) {
+                            add(record->accessProfile->returnType);
                         }
                         continue;
                     }
@@ -262,7 +262,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             const std::string& name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
             if (name.ends_with("'class") && call->arguments.size() == 1) {
                 Symbol* symbol = lookupName(name.substr(0, name.size() - 6), scope);
-                if (symbol != nullptr && symbol->kind == SymbolKind::TypeName && symbol->type->m_tagged) {
+                if (symbol != nullptr && symbol->kind == SymbolKind::TypeName && symbol->type->tagged) {
                     add(resolveTypeName(name, scope, call->location));
                     callable = true;
                 }
@@ -286,7 +286,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                         for (std::size_t i = 0; i < positions.size(); ++i) {
                             if (rootType(symbol->parameters[positions[i]]->type) == symbol->m_controllingType) {
                                 for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
-                                    if (actual->m_classRoot == symbol->m_controllingType) {
+                                    if (actual->classRoot == symbol->m_controllingType) {
                                         resultType = classWideType(symbol->m_controllingType);
                                     }
                                 }
@@ -309,7 +309,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 auto* selected = static_cast<SelectedExpr*>(callee);
                 if (selected->isDereference) {
                     for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
-                        if (type->m_accessProfile != nullptr) {
+                        if (type->accessProfile != nullptr) {
                             callee = selected->prefix.get();
                             break;
                         }
@@ -317,10 +317,10 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 }
             }
             for (Type* prefix : expressionTypes(callee, scope)) {
-                if (prefix->m_accessProfile != nullptr) {
+                if (prefix->accessProfile != nullptr) {
                     std::vector<std::size_t> positions;
-                    if (matchCallArguments(call, prefix->m_accessProfile, scope, positions)) {
-                        add(prefix->m_accessProfile->returnType);
+                    if (matchCallArguments(call, prefix->accessProfile, scope, positions)) {
+                        add(prefix->accessProfile->returnType);
                     }
                     continue;
                 }
@@ -419,7 +419,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.stringType());
         } else if (name == "class") {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
-                if (taggedViewVisible(prefix) && prefix->m_classRoot == nullptr) {
+                if (taggedViewVisible(prefix) && prefix->classRoot == nullptr) {
                     add(classWideType(prefix));
                 }
             }
@@ -430,7 +430,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     prefix = prefix->target;
                 }
                 prefix = baseType(prefix);
-                task |= prefix != nullptr && prefix->m_taskBody != nullptr;
+                task |= prefix != nullptr && prefix->taskBody != nullptr;
             }
             add(task ? m_taskIdType : m_exceptionIdType);
         } else if (name == "caller") {

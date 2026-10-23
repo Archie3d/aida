@@ -30,14 +30,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         } else {
             if (bounds.type == 'w') {
                 std::string low = newTemp(), high = newTemp();
-                std::string extend = prefixType->m_modulus != 0 ? "extuw " : "extsw ";
+                std::string extend = prefixType->modulus != 0 ? "extuw " : "extsw ";
                 line(low + " =l " + extend + bounds.first);
                 line(high + " =l " + extend + bounds.last);
                 bounds.first = low;
                 bounds.last = high;
             }
             emitCallInstruction(result.name + " =w call $__ada_width_integer(l " + bounds.first
-                + ", l " + bounds.last + ", w " + std::to_string(prefixType->m_modulus != 0) + ")",
+                + ", l " + bounds.last + ", w " + std::to_string(prefixType->modulus != 0) + ")",
                 CallEffects::CheckException);
         }
         return result;
@@ -107,14 +107,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         std::string result = newTemp();
         if (argument->type->kind == TypeKind::Fixed) {
             emitCallInstruction(result + " =l call $__ada_fixed_rescale(l " + value.name + ", w "
-                + std::to_string(argument->type->m_fixedScale) + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
+                + std::to_string(argument->type->fixedScale) + ", w " + std::to_string(prefixType->fixedScale) + ")", CallEffects::DeferredCheck);
         } else {
             if (value.type == 's') {
                 std::string wide = newTemp();
                 line(wide + " =d exts " + value.name);
                 value = Value { wide, 'd' };
             }
-            emitCallInstruction(result + " =l call $__ada_float_to_fixed(d " + value.name + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(result + " =l call $__ada_float_to_fixed(d " + value.name + ", w " + std::to_string(prefixType->fixedScale) + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
         return Value { result, 'l' };
@@ -123,7 +123,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value bounds = scalarBounds(prefixType);
         std::string result = newTemp();
         emitCallInstruction(result + " =l call $__ada_fixed_fore(l " + bounds.first + ", l " + bounds.last
-            + ", w " + std::to_string(prefixType->m_fixedScale) + ")", CallEffects::DeferredCheck);
+            + ", w " + std::to_string(prefixType->fixedScale) + ")", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -150,7 +150,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value value = wideBound(emitExpr(argument));
         std::string result = newTemp();
         emitCallInstruction(result + " =l call $__ada_modular_reduce(l " + value.name + ", w "
-            + (argument->type->m_modulus != 0 ? "1" : "0") + ", l " + scalarText(prefixType->m_modulus) + ")", CallEffects::DeferredCheck);
+            + (argument->type->modulus != 0 ? "1" : "0") + ", l " + scalarText(prefixType->modulus) + ")", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'w') {
             std::string narrow = newTemp();
             line(narrow + " =w copy " + result);
@@ -160,7 +160,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "pos") {
         Value value = emitExpr(expr->arguments.front().get());
-        if (prefixType->m_modulus != 0 && expr->type->kind != TypeKind::UniversalInteger) {
+        if (prefixType->modulus != 0 && expr->type->kind != TypeKind::UniversalInteger) {
             return emitDiscreteConversion(value, prefixType, m_sema.typeTable().scalarBaseType(expr->type));
         }
         if (value.type == 'w' && qbeClass(expr->type) == 'l') {
@@ -181,7 +181,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "val") {
         Value value = emitExpr(expr->arguments.front().get());
-        if (prefixType->m_modulus != 0) {
+        if (prefixType->modulus != 0) {
             return emitDiscreteConversion(value, expr->arguments.front()->type, expr->type);
         }
         if (value.type == 'w' && qbeClass(expr->type) == 'l') {
@@ -220,9 +220,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 + "(" + value.type + " " + value.name + ", " + value.type + " " + bound + ")", CallEffects::DeferredCheck);
             return Value { result, value.type };
         }
-        if (prefixType->m_modulus != 0) {
+        if (prefixType->modulus != 0) {
             return emitModularOperation(name == "succ" ? ModularAdd : ModularSubtract, value,
-                Value { prefixType->m_modulus == 1 ? "0" : "1", value.type }, expr->type);
+                Value { prefixType->modulus == 1 ? "0" : "1", value.type }, expr->type);
         }
         Value result = emitIntegerOperation(name == "succ" ? 0 : 1, value, Value { "1", value.type }, value.type);
         emitRangeCheck(result, expr->type, expr->location);
@@ -233,7 +233,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Type* base = baseType(prefixType);
         long long capacity = 64;
         if (base != nullptr && base->kind == TypeKind::Fixed) {
-            capacity = std::max(64LL, (long long)base->m_fixedAft + 24);
+            capacity = std::max(64LL, (long long)base->fixedAft + 24);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             for (const std::string& literal : base->literals) {
                 capacity = std::max(capacity, (long long)literal.size() + 1);
@@ -244,7 +244,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         std::string destination = "l " + buffer + ", w " + std::to_string(capacity) + ", ";
         if (base != nullptr && base->kind == TypeKind::Fixed) {
             emitCallInstruction(length + " =w call $__ada_image_fixed(" + destination + "l " + value.name + ", w "
-                 + std::to_string(base->m_fixedScale) + ", w " + std::to_string(base->m_fixedAft) + ")", CallEffects::DeferredCheck);
+                 + std::to_string(base->fixedScale) + ", w " + std::to_string(base->fixedAft) + ")", CallEffects::DeferredCheck);
         } else if (isFloatClass(value.type)) {
             std::string wide = widenToDouble(value);
             emitCallInstruction(length + " =w call $__ada_image_float(" + destination + "d " + wide + ", w "
@@ -254,7 +254,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             emitCallInstruction(length + " =w call $__ada_image_character(" + destination + "w " + value.name + ")", CallEffects::DeferredCheck);
-        } else if (base->m_modulus != 0) {
+        } else if (base->modulus != 0) {
             Value wide = wideBound(value);
             emitCallInstruction(length + " =w call $__ada_image_modular(" + destination + "l " + wide.name + ")", CallEffects::DeferredCheck);
         } else {
@@ -306,7 +306,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "size") {
         Value bytes;
-        if (prefixType->m_classRoot != nullptr) {
+        if (prefixType->classRoot != nullptr) {
             Value object = emitExpr(expr->prefix.get());
             std::string tag = newTemp(), slot = newTemp(), size = newTemp();
             line(tag + " =l loadl " + object.name);
@@ -340,16 +340,16 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             emitCallInstruction(temp + " =" + precision + " call $" + helper + "(l " + text.name + ", w " + length.name + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Fixed) {
             emitCallInstruction(temp + " =l call $__ada_value_fixed(l " + text.name + ", w " + length.name
-                 + ", w " + std::to_string(base->m_fixedScale) + ", l -9223372036854775808, l 9223372036854775807)", CallEffects::DeferredCheck);
+                 + ", w " + std::to_string(base->fixedScale) + ", l -9223372036854775808, l 9223372036854775807)", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration && !base->literals.empty()) {
             emitCallInstruction(temp + " =w call $__ada_value_enum(l " + text.name + ", w " + length.name + ", l "
                  + enumTableFor(base) + ", w " + std::to_string(base->literals.size()) + ")", CallEffects::DeferredCheck);
         } else if (base != nullptr && base->kind == TypeKind::Enumeration) {
             // Character, whose values are named by their spelling.
             emitCallInstruction(temp + " =w call $__ada_value_character(l " + text.name + ", w " + length.name + ")", CallEffects::DeferredCheck);
-        } else if (base->m_modulus != 0) {
+        } else if (base->modulus != 0) {
             emitCallInstruction(temp + " =l call $__ada_value_modular(l " + text.name + ", w " + length.name
-                + ", l " + scalarText(base->m_modulus) + ")", CallEffects::DeferredCheck);
+                + ", l " + scalarText(base->modulus) + ")", CallEffects::DeferredCheck);
             if (qbeClass(prefixType) == 'w') {
                 std::string narrow = newTemp();
                 line(narrow + " =w copy " + temp);
@@ -363,14 +363,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + bounds.first + ", w " + bounds.last + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
-        if (base->m_modulus == 0 && base->kind != TypeKind::Float && prefixType->m_scalarBoundsSymbol != nullptr) {
+        if (base->modulus == 0 && base->kind != TypeKind::Float && prefixType->scalarBoundsSymbol != nullptr) {
             emitRangeCheck(Value { temp, qbeClass(prefixType) }, prefixType, expr->location);
         }
         return Value { temp, qbeClass(prefixType) };
     }
     if (name == "first" || name == "last" || name == "length") {
         Type* base = prefixType;
-        if (base != nullptr && (isScalar(base)) && base->m_scalarBoundsSymbol != nullptr) {
+        if (base != nullptr && (isScalar(base)) && base->scalarBoundsSymbol != nullptr) {
             Value bounds = scalarBounds(base);
             return Value { name == "first" ? bounds.first : bounds.last, bounds.type };
         }
@@ -472,9 +472,9 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             // first subtype. Validate them before applying that subtype's shape.
             Type incomingType = *resultType;
             incomingType.constrained = false;
-            incomingType.m_boundsSymbol = nullptr;
+            incomingType.boundsSymbol = nullptr;
             result = convertArrayBounds(result, &incomingType, &incomingType, expr->location);
-            if (resultType->constrained || resultType->m_boundsSymbol != nullptr) {
+            if (resultType->constrained || resultType->boundsSymbol != nullptr) {
                 result = convertArrayBounds(result, &incomingType, resultType, expr->location);
             }
             std::string bytes = objectBytes(result, resultType);
@@ -498,7 +498,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             return withBounds(address, prefixType, nullptr);
         }
         Value value = loadFrom(address, prefixType);
-        if (prefixType->kind == TypeKind::Fixed || !prefixType->m_enumCodes.empty()) {
+        if (prefixType->kind == TypeKind::Fixed || !prefixType->enumCodes.empty()) {
             emitRangeCheck(value, prefixType, expr->location);
         }
         return value;
@@ -549,12 +549,12 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         size = runtimeSize(prefixType);
     }
     Value destination = address;
-    if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
+    if (reading && (type->kind == TypeKind::Fixed || !type->enumCodes.empty())) {
         address = Value { allocScratch(typeSize(type)), 'l' };
     }
     emitCallInstruction(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
          + ", l " + address.name + ", l " + size + ")", CallEffects::CheckException);
-    if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {
+    if (reading && (type->kind == TypeKind::Fixed || !type->enumCodes.empty())) {
         Value value = loadFrom(address, type);
         emitRangeCheck(value, type, expr->location);
         storeInto(destination, value, type);

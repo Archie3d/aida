@@ -26,11 +26,11 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         std::string result = newTemp();
         bool real = isReal(expr->type);
         std::string arguments = "(w " + std::to_string(expr->op == BinaryOp::Multiply ? 2 : 3)
-            + ", l " + left.name + ", w " + std::to_string(expr->left->type->m_fixedScale)
-            + ", l " + right.name + ", w " + std::to_string(expr->right->type->m_fixedScale);
+            + ", l " + left.name + ", w " + std::to_string(expr->left->type->fixedScale)
+            + ", l " + right.name + ", w " + std::to_string(expr->right->type->fixedScale);
         emitCallInstruction(result + (real ? " =d call $__ada_fixed_real_operation" : " =l call $__ada_fixed_numeric_operation")
             + arguments + ", w " + (real ? (qbeClass(expr->type) == 's' ? "24" : "53")
-                                         : (expr->type->m_modulus != 0 ? "1" : "0")) + ")", CallEffects::CheckException);
+                                         : (expr->type->modulus != 0 ? "1" : "0")) + ")", CallEffects::CheckException);
         Value value { result, real ? 'd' : 'l' };
         emitRangeCheck(value, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
         char width = qbeClass(expr->type);
@@ -62,8 +62,8 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         }
         std::string result = newTemp();
         emitCallInstruction(result + " =l call $__ada_fixed_operation(w " + std::to_string(operation) + ", l " + left.name
-            + ", w " + std::to_string(expr->left->type->m_fixedScale) + ", l " + right.name
-            + ", w " + std::to_string(expr->right->type->m_fixedScale) + ", w " + std::to_string(expr->type->m_fixedScale) + ")", CallEffects::CheckException);
+            + ", w " + std::to_string(expr->left->type->fixedScale) + ", l " + right.name
+            + ", w " + std::to_string(expr->right->type->fixedScale) + ", w " + std::to_string(expr->type->fixedScale) + ")", CallEffects::CheckException);
         return Value { result, 'l' };
     }
     char type = left.type == 'l' || right.type == 'l' ? 'l' : left.type;
@@ -83,12 +83,12 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         case BinaryOp::Remainder: operation = ModularRemainder; break;
         case BinaryOp::Modulo: operation = ModularModulo; break;
         case BinaryOp::Power: operation = ModularPower; break;
-        case BinaryOp::And: if (expr->type->m_modulus != 0) operation = ModularAnd; break;
-        case BinaryOp::Or: if (expr->type->m_modulus != 0) operation = ModularOr; break;
-        case BinaryOp::Xor: if (expr->type->m_modulus != 0) operation = ModularXor; break;
+        case BinaryOp::And: if (expr->type->modulus != 0) operation = ModularAnd; break;
+        case BinaryOp::Or: if (expr->type->modulus != 0) operation = ModularOr; break;
+        case BinaryOp::Xor: if (expr->type->modulus != 0) operation = ModularXor; break;
         default: break;
         }
-        if (operation != ModularInvalid && expr->type->m_modulus != 0) {
+        if (operation != ModularInvalid && expr->type->modulus != 0) {
             return emitModularOperation(operation, left, right, expr->type);
         }
         if (operation != ModularInvalid) {
@@ -118,7 +118,7 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
             return equal;
         }
         std::string temp = newTemp();
-        line(temp + " =w " + comparisonInstruction(expr->op, type, expr->left->type->m_modulus != 0) + " " + left.name + ", " + right.name);
+        line(temp + " =w " + comparisonInstruction(expr->op, type, expr->left->type->modulus != 0) + " " + left.name + ", " + right.name);
         return Value { temp, 'w' };
     }
     case BinaryOp::Modulo:
@@ -178,7 +178,7 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
     Value operand = emitExpr(expr->operand.get());
     std::string temp = newTemp();
 
-    if (expr->type->m_modulus != 0) {
+    if (expr->type->modulus != 0) {
         if (expr->op == UnaryOp::Negate) {
             return emitModularOperation(ModularSubtract, Value { "0", operand.type }, operand, expr->type);
         }
@@ -243,8 +243,8 @@ Value QbeEmitter::emitDiscreteConversion(const Value& value, Type* source, Type*
     Value high = wideBound(Value { bounds.last, bounds.type });
     std::string result = newTemp();
     emitCallInstruction(result + " =l call $__ada_modular_convert(l " + wide.name + ", w "
-        + (source->m_modulus != 0 ? "1" : "0") + ", l " + low.name
-        + ", l " + high.name + ", w " + (target->m_modulus != 0 ? "1" : "0") + ")", CallEffects::CheckException);
+        + (source->modulus != 0 ? "1" : "0") + ", l " + low.name
+        + ", l " + high.name + ", w " + (target->modulus != 0 ? "1" : "0") + ")", CallEffects::CheckException);
     if (qbeClass(target) == 'w') {
         std::string narrow = newTemp();
         line(narrow + " =w copy " + result);
@@ -267,7 +267,7 @@ Value QbeEmitter::emitModularOperation(ModularOperation operation, const Value& 
     std::string rightWide = widen(right);
     std::string result = newTemp();
     emitCallInstruction(result + " =l call $__ada_modular_operation(w " + std::to_string(static_cast<int>(operation))
-         + ", l " + scalarText(type->m_modulus) + ", l " + leftWide + ", l " + rightWide + ")", CallEffects::CheckException);
+         + ", l " + scalarText(type->modulus) + ", l " + leftWide + ", l " + rightWide + ")", CallEffects::CheckException);
     if (qbeClass(type) == 'w') {
         std::string narrow = newTemp();
         line(narrow + " =w copy " + result);

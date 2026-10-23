@@ -91,7 +91,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
                 operation = static_cast<SubprogramDecl*>(item.get())->symbol;
             } else if (item->kind == DeclKind::Type) {
                 Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
-                operation = type != nullptr ? type->m_accessProfile : nullptr;
+                operation = type != nullptr ? type->accessProfile : nullptr;
             }
             if (operation == nullptr) {
                 continue;
@@ -258,8 +258,8 @@ bool Sema::representationVisible(Type* type) const
 bool Sema::taggedViewVisible(Type* type) const
 {
     Type* base = baseType(type);
-    return base != nullptr && base->m_tagged
-        && (base->m_privateViewTagged || representationVisible(base));
+    return base != nullptr && base->tagged
+        && (base->privateViewTagged || representationVisible(base));
 }
 
 bool Sema::checkNotPrivate(Type* type, const SourceLocation& location, const char* what)

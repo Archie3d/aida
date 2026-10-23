@@ -231,7 +231,7 @@ void QbeEmitter::storeInto(const Value& address, const Value& position, Type* ty
 
 void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* type)
 {
-    if (type->m_classRoot != nullptr) {
+    if (type->classRoot != nullptr) {
         emitCallInstruction("call $__ada_tag_check_copy(l " + source.name + ")", CallEffects::CheckException);
         std::string targetTag = newTemp();
         std::string sourceTag = newTemp();
@@ -256,11 +256,11 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")", CallEffects::DeferredCheck);
         return;
     }
-    long long size = type->m_tagged ? typeSize(type) : typeLayoutSize(type);
+    long long size = type->tagged ? typeSize(type) : typeLayoutSize(type);
     if (size <= 0) {
         return;
     }
-    if (type->m_tagged) {
+    if (type->tagged) {
         // A tagged object's tag is immutable, including through an ancestor view.
         // Parent layouts include their padding; extension fields start after it.
         if (size > 8) {
@@ -285,7 +285,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         emitDefaultInit(address, type);
         return;
     }
-    if (type->m_classRoot != nullptr) {
+    if (type->classRoot != nullptr) {
         std::string saved = m_context->m_controllingTag;
         std::string tag = newTemp();
         line(tag + " =l loadl " + address.name);
@@ -300,7 +300,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         Expr* operand = value;
         while (operand->kind == ExprKind::Qualified) {
             if (type->kind == TypeKind::Array && operand->type != nullptr
-                && (operand->type->constrained || operand->type->m_boundsSymbol != nullptr)) {
+                && (operand->type->constrained || operand->type->boundsSymbol != nullptr)) {
                 checkArrayShape(withBounds(address, type, nullptr), type,
                                 withBounds(Value {}, operand->type, nullptr), operand->type);
             }
@@ -346,13 +346,13 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
                 label(good);
             }
         }
-        if (initialize && type->m_tagged) {
+        if (initialize && type->tagged) {
             line("storel " + typeTag(type).name + ", " + address.name);
         }
         copyControlledObject(address, source, type, initialize);
         return;
     }
-    if (type != nullptr && type->m_classRoot != nullptr && !initialize) {
+    if (type != nullptr && type->classRoot != nullptr && !initialize) {
         std::string saved = m_context->m_controllingTag;
         std::string tag = newTemp();
         line(tag + " =l loadl " + address.name);
@@ -362,7 +362,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         copyInto(address, source, type);
         return;
     }
-    if (initialize && type != nullptr && type->m_tagged) {
+    if (initialize && type != nullptr && type->tagged) {
         line("storel " + typeTag(type).name + ", " + address.name);
     }
     if (value->kind == ExprKind::Aggregate && type != nullptr && type->kind == TypeKind::Record && !initialize) {
@@ -471,8 +471,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
 Value QbeEmitter::taggedMembership(const Value& object, Type* target)
 {
     target = rootType(target);
-    if (target->m_classRoot != nullptr) {
-        target = target->m_classRoot;
+    if (target->classRoot != nullptr) {
+        target = target->classRoot;
     }
     std::string cursor = allocScratch(8);
     std::string result = allocScratch(4);
@@ -530,7 +530,7 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
 {
     type = rootType(type);
     Symbol* primitive = nullptr;
-    for (Symbol* slot : type->m_dispatchSlots) {
+    for (Symbol* slot : type->dispatchSlots) {
         if (slot->name == operation && slot->parameters.size() == 1
             && rootType(slot->parameters.front()->type) == type && slot->returnType == nullptr) {
             primitive = slot;
@@ -581,7 +581,7 @@ void QbeEmitter::emitFinalizer(Type* type)
     emitControlledCall(Value { "%object", 'l' }, type, "finalize");
     emitReturn();
     context.terminated = true;
-    finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
+    finishFunction("export function " + type->tagName + ".finalize(l %object)");
     if (!type->isLimited) {
         FunctionContext adjust;
         adjust.traceName = type->name + " adjustment";
@@ -590,7 +590,7 @@ void QbeEmitter::emitFinalizer(Type* type)
         emitControlledCall(Value { "%object", 'l' }, type, "adjust");
         emitReturn();
         adjust.terminated = true;
-        finishFunction("export function " + type->m_tagName + ".adjust(l %object)");
+        finishFunction("export function " + type->tagName + ".adjust(l %object)");
     }
     for (const std::string& operation : { std::string("finalize"), std::string("adjust") }) {
         if (operation == "adjust" && type->isLimited) {
@@ -603,7 +603,7 @@ void QbeEmitter::emitFinalizer(Type* type)
         emitControlledCall(Value { "%object", 'l' }, type, operation, "%tag");
         emitReturn();
         view.terminated = true;
-        finishFunction("export function " + type->m_tagName + ".view_" + operation + "(l %object, l %tag)");
+        finishFunction("export function " + type->tagName + ".view_" + operation + "(l %object, l %tag)");
     }
     m_context = saved;
 }
@@ -615,8 +615,8 @@ std::string QbeEmitter::enumCodeTableFor(Type* type)
     if (found != m_enumCodeTables.end()) { return found->second; }
     std::string table = "$." + m_unitTag + ".enum_codes." + std::to_string(m_dataCounter++);
     m_data << "data " << table << " = align 4 { ";
-    for (std::size_t i = 0; i < base->m_enumCodes.size(); ++i) {
-        m_data << (i == 0 ? "w " : ", w ") << base->m_enumCodes[i];
+    for (std::size_t i = 0; i < base->enumCodes.size(); ++i) {
+        m_data << (i == 0 ? "w " : ", w ") << base->enumCodes[i];
     }
     m_data << " }\n";
     m_enumCodeTables.emplace(base, table);
@@ -625,19 +625,19 @@ std::string QbeEmitter::enumCodeTableFor(Type* type)
 
 Value QbeEmitter::enumCode(const Value& position, Type* type)
 {
-    if (type->m_enumCodes.empty()) { return position; }
+    if (type->enumCodes.empty()) { return position; }
     std::string result = newTemp();
     emitCallInstruction(result + " =w call $__ada_enum_code(w " + position.name + ", l " + enumCodeTableFor(type)
-        + ", w " + std::to_string(type->m_enumCodes.size()) + ")", CallEffects::CheckException);
+        + ", w " + std::to_string(type->enumCodes.size()) + ")", CallEffects::CheckException);
     return Value { result, 'w' };
 }
 
 Value QbeEmitter::enumPosition(const Value& code, Type* type)
 {
-    if (type->m_enumCodes.empty()) { return code; }
+    if (type->enumCodes.empty()) { return code; }
     std::string result = newTemp();
     emitCallInstruction(result + " =w call $__ada_enum_position(w " + code.name + ", l " + enumCodeTableFor(type)
-        + ", w " + std::to_string(type->m_enumCodes.size()) + ")", CallEffects::CheckException);
+        + ", w " + std::to_string(type->enumCodes.size()) + ")", CallEffects::CheckException);
     return Value { result, 'w' };
 }
 

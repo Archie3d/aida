@@ -39,7 +39,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     if (m_expressionDepth == 0 && errors == m_diagnostics.errorCount()) {
         validateStatic(expr, false, expected);
     }
-    if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->m_tagged)) {
+    if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->tagged)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->m_usesFinalization = true;
         } else {
@@ -69,7 +69,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         auto* selected = static_cast<SelectedExpr*>(expr);
         if (selected->isDereference) {
             for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
-                if (type->m_accessProfile != nullptr) {
+                if (type->accessProfile != nullptr) {
                     auto call = std::make_unique<CallExpr>();
                     call->location = expr->location;
                     call->callee = std::move(selected->prefix);
@@ -97,11 +97,11 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         auto* literal = static_cast<RealLiteralExpr*>(expr);
         if (expected != nullptr && expected->kind == TypeKind::Fixed) {
             expr->type = expected;
-            if (expected->m_formalFixed) {
+            if (expected->formalFixed) {
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->m_fixedScale, expr->staticValue);
+            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->fixedScale, expr->staticValue);
             if (expr->m_fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }
@@ -188,15 +188,15 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         adaptUniversal(qualified->operand.get(), type);
         expr->type = type;
         expr->m_tagIndeterminate = qualified->operand->m_tagIndeterminate;
-        expr->isStatic = type != nullptr && type->kind != TypeKind::Fixed && qualified->operand->isStatic && type != nullptr && type->m_scalarBoundsSymbol == nullptr;
-        if (expr->isStatic && type->m_modulus != 0
+        expr->isStatic = type != nullptr && type->kind != TypeKind::Fixed && qualified->operand->isStatic && type != nullptr && type->scalarBoundsSymbol == nullptr;
+        if (expr->isStatic && type->modulus != 0
             && (qualified->operand->staticValue < type->low || qualified->operand->staticValue > type->high)) {
             expr->isStatic = false;
         }
         expr->staticValue = qualified->operand->staticValue;
         expr->staticReal = qualified->operand->staticReal;
         if (type != nullptr && isScalar(type) && qualified->operand->isStatic
-            && type->m_scalarBoundsSymbol == nullptr && !type->m_formalFixed) {
+            && type->scalarBoundsSymbol == nullptr && !type->formalFixed) {
             expr->isStatic = true;
             expr->staticFailure = qualified->operand->staticFailure == StaticFailure::None
                 ? StaticFailure::None : StaticFailure::Dependent;
@@ -238,11 +238,11 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
-    if (designated->m_abstract && designated->m_classRoot == nullptr) {
+    if (designated->abstract && designated->classRoot == nullptr) {
         m_diagnostics.error(expr->location, "class-wide controlled or abstract allocators are not yet supported");
         return nullptr;
     }
-    if (designated->m_classRoot != nullptr && expr->value == nullptr) {
+    if (designated->classRoot != nullptr && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "a class-wide allocator requires an initializer");
         return nullptr;
     }
@@ -252,7 +252,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
     if (designated->kind == TypeKind::Array && !designated->constrained
-        && designated->m_boundsSymbol == nullptr && expr->subtype->indexLows.empty() && expr->value == nullptr) {
+        && designated->boundsSymbol == nullptr && expr->subtype->indexLows.empty() && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "an allocator for an array needs its bounds, as in 'new " + expr->subtype->name
                                                 + " (1 .. 10)'");
         return nullptr;
@@ -280,8 +280,8 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");
         }
         adaptUniversal(expr->value.get(), designated);
-        if (designated->m_classRoot != nullptr && hasLimitedControlledParts(value)
-            && value->m_classRoot == nullptr && buildsLimitedResult(expr->value.get())) {
+        if (designated->classRoot != nullptr && hasLimitedControlledParts(value)
+            && value->classRoot == nullptr && buildsLimitedResult(expr->value.get())) {
             expr->designated = value;
         }
     }
@@ -388,7 +388,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 if (expr->m_fixedResult && !expr->m_explicitFixedContext) {
                     bool requiresConversion = false;
                     for (Type* operand : chosen.parameters) {
-                        for (Symbol* primitive : rootType(operand)->m_primitives) {
+                        for (Symbol* primitive : rootType(operand)->primitives) {
                             if (primitive->name == name && primitive->parameters.size() == 2
                                 && primitive->parameters[0]->type->kind == TypeKind::Fixed
                                 && primitive->parameters[1]->type->kind == TypeKind::Fixed) {
@@ -425,7 +425,7 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     case BinaryOp::Xor:
     case BinaryOp::AndThen:
     case BinaryOp::OrElse: {
-        if (operandContext != nullptr && operandContext->m_modulus != 0
+        if (operandContext != nullptr && operandContext->modulus != 0
             && expr->op != BinaryOp::AndThen && expr->op != BinaryOp::OrElse) {
             Type* left = analyzeExpr(expr->left.get(), scope, operandContext);
             Type* right = analyzeExpr(expr->right.get(), scope, operandContext);
@@ -511,9 +511,9 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             m_diagnostics.error(expr->location, "concatenation operands do not match the array or component type");
         }
         Type* ancestor = context;
-        while (ancestor->m_parentType != nullptr) { ancestor = baseType(ancestor->m_parentType); }
-        bool fixedAncestor = ancestor->constrained || ancestor->m_boundsSymbol != nullptr;
-        bool knownIndex = fixedAncestor ? ancestor->constrained : context->index->m_scalarBoundsSymbol == nullptr;
+        while (ancestor->parentType != nullptr) { ancestor = baseType(ancestor->parentType); }
+        bool fixedAncestor = ancestor->constrained || ancestor->boundsSymbol != nullptr;
+        bool knownIndex = fixedAncestor ? ancestor->constrained : context->index->scalarBoundsSymbol == nullptr;
         long long indexFirst = fixedAncestor ? ancestor->indexLow : context->index->low;
         auto measure = [&](Expr* operand, Type* formal, long long& first, long long& last, long long& count) {
             if (rootType(formal) != rootType(context)) {
@@ -541,8 +541,8 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
         bool knownLeft = measure(expr->left.get(), operandContext, first, last, leftCount);
         bool knownRight = measure(expr->right.get(), rightContext, rightFirst, rightLast, rightCount);
         Type* result = m_types.makeSubtype(anonymousTypeName(), context, 0, 0);
-        result->m_boundsSymbol = nullptr;
-        result->m_boundExpressions.clear();
+        result->boundsSymbol = nullptr;
+        result->boundExpressions.clear();
         result->constrained = false;
         if (knownLeft && knownRight) {
             __int128 count = (__int128)leftCount + rightCount;
@@ -649,11 +649,11 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         ExactReal exact;
         if (exactValue(expr, exact)) {
             expr->type = expected;
-            if (expected->m_formalFixed) {
+            if (expected->formalFixed) {
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !exact.scaled(expected->m_fixedScale, expr->staticValue);
+            expr->m_fixedInvalid = !exact.scaled(expected->fixedScale, expr->staticValue);
             if (expr->m_fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }
@@ -663,7 +663,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
     Type* operand = analyzeExpr(expr->operand.get(), scope,
                                 expr->op == UnaryOp::Not && expected == nullptr
                                     ? m_types.booleanType() : expected);
-    if (operand != nullptr && operand->m_modulus != 0) {
+    if (operand != nullptr && operand->modulus != 0) {
         if (expr->op == UnaryOp::Abs) {
             m_diagnostics.error(expr->location, "abs is not defined for modular types");
         }
@@ -695,10 +695,10 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
     expr->m_membershipSubtype = mark;
     Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
     if (taggedViewVisible(mark) && taggedViewVisible(operand)) {
-        Type* target = mark->m_classRoot != nullptr ? mark->m_classRoot : mark;
-        Type* source = operand->m_classRoot != nullptr ? operand->m_classRoot : operand;
+        Type* target = mark->classRoot != nullptr ? mark->classRoot : mark;
+        Type* source = operand->classRoot != nullptr ? operand->classRoot : operand;
         if (!isTaggedAncestor(target, source)
-            && !(operand->m_classRoot != nullptr && isTaggedAncestor(source, target))) {
+            && !(operand->classRoot != nullptr && isTaggedAncestor(source, target))) {
             m_diagnostics.error(expr->location, "tagged membership requires convertible types");
         }
         expr->m_testedTaggedType = mark;

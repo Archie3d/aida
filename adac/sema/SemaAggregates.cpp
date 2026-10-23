@@ -9,11 +9,11 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
 {
-    if (expected != nullptr && expected->m_classRoot != nullptr) {
+    if (expected != nullptr && expected->classRoot != nullptr) {
         m_diagnostics.error(expr->location, "an aggregate requires a specific type");
         return nullptr;
     }
-    Type* target = expected != nullptr && expected->m_tagged ? rootType(expected) : expected;
+    Type* target = expected != nullptr && expected->tagged ? rootType(expected) : expected;
     if (target == nullptr || (target->kind != TypeKind::Array && target->kind != TypeKind::Record)) {
         m_diagnostics.error(expr->location, "an aggregate needs a known array or record type");
         for (AggregateComponent& component : expr->components) {
@@ -32,7 +32,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         m_diagnostics.error(expr->location, "aggregates containing tasks are not yet supported");
         return nullptr;
     }
-    if (target->m_abstract) {
+    if (target->abstract) {
         m_diagnostics.error(expr->location, "abstract aggregates are not supported");
         return nullptr;
     }
@@ -43,7 +43,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
     std::size_t firstField = 0;
     if (expr->m_ancestor != nullptr) {
         Type* extension = rootType(target);
-        if (!extension->m_tagged || extension->m_parentType == nullptr) {
+        if (!extension->tagged || extension->parentType == nullptr) {
             m_diagnostics.error(expr->location, "an extension aggregate requires a record extension type");
             return nullptr;
         }
@@ -74,7 +74,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             analyzeExpr(expr->m_ancestor.get(), scope, expr->m_ancestorType);
         }
         firstField = expr->m_ancestorType->fields.size();
-    } else if (target->m_tagged && rootType(target)->m_parentType != nullptr) {
+    } else if (target->tagged && rootType(target)->parentType != nullptr) {
         m_diagnostics.error(expr->location, "a record extension requires an extension aggregate");
         return nullptr;
     }

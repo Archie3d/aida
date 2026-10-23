@@ -8,7 +8,7 @@ using QbeSupport::isUnconstrainedArray;
 
 void QbeEmitter::emitTypeTag(Type* type)
 {
-    if (type != nullptr && type->m_protectedScope != nullptr && !m_emittedTags.contains(rootType(type))) {
+    if (type != nullptr && type->protectedScope != nullptr && !m_emittedTags.contains(rootType(type))) {
         type = rootType(type);
         m_emittedTags[type] = true;
         FunctionContext context;
@@ -16,15 +16,15 @@ void QbeEmitter::emitTypeTag(Type* type)
         FunctionContext* saved = m_context;
         m_context = &context;
         emitCallInstruction("call $__ada_protected_destroy(l %object)", CallEffects::DeferredCheck);
-        finishFunction("export function " + type->m_tagName + ".finalize(l %object)");
+        finishFunction("export function " + type->tagName + ".finalize(l %object)");
         m_context = saved;
         return;
     }
-    if (type == nullptr || !type->m_tagged || m_emittedTags.contains(type)) {
+    if (type == nullptr || !type->tagged || m_emittedTags.contains(type)) {
         return;
     }
     m_emittedTags[type] = true;
-    std::string name = type->m_tagName.substr(1);
+    std::string name = type->tagName.substr(1);
     if (name.ends_with("__tag")) {
         name.resize(name.size() - 5);
     }
@@ -35,17 +35,17 @@ void QbeEmitter::emitTypeTag(Type* type)
         character = static_cast<char>(std::toupper(static_cast<unsigned char>(character)));
     }
     std::string expanded = stringData(name);
-    m_data << "export data " << type->m_tagName << " = align 8 { l "
-           << (type->m_parentType == nullptr ? "0" : type->m_parentType->m_tagName)
+    m_data << "export data " << type->tagName << " = align 8 { l "
+           << (type->parentType == nullptr ? "0" : type->parentType->tagName)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
-           << ", l " << type->m_tagName << ".slots, l " << type->m_tagName << ".equal, l 0, l "
-           << expanded << ", l " << type->m_accessLevel
-           << ", l 0, l " << type->m_dispatchSlots.size() << ", l " << type->m_abstract << ", l " << needsFinalization(type) << ", l "
-           << (needsFinalization(type) ? type->m_tagName + ".parts" : "0")
+           << ", l " << type->tagName << ".slots, l " << type->tagName << ".equal, l 0, l "
+           << expanded << ", l " << type->accessLevel
+           << ", l 0, l " << type->dispatchSlots.size() << ", l " << type->abstract << ", l " << needsFinalization(type) << ", l "
+           << (needsFinalization(type) ? type->tagName + ".parts" : "0")
            << ", l " << hasLimitedControlledParts(type) << " }\n";
-    m_data << "export data " << type->m_tagName << ".slots = align 8 { ";
+    m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
-    for (Symbol* slot : type->m_dispatchSlots) {
+    for (Symbol* slot : type->dispatchSlots) {
         while (slot->m_inheritedFrom != nullptr) {
             slot = slot->m_inheritedFrom;
         }
@@ -66,8 +66,8 @@ void QbeEmitter::emitTypeTag(Type* type)
     // Every type owns a uniform equality entry, including predefined equality.
     FunctionContext equality;
     Symbol function;
-    function.level = type->m_tagOwner == nullptr ? 1 : type->m_tagOwner->level + 1;
-    function.owner = type->m_tagOwner;
+    function.level = type->tagOwner == nullptr ? 1 : type->tagOwner->level + 1;
+    function.owner = type->tagOwner;
     function.returnType = m_sema.typeTable().booleanType();
     equality.symbol = &function;
     equality.traceName = name + " equality";
@@ -77,9 +77,9 @@ void QbeEmitter::emitTypeTag(Type* type)
     Value result = comparePrimitiveRecord(Value { "%left", 'l' }, Value { "%right", 'l' }, type);
     emitReturn(result.name);
     equality.terminated = true;
-    finishFunction("export function w " + type->m_tagName + ".equal(l %.link, l %left, l %right)");
+    finishFunction("export function w " + type->tagName + ".equal(l %.link, l %left, l %right)");
     m_context = saved;
-    if (type->m_controlled) {
+    if (type->controlled) {
         emitFinalizer(type);
     }
     if (needsFinalization(type)) {
@@ -91,14 +91,14 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         for (Type* constraint : decl->arrayConstraints) {
-            Symbol* bounds = constraint->m_boundsSymbol;
+            Symbol* bounds = constraint->boundsSymbol;
             if (bounds->isGlobal) {
                 m_data << "export data " << bounds->qbeName << " = align 8 { z "
                     << adaArrayLocalSize(constraint->arrayRank) << " }\n";
             }
         }
         for (Type* constraint : decl->m_scalarConstraints) {
-            Symbol* bounds = constraint->m_scalarBoundsSymbol;
+            Symbol* bounds = constraint->scalarBoundsSymbol;
             if (bounds != nullptr && bounds->isGlobal) {
                 m_data << "export data " << bounds->qbeName << " = align 8 { z 16 }\n";
             }
@@ -111,26 +111,26 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             Type* type = taskDecl->declaredType;
             emitTypeTag(type);
             if (!taskDecl->m_protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
-                && type->m_layoutSymbol != nullptr && type->m_layoutSymbol->type == type && type->m_layoutSymbol->isGlobal) {
-                m_data << "export data " << type->m_layoutSymbol->qbeName << " = align 8 { z "
+                && type->layoutSymbol != nullptr && type->layoutSymbol->type == type && type->layoutSymbol->isGlobal) {
+                m_data << "export data " << type->layoutSymbol->qbeName << " = align 8 { z "
                     << (type->fields.size() + 1) * 8 << " }\n";
             }
             if (taskDecl->definition != nullptr && taskDecl->definition->kind == TypeDefKind::Array
-                && !type->m_boundExpressions.empty() && type->m_boundsSymbol->isGlobal) {
-                m_data << "export data " << type->m_boundsSymbol->qbeName << " = align 8 { z "
+                && !type->boundExpressions.empty() && type->boundsSymbol->isGlobal) {
+                m_data << "export data " << type->boundsSymbol->qbeName << " = align 8 { z "
                        << adaArrayLocalSize(type->arrayRank) << " }\n";
             }
-            if (needsCollection(type) && type->m_parentType == nullptr && type->m_collectionOwner == nullptr
+            if (needsCollection(type) && type->parentType == nullptr && type->collectionOwner == nullptr
                 && !m_emittedCollections.contains(type)) {
                 m_emittedCollections[type] = true;
-                m_data << "export data " << type->m_collectionName << " = align 8 { l 0 }\n";
+                m_data << "export data " << type->collectionName << " = align 8 { l 0 }\n";
             }
             break;
         }
         case DeclKind::Subtype: {
             Type* type = static_cast<SubtypeDecl*>(decl.get())->declaredType;
-            if (type != nullptr && !type->m_boundExpressions.empty() && type->m_boundsSymbol->isGlobal) {
-                m_data << "export data " << type->m_boundsSymbol->qbeName << " = align 8 { z "
+            if (type != nullptr && !type->boundExpressions.empty() && type->boundsSymbol->isGlobal) {
+                m_data << "export data " << type->boundsSymbol->qbeName << " = align 8 { z "
                        << adaArrayLocalSize(type->arrayRank) << " }\n";
             }
             break;
@@ -196,7 +196,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         m_context->sourceLocation = decl->location;
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
-            else if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+            else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
@@ -238,7 +238,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
-                if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
+                if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.m_shared = sharedSymbolKind(symbol) != 0;
                 if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->m_objectReference) {
@@ -383,7 +383,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         m_context->sourceLocation = decl->location;
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
-            else if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+            else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         Symbol* subprogram = nullptr;
         if (decl->kind == DeclKind::SubprogramBody) {
@@ -444,7 +444,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
-                if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
+                if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 if (symbol->m_classWideObject) {
                     emitClassWideObject(object, symbol);
                     continue;
@@ -595,49 +595,49 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
 void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
 {
     if (type == nullptr) { return; }
-    if (type->m_scalarLow == nullptr) {
-        if (isReal(type) && type->m_scalarConstraintBase != nullptr) {
+    if (type->scalarLow == nullptr) {
+        if (isReal(type) && type->scalarConstraintBase != nullptr) {
             Value bounds = scalarBounds(type);
             Value low {bounds.first, bounds.type}, high {bounds.last, bounds.type};
             emitRangeCheck(low, m_sema.typeTable().scalarBaseType(type), location);
             emitRangeCheck(high, m_sema.typeTable().scalarBaseType(type), location);
             if (type->lowReal <= type->highReal) {
-                emitRangeCheck(low, type->m_scalarConstraintBase, location);
-                emitRangeCheck(high, type->m_scalarConstraintBase, location);
+                emitRangeCheck(low, type->scalarConstraintBase, location);
+                emitRangeCheck(high, type->scalarConstraintBase, location);
             }
         }
-        if (type->m_decimalConstraint != nullptr) {
+        if (type->decimalConstraint != nullptr) {
             Value low { scalarText(type->low), 'l' }, high { scalarText(type->high), 'l' };
-            emitRangeCheck(low, type->m_decimalConstraint, location);
-            emitRangeCheck(high, type->m_decimalConstraint, location);
+            emitRangeCheck(low, type->decimalConstraint, location);
+            emitRangeCheck(high, type->decimalConstraint, location);
             if (type->low <= type->high) {
-                emitRangeCheck(low, type->m_scalarConstraintBase, location);
-                emitRangeCheck(high, type->m_scalarConstraintBase, location);
+                emitRangeCheck(low, type->scalarConstraintBase, location);
+                emitRangeCheck(high, type->scalarConstraintBase, location);
             }
         }
         return;
     }
-    Symbol* symbol = type->m_scalarBoundsSymbol;
+    Symbol* symbol = type->scalarBoundsSymbol;
     if (!symbol->isGlobal && symbol->frameOffset < 0) { symbol->frameOffset = reserveFrame(16); }
-    Value low = emitExpr(type->m_scalarLow);
-    Value high = emitExpr(type->m_scalarHigh);
+    Value low = emitExpr(type->scalarLow);
+    Value high = emitExpr(type->scalarHigh);
     Type* representation = m_sema.typeTable().scalarBaseType(type);
     emitRangeCheck(low, representation, location);
     emitRangeCheck(high, representation, location);
-    if (type->m_decimalConstraint != nullptr) {
-        emitRangeCheck(low, type->m_decimalConstraint, location);
-        emitRangeCheck(high, type->m_decimalConstraint, location);
+    if (type->decimalConstraint != nullptr) {
+        emitRangeCheck(low, type->decimalConstraint, location);
+        emitRangeCheck(high, type->decimalConstraint, location);
     }
     char width = qbeClass(type);
     std::string nonNull = newTemp();
-    line(nonNull + " =w " + QbeSupport::comparisonInstruction(BinaryOp::GreaterEqual, width, type->m_modulus != 0)
+    line(nonNull + " =w " + QbeSupport::comparisonInstruction(BinaryOp::GreaterEqual, width, type->modulus != 0)
         + " " + high.name + ", " + low.name);
     std::string check = newLabel("subtypecheck");
     std::string ready = newLabel("subtypeready");
     branch(Value { nonNull, 'w' }, check, ready);
     label(check);
-    emitRangeCheck(low, type->m_scalarConstraintBase, location);
-    emitRangeCheck(high, type->m_scalarConstraintBase, location);
+    emitRangeCheck(low, type->scalarConstraintBase, location);
+    emitRangeCheck(high, type->scalarConstraintBase, location);
     jump(ready);
     label(ready);
     Value slot = scalarBoundsAddress(type);
@@ -650,7 +650,7 @@ void QbeEmitter::emitScalarSubtype(Type* type, const SourceLocation& location)
 
 Value QbeEmitter::scalarBoundsAddress(Type* type)
 {
-    Symbol* symbol = type->m_scalarBoundsSymbol;
+    Symbol* symbol = type->scalarBoundsSymbol;
     if (symbol->isGlobal) { return Value {symbol->qbeName, 'l'}; }
     Value frame = symbol->owner == m_context->symbol ? Value {m_context->frameTemp, 'l'}
         : staticLinkFor(symbol->owner->level);
@@ -663,7 +663,7 @@ Value QbeEmitter::scalarBounds(Type* type)
 {
     Value bounds;
     bounds.type = qbeClass(type);
-    Symbol* symbol = type->m_scalarBoundsSymbol;
+    Symbol* symbol = type->scalarBoundsSymbol;
     if (symbol == nullptr) {
         bounds.first = isReal(type) ? QbeSupport::realLiteral(type->hasRealRange ? type->lowReal
             : (typeSize(type) == 4 ? -static_cast<double>(FLT_MAX) : -DBL_MAX), bounds.type) : scalarText(type->low);
@@ -739,47 +739,47 @@ void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
 Value QbeEmitter::typeTag(Type* type)
 {
     type = rootType(type);
-    if (type->m_classRoot != nullptr) {
-        type = type->m_classRoot;
+    if (type->classRoot != nullptr) {
+        type = type->classRoot;
     }
-    if (type->m_tagOwner == nullptr) {
-        return Value { type->m_tagName, 'l' };
+    if (type->tagOwner == nullptr) {
+        return Value { type->tagName, 'l' };
     }
-    Value frame = type->m_tagOwner == m_context->symbol
-        ? Value { m_context->frameTemp, 'l' } : staticLinkFor(type->m_tagOwner->level);
+    Value frame = type->tagOwner == m_context->symbol
+        ? Value { m_context->frameTemp, 'l' } : staticLinkFor(type->tagOwner->level);
     std::string slot = newTemp();
     std::string tag = newTemp();
-    line(slot + " =l add " + frame.name + ", " + std::to_string(type->m_tagOffset));
+    line(slot + " =l add " + frame.name + ", " + std::to_string(type->tagOffset));
     line(tag + " =l loadl " + slot);
     return Value { tag, 'l' };
 }
 
 void QbeEmitter::initializeTypeTag(Type* type)
 {
-    if (type == nullptr || !type->m_tagged) {
+    if (type == nullptr || !type->tagged) {
         return;
     }
-    if (type->m_tagOwner == nullptr) {
-        emitCallInstruction("call $__ada_tag_register(l " + type->m_tagName + ")", CallEffects::CheckException);
+    if (type->tagOwner == nullptr) {
+        emitCallInstruction("call $__ada_tag_register(l " + type->tagName + ")", CallEffects::CheckException);
         return;
     }
-    if (type->m_tagOffset >= 0) {
+    if (type->tagOffset >= 0) {
         return; // The visible declaration and private completion share a tag.
     }
-    type->m_tagOffset = reserveFrame(8);
+    type->tagOffset = reserveFrame(8);
     std::string slot = newTemp();
     std::string tag = newTemp();
-    std::string parent = type->m_parentType == nullptr ? "0" : typeTag(type->m_parentType).name;
-    line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->m_tagOffset));
-    emitCallInstruction(tag + " =l call $__ada_tag_create(l " + type->m_tagName + ", l " + parent
+    std::string parent = type->parentType == nullptr ? "0" : typeTag(type->parentType).name;
+    line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->tagOffset));
+    emitCallInstruction(tag + " =l call $__ada_tag_create(l " + type->tagName + ", l " + parent
          + ", l " + m_context->frameTemp + ")", CallEffects::CheckException);
     line("storel " + tag + ", " + slot);
     std::string tableSlot = newTemp();
     std::string table = newTemp();
     line(tableSlot + " =l add " + tag + ", 24");
     line(table + " =l loadl " + tableSlot);
-    for (std::size_t i = 0; i < type->m_dispatchSlots.size(); ++i) {
-        Symbol* implementation = type->m_dispatchSlots[i];
+    for (std::size_t i = 0; i < type->dispatchSlots.size(); ++i) {
+        Symbol* implementation = type->dispatchSlots[i];
         while (implementation->m_inheritedFrom != nullptr || implementation->m_renamedSubprogram != nullptr) {
             implementation = implementation->m_inheritedFrom != nullptr
                 ? implementation->m_inheritedFrom : implementation->m_renamedSubprogram;

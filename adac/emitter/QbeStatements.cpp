@@ -93,11 +93,11 @@ void QbeEmitter::emitStatement(Stmt* statement)
             Value low = emitExpr(loop->rangeLow.get());
             Value high = emitExpr(loop->rangeHigh.get());
             char type = qbeClass(variable->type);
-            if (variable->type->m_scalarBoundsSymbol != nullptr) {
+            if (variable->type->scalarBoundsSymbol != nullptr) {
                 std::string nonNull = newTemp();
                 std::string check = newLabel("looprangecheck");
                 std::string ready = newLabel("looprangeready");
-                line(nonNull + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, variable->type->m_modulus != 0)
+                line(nonNull + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, variable->type->modulus != 0)
                     + " " + high.name + ", " + low.name);
                 branch(Value { nonNull, 'w' }, check, ready);
                 label(check);
@@ -117,7 +117,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             std::string bound = newTemp();
             line(bound + " =" + std::string(1, type) + (type == 'l' ? " loadl " : " loadsw ") + boundSlot);
             std::string test = newTemp();
-            line(test + " =w " + comparisonInstruction(loop->isReverse ? BinaryOp::GreaterEqual : BinaryOp::LessEqual, type, variable->type->m_modulus != 0)
+            line(test + " =w " + comparisonInstruction(loop->isReverse ? BinaryOp::GreaterEqual : BinaryOp::LessEqual, type, variable->type->modulus != 0)
                  + " " + current.name + ", " + bound);
             branch(Value { test, 'w' }, bodyLabel, exit);
             label(bodyLabel);
@@ -200,12 +200,12 @@ void QbeEmitter::emitStatement(Stmt* statement)
             emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->m_object.get()), returnStatement);
             emitReturn();
         } else if (returnStatement->value && isComposite(resultType)) {
-            if (needsFinalization(resultType) || resultType->m_tagged) {
+            if (needsFinalization(resultType) || resultType->tagged) {
                 emitControlledResult(returnStatement->value.get());
             } else if (isUnconstrainedArray(resultType)) {
                 Value value = emitExpr(returnStatement->value.get());
                 value = withBounds(value, returnStatement->value->type, nullptr);
-                if (resultType->m_boundsSymbol != nullptr) {
+                if (resultType->boundsSymbol != nullptr) {
                     Value target = withBounds(Value {}, resultType, nullptr);
                     checkArrayShape(target, resultType, value, returnStatement->value->type);
                     value.first = target.first;
@@ -260,9 +260,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 } else {
                     std::string lowTest = newTemp();
                     std::string highTest = newTemp();
-                    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, caseStatement->selector->type->m_modulus != 0) + " "
+                    line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, caseStatement->selector->type->modulus != 0) + " "
                          + selector.name + ", " + scalarText(choice.low));
-                    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, type, caseStatement->selector->type->m_modulus != 0) + " " + selector.name
+                    line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, type, caseStatement->selector->type->modulus != 0) + " " + selector.name
                          + ", " + scalarText(choice.high));
                     line(test + " =w and " + lowTest + ", " + highTest);
                 }

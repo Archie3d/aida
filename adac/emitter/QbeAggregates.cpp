@@ -373,7 +373,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
 
 void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Type* type)
 {
-    Type* target = type != nullptr && type->m_tagged ? rootType(type) : type;
+    Type* target = type != nullptr && type->tagged ? rootType(type) : type;
     if (target == nullptr) {
         return;
     }
@@ -391,10 +391,10 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
                 }
             }
         }
-        if (target->m_tagged && !target->m_controlled) {
+        if (target->tagged && !target->controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
         }
-        if (target->m_controlled && expr->m_ancestor != nullptr && expr->m_ancestorType->m_controlled) {
+        if (target->controlled && expr->m_ancestor != nullptr && expr->m_ancestorType->controlled) {
             activateControlledObject(address, expr->m_ancestorType);
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
@@ -406,7 +406,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
             }
             assignInto(component, field.type, value, true);
         }
-        if (target->m_controlled) {
+        if (target->controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
             activateControlledObject(address, target);
         }

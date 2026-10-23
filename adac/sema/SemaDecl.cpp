@@ -36,8 +36,8 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
             // Register the body's own profile first: it can itself override.
             for (const auto& symbol : m_symbolTable.symbols()) {
                 if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
-                    && symbol->type->m_declarationScope == scope && symbol->type->m_tagged) {
-                    rootType(symbol->type)->m_dispatchFrozen = true;
+                    && symbol->type->declarationScope == scope && symbol->type->tagged) {
+                    rootType(symbol->type)->dispatchFrozen = true;
                 }
             }
         }
@@ -73,9 +73,9 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             reportMissingBodies(typeDecl->m_protectedDeclarations);
             Type* type = typeDecl->declaredType;
-            if (type != nullptr && type->m_taskBody != nullptr && !type->m_taskBody->hasBody
-                && !type->m_taskBody->m_missingBodyReported) {
-                type->m_taskBody->m_missingBodyReported = true;
+            if (type != nullptr && type->taskBody != nullptr && !type->taskBody->hasBody
+                && !type->taskBody->m_missingBodyReported) {
+                type->taskBody->m_missingBodyReported = true;
                 m_diagnostics.error(decl->location, "task '" + type->name + "' has no body");
             }
         }
@@ -112,15 +112,15 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
             break;
         }
         analyzeTypeDecl(typeDecl, scope);
-        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->m_protectedScope != nullptr) {
+        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr) {
             analyzeProtected(typeDecl, scope);
         }
         analyzeDeclarativePart(typeDecl->m_taskObjects, scope);
-        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->m_protectedScope != nullptr
+        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr
             && !typeDecl->m_taskObjects.empty()) {
             auto* object = static_cast<ObjectDecl*>(typeDecl->m_taskObjects.front().get());
             if (!object->symbols.empty()) {
-                typeDecl->declaredType->m_protectedObject = object->symbols.front();
+                typeDecl->declaredType->protectedObject = object->symbols.front();
             }
         }
         break;
@@ -175,22 +175,22 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 
     bool ownsScalarConstraint = type != nullptr && std::find(decl->m_scalarConstraints.begin(),
         decl->m_scalarConstraints.end(), type) != decl->m_scalarConstraints.end();
-    if (ownsScalarConstraint) { type->m_scalarObjectConstraint = true; }
+    if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }
 
     if (hasTasks(type) && !m_packages.empty()) {
         m_packages.back()->m_containsTasks = true;
     }
-    if (type != nullptr && type->m_tagged && type->m_classRoot == nullptr) {
-        rootType(type)->m_dispatchFrozen = true;
+    if (type != nullptr && type->tagged && type->classRoot == nullptr) {
+        rootType(type)->dispatchFrozen = true;
     }
 
     if (type != nullptr && !decl->m_isRenaming) {
-        if (type->m_abstract && type->m_classRoot == nullptr) {
+        if (type->abstract && type->classRoot == nullptr) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
     }
 
-    if (type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
+    if (type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
         m_diagnostics.error(decl->location, "a class-wide object requires an initializer");
         return;
     }
@@ -211,7 +211,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
-        if (decl->subtype->indexLows.empty() && !decl->initializer && type->m_boundsSymbol == nullptr) {
+        if (decl->subtype->indexLows.empty() && !decl->initializer && type->boundsSymbol == nullptr) {
             m_diagnostics.error(decl->location, "an unconstrained array object needs an initializer or index constraint");
         }
     }
@@ -296,16 +296,16 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         symbol->type = type;
         if (ownsScalarConstraint && i != 0) {
             Type* distinct = m_types.makeSubtype(anonymousTypeName(), type, type->low, type->high);
-            distinct->m_scalarLow = type->m_scalarLow;
-            distinct->m_scalarHigh = type->m_scalarHigh;
-            distinct->m_scalarConstraintBase = type->m_scalarConstraintBase;
-            distinct->m_decimalConstraint = type->m_decimalConstraint;
+            distinct->scalarLow = type->scalarLow;
+            distinct->scalarHigh = type->scalarHigh;
+            distinct->scalarConstraintBase = type->scalarConstraintBase;
+            distinct->decimalConstraint = type->decimalConstraint;
             recordScalarConstraint(distinct, decl->subtype->location, true);
             symbol->type = distinct;
         }
         symbol->m_objectReference = decl->m_isRenaming;
         symbol->m_sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
-        symbol->m_classWideObject = type != nullptr && type->m_classRoot != nullptr && !decl->m_isRenaming;
+        symbol->m_classWideObject = type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
         symbol->location = decl->location;
@@ -316,7 +316,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->namesLower[i]);
         }
-        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->m_scalarBoundsSymbol == nullptr
+        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->scalarBoundsSymbol == nullptr
             && sharedTypeKind(type) == 0) {
             long long value = 0;
             double realValue = 0.0;
@@ -377,7 +377,7 @@ static bool isPrimitive(Symbol* symbol)
     auto belongsTo = [&](Type* type) {
         type = rootType(type);
         return type != nullptr
-            && std::find(type->m_primitives.begin(), type->m_primitives.end(), symbol) != type->m_primitives.end();
+            && std::find(type->primitives.begin(), type->primitives.end(), symbol) != type->primitives.end();
     };
     if (belongsTo(symbol->returnType)) {
         return true;
@@ -465,9 +465,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     if (!overrides && !operatorSymbol(spec.lower).empty() && spec.isFunction) {
         // Predefined operators can only be overridden in the declarative
         // region of their type. An inner homograph merely hides them.
-        bool localType = returnType != nullptr && rootType(returnType)->m_declarationScope == scope;
+        bool localType = returnType != nullptr && rootType(returnType)->declarationScope == scope;
         for (Type* type : parameterTypes) {
-            localType = localType || (type != nullptr && rootType(type)->m_declarationScope == scope);
+            localType = localType || (type != nullptr && rootType(type)->declarationScope == scope);
         }
         Scope* probes = m_symbolTable.createScope(scope);
         std::vector<ExprPtr> expressions;
@@ -654,15 +654,15 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 {
     if (body->m_taskBody) {
         Symbol* task = lookupName(body->m_taskName, scope);
-        if (task == nullptr || task->type == nullptr || task->type->m_taskBody == nullptr
+        if (task == nullptr || task->type == nullptr || task->type->taskBody == nullptr
             || (task->kind != SymbolKind::TypeName && task->kind != SymbolKind::Object)
-            || task->type->m_taskBody->name != "__task_" + body->m_taskName) {
+            || task->type->taskBody->name != "__task_" + body->m_taskName) {
             m_diagnostics.error(body->location, "task body requires a task declaration in the same declarative region");
             return;
         }
-        body->spec.lower = task->type->m_taskBody->name;
+        body->spec.lower = task->type->taskBody->name;
         auto declarations = scope->lookupDeclaration(body->spec.lower);
-        if (std::find(declarations.begin(), declarations.end(), task->type->m_taskBody) == declarations.end()) {
+        if (std::find(declarations.begin(), declarations.end(), task->type->taskBody) == declarations.end()) {
             m_diagnostics.error(body->location, "task body must complete a task declared in the same declarative region");
             return;
         }
@@ -799,7 +799,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
             for (const auto& symbol : m_symbolTable.symbols()) {
                 Type* used = rootType(symbol->type);
                 while (used != nullptr && used != type) {
-                    used = used->m_parentType;
+                    used = used->parentType;
                 }
                 if ((symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter)
                     && used == type) {
@@ -808,7 +808,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
                 }
             }
         }
-        int& shared = typeName ? type->m_shared : entity->m_shared;
+        int& shared = typeName ? type->shared : entity->m_shared;
         shared = std::max(shared, decl->lower == "atomic" ? 2 : 1);
         return;
     }

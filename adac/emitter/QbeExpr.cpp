@@ -39,14 +39,14 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         // Universal named numbers may be wider than every machine type.
         // Refuse an unrepresentable materialization instead of using the
         // deliberately unset machine-value cache as zero.
-        if (expr->m_exactReal.m_valid && expr->type->m_modulus != 0) {
+        if (expr->m_exactReal.m_valid && expr->type->modulus != 0) {
             expr->staticValue = static_cast<long long>(expr->m_exactReal.m_numerator);
         } else if (expr->m_exactReal.m_valid && !expr->m_exactReal.integer(expr->staticValue)) {
             m_diagnostics.error(expr->location, "static value exceeds supported 64-bit machine storage");
             return Value { "0", qbeClass(expr->type) };
         }
-        if (expr->type->m_modulus != 0
-            && (static_cast<__int128>(static_cast<uint64_t>(expr->staticValue)) >= expr->type->m_modulus)) {
+        if (expr->type->modulus != 0
+            && (static_cast<__int128>(static_cast<uint64_t>(expr->staticValue)) >= expr->type->modulus)) {
             raiseConstraintError();
         }
         // Check before narrowing the literal to a QBE word. Subtype bounds
@@ -92,7 +92,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.m_protectedObject = expr->m_protectedObject;
             call.m_protectedReceiver = expr->m_protectedReceiver;
             call.type = expr->type;
-            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
+            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
             call.m_tagIndeterminate = expr->m_tagIndeterminate;
             return emitCall(&call);
         }
@@ -127,7 +127,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.m_protectedObject = expr->m_protectedObject;
             call.m_protectedReceiver = expr->m_protectedReceiver;
             call.type = expr->type;
-            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->m_classRoot != nullptr;
+            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
             call.m_tagIndeterminate = expr->m_tagIndeterminate;
             return emitCall(&call);
         }
@@ -185,7 +185,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 }
                 return converted;
             }
-            if (operand->type->m_classRoot != nullptr && expr->type->m_tagged) {
+            if (operand->type->classRoot != nullptr && expr->type->tagged) {
                 Value valid = taggedMembership(value, expr->type);
                 std::string good = newLabel("tagvalid");
                 std::string bad = newLabel("taginvalid");
@@ -194,7 +194,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 raiseConstraintError();
                 label(good);
             }
-            if (expr->type->kind == TypeKind::Record && !expr->type->m_tagged) {
+            if (expr->type->kind == TypeKind::Record && !expr->type->tagged) {
                 emitRecordConstraintCheck(value, expr->type);
                 if (typeSize(expr->type) != typeSize(operand->type)
                     && (typeSize(expr->type) != typeLayoutSize(expr->type) || typeSize(operand->type) != typeLayoutSize(operand->type))) {
@@ -207,15 +207,15 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             char from = value.type;
             char to = qbeClass(expr->type);
             if (expr->type->kind == TypeKind::Fixed || operand->type->kind == TypeKind::Fixed) {
-                if (operand->type->m_modulus != 0 || expr->type->m_modulus != 0) {
+                if (operand->type->modulus != 0 || expr->type->modulus != 0) {
                     Value wide = wideBound(value);
                     std::string converted = newTemp();
-                    if (operand->type->m_modulus != 0) {
+                    if (operand->type->modulus != 0) {
                         emitCallInstruction(converted + " =l call $__ada_modular_to_fixed(l " + wide.name
-                            + ", w " + std::to_string(expr->type->m_fixedScale) + ")", CallEffects::DeferredCheck);
+                            + ", w " + std::to_string(expr->type->fixedScale) + ")", CallEffects::DeferredCheck);
                     } else {
                         emitCallInstruction(converted + " =l call $__ada_fixed_numeric_operation(w 2, l " + wide.name
-                            + ", w " + std::to_string(operand->type->m_fixedScale) + ", l 1, w 0, w 1)", CallEffects::DeferredCheck);
+                            + ", w " + std::to_string(operand->type->fixedScale) + ", l 1, w 0, w 1)", CallEffects::DeferredCheck);
                     }
                     emitExceptionCheck();
                     Value result { converted, 'l' };
@@ -228,8 +228,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     return result;
                 }
                 std::string result = newTemp();
-                int fromBits = operand->type->m_fixedScale;
-                int toBits = expr->type->m_fixedScale;
+                int fromBits = operand->type->fixedScale;
+                int toBits = expr->type->fixedScale;
                 if (isFloatClass(from)) {
                     std::string wide = value.name;
                     if (from == 's') {
@@ -264,7 +264,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 return converted;
             }
             if (isDiscrete(operand->type) && isDiscrete(expr->type)
-                && (operand->type->m_modulus != 0 || expr->type->m_modulus != 0)) {
+                && (operand->type->modulus != 0 || expr->type->modulus != 0)) {
                 return emitDiscreteConversion(value, operand->type, expr->type);
             }
             if (from == to) {
@@ -281,13 +281,13 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     line(wide + " =d exts " + value.name);
                 }
                 std::string rounded = newTemp();
-                emitCallInstruction(rounded + " =l call $" + (expr->type->m_modulus != 0 ? "__ada_round_to_modular" : "__ada_round_to_integer") + "(d " + wide + ")", CallEffects::CheckException);
+                emitCallInstruction(rounded + " =l call $" + (expr->type->modulus != 0 ? "__ada_round_to_modular" : "__ada_round_to_integer") + "(d " + wide + ")", CallEffects::CheckException);
                 emitRangeCheck(Value { rounded, 'l' }, expr->type, expr->location);
                 line(temp + " =" + std::string(1, to) + " copy " + rounded);
             } else {
                 std::string instruction;
                 if (!isFloatClass(from) && isFloatClass(to)) {
-                    instruction = operand->type->m_modulus != 0
+                    instruction = operand->type->modulus != 0
                         ? (from == 'w' ? "uwtof" : "ultof") : (from == 'w' ? "swtof" : "sltof");
                 } else if (from == 's' && to == 'd') {
                     instruction = "exts";
@@ -322,7 +322,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
         Value value = emitExpr(static_cast<QualifiedExpr*>(expr)->operand.get());
-        if (expr->type->m_scalarBoundsSymbol != nullptr || expr->type->m_modulus != 0 || expr->type->kind == TypeKind::Fixed) {
+        if (expr->type->scalarBoundsSymbol != nullptr || expr->type->modulus != 0 || expr->type->kind == TypeKind::Fixed) {
             emitRangeCheck(value, expr->type, expr->location);
         }
         return value;
@@ -334,8 +334,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (membership->m_testedTaggedType != nullptr) {
             Type* tested = membership->m_testedTaggedType;
             Value result { "1", 'w' };
-            if (membership->operand->type->m_classRoot != nullptr) {
-                if (tested->m_classRoot != nullptr) {
+            if (membership->operand->type->classRoot != nullptr) {
+                if (tested->classRoot != nullptr) {
                     result = taggedMembership(operand, tested);
                 } else {
                     std::string tag = newTemp();
@@ -356,9 +356,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         std::string lowTest = newTemp();
         std::string highTest = newTemp();
         std::string combined = newTemp();
-        line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, operand.type, membership->operand->type->m_modulus != 0) + " " + operand.name
+        line(lowTest + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, operand.type, membership->operand->type->modulus != 0) + " " + operand.name
              + ", " + low.name);
-        line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, operand.type, membership->operand->type->m_modulus != 0) + " " + operand.name
+        line(highTest + " =w " + comparisonInstruction(BinaryOp::LessEqual, operand.type, membership->operand->type->modulus != 0) + " " + operand.name
              + ", " + high.name);
         line(combined + " =w and " + lowTest + ", " + highTest);
         if (!membership->negated) {
@@ -487,9 +487,9 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
     ArrayAggregatePlan aggregatePlan;
     AggregateExpr* preparedAggregate = nullptr;
     if (array) {
-        bool explicitBounds = designated->constrained || designated->m_boundsSymbol != nullptr
+        bool explicitBounds = designated->constrained || designated->boundsSymbol != nullptr
             || !expr->subtype->indexLows.empty();
-        if (designated->constrained || designated->m_boundsSymbol != nullptr) {
+        if (designated->constrained || designated->boundsSymbol != nullptr) {
             bounds = withBounds(Value {}, designated, nullptr);
         } else if (!expr->subtype->indexLows.empty()) {
             Type* axis = designated;
@@ -529,7 +529,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
             emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
             Value result = emitExpr(expr->value.get());
-            if (expr->type->target->m_boundsSymbol != nullptr || expr->type->target->constrained) {
+            if (expr->type->target->boundsSymbol != nullptr || expr->type->target->constrained) {
                 checkArrayShape(withBounds(Value {}, expr->type->target, nullptr), expr->type->target, result, designated);
             }
             emitCallInstruction("call $__ada_collection_finish(l " + pending + ", l " + result.name + ")", CallEffects::CheckException);
@@ -553,7 +553,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             else { checkArrayShape(bounds, designated, source, expr->value->type); }
         }
         initializerBounds = bounds;
-        if (expr->type->target->constrained || expr->type->target->m_boundsSymbol != nullptr) {
+        if (expr->type->target->constrained || expr->type->target->boundsSymbol != nullptr) {
             Value target = withBounds(Value {}, expr->type->target, nullptr);
             checkArrayShape(target, expr->type->target, bounds, designated);
             bounds = target;
@@ -565,7 +565,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
     // full storage size, just like records and local array declarations.
     std::string size = array && hasRuntimeLayout(designated) ? objectBytes(bounds, designated)
         : runtimeSize(isScalar(designated) ? expr->type->target : designated);
-    if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
+    if (designated->classRoot != nullptr && hasLimitedControlledParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
         emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
@@ -577,7 +577,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
         emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
         Value source = emitExpr(expr->value.get());
-        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
         emitCallInstruction("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")", CallEffects::CheckException);
         m_context->handlerLabels.pop_back();
         jump(ready);
@@ -592,9 +592,9 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         label(ready);
         return source;
     }
-    if (designated->m_classRoot != nullptr) {
+    if (designated->classRoot != nullptr) {
         Value source = emitExpr(expr->value.get());
-        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
         emitCallInstruction(object.name + " =l call $__ada_tagged_allocation(l " + collection.name + ", l " + source.name + ")", CallEffects::CheckException);
@@ -619,7 +619,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         }
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
-                 + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
+                 + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
         std::string savedTaskCollection = m_context->m_taskCollection;
         std::string savedTaskGroup = m_context->m_taskGroup;
@@ -661,10 +661,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction("call $__ada_collection_activate(l " + collection.name + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
-        if (expr->type->target->m_classRoot != nullptr) {
+        if (expr->type->target->classRoot != nullptr) {
             // Ownership is already recorded; only accessibility remains to check.
             emitCallInstruction("call $__ada_tag_check_accessibility(l " + object.name + ", w "
-                 + std::to_string(expr->type->m_accessLevel) + ")", CallEffects::CheckException);
+                 + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
         }
         m_context->handlerLabels.pop_back();
         jump(ready);
@@ -688,7 +688,7 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base == nullptr) {
         return false;
     }
-    if (base->kind == TypeKind::Access || base->m_taskBody != nullptr || base->m_protectedScope != nullptr) {
+    if (base->kind == TypeKind::Access || base->taskBody != nullptr || base->protectedScope != nullptr) {
         return true;
     }
     if (base->kind == TypeKind::Array) {
@@ -697,7 +697,7 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base->kind != TypeKind::Record) {
         return false;
     }
-    if (base->m_tagged) {
+    if (base->tagged) {
         return true;
     }
     // A discriminant the subtype fixed is written into the object too, so that
@@ -730,8 +730,8 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         return;
     }
 
-    if (base->m_taskBody != nullptr) {
-        Symbol* body = base->m_taskBody;
+    if (base->taskBody != nullptr) {
+        Symbol* body = base->taskBody;
         Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
         Value flag = elaborationFlag(body);
         emitCallInstruction("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
@@ -755,7 +755,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         return;
     }
 
-    if (base->m_tagged) {
+    if (base->tagged) {
         line("storel " + typeTag(base).name + ", " + address.name);
     }
     for (const FieldInfo& field : base->fields) {
@@ -785,11 +785,11 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             label(next);
         }
     }
-    if (base->m_protectedScope != nullptr) {
+    if (base->protectedScope != nullptr) {
         emitCallInstruction("call $__ada_protected_init(l " + address.name + ")", CallEffects::CheckException);
         activateControlledObject(address, type);
     }
-    if (base->m_controlled) {
+    if (base->controlled) {
         emitControlledCall(address, type, "initialize");
         emitExceptionCheck();
         activateControlledObject(address, type);

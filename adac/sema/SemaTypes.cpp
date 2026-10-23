@@ -57,7 +57,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         Type* placeholder = m_types.create(TypeKind::Record, decl->name);
         placeholder->isIncomplete = true;
-        placeholder->m_declarationScope = scope;
+        placeholder->declarationScope = scope;
         decl->declaredType = placeholder;
 
         Symbol* named = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
@@ -95,35 +95,35 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = completing->name;
         Symbol* privateTo = completing->privateTo;
         bool isLimited = completing->isLimited;
-        bool tagged = completing->m_tagged;
-        bool privateViewTagged = completing->m_privateViewTagged;
-        bool controlled = completing->m_controlled;
-        std::string tagName = completing->m_tagName;
-        auto slots = std::move(completing->m_dispatchSlots);
-        Type* classWide = completing->m_classWide;
-        auto primitives = std::move(completing->m_primitives);
+        bool tagged = completing->tagged;
+        bool privateViewTagged = completing->privateViewTagged;
+        bool controlled = completing->controlled;
+        std::string tagName = completing->tagName;
+        auto slots = std::move(completing->dispatchSlots);
+        Type* classWide = completing->classWide;
+        auto primitives = std::move(completing->primitives);
         *completing = Type(kind, name);
-        completing->m_primitives = std::move(primitives);
-        completing->m_dispatchSlots = std::move(slots);
-        completing->m_classWide = classWide;
+        completing->primitives = std::move(primitives);
+        completing->dispatchSlots = std::move(slots);
+        completing->classWide = classWide;
         completing->privateTo = privateTo;
         completing->isLimited = isLimited;
-        completing->m_tagged = tagged;
-        completing->m_privateViewTagged = privateViewTagged;
-        completing->m_controlled = controlled;
-        completing->m_tagName = tagName;
+        completing->tagged = tagged;
+        completing->privateViewTagged = privateViewTagged;
+        completing->controlled = controlled;
+        completing->tagName = tagName;
         return completing;
     };
 
     TypeDefinition* definition = decl->definition.get();
-    if (completing != nullptr && completing->privateTo != nullptr && completing->m_tagged
+    if (completing != nullptr && completing->privateTo != nullptr && completing->tagged
         && !(definition->kind == TypeDefKind::Record && definition->m_tagged)
         && !(definition->kind == TypeDefKind::Derived && definition->m_extension)) {
         m_diagnostics.error(decl->location, "a tagged private type requires a tagged full definition");
         return;
     }
     if (completing != nullptr && completing->privateTo != nullptr
-        && completing->m_abstract != definition->m_abstract) {
+        && completing->abstract != definition->m_abstract) {
         m_diagnostics.error(decl->location, "a private type and its completion must agree on abstractness");
         return;
     }
@@ -134,12 +134,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     switch (definition->kind) {
     case TypeDefKind::Protected: {
         type = makeType(TypeKind::Record);
-        type->m_protectedScope = m_symbolTable.createScope(scope);
+        type->protectedScope = m_symbolTable.createScope(scope);
         type->isLimited = true;
         type->needsZeroInit = true;
         std::string name = "$" + mangle(decl->lower) + "__protected";
         std::size_t ordinal = ++m_tagNames[name];
-        type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
         layoutRecord(decl, definition, type, scope);
         for (const FieldInfo& field : type->fields) {
             if (needsFinalization(field.type) || hasTasks(field.type)) {
@@ -158,8 +158,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         spec.lower = "__task_" + (decl->m_taskObjects.empty() ? decl->lower
             : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
         spec.location = decl->location;
-        type->m_taskBody = declareSubprogram(spec, scope, false);
-        type->m_taskBody->m_taskBody = true;
+        type->taskBody = declareSubprogram(spec, scope, false);
+        type->taskBody->m_taskBody = true;
         break;
     }
     case TypeDefKind::Enumeration: {
@@ -188,7 +188,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 literal->m_privatePrimitiveTo = m_packages.back();
             }
             scope->add(literal);
-            type->m_primitives.push_back(literal);
+            type->primitives.push_back(literal);
         }
         break;
     }
@@ -206,7 +206,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(definition->location, "supported moduli are 1 through 2 ** 64");
             modulus = 1;
         }
-        type->m_modulus = modulus;
+        type->modulus = modulus;
         type->low = 0;
         type->high = modulus - 1;
         break;
@@ -250,11 +250,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 m_diagnostics.error(definition->location, "decimal delta must be a power of ten from 10.0**(-18) through 10.0**18");
                 scale = 0;
             }
-            type->m_fixedScale = ADA_FIXED_DECIMAL_TAG + scale;
-            type->m_fixedAft = std::max(1, scale);
-            type->m_fixedRadix = 10;
+            type->fixedScale = ADA_FIXED_DECIMAL_TAG + scale;
+            type->fixedAft = std::max(1, scale);
+            type->fixedRadix = 10;
             type->digits = static_cast<int>(digits);
-            type->m_delta = definition->m_delta.get();
+            type->delta = definition->m_delta.get();
             long long limit = static_cast<long long>(fixedPower10(static_cast<int>(digits)) - 1);
             long long lowCounts = -limit, highCounts = limit;
             if (definition->rangeLow && definition->rangeHigh) {
@@ -263,13 +263,13 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 ExactReal low, high;
                 if (!isReal(lowType) || !isReal(highType) || !exactValue(definition->rangeLow.get(), low)
                     || !exactValue(definition->rangeHigh.get(), high)
-                    || !low.scaled(type->m_fixedScale, lowCounts) || !high.scaled(type->m_fixedScale, highCounts)) {
+                    || !low.scaled(type->fixedScale, lowCounts) || !high.scaled(type->fixedScale, highCounts)) {
                     m_diagnostics.error(definition->location, "decimal bounds must be exact static real expressions within 64-bit scaled storage");
                 } else {
                     // Check the mathematical bounds before rounding, as required
                     // by the digits definition, including fractional endpoints.
-                    ExactReal min = ExactReal::fixed(-limit, type->m_fixedScale);
-                    ExactReal max = ExactReal::fixed(limit, type->m_fixedScale);
+                    ExactReal min = ExactReal::fixed(-limit, type->fixedScale);
+                    ExactReal max = ExactReal::fixed(limit, type->fixedScale);
                     ExactReal below = ExactReal::operation('-', low, min);
                     ExactReal above = ExactReal::operation('-', max, high);
                     if (!below.m_valid || !above.m_valid || below.m_numerator < 0 || above.m_numerator < 0) {
@@ -294,17 +294,17 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-62) through 2.0**62");
         }
         if (decl->m_smallClause != nullptr) {
-            type->m_smallClause = decl->m_smallClause;
+            type->smallClause = decl->m_smallClause;
             // Delta may be referenced in the clause before the final type
             // symbol is published; Small itself is still being defined.
-            type->m_delta = definition->m_delta.get();
+            type->delta = definition->m_delta.get();
             Scope* representationScope = m_symbolTable.createScope(scope);
             Symbol* self = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
             self->type = type;
             representationScope->add(self);
-            type->m_smallPending = true;
+            type->smallPending = true;
             Type* smallType = analyzeExpr(decl->m_smallClause, representationScope, nullptr);
-            type->m_smallPending = false;
+            type->smallPending = false;
             ExactReal small;
             bool valid = isReal(smallType) && exactValue(decl->m_smallClause, small) && small.m_numerator > 0;
             int selected = ADA_FIXED_MIN_BITS;
@@ -322,14 +322,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
             }
         }
-        type->m_fixedScale = bits;
+        type->fixedScale = bits;
         __int128 decimalScale = 10;
-        while (type->m_fixedAft < 20
+        while (type->fixedAft < 20
             && delta.m_numerator < (delta.m_denominator - 1) / decimalScale + 1) {
-            ++type->m_fixedAft;
+            ++type->fixedAft;
             decimalScale *= 10;
         }
-        type->m_delta = definition->m_delta.get();
+        type->delta = definition->m_delta.get();
         ExactReal low, high;
         long long lowCounts = 0, highCounts = 0;
         Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);
@@ -382,18 +382,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
-        type->m_incompleteLayout = hasIncompleteParts(cell);
-        if (cell != nullptr && cell->m_abstract) {
+        type->incompleteLayout = hasIncompleteParts(cell);
+        if (cell != nullptr && cell->abstract) {
             m_diagnostics.error(decl->location, "abstract array components are not supported");
             return;
         }
-        if (cell != nullptr && cell->m_classRoot != nullptr) {
+        if (cell != nullptr && cell->classRoot != nullptr) {
             m_diagnostics.error(decl->location, "an array component requires a definite subtype");
             return;
         }
         if (cell != nullptr && cell->kind == TypeKind::Array && !cell->constrained) {
             recordArrayConstraint(cell, definition->elementType.get());
-            if (cell->m_boundsSymbol == nullptr) {
+            if (cell->boundsSymbol == nullptr) {
                 m_diagnostics.error(definition->elementType->location, "array components require a constrained array subtype");
             }
         }
@@ -427,15 +427,15 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             } else if (indexType != nullptr && row->constrained) {
                 row->indexLow = indexType->low;
                 row->indexHigh = indexType->high;
-                if (indexType->m_scalarBoundsSymbol != nullptr) {
+                if (indexType->scalarBoundsSymbol != nullptr) {
                     index->rangeLow = scalarBoundExpr(indexType, true, index->location);
                     index->rangeHigh = scalarBoundExpr(indexType, false, index->location);
                 }
             }
-            if (indexType != nullptr && indexType->m_scalarBoundsSymbol != nullptr && row->constrained) {
+            if (indexType != nullptr && indexType->scalarBoundsSymbol != nullptr && row->constrained) {
                 dynamicBounds = true;
             }
-            type->m_boundExpressions.push_back({ index->rangeLow.get(), index->rangeHigh.get() });
+            type->boundExpressions.push_back({ index->rangeLow.get(), index->rangeHigh.get() });
             if (dimension + 1 == rank) {
                 row->element = cell;
             } else {
@@ -449,7 +449,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 axis->constrained = false;
             }
         } else {
-            type->m_boundExpressions.clear();
+            type->boundExpressions.clear();
         }
         if (type->constrained) { checkArrayStorage(type, m_diagnostics, definition->location); }
 
@@ -457,7 +457,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Record: {
         type = makeType(TypeKind::Record);
-        type->m_tagged = definition->m_tagged;
+        type->tagged = definition->m_tagged;
         layoutRecord(decl, definition, type, scope);
         break;
     }
@@ -466,7 +466,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
-        if (parent->isIncomplete && (!parent->m_tagged || parent->privateTo == nullptr)) {
+        if (parent->isIncomplete && (!parent->tagged || parent->privateTo == nullptr)) {
             m_diagnostics.error(decl->location, parent->privateTo == nullptr
                 ? "a derivation parent must be completely defined"
                 : "derivation from an uncompleted private view is not yet supported");
@@ -484,27 +484,27 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "derivation of types containing tasks is not yet supported");
             return;
         }
-        if (completing != nullptr && parent->m_controlled && parent->isLimited && !completing->isLimited) {
+        if (completing != nullptr && parent->controlled && parent->isLimited && !completing->isLimited) {
             m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
         }
-        if (parent->m_classRoot != nullptr) {
+        if (parent->classRoot != nullptr) {
             m_diagnostics.error(decl->location, "a class-wide type cannot be a derivation parent");
             return;
         }
-        if (parent->m_tagged) {
+        if (parent->tagged) {
             parent = rootType(parent);
         }
-        if (definition->m_extension && (!parent->m_tagged || parent->kind != TypeKind::Record)) {
+        if (definition->m_extension && (!parent->tagged || parent->kind != TypeKind::Record)) {
             m_diagnostics.error(decl->location, "a record extension requires a tagged parent type");
             return;
         }
-        if (parent->m_tagged && !definition->m_extension) {
+        if (parent->tagged && !definition->m_extension) {
             m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
             return;
         }
-        bool finalizationRoot = parent->m_controlled && parent->m_parentType == nullptr;
-        if (parent->m_tagged && ((!representationVisible(parent) && !finalizationRoot) || parent->isIncomplete)) {
+        bool finalizationRoot = parent->controlled && parent->parentType == nullptr;
+        if (parent->tagged && ((!representationVisible(parent) && !finalizationRoot) || parent->isIncomplete)) {
             m_diagnostics.error(decl->location, "extension of a private or incomplete tagged view is not yet supported");
             return;
         }
@@ -526,46 +526,46 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         // type this declaration ends up being.
         type = makeType(parent->kind);
         std::string name = type->name;
-        auto primitives = std::move(type->m_primitives);
-        Type* classWide = type->m_classWide;
+        auto primitives = std::move(type->primitives);
+        Type* classWide = type->classWide;
         Symbol* privateTo = type->privateTo;
         bool isLimited = type->isLimited;
-        bool privateViewTagged = type->m_privateViewTagged;
+        bool privateViewTagged = type->privateViewTagged;
         *type = *built;
         if (completing != nullptr) {
             type->privateTo = privateTo;
-            type->m_privateViewTagged = privateViewTagged;
+            type->privateViewTagged = privateViewTagged;
             type->isLimited = isLimited;
         }
-        if (completing == nullptr && parent->m_controlled) {
+        if (completing == nullptr && parent->controlled) {
             type->privateTo = nullptr;
         }
-        type->m_primitives = std::move(primitives);
-        type->m_parentType = rootType(parent);
-        type->m_parentVisible = completing == nullptr || privateTo == nullptr;
-        type->m_classWide = completing != nullptr ? classWide : nullptr;
-        type->m_dispatchSlots = parent->m_dispatchSlots;
-        for (Symbol* primitive : type->m_primitives) {
+        type->primitives = std::move(primitives);
+        type->parentType = rootType(parent);
+        type->parentVisible = completing == nullptr || privateTo == nullptr;
+        type->classWide = completing != nullptr ? classWide : nullptr;
+        type->dispatchSlots = parent->dispatchSlots;
+        for (Symbol* primitive : type->primitives) {
             primitive->m_dispatchSlot = -1;
         }
-        type->m_dispatchFrozen = false;
-        rootType(parent)->m_dispatchFrozen = parent->m_tagged;
+        type->dispatchFrozen = false;
+        rootType(parent)->dispatchFrozen = parent->tagged;
         type->name = name;
         if (definition->m_extension) {
             type->byteSize = 0;
-            type->m_tagName.clear();
-            type->m_parentFieldCount = static_cast<int>(parent->fields.size());
+            type->tagName.clear();
+            type->parentFieldCount = static_cast<int>(parent->fields.size());
             layoutRecord(decl, definition, type, scope);
         }
         inheritPrimitives(type, parent, scope, decl->location);
-        if (type->m_tagged) {
+        if (type->tagged) {
             // A private view can declare operations before its parent is known.
             // Complete inherited slots first, then append its own operations.
-            for (Symbol* primitive : type->m_primitives) {
+            for (Symbol* primitive : type->primitives) {
                 if (primitive->kind == SymbolKind::Subprogram && primitive->m_dispatchSlot < 0) {
                     primitive->m_controllingType = type;
-                    primitive->m_dispatchSlot = static_cast<int>(type->m_dispatchSlots.size());
-                    type->m_dispatchSlots.push_back(primitive);
+                    primitive->m_dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                    type->dispatchSlots.push_back(primitive);
                 }
             }
         }
@@ -580,7 +580,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 literal->m_privatePrimitiveTo = m_packages.back();
             }
             scope->add(literal);
-            type->m_primitives.push_back(literal);
+            type->primitives.push_back(literal);
         }
         break;
     }
@@ -611,8 +611,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
                 profile->parameters.push_back(parameter);
             }
-            type->m_accessProfile = profile;
-            type->m_accessScope = scope;
+            type->accessProfile = profile;
+            type->accessScope = scope;
         } else {
             type->target = resolveSubtypeIndication(definition->parent.get(), scope, true, true);
             recordArrayConstraint(type->target, definition->parent.get());
@@ -626,8 +626,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type = makeType(TypeKind::Record);
         type->isIncomplete = true;
-        type->m_tagged = definition->m_tagged;
-        type->m_privateViewTagged = definition->m_tagged;
+        type->tagged = definition->m_tagged;
+        type->privateViewTagged = definition->m_tagged;
         type->privateTo = m_packages.back();
         type->isLimited = definition->isLimited;
         break;
@@ -637,13 +637,13 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
-    if (hasProtected(type) && (nonlimitedPrivateCompletion || type->m_tagged || type->variantOn >= 0)) {
+    if (hasProtected(type) && (nonlimitedPrivateCompletion || type->tagged || type->variantOn >= 0)) {
         m_diagnostics.error(decl->location, "protected components require an ordinary limited full view without variants");
     }
     if (hasTasks(type) && nonlimitedPrivateCompletion) {
         m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
     }
-    if (hasTasks(type) && type->m_tagged) {
+    if (hasTasks(type) && type->tagged) {
         m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
     }
     if (type->variantOn >= 0 && hasTasks(type)) {
@@ -652,54 +652,54 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type->variantOn >= 0 && needsFinalization(type)) {
         m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
     }
-    type->m_abstract = definition->m_abstract;
+    type->abstract = definition->m_abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type) || hasTasks(type) || hasProtected(type);
-    if (type->m_abstract && !type->m_tagged) {
+    if (type->abstract && !type->tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
     }
     if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "finalization"
         && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
-        type->m_controlled = true;
+        type->controlled = true;
     }
     if (definition->kind == TypeDefKind::Record && definition->isLimited && !needsFinalization(type) && !hasTasks(type)) {
         m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
     }
-    if (type->m_tagged && type->m_tagName.empty()) {
+    if (type->tagged && type->tagName.empty()) {
         std::string name = "$" + mangle(decl->lower) + "__tag";
         std::size_t ordinal = ++m_tagNames[name];
-        type->m_tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
     }
-    type->m_declarationScope = scope;
-    if (type->kind == TypeKind::Access && type->m_accessProfile == nullptr) {
-        type->m_collectionOwner = m_currentSubprogram;
+    type->declarationScope = scope;
+    if (type->kind == TypeKind::Access && type->accessProfile == nullptr) {
+        type->collectionOwner = m_currentSubprogram;
         std::string name = "$" + mangle(decl->lower) + "__collection";
         std::size_t ordinal = ++m_tagNames[name];
-        type->m_collectionName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
-        type->m_collectionOffset = -1;
+        type->collectionName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        type->collectionOffset = -1;
         if (m_currentSubprogram != nullptr && type->target != nullptr
             && (needsCollection(type) || type->target->isIncomplete)) {
             m_currentSubprogram->needsFrame = true;
         }
     }
-    if (type->m_tagged) {
-        type->m_tagOwner = m_currentSubprogram;
-        type->m_tagOffset = -1;
+    if (type->tagged) {
+        type->tagOwner = m_currentSubprogram;
+        type->tagOffset = -1;
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->needsFrame = true;
         }
     }
-    if (type->kind == TypeKind::Access || type->m_tagged) {
-        type->m_accessLevel = type->kind == TypeKind::Access && type->m_parentType != nullptr
-            ? type->m_parentType->m_accessLevel : m_accessibilityLevel;
+    if (type->kind == TypeKind::Access || type->tagged) {
+        type->accessLevel = type->kind == TypeKind::Access && type->parentType != nullptr
+            ? type->parentType->accessLevel : m_accessibilityLevel;
     }
-    if (type->m_classWide != nullptr) {
-        Type* wide = type->m_classWide;
+    if (type->classWide != nullptr) {
+        Type* wide = type->classWide;
         *wide = *type;
         wide->base = nullptr;
         wide->name = type->name + "'Class";
-        wide->m_classRoot = type;
-        wide->m_primitives.clear();
-        wide->m_declarationScope = nullptr;
+        wide->classRoot = type;
+        wide->primitives.clear();
+        wide->declarationScope = nullptr;
         m_types.refreshRecordSubtypes(wide);
     }
     if (completing != nullptr && type->kind == TypeKind::Record) {
@@ -722,8 +722,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         symbol->location = decl->location;
         scope->add(symbol);
     }
-    if (!type->m_boundExpressions.empty()) {
-        type->m_boundsSymbol = symbol;
+    if (!type->boundExpressions.empty()) {
+        type->boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         symbol->qbeName = "$" + mangle(decl->lower + "__bounds");
@@ -731,11 +731,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_currentSubprogram->needsFrame = true;
         }
     }
-    if (type->kind == TypeKind::Record && hasRuntimeLayout(type) && type->m_layoutSymbol == nullptr) {
-        if (type->m_tagged) {
+    if (type->kind == TypeKind::Record && hasRuntimeLayout(type) && type->layoutSymbol == nullptr) {
+        if (type->tagged) {
             m_diagnostics.error(decl->location, "runtime-sized tagged records are not yet supported");
         }
-        type->m_layoutSymbol = symbol;
+        type->layoutSymbol = symbol;
         symbol->owner = m_currentSubprogram;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         symbol->qbeName = "$" + mangle(decl->lower + "__layout");
@@ -759,15 +759,15 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
         return;
     }
     Type* type = m_types.makeSubtype(decl->name, base, base->low, base->high);
-    type->m_decimalConstraint = base->m_decimalConstraint;
-    if (base->m_decimalConstraint != nullptr) { type->m_scalarConstraintBase = base->m_scalarConstraintBase; }
+    type->decimalConstraint = base->decimalConstraint;
+    if (base->decimalConstraint != nullptr) { type->scalarConstraintBase = base->scalarConstraintBase; }
     decl->declaredType = type;
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
     symbol->type = type;
     symbol->location = decl->location;
     if (type->kind == TypeKind::Array && !type->constrained
         && !decl->subtype->indexLows.empty()) {
-        type->m_boundsSymbol = symbol;
+        type->boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         symbol->qbeName = "$" + mangle(decl->lower + "__bounds");
@@ -775,7 +775,7 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
             m_currentSubprogram->needsFrame = true;
         }
         for (std::size_t i = 0; i < decl->subtype->indexLows.size(); ++i) {
-            type->m_boundExpressions.push_back({ decl->subtype->indexLows[i].get(),
+            type->boundExpressions.push_back({ decl->subtype->indexLows[i].get(),
                                                 decl->subtype->indexHighs[i].get() });
         }
     }
@@ -788,12 +788,12 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 // discriminant it was made with.
 void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope)
 {
-    if (type->m_tagged && (!decl->discriminants.empty() || definition->variant != nullptr)) {
+    if (type->tagged && (!decl->discriminants.empty() || definition->variant != nullptr)) {
         m_diagnostics.error(decl->location, "discriminated tagged records are not yet supported");
         return;
     }
-    long long offset = definition->m_extension ? typeSize(type->m_parentType)
-        : type->m_tagged || type->m_protectedScope != nullptr ? 8 : 0;
+    long long offset = definition->m_extension ? typeSize(type->parentType)
+        : type->tagged || type->protectedScope != nullptr ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
 
     auto place = [&](RecordField& field, int variantIndex, bool isDiscriminant) {
@@ -808,18 +808,18 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, true, true);
-        type->m_incompleteLayout = type->m_incompleteLayout || hasIncompleteParts(info.type);
-        if (info.type != nullptr && info.type->m_abstract) {
+        type->incompleteLayout = type->incompleteLayout || hasIncompleteParts(info.type);
+        if (info.type != nullptr && info.type->abstract) {
             m_diagnostics.error(field.location, "abstract record components are not supported");
             return;
         }
-        if (info.type != nullptr && info.type->m_classRoot != nullptr) {
+        if (info.type != nullptr && info.type->classRoot != nullptr) {
             m_diagnostics.error(field.location, "a record component requires a definite subtype");
             return;
         }
         if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
             recordArrayConstraint(info.type, field.subtype.get());
-            if (info.type->m_boundsSymbol == nullptr) {
+            if (info.type->boundsSymbol == nullptr) {
                 m_diagnostics.error(field.subtype->location, "record components require a constrained array subtype");
             }
         }
@@ -969,9 +969,9 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
         }
         auto* typeDecl = static_cast<TypeDecl*>(decl.get());
         Type* type = typeDecl->declaredType;
-        if (type != nullptr && type->m_tagged && type->m_parentType != nullptr
-            && type->fields.size() > static_cast<std::size_t>(type->m_parentFieldCount)) {
-            for (Symbol* primitive : type->m_primitives) {
+        if (type != nullptr && type->tagged && type->parentType != nullptr
+            && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount)) {
+            for (Symbol* primitive : type->primitives) {
                 if (primitive->m_inheritedFrom != nullptr && rootType(primitive->returnType) == type) {
                     m_diagnostics.error(decl->location, "inherited function '" + primitive->displayName
                         + "' returning the extended type must be overridden");
@@ -1003,15 +1003,15 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     if (decl->attribute == "alignment") {
         Type* type = symbol->type;
         if (type->isSubtype || type->isIncomplete || !representationVisible(type)
-            || type->m_tagged || hasTasks(type) || hasProtected(type)) {
+            || type->tagged || hasTasks(type) || hasProtected(type)) {
             m_diagnostics.error(decl->location, "an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts");
             return;
         }
-        if (type->m_alignmentSpecified) {
+        if (type->alignmentSpecified) {
             m_diagnostics.error(decl->location, "duplicate Alignment clause");
             return;
         }
-        if (type != precedingType || type->m_scalarBase != nullptr) {
+        if (type != precedingType || type->scalarBase != nullptr) {
             m_diagnostics.error(decl->location, "an Alignment clause must be adjacent to its type declaration, before representation use");
             return;
         }
@@ -1039,22 +1039,22 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             m_diagnostics.error(decl->location, "Alignment requiring scalar or array stride padding is not yet supported");
             return;
         }
-        if (alignment > 0 && type->kind == TypeKind::Record && type->m_specifiedSize >= 0
+        if (alignment > 0 && type->kind == TypeKind::Record && type->specifiedSize >= 0
             && typeSize(type) % alignment != 0) {
             m_diagnostics.error(decl->location, "Alignment conflicts with the preceding Size clause");
             return;
         }
-        type->m_alignment = alignment;
-        type->m_alignmentSpecified = true;
+        type->alignment = alignment;
+        type->alignmentSpecified = true;
         m_types.refreshStorageRepresentation(type);
         if (type->kind == TypeKind::Enumeration) { m_types.refreshEnumerationRepresentation(type); }
         return;
     }
     if (decl->attribute == "machine_radix") {
         Type* type = symbol->type;
-        if (type->kind != TypeKind::Fixed || !fixedIsDecimal(type->m_fixedScale)
-            || type->isSubtype || type->m_parentType != nullptr || type != precedingType || type->m_scalarBase != nullptr
-            || type->m_fixedRadixSpecified || !representationVisible(type)) {
+        if (type->kind != TypeKind::Fixed || !fixedIsDecimal(type->fixedScale)
+            || type->isSubtype || type->parentType != nullptr || type != precedingType || type->scalarBase != nullptr
+            || type->fixedRadixSpecified || !representationVisible(type)) {
             m_diagnostics.error(decl->location, "Machine_Radix requires an adjacent decimal fixed-point first subtype");
             return;
         }
@@ -1064,16 +1064,16 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             m_diagnostics.error(decl->location, "decimal Machine_Radix must be the static value 2 or 10");
             return;
         }
-        type->m_fixedRadix = static_cast<int>(radix);
-        type->m_fixedRadixSpecified = true;
+        type->fixedRadix = static_cast<int>(radix);
+        type->fixedRadixSpecified = true;
         return;
     }
     if (decl->attribute == "small") {
         Type* type = symbol->type;
-        if (type->kind != TypeKind::Fixed || fixedIsDecimal(type->m_fixedScale) || type->isSubtype || type->m_parentType != nullptr
+        if (type->kind != TypeKind::Fixed || fixedIsDecimal(type->fixedScale) || type->isSubtype || type->parentType != nullptr
             || !representationVisible(type)) {
             m_diagnostics.error(decl->location, "a Small clause requires a nonderived ordinary fixed-point first subtype");
-        } else if (type->m_smallClause != decl->value.get()) {
+        } else if (type->smallClause != decl->value.get()) {
             m_diagnostics.error(decl->location, "a Small clause must occur once, adjacent to its type declaration before representation use");
         }
         return;
@@ -1084,7 +1084,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
 
     Type* type = symbol->type;
-    if (type->m_tagged) {
+    if (type->tagged) {
         m_diagnostics.error(decl->location, "size clauses for tagged types are not yet supported");
         return;
     }
@@ -1113,7 +1113,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     long long bytes = bits / 8;
     if (type->kind == TypeKind::Array || type->kind == TypeKind::Record) {
         if (hasRuntimeLayout(type)
-            || type->m_incompleteLayout || hasIncompleteParts(type)) {
+            || type->incompleteLayout || hasIncompleteParts(type)) {
             m_diagnostics.error(decl->location, "a composite Size clause requires a complete static layout");
             return;
         }
@@ -1130,22 +1130,22 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
                 m_diagnostics.error(decl->location, "size-changing clauses for controlled, limited, task or protected composites are not yet supported");
                 return;
             }
-            type->m_compositeSize = bytes;
-            type->m_sizeBounds.clear();
+            type->compositeSize = bytes;
+            type->sizeBounds.clear();
             if (type->kind == TypeKind::Array) {
                 Type* axis = type;
                 for (int i = 0; i < type->arrayRank; ++i) {
-                    type->m_sizeBounds.push_back({axis->indexLow, axis->indexHigh});
+                    type->sizeBounds.push_back({axis->indexLow, axis->indexHigh});
                     axis = axis->element;
                 }
             }
         }
-        type->m_specifiedSize = bytes;
+        type->specifiedSize = bytes;
         m_types.refreshStorageRepresentation(type);
         return;
     }
     if (bytes != typeSize(type) && type->isSubtype
-        && (type->m_scalarBoundsSymbol != nullptr || type->low > type->high || type->isIncomplete)) {
+        && (type->scalarBoundsSymbol != nullptr || type->low > type->high || type->isIncomplete)) {
         m_diagnostics.error(decl->location, "size-changing scalar subtypes require a static nonnull range");
         return;
     }
@@ -1159,7 +1159,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         // Byte and halfword loads can be unsigned. Word arithmetic and loads
         // are signed; types needing the full unsigned word range use 64 bits.
         long long low = 0;
-        __int128 high = type->m_modulus != 0 && bits == 64
+        __int128 high = type->modulus != 0 && bits == 64
             ? (__int128)UINT64_MAX : std::numeric_limits<long long>::max();
         if (bits == 64) {
             low = std::numeric_limits<long long>::min();
@@ -1169,7 +1169,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         } else {
             high = (1LL << bits) - 1;
         }
-        if (!type->isSubtype && type->m_modulus != 0 && type->m_modulus - 1 > high) {
+        if (!type->isSubtype && type->modulus != 0 && type->modulus - 1 > high) {
             m_diagnostics.error(decl->location, "unsupported representation size for this modular type");
             return;
         }
@@ -1179,10 +1179,10 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         }
         __int128 storageLow = type->low;
         __int128 storageHigh = type->high;
-        if (!type->m_enumCodes.empty() && type->low >= 0 && type->high >= type->low
-            && type->high < static_cast<long long>(type->m_enumCodes.size())) {
-            storageLow = type->m_enumCodes[static_cast<std::size_t>(type->low)];
-            storageHigh = type->m_enumCodes[static_cast<std::size_t>(type->high)];
+        if (!type->enumCodes.empty() && type->low >= 0 && type->high >= type->low
+            && type->high < static_cast<long long>(type->enumCodes.size())) {
+            storageLow = type->enumCodes[static_cast<std::size_t>(type->low)];
+            storageHigh = type->enumCodes[static_cast<std::size_t>(type->high)];
         }
         if (storageLow < low || storageHigh > high) {
             m_diagnostics.error(decl->location, "the range of '" + decl->name
@@ -1215,31 +1215,31 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         return;
     }
     if (bytes == typeSize(type)) {
-        type->m_specifiedSize = bytes;
+        type->specifiedSize = bytes;
         return;
     }
     // Subtypes, field offsets and folded attributes can already contain the
     // old width. Until full freezing is implemented, change storage only at
     // the declaration, before another declaration can depend on its layout.
-    if (type != precedingType || (!type->isSubtype && type->m_scalarBase != nullptr)) {
+    if (type != precedingType || (!type->isSubtype && type->scalarBase != nullptr)) {
         m_diagnostics.error(decl->location,
             "a size-changing clause must be adjacent to its type or subtype declaration, before representation use");
         return;
     }
-    if (type->m_alignment > bytes) {
+    if (type->alignment > bytes) {
         m_diagnostics.error(decl->location, "Size cannot be smaller than the specified Alignment");
         return;
     }
     type->byteSize = bytes;
-    type->m_specifiedSize = bytes;
+    type->specifiedSize = bytes;
     m_types.refreshStorageRepresentation(type);
     if (type->kind == TypeKind::Enumeration && !type->isSubtype) { m_types.refreshEnumerationRepresentation(type); }
 }
 
 void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bool objectConstraint)
 {
-    type->m_scalarObjectConstraint = objectConstraint;
-    if (type->m_scalarLow != nullptr) {
+    type->scalarObjectConstraint = objectConstraint;
+    if (type->scalarLow != nullptr) {
         std::string file = std::filesystem::path(m_diagnostics.fileName(location.file)).filename().string();
         for (char& c : file) {
             if (!std::isalnum(static_cast<unsigned char>(c))) { c = '_'; }
@@ -1253,7 +1253,7 @@ void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bo
         symbol->owner = m_currentSubprogram;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         symbol->qbeName = "$" + mangle(name);
-        type->m_scalarBoundsSymbol = symbol;
+        type->scalarBoundsSymbol = symbol;
         if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
     }
     if (m_scalarConstraintDeclaration != nullptr) {
@@ -1278,7 +1278,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (indication->digits) {
         Type* digitsType = analyzeExpr(indication->digits.get(), scope, m_types.integerType());
         long long digits = 0;
-        bool decimal = base->kind == TypeKind::Fixed && fixedIsDecimal(base->m_fixedScale);
+        bool decimal = base->kind == TypeKind::Fixed && fixedIsDecimal(base->fixedScale);
         if (!isReal(base) && !decimal) {
             m_diagnostics.error(indication->location, "a digits constraint requires a decimal fixed-point or floating point type");
         } else if (digitsType == nullptr || (digitsType->kind != TypeKind::Integer && digitsType->kind != TypeKind::UniversalInteger)
@@ -1291,18 +1291,18 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             decimalDigits = static_cast<int>(digits);
             long long limit = static_cast<long long>(fixedPower10(decimalDigits) - 1);
             decimalConstraint = m_types.makeSubtype(anonymousTypeName(), base, -limit, limit);
-            decimalConstraint->m_scalarBoundsSymbol = nullptr;
+            decimalConstraint->scalarBoundsSymbol = nullptr;
             decimalConstraint->digits = decimalDigits;
             if (!indication->rangeLow) {
-                if (!allowDynamicScalar && (base->m_scalarBoundsSymbol != nullptr
+                if (!allowDynamicScalar && (base->scalarBoundsSymbol != nullptr
                     || -(__int128)limit < base->low || (__int128)limit > base->high)) {
                     m_diagnostics.error(indication->location, "decimal digits constraints requiring an elaboration check need a local subtype declaration");
                 }
                 Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, -limit, limit);
-                subtype->m_scalarBoundsSymbol = nullptr;
+                subtype->scalarBoundsSymbol = nullptr;
                 subtype->digits = decimalDigits;
-                subtype->m_scalarConstraintBase = base;
-                subtype->m_decimalConstraint = decimalConstraint;
+                subtype->scalarConstraintBase = base;
+                subtype->decimalConstraint = decimalConstraint;
                 recordScalarConstraint(subtype, indication->location, false);
                 indication->resolved = subtype;
                 return subtype;
@@ -1319,7 +1319,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         }
         double low = 0.0, high = 0.0;
         bool known = foldStaticReal(indication->rangeLow.get(), low)
-            && foldStaticReal(indication->rangeHigh.get(), high) && base->m_scalarBoundsSymbol == nullptr;
+            && foldStaticReal(indication->rangeHigh.get(), high) && base->scalarBoundsSymbol == nullptr;
         if (!known && !allowDynamicScalar) {
             m_diagnostics.error(indication->location, "runtime real constraints are not supported in this context");
             return base;
@@ -1329,12 +1329,12 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         subtype->lowReal = low;
         subtype->highReal = high;
         if (!known) {
-            subtype->m_scalarLow = indication->rangeLow.get();
-            subtype->m_scalarHigh = indication->rangeHigh.get();
-            subtype->m_scalarConstraintBase = base;
+            subtype->scalarLow = indication->rangeLow.get();
+            subtype->scalarHigh = indication->rangeHigh.get();
+            subtype->scalarConstraintBase = base;
             recordScalarConstraint(subtype, indication->location, false);
         } else if (allowDynamicScalar) {
-            subtype->m_scalarConstraintBase = base;
+            subtype->scalarConstraintBase = base;
             recordScalarConstraint(subtype, indication->location, false);
         }
         indication->resolved = subtype;
@@ -1344,7 +1344,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (base->kind == TypeKind::Fixed && indication->rangeLow && indication->rangeHigh) {
         Type* lowType = analyzeExpr(indication->rangeLow.get(), scope, base);
         Type* highType = analyzeExpr(indication->rangeHigh.get(), scope, base);
-        if (base->m_formalFixed && typesCompatible(base, lowType) && typesCompatible(base, highType)) {
+        if (base->formalFixed && typesCompatible(base, lowType) && typesCompatible(base, highType)) {
             // The instance rechecks these constraints with its actual scale.
             indication->resolved = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
             return indication->resolved;
@@ -1356,7 +1356,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         }
         bool staticLow = foldFixed(indication->rangeLow.get(), low);
         bool staticHigh = foldFixed(indication->rangeHigh.get(), high);
-        if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
+        if (!staticLow || !staticHigh || base->scalarBoundsSymbol != nullptr) {
             if (!allowDynamicScalar) {
                 m_diagnostics.error(indication->location, "runtime fixed-point constraints are not supported in this context");
                 return base;
@@ -1364,11 +1364,11 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
             if (decimalConstraint != nullptr) {
                 subtype->digits = decimalDigits;
-                subtype->m_decimalConstraint = decimalConstraint;
+                subtype->decimalConstraint = decimalConstraint;
             }
-            subtype->m_scalarLow = indication->rangeLow.get();
-            subtype->m_scalarHigh = indication->rangeHigh.get();
-            subtype->m_scalarConstraintBase = base;
+            subtype->scalarLow = indication->rangeLow.get();
+            subtype->scalarHigh = indication->rangeHigh.get();
+            subtype->scalarConstraintBase = base;
             recordScalarConstraint(subtype, indication->location, false);
             indication->resolved = subtype;
             return subtype;
@@ -1381,8 +1381,8 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 m_diagnostics.error(indication->location, "decimal digits constraints requiring an elaboration check need a local subtype declaration");
             }
             subtype->digits = decimalDigits;
-            subtype->m_decimalConstraint = decimalConstraint;
-            subtype->m_scalarConstraintBase = base;
+            subtype->decimalConstraint = decimalConstraint;
+            subtype->scalarConstraintBase = base;
             recordScalarConstraint(subtype, indication->location, false);
         }
         indication->resolved = subtype;
@@ -1400,15 +1400,15 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         StaticFailure failure = StaticFailure::None;
         bool staticLow = foldWideInteger(indication->rangeLow.get(), low, failure);
         bool staticHigh = foldWideInteger(indication->rangeHigh.get(), high, failure);
-        if (!staticLow || !staticHigh || base->m_scalarBoundsSymbol != nullptr) {
+        if (!staticLow || !staticHigh || base->scalarBoundsSymbol != nullptr) {
             if (!allowDynamicScalar) {
                 m_diagnostics.error(indication->location, "runtime scalar constraints are not supported in this context");
                 return base;
             }
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
-            subtype->m_scalarLow = indication->rangeLow.get();
-            subtype->m_scalarHigh = indication->rangeHigh.get();
-            subtype->m_scalarConstraintBase = base;
+            subtype->scalarLow = indication->rangeLow.get();
+            subtype->scalarHigh = indication->rangeHigh.get();
+            subtype->scalarConstraintBase = base;
             recordScalarConstraint(subtype, indication->location, false);
             indication->resolved = subtype;
             return subtype;
@@ -1431,7 +1431,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             m_diagnostics.error(indication->location, "index constraint count must match the array rank");
             return base;
         }
-        if (base->m_boundsSymbol != nullptr) {
+        if (base->boundsSymbol != nullptr) {
             m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
             return base;
         }
@@ -1459,7 +1459,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 }
                 bool staticLow = foldStatic(low, row->indexLow);
                 bool staticHigh = foldStatic(high, row->indexHigh);
-                allStatic = allStatic && staticLow && staticHigh && original->index->m_scalarBoundsSymbol == nullptr;
+                allStatic = allStatic && staticLow && staticHigh && original->index->scalarBoundsSymbol == nullptr;
                 rows.push_back(row);
                 if (dimension + 1 < array->arrayRank) {
                     original = original->element;
@@ -1490,7 +1490,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             }
             ok = ok && foldStatic(indication->indexHighs.front().get(), high);
         }
-        ok = ok && array->index->m_scalarBoundsSymbol == nullptr;
+        ok = ok && array->index->scalarBoundsSymbol == nullptr;
         if (!ok && allowDynamic && indication->indexHighs.front() != nullptr) {
             if (!isDiscrete(indication->indexLows.front()->type)
                 || !isDiscrete(indication->indexHighs.front()->type)) {
@@ -1571,8 +1571,8 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
 bool Sema::hasKnownDiscriminants(Type* type) const
 {
     for (Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
-        if (walk->m_discriminantConstraintSource != nullptr) {
-            return hasKnownDiscriminants(walk->m_discriminantConstraintSource);
+        if (walk->discriminantConstraintSource != nullptr) {
+            return hasKnownDiscriminants(walk->discriminantConstraintSource);
         }
         if (walk->discriminantsKnown) {
             return true;
@@ -1594,8 +1594,8 @@ bool Sema::typesCompatible(Type* target, Type* source) const
     }
     Type* left = rootType(target);
     Type* right = rootType(source);
-    if (left->m_classRoot != nullptr) {
-        return isTaggedAncestor(left->m_classRoot, right->m_classRoot != nullptr ? right->m_classRoot : right);
+    if (left->classRoot != nullptr) {
+        return isTaggedAncestor(left->classRoot, right->classRoot != nullptr ? right->classRoot : right);
     }
     if (left == right) {
         return true;
@@ -1622,7 +1622,7 @@ bool Sema::typesCompatible(Type* target, Type* source) const
 // subtype's placeholder limits into loops, membership tests, or array types.
 ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& location)
 {
-    if (type->m_scalarBoundsSymbol == nullptr && !isReal(type)) {
+    if (type->scalarBoundsSymbol == nullptr && !isReal(type)) {
         auto literal = std::make_unique<IntegerLiteralExpr>();
         literal->location = location;
         literal->value = first ? type->low : type->high;
@@ -1635,14 +1635,14 @@ ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& loca
     auto prefix = std::make_unique<IdentifierExpr>();
     prefix->location = location;
     prefix->type = type;
-    prefix->symbol = type->m_scalarBoundsSymbol;
+    prefix->symbol = type->scalarBoundsSymbol;
     auto attribute = std::make_unique<AttributeExpr>();
     attribute->location = location;
     attribute->prefix = std::move(prefix);
     attribute->prefixType = type;
     attribute->type = type;
     attribute->name = attribute->lower = first ? "first" : "last";
-    if (isReal(type) && type->m_scalarBoundsSymbol == nullptr) {
+    if (isReal(type) && type->scalarBoundsSymbol == nullptr) {
         double maximum = typeSize(type) == 4 ? std::numeric_limits<float>::max()
             : std::numeric_limits<double>::max();
         attribute->isStatic = true;
@@ -1659,7 +1659,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
     std::vector<Type*> types;
     auto consider = [&](Type* type) {
         type = rootType(type);
-        if (type != nullptr && type->m_declarationScope == scope
+        if (type != nullptr && type->declarationScope == scope
             && std::find(types.begin(), types.end(), type) == types.end()) {
             types.push_back(type);
         }
@@ -1672,7 +1672,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         symbol->m_privatePrimitiveTo = m_packages.back();
     }
     for (Type* type : types) {
-        if (type->m_tagged && type->m_classRoot == nullptr
+        if (type->tagged && type->classRoot == nullptr
             && (scope == m_packageSpecScope || symbol->m_overrides)) {
             if (scope == m_packageSpecScope && !m_inVisiblePart
                 && rootType(symbol->returnType) == type && !symbol->m_overrides) {
@@ -1696,7 +1696,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
         }
         bool replaced = false;
-        for (Symbol*& primitive : type->m_primitives) {
+        for (Symbol*& primitive : type->primitives) {
             if (primitive->name != symbol->name || primitive->m_inheritedFrom == nullptr
                 || primitive->parameters.size() != symbol->parameters.size()
                 || rootType(primitive->returnType) != rootType(symbol->returnType)) {
@@ -1708,27 +1708,27 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
             if (matches) {
                 scope->remove(primitive);
-                if (type->m_tagged && primitive->m_dispatchSlot >= 0) {
-                    if (type->m_dispatchFrozen) {
+                if (type->tagged && primitive->m_dispatchSlot >= 0) {
+                    if (type->dispatchFrozen) {
                         m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after its type is frozen");
                     }
                     symbol->m_dispatchSlot = primitive->m_dispatchSlot;
                     symbol->m_controllingType = type;
-                    type->m_dispatchSlots[symbol->m_dispatchSlot] = symbol;
+                    type->dispatchSlots[symbol->m_dispatchSlot] = symbol;
                 }
                 primitive = symbol;
                 replaced = true;
             }
         }
         if (!replaced && (scope == m_packageSpecScope || symbol->m_overrides)) {
-            type->m_primitives.push_back(symbol);
-            if (type->m_tagged && type->m_classRoot == nullptr) {
-                if (type->m_dispatchFrozen) {
+            type->primitives.push_back(symbol);
+            if (type->tagged && type->classRoot == nullptr) {
+                if (type->dispatchFrozen) {
                     m_diagnostics.error(symbol->location, "a tagged primitive cannot be declared after its type is frozen");
                 }
                 symbol->m_controllingType = type;
-                symbol->m_dispatchSlot = static_cast<int>(type->m_dispatchSlots.size());
-                type->m_dispatchSlots.push_back(symbol);
+                symbol->m_dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                type->dispatchSlots.push_back(symbol);
             }
         }
     }
@@ -1742,7 +1742,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         if (original == nullptr || rootType(original) != rootType(parent)) {
             return original;
         }
-        if (type->m_tagged) {
+        if (type->tagged) {
             // This stage supports only nondiscriminated tagged types, so there
             // are no profile constraints to retain separately from the layout.
             return type;
@@ -1751,19 +1751,19 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         *subtype = *original;
         subtype->base = type;
         subtype->isSubtype = true;
-        subtype->m_specifiedSize = -1;
-        subtype->m_primitives.clear();
+        subtype->specifiedSize = -1;
+        subtype->primitives.clear();
         if (original->kind == TypeKind::Record) {
-            subtype->m_discriminantConstraintSource = original;
+            subtype->discriminantConstraintSource = original;
         }
         return subtype;
     };
-    for (Symbol* primitive : rootType(parent)->m_primitives) {
+    for (Symbol* primitive : rootType(parent)->primitives) {
         if (primitive->kind != SymbolKind::Subprogram
             || (primitive->m_privatePrimitiveTo != nullptr && !withinPackage(primitive->m_privatePrimitiveTo))) {
             continue;
         }
-        if (type->m_tagged && (primitive->name == "=" || primitive->name == "/=")
+        if (type->tagged && (primitive->name == "=" || primitive->name == "/=")
             && m_types.isBoolean(primitive->returnType) && primitive->parameters.size() == 2
             && rootType(primitive->parameters[0]->type) == rootType(parent)
             && rootType(primitive->parameters[1]->type) == rootType(parent)) {
@@ -1775,7 +1775,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         inherited->m_dispatchSlot = primitive->m_dispatchSlot;
         inherited->m_controllingType = type;
         if (inherited->m_dispatchSlot >= 0) {
-            type->m_dispatchSlots[inherited->m_dispatchSlot] = inherited;
+            type->dispatchSlots[inherited->m_dispatchSlot] = inherited;
         }
         inherited->m_declarationScope = scope;
         inherited->returnType = corresponding(primitive->returnType);
@@ -1793,7 +1793,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             inherited->parameters.push_back(copy);
         }
         bool overridden = false;
-        for (Symbol* declared : type->m_primitives) {
+        for (Symbol* declared : type->primitives) {
             if (declared->kind != SymbolKind::Subprogram || declared->name != inherited->name
                 || rootType(declared->returnType) != rootType(inherited->returnType)
                 || declared->parameters.size() != inherited->parameters.size()) {
@@ -1813,20 +1813,20 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                         m_diagnostics.error(declared->location, "overriding parameters must have the inherited modes");
                     }
                 }
-                if (type->m_tagged && !subtypeConformant) {
+                if (type->tagged && !subtypeConformant) {
                     m_diagnostics.error(declared->location, "overriding dispatching profile must be subtype conformant with the inherited operation");
                 }
                 declared->m_overrides = true;
-                if (type->m_tagged && inherited->m_dispatchSlot >= 0) {
+                if (type->tagged && inherited->m_dispatchSlot >= 0) {
                     declared->m_controllingType = type;
                     declared->m_dispatchSlot = inherited->m_dispatchSlot;
-                    type->m_dispatchSlots[declared->m_dispatchSlot] = declared;
+                    type->dispatchSlots[declared->m_dispatchSlot] = declared;
                 }
                 overridden = true;
             }
         }
         if (!overridden) {
-            type->m_primitives.push_back(inherited);
+            type->primitives.push_back(inherited);
             scope->add(inherited);
         }
     }
@@ -1854,11 +1854,11 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
             return;
         }
     }
-    if (type->m_enumCodesSpecified) {
+    if (type->enumCodesSpecified) {
         m_diagnostics.error(decl->location, "duplicate enumeration representation clause");
         return;
     }
-    if (type != precedingType || type->m_scalarBase != nullptr) {
+    if (type != precedingType || type->scalarBase != nullptr) {
         m_diagnostics.error(decl->location, "an enumeration representation clause must be adjacent to its type declaration, before representation use");
         return;
     }
@@ -1957,8 +1957,8 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
         : codes.front() >= -128 && codes.back() <= 127 ? 1
         : codes.front() >= 0 && codes.back() <= 65535 ? 2
         : codes.front() >= -32768 && codes.back() <= 32767 ? 2 : 4;
-    if (type->m_specifiedSize >= 0) {
-        bytes = type->m_specifiedSize;
+    if (type->specifiedSize >= 0) {
+        bytes = type->specifiedSize;
         long long low = codes.front() < 0 ? -(1LL << (bytes * 8 - 1)) : 0;
         long long high = bytes == 4 || codes.front() < 0 ? (1LL << (bytes * 8 - 1)) - 1 : (1LL << (bytes * 8)) - 1;
         if (codes.front() < low || codes.back() > high) {
@@ -1966,12 +1966,12 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
             return;
         }
     }
-    if (type->m_alignment > bytes) {
+    if (type->alignment > bytes) {
         m_diagnostics.error(decl->location, "enumeration storage cannot be smaller than its specified Alignment");
         return;
     }
-    type->m_enumCodes = std::move(codes);
-    type->m_enumCodesSpecified = true;
+    type->enumCodes = std::move(codes);
+    type->enumCodesSpecified = true;
     type->byteSize = bytes;
     m_types.refreshEnumerationRepresentation(type);
 }
@@ -1979,7 +1979,7 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
 void Sema::recordArrayConstraint(Type* type, SubtypeIndication* indication)
 {
     if (type == nullptr || type->kind != TypeKind::Array || type->constrained
-        || type->m_boundsSymbol != nullptr || indication->indexLows.empty()) { return; }
+        || type->boundsSymbol != nullptr || indication->indexLows.empty()) { return; }
     std::string file = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
     for (char& character : file) {
         if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }
@@ -1992,9 +1992,9 @@ void Sema::recordArrayConstraint(Type* type, SubtypeIndication* indication)
     symbol->owner = m_currentSubprogram;
     symbol->isGlobal = m_currentSubprogram == nullptr;
     symbol->qbeName = "$" + mangle(name);
-    type->m_boundsSymbol = symbol;
+    type->boundsSymbol = symbol;
     for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
-        type->m_boundExpressions.push_back({indication->indexLows[i].get(), indication->indexHighs[i].get()});
+        type->boundExpressions.push_back({indication->indexLows[i].get(), indication->indexHighs[i].get()});
     }
     m_scalarConstraintDeclaration->arrayConstraints.push_back(type);
     m_scalarConstraintDeclaration->constraintOrder.push_back(type);

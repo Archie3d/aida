@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-class Type;
+struct Type;
 struct Symbol;
 
 struct Node
