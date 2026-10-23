@@ -560,7 +560,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             designated = expr->type->target;
         }
     }
-    std::string size = array ? objectBytes(bounds, designated)
+    // A static array's Size clause can add storage beyond its components.
+    // Dynamic arrays use their evaluated shape; static objects reserve their
+    // full storage size, just like records and local array declarations.
+    std::string size = array && hasRuntimeLayout(designated) ? objectBytes(bounds, designated)
         : runtimeSize(isScalar(designated) ? expr->type->target : designated);
     if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
         Value collection = collectionFor(expr->type);

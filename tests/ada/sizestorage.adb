@@ -71,6 +71,14 @@ procedure SizeStorage is
     Rows : Row_Array := ((1, 2, 3), (4, 5, 6));
     Large : Large_Array := (1, 2, 3);
     Heap : Large_Pointer := new Large_Array'(4, 5, 6);
+    Heap_Default : Large_Pointer := new Large_Array;
+    Heap_Copy : Large_Pointer := new Large_Array'(Large);
+    subtype Large_Open is Open_Array (1 .. 3);
+    for Large_Open'Size use 560000;
+    type Open_Pointer is access Open_Array;
+    Open_Heap : Open_Pointer := new Large_Open'(7, 8, 9);
+    type Matrix_Pointer is access Matrix;
+    Matrix_Heap : Matrix_Pointer := new Matrix'((1, 2, 3), (4, 5, 6));
     function Ident (Item : Byte) return Byte is
         function Captured return Byte is
         begin
@@ -105,6 +113,13 @@ begin
     Check_Capture;
     Touch (Large'Address, 70000);
     Touch (Heap.all'Address, 70000);
+    Touch (Heap_Default.all'Address, 70000);
+    Touch (Heap_Copy.all'Address, 70000);
+    Touch (Open_Heap.all'Address, 70000);
+    Touch (Matrix_Heap.all'Address, 8);
+    if Heap_Copy (3) /= 3 or Open_Heap (3) /= 9 or Matrix_Heap (2, 3) /= 6 then
+        raise Program_Error;
+    end if;
     Change_Array (Small);
     if Small (3).A /= 99 then raise Program_Error; end if;
     if Byte'Size /= 8 or Half'Size /= 16 or Long_Integer'Size /= 64 or Integer'Size /= 32

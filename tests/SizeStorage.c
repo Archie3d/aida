@@ -1,5 +1,13 @@
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#if defined(__APPLE__)
+#include <malloc/malloc.h>
+#elif defined(__linux__) || defined(_WIN32)
+#include <malloc.h>
+#endif
 
 int64_t __test_size_value(const void* address, int bytes, int isSigned)
 {
@@ -55,5 +63,22 @@ void __test_size_bad_long(void* address)
 
 void __test_size_touch(void* address, int64_t count)
 {
+    /* Callers pass the start of an allocated block. Check the real
+       capacity before probing padding, so undersized allocations fail even
+       when the out-of-bounds byte happens to remain mapped. */
+#if defined(__APPLE__)
+    size_t capacity = malloc_size(address);
+#elif defined(__linux__)
+    size_t capacity = malloc_usable_size(address);
+#elif defined(_WIN32)
+    size_t capacity = _msize(address);
+#else
+    size_t capacity = (size_t)count;
+#endif
+    if (count <= 0 || (uint64_t)count > capacity) {
+        fprintf(stderr, "Size storage probe needs %lld bytes, allocation has %zu\n",
+            (long long)count, capacity);
+        abort();
+    }
     ((unsigned char*)address)[count - 1] = 90;
 }
