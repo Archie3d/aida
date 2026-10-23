@@ -876,11 +876,6 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
                 type = actualType;
             }
         }
-        if (type->kind == TypeKind::Array && !type->constrained
-            && m_currentSubprogram == nullptr && m_recordContract == nullptr) {
-            m_diagnostics.error(actual->location, "a runtime-bound generic array object is currently supported only inside a subprogram");
-            return false;
-        }
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
         symbol->type = type;
         symbol->location = formal.location;

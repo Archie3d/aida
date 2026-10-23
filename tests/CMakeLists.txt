@@ -379,7 +379,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/NumericsPrecisionTests.cmake)
 add_ada_test(runtimearraytypes SOURCES runtimearraytypes.adb)
 add_ada_test(runtimearraytypechecks SOURCES runtimearraytypechecks.adb)
 add_ada_error_test(runtimearraytypeerrors SOURCES runtimearraytypeerrors.adb)
-add_ada_error_test(runtimearraylibraryerrors SOURCES runtimearraylibraryerrors.ads)
 
 add_ada_test(runtimescalars SOURCES runtimescalars.adb)
 add_ada_test(runtimescalarchecks SOURCES runtimescalarchecks.adb)
@@ -465,7 +464,6 @@ add_determinism_test(generic_dynamic_objects SOURCE generic_dynamic_objects.adb)
 add_ada_test(generic_composite_checks SOURCES generic_composite_checks.adb)
 add_ada_error_test(generic_composite_errors SOURCES generic_composite_errors.adb)
 add_ada_test(generic_composite_library SOURCES generic_composite_library.adb)
-add_ada_error_test(generic_composite_library_errors SOURCES generic_composite_library_errors.adb)
 
 add_ada_test(recordrenames SOURCES renamed_fields.ads recordrenames.adb)
 add_ada_error_test(recordrenameerrors SOURCES recordrenameerrors.adb)
@@ -1359,10 +1357,11 @@ target_link_libraries(scalar_bounds_test PRIVATE adart)
 add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
-foreach(scalar_case scalardynamic scalarstreams scalartasking)
-    add_ada_test(${scalar_case} SOURCES ${scalar_case}.adb)
-    add_determinism_test(${scalar_case} SOURCE ${scalar_case}.adb)
-    add_test(NAME runtime.${scalar_case}_modes
+foreach(dynamic_case scalardynamic scalarstreams scalartasking
+    runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers)
+    add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
+    add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
+    add_test(NAME runtime.${dynamic_case}_modes
         COMMAND ${CMAKE_COMMAND}
             -DADA=$<TARGET_FILE:ada>
             -DADAC=$<TARGET_FILE:adac>
@@ -1370,10 +1369,22 @@ foreach(scalar_case scalardynamic scalarstreams scalartasking)
             -DCC=${CMAKE_C_COMPILER}
             -DRUNTIME=$<TARGET_FILE:adart>
             -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
-            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${scalar_case}.adb
-            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${scalar_case}.expected
-            -DWORKDIR=${ADA_TEST_WORK_DIR}/${scalar_case}-modes
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${dynamic_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${dynamic_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${dynamic_case}-modes
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
-    set_tests_properties(ada.${scalar_case} determinism.${scalar_case}
-        runtime.${scalar_case}_modes PROPERTIES TIMEOUT 60)
+    set_tests_properties(ada.${dynamic_case} determinism.${dynamic_case}
+        runtime.${dynamic_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_ada_error_test(runtimearraylibraryerrors SOURCES runtimearraylibraryerrors.ads)
+
+add_ada_test(runtimearraylibraryfailure SOURCES runtimearraylibraryfailure.adb
+    EXIT_CODE 1 STDERR runtimearraylibraryfailure.stderr)
+add_determinism_test(runtimearraylibraryfailure SOURCE runtimearraylibraryfailure.adb)
+
+foreach(array_failure bounds shape overflow)
+    add_ada_test(runtimearraylibrary${array_failure} SOURCES runtimearraylibrary${array_failure}.adb
+        EXIT_CODE 1 STDERR runtimearraylibrary${array_failure}.stderr)
+    add_determinism_test(runtimearraylibrary${array_failure} SOURCE runtimearraylibrary${array_failure}.adb)
 endforeach()

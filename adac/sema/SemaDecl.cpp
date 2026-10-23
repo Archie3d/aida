@@ -169,7 +169,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
-                                          m_currentSubprogram != nullptr || m_recordContract != nullptr, !decl->m_isRenaming);
+                                          true, !decl->m_isRenaming);
 
     bool ownsScalarConstraint = type != nullptr && std::find(decl->m_scalarConstraints.begin(),
         decl->m_scalarConstraints.end(), type) != decl->m_scalarConstraints.end();
@@ -209,9 +209,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
-        if (m_currentSubprogram == nullptr && m_recordContract == nullptr) {
-            m_diagnostics.error(decl->location, "an unconstrained array object is currently supported only inside a subprogram");
-        } else if (decl->subtype->indexLows.empty() && !decl->initializer && type->m_boundsSymbol == nullptr) {
+        if (decl->subtype->indexLows.empty() && !decl->initializer && type->m_boundsSymbol == nullptr) {
             m_diagnostics.error(decl->location, "an unconstrained array object needs an initializer or index constraint");
         }
     }

@@ -421,9 +421,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
                 if (!foldStatic(index->rangeLow.get(), row->indexLow)
                     || !foldStatic(index->rangeHigh.get(), row->indexHigh)) {
-                    if (m_currentSubprogram == nullptr && m_recordContract == nullptr) {
-                        m_diagnostics.error(index->location, "runtime array type bounds are supported only inside a subprogram");
-                    }
                     dynamicBounds = true;
                 }
             } else if (indexType != nullptr && row->constrained) {
@@ -723,9 +720,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         symbol->location = decl->location;
         scope->add(symbol);
     }
-    if (!type->m_boundExpressions.empty() && (m_currentSubprogram != nullptr || m_recordContract != nullptr)) {
+    if (!type->m_boundExpressions.empty()) {
         type->m_boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(decl->lower + "__bounds");
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->needsFrame = true;
         }
@@ -739,10 +738,9 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
         return;
     }
 
-    // Generic formal objects are unknown while checking the contract. Keep
-    // symbolic constraints here; instantiation resolves the actual layout.
-    bool symbolicBounds = m_currentSubprogram != nullptr || m_recordContract != nullptr;
-    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, symbolicBounds, true);
+    // Preserve dynamic constraints for capture when the declaration elaborates,
+    // including symbolic generic bounds resolved by instantiation.
+    Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, true, true);
     if (base == nullptr) {
         return;
     }
@@ -754,9 +752,11 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
     symbol->type = type;
     symbol->location = decl->location;
     if (type->kind == TypeKind::Array && !type->constrained
-        && !decl->subtype->indexLows.empty() && symbolicBounds) {
+        && !decl->subtype->indexLows.empty()) {
         type->m_boundsSymbol = symbol;
         symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(decl->lower + "__bounds");
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->needsFrame = true;
         }

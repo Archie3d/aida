@@ -17,6 +17,8 @@ CD3014A and CD3014D come from `cd/cd3014a.ada` and `cd/cd3014d.ada`, retrieved
 Length_Check helper comes from `support/lencheck.ada`, retrieved 2026-10-22.
 C45504A, C45503A and C45611A come from `c4/`, retrieved 2026-10-22.
 C35507A comes from `c3/c35507a.ada`, retrieved 2026-10-23.
+C36203A comes from [GCC releases/gcc-15 c3/c36203a.ada](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c36203a.ada),
+retrieved 2026-10-23.
 Test files retain their grant of unlimited rights and disclaimer; Length_Check
 retains its explicit public-domain authorization. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
@@ -30,6 +32,7 @@ GCC's release branch itself may change. No download is needed at build/test time
 | CXF2003 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: decimal multiplication/division, truncation and Round with different operand types/scales and both machine radices | Ordinary decimal Small and Ada.Decimal.Divide cases remain outside the selection |
 | C35A08B | 4.5.5 | PASS: same/mixed fixed operands and explicit Standard multiplication/division | Broader fixed and numeric-context coverage: Phase 8 |
 | C354002 | 3.5, 3.5.4 | PASS: modular bounds, Modulus, Min/Max, wrapping Succ/Pred, Image/Value, Pos/Val and Width, including maximum supported moduli | Wide attributes: Phase 7; further modular coverage: Phase 8 |
+| C36203A | 3.6.2 | PASS: array Length in universal-integer contexts for one and two dimensions | Library runtime elaboration uses P6b regressions; broader constraints: P6b/P8 |
 | C35507A | 3.5, 3.5.2 | PASS: Character, derived and null subtype Width, including image-length consistency | Dynamic scalar bounds use P6b regressions; broader character images/widths: P7/P8 |
 | C52005A | 5.2 | PASS: scalar assignment range checks and unchanged target on failure | Broader static arithmetic audit: Phase 5 |
 | C53007A | 5.3, 4.5.1 | PASS: nested if and Boolean control flow | Extend selection: Phase 8 |
@@ -115,3 +118,7 @@ When closing a known gap, remove its rejection expectation and run the executabl
 case. B-tests, multi-stage/multi-file ACATS construction, implementation-defined
 substitutions, broader annex selections and the full official REPORT protocol are future
 harness work; do not route them through this C-test runner unchanged.
+
+C36203A retains its upstream contents, including rights and disclaimer.
+Its git blob is `f3f7e2bc72f497c64a5132bf5bbeb50c0a3501e4` and SHA-256 is
+`52b63badaec465c40c9a4d36bcf9b05db2506a86fde893338f418f0eb7ab2596`.

@@ -164,7 +164,7 @@ and in README.md.
   `Elaborate_Body` remain optional.
 - [x] **Blocks during package-body elaboration.** A per-unit elaboration frame
   holds block locals, captures and nested units, with the usual scoped cleanup
-  (`elaborationblock*`). Library-level runtime bounds remain in Phase 6.
+  (`elaborationblock*`). Library-level runtime bounds were added in Phase 6b.
 - [x] **Aggregates.** Shared checked shape, choice and sliding logic for
   arrays; record aggregates go through a temporary, with ordering and coverage
   checks and per-component defaults (`aggregateaudit*`, `aggregatecleanup`).
@@ -411,8 +411,13 @@ construction, cleanup and dispatch mechanisms.
   explicit scalar allocator constraints remain illegal. ACATS C35507A passes.
   Wide attributes, legacy delta constraints and dynamic array layouts remain
   separately tracked. [Contract and limits](docs/runtime-scalars.md).
-- [ ] Library-level arrays and types with runtime bounds, including runtime-bound
-  generic array objects (`runtimearraylibraryerrors.ads` lists the cases).
+- [x] Library-level arrays and types with runtime bounds: exported descriptors
+  capture type/subtype and object bounds during elaboration, with library-owned
+  data and finalization. Generic array copies, views and runtime-bound instance
+  declarations share the descriptor path (`runtimearraylibrary*`, whole/separate,
+  determinism, four-task and instrumented runtime checks; ACATS C36203A).
+  Runtime-constrained components/allocators and subtype Size/streaming remain
+  in the next item. [Contract and limits](docs/array-descriptors.md#library-level-runtime-bounds).
 - [ ] Runtime-constrained array components and allocators, with `'Size` and
   streaming.
 - [ ] Ada 2005 box defaults (`<>`) in record and array aggregates: component
@@ -483,8 +488,8 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
   enumeration-literal actuals, and matching of runtime array constraints.
 - [ ] Formal packages and matching of their generic contracts, including Ada
   2005 partial actual parameter lists and box associations.
-- [ ] Access formal objects, limited `in` objects built in place, and
-  library-level runtime-bound array formals.
+- [ ] Access formal objects and limited `in` objects built in place
+  (library-level runtime-bound array objects landed in 6b).
 - [ ] Extend contract checking to each new formal category, and remove the
   remaining legality rechecks done at instantiation.
 

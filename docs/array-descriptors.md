@@ -19,7 +19,7 @@ index varying fastest. Arrays of arrays retain their component subtype shape.
 
 | Role | Memory or call layout |
 | --- | --- |
-| Saved local/captured view or dynamic type bounds | data pointer, then one 32-byte dimension record per dimension; `8 + 32*rank` bytes. Type-bound storage does not use the data word. |
+| Saved local/captured/library view or dynamic type bounds | data pointer, then one 32-byte dimension record per dimension; `8 + 32*rank` bytes. Type-bound storage does not use the data word. |
 | Expanded unconstrained Ada parameter | data pointer, then four `l` arguments per dimension in first/last/length/stride order |
 | Owned unconstrained result | data pointer, allocated transfer size, then dimension records; `16 + 32*rank` bytes. `AdaArrayResult` is the 48-byte rank-one header. |
 
@@ -148,3 +148,58 @@ any storage selected for the component subtype. Full objects and static result
 buffers allocate the specified storage, while copies and array streams move
 only component data. Padding follows an exact static shape and is dropped by
 slice views and changed bounds. See [representation clauses](representation-clauses.md).
+
+## Library-level runtime bounds
+
+Library array types, named subtypes and objects use the same descriptor layout
+as local arrays. Each named constraint owns exported bounds storage; aliases and
+derived types using a named parent reuse its captured constraint. Object storage
+contains a data pointer and every dimension's bounds, lengths and byte strides.
+A private/incomplete declaration emits neither storage nor bound evaluations;
+its array completion supplies both. Exported names derive from semantic scope,
+so whole-program and separate-unit compilation agree.
+
+Elaboration evaluates each type/subtype constraint once, at its declaration.
+Anonymous object constraints are evaluated separately for every object in a
+grouped declaration. Subsequent changes to bound variables do not change saved
+constraints. Null ranges preserve endpoints and have zero length. Index-subtype
+checks, shape/sliding checks and descriptor capacity checks retain the local
+array rules: invalid non-null bounds or lengths raise Constraint_Error; length,
+stride and allocation overflow raises Storage_Error. Elaboration failures stop
+later declarations and prevent main from running.
+
+Data uses the environment task's existing library construction arena, obtained
+through the runtime context API. It survives elaboration function return and
+is released after library tasks finish and library finalization completes.
+Controlled elements register with the library finalization owner; limited
+array results construct directly under that owner. Partial initialization
+retains the existing active-element cleanup behavior. No new mutable C global
+or descriptor ABI is introduced. Library task and protected arrays use the
+same activation, master and finalization paths as static library composites.
+
+Generic `in` array objects evaluate their actual once and own a copy, including
+function-result actuals and runtime-constrained formals. Generic `in out`
+objects and array renamings save a pointer and a complete descriptor without
+copying. Instance-local array types and objects may depend on runtime scalar
+actuals. Broader generic constraint matching remains Phase 6g work.
+
+Runtime-constrained record/array components and allocators, runtime array
+subtype Size/stream attributes and explicit runtime constraints on derivation
+parents remain diagnosed. Components, allocators and subtype Size/streaming
+belong to the following Phase 6b item. Ordinary array object Size and supported object streaming continue to
+use their saved descriptors; general composite streaming remains Phase 7.
+
+`runtimearraylibrary` covers spec/body declarations, bound capture, grouped
+objects, named/anonymous and inferred constraints, nulls, multidimensional
+views, inherited constraints, private completions, generic copies/views/results
+and runtime-bound instance declarations. `runtimearraylibrarytasking` exercises
+shared descriptors from four tasks; `runtimearraylibraryworkers` covers library
+arrays of tasks and protected objects. `runtimearraylibrarylifetime` checks
+controlled copies and limited results through shutdown. These run in whole and
+separate modes with deterministic IR, and with ASan/UBSan and ThreadSanitizer
+C runtimes. Generated QBE memory accesses remain uninstrumented.
+`runtimearraylibrary{bounds,shape,overflow,failure}` pins elaboration exceptions,
+shape/capacity failures and partial-initialization cleanup;
+`runtimearraylibraryerrors` retains the remaining legality/unsupported cases.
+Unmodified ACATS C36203A checks universal-integer array Length contexts; it does
+not establish coverage of all dynamic library elaboration cases.

@@ -128,6 +128,11 @@ Value QbeEmitter::addressOf(Symbol* symbol)
     Value address;
     if (symbol->isGlobal) {
         address = Value { symbol->qbeName, 'l' };
+        if (symbol->kind == SymbolKind::Object && isUnconstrainedArray(symbol->type) && !symbol->m_objectReference) {
+            std::string pointer = newTemp();
+            line(pointer + " =l loadl " + address.name);
+            address.name = pointer;
+        }
     } else if (symbol->frameOffset >= 0) {
         Value frame = symbol->owner == m_context->symbol
                           ? Value { m_context->frameTemp, 'l' }

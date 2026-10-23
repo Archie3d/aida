@@ -78,7 +78,7 @@ Supported:
 - Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))
 - Modular types through `2 ** 64`, modular generics, `'Mod` and `Modular_IO` ([limits](docs/modular-types.md))
 - Checked binary32/64 arithmetic, integer powers and floating `'Value` ([floating model](docs/floating-point.md))
-- Arrays with 64-bit bounds, lengths and byte strides ([descriptor ABI](docs/array-descriptors.md))
+- Arrays with 64-bit bounds, lengths and byte strides, including library runtime bounds and generic objects ([descriptor ABI](docs/array-descriptors.md))
 - One-dimensional concatenation with scalar, composite, private and controlled components
 - Checked record and array aggregates, including sliding and inferred bounds
 - Nested variant records with checked selection and constrained assignment
@@ -102,6 +102,7 @@ Not supported yet:
 - Task entries, entry families, select/requeue, abort, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
+- Runtime-constrained array components/allocators and subtype Size/streaming
 - Ada 2005 box defaults (`<>`) in aggregates
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts

@@ -103,10 +103,23 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             collectGlobals(taskDecl->m_protectedDeclarations);
             Type* type = taskDecl->declaredType;
             emitTypeTag(type);
+            if (taskDecl->definition != nullptr && taskDecl->definition->kind == TypeDefKind::Array
+                && !type->m_boundExpressions.empty() && type->m_boundsSymbol->isGlobal) {
+                m_data << "export data " << type->m_boundsSymbol->qbeName << " = align 8 { z "
+                       << adaArrayLocalSize(type->arrayRank) << " }\n";
+            }
             if (needsCollection(type) && type->m_parentType == nullptr && type->m_collectionOwner == nullptr
                 && !m_emittedCollections.contains(type)) {
                 m_emittedCollections[type] = true;
                 m_data << "export data " << type->m_collectionName << " = align 8 { l 0 }\n";
+            }
+            break;
+        }
+        case DeclKind::Subtype: {
+            Type* type = static_cast<SubtypeDecl*>(decl.get())->declaredType;
+            if (type != nullptr && !type->m_boundExpressions.empty() && type->m_boundsSymbol->isGlobal) {
+                m_data << "export data " << type->m_boundsSymbol->qbeName << " = align 8 { z "
+                       << adaArrayLocalSize(type->arrayRank) << " }\n";
             }
             break;
         }
@@ -131,7 +144,9 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                     continue;
                 }
                 long long size = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeSize(symbol->type);
-                long long alignment = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeAlignment(symbol->type);
+                if (isUnconstrainedArray(symbol->type)) { size = adaArrayLocalSize(symbol->type->arrayRank); }
+                long long alignment = (symbol->m_objectReference || symbol->m_classWideObject || isUnconstrainedArray(symbol->type))
+                    ? 8 : typeAlignment(symbol->type);
                 m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
                        << " { z " << (size < 1 ? 1 : size) << " }\n";
             }
@@ -184,7 +199,13 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             if (renaming->m_callbackBinding != nullptr) {
                 checkNotNull(loadFrom(addressOf(renaming->m_callbackBinding), renaming->m_callbackBinding->type));
             }
+        } else if (decl->kind == DeclKind::Subtype) {
+            emitTypeBounds(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
         } else if (decl->kind == DeclKind::Type) {
+            auto* typeDecl = static_cast<TypeDecl*>(decl.get());
+            if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
+                emitTypeBounds(typeDecl->declaredType, decl->location);
+            }
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
             initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
             emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_taskObjects);
@@ -201,6 +222,10 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.m_shared = sharedSymbolKind(symbol) != 0;
+                if (isUnconstrainedArray(symbol->type) && !symbol->m_objectReference) {
+                    emitDynamicArray(object, symbol);
+                    continue;
+                }
                 if (!symbol->m_objectReference && !symbol->m_classWideObject) {
                     prepareControlledObject(address, symbol->type, true);
                 }
@@ -651,7 +676,7 @@ void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
         }
     }
     line("storel " + actual.name + ", " + slot);
-    if (dynamic && symbol->isUplevel) {
+    if (dynamic && (symbol->isGlobal || symbol->isUplevel)) {
         storeArrayView(slot, actual, symbol->type, false);
     }
 }

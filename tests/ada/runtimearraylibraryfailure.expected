@@ -1,0 +1,8 @@
+initialize 1
+initialize 2
+initialize 3
+initialize 4
+finalize 3
+finalize 2
+finalize 1
+shutdown clean

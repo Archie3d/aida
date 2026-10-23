@@ -102,7 +102,7 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
         return;
     }
     Symbol* symbol = type->m_boundsSymbol;
-    symbol->frameOffset = reserveFrame(adaArrayLocalSize(type->arrayRank));
+    if (!symbol->isGlobal) { symbol->frameOffset = reserveFrame(adaArrayLocalSize(type->arrayRank)); }
     Value bounds;
     Type* axis = type;
     for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
@@ -125,14 +125,27 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
         else { bounds.innerBounds.push_back({ first.name, last.name }); }
         axis = axis->element;
     }
-    std::string descriptor = newTemp();
-    line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+    std::string descriptor = symbol->qbeName;
+    if (!symbol->isGlobal) {
+        descriptor = newTemp();
+        line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+    }
     storeArrayView(descriptor, bounds, type, false);
 }
 
 void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
 {
     Type* type = symbol->type;
+    std::string owner = m_context->m_finalizationChain;
+    std::string arena;
+    if (symbol->isGlobal) {
+        owner = newTemp();
+        arena = newTemp();
+        emitCallInstruction(owner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
+        emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
+    } else {
+        arena = storageArena(false, true);
+    }
     Value bounds;
     bool explicitBounds = type->constrained || !object->subtype->indexLows.empty() || type->m_boundsSymbol != nullptr;
     if (type->constrained) { bounds = withBounds(Value {}, type, nullptr); }
@@ -180,8 +193,8 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     bool constructedResult = object->initializer && !aggregate && hasLimitedControlledParts(type);
     if (object->initializer && !aggregate) {
         if (constructedResult) {
-            m_context->m_resultTargetOwner = m_context->m_finalizationChain;
-            m_context->m_resultTargetArena = storageArena(false, true);
+            m_context->m_resultTargetOwner = owner;
+            m_context->m_resultTargetArena = arena;
         }
         source = emitExpr(object->initializer.get());
         if (!explicitBounds) {
@@ -194,19 +207,14 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         m_diagnostics.error(object->location, "array object bounds cannot be inferred from this initializer");
         return;
     }
-    m_context->arrayArenaUsed = true;
-    if (m_context->arrayArena.empty()) {
-        m_context->arrayArena = allocScratch(8);
-        m_context->prologue << "    storel 0, " << m_context->arrayArena << "\n";
-    }
     bounds = arrayView(bounds, type);
     std::string elementSize = arrayElementSize(bounds, type);
     std::string pointer = constructedResult ? source.name : newTemp();
     if (!constructedResult) {
         if (type->constrained && typeSize(type) != typeLayoutSize(type)) {
-            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l 1, l 1, l " + std::to_string(typeSize(type)) + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + arena + ", l 1, l 1, l " + std::to_string(typeSize(type)) + ")", CallEffects::DeferredCheck);
         } else {
-            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + m_context->arrayArena + ", l " + bounds.first
+            emitCallInstruction(pointer + " =l call $__ada_array_local(l " + arena + ", l " + bounds.first
                  + ", l " + bounds.last + ", l " + elementSize + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
@@ -214,7 +222,10 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     Value address = bounds;
     address.name = pointer;
     address.type = 'l';
-    if (symbol->isUplevel) {
+    if (symbol->isGlobal) {
+        line("storel " + pointer + ", " + symbol->qbeName);
+        storeArrayView(symbol->qbeName, bounds, type, false);
+    } else if (symbol->isUplevel) {
         symbol->frameOffset = reserveFrame(adaArrayLocalSize(type->arrayRank));
         std::string slot = newTemp();
         line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
@@ -228,7 +239,13 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         checkArrayShape(address, type, source, object->initializer->type);
         return;
     }
-    prepareControlledObject(address, type);
+    prepareControlledObject(address, type, symbol->isGlobal);
+    std::string savedOwner = m_context->m_constructionOwner;
+    std::string savedArena = m_context->m_constructionArena;
+    if (symbol->isGlobal) {
+        m_context->m_constructionOwner = owner;
+        m_context->m_constructionArena = arena;
+    }
     if (preparedAggregate) {
         emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregateExpr), address, type, &aggregatePlan);
     } else if (aggregate) {
@@ -245,6 +262,8 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     } else if (hasComponentDefaults(type->element)) {
         emitArrayFill(address, type, nullptr);
     }
+    m_context->m_constructionOwner = savedOwner;
+    m_context->m_constructionArena = savedArena;
 }
 
 void QbeEmitter::emitArrayFill(const Value& address, Type* type, Expr* value)
@@ -287,6 +306,7 @@ void QbeEmitter::emitArrayFill(const Value& address, Type* type, Expr* value)
 
 Value QbeEmitter::boundsFor(Symbol* symbol)
 {
+    if (symbol->isGlobal) { return loadArrayView(symbol->qbeName, symbol->type->arrayRank, false); }
     if (symbol->owner == m_context->symbol && symbol->frameOffset < 0) {
         auto it = m_context->bounds.find(symbol);
         if (it != m_context->bounds.end()) {

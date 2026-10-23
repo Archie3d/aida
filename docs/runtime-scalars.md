@@ -86,16 +86,17 @@ determinism checks; named local scalar and existing numeric regressions remain.
 `scalardynamicerrors` pins type, staticness, Width, allocator and deferred-constant
 legality. `runtime.scalar_bounds` checks the C helpers at their integer endpoints.
 
-The full suite has 692 passing expectations, including 19 selected ACATS cases.
+The scalar milestone passed 692 expectations, including 19 selected ACATS cases.
 Unchanged upstream C35507A adds executable Character Width coverage; it does not
 prove all dynamic subtype contexts. ASan/UBSan covers the scalar helper and
 allocation-storage tests; the new Ada programs run in both compilation modes
 with ASan/UBSan and ThreadSanitizer runtimes. Generated Ada memory accesses are
 not instrumented, so runtime instrumentation is not a complete Ada race check.
 
-Library arrays with runtime bounds, runtime-constrained array components and
-allocators, and box aggregates remain the next Phase 6b items. Discriminant-
-dependent components remain Phase 6c. General access/accessibility, legacy delta
+[Library arrays with runtime bounds](array-descriptors.md#library-level-runtime-bounds)
+subsequently landed in Phase 6b. Runtime-constrained array components and
+allocators, and box aggregates remain the next items. Discriminant-dependent
+components remain Phase 6c. General access/accessibility, legacy delta
 constraints, full freezing, portable stream representations and wide character
 facilities remain separately tracked. Existing unsupported constructs continue
 to receive diagnostics; no general dynamic layout or new parameter-profile
