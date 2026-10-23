@@ -21,8 +21,8 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             m_owner = m_savedOwner;
             m_arena = m_savedArena;
         }
-    } construction { m_context->m_constructionOwner, m_context->m_constructionArena,
-        std::exchange(m_context->m_constructionOwner, ""), std::exchange(m_context->m_constructionArena, "") };
+    } construction { m_context->constructionOwner, m_context->constructionArena,
+        std::exchange(m_context->constructionOwner, ""), std::exchange(m_context->constructionArena, "") };
     Symbol* subprogram = expr->subprogram;
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
@@ -115,17 +115,17 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             protectedObject = addressOf(expr->m_protectedReceiver);
         }
     }
-    std::string resultTarget = std::move(m_context->m_resultTarget);
-    Value resultShape = m_context->m_resultTargetShape;
-    std::string resultDescriptor = std::move(m_context->m_resultDescriptor);
-    std::string resultProvided = std::move(m_context->m_resultProvided);
-    m_context->m_resultDescriptor.clear();
-    m_context->m_resultProvided.clear();
-    std::string resultOwner = std::move(m_context->m_resultTargetOwner);
-    std::string resultArena = std::move(m_context->m_resultTargetArena);
-    m_context->m_resultTarget.clear();
-    m_context->m_resultTargetOwner.clear();
-    m_context->m_resultTargetArena.clear();
+    std::string resultTarget = std::move(m_context->resultTarget);
+    Value resultShape = m_context->resultTargetShape;
+    std::string resultDescriptor = std::move(m_context->resultDescriptor);
+    std::string resultProvided = std::move(m_context->resultProvided);
+    m_context->resultDescriptor.clear();
+    m_context->resultProvided.clear();
+    std::string resultOwner = std::move(m_context->resultTargetOwner);
+    std::string resultArena = std::move(m_context->resultTargetArena);
+    m_context->resultTarget.clear();
+    m_context->resultTargetOwner.clear();
+    m_context->resultTargetArena.clear();
 
     bool dispatchEquality = expr->m_dispatching && (subprogram->name == "=" || subprogram->name == "/=")
         && subprogram->parameters.size() == 2
@@ -181,7 +181,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
         arguments.push_back("l " + resultStorage);
         if (controlledResult) {
-            arguments.push_back("l " + (resultOwner.empty() ? m_context->m_temporaryFinalizationChain : resultOwner));
+            arguments.push_back("l " + (resultOwner.empty() ? m_context->temporaryFinalizationChain : resultOwner));
             arguments.push_back("l " + (resultArena.empty() ? storageArena(true, true) : resultArena));
             if (taggedResult || limitedResult) {
                 arguments.push_back("w " + (resultProvided.empty() ? (resultTarget.empty() ? "0" : "1") : resultProvided));
@@ -205,7 +205,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         {
             m_current = m_saved;
         }
-    } tagContext { m_context->m_controllingTag, m_context->m_controllingTag };
+    } tagContext { m_context->controllingTag, m_context->controllingTag };
     std::string controllingTag;
     std::vector<Value> controllingValues(subprogram->parameters.size());
     if (expr->m_dispatching) {
@@ -215,10 +215,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 && !argument->m_tagIndeterminate) {
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
-                if (m_context->m_controllingTag == tagContext.m_saved) {
+                if (m_context->controllingTag == tagContext.m_saved) {
                     std::string tag = newTemp();
                     line(tag + " =l loadl " + value.name);
-                    m_context->m_controllingTag = tag;
+                    m_context->controllingTag = tag;
                 }
             }
         }
@@ -309,7 +309,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 
     if (expr->m_dispatching) {
         if (controllingTag.empty()) {
-            controllingTag = m_context->m_controllingTag;
+            controllingTag = m_context->controllingTag;
         }
         if (controllingTag.empty()) {
             m_diagnostics.error(expr->location, "a dispatching result requires a controlling tag");

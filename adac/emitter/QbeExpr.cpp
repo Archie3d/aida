@@ -175,10 +175,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 emitCallInstruction(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
                      + ", l 1, l 1, l " + (!hasRuntimeLayout(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
                 if (needsFinalization(expr->type)) {
-                    bool saved = m_context->m_initializingTemporary;
-                    m_context->m_initializingTemporary = true;
+                    bool saved = m_context->initializingTemporary;
+                    m_context->initializingTemporary = true;
                     prepareControlledObject(converted, expr->type);
-                    m_context->m_initializingTemporary = saved;
+                    m_context->initializingTemporary = saved;
                     copyControlledObject(converted, value, expr->type, true);
                 } else {
                     emitCallInstruction("call $memmove(l " + converted.name + ", l " + value.name + ", l " + bytes + ")", CallEffects::DeferredCheck);
@@ -524,10 +524,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
             std::string failed = newLabel("arrayallocationfailed"), ready = newLabel("arrayallocationready");
             pushHandler(failed);
-            m_context->m_resultTargetOwner = newTemp();
-            m_context->m_resultTargetArena = newTemp();
-            emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
-            emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
+            m_context->resultTargetOwner = newTemp();
+            m_context->resultTargetArena = newTemp();
+            emitCallInstruction(m_context->resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(m_context->resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
             Value result = emitExpr(expr->value.get());
             if (expr->type->target->boundsSymbol != nullptr || expr->type->target->constrained) {
                 checkArrayShape(withBounds(Value {}, expr->type->target, nullptr), expr->type->target, result, designated);
@@ -572,10 +572,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         std::string failed = newLabel("limitedallocationfailed");
         std::string ready = newLabel("limitedallocationready");
         pushHandler(failed);
-        m_context->m_resultTargetOwner = newTemp();
-        m_context->m_resultTargetArena = newTemp();
-        emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
-        emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
+        m_context->resultTargetOwner = newTemp();
+        m_context->resultTargetArena = newTemp();
+        emitCallInstruction(m_context->resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
+        emitCallInstruction(m_context->resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
         Value source = emitExpr(expr->value.get());
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
         emitCallInstruction("call $__ada_collection_finish(l " + pending + ", l " + source.name + ")", CallEffects::CheckException);
@@ -621,17 +621,17 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
-        std::string savedTaskCollection = m_context->m_taskCollection;
-        std::string savedTaskGroup = m_context->m_taskGroup;
-        m_context->m_taskCollection = collection.name;
-        m_context->m_taskGroup = object.name;
-        std::string savedOwner = m_context->m_constructionOwner;
-        std::string savedArena = m_context->m_constructionArena;
+        std::string savedTaskCollection = m_context->taskCollection;
+        std::string savedTaskGroup = m_context->taskGroup;
+        m_context->taskCollection = collection.name;
+        m_context->taskGroup = object.name;
+        std::string savedOwner = m_context->constructionOwner;
+        std::string savedArena = m_context->constructionArena;
         if (hasLimitedControlledParts(designated)) {
-            m_context->m_constructionOwner = newTemp();
-            m_context->m_constructionArena = newTemp();
-            emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")", CallEffects::DeferredCheck);
-            emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")", CallEffects::DeferredCheck);
+            m_context->constructionOwner = newTemp();
+            m_context->constructionArena = newTemp();
+            emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(m_context->constructionArena + " =l call $__ada_construction_arena(l " + object.name + ")", CallEffects::DeferredCheck);
         }
         if (expr->value != nullptr && isScalar(designated)) {
             Value value = emitExpr(expr->value.get());
@@ -651,10 +651,10 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         } else {
             emitDefaultInit(object, designated);
         }
-        m_context->m_taskCollection = savedTaskCollection;
-        m_context->m_taskGroup = savedTaskGroup;
-        m_context->m_constructionOwner = savedOwner;
-        m_context->m_constructionArena = savedArena;
+        m_context->taskCollection = savedTaskCollection;
+        m_context->taskGroup = savedTaskGroup;
+        m_context->constructionOwner = savedOwner;
+        m_context->constructionArena = savedArena;
         if (hasTasks(designated)) {
             emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")", CallEffects::DeferredCheck);
         } else {
@@ -735,8 +735,8 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
         Value flag = elaborationFlag(body);
         emitCallInstruction("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
-             + ", l " + link.name + ", l " + flag.name + ", l " + m_context->m_taskCollection + ", l "
-             + m_context->m_taskGroup + ")", CallEffects::CheckException);
+             + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
+             + m_context->taskGroup + ")", CallEffects::CheckException);
         return;
     }
     if (type->kind == TypeKind::Array && hasRuntimeLayout(type)) {

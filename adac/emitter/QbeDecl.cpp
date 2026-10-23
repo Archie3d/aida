@@ -240,13 +240,13 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
-                address.m_shared = sharedSymbolKind(symbol) != 0;
+                address.shared = sharedSymbolKind(symbol) != 0;
                 if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->objectReference) {
                     emitDynamicArray(object, symbol);
                     continue;
                 }
-                std::string savedOwner = m_context->m_constructionOwner;
-                std::string savedArena = m_context->m_constructionArena;
+                std::string savedOwner = m_context->constructionOwner;
+                std::string savedArena = m_context->constructionArena;
                 if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Record && !symbol->objectReference) {
                     std::string arena = newTemp(), pointer = newTemp();
                     emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
@@ -255,9 +255,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     line("storel " + pointer + ", " + symbol->qbeName);
                     address.name = pointer;
                     if (hasLimitedControlledParts(symbol->type)) {
-                        m_context->m_constructionOwner = newTemp();
-                        m_context->m_constructionArena = arena;
-                        emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
+                        m_context->constructionOwner = newTemp();
+                        m_context->constructionArena = arena;
+                        emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
                     }
                 }
                 if (!symbol->objectReference && !symbol->classWideObject) {
@@ -272,8 +272,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 } else {
                     emitDefaultInit(address, symbol->type);
                 }
-                m_context->m_constructionOwner = savedOwner;
-                m_context->m_constructionArena = savedArena;
+                m_context->constructionOwner = savedOwner;
+                m_context->constructionArena = savedArena;
             }
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
@@ -375,9 +375,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     std::string temporaryMark = newTemp();
     line(temporaryMark + " =l loadl " + storageArena(true));
     std::string finalizationMark;
-    if (!m_context->m_temporaryFinalizationChain.empty()) {
+    if (!m_context->temporaryFinalizationChain.empty()) {
         finalizationMark = newTemp();
-        line(finalizationMark + " =l loadl " + m_context->m_temporaryFinalizationChain);
+        line(finalizationMark + " =l loadl " + m_context->temporaryFinalizationChain);
     }
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
@@ -453,7 +453,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     continue;
                 }
                 if ((hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array)
-                    || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)) {
+                    || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > kArrayStackLimit)) {
                     emitDynamicArray(object, symbol);
                     continue;
                 }
@@ -481,7 +481,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     symbol->frameOffset = reserveFrame(size, alignment);
                 } else {
                     std::string slot = "%v." + symbol->name + "." + std::to_string(m_tempCounter++);
-                    if (size > m_arrayStackLimit) {
+                    if (size > kArrayStackLimit) {
                         emitCallInstruction(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
                              + ", l 1, l 1, l " + std::to_string(size) + ")", CallEffects::CheckException);
                     } else {
@@ -526,17 +526,17 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::PackageSpecification: {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
-            std::string savedGroup = m_context->m_taskGroup;
+            std::string savedGroup = m_context->taskGroup;
             if (package->symbol->containsTasks) {
-                m_context->m_taskGroup = allocScratch(1);
-                m_context->m_taskGroups[package->symbol] = m_context->m_taskGroup;
+                m_context->taskGroup = allocScratch(1);
+                m_context->taskGroups[package->symbol] = m_context->taskGroup;
             }
             emitLocalDeclarations(package->publicPart);
             emitLocalDeclarations(package->privatePart);
             if (package->symbol->containsTasks && !package->symbol->hasBody) {
-                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
+                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->taskGroup + ")", CallEffects::CheckException);
             }
-            m_context->m_taskGroup = savedGroup;
+            m_context->taskGroup = savedGroup;
             break;
         }
         case DeclKind::PackageBody: {
@@ -545,15 +545,15 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 line("storew 1, " + elaborationFlag(package->m_genericBody).name);
                 break;
             }
-            std::string savedGroup = m_context->m_taskGroup;
+            std::string savedGroup = m_context->taskGroup;
             if (package->symbol->containsTasks) {
-                m_context->m_taskGroup = m_context->m_taskGroups.at(package->symbol);
+                m_context->taskGroup = m_context->taskGroups.at(package->symbol);
             }
             emitLocalDeclarations(package->declarations);
             if (package->symbol->containsTasks) {
-                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
+                emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->taskGroup + ")", CallEffects::CheckException);
             }
-            m_context->m_taskGroup = savedGroup;
+            m_context->taskGroup = savedGroup;
             if (package->handlers.empty()) {
                 emitStatements(package->body);
             } else {
@@ -583,7 +583,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     }
     if (!m_context->terminated) {
         if (!finalizationMark.empty()) {
-            emitCallInstruction("call $__ada_finalize_to(l " + m_context->m_temporaryFinalizationChain + ", l " + finalizationMark + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $__ada_finalize_to(l " + m_context->temporaryFinalizationChain + ", l " + finalizationMark + ")", CallEffects::DeferredCheck);
         }
         emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")", CallEffects::RuntimeHook);
         if (!finalizationMark.empty()) {
@@ -688,13 +688,13 @@ Value QbeEmitter::scalarBounds(Type* type)
 void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* initializer)
 {
     Type* type = symbol->type;
-    std::string savedOwner = m_context->m_constructionOwner;
-    std::string savedArena = m_context->m_constructionArena;
+    std::string savedOwner = m_context->constructionOwner;
+    std::string savedArena = m_context->constructionArena;
     if (symbol->isGlobal && hasLimitedControlledParts(type)) {
-        m_context->m_constructionOwner = newTemp();
-        m_context->m_constructionArena = newTemp();
-        emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
-        emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
+        m_context->constructionOwner = newTemp();
+        m_context->constructionArena = newTemp();
+        emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
+        emitCallInstruction(m_context->constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
     }
     if (!needsFinalization(type) && symbol->genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
@@ -705,8 +705,8 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
     } else {
         assignInto(address, type, initializer, true);
     }
-    m_context->m_constructionOwner = savedOwner;
-    m_context->m_constructionArena = savedArena;
+    m_context->constructionOwner = savedOwner;
+    m_context->constructionArena = savedArena;
 }
 
 // A reference owns only an address and, for dynamic arrays, saved bounds. No
@@ -796,7 +796,7 @@ void QbeEmitter::initializeTypeTag(Type* type)
 void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
 {
     bool limited = hasLimitedControlledParts(symbol->type) || hasLimitedControlledParts(object->initializer->type);
-    std::string owner = symbol->isGlobal ? "0" : m_context->m_finalizationChain;
+    std::string owner = symbol->isGlobal ? "0" : m_context->finalizationChain;
     std::string arena = symbol->isGlobal ? "0" : storageArena(false, true);
     if (limited) {
         if (symbol->isGlobal) {
@@ -805,8 +805,8 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
             emitCallInstruction(owner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
             emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
         }
-        m_context->m_resultTargetOwner = owner;
-        m_context->m_resultTargetArena = arena;
+        m_context->resultTargetOwner = owner;
+        m_context->resultTargetArena = arena;
     }
     Value source = emitExpr(object->initializer.get());
     emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->accessibilityLevel) + ")", CallEffects::CheckException);

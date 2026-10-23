@@ -136,7 +136,7 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
 void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
 {
     Type* type = symbol->type;
-    std::string owner = m_context->m_finalizationChain;
+    std::string owner = m_context->finalizationChain;
     std::string arena;
     if (symbol->isGlobal) {
         owner = newTemp();
@@ -193,8 +193,8 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     bool constructedResult = object->initializer && !aggregate && hasLimitedControlledParts(type);
     if (object->initializer && !aggregate) {
         if (constructedResult) {
-            m_context->m_resultTargetOwner = owner;
-            m_context->m_resultTargetArena = arena;
+            m_context->resultTargetOwner = owner;
+            m_context->resultTargetArena = arena;
         }
         source = emitExpr(object->initializer.get());
         if (!explicitBounds) {
@@ -240,11 +240,11 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         return;
     }
     prepareControlledObject(address, type, symbol->isGlobal);
-    std::string savedOwner = m_context->m_constructionOwner;
-    std::string savedArena = m_context->m_constructionArena;
+    std::string savedOwner = m_context->constructionOwner;
+    std::string savedArena = m_context->constructionArena;
     if (symbol->isGlobal) {
-        m_context->m_constructionOwner = owner;
-        m_context->m_constructionArena = arena;
+        m_context->constructionOwner = owner;
+        m_context->constructionArena = arena;
     }
     if (preparedAggregate) {
         emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregateExpr), address, type, &aggregatePlan);
@@ -262,8 +262,8 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
     } else if (hasComponentDefaults(type->element)) {
         emitArrayFill(address, type, nullptr);
     }
-    m_context->m_constructionOwner = savedOwner;
-    m_context->m_constructionArena = savedArena;
+    m_context->constructionOwner = savedOwner;
+    m_context->constructionArena = savedArena;
 }
 
 void QbeEmitter::emitArrayFill(const Value& address, Type* type, Expr* value)
@@ -505,10 +505,10 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     result.strides = { fields[3] };
     emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l "
          + (expr->type->constrained && typeSize(expr->type) != typeLayoutSize(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
-    bool savedTemporary = m_context->m_initializingTemporary;
-    m_context->m_initializingTemporary = true;
+    bool savedTemporary = m_context->initializingTemporary;
+    m_context->initializingTemporary = true;
     prepareControlledObject(result, expr->type);
-    m_context->m_initializingTemporary = savedTemporary;
+    m_context->initializingTemporary = savedTemporary;
     std::string destination = result.name;
     for (const Operand& operand : operands) {
         auto copyElement = [&](const Value& target, const Value& source) {

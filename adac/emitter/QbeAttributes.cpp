@@ -377,12 +377,12 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         if (base != nullptr && base->kind == TypeKind::Array) {
             Value array;
             if (expr->m_rangeFirst != nullptr && expr->m_rangeFirst != expr) {
-                array = m_context->m_rangePrefixes.at(expr->m_rangeFirst);
-                m_context->m_rangePrefixes.erase(expr->m_rangeFirst);
+                array = m_context->rangePrefixes.at(expr->m_rangeFirst);
+                m_context->rangePrefixes.erase(expr->m_rangeFirst);
             } else {
                 array = emitExpr(expr->prefix.get());
                 if (expr->m_rangeFirst == expr) {
-                    m_context->m_rangePrefixes[expr] = array;
+                    m_context->rangePrefixes[expr] = array;
                 }
             }
             Type* axis = expr->prefix->type;

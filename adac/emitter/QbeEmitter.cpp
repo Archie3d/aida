@@ -143,7 +143,7 @@ void QbeEmitter::emitReturn(const std::string& operand)
     }
     // Activation resources are only all known once every branch is emitted.
     // Record the insertion point explicitly for finishFunction's exit actions.
-    m_context->m_returnOffsets.push_back(static_cast<std::size_t>(m_context->body.tellp()));
+    m_context->returnOffsets.push_back(static_cast<std::size_t>(m_context->body.tellp()));
     line(operand.empty() ? "ret" : "ret " + operand);
     m_context->terminated = true;
 }
@@ -173,10 +173,10 @@ void QbeEmitter::label(const std::string& name)
 void QbeEmitter::jump(const std::string& target)
 {
     if (!m_context->terminated) {
-        auto found = m_context->m_transferMasterDepth.find(target);
+        auto found = m_context->transferMasterDepth.find(target);
         if (target == m_context->propagateLabel) {
             emitBlockExits(0);
-        } else if (found != m_context->m_transferMasterDepth.end()) {
+        } else if (found != m_context->transferMasterDepth.end()) {
             emitBlockExits(found->second);
         }
         m_context->body << "    jmp " << target << "\n";
@@ -187,11 +187,11 @@ void QbeEmitter::jump(const std::string& target)
 void QbeEmitter::branch(const Value& condition, const std::string& ifTrue, const std::string& ifFalse)
 {
     auto needsCleanup = [&](const std::string& target) {
-        auto found = m_context->m_transferMasterDepth.find(target);
-        return !m_context->m_blockMasters.empty()
+        auto found = m_context->transferMasterDepth.find(target);
+        return !m_context->blockMasters.empty()
             && (target == m_context->propagateLabel
-                || (found != m_context->m_transferMasterDepth.end()
-                    && found->second < m_context->m_blockMasters.size()));
+                || (found != m_context->transferMasterDepth.end()
+                    && found->second < m_context->blockMasters.size()));
     };
     std::string trueEdge = needsCleanup(ifTrue) ? newLabel("mastercleanup") : ifTrue;
     std::string falseEdge = needsCleanup(ifFalse) ? newLabel("mastercleanup") : ifFalse;

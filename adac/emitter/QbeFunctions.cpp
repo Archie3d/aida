@@ -195,7 +195,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // depend on their access type's collection. Scalar leaf calls thus keep
     // their existing entry/exit cost. Task-valued results and aggregates remain
     // diagnosed until build-in-place lifetimes support them.
-    context.m_hasMaster = body->m_taskBody || !body->declarations.empty() || usesFinalization;
+    context.hasMaster = body->m_taskBody || !body->declarations.empty() || usesFinalization;
     context.traceName = symbol->displayName;
     context.sourceLocation = symbol->location;
     context.hasFrame = symbol->needsFrame;
@@ -348,7 +348,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     emitElaborationCheck(symbol);
 
     emitLocalDeclarations(body->declarations);
-    if (context.m_hasMaster) {
+    if (context.hasMaster) {
         emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);
     }
 
@@ -432,7 +432,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::string traceLocation = sourceLocationData(context.symbol != nullptr ? context.symbol->location : SourceLocation {});
     // Trace entry fetches the bound task context once without an extra call.
     text += "    %.taskContext =l call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
-    if (context.m_hasMaster) {
+    if (context.hasMaster) {
         text += "    %.master =l alloc8 8\n";
         text += "    call $__ada_master_enter(l %.taskContext, l %.master, w 0)\n";
     }
@@ -441,7 +441,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     std::string body = context.body.str();
     std::string exitActions = functionExitActions(context);
     std::size_t previous = 0;
-    for (std::size_t offset : context.m_returnOffsets) {
+    for (std::size_t offset : context.returnOffsets) {
         text.append(body, previous, offset - previous);
         text += exitActions;
         previous = offset;
@@ -485,12 +485,12 @@ std::string QbeEmitter::functionExitActions(const FunctionContext& context)
         actions += "    call $__ada_task_activation_failed(l %.taskContext)\n";
         actions += "    call $__ada_task_complete(l %.taskContext)\n";
     }
-    if (context.m_hasMaster) {
+    if (context.hasMaster) {
         actions += "    call $__ada_master_await(l %.taskContext, l %.master)\n";
     }
-    if (!context.m_finalizationChain.empty()) {
-        actions += "    call $__ada_finalize_to(l " + context.m_temporaryFinalizationChain + ", l 0)\n";
-        actions += "    call $__ada_finalize_to(l " + context.m_finalizationChain + ", l 0)\n";
+    if (!context.finalizationChain.empty()) {
+        actions += "    call $__ada_finalize_to(l " + context.temporaryFinalizationChain + ", l 0)\n";
+        actions += "    call $__ada_finalize_to(l " + context.finalizationChain + ", l 0)\n";
     }
     if (!context.arrayArena.empty()) {
         actions += "    call $__ada_array_release(l " + context.arrayArena + ")\n";
@@ -498,7 +498,7 @@ std::string QbeEmitter::functionExitActions(const FunctionContext& context)
     if (!context.temporaryArena.empty()) {
         actions += "    call $__ada_array_release(l " + context.temporaryArena + ")\n";
     }
-    if (context.m_hasMaster) {
+    if (context.hasMaster) {
         actions += "    call $__ada_master_leave(l %.taskContext, l %.master)\n";
     }
     actions += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";

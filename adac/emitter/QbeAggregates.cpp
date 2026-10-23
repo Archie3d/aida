@@ -426,8 +426,8 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
 
 Value QbeEmitter::emitAggregate(AggregateExpr* expr)
 {
-    bool saved = m_context->m_initializingTemporary;
-    m_context->m_initializingTemporary = true;
+    bool saved = m_context->initializingTemporary;
+    m_context->initializingTemporary = true;
     Value result;
     if (isUnconstrainedArray(expr->type)) {
         result = emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
@@ -437,6 +437,6 @@ Value QbeEmitter::emitAggregate(AggregateExpr* expr)
         prepareControlledObject(result, expr->type);
         emitAggregateInto(expr, result, expr->type);
     }
-    m_context->m_initializingTemporary = saved;
+    m_context->initializingTemporary = saved;
     return result;
 }

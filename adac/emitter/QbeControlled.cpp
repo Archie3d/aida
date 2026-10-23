@@ -14,7 +14,7 @@ void QbeEmitter::initializeCollection(Type* type)
         type->collectionOffset = reserveFrame(8);
         slot = newTemp();
         line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->collectionOffset));
-        owner = m_context->m_finalizationChain;
+        owner = m_context->finalizationChain;
         arena = storageArena(false, true);
     }
     std::string collection = newTemp();
@@ -56,8 +56,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         std::string ready = newLabel("wideresultready");
         pushHandler(failed);
         if (limited) {
-            m_context->m_resultTargetOwner = "%.resultOwner";
-            m_context->m_resultTargetArena = "%.resultArena";
+            m_context->resultTargetOwner = "%.resultOwner";
+            m_context->resultTargetArena = "%.resultArena";
         }
         Value source = emitExpr(expression);
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w "
@@ -83,10 +83,10 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         return;
     }
     if (hasLimitedControlledParts(type) && object == nullptr && !isAggregateExpression(expression)) {
-        m_context->m_resultDescriptor = "%.result";
-        m_context->m_resultProvided = "%.resultProvided";
-        m_context->m_resultTargetOwner = "%.resultOwner";
-        m_context->m_resultTargetArena = "%.resultArena";
+        m_context->resultDescriptor = "%.result";
+        m_context->resultProvided = "%.resultProvided";
+        m_context->resultTargetOwner = "%.resultOwner";
+        m_context->resultTargetArena = "%.resultArena";
         emitExpr(expression);
         return;
     }
@@ -123,10 +123,10 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                 if (limitedAggregate) {
                     destination = prepareArrayAggregate(aggregate, withBounds(Value {}, type, nullptr), type, aggregatePlan);
                 } else if (hasLimitedControlledParts(type)) {
-                    m_context->m_resultDescriptor = "%.result";
-                    m_context->m_resultProvided = "%.resultProvided";
-                    m_context->m_resultTargetOwner = "%.resultOwner";
-                    m_context->m_resultTargetArena = "%.resultArena";
+                    m_context->resultDescriptor = "%.result";
+                    m_context->resultProvided = "%.resultProvided";
+                    m_context->resultTargetOwner = "%.resultOwner";
+                    m_context->resultTargetArena = "%.resultArena";
                     destination = emitExpr(object->initializer.get());
                     constructed = true;
                 } else {
@@ -209,10 +209,10 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
     }
-    std::string savedOwner = m_context->m_constructionOwner;
-    std::string savedArena = m_context->m_constructionArena;
-    m_context->m_constructionOwner = "%.resultOwner";
-    m_context->m_constructionArena = "%.resultArena";
+    std::string savedOwner = m_context->constructionOwner;
+    std::string savedArena = m_context->constructionArena;
+    m_context->constructionOwner = "%.resultOwner";
+    m_context->constructionArena = "%.resultArena";
     if (object != nullptr) {
         Symbol* symbol = object->symbols.front();
         if (dynamic) {
@@ -242,12 +242,12 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
                 emitDefaultInit(destination, type);
             }
         }
-        m_context->m_constructionOwner = savedOwner;
-        m_context->m_constructionArena = savedArena;
-        std::string savedReturn = m_context->m_extendedReturnLabel;
+        m_context->constructionOwner = savedOwner;
+        m_context->constructionArena = savedArena;
+        std::string savedReturn = m_context->extendedReturnLabel;
         std::string bodyDone = newLabel("returnbodydone");
-        m_context->m_transferMasterDepth[bodyDone] = m_context->m_blockMasters.size();
-        m_context->m_extendedReturnLabel = bodyDone;
+        m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
+        m_context->extendedReturnLabel = bodyDone;
         if (extended->m_handlers.empty()) {
             emitStatements(extended->m_body);
         } else {
@@ -262,7 +262,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             label(handled);
         }
         label(bodyDone);
-        m_context->m_extendedReturnLabel = savedReturn;
+        m_context->extendedReturnLabel = savedReturn;
     } else if (limitedAggregate) {
         emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregate), destination, type, &aggregatePlan);
     } else if (dynamic) {
@@ -274,8 +274,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + destination.name + ", w "
              + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
     }
-    m_context->m_constructionOwner = savedOwner;
-    m_context->m_constructionArena = savedArena;
+    m_context->constructionOwner = savedOwner;
+    m_context->constructionArena = savedArena;
     m_context->handlerLabels.pop_back();
     jump(ready);
     label(failed);
@@ -292,10 +292,10 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
 
 void QbeEmitter::initializeFinalization()
 {
-    m_context->m_finalizationChain = allocScratch(8);
-    m_context->m_temporaryFinalizationChain = allocScratch(8);
-    m_context->prologue << "    storel 0, " << m_context->m_finalizationChain << "\n";
-    m_context->prologue << "    storel 0, " << m_context->m_temporaryFinalizationChain << "\n";
+    m_context->finalizationChain = allocScratch(8);
+    m_context->temporaryFinalizationChain = allocScratch(8);
+    m_context->prologue << "    storel 0, " << m_context->finalizationChain << "\n";
+    m_context->prologue << "    storel 0, " << m_context->temporaryFinalizationChain << "\n";
 }
 
 // Only controlled nodes need records: plain composites borrow the records of
@@ -362,8 +362,8 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
             emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
             return;
         }
-        bool temporary = m_context->m_initializingTemporary;
-        std::string owner = temporary ? m_context->m_temporaryFinalizationChain : m_context->m_finalizationChain;
+        bool temporary = m_context->initializingTemporary;
+        std::string owner = temporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
         emitCallInstruction("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)
              + ", l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
     });
@@ -474,10 +474,10 @@ void QbeEmitter::copyControlledObject(const Value& target, const Value& source, 
     Value snapshot = withBounds(target, type, nullptr);
     snapshot.name = newTemp();
     emitCallInstruction(snapshot.name + " =l call $__ada_array_local(l " + storageArena(true, true) + ", l 1, l 1, l " + size + ")", CallEffects::CheckException);
-    bool saved = m_context->m_initializingTemporary;
-    m_context->m_initializingTemporary = true;
+    bool saved = m_context->initializingTemporary;
+    m_context->initializingTemporary = true;
     prepareControlledObject(snapshot, type);
-    m_context->m_initializingTemporary = saved;
+    m_context->initializingTemporary = saved;
     if (type->tagged) {
         line("storel " + typeTag(type).name + ", " + snapshot.name);
     }

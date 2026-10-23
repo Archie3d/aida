@@ -40,7 +40,7 @@ struct Value
         return dimension == 0 ? last : innerBounds[dimension - 1].second;
     }
 
-    bool m_shared = false; // This value denotes shared scalar storage.
+    bool shared = false; // This value denotes shared scalar storage.
 
     bool hasBounds() const { return !first.empty() && !last.empty(); }
 };
@@ -55,8 +55,8 @@ public:
     void emitUnit(const LibraryUnit& unit, std::ostream& out);
 
 private:
-    static constexpr long long m_arrayStackLimit = 65536;
-    static constexpr long long m_frameStackLimit = INT32_MAX - 16;
+    static constexpr long long kArrayStackLimit = 65536;
+    static constexpr long long kFrameStackLimit = INT32_MAX - 16;
 
     struct ArrayAggregatePlan
     {
@@ -66,10 +66,10 @@ private:
 
     struct StorageCheckpoint
     {
-        std::string m_local;
-        std::string m_temporary;
-        std::string m_finalization;
-        std::string m_temporaryFinalization;
+        std::string local;
+        std::string temporary;
+        std::string finalization;
+        std::string temporaryFinalization;
     };
 
     struct FunctionContext
@@ -77,33 +77,33 @@ private:
         Symbol* symbol = nullptr;
         std::ostringstream prologue;
         std::ostringstream body;
-        std::vector<std::size_t> m_returnOffsets;
+        std::vector<std::size_t> returnOffsets;
         std::string frameAllocation;
         std::string arrayArena;
         std::string temporaryArena;
-        std::string m_finalizationChain;
-        bool m_hasMaster = false;
+        std::string finalizationChain;
+        bool hasMaster = false;
         struct BlockMaster
         {
-            std::string m_record;
-            StorageCheckpoint m_storage;
+            std::string record;
+            StorageCheckpoint storage;
         };
-        std::vector<BlockMaster> m_blockMasters;
-        std::unordered_map<std::string, std::size_t> m_transferMasterDepth;
-        std::string m_temporaryFinalizationChain;
-        bool m_initializingTemporary = false;
-        std::string m_extendedReturnLabel;
-        std::string m_resultTarget;
-        Value m_resultTargetShape;
-        std::string m_resultDescriptor;
-        std::string m_resultProvided;
-        std::string m_resultTargetOwner;
-        std::string m_resultTargetArena;
-        std::string m_constructionOwner;
-        std::string m_constructionArena;
-        std::string m_taskCollection = "0";
-        std::string m_taskGroup = "0";
-        std::unordered_map<Symbol*, std::string> m_taskGroups;
+        std::vector<BlockMaster> blockMasters;
+        std::unordered_map<std::string, std::size_t> transferMasterDepth;
+        std::string temporaryFinalizationChain;
+        bool initializingTemporary = false;
+        std::string extendedReturnLabel;
+        std::string resultTarget;
+        Value resultTargetShape;
+        std::string resultDescriptor;
+        std::string resultProvided;
+        std::string resultTargetOwner;
+        std::string resultTargetArena;
+        std::string constructionOwner;
+        std::string constructionArena;
+        std::string taskCollection = "0";
+        std::string taskGroup = "0";
+        std::unordered_map<Symbol*, std::string> taskGroups;
         bool arrayArenaUsed = false;
         bool temporaryArenaUsed = false;
         std::string frameTemp;
@@ -112,11 +112,11 @@ private:
         long long frameSize = 8;
         std::unordered_map<Symbol*, std::string> locals;
         std::unordered_map<Symbol*, Value> bounds;
-        std::unordered_map<const AttributeExpr*, Value> m_rangePrefixes;
+        std::unordered_map<const AttributeExpr*, Value> rangePrefixes;
         std::vector<std::string> handlerLabels;
         std::unordered_map<std::string, StorageCheckpoint> handlerStorage;
-        std::unordered_map<const LoopStmt*, StorageCheckpoint> m_loopStorage;
-        std::unordered_map<const LoopStmt*, std::size_t> m_loopHandlerDepth;
+        std::unordered_map<const LoopStmt*, StorageCheckpoint> loopStorage;
+        std::unordered_map<const LoopStmt*, std::size_t> loopHandlerDepth;
         std::vector<std::string> activeExceptions;
         std::unordered_map<const LoopStmt*, std::string> loopExits;
         std::string propagateLabel;
@@ -124,7 +124,7 @@ private:
         std::vector<SubprogramBody*> nested;
         SourceLocation sourceLocation;
         std::string traceName;
-        std::string m_controllingTag;
+        std::string controllingTag;
     };
 
     // Output and data (QbeEmitter.cpp).
