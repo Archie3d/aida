@@ -68,8 +68,8 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
     Symbol* symbol = nullptr;
     std::string key = contractKey(location) + ":" + lower;
     if (m_replayContract != nullptr) {
-        auto found = m_replayContract->m_typeNames.find(key);
-        if (found != m_replayContract->m_typeNames.end()) {
+        auto found = m_replayContract->typeNames.find(key);
+        if (found != m_replayContract->typeNames.end()) {
             symbol = instanceSymbol(found->second);
             if (symbol == nullptr) {
                 m_diagnostics.error(location, "cannot map a resolved generic type name to its instance");
@@ -89,7 +89,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         return nullptr;
     }
     if (m_recordContract != nullptr) {
-        m_recordContract->m_typeNames[key] = symbol;
+        m_recordContract->typeNames[key] = symbol;
     }
     if (symbol->type != nullptr && symbol->type->protectedScope != nullptr
         && m_currentProtectedType == symbol->type && symbol->name == symbol->type->protectedName) {

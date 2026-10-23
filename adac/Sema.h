@@ -74,37 +74,37 @@ private:
     // to the declarations and predefined/operator choices checked here.
     struct GenericContract
     {
-        Scope* m_environment = nullptr;
-        Scope* m_bindings = nullptr;
-        std::string m_unitName;
-        std::size_t m_tokenCount = 0;
-        std::unordered_set<Symbol*> m_localSymbols;
-        DeclList m_declarations;
-        DeclList m_profiles;
-        std::unordered_map<std::string, Symbol*> m_names;
-        std::unordered_map<std::string, Symbol*> m_operators;
-        std::unordered_map<std::string, Symbol*> m_subprograms;
-        std::unordered_map<std::string, Symbol*> m_typeNames;
-        std::unordered_map<std::string, std::vector<Symbol*>> m_instances;
-        bool m_valid = false;
+        Scope* environment = nullptr;
+        Scope* bindings = nullptr;
+        std::string unitName;
+        std::size_t tokenCount = 0;
+        std::unordered_set<Symbol*> localSymbols;
+        DeclList declarations;
+        DeclList profiles;
+        std::unordered_map<std::string, Symbol*> names;
+        std::unordered_map<std::string, Symbol*> operators;
+        std::unordered_map<std::string, Symbol*> subprograms;
+        std::unordered_map<std::string, Symbol*> typeNames;
+        std::unordered_map<std::string, std::vector<Symbol*>> instances;
+        bool valid = false;
     };
     // An instance specification must remain visible while its template body
     // is still unavailable. Resume in the original instance scope, retaining
     // its formal bindings and all specification symbol/type identities.
     struct PendingGenericInstance
     {
-        GenericInstantiationDecl* m_instance = nullptr;
-        Scope* m_bindings = nullptr;
-        GenericContract* m_contract = nullptr;
-        GenericContract* m_enclosingContract = nullptr;
-        std::size_t m_tokenCount = 0;
-        std::unordered_map<Symbol*, Symbol*> m_copies;
-        Symbol* m_owner = nullptr;
-        const CompilationUnit* m_unit = nullptr;
-        std::vector<Symbol*> m_packages;
-        std::vector<std::string> m_prefix;
-        int m_accessibilityLevel = 0;
-        int m_depth = 0;
+        GenericInstantiationDecl* instance = nullptr;
+        Scope* bindings = nullptr;
+        GenericContract* contract = nullptr;
+        GenericContract* enclosingContract = nullptr;
+        std::size_t tokenCount = 0;
+        std::unordered_map<Symbol*, Symbol*> copies;
+        Symbol* owner = nullptr;
+        const CompilationUnit* unit = nullptr;
+        std::vector<Symbol*> packages;
+        std::vector<std::string> prefix;
+        int accessibilityLevel = 0;
+        int depth = 0;
     };
     std::vector<PendingGenericInstance> m_pendingGenericInstances;
     void completeGenericInstance(PendingGenericInstance pending);

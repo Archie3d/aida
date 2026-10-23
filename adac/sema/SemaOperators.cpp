@@ -24,8 +24,8 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
     bool fixed = false;
     Symbol* fixedSymbol = nullptr;
     if (m_replayContract != nullptr) {
-        auto found = m_replayContract->m_operators.find(operatorContractKey(name, operands));
-        if (found != m_replayContract->m_operators.end()) {
+        auto found = m_replayContract->operators.find(operatorContractKey(name, operands));
+        if (found != m_replayContract->operators.end()) {
             fixed = true;
             fixedSymbol = instanceSymbol(found->second);
             if (found->second != nullptr && fixedSymbol == nullptr) {
@@ -409,7 +409,7 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
                 pointers.push_back(operand.get());
             }
             if (m_recordContract != nullptr) {
-                m_recordContract->m_operators[operatorContractKey(name, pointers)] = chosen.symbol;
+                m_recordContract->operators[operatorContractKey(name, pointers)] = chosen.symbol;
             }
             boundCall = bindOperator(chosen.symbol, std::move(operands), scope, call->location);
             boundResult = chosen.result;

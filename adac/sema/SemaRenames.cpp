@@ -207,7 +207,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             spec.parameters[i].symbol = alias->parameters[i];
         }
         if (m_recordContract != nullptr) {
-            m_recordContract->m_subprograms[contractKey(spec.location)] = alias;
+            m_recordContract->subprograms[contractKey(spec.location)] = alias;
         }
     }
     decl->symbol = alias;

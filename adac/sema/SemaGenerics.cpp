@@ -256,7 +256,7 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
         return copied->second;
     }
     const auto& symbols = m_symbolTable.symbols();
-    if (!m_replayContract->m_localSymbols.contains(symbol)) {
+    if (!m_replayContract->localSymbols.contains(symbol)) {
         return symbol;
     }
     // Implicit inherited overloads share the derived declaration's location.
@@ -265,7 +265,7 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
     for (std::size_t i = symbols.size(); i > m_instanceFirstSymbol; --i) {
         Symbol* candidate = symbols[i - 1].get();
         if (candidate->kind == symbol->kind && candidate->inheritedFrom == origin
-            && (candidate->name == symbol->name || (symbol->name == m_replayContract->m_unitName
+            && (candidate->name == symbol->name || (symbol->name == m_replayContract->unitName
                 && (symbol->kind == SymbolKind::Subprogram || symbol->kind == SymbolKind::Package)))
             && contractKey(candidate->location) == contractKey(symbol->location)) {
             return candidate;
@@ -277,8 +277,8 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
 std::vector<Symbol*> Sema::contractNames(Expr* expr, std::vector<Symbol*> candidates)
 {
     if (m_replayContract != nullptr) {
-        auto found = m_replayContract->m_names.find(nameContractKey(expr));
-        if (found != m_replayContract->m_names.end()) {
+        auto found = m_replayContract->names.find(nameContractKey(expr));
+        if (found != m_replayContract->names.end()) {
             if (Symbol* symbol = instanceSymbol(found->second)) {
                 return { symbol };
             }
@@ -292,7 +292,7 @@ std::vector<Symbol*> Sema::contractNames(Expr* expr, std::vector<Symbol*> candid
 void Sema::recordContractName(Expr* expr, Symbol* symbol)
 {
     if (m_recordContract != nullptr && symbol != nullptr) {
-        m_recordContract->m_names[nameContractKey(expr)] = symbol;
+        m_recordContract->names[nameContractKey(expr)] = symbol;
     }
 }
 
@@ -302,16 +302,16 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     bool continuation = owned != nullptr;
     if (!continuation) {
         owned = std::make_unique<GenericContract>();
-        owned->m_environment = scope;
-        owned->m_bindings = m_symbolTable.createScope(scope);
-        owned->m_unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
-        owned->m_valid = true;
+        owned->environment = scope;
+        owned->bindings = m_symbolTable.createScope(scope);
+        owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
+        owned->valid = true;
     }
     GenericContract* contract = owned.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
-    Scope* bindings = contract->m_bindings;
+    Scope* bindings = contract->bindings;
     if (continuation && scope != bindings) {
-        contract->m_environment = scope;
+        contract->environment = scope;
         bindings->setParent(scope);
     }
     auto* savedRecord = m_recordContract;
@@ -332,7 +332,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             if (profile.size() == 1) {
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
                 declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
-                contract->m_profiles.push_back(std::move(profile.front()));
+                contract->profiles.push_back(std::move(profile.front()));
             }
             continue;
         }
@@ -391,23 +391,23 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             bindings->add(symbol);
         }
     }
-    std::vector<Token> tokens(decl->tokens.begin() + static_cast<std::ptrdiff_t>(contract->m_tokenCount),
+    std::vector<Token> tokens(decl->tokens.begin() + static_cast<std::ptrdiff_t>(contract->tokenCount),
                               decl->tokens.end());
     Parser parser(tokens, m_diagnostics);
     DeclList declarations = parser.parseDeclarations();
     for (const DeclPtr& unit : declarations) {
-        renameUnit(unit.get(), contract->m_unitName, contract->m_unitName, decl->lower);
+        renameUnit(unit.get(), contract->unitName, contract->unitName, decl->lower);
     }
     analyzeDeclarativePart(declarations, bindings);
     for (DeclPtr& unit : declarations) {
-        contract->m_declarations.push_back(std::move(unit));
+        contract->declarations.push_back(std::move(unit));
     }
     const auto& symbols = m_symbolTable.symbols();
     for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
-        contract->m_localSymbols.insert(symbols[i].get());
+        contract->localSymbols.insert(symbols[i].get());
     }
-    contract->m_tokenCount = decl->tokens.size() - 1;
-    contract->m_valid = contract->m_valid && m_diagnostics.errorCount() == errors;
+    contract->tokenCount = decl->tokens.size() - 1;
+    contract->valid = contract->valid && m_diagnostics.errorCount() == errors;
     m_recordContract = savedRecord;
     m_replayContract = savedReplay;
     m_subprogramNames = std::move(savedNames);
@@ -963,7 +963,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     }
 
     auto foundContract = m_genericContracts.find(generic->generic);
-    if (foundContract == m_genericContracts.end() || !foundContract->second->m_valid) {
+    if (foundContract == m_genericContracts.end() || !foundContract->second->valid) {
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
         }
@@ -971,7 +971,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     }
     GenericContract* contract = foundContract->second.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
-    Scope* bindings = m_symbolTable.createScope(contract->m_environment);
+    Scope* bindings = m_symbolTable.createScope(contract->environment);
     if (!bindGenericFormals(decl, generic, bindings, scope)) {
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
@@ -1001,23 +1001,23 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     analyzeDeclarativePart(expansion, bindings);
     if (!generic->hasBody) {
         PendingGenericInstance pending;
-        pending.m_instance = decl;
-        pending.m_bindings = bindings;
-        pending.m_contract = contract;
-        pending.m_enclosingContract = m_instanceOwnerContract;
-        pending.m_tokenCount = generic->generic->tokens.size() - 1;
-        pending.m_copies = m_instanceCopies;
-        for (Symbol* original : contract->m_localSymbols) {
+        pending.instance = decl;
+        pending.bindings = bindings;
+        pending.contract = contract;
+        pending.enclosingContract = m_instanceOwnerContract;
+        pending.tokenCount = generic->generic->tokens.size() - 1;
+        pending.copies = m_instanceCopies;
+        for (Symbol* original : contract->localSymbols) {
             if (Symbol* copy = instanceSymbol(original)) {
-                pending.m_copies[original] = copy;
+                pending.copies[original] = copy;
             }
         }
-        pending.m_owner = m_currentSubprogram;
-        pending.m_unit = m_currentUnit;
-        pending.m_packages = m_packages;
-        pending.m_prefix = m_namePrefix;
-        pending.m_accessibilityLevel = m_accessibilityLevel;
-        pending.m_depth = m_instantiationDepth;
+        pending.owner = m_currentSubprogram;
+        pending.unit = m_currentUnit;
+        pending.packages = m_packages;
+        pending.prefix = m_namePrefix;
+        pending.accessibilityLevel = m_accessibilityLevel;
+        pending.depth = m_instantiationDepth;
         m_pendingGenericInstances.push_back(std::move(pending));
     }
     --m_instantiationDepth;
@@ -1032,14 +1032,14 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     const auto& symbols = m_symbolTable.symbols();
     std::string instanceKey = contractKey(decl->location);
     if (m_recordContract != nullptr) {
-        auto& copies = m_recordContract->m_instances[instanceKey];
+        auto& copies = m_recordContract->instances[instanceKey];
         for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
             copies.push_back(symbols[i].get());
         }
     }
     if (m_replayContract != nullptr) {
-        auto found = m_replayContract->m_instances.find(instanceKey);
-        if (found != m_replayContract->m_instances.end()) {
+        auto found = m_replayContract->instances.find(instanceKey);
+        if (found != m_replayContract->instances.end()) {
             std::size_t next = firstSymbol;
             for (Symbol* original : found->second) {
                 for (std::size_t i = next; i < symbols.size(); ++i) {
@@ -1079,14 +1079,14 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
 
 void Sema::completeGenericInstance(PendingGenericInstance pending)
 {
-    auto* instance = pending.m_instance;
+    auto* instance = pending.instance;
     Symbol* generic = instance->m_generic;
-    auto* contract = pending.m_contract;
-    if (!contract->m_valid) {
+    auto* contract = pending.contract;
+    if (!contract->valid) {
         return;
     }
     const auto& source = generic->generic->tokens;
-    std::vector<Token> tokens(source.begin() + static_cast<std::ptrdiff_t>(pending.m_tokenCount), source.end());
+    std::vector<Token> tokens(source.begin() + static_cast<std::ptrdiff_t>(pending.tokenCount), source.end());
     Parser parser(tokens, m_diagnostics);
     DeclList bodies = parser.parseDeclarations();
     for (const DeclPtr& body : bodies) {
@@ -1096,37 +1096,37 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     // This runs after source analysis, so no caller's lexical or replay state
     // is active. Body names were resolved at the template body's original
     // position by checkGenericContract; replay maps them to this instance.
-    m_currentSubprogram = pending.m_owner;
-    m_currentUnit = pending.m_unit;
-    m_packages = std::move(pending.m_packages);
-    m_namePrefix = std::move(pending.m_prefix);
-    m_accessibilityLevel = pending.m_accessibilityLevel;
-    m_instantiationDepth = pending.m_depth;
+    m_currentSubprogram = pending.owner;
+    m_currentUnit = pending.unit;
+    m_packages = std::move(pending.packages);
+    m_namePrefix = std::move(pending.prefix);
+    m_accessibilityLevel = pending.accessibilityLevel;
+    m_instantiationDepth = pending.depth;
     m_recordContract = nullptr;
     m_replayContract = contract;
-    m_instanceOwnerContract = pending.m_enclosingContract;
-    m_instanceCopies = std::move(pending.m_copies);
+    m_instanceOwnerContract = pending.enclosingContract;
+    m_instanceCopies = std::move(pending.copies);
     m_instanceFirstSymbol = m_symbolTable.symbols().size();
     std::size_t firstSymbol = m_instanceFirstSymbol;
     int errors = m_diagnostics.errorCount();
     auto savedNames = m_subprogramNames;
     auto savedTagNames = m_tagNames;
     auto savedExceptions = m_unitExceptions;
-    pending.m_bindings->setParent(contract->m_environment);
-    analyzeDeclarativePart(bodies, pending.m_bindings);
+    pending.bindings->setParent(contract->environment);
+    analyzeDeclarativePart(bodies, pending.bindings);
     for (DeclPtr& body : bodies) {
         instance->expansion.push_back(std::move(body));
     }
-    if (pending.m_enclosingContract != nullptr) {
+    if (pending.enclosingContract != nullptr) {
         // A deferred instance inside a template is still contract-only code.
         // Keep its symbols available for later replay without consuming emitted
         // names or exporting its exception objects.
-        auto* enclosing = pending.m_enclosingContract;
-        enclosing->m_valid = enclosing->m_valid && m_diagnostics.errorCount() == errors;
-        auto& copies = enclosing->m_instances[contractKey(instance->location)];
+        auto* enclosing = pending.enclosingContract;
+        enclosing->valid = enclosing->valid && m_diagnostics.errorCount() == errors;
+        auto& copies = enclosing->instances[contractKey(instance->location)];
         const auto& symbols = m_symbolTable.symbols();
         for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
-            enclosing->m_localSymbols.insert(symbols[i].get());
+            enclosing->localSymbols.insert(symbols[i].get());
             copies.push_back(symbols[i].get());
         }
         m_subprogramNames = std::move(savedNames);
@@ -1155,7 +1155,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     while (progress && !m_diagnostics.hasErrors()) {
         progress = false;
         for (std::size_t i = 0; i < m_pendingGenericInstances.size() && !m_diagnostics.hasErrors();) {
-            if (!m_pendingGenericInstances[i].m_instance->m_generic->hasBody) {
+            if (!m_pendingGenericInstances[i].instance->m_generic->hasBody) {
                 ++i;
                 continue;
             }
@@ -1221,9 +1221,9 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         }
     }
     for (const auto& pending : m_pendingGenericInstances) {
-        Symbol* generic = pending.m_instance->m_generic;
-        if (!generic->generic->isPackage || requiresGenericBody(pending.m_instance->expansion)) {
-            m_diagnostics.error(pending.m_instance->location,
+        Symbol* generic = pending.instance->m_generic;
+        if (!generic->generic->isPackage || requiresGenericBody(pending.instance->expansion)) {
+            m_diagnostics.error(pending.instance->location,
                 std::string(generic->generic->isPackage ? "generic package '" : "generic subprogram '")
                 + generic->displayName + "' has no body");
         }
@@ -1233,7 +1233,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             if (symbol->requiresBody && !symbol->hasBody && !symbol->missingBodyReported) {
                 if (symbol->kind == SymbolKind::Generic && symbol->generic->isPackage) {
                     auto contract = m_genericContracts.find(symbol->generic);
-                    if (contract == m_genericContracts.end() || !requiresGenericBody(contract->second->m_declarations)) {
+                    if (contract == m_genericContracts.end() || !requiresGenericBody(contract->second->declarations)) {
                         continue;
                     }
                 }

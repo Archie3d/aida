@@ -364,7 +364,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
         if (candidates.size() == 1) {
             const OperatorCandidate& chosen = candidates.front();
             if (m_recordContract != nullptr) {
-                m_recordContract->m_operators[operatorContractKey(name, { expr->left.get(), expr->right.get() })] = chosen.symbol;
+                m_recordContract->operators[operatorContractKey(name, { expr->left.get(), expr->right.get() })] = chosen.symbol;
             }
             if (chosen.symbol != nullptr) {
                 std::vector<ExprPtr> operands;
@@ -632,7 +632,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
     if (candidates.size() == 1) {
         const OperatorCandidate& chosen = candidates.front();
         if (m_recordContract != nullptr) {
-            m_recordContract->m_operators[operatorContractKey(name, { expr->operand.get() })] = chosen.symbol;
+            m_recordContract->operators[operatorContractKey(name, { expr->operand.get() })] = chosen.symbol;
         }
         if (chosen.symbol != nullptr) {
             std::vector<ExprPtr> operands;

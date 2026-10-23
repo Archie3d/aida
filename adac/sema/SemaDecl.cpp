@@ -507,8 +507,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
     Symbol* contractDeclaration = nullptr;
     if (m_replayContract != nullptr) {
-        auto found = m_replayContract->m_subprograms.find(contractKey(spec.location));
-        if (found != m_replayContract->m_subprograms.end()) {
+        auto found = m_replayContract->subprograms.find(contractKey(spec.location));
+        if (found != m_replayContract->subprograms.end()) {
             contractDeclaration = instanceSymbol(found->second);
         }
     }
@@ -563,7 +563,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             spec.parameters[i].symbol = candidate->parameters[i];
         }
         if (m_recordContract != nullptr) {
-            m_recordContract->m_subprograms[contractKey(spec.location)] = candidate;
+            m_recordContract->subprograms[contractKey(spec.location)] = candidate;
         }
         return candidate;
     }
@@ -645,7 +645,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         registerPrimitive(complement, scope);
     }
     if (m_recordContract != nullptr) {
-        m_recordContract->m_subprograms[contractKey(spec.location)] = symbol;
+        m_recordContract->subprograms[contractKey(spec.location)] = symbol;
     }
     return symbol;
 }
