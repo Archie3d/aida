@@ -109,9 +109,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (symbol->kind == SymbolKind::TypeName && symbol->type->kind == TypeKind::Array) {
             return withBounds(Value {}, symbol->type, nullptr);
         }
-        Value address = symbol->m_protectedField >= 0 ? emitAddress(expr) : addressOf(symbol);
+        Value address = symbol->protectedField >= 0 ? emitAddress(expr) : addressOf(symbol);
         if (isComposite(symbol->type)) {
-            return withBounds(address, symbol->type, symbol->m_protectedField >= 0 ? nullptr : symbol);
+            return withBounds(address, symbol->type, symbol->protectedField >= 0 ? nullptr : symbol);
         }
         return loadFrom(address, symbol->type);
     }
@@ -139,7 +139,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         }
         Value address = emitAddress(expr);
         if (isComposite(expr->type)) {
-            return withBounds(address, expr->type, selected->symbol != nullptr && selected->symbol->m_protectedField >= 0 ? nullptr : selected->symbol);
+            return withBounds(address, expr->type, selected->symbol != nullptr && selected->symbol->protectedField >= 0 ? nullptr : selected->symbol);
         }
         return loadFrom(address, expr->type);
     }
@@ -385,11 +385,11 @@ Value QbeEmitter::emitAddress(Expr* expr)
             && (identifier->symbol->kind == SymbolKind::Object
                 || identifier->symbol->kind == SymbolKind::Parameter
                 || identifier->symbol->kind == SymbolKind::LoopParameter)) {
-            if (identifier->symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
+            if (identifier->symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
                 Value object = addressOf(expr->m_protectedReceiver);
-                const auto& field = identifier->symbol->m_protectedType->fields[identifier->symbol->m_protectedField];
+                const auto& field = identifier->symbol->protectedType->fields[identifier->symbol->protectedField];
                 Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + fieldOffset(identifier->symbol->m_protectedType, field));
+                line(address.name + " =l add " + object.name + ", " + fieldOffset(identifier->symbol->protectedType, field));
                 return withBounds(address, field.type, nullptr);
             }
             return addressOf(identifier->symbol);
@@ -400,11 +400,11 @@ Value QbeEmitter::emitAddress(Expr* expr)
         auto* selected = static_cast<SelectedExpr*>(expr);
         if (selected->symbol != nullptr
             && (selected->symbol->kind == SymbolKind::Object || selected->symbol->kind == SymbolKind::Parameter)) {
-            if (selected->symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
+            if (selected->symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
                 Value object = addressOf(expr->m_protectedReceiver);
-                const auto& field = selected->symbol->m_protectedType->fields[selected->symbol->m_protectedField];
+                const auto& field = selected->symbol->protectedType->fields[selected->symbol->protectedField];
                 Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + fieldOffset(selected->symbol->m_protectedType, field));
+                line(address.name + " =l add " + object.name + ", " + fieldOffset(selected->symbol->protectedType, field));
                 return withBounds(address, field.type, nullptr);
             }
             return addressOf(selected->symbol);

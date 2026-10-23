@@ -159,7 +159,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
         spec.location = decl->location;
         type->taskBody = declareSubprogram(spec, scope, false);
-        type->taskBody->m_taskBody = true;
+        type->taskBody->taskBody = true;
         break;
     }
     case TypeDefKind::Enumeration: {
@@ -185,7 +185,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
             if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
-                literal->m_privatePrimitiveTo = m_packages.back();
+                literal->privatePrimitiveTo = m_packages.back();
             }
             scope->add(literal);
             type->primitives.push_back(literal);
@@ -546,7 +546,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->classWide = completing != nullptr ? classWide : nullptr;
         type->dispatchSlots = parent->dispatchSlots;
         for (Symbol* primitive : type->primitives) {
-            primitive->m_dispatchSlot = -1;
+            primitive->dispatchSlot = -1;
         }
         type->dispatchFrozen = false;
         rootType(parent)->dispatchFrozen = parent->tagged;
@@ -562,9 +562,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             // A private view can declare operations before its parent is known.
             // Complete inherited slots first, then append its own operations.
             for (Symbol* primitive : type->primitives) {
-                if (primitive->kind == SymbolKind::Subprogram && primitive->m_dispatchSlot < 0) {
-                    primitive->m_controllingType = type;
-                    primitive->m_dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                if (primitive->kind == SymbolKind::Subprogram && primitive->dispatchSlot < 0) {
+                    primitive->controllingType = type;
+                    primitive->dispatchSlot = static_cast<int>(type->dispatchSlots.size());
                     type->dispatchSlots.push_back(primitive);
                 }
             }
@@ -577,7 +577,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
             if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
-                literal->m_privatePrimitiveTo = m_packages.back();
+                literal->privatePrimitiveTo = m_packages.back();
             }
             scope->add(literal);
             type->primitives.push_back(literal);
@@ -591,7 +591,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
             profile->location = decl->location;
-            profile->m_pendingControlledResult = profile->returnType != nullptr
+            profile->pendingControlledResult = profile->returnType != nullptr
                 && rootType(profile->returnType)->isIncomplete;
             for (ParameterDecl& declaration : spec.parameters) {
                 Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
@@ -972,7 +972,7 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
         if (type != nullptr && type->tagged && type->parentType != nullptr
             && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount)) {
             for (Symbol* primitive : type->primitives) {
-                if (primitive->m_inheritedFrom != nullptr && rootType(primitive->returnType) == type) {
+                if (primitive->inheritedFrom != nullptr && rootType(primitive->returnType) == type) {
                     m_diagnostics.error(decl->location, "inherited function '" + primitive->displayName
                         + "' returning the extended type must be overridden");
                 }
@@ -1669,23 +1669,23 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         consider(parameter->type);
     }
     if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
-        symbol->m_privatePrimitiveTo = m_packages.back();
+        symbol->privatePrimitiveTo = m_packages.back();
     }
     for (Type* type : types) {
         if (type->tagged && type->classRoot == nullptr
-            && (scope == m_packageSpecScope || symbol->m_overrides)) {
+            && (scope == m_packageSpecScope || symbol->overrides)) {
             if (scope == m_packageSpecScope && !m_inVisiblePart
-                && rootType(symbol->returnType) == type && !symbol->m_overrides) {
+                && rootType(symbol->returnType) == type && !symbol->overrides) {
                 for (const auto& declaration : m_symbolTable.symbols()) {
                     if (declaration->kind == SymbolKind::TypeName && declaration->type == type
-                        && declaration->m_privatePrimitiveTo == nullptr) {
+                        && declaration->privatePrimitiveTo == nullptr) {
                         m_diagnostics.error(symbol->location,
                             "a private primitive with a controlling result must override a visible operation");
                         break;
                     }
                 }
             }
-            if (symbol->m_controllingType != nullptr && symbol->m_controllingType != type) {
+            if (symbol->controllingType != nullptr && symbol->controllingType != type) {
                 m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
             }
             for (Symbol* parameter : symbol->parameters) {
@@ -1697,7 +1697,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         }
         bool replaced = false;
         for (Symbol*& primitive : type->primitives) {
-            if (primitive->name != symbol->name || primitive->m_inheritedFrom == nullptr
+            if (primitive->name != symbol->name || primitive->inheritedFrom == nullptr
                 || primitive->parameters.size() != symbol->parameters.size()
                 || rootType(primitive->returnType) != rootType(symbol->returnType)) {
                 continue;
@@ -1708,26 +1708,26 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
             if (matches) {
                 scope->remove(primitive);
-                if (type->tagged && primitive->m_dispatchSlot >= 0) {
+                if (type->tagged && primitive->dispatchSlot >= 0) {
                     if (type->dispatchFrozen) {
                         m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after its type is frozen");
                     }
-                    symbol->m_dispatchSlot = primitive->m_dispatchSlot;
-                    symbol->m_controllingType = type;
-                    type->dispatchSlots[symbol->m_dispatchSlot] = symbol;
+                    symbol->dispatchSlot = primitive->dispatchSlot;
+                    symbol->controllingType = type;
+                    type->dispatchSlots[symbol->dispatchSlot] = symbol;
                 }
                 primitive = symbol;
                 replaced = true;
             }
         }
-        if (!replaced && (scope == m_packageSpecScope || symbol->m_overrides)) {
+        if (!replaced && (scope == m_packageSpecScope || symbol->overrides)) {
             type->primitives.push_back(symbol);
             if (type->tagged && type->classRoot == nullptr) {
                 if (type->dispatchFrozen) {
                     m_diagnostics.error(symbol->location, "a tagged primitive cannot be declared after its type is frozen");
                 }
-                symbol->m_controllingType = type;
-                symbol->m_dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                symbol->controllingType = type;
+                symbol->dispatchSlot = static_cast<int>(type->dispatchSlots.size());
                 type->dispatchSlots.push_back(symbol);
             }
         }
@@ -1760,7 +1760,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
     };
     for (Symbol* primitive : rootType(parent)->primitives) {
         if (primitive->kind != SymbolKind::Subprogram
-            || (primitive->m_privatePrimitiveTo != nullptr && !withinPackage(primitive->m_privatePrimitiveTo))) {
+            || (primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo))) {
             continue;
         }
         if (type->tagged && (primitive->name == "=" || primitive->name == "/=")
@@ -1771,19 +1771,19 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         }
         Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);
         inherited->location = location;
-        inherited->m_inheritedFrom = primitive;
-        inherited->m_dispatchSlot = primitive->m_dispatchSlot;
-        inherited->m_controllingType = type;
-        if (inherited->m_dispatchSlot >= 0) {
-            type->dispatchSlots[inherited->m_dispatchSlot] = inherited;
+        inherited->inheritedFrom = primitive;
+        inherited->dispatchSlot = primitive->dispatchSlot;
+        inherited->controllingType = type;
+        if (inherited->dispatchSlot >= 0) {
+            type->dispatchSlots[inherited->dispatchSlot] = inherited;
         }
-        inherited->m_declarationScope = scope;
+        inherited->declarationScope = scope;
         inherited->returnType = corresponding(primitive->returnType);
         inherited->hasBody = true;
         inherited->level = primitive->level;
         inherited->owner = primitive->owner;
         if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
-            inherited->m_privatePrimitiveTo = m_packages.back();
+            inherited->privatePrimitiveTo = m_packages.back();
         }
         for (Symbol* parameter : primitive->parameters) {
             Symbol* copy = m_symbolTable.createSymbol(SymbolKind::Parameter, parameter->name, parameter->displayName);
@@ -1816,11 +1816,11 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                 if (type->tagged && !subtypeConformant) {
                     m_diagnostics.error(declared->location, "overriding dispatching profile must be subtype conformant with the inherited operation");
                 }
-                declared->m_overrides = true;
-                if (type->tagged && inherited->m_dispatchSlot >= 0) {
-                    declared->m_controllingType = type;
-                    declared->m_dispatchSlot = inherited->m_dispatchSlot;
-                    type->dispatchSlots[declared->m_dispatchSlot] = declared;
+                declared->overrides = true;
+                if (type->tagged && inherited->dispatchSlot >= 0) {
+                    declared->controllingType = type;
+                    declared->dispatchSlot = inherited->dispatchSlot;
+                    type->dispatchSlots[declared->dispatchSlot] = declared;
                 }
                 overridden = true;
             }

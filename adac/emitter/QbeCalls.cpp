@@ -27,11 +27,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
-    if (!expr->m_dispatching && subprogram->m_inheritedFrom != nullptr) {
+    if (!expr->m_dispatching && subprogram->inheritedFrom != nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;
         inherited.form = CallForm::Subprogram;
-        inherited.subprogram = subprogram->m_inheritedFrom;
+        inherited.subprogram = subprogram->inheritedFrom;
         inherited.type = expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
         Value result = emitCall(&inherited);
@@ -50,11 +50,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
         return result;
     }
-    if (!expr->m_dispatching && subprogram->m_negatedEquality != nullptr) {
+    if (!expr->m_dispatching && subprogram->negatedEquality != nullptr) {
         CallExpr equality;
         equality.location = expr->location;
         equality.form = CallForm::Subprogram;
-        equality.subprogram = subprogram->m_negatedEquality;
+        equality.subprogram = subprogram->negatedEquality;
         equality.type = subprogram->returnType;
         equality.resolvedArguments = expr->resolvedArguments;
         Value result = emitCall(&equality);
@@ -74,15 +74,15 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             return Value { "0", 'w' };
         }
     }
-    if (!expr->m_dispatching && (subprogram->m_renamedSubprogram != nullptr || subprogram->m_renamedAccess != nullptr)) {
+    if (!expr->m_dispatching && (subprogram->renamedSubprogram != nullptr || subprogram->renamedAccess != nullptr)) {
         CallExpr renamed;
         renamed.location = expr->location;
         renamed.form = CallForm::Subprogram;
         renamed.type = expr->type;
         renamed.resolvedArguments = expr->resolvedArguments;
-        renamed.subprogram = subprogram->m_renamedSubprogram;
-        if (subprogram->m_renamedAccess != nullptr) {
-            Symbol* binding = subprogram->m_renamedAccess;
+        renamed.subprogram = subprogram->renamedSubprogram;
+        if (subprogram->renamedAccess != nullptr) {
+            Symbol* binding = subprogram->renamedAccess;
             auto callee = std::make_unique<IdentifierExpr>();
             callee->symbol = binding;
             callee->type = binding->type;
@@ -105,7 +105,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     Value protectedObject;
-    if (subprogram->m_protectedType != nullptr) {
+    if (subprogram->protectedType != nullptr) {
         if (expr->m_protectedObject != nullptr) {
             protectedObject = emitExpr(expr->m_protectedObject);
             if (baseType(expr->m_protectedObject->type)->kind == TypeKind::Access) {
@@ -129,8 +129,8 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 
     bool dispatchEquality = expr->m_dispatching && (subprogram->name == "=" || subprogram->name == "/=")
         && subprogram->parameters.size() == 2
-        && rootType(subprogram->parameters[0]->type) == subprogram->m_controllingType
-        && rootType(subprogram->parameters[1]->type) == subprogram->m_controllingType;
+        && rootType(subprogram->parameters[0]->type) == subprogram->controllingType
+        && rootType(subprogram->parameters[1]->type) == subprogram->controllingType;
     std::string callee = subprogram->qbeName;
     std::string indirectLink;
     if (expr->m_indirect) {
@@ -193,7 +193,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         arguments.push_back("l " + link.name);
     }
 
-    if (subprogram->m_protectedType != nullptr) {
+    if (subprogram->protectedType != nullptr) {
         arguments.push_back("l " + protectedObject.name);
     }
 
@@ -211,7 +211,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (expr->m_dispatching) {
         for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
             Expr* argument = expr->resolvedArguments[i];
-            if (rootType(subprogram->parameters[i]->type) == subprogram->m_controllingType
+            if (rootType(subprogram->parameters[i]->type) == subprogram->controllingType
                 && !argument->m_tagIndeterminate) {
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
@@ -270,7 +270,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 value.last = target.last;
                 value.innerBounds = target.innerBounds;
             }
-            if (expr->m_dispatching && rootType(parameter->type) == subprogram->m_controllingType) {
+            if (expr->m_dispatching && rootType(parameter->type) == subprogram->controllingType) {
                 std::string tag = newTemp();
                 line(tag + " =l loadl " + value.name);
                 if (controllingTag.empty()) {
@@ -326,7 +326,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         } else {
             line(tableSlot + " =l add " + controllingTag + ", 24");
             line(table + " =l loadl " + tableSlot);
-            line(slot + " =l add " + table + ", " + std::to_string(16 * subprogram->m_dispatchSlot));
+            line(slot + " =l add " + table + ", " + std::to_string(16 * subprogram->dispatchSlot));
         }
         line(callee + " =l loadl " + slot);
         line(linkSlot + " =l add " + slot + ", 8");
@@ -341,9 +341,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     std::string protectedAction;
-    if (expr->m_protectedObject != nullptr && subprogram->m_protectedType != nullptr) {
+    if (expr->m_protectedObject != nullptr && subprogram->protectedType != nullptr) {
         protectedAction = allocScratch(16);
-        if (subprogram->m_entry) {
+        if (subprogram->entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
             emitCallInstruction("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
                 + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")", CallEffects::DeferredCheck);
@@ -413,7 +413,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + resultStorage);
         result = Value { pointer, 'l' };
-        if (expr->m_dispatching && rootType(subprogram->returnType) == subprogram->m_controllingType) {
+        if (expr->m_dispatching && rootType(subprogram->returnType) == subprogram->controllingType) {
             line("storel " + controllingTag + ", " + pointer);
         }
     } else if (dynamicResult) {

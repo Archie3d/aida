@@ -205,7 +205,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     symbol->location = decl->location;
     symbol->generic = decl;
     symbol->hasBody = decl->m_hasBody;
-    symbol->m_requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
+    symbol->requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->owner = m_currentSubprogram;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->qbeName = "$" + mangle(lower) + "__generic";
@@ -261,10 +261,10 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
     }
     // Implicit inherited overloads share the derived declaration's location.
     // Their originating operation distinguishes them during contract replay.
-    Symbol* origin = symbol->m_inheritedFrom != nullptr ? instanceSymbol(symbol->m_inheritedFrom) : nullptr;
+    Symbol* origin = symbol->inheritedFrom != nullptr ? instanceSymbol(symbol->inheritedFrom) : nullptr;
     for (std::size_t i = symbols.size(); i > m_instanceFirstSymbol; --i) {
         Symbol* candidate = symbols[i - 1].get();
-        if (candidate->kind == symbol->kind && candidate->m_inheritedFrom == origin
+        if (candidate->kind == symbol->kind && candidate->inheritedFrom == origin
             && (candidate->name == symbol->name || (symbol->name == m_replayContract->m_unitName
                 && (symbol->kind == SymbolKind::Subprogram || symbol->kind == SymbolKind::Package)))
             && contractKey(candidate->location) == contractKey(symbol->location)) {
@@ -586,7 +586,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     const auto& actualCandidates = namedDefault && actual->kind == ExprKind::Selected
         ? formal.m_defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
-        if (matches(candidate) && candidate->m_protectedType != nullptr) {
+        if (matches(candidate) && candidate->protectedType != nullptr) {
             m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
             return false;
         }
@@ -676,7 +676,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         if (implementation != nullptr) {
             Type* result = implementation->type;
             if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->tagged)) {
-                wrapper->m_usesFinalization = true;
+                wrapper->usesFinalization = true;
             }
         }
     }
@@ -882,9 +882,9 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         symbol->type = type;
         symbol->location = formal.location;
         symbol->isConstant = !reference;
-        symbol->m_objectReference = reference;
-        symbol->m_genericObject = true;
-        symbol->m_sharedAlias = reference ? actual : nullptr;
+        symbol->objectReference = reference;
+        symbol->genericObject = true;
+        symbol->sharedAlias = reference ? actual : nullptr;
         symbol->owner = m_currentSubprogram;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
         symbol->isGlobal = m_currentSubprogram == nullptr;
@@ -1230,7 +1230,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     if (requireLibraryBodies && !m_diagnostics.hasErrors()) {
         for (const auto& symbol : m_symbolTable.symbols()) {
-            if (symbol->m_requiresBody && !symbol->hasBody && !symbol->m_missingBodyReported) {
+            if (symbol->requiresBody && !symbol->hasBody && !symbol->missingBodyReported) {
                 if (symbol->kind == SymbolKind::Generic && symbol->generic->isPackage) {
                     auto contract = m_genericContracts.find(symbol->generic);
                     if (contract == m_genericContracts.end() || !requiresGenericBody(contract->second->m_declarations)) {
@@ -1238,7 +1238,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
                     }
                 }
                 std::string kind = symbol->kind == SymbolKind::Generic
-                    ? (symbol->generic->isPackage ? "generic package" : "generic subprogram") : symbol->m_taskBody ? "task" : "subprogram";
+                    ? (symbol->generic->isPackage ? "generic package" : "generic subprogram") : symbol->taskBody ? "task" : "subprogram";
                 m_diagnostics.error(symbol->location, kind + " '" + symbol->displayName + "' has no body");
             }
         }

@@ -302,7 +302,7 @@ int objectView(Expr* expr)
     if (symbol == nullptr) {
         return 0;
     }
-    if (symbol->m_protectedField >= 0 && expr->m_protectedReceiver != nullptr
+    if (symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr
         && expr->m_protectedReceiver->mode == ParameterMode::In) {
         return 1;
     }

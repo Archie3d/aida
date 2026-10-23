@@ -427,9 +427,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             Expr* argument = expr->arguments[i].value.get();
             Type* formal = chosen->parameters[index]->type;
             Type* context = formal;
-            if (rootType(formal) == chosen->m_controllingType) {
+            if (rootType(formal) == chosen->controllingType) {
                 for (Type* actual : expressionTypes(argument, scope)) {
-                    if (actual->classRoot == chosen->m_controllingType) {
+                    if (actual->classRoot == chosen->controllingType) {
                         context = actual;
                         expr->m_dispatching = true;
                     }
@@ -450,24 +450,24 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
             }
         }
-        expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
-            && rootType(chosen->returnType) == chosen->m_controllingType
+        expr->m_tagIndeterminate = chosen->controllingType != nullptr
+            && rootType(chosen->returnType) == chosen->controllingType
             && !expr->m_dispatching;
         for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-            if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType) {
+            if (rootType(chosen->parameters[i]->type) == chosen->controllingType) {
                 expr->m_tagIndeterminate = expr->m_tagIndeterminate && expr->resolvedArguments[i] != nullptr
                     && expr->resolvedArguments[i]->m_tagIndeterminate;
             }
         }
         if (expr->m_dispatching) {
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-                if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
+                if (rootType(chosen->parameters[i]->type) == chosen->controllingType
                     && expr->resolvedArguments[i] != nullptr && expr->resolvedArguments[i]->m_tagIndeterminate) {
-                    dispatchIndeterminate(expr->resolvedArguments[i], chosen->m_controllingType);
+                    dispatchIndeterminate(expr->resolvedArguments[i], chosen->controllingType);
                 }
             }
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-                if (rootType(chosen->parameters[i]->type) == chosen->m_controllingType
+                if (rootType(chosen->parameters[i]->type) == chosen->controllingType
                     && expr->resolvedArguments[i] != nullptr
                     && expr->resolvedArguments[i]->type != nullptr
                     && expr->resolvedArguments[i]->type->classRoot == nullptr) {
@@ -477,8 +477,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = chosen->returnType;
         if (expr->m_dispatching && chosen->returnType != nullptr
-            && rootType(chosen->returnType) == chosen->m_controllingType) {
-            expr->type = classWideType(chosen->m_controllingType);
+            && rootType(chosen->returnType) == chosen->controllingType) {
+            expr->type = classWideType(chosen->controllingType);
         }
         return expr->type;
     }

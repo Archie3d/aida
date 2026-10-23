@@ -66,7 +66,7 @@ void Sema::setupStandardScope()
     // program ever names the package.
     Symbol* system = m_symbolTable.createSymbol(SymbolKind::Package, "system", "System");
     system->scope = m_symbolTable.createScope(nullptr);
-    system->m_libraryName = "system";
+    system->libraryName = "system";
     m_standardScope->add(system);
 
     m_addressType = m_types.create(TypeKind::Access, "Address");
@@ -95,7 +95,7 @@ void Sema::setupStandardScope()
 
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
     storageUnit->type = m_types.universalInteger();
-    storageUnit->m_exactReal = ExactReal::make(8);
+    storageUnit->exactReal = ExactReal::make(8);
     storageUnit->hasStaticValue = true;
     storageUnit->staticValue = 8;
     system->scope->add(storageUnit);
@@ -105,15 +105,15 @@ void Sema::setupStandardScope()
         number->type = m_types.universalInteger();
         number->isConstant = true;
         number->hasStaticValue = true;
-        number->m_exactReal = ExactReal::make(limit.second);
+        number->exactReal = ExactReal::make(limit.second);
         system->scope->add(number);
     }
 
     Symbol* fineDelta = m_symbolTable.createSymbol(SymbolKind::Number, "fine_delta", "Fine_Delta");
     fineDelta->type = m_types.universalReal();
     fineDelta->hasStaticValue = true;
-    fineDelta->m_exactReal = ExactReal::make(1, (__int128)1 << 62);
-    fineDelta->staticReal = fineDelta->m_exactReal.real();
+    fineDelta->exactReal = ExactReal::make(1, (__int128)1 << 62);
+    fineDelta->staticReal = fineDelta->exactReal.real();
     system->scope->add(fineDelta);
 
     addException(m_standardScope, "Constraint_Error");
@@ -288,7 +288,7 @@ void Sema::analyze(CompilationUnit& unit)
         }
     }
     if (declared != nullptr) {
-        declared->m_libraryName = name;
+        declared->libraryName = name;
         if (parts.size() == 1 && m_globalScope->lookupLocal(name).empty()) {
             m_globalScope->add(declared);
         }

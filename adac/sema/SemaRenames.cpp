@@ -69,7 +69,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
-    if (chosen != nullptr && chosen->m_protectedType != nullptr) {
+    if (chosen != nullptr && chosen->protectedType != nullptr) {
         m_diagnostics.error(decl->location, "renaming protected operations is not yet supported");
         return;
     }
@@ -158,7 +158,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 
     Symbol* completion = nullptr;
     for (Symbol* existing : scope->lookupDeclaration(spec.lower)) {
-        if (existing->m_inheritedFrom != nullptr) {
+        if (existing->inheritedFrom != nullptr) {
             continue;
         }
         bool sameTypes = existing->kind == SymbolKind::Subprogram
@@ -193,7 +193,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             return;
         }
         std::unordered_set<Symbol*> seen;
-        for (Symbol* target = chosen; target != nullptr; target = target->m_renamedSubprogram) {
+        for (Symbol* target = chosen; target != nullptr; target = target->renamedSubprogram) {
             if (target == completion || !seen.insert(target).second) {
                 m_diagnostics.error(decl->location, "a subprogram cannot rename itself");
                 return;
@@ -273,8 +273,8 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         decl->m_callbackBinding = binding;
     }
     if (completion == nullptr && !intrinsic && !enumeration && attributeType == nullptr) {
-        alias->m_renamedSubprogram = access == nullptr ? chosen : nullptr;
-        alias->m_renamedAccess = binding;
+        alias->renamedSubprogram = access == nullptr ? chosen : nullptr;
+        alias->renamedAccess = binding;
         if (scope != m_unitScope) {
             return;
         }
@@ -348,7 +348,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     m_currentSubprogram = saved;
-    alias->m_intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr;
+    alias->intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr;
     if (implementation == nullptr) {
         m_diagnostics.error(name->location, "unsupported renamed subprogram");
         return;

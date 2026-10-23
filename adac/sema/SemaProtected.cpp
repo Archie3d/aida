@@ -2,10 +2,10 @@
 
 void Sema::declareProtectedOperation(Symbol* operation, Type* type)
 {
-    if (operation->m_protectedReceiver != nullptr) {
+    if (operation->protectedReceiver != nullptr) {
         return;
     }
-    operation->m_protectedType = type;
+    operation->protectedType = type;
     if (operation->returnType != nullptr) {
         for (Symbol* parameter : operation->parameters) {
             if (parameter->mode != ParameterMode::In) {
@@ -20,14 +20,14 @@ void Sema::declareProtectedOperation(Symbol* operation, Type* type)
     receiver->byReference = true;
     receiver->mode = operation->returnType != nullptr ? ParameterMode::In : ParameterMode::InOut;
     receiver->isConstant = receiver->mode == ParameterMode::In;
-    operation->m_protectedReceiver = receiver;
+    operation->protectedReceiver = receiver;
 }
 
 Symbol* Sema::protectedReceiver(Type* type)
 {
     for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
-        if (owner->m_protectedType == type) {
-            return owner->m_protectedReceiver;
+        if (owner->protectedType == type) {
+            return owner->protectedReceiver;
         }
     }
     return nullptr;
@@ -46,7 +46,7 @@ bool Sema::isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope)
 
 void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope)
 {
-    if (operation->m_protectedType == nullptr) {
+    if (operation->protectedType == nullptr) {
         return;
     }
     if (object != nullptr) {
@@ -54,11 +54,11 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
         if (type != nullptr && baseType(type)->kind == TypeKind::Access) {
             type = baseType(type)->target;
         }
-        if (baseType(type) != operation->m_protectedType) {
+        if (baseType(type) != operation->protectedType) {
             m_diagnostics.error(expr->location, "protected operation requires an object of its protected type");
             return;
         }
-        if (isProtectedCurrentInstance(object, operation->m_protectedType, scope)) {
+        if (isProtectedCurrentInstance(object, operation->protectedType, scope)) {
             object = nullptr;
         } else {
             auto names = expressionNames(object, scope);
@@ -69,10 +69,10 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
         }
     }
     if (object == nullptr) {
-        if (operation->m_entry) {
+        if (operation->entry) {
             m_diagnostics.error(expr->location, "an entry call within a protected action is potentially blocking");
         }
-        Symbol* receiver = protectedReceiver(operation->m_protectedType);
+        Symbol* receiver = protectedReceiver(operation->protectedType);
         if (receiver == nullptr) {
             m_diagnostics.error(expr->location, "an internal protected call requires the current protected instance");
             return;
@@ -134,8 +134,8 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             }
             Symbol* component = m_symbolTable.createSymbol(SymbolKind::Object, field.name, field.displayName);
             component->type = field.type;
-            component->m_protectedType = type;
-            component->m_protectedField = field.index;
+            component->protectedType = type;
+            component->protectedField = field.index;
             component->location = decl->location;
             inner->add(component);
         }
@@ -162,7 +162,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             declareProtectedOperation(symbol, type);
             auto* declaration = static_cast<SubprogramDecl*>(operation.get());
             declaration->symbol = symbol;
-            symbol->m_protectedPrivate = declaration->m_protectedPrivate;
+            symbol->protectedPrivate = declaration->m_protectedPrivate;
         } else {
             auto* body = static_cast<SubprogramBody*>(operation.get());
             analyzeSubprogramBody(body, inner);
@@ -171,7 +171,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
                 if (barrier != nullptr) {
                     barrier->qbeName = body->symbol->qbeName + ".barrier";
                 }
-                if (body->symbol->m_declarationScope == inner) {
+                if (body->symbol->declarationScope == inner) {
                     m_diagnostics.error(body->location, "entry body requires a declaration in the protected definition");
                 }
             }

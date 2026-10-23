@@ -179,8 +179,8 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         }
     }
     expr->symbol = chosen;
-    if (chosen->m_protectedField >= 0) {
-        expr->m_protectedReceiver = protectedReceiver(chosen->m_protectedType);
+    if (chosen->protectedField >= 0) {
+        expr->m_protectedReceiver = protectedReceiver(chosen->protectedType);
         if (expr->m_protectedReceiver == nullptr) {
             m_diagnostics.error(expr->location, "protected components require the current protected instance");
         } else {
@@ -201,7 +201,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
             expr->isStatic = true;
             expr->staticValue = chosen->staticValue;
             expr->staticReal = chosen->staticReal;
-            expr->m_exactReal = chosen->m_exactReal;
+            expr->m_exactReal = chosen->exactReal;
         }
         return expr->type;
     case SymbolKind::Number:
@@ -209,7 +209,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         expr->isStatic = chosen->hasStaticValue;
         expr->staticValue = chosen->staticValue;
         expr->staticReal = chosen->staticReal;
-        expr->m_exactReal = chosen->m_exactReal;
+        expr->m_exactReal = chosen->exactReal;
         return expr->type;
     case SymbolKind::EnumerationLiteral:
         expr->type = chosen->type;
@@ -218,10 +218,10 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         return expr->type;
     case SymbolKind::Subprogram:
         expr->type = chosen->returnType;
-        expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
-            && rootType(chosen->returnType) == chosen->m_controllingType
+        expr->m_tagIndeterminate = chosen->controllingType != nullptr
+            && rootType(chosen->returnType) == chosen->controllingType
             && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
-                return rootType(parameter->type) == chosen->m_controllingType;
+                return rootType(parameter->type) == chosen->controllingType;
             });
         return expr->type;
     case SymbolKind::TypeName:
@@ -278,10 +278,10 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         noteReference(chosen);
         if (chosen->kind == SymbolKind::Subprogram) {
             expr->type = chosen->returnType;
-            expr->m_tagIndeterminate = chosen->m_controllingType != nullptr
-                && rootType(chosen->returnType) == chosen->m_controllingType
+            expr->m_tagIndeterminate = chosen->controllingType != nullptr
+                && rootType(chosen->returnType) == chosen->controllingType
                 && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
-                    return rootType(parameter->type) == chosen->m_controllingType;
+                    return rootType(parameter->type) == chosen->controllingType;
                 });
         } else {
             expr->type = chosen->type;
@@ -292,7 +292,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
                 expr->isStatic = true;
                 expr->staticValue = chosen->staticValue;
                 expr->staticReal = chosen->staticReal;
-                expr->m_exactReal = chosen->m_exactReal;
+                expr->m_exactReal = chosen->exactReal;
             }
         }
         return expr->type;
@@ -351,7 +351,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         Symbol* operation = resolveBareName(candidates, expected, expr->location, expr->selector);
-        if (operation != nullptr && operation->m_protectedField >= 0
+        if (operation != nullptr && operation->protectedField >= 0
             && isProtectedCurrentInstance(expr->prefix.get(), record, scope)) {
             expr->symbol = operation;
             expr->type = operation->type;
@@ -435,7 +435,7 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
         if (call->operatorExpression != nullptr) {
             dispatchIndeterminate(call->operatorExpression.get(), controlling);
         }
-        if (call->subprogram != nullptr && call->subprogram->m_controllingType == controlling) {
+        if (call->subprogram != nullptr && call->subprogram->controllingType == controlling) {
             call->m_dispatching = true;
             for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
                 if (rootType(call->subprogram->parameters[i]->type) == controlling) {

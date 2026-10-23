@@ -49,9 +49,9 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         for (std::size_t i = 0; i < operands.size(); ++i) {
             Symbol* formal = symbol->parameters[i];
             Type* context = formal->type;
-            if (symbol->m_controllingType != nullptr && rootType(formal->type) == symbol->m_controllingType) {
+            if (symbol->controllingType != nullptr && rootType(formal->type) == symbol->controllingType) {
                 for (Type* actual : expressionTypes(operands[i], scope)) {
-                    if (actual->classRoot == symbol->m_controllingType) {
+                    if (actual->classRoot == symbol->controllingType) {
                         context = actual;
                         dispatching = true;
                     }
@@ -62,12 +62,12 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             candidate.parameters.push_back(context);
         }
         if (dispatching && (name == "=" || name == "/=") && symbol->parameters.size() == 2
-            && rootType(symbol->parameters[0]->type) == symbol->m_controllingType
-            && rootType(symbol->parameters[1]->type) == symbol->m_controllingType) {
+            && rootType(symbol->parameters[0]->type) == symbol->controllingType
+            && rootType(symbol->parameters[1]->type) == symbol->controllingType) {
             continue; // Class-wide equality dispatches the complete specific equality.
         }
-        if (dispatching && rootType(candidate.result) == symbol->m_controllingType) {
-            candidate.result = classWideType(symbol->m_controllingType);
+        if (dispatching && rootType(candidate.result) == symbol->controllingType) {
+            candidate.result = classWideType(symbol->controllingType);
         }
         if (matches) {
             // A homograph hides the predefined profile even when its formal
@@ -263,9 +263,9 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
     call->callee = std::move(callee);
     for (std::size_t i = 0; i < operands.size(); ++i) {
         Type* context = symbol->parameters[i]->type;
-        if (symbol->m_controllingType != nullptr && rootType(context) == symbol->m_controllingType) {
+        if (symbol->controllingType != nullptr && rootType(context) == symbol->controllingType) {
             for (Type* actual : expressionTypes(operands[i].get(), scope)) {
-                if (actual->classRoot == symbol->m_controllingType) {
+                if (actual->classRoot == symbol->controllingType) {
                     context = actual;
                     call->m_dispatching = true;
                 }
@@ -278,22 +278,22 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
         argument.value = std::move(operands[i]);
         call->arguments.push_back(std::move(argument));
     }
-    call->m_tagIndeterminate = symbol->m_controllingType != nullptr
-        && rootType(call->type) == symbol->m_controllingType && !call->m_dispatching;
+    call->m_tagIndeterminate = symbol->controllingType != nullptr
+        && rootType(call->type) == symbol->controllingType && !call->m_dispatching;
     for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
-        if (rootType(symbol->parameters[i]->type) == symbol->m_controllingType) {
+        if (rootType(symbol->parameters[i]->type) == symbol->controllingType) {
             call->m_tagIndeterminate = call->m_tagIndeterminate && call->resolvedArguments[i]->m_tagIndeterminate;
         }
     }
     if (call->m_dispatching) {
-        if (rootType(call->type) == symbol->m_controllingType) {
-            call->type = classWideType(symbol->m_controllingType);
+        if (rootType(call->type) == symbol->controllingType) {
+            call->type = classWideType(symbol->controllingType);
         }
         for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
             if (call->resolvedArguments[i]->m_tagIndeterminate) {
-                dispatchIndeterminate(call->resolvedArguments[i], symbol->m_controllingType);
+                dispatchIndeterminate(call->resolvedArguments[i], symbol->controllingType);
             }
-            if (rootType(symbol->parameters[i]->type) == symbol->m_controllingType
+            if (rootType(symbol->parameters[i]->type) == symbol->controllingType
                 && call->resolvedArguments[i]->type != nullptr && call->resolvedArguments[i]->type->classRoot == nullptr) {
                 m_diagnostics.error(location, "all controlling operands of a dispatching call must be class-wide");
             }

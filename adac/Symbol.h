@@ -46,16 +46,16 @@ struct Symbol
     bool awaitsValue = false;   // A deferred constant, until its value is given.
     bool isGlobal = false;
     bool byReference = false;
-    bool m_genericObject = false;
-    int m_shared = 0;
-    Expr* m_sharedAlias = nullptr;
-    bool m_classWideObject = false;
-    bool m_objectReference = false; // A slot holding a renamed or generic actual object address.
+    bool genericObject = false;
+    int shared = 0;
+    Expr* sharedAlias = nullptr;
+    bool classWideObject = false;
+    bool objectReference = false; // A slot holding a renamed or generic actual object address.
     ParameterMode mode = ParameterMode::In;
     bool hasStaticValue = false;
     long long staticValue = 0;
     double staticReal = 0.0;
-    ExactReal m_exactReal;
+    ExactReal exactReal;
     std::string qbeName;   // Global symbol name, including the '$' sigil.
 
     // A parameter the caller may leave out.
@@ -65,41 +65,41 @@ struct Symbol
     // the declaration, so a call that leaves the parameter out simply points at
     // it rather than making a copy.
     Expr* defaultExpr = nullptr;
-    std::vector<Token> m_defaultTokens;
+    std::vector<Token> defaultTokens;
 
     // Subprograms.
     std::vector<Symbol*> parameters;
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
-    bool m_taskBody = false;
-    Symbol* m_taskIdentity = nullptr;
-    Type* m_protectedType = nullptr;
-    Symbol* m_protectedReceiver = nullptr;
-    bool m_protectedPrivate = false;
-    bool m_entry = false;
-    bool m_entryBarrierFunction = false;
-    int m_protectedField = -1;
-    bool m_requiresBody = false;
-    bool m_missingBodyReported = false;
+    bool taskBody = false;
+    Symbol* taskIdentity = nullptr;
+    Type* protectedType = nullptr;
+    Symbol* protectedReceiver = nullptr;
+    bool protectedPrivate = false;
+    bool entry = false;
+    bool entryBarrierFunction = false;
+    int protectedField = -1;
+    bool requiresBody = false;
+    bool missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.
-    Symbol* m_inheritedFrom = nullptr;
-    Symbol* m_privatePrimitiveTo = nullptr;
-    bool m_overrides = false;
-    Type* m_controllingType = nullptr;
-    int m_dispatchSlot = -1;
-    int m_pendingOverride = 0;
-    bool m_pendingControlledResult = false;
-    Symbol* m_renamedSubprogram = nullptr;
-    Symbol* m_renamedAccess = nullptr;
-    bool m_intrinsicRenaming = false;
-    Scope* m_declarationScope = nullptr;
-    bool m_addressTaken = false;
+    Symbol* inheritedFrom = nullptr;
+    Symbol* privatePrimitiveTo = nullptr;
+    bool overrides = false;
+    Type* controllingType = nullptr;
+    int dispatchSlot = -1;
+    int pendingOverride = 0;
+    bool pendingControlledResult = false;
+    Symbol* renamedSubprogram = nullptr;
+    Symbol* renamedAccess = nullptr;
+    bool intrinsicRenaming = false;
+    Scope* declarationScope = nullptr;
+    bool addressTaken = false;
     // Code pointer and static link, stored once in the enclosing frame.
-    long long m_descriptorOffset = -1;
+    long long descriptorOffset = -1;
     // Body readiness belongs to the enclosing activation, beside captures.
-    long long m_elaborationOffset = -1;
-    Symbol* m_negatedEquality = nullptr; // Implicit Boolean "/=" delegates to "=".
+    long long elaborationOffset = -1;
+    Symbol* negatedEquality = nullptr; // Implicit Boolean "/=" delegates to "=".
 
 
     // Run time builtins.  The symbol names the C entry point, and a call into it
@@ -112,10 +112,10 @@ struct Symbol
     // lets it see what its parent keeps private.
     Scope* scope = nullptr;
     Symbol* parentPackage = nullptr;
-    std::string m_libraryName;
-    bool m_hasSpecification = false;
-    bool m_containsTasks = false;
-    PackageSpecDecl* m_packageDeclaration = nullptr;
+    std::string libraryName;
+    bool hasSpecification = false;
+    bool containsTasks = false;
+    PackageSpecDecl* packageDeclaration = nullptr;
 
     // Generic units, which keep the declaration they came from so that an
     // instantiation can read the tokens again.
@@ -133,13 +133,13 @@ struct Symbol
     // that owns them.  Objects referenced from a nested subprogram live in the
     // owner's frame block instead of a plain stack slot.
     int level = 0;
-    int m_accessibilityLevel = 0;
+    int accessibilityLevel = 0;
     Symbol* owner = nullptr;
     bool isUplevel = false;
     long long frameOffset = -1;
     long long frameSize = 8;
     bool needsFrame = false;
-    bool m_usesFinalization = false;
+    bool usesFinalization = false;
 };
 
 inline int sharedObjectKind(const Expr* expr);
@@ -149,8 +149,8 @@ inline int sharedSymbolKind(const Symbol* symbol)
     if (symbol == nullptr) {
         return 0;
     }
-    int kind = std::max(symbol->m_shared, sharedTypeKind(symbol->type));
-    return std::max(kind, sharedObjectKind(symbol->m_sharedAlias));
+    int kind = std::max(symbol->shared, sharedTypeKind(symbol->type));
+    return std::max(kind, sharedObjectKind(symbol->sharedAlias));
 }
 
 inline int sharedObjectKind(const Expr* expr)

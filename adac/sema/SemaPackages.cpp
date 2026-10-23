@@ -59,15 +59,15 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     std::size_t pushed = 0;
     Symbol* symbol = declarePackagePath(decl->lower, decl->name, scope, decl->location, pushed);
     decl->symbol = symbol;
-    if (symbol->m_hasSpecification) {
+    if (symbol->hasSpecification) {
         m_diagnostics.error(decl->location, "'" + decl->name + "' has already been declared in this scope");
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
         }
         return;
     }
-    symbol->m_hasSpecification = true;
-    symbol->m_packageDeclaration = decl;
+    symbol->hasSpecification = true;
+    symbol->packageDeclaration = decl;
 
     // What a private type is made of is in reach from here down to the end of
     // the private part, and from the body, but nowhere else.
@@ -102,19 +102,19 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             if (hasTasks(operation->returnType)) {
                 m_diagnostics.error(operation->location, "function results containing tasks are not yet supported");
             }
-            if (operation->m_pendingControlledResult) {
+            if (operation->pendingControlledResult) {
                 Type* result = operation->returnType;
                 if (needsFinalization(result) && operation->builtin == BuiltinKind::Runtime) {
                     m_diagnostics.error(operation->location, "imported controlled function results are not yet supported");
                 }
-                operation->m_pendingControlledResult = false;
+                operation->pendingControlledResult = false;
             }
-            if (operation->m_pendingOverride == 1 && !operation->m_overrides) {
+            if (operation->pendingOverride == 1 && !operation->overrides) {
                 m_diagnostics.error(operation->location, "subprogram marked overriding does not override an inherited operation");
-            } else if (operation->m_pendingOverride == -1 && operation->m_overrides) {
+            } else if (operation->pendingOverride == -1 && operation->overrides) {
                 m_diagnostics.error(operation->location, "subprogram marked not overriding overrides an inherited operation");
             }
-            operation->m_pendingOverride = 0;
+            operation->pendingOverride = 0;
         }
     }
     m_packageSpecScope = savedSpecScope;
@@ -165,7 +165,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     }
 
     Symbol* symbol = lookupName(decl->lower, scope);
-    if (symbol == nullptr || symbol->kind != SymbolKind::Package || !symbol->m_hasSpecification) {
+    if (symbol == nullptr || symbol->kind != SymbolKind::Package || !symbol->hasSpecification) {
         m_diagnostics.error(decl->location, "package body '" + decl->name + "' has no specification");
         return;
     }
@@ -188,9 +188,9 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     m_packages.push_back(symbol);
     analyzeDeclarativePart(decl->declarations, bodyScope);
     reportMissingBodies(decl->declarations);
-    if (symbol->m_packageDeclaration != nullptr) {
-        reportMissingBodies(symbol->m_packageDeclaration->publicPart);
-        reportMissingBodies(symbol->m_packageDeclaration->privatePart);
+    if (symbol->packageDeclaration != nullptr) {
+        reportMissingBodies(symbol->packageDeclaration->publicPart);
+        reportMissingBodies(symbol->packageDeclaration->privatePart);
     }
     Symbol* savedSubprogram = m_currentSubprogram;
     if (m_currentSubprogram == nullptr) {

@@ -81,8 +81,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "access") {
         Symbol* subprogram = expr->m_accessSubprogram;
-        if (subprogram->m_renamedAccess != nullptr) {
-            Symbol* binding = subprogram->m_renamedAccess;
+        if (subprogram->renamedAccess != nullptr) {
+            Symbol* binding = subprogram->renamedAccess;
             return loadFrom(addressOf(binding), binding->type);
         }
         if (subprogram->level == 0) {
@@ -91,7 +91,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         }
         Value frame = staticLinkFor(subprogram->level - 1);
         std::string descriptor = newTemp();
-        line(descriptor + " =l add " + frame.name + ", " + std::to_string(subprogram->m_descriptorOffset));
+        line(descriptor + " =l add " + frame.name + ", " + std::to_string(subprogram->descriptorOffset));
         return Value { descriptor, 'l' };
     }
     if (name == "identity") {

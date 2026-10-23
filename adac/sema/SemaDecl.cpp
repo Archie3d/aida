@@ -46,7 +46,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                 Symbol* symbol = m_symbolTable.symbols()[i].get();
                 auto locals = scope->lookupLocal(symbol->name);
                 if (std::find(locals.begin(), locals.end(), symbol) != locals.end()) {
-                    symbol->m_privatePrimitiveTo = m_packages.back();
+                    symbol->privatePrimitiveTo = m_packages.back();
                 }
             }
         }
@@ -74,8 +74,8 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             reportMissingBodies(typeDecl->m_protectedDeclarations);
             Type* type = typeDecl->declaredType;
             if (type != nullptr && type->taskBody != nullptr && !type->taskBody->hasBody
-                && !type->taskBody->m_missingBodyReported) {
-                type->taskBody->m_missingBodyReported = true;
+                && !type->taskBody->missingBodyReported) {
+                type->taskBody->missingBodyReported = true;
                 m_diagnostics.error(decl->location, "task '" + type->name + "' has no body");
             }
         }
@@ -83,8 +83,8 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             continue;
         }
         Symbol* symbol = static_cast<SubprogramDecl*>(decl.get())->symbol;
-        if (symbol != nullptr && !symbol->hasBody && !symbol->m_missingBodyReported) {
-            symbol->m_missingBodyReported = true;
+        if (symbol != nullptr && !symbol->hasBody && !symbol->missingBodyReported) {
+            symbol->missingBodyReported = true;
             m_diagnostics.error(decl->location,
                 "subprogram '" + symbol->displayName + "' has no body");
         }
@@ -178,7 +178,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }
 
     if (hasTasks(type) && !m_packages.empty()) {
-        m_packages.back()->m_containsTasks = true;
+        m_packages.back()->containsTasks = true;
     }
     if (type != nullptr && type->tagged && type->classRoot == nullptr) {
         rootType(type)->dispatchFrozen = true;
@@ -303,14 +303,14 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             recordScalarConstraint(distinct, decl->subtype->location, true);
             symbol->type = distinct;
         }
-        symbol->m_objectReference = decl->m_isRenaming;
-        symbol->m_sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
-        symbol->m_classWideObject = type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming;
+        symbol->objectReference = decl->m_isRenaming;
+        symbol->sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
+        symbol->classWideObject = type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
         symbol->location = decl->location;
         symbol->owner = m_currentSubprogram;
-        symbol->m_accessibilityLevel = m_accessibilityLevel;
+        symbol->accessibilityLevel = m_accessibilityLevel;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         if (symbol->isGlobal) {
@@ -329,7 +329,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             }
         }
         if (decl->initializer && type->kind != TypeKind::Float) {
-            symbol->m_exactReal = decl->initializer->m_exactReal;
+            symbol->exactReal = decl->initializer->m_exactReal;
         }
         scope->add(symbol);
         decl->symbols.push_back(symbol);
@@ -361,7 +361,7 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
 
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, decl->namesLower[i], decl->names[i]);
         symbol->type = type;
-        exactValue(decl->value.get(), symbol->m_exactReal);
+        exactValue(decl->value.get(), symbol->exactReal);
         symbol->isConstant = true;
         symbol->hasStaticValue = isStatic;
         symbol->staticValue = value;
@@ -446,7 +446,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
             matches = matches && rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i]);
         }
-        if (matches && (candidate->m_inheritedFrom != nullptr || (isBody && candidate->m_overrides))) {
+        if (matches && (candidate->inheritedFrom != nullptr || (isBody && candidate->overrides))) {
             overrides = true;
             bool subtypeConformant = candidate->returnType == returnType
                 || SemaSupport::staticallyMatches(candidate->returnType, returnType);
@@ -457,7 +457,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     m_diagnostics.error(spec.location, "overriding parameters must have the inherited modes");
                 }
             }
-            if (candidate->m_dispatchSlot >= 0 && !subtypeConformant) {
+            if (candidate->dispatchSlot >= 0 && !subtypeConformant) {
                 m_diagnostics.error(spec.location, "overriding dispatching profile must be subtype conformant with the inherited operation");
             }
         }
@@ -513,7 +513,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
     }
     for (Symbol* candidate : scope->lookupDeclaration(spec.lower)) {
-        if (candidate->m_inheritedFrom != nullptr || candidate->m_negatedEquality != nullptr
+        if (candidate->inheritedFrom != nullptr || candidate->negatedEquality != nullptr
             || (m_replayContract != nullptr && candidate != contractDeclaration)) {
             continue;
         }
@@ -555,7 +555,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 m_diagnostics.error(spec.location, "subprogram body does not conform to the previous declaration");
             }
         }
-        if (candidate->m_entry != spec.m_entry) {
+        if (candidate->entry != spec.m_entry) {
             m_diagnostics.error(spec.location, "entry and procedure declarations cannot complete one another");
         }
         candidate->hasBody = candidate->hasBody || isBody;
@@ -571,16 +571,16 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Subprogram, spec.lower, spec.name);
     symbol->location = spec.location;
     symbol->returnType = returnType;
-    symbol->m_pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
+    symbol->pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
-    symbol->m_entry = spec.m_entry;
-    symbol->m_requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
-    symbol->m_overrides = overrides;
-    symbol->m_pendingOverride = pendingOverride ? spec.m_overriding : 0;
-    symbol->m_declarationScope = scope;
+    symbol->entry = spec.m_entry;
+    symbol->requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
+    symbol->overrides = overrides;
+    symbol->pendingOverride = pendingOverride ? spec.m_overriding : 0;
+    symbol->declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
-    symbol->m_accessibilityLevel = m_accessibilityLevel;
+    symbol->accessibilityLevel = m_accessibilityLevel;
     if (symbol->owner != nullptr) {
         // Every intervening lexical level needs a link, even when it has no
         // captured variables of its own. Defaults can read through that level.
@@ -620,7 +620,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             adaptUniversal(declaration.defaultValue.get(), parameterTypes[i]);
             parameter->hasDefault = true;
             parameter->defaultExpr = declaration.defaultValue.get();
-            parameter->m_defaultTokens = declaration.m_defaultTokens;
+            parameter->defaultTokens = declaration.m_defaultTokens;
         }
         declaration.symbol = parameter;
         symbol->parameters.push_back(parameter);
@@ -635,8 +635,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         Symbol* complement = m_symbolTable.createSymbol(SymbolKind::Subprogram, "/=", "/=");
         complement->parameters = symbol->parameters;
         complement->returnType = returnType;
-        complement->m_negatedEquality = symbol;
-        complement->m_overrides = symbol->m_overrides;
+        complement->negatedEquality = symbol;
+        complement->overrides = symbol->overrides;
         complement->hasBody = true;
         complement->location = symbol->location;
         complement->owner = symbol->owner;
@@ -693,14 +693,14 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     scope->m_publicChildPart = false;
     symbol->hasBody = true;
     body->symbol = symbol;
-    symbol->m_entryBarrierFunction = body->spec.m_entryBarrier;
-    if (body->m_taskBody && symbol->m_taskIdentity == nullptr) {
+    symbol->entryBarrierFunction = body->spec.m_entryBarrier;
+    if (body->m_taskBody && symbol->taskIdentity == nullptr) {
         Symbol* identity = m_symbolTable.createSymbol(SymbolKind::Object, "__task_identity", "__task_identity");
         identity->type = m_taskIdType;
         identity->owner = symbol;
         identity->level = symbol->level;
         identity->isConstant = true;
-        symbol->m_taskIdentity = identity;
+        symbol->taskIdentity = identity;
     }
 
     Scope* inner = m_symbolTable.createScope(scope);
@@ -713,7 +713,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     Symbol* savedSubprogram = m_currentSubprogram;
     m_currentSubprogram = symbol;
     int savedAccessibility = m_accessibilityLevel;
-    m_accessibilityLevel = symbol->m_accessibilityLevel + 1;
+    m_accessibilityLevel = symbol->accessibilityLevel + 1;
     int savedHandlerDepth = m_handlerDepth;
     m_handlerDepth = 0;
     m_namePrefix.push_back(symbol->name);
@@ -777,7 +777,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
     if (decl->lower == "atomic" || decl->lower == "volatile") {
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         bool object = entity != nullptr && entity->kind == SymbolKind::Object
-            && !entity->m_objectReference && !entity->m_genericObject && entity->m_protectedField < 0;
+            && !entity->objectReference && !entity->genericObject && entity->protectedField < 0;
         bool typeName = entity != nullptr && entity->kind == SymbolKind::TypeName
             && entity->type != nullptr && !entity->type->isSubtype;
         if ((!object && !typeName) || entity->type == nullptr) {
@@ -808,7 +808,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
                 }
             }
         }
-        int& shared = typeName ? type->shared : entity->m_shared;
+        int& shared = typeName ? type->shared : entity->shared;
         shared = std::max(shared, decl->lower == "atomic" ? 2 : 1);
         return;
     }

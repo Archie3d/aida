@@ -128,7 +128,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
     Value address;
     if (symbol->isGlobal) {
         address = Value { symbol->qbeName, 'l' };
-        if (symbol->kind == SymbolKind::Object && hasRuntimeLayout(symbol->type) && !symbol->m_objectReference) {
+        if (symbol->kind == SymbolKind::Object && hasRuntimeLayout(symbol->type) && !symbol->objectReference) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
             address.name = pointer;
@@ -140,7 +140,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         address = Value { newTemp(), 'l' };
         line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         if ((symbol->kind == SymbolKind::Parameter && symbol->byReference)
-            || (symbol->kind == SymbolKind::Object && !symbol->m_objectReference
+            || (symbol->kind == SymbolKind::Object && !symbol->objectReference
                 && (hasRuntimeLayout(symbol->type)
                     || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)))) {
             std::string pointer = newTemp();
@@ -155,7 +155,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         }
         address = Value { it->second, 'l' };
     }
-    if (symbol->m_objectReference || symbol->m_classWideObject) {
+    if (symbol->objectReference || symbol->classWideObject) {
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + address.name);
         address.name = pointer;
@@ -542,9 +542,9 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
         return;
     }
     Symbol* implementation = primitive;
-    while (implementation->m_inheritedFrom != nullptr || implementation->m_renamedSubprogram != nullptr) {
-        implementation = implementation->m_inheritedFrom != nullptr
-            ? implementation->m_inheritedFrom : implementation->m_renamedSubprogram;
+    while (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr) {
+        implementation = implementation->inheritedFrom != nullptr
+            ? implementation->inheritedFrom : implementation->renamedSubprogram;
     }
     std::string tag = newTemp();
     std::string tableSlot = newTemp();
@@ -558,7 +558,7 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
     }
     line(tableSlot + " =l add " + tag + ", 24");
     line(table + " =l loadl " + tableSlot);
-    line(entry + " =l add " + table + ", " + std::to_string(primitive->m_dispatchSlot * 16));
+    line(entry + " =l add " + table + ", " + std::to_string(primitive->dispatchSlot * 16));
     line(code + " =l loadl " + entry);
     std::string arguments;
     if (implementation->level > 0) {

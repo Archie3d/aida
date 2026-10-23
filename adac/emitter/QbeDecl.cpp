@@ -46,11 +46,11 @@ void QbeEmitter::emitTypeTag(Type* type)
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
-        while (slot->m_inheritedFrom != nullptr) {
-            slot = slot->m_inheritedFrom;
+        while (slot->inheritedFrom != nullptr) {
+            slot = slot->inheritedFrom;
         }
-        while (slot->m_renamedSubprogram != nullptr) {
-            slot = slot->m_renamedSubprogram;
+        while (slot->renamedSubprogram != nullptr) {
+            slot = slot->renamedSubprogram;
         }
         if (!first) {
             m_data << ", ";
@@ -155,12 +155,12 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
-                long long size = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeSize(symbol->type);
+                long long size = (symbol->objectReference || symbol->classWideObject) ? 8 : typeSize(symbol->type);
                 if (symbol->type->kind == TypeKind::Array && hasRuntimeLayout(symbol->type)) {
                     size = adaArrayLocalSize(symbol->type->arrayRank);
                 }
                 else if (hasRuntimeLayout(symbol->type)) { size = 8; }
-                long long alignment = (symbol->m_objectReference || symbol->m_classWideObject || hasRuntimeLayout(symbol->type))
+                long long alignment = (symbol->objectReference || symbol->classWideObject || hasRuntimeLayout(symbol->type))
                     ? 8 : typeAlignment(symbol->type);
                 m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
                        << " { z " << (size < 1 ? 1 : size) << " }\n";
@@ -241,13 +241,13 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.m_shared = sharedSymbolKind(symbol) != 0;
-                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->m_objectReference) {
+                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->objectReference) {
                     emitDynamicArray(object, symbol);
                     continue;
                 }
                 std::string savedOwner = m_context->m_constructionOwner;
                 std::string savedArena = m_context->m_constructionArena;
-                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Record && !symbol->m_objectReference) {
+                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Record && !symbol->objectReference) {
                     std::string arena = newTemp(), pointer = newTemp();
                     emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
                     std::string size = runtimeSize(symbol->type);
@@ -260,12 +260,12 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                         emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
                     }
                 }
-                if (!symbol->m_objectReference && !symbol->m_classWideObject) {
+                if (!symbol->objectReference && !symbol->classWideObject) {
                     prepareControlledObject(address, symbol->type, true);
                 }
-                if (symbol->m_classWideObject) {
+                if (symbol->classWideObject) {
                     emitClassWideObject(object, symbol);
-                } else if (symbol->m_objectReference) {
+                } else if (symbol->objectReference) {
                     emitObjectReference(object, symbol);
                 } else if (object->initializer) {
                     initializeObject(address, symbol, object->initializer.get());
@@ -322,9 +322,9 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
             Symbol* symbol = decl->kind == DeclKind::SubprogramBody
                 ? static_cast<SubprogramBody*>(decl.get())->symbol
                 : static_cast<GenericDecl*>(decl.get())->symbol;
-            if (symbol != nullptr && symbol->level > 0 && symbol->m_elaborationOffset < 0) {
+            if (symbol != nullptr && symbol->level > 0 && symbol->elaborationOffset < 0) {
                 m_context->hasFrame = true;
-                symbol->m_elaborationOffset = reserveFrame(4, 4);
+                symbol->elaborationOffset = reserveFrame(4, 4);
                 Value flag = elaborationFlag(symbol);
                 line("storew 0, " + flag.name);
             }
@@ -365,7 +365,7 @@ Value QbeEmitter::elaborationFlag(Symbol* symbol)
     }
     Value frame = staticLinkFor(symbol->level - 1);
     Value flag { newTemp(), 'l' };
-    line(flag.name + " =l add " + frame.name + ", " + std::to_string(symbol->m_elaborationOffset));
+    line(flag.name + " =l add " + frame.name + ", " + std::to_string(symbol->elaborationOffset));
     return flag;
 }
 
@@ -391,13 +391,13 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
             subprogram = static_cast<SubprogramDecl*>(decl.get())->symbol;
         }
-        if (subprogram != nullptr && subprogram->m_addressTaken && subprogram->m_renamedAccess == nullptr
+        if (subprogram != nullptr && subprogram->addressTaken && subprogram->renamedAccess == nullptr
             && subprogram->level > 0
-            && subprogram->m_descriptorOffset < 0) {
-            subprogram->m_descriptorOffset = reserveFrame(16);
+            && subprogram->descriptorOffset < 0) {
+            subprogram->descriptorOffset = reserveFrame(16);
             std::string descriptor = newTemp();
             std::string linkSlot = newTemp();
-            line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(subprogram->m_descriptorOffset));
+            line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(subprogram->descriptorOffset));
             line("storel " + subprogram->qbeName + ", " + descriptor);
             line(linkSlot + " =l add " + descriptor + ", 8");
             line("storel " + m_context->frameTemp + ", " + linkSlot);
@@ -445,10 +445,10 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     continue;
                 }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
-                if (symbol->m_classWideObject) {
+                if (symbol->classWideObject) {
                     emitClassWideObject(object, symbol);
                     continue;
-                } else if (symbol->m_objectReference) {
+                } else if (symbol->objectReference) {
                     emitObjectReference(object, symbol);
                     continue;
                 }
@@ -472,7 +472,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     else { emitDefaultInit(Value {pointer, 'l'}, symbol->type); }
                     continue;
                 }
-                long long size = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeSize(symbol->type);
+                long long size = (symbol->objectReference || symbol->classWideObject) ? 8 : typeSize(symbol->type);
                 if (size < 1) {
                     size = 1;
                 }
@@ -527,13 +527,13 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         case DeclKind::PackageSpecification: {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
             std::string savedGroup = m_context->m_taskGroup;
-            if (package->symbol->m_containsTasks) {
+            if (package->symbol->containsTasks) {
                 m_context->m_taskGroup = allocScratch(1);
                 m_context->m_taskGroups[package->symbol] = m_context->m_taskGroup;
             }
             emitLocalDeclarations(package->publicPart);
             emitLocalDeclarations(package->privatePart);
-            if (package->symbol->m_containsTasks && !package->symbol->hasBody) {
+            if (package->symbol->containsTasks && !package->symbol->hasBody) {
                 emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
             }
             m_context->m_taskGroup = savedGroup;
@@ -546,11 +546,11 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 break;
             }
             std::string savedGroup = m_context->m_taskGroup;
-            if (package->symbol->m_containsTasks) {
+            if (package->symbol->containsTasks) {
                 m_context->m_taskGroup = m_context->m_taskGroups.at(package->symbol);
             }
             emitLocalDeclarations(package->declarations);
-            if (package->symbol->m_containsTasks) {
+            if (package->symbol->containsTasks) {
                 emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l 0, l " + m_context->m_taskGroup + ")", CallEffects::CheckException);
             }
             m_context->m_taskGroup = savedGroup;
@@ -696,7 +696,7 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
         emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
         emitCallInstruction(m_context->m_constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
     }
-    if (!needsFinalization(type) && symbol->m_genericObject && type->kind == TypeKind::Array
+    if (!needsFinalization(type) && symbol->genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
         Value source = emitExpr(initializer);
         Value target = withBounds(address, type, nullptr);
@@ -780,9 +780,9 @@ void QbeEmitter::initializeTypeTag(Type* type)
     line(table + " =l loadl " + tableSlot);
     for (std::size_t i = 0; i < type->dispatchSlots.size(); ++i) {
         Symbol* implementation = type->dispatchSlots[i];
-        while (implementation->m_inheritedFrom != nullptr || implementation->m_renamedSubprogram != nullptr) {
-            implementation = implementation->m_inheritedFrom != nullptr
-                ? implementation->m_inheritedFrom : implementation->m_renamedSubprogram;
+        while (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr) {
+            implementation = implementation->inheritedFrom != nullptr
+                ? implementation->inheritedFrom : implementation->renamedSubprogram;
         }
         if (implementation->level > 0) {
             std::string linkSlot = newTemp();
@@ -809,7 +809,7 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
         m_context->m_resultTargetArena = arena;
     }
     Value source = emitExpr(object->initializer.get());
-    emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->m_accessibilityLevel) + ")", CallEffects::CheckException);
+    emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->accessibilityLevel) + ")", CallEffects::CheckException);
     std::string pointer = limited ? source.name : newTemp();
     if (!limited) {
         emitCallInstruction(pointer + " =l call $__ada_tagged_owned_copy(l " + owner + ", l " + arena + ", l " + source.name + ")", CallEffects::CheckException);

@@ -110,8 +110,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         bool current = expr->prefix->kind != ExprKind::Selected
             || (entry != nullptr && isProtectedCurrentInstance(
-                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->m_protectedType, scope));
-        if (entry == nullptr || !entry->m_entry || !inside || !current || !expr->arguments.empty()) {
+                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->protectedType, scope));
+        if (entry == nullptr || !entry->entry || !inside || !current || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "'Caller requires the enclosing entry and no arguments");
             return nullptr;
         }
@@ -121,11 +121,11 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     if (expr->lower == "count") {
         auto names = expressionNames(expr->prefix.get(), scope);
         Symbol* entry = names.size() == 1 ? names.front() : nullptr;
-        Symbol* receiver = entry != nullptr ? protectedReceiver(entry->m_protectedType) : nullptr;
+        Symbol* receiver = entry != nullptr ? protectedReceiver(entry->protectedType) : nullptr;
         bool current = expr->prefix->kind != ExprKind::Selected
             || (entry != nullptr && isProtectedCurrentInstance(
-                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->m_protectedType, scope));
-        if (entry == nullptr || !entry->m_entry || receiver == nullptr || !current || !expr->arguments.empty()) {
+                static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get(), entry->protectedType, scope));
+        if (entry == nullptr || !entry->entry || receiver == nullptr || !current || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "entry 'Count requires an entry of the current protected instance");
             return nullptr;
         }
@@ -154,15 +154,15 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
             return nullptr;
         }
-        if (chosen->m_protectedType != nullptr) {
+        if (chosen->protectedType != nullptr) {
             m_diagnostics.error(expr->location, "access to protected subprograms is not yet supported");
             return nullptr;
         }
         // A renaming is another view of the same callable entity.
-        while (chosen->m_renamedSubprogram != nullptr) {
-            chosen = chosen->m_renamedSubprogram;
+        while (chosen->renamedSubprogram != nullptr) {
+            chosen = chosen->renamedSubprogram;
         }
-        if (chosen->m_inheritedFrom != nullptr) {
+        if (chosen->inheritedFrom != nullptr) {
             bool tagged = chosen->returnType != nullptr && chosen->returnType->tagged;
             for (Symbol* parameter : chosen->parameters) {
                 tagged = tagged || parameter->type->tagged;
@@ -172,13 +172,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 return nullptr;
             }
         }
-        if (chosen->m_intrinsicRenaming || chosen->m_inheritedFrom != nullptr) {
+        if (chosen->intrinsicRenaming || chosen->inheritedFrom != nullptr) {
             m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
             return nullptr;
         }
         bool accessible = false;
-        Scope* declarationScope = chosen->m_renamedAccess != nullptr
-            ? chosen->m_renamedAccess->type->accessScope : chosen->m_declarationScope;
+        Scope* declarationScope = chosen->renamedAccess != nullptr
+            ? chosen->renamedAccess->type->accessScope : chosen->declarationScope;
         for (Scope* enclosing = expected->accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
             accessible = accessible || enclosing == declarationScope;
         }
@@ -191,10 +191,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "'Access of imported subprograms is not yet supported");
             return nullptr;
         }
-        if (chosen->m_renamedAccess != nullptr) {
-            noteReference(chosen->m_renamedAccess);
+        if (chosen->renamedAccess != nullptr) {
+            noteReference(chosen->renamedAccess);
         } else {
-            chosen->m_addressTaken = true;
+            chosen->addressTaken = true;
         }
         expr->m_accessSubprogram = chosen;
         recordContractName(expr->prefix.get(), chosen);
@@ -256,7 +256,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
                     if (owner == task->taskBody && named != nullptr && !named->type->isSubtype
                         && owner->name == "__task_" + named->name) {
-                        expr->m_taskCurrentInstance = owner->m_taskIdentity;
+                        expr->m_taskCurrentInstance = owner->taskIdentity;
                         noteReference(expr->m_taskCurrentInstance);
                         break;
                     }

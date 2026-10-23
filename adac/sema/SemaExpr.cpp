@@ -41,7 +41,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     }
     if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->tagged)) {
         if (m_currentSubprogram != nullptr) {
-            m_currentSubprogram->m_usesFinalization = true;
+            m_currentSubprogram->usesFinalization = true;
         } else {
             m_finalizingUnits.insert(m_currentUnit);
         }

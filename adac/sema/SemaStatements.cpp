@@ -60,7 +60,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
     if (target->m_protectedReceiver != nullptr && target->m_protectedReceiver->mode == ParameterMode::In) {
         Symbol* field = target->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(target)->symbol
             : target->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(target)->symbol : nullptr;
-        if (field != nullptr && field->m_protectedField >= 0) {
+        if (field != nullptr && field->protectedField >= 0) {
             m_diagnostics.error(target->location, "a protected function cannot modify its constant current instance");
             return;
         }
@@ -380,7 +380,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     }
 
     case StmtKind::Return: {
-        if (m_currentSubprogram != nullptr && m_currentSubprogram->m_taskBody) {
+        if (m_currentSubprogram != nullptr && m_currentSubprogram->taskBody) {
             m_diagnostics.error(statement->location, "return statements are not allowed in a task body");
         }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
@@ -412,7 +412,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 m_diagnostics.error(returnStatement->location, "extended return subtype must statically match the result subtype");
             }
             if (!object->symbols.empty()) {
-                object->symbols.front()->m_objectReference = true;
+                object->symbols.front()->objectReference = true;
             }
             m_extendedReturns.push_back(m_currentSubprogram);
             analyzeStatements(returnStatement->m_body, inner);

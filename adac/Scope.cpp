@@ -82,10 +82,10 @@ std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Sc
 {
     auto symbols = lookupLocal(name);
     std::erase_if(symbols, [&](Symbol* symbol) {
-        if (!symbol->m_libraryName.empty() && !from->libraryVisible(symbol->m_libraryName)) {
+        if (!symbol->libraryName.empty() && !from->libraryVisible(symbol->libraryName)) {
             return true;
         }
-        return !from->privateVisible(symbol->m_privatePrimitiveTo);
+        return !from->privateVisible(symbol->privatePrimitiveTo);
     });
     return symbols;
 }
@@ -150,7 +150,7 @@ std::vector<Symbol*> Scope::lookup(const std::string& name) const
             }
             for (Symbol* symbol : type->primitives) {
                 if (symbol->name == name && (all || !operatorSymbol(name).empty())) {
-                    if (privateVisible(symbol->m_privatePrimitiveTo)) {
+                    if (privateVisible(symbol->privatePrimitiveTo)) {
                         imported.push_back(symbol);
                     }
                 }

@@ -123,7 +123,7 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
         context.propagateLabel = newLabel("propagate");
         FunctionContext* saved = m_context;
         m_context = &context;
-        if (m_sema.usesFinalization(part) || context.symbol->m_usesFinalization
+        if (m_sema.usesFinalization(part) || context.symbol->usesFinalization
             || hasControlledObjects(part->units)) {
             initializeFinalization();
         }
@@ -188,7 +188,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     FunctionContext context;
     context.symbol = symbol;
-    bool usesFinalization = symbol->m_usesFinalization || hasControlledObjects(body->declarations)
+    bool usesFinalization = symbol->usesFinalization || hasControlledObjects(body->declarations)
         || hasControlledObjects(body->body) || hasControlledObjects(body->handlers);
     // Elide a statically empty boundary: no declarations, collections or
     // owned temporaries. Nested blocks carry their own masters, and allocators
@@ -225,14 +225,14 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         }
         first = false;
     }
-    if (symbol->level > 0 || symbol->m_taskBody || symbol->m_entryBarrierFunction) {
+    if (symbol->level > 0 || symbol->taskBody || symbol->entryBarrierFunction) {
         signature += (first ? "" : ", ") + std::string("l %.link");
         first = false;
     }
-    if (symbol->m_protectedReceiver != nullptr) {
+    if (symbol->protectedReceiver != nullptr) {
         signature += (first ? "" : ", ") + std::string("l %.protectedObject");
         first = false;
-        Symbol* receiver = symbol->m_protectedReceiver;
+        Symbol* receiver = symbol->protectedReceiver;
         if (receiver->isUplevel) {
             context.hasFrame = true;
             receiver->frameOffset = reserveFrame(8);
@@ -326,8 +326,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     // Capture this task before declarations; nested tasks can name this instance
     // through the ordinary lexical frame even while executing on another thread.
-    if (symbol->m_taskIdentity != nullptr) {
-        Symbol* identity = symbol->m_taskIdentity;
+    if (symbol->taskIdentity != nullptr) {
+        Symbol* identity = symbol->taskIdentity;
         std::string slot = newTemp();
         if (identity->isUplevel) {
             context.hasFrame = true;
@@ -481,7 +481,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
 std::string QbeEmitter::functionExitActions(const FunctionContext& context)
 {
     std::string actions;
-    if (context.symbol != nullptr && context.symbol->m_taskBody) {
+    if (context.symbol != nullptr && context.symbol->taskBody) {
         actions += "    call $__ada_task_activation_failed(l %.taskContext)\n";
         actions += "    call $__ada_task_complete(l %.taskContext)\n";
     }

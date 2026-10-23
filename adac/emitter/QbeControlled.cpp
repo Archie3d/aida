@@ -61,7 +61,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         }
         Value source = emitExpr(expression);
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w "
-             + std::to_string(m_context->symbol->m_accessibilityLevel) + ")", CallEffects::CheckException);
+             + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
         std::string result = source.name;
         if (!limited) {
             result = newTemp();
@@ -272,7 +272,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     }
     if (wideExtended) {
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + destination.name + ", w "
-             + std::to_string(m_context->symbol->m_accessibilityLevel) + ")", CallEffects::CheckException);
+             + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
     }
     m_context->m_constructionOwner = savedOwner;
     m_context->m_constructionArena = savedArena;

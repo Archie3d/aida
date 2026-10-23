@@ -45,7 +45,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
                 && !selected->isDereference) {
                 for (Symbol* operation : type->protectedScope->lookupLocal(selected->selectorLower)) {
                     bool current = isProtectedCurrentInstance(selected->prefix.get(), type, scope);
-                    if ((operation->kind == SymbolKind::Subprogram && !operation->m_protectedPrivate)
+                    if ((operation->kind == SymbolKind::Subprogram && !operation->protectedPrivate)
                         || current) {
                         operations.push_back(operation);
                     }
@@ -99,7 +99,7 @@ bool Sema::matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
     }
     for (std::size_t i = 0; i < positions.size(); ++i) {
         if (!matchesExpression(expr->arguments[i].value.get(), scope, candidate->parameters[positions[i]]->type)) {
-            Type* controlling = candidate->m_controllingType;
+            Type* controlling = candidate->controllingType;
             bool dispatch = false;
             if (controlling != nullptr && rootType(candidate->parameters[positions[i]]->type) == controlling) {
                 for (Type* actual : expressionTypes(expr->arguments[i].value.get(), scope)) {
@@ -282,12 +282,12 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 if (symbol->returnType != nullptr && matchesResult(symbol, expected)
                     && matchCallArguments(call, symbol, scope, positions)) {
                     Type* resultType = symbol->returnType;
-                    if (symbol->m_controllingType != nullptr && rootType(resultType) == symbol->m_controllingType) {
+                    if (symbol->controllingType != nullptr && rootType(resultType) == symbol->controllingType) {
                         for (std::size_t i = 0; i < positions.size(); ++i) {
-                            if (rootType(symbol->parameters[positions[i]]->type) == symbol->m_controllingType) {
+                            if (rootType(symbol->parameters[positions[i]]->type) == symbol->controllingType) {
                                 for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
-                                    if (actual->classRoot == symbol->m_controllingType) {
-                                        resultType = classWideType(symbol->m_controllingType);
+                                    if (actual->classRoot == symbol->controllingType) {
+                                        resultType = classWideType(symbol->controllingType);
                                     }
                                 }
                             }
