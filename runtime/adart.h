@@ -347,4 +347,8 @@ int __ada_controlled_adjust(void* object, void (*adjust)(void*));
 int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), void* tag);
 int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*), void* tag);
 
+int64_t __ada_layout_append(int64_t offset, int64_t size, int64_t alignment);
+void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank);
+void* __ada_allocation_array_bounds(void* object, int rank);
+
 #endif

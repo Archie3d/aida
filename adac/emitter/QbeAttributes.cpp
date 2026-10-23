@@ -313,8 +313,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             line(slot + " =l add " + tag + ", 8");
             line(size + " =l loadl " + slot);
             bytes = Value { size, 'l' };
-        } else if (prefixType->kind == TypeKind::Array && !prefixType->constrained) {
-            Value object = emitExpr(expr->prefix.get());
+        } else if (hasRuntimeLayout(prefixType)) {
+            Value object = expr->sizeTypePrefix ? withBounds(Value {}, prefixType, nullptr) : emitExpr(expr->prefix.get());
             bytes = Value { objectBytes(object, prefixType), 'l' };
         } else {
             bytes = Value { std::to_string(typeSize(prefixType)), 'l' };
@@ -421,7 +421,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 
 // 'Read, 'Write, 'Output and 'Input move a value between an object and a
 // stream as the bytes it occupies.  'Output and 'Input additionally carry the
-// bounds of an array whose type does not fix them.
+// bounds of every array dimension.
 Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
@@ -454,18 +454,44 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     }
 
     if (name == "input") {
-        if (isUnconstrainedArray(prefixType)) {
-            std::string descriptor = allocScratch(adaArrayResultSize(1));
-            emitCallInstruction("call $__ada_stream_read_array(l " + descriptor + ", l " + stream.name + ", l "
-                 + std::to_string(typeSize(prefixType->element)) + ")", CallEffects::CheckException);
-            Value result = consumeArrayResult(descriptor, 1, true);
-            return convertArrayBounds(result, prefixType, prefixType, expr->location);
+        if (prefixType->kind == TypeKind::Array) {
+            Type* resultType = expr->type;
+            Value result;
+            for (int dimension = 0; dimension < resultType->arrayRank; ++dimension) {
+                std::string pair = allocScratch(16), lastSlot = newTemp();
+                line(lastSlot + " =l add " + pair + ", 8");
+                emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + pair + ", l 16)", CallEffects::CheckException);
+                std::string first = newTemp(), last = newTemp();
+                line(first + " =l loadl " + pair);
+                line(last + " =l loadl " + lastSlot);
+                if (dimension == 0) { result.first = first; result.last = last; }
+                else { result.innerBounds.push_back({first, last}); }
+            }
+            result = arrayView(result, resultType);
+            // Incoming bounds describe the stream, even for a constrained
+            // first subtype. Validate them before applying that subtype's shape.
+            Type incomingType = *resultType;
+            incomingType.constrained = false;
+            incomingType.m_boundsSymbol = nullptr;
+            result = convertArrayBounds(result, &incomingType, &incomingType, expr->location);
+            if (resultType->constrained || resultType->m_boundsSymbol != nullptr) {
+                result = convertArrayBounds(result, &incomingType, resultType, expr->location);
+            }
+            std::string bytes = objectBytes(result, resultType);
+            std::string allocationSize = resultType->constrained && !hasRuntimeLayout(resultType)
+                ? std::to_string(typeSize(resultType)) : bytes;
+            result.name = newTemp();
+            result.type = 'l';
+            emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+                + ", l 1, l 1, l " + allocationSize + ")", CallEffects::CheckException);
+            emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + result.name + ", l " + bytes + ")", CallEffects::CheckException);
+            return result;
         }
 
-        long long size = typeSize(prefixType);
-        std::string slot = allocScratch(size < 1 ? 1 : size, typeAlignment(prefixType));
-        long long streamSize = prefixType->kind == TypeKind::Array ? typeLayoutSize(prefixType) : size;
-        emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + std::to_string(streamSize) + ")", CallEffects::CheckException);
+        std::string slot = allocTypeScratch(prefixType);
+        std::string streamSize = hasRuntimeLayout(prefixType) ? runtimeSize(prefixType)
+            : std::to_string(prefixType->kind == TypeKind::Array ? typeLayoutSize(prefixType) : typeSize(prefixType));
+        emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + streamSize + ")", CallEffects::CheckException);
 
         Value address { slot, 'l' };
         if (isComposite(prefixType)) {
@@ -497,7 +523,7 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 
     // An array occupies as many bytes as it currently holds, which the type
     // alone does not say.
-    std::string size = std::to_string(typeSize(type));
+    std::string size = type->kind == TypeKind::Array ? "" : runtimeSize(type);
     Type* array = baseType(type);
     if (array != nullptr && array->kind == TypeKind::Array) {
         if (!address.hasBounds()) {
@@ -509,16 +535,18 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
              + ", l " + arrayElementSize(address, type) + ")", CallEffects::CheckException);
         size = bytes;
 
-        if (name == "output" && isUnconstrainedArray(prefixType)) {
-            emitCallInstruction("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.first + ", l "
-                 + address.last + ")", CallEffects::CheckException);
+        if (name == "output") {
+            for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
+                emitCallInstruction("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.axisFirst(dimension)
+                    + ", l " + address.axisLast(dimension) + ")", CallEffects::CheckException);
+            }
         }
     }
 
     std::vector<StorageCopyBack> storageCopies;
     if (type->kind == TypeKind::Record) {
         address = adaptCompositeStorage(address, type, prefixType, reading ? ParameterMode::InOut : ParameterMode::In, storageCopies);
-        size = std::to_string(typeSize(prefixType));
+        size = runtimeSize(prefixType);
     }
     Value destination = address;
     if (reading && (type->kind == TypeKind::Fixed || !type->m_enumCodes.empty())) {

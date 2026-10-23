@@ -122,3 +122,11 @@ harness work; do not route them through this C-test runner unchanged.
 C36203A retains its upstream contents, including rights and disclaimer.
 Its git blob is `f3f7e2bc72f497c64a5132bf5bbeb50c0a3501e4` and SHA-256 is
 `52b63badaec465c40c9a4d36bcf9b05db2506a86fde893338f418f0eb7ab2596`.
+
+C48005B comes from [GCC releases/gcc-15 c4/c48005b.ada](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c48005b.ada),
+retrieved 2026-10-23 and retained unmodified, including its rights/disclaimer.
+It passes one- and two-dimensional array allocator bound checks (RM 4.8).
+Runtime component layouts, dynamic bound evaluation and ownership use the P6b
+regressions; broader allocator/discriminant coverage remains P6c/P8.
+Git blob: `c03bde6e04df8b3bcdc9a09cbe7fc9023d5107c0`.
+SHA-256: `ec6b9aaf6ee59c074ee179558e2033d866e2988f2a5531421e7eb64f3778ab74`.

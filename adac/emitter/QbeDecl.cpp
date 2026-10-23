@@ -90,6 +90,13 @@ void QbeEmitter::emitTypeTag(Type* type)
 void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        for (Type* constraint : decl->arrayConstraints) {
+            Symbol* bounds = constraint->m_boundsSymbol;
+            if (bounds->isGlobal) {
+                m_data << "export data " << bounds->qbeName << " = align 8 { z "
+                    << adaArrayLocalSize(constraint->arrayRank) << " }\n";
+            }
+        }
         for (Type* constraint : decl->m_scalarConstraints) {
             Symbol* bounds = constraint->m_scalarBoundsSymbol;
             if (bounds != nullptr && bounds->isGlobal) {
@@ -103,6 +110,11 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             collectGlobals(taskDecl->m_protectedDeclarations);
             Type* type = taskDecl->declaredType;
             emitTypeTag(type);
+            if (!taskDecl->m_protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
+                && type->m_layoutSymbol != nullptr && type->m_layoutSymbol->type == type && type->m_layoutSymbol->isGlobal) {
+                m_data << "export data " << type->m_layoutSymbol->qbeName << " = align 8 { z "
+                    << (type->fields.size() + 1) * 8 << " }\n";
+            }
             if (taskDecl->definition != nullptr && taskDecl->definition->kind == TypeDefKind::Array
                 && !type->m_boundExpressions.empty() && type->m_boundsSymbol->isGlobal) {
                 m_data << "export data " << type->m_boundsSymbol->qbeName << " = align 8 { z "
@@ -144,8 +156,11 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                     continue;
                 }
                 long long size = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeSize(symbol->type);
-                if (isUnconstrainedArray(symbol->type)) { size = adaArrayLocalSize(symbol->type->arrayRank); }
-                long long alignment = (symbol->m_objectReference || symbol->m_classWideObject || isUnconstrainedArray(symbol->type))
+                if (symbol->type->kind == TypeKind::Array && hasRuntimeLayout(symbol->type)) {
+                    size = adaArrayLocalSize(symbol->type->arrayRank);
+                }
+                else if (hasRuntimeLayout(symbol->type)) { size = 8; }
+                long long alignment = (symbol->m_objectReference || symbol->m_classWideObject || hasRuntimeLayout(symbol->type))
                     ? 8 : typeAlignment(symbol->type);
                 m_data << "export data " << symbol->qbeName << " = align " << (alignment < 1 ? 1 : alignment)
                        << " { z " << (size < 1 ? 1 : size) << " }\n";
@@ -179,8 +194,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
-        for (Type* constraint : decl->m_scalarConstraints) {
-            if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+        for (Type* constraint : decl->constraintOrder) {
+            if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
+            else if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
@@ -206,6 +222,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }
+            if (!typeDecl->m_protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
+                emitRecordLayout(typeDecl->declaredType);
+            }
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
             initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
             emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_taskObjects);
@@ -222,9 +241,24 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (symbol->type->m_scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.m_shared = sharedSymbolKind(symbol) != 0;
-                if (isUnconstrainedArray(symbol->type) && !symbol->m_objectReference) {
+                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->m_objectReference) {
                     emitDynamicArray(object, symbol);
                     continue;
+                }
+                std::string savedOwner = m_context->m_constructionOwner;
+                std::string savedArena = m_context->m_constructionArena;
+                if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Record && !symbol->m_objectReference) {
+                    std::string arena = newTemp(), pointer = newTemp();
+                    emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
+                    std::string size = runtimeSize(symbol->type);
+                    emitCallInstruction(pointer + " =l call $__ada_array_local(l " + arena + ", l 1, l 1, l " + size + ")", CallEffects::CheckException);
+                    line("storel " + pointer + ", " + symbol->qbeName);
+                    address.name = pointer;
+                    if (hasLimitedControlledParts(symbol->type)) {
+                        m_context->m_constructionOwner = newTemp();
+                        m_context->m_constructionArena = arena;
+                        emitCallInstruction(m_context->m_constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
+                    }
                 }
                 if (!symbol->m_objectReference && !symbol->m_classWideObject) {
                     prepareControlledObject(address, symbol->type, true);
@@ -238,6 +272,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 } else {
                     emitDefaultInit(address, symbol->type);
                 }
+                m_context->m_constructionOwner = savedOwner;
+                m_context->m_constructionArena = savedArena;
             }
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
@@ -345,8 +381,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     }
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
-        for (Type* constraint : decl->m_scalarConstraints) {
-            if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+        for (Type* constraint : decl->constraintOrder) {
+            if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
+            else if (!constraint->m_scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         Symbol* subprogram = nullptr;
         if (decl->kind == DeclKind::SubprogramBody) {
@@ -379,6 +416,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             emitTypeTag(typeDecl->declaredType);
+            if (!typeDecl->m_protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
+                emitRecordLayout(typeDecl->declaredType);
+            }
             initializeTypeTag(typeDecl->declaredType);
             initializeCollection(typeDecl->declaredType);
             if (!typeDecl->m_taskObjects.empty()) {
@@ -412,9 +452,24 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     emitObjectReference(object, symbol);
                     continue;
                 }
-                if (isUnconstrainedArray(symbol->type)
+                if ((hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array)
                     || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)) {
                     emitDynamicArray(object, symbol);
+                    continue;
+                }
+                if (hasRuntimeLayout(symbol->type)) {
+                    std::string size = runtimeSize(symbol->type), pointer = newTemp();
+                    emitCallInstruction(pointer + " =l call $__ada_array_local(l " + storageArena(false, true)
+                        + ", l 1, l 1, l " + size + ")", CallEffects::CheckException);
+                    if (symbol->isUplevel) {
+                        symbol->frameOffset = reserveFrame(8);
+                        std::string slot = newTemp();
+                        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+                        line("storel " + pointer + ", " + slot);
+                    } else { m_context->locals[symbol] = pointer; }
+                    prepareControlledObject(Value {pointer, 'l'}, symbol->type);
+                    if (object->initializer) { initializeObject(Value {pointer, 'l'}, symbol, object->initializer.get()); }
+                    else { emitDefaultInit(Value {pointer, 'l'}, symbol->type); }
                     continue;
                 }
                 long long size = (symbol->m_objectReference || symbol->m_classWideObject) ? 8 : typeSize(symbol->type);

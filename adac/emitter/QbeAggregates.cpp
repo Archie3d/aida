@@ -399,13 +399,8 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
-            Value fieldAddress = address;
-            if (field.offset != 0) {
-                std::string temp = newTemp();
-                line(temp + " =l add " + address.name + ", " + std::to_string(field.offset));
-                fieldAddress = Value { temp, 'l' };
-            }
-            assignInto(fieldAddress, field.type, expr->resolvedFields[i], true);
+            Value component = fieldAddress(address, target, field);
+            assignInto(component, field.type, expr->resolvedFields[i], true);
         }
         if (target->m_controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
@@ -433,8 +428,7 @@ Value QbeEmitter::emitAggregate(AggregateExpr* expr)
     if (isUnconstrainedArray(expr->type)) {
         result = emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
     } else {
-        long long size = typeSize(expr->type);
-        std::string buffer = allocScratch(size > 0 ? size : 1, typeAlignment(expr->type));
+        std::string buffer = allocTypeScratch(expr->type);
         result = withBounds(Value { buffer, 'l' }, expr->type, nullptr);
         prepareControlledObject(result, expr->type);
         emitAggregateInto(expr, result, expr->type);

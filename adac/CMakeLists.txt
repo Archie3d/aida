@@ -46,6 +46,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeFunctions.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeStatements.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeExceptions.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeLayouts.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeStorage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeControlled.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/emitter/QbeArrays.cpp

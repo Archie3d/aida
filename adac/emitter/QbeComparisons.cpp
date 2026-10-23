@@ -173,17 +173,9 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
     std::string done = newLabel("recordcompared");
     line("storew 1, " + resultSlot);
 
-    auto fieldAddress = [&](const Value& address, const FieldInfo& field) {
-        if (field.offset == 0) {
-            return address;
-        }
-        std::string moved = newTemp();
-        line(moved + " =l add " + address.name + ", " + std::to_string(field.offset));
-        return Value { moved, 'l' };
-    };
     auto compareField = [&](const FieldInfo& field) {
-        Value leftField = fieldAddress(left, field);
-        Value rightField = fieldAddress(right, field);
+        Value leftField = fieldAddress(left, record, field);
+        Value rightField = fieldAddress(right, record, field);
         Value equal = record->m_tagged && field.type->kind == TypeKind::Record
             ? comparePrimitiveRecord(leftField, rightField, field.type)
             : compareObjects(leftField, rightField, field.type);

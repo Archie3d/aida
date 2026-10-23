@@ -191,6 +191,13 @@ private:
     Value taggedMembership(const Value& object, Type* target);
 
     // Storage and assignment (QbeStorage.cpp).
+    std::string runtimeSize(Type* type);
+    std::string allocTypeScratch(Type* type);
+    Value layoutAddress(Type* type);
+    void emitRecordLayout(Type* type);
+    std::string fieldOffset(Type* type, const FieldInfo& field);
+    Value fieldAddress(const Value& object, Type* type, const FieldInfo& field);
+    Value allocatedArrayView(Value pointer, Type* type);
     long long reserveFrame(long long size, long long alignment = 8);
     std::string allocScratch(long long size, long long alignment = 1);
     std::string storageArena(bool temporary, bool allocate = false);

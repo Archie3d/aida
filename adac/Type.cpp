@@ -398,6 +398,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->constrained = parent->constrained;
     subtype->m_boundsSymbol = parent->m_boundsSymbol;
     subtype->fields = parent->fields;
+    subtype->m_layoutSymbol = parent->m_layoutSymbol;
     subtype->target = parent->target;
     subtype->m_accessProfile = parent->m_accessProfile;
     subtype->m_accessScope = parent->m_accessScope;
@@ -428,6 +429,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->m_parentFieldCount = completed->m_parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->fields = completed->fields;
+        subtype->m_layoutSymbol = completed->m_layoutSymbol;
         subtype->m_taskBody = completed->m_taskBody;
         subtype->m_protectedScope = completed->m_protectedScope;
         if (completed->m_taskBody != nullptr) {
@@ -763,4 +765,19 @@ bool hasSharedAccessParts(const Type* type)
 {
     std::unordered_set<const Type*> visited;
     return hasSharedAccessParts(type, visited);
+}
+
+bool hasRuntimeLayout(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->kind == TypeKind::Array) {
+        return !type->constrained || hasRuntimeLayout(type->element);
+    }
+    if (type->kind == TypeKind::Record) {
+        if (type->m_layoutSymbol != nullptr) { return true; }
+        for (const FieldInfo& field : type->fields) {
+            if (hasRuntimeLayout(field.type)) { return true; }
+        }
+    }
+    return false;
 }

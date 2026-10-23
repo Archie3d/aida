@@ -310,7 +310,7 @@ void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
         }
         const FieldInfo& field = type->fields[i];
         std::string slot = newTemp();
-        line(slot + " =l add " + value.name + ", " + std::to_string(field.offset));
+        line(slot + " =l add " + value.name + ", " + fieldOffset(type, field));
         Value actual = loadFrom(Value { slot, 'l' }, field.type);
         std::string same = newTemp();
         line(same + " =w ceq" + actual.type + " " + actual.name + ", " + std::to_string(fixed));

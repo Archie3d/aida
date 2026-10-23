@@ -589,14 +589,6 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;
         }
-        if (base != nullptr && base->m_boundsSymbol != nullptr) {
-            m_diagnostics.error(expr->location, "stream attributes for runtime-constrained array subtypes are not yet supported");
-            return nullptr;
-        }
-        if (base != nullptr && base->kind == TypeKind::Array && base->arrayRank > 1 && !base->constrained) {
-            m_diagnostics.error(expr->location, "stream attributes for unconstrained multidimensional arrays are not yet supported");
-            return nullptr;
-        }
         bool reads = name == "read" || name == "input";
         bool yieldsValue = name == "input";
         std::size_t wanted = yieldsValue ? 1u : 2u;
@@ -618,7 +610,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (yieldsValue) {
             m_sharedEscapes.push_back(expr->prefix.get());
-            expr->type = base;
+            expr->type = base->kind == TypeKind::Array ? rootType(base) : base;
             return expr->type;
         }
 
@@ -868,12 +860,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "size") {
+        expr->sizeTypePrefix = prefixIsType;
         if (prefixType == nullptr) {
             m_diagnostics.error(expr->location, "'Size requires a type or an object");
-            return nullptr;
-        }
-        if (prefixIsType && prefixType->m_boundsSymbol != nullptr) {
-            m_diagnostics.error(expr->location, "'Size for runtime-constrained array subtypes is not yet supported");
             return nullptr;
         }
         expr->type = expected != nullptr && expected->kind == TypeKind::Integer ? expected : m_types.universalInteger();
@@ -883,8 +872,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
-        if (prefixType->kind == TypeKind::Array && !prefixType->constrained) {
-            if (prefixIsType) {
+        if (hasRuntimeLayout(prefixType)) {
+            if (prefixIsType && prefixType->kind == TypeKind::Array && !prefixType->constrained && prefixType->m_boundsSymbol == nullptr) {
                 m_diagnostics.error(expr->location, "'Size for unconstrained array subtypes requires an object prefix");
             }
             return expr->type;

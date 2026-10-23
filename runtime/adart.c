@@ -1424,6 +1424,8 @@ typedef struct AdaAllocation
     void* arena;
     int arenaOwnsObject;
     long size;
+    void* arrayBounds;
+    int arrayRank;
 } AdaAllocation;
 
 struct AdaCollection
@@ -1578,6 +1580,47 @@ void* __ada_collection_allocate(void* owner, long size)
     }
     allocation->size = size;
     return allocation->object;
+}
+
+void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank)
+{
+    AdaAllocation* allocation = findAllocation(object);
+    if (allocation == NULL || rank < 1 || rank > INT_MAX / (int)sizeof(AdaArrayDimension)) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    size_t size = (size_t)adaArrayLocalSize(rank);
+    void* bounds = __ada_array_local(&allocation->arena, 1, 1, (int64_t)size);
+    if (bounds == NULL) { return; }
+    memcpy(bounds, descriptor, size);
+    allocation->arrayBounds = bounds;
+    allocation->arrayRank = rank;
+}
+
+void* __ada_allocation_array_bounds(void* object, int rank)
+{
+    AdaAllocation* allocation = findAllocation(object);
+    if (allocation == NULL || allocation->arrayBounds == NULL || allocation->arrayRank != rank) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    return allocation->arrayBounds;
+}
+
+int64_t __ada_layout_append(int64_t offset, int64_t size, int64_t alignment)
+{
+    if (offset < 0 || size < 0 || alignment < 1) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    uint64_t padding = (uint64_t)offset % (uint64_t)alignment;
+    if (padding != 0) { padding = (uint64_t)alignment - padding; }
+    if ((uint64_t)offset + padding > INT64_MAX
+        || (uint64_t)size > INT64_MAX - (uint64_t)offset - padding) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    return offset + (int64_t)padding + size;
 }
 
 void __ada_allocation_reserve(void* object, void* part, void (*finalize)(void*))

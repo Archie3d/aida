@@ -94,8 +94,8 @@ with ASan/UBSan and ThreadSanitizer runtimes. Generated Ada memory accesses are
 not instrumented, so runtime instrumentation is not a complete Ada race check.
 
 [Library arrays with runtime bounds](array-descriptors.md#library-level-runtime-bounds)
-subsequently landed in Phase 6b. Runtime-constrained array components and
-allocators, and box aggregates remain the next items. Discriminant-dependent
+and [runtime components/allocators](runtime-composites.md) subsequently landed
+in Phase 6b. Box aggregates remain the next item. Discriminant-dependent
 components remain Phase 6c. General access/accessibility, legacy delta
 constraints, full freezing, portable stream representations and wide character
 facilities remain separately tracked. Existing unsupported constructs continue

@@ -416,10 +416,16 @@ construction, cleanup and dispatch mechanisms.
   data and finalization. Generic array copies, views and runtime-bound instance
   declarations share the descriptor path (`runtimearraylibrary*`, whole/separate,
   determinism, four-task and instrumented runtime checks; ACATS C36203A).
-  Runtime-constrained components/allocators and subtype Size/streaming remain
-  in the next item. [Contract and limits](docs/array-descriptors.md#library-level-runtime-bounds).
-- [ ] Runtime-constrained array components and allocators, with `'Size` and
-  streaming.
+  Runtime-constrained components/allocators and subtype Size/streaming were
+  added in the following item. [Contract and limits](docs/array-descriptors.md#library-level-runtime-bounds).
+- [x] Runtime-constrained array components and allocators: captured contiguous
+  record/array layouts, per-allocation descriptors, Size and all-dimensional
+  array streams. Generic deallocation, limited results, partial cleanup and
+  cross-task ownership reuse existing collections (`runtimecomponent*`,
+  `runtimeallocators`, `runtime.dynamic_layout`, whole/separate/determinism,
+  sanitizer checks; ACATS C48005B). Runtime-sized tagged records and delayed
+  private-component layouts remain Phase 6f; discriminant-dependent bounds
+  remain Phase 6c. [Contract and limits](docs/runtime-composites.md).
 - [ ] Ada 2005 box defaults (`<>`) in record and array aggregates: component
   default initialization, legality, per-component evaluation and partial-failure
   cleanup. Replace the current `aggregateboxerrors` rejection coverage.
@@ -470,7 +476,9 @@ construction, cleanup and dispatch mechanisms.
   class-wide dispatch, access prefixes and overload resolution. Complete Ada
   2005 overriding-indicator and null-procedure legality beyond the existing subset.
 - [ ] Discriminated tagged types, private extensions, extensions of private
-  views, general limited record definitions, and tagged size clauses.
+  views, general limited record definitions, and tagged size clauses. Include
+  runtime-sized tagged records and delayed private-component layouts diagnosed
+  by Phase 6b.
 - [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
   operations, overriding, interface conversions and class-wide dispatch. Extend
   the single-parent tag/dispatch model with a representation that also supports

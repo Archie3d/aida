@@ -231,7 +231,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
     }
-    Type* designated = resolveSubtypeIndication(expr->subtype.get(), scope);
+    Type* designated = resolveSubtypeIndication(expr->subtype.get(), scope, true);
     if (designated == nullptr) {
         return nullptr;
     }
@@ -248,7 +248,8 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
                                                 + (access->target != nullptr ? access->target->name : "?") + "'");
         return nullptr;
     }
-    if (designated->kind == TypeKind::Array && !designated->constrained) {
+    if (designated->kind == TypeKind::Array && !designated->constrained
+        && designated->m_boundsSymbol == nullptr && expr->subtype->indexLows.empty() && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "an allocator for an array needs its bounds, as in 'new " + expr->subtype->name
                                                 + " (1 .. 10)'");
         return nullptr;

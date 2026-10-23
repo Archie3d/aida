@@ -1358,7 +1358,8 @@ add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
 foreach(dynamic_case scalardynamic scalarstreams scalartasking
-    runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers)
+    runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
+    runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1388,3 +1389,11 @@ foreach(array_failure bounds shape overflow)
         EXIT_CODE 1 STDERR runtimearraylibrary${array_failure}.stderr)
     add_determinism_test(runtimearraylibrary${array_failure} SOURCE runtimearraylibrary${array_failure}.adb)
 endforeach()
+
+add_executable(runtime_layout_test RuntimeLayoutTest.c)
+target_link_libraries(runtime_layout_test PRIVATE adart)
+add_test(NAME runtime.dynamic_layout COMMAND runtime_layout_test)
+set_tests_properties(runtime.dynamic_layout PROPERTIES TIMEOUT 30)
+
+add_ada_error_test(runtimecomponenterrors SOURCES runtimecomponenterrors.adb)
+add_ada_error_test(runtimecomponentlateerrors SOURCES runtimecomponentlateerrors.ads)

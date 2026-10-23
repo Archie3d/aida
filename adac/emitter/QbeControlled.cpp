@@ -345,8 +345,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     } else if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : baseType(type)->fields) {
             if (needsFinalization(field.type)) {
-                Value component { newTemp(), 'l' };
-                line(component.name + " =l add " + object.name + ", " + std::to_string(field.offset));
+                Value component = fieldAddress(object, baseType(type), field);
                 walkControlled(component, field.type, parentFirst, action);
             }
         }
@@ -439,7 +438,7 @@ void QbeEmitter::finalizeControlledObject(const Value& object, Type* type, const
 std::string QbeEmitter::objectBytes(const Value& object, Type* type)
 {
     if (type->kind != TypeKind::Array) {
-        return std::to_string(typeSize(type));
+        return runtimeSize(type);
     }
     Value array = withBounds(object, type, nullptr);
     std::string size = newTemp();

@@ -273,6 +273,7 @@ struct AttributeExpr : Expr
     Symbol* m_countEntry = nullptr;
     bool m_taskAttribute = false;
     bool m_alignmentObjectView = false;
+    bool sizeTypePrefix = false;
     Symbol* m_taskCurrentInstance = nullptr;
 };
 
@@ -742,6 +743,8 @@ struct Decl : Node
     }
 
     DeclKind kind;
+    std::vector<Type*> constraintOrder;
+    std::vector<Type*> arrayConstraints;
     std::vector<Type*> m_scalarConstraints; // Elaborated once with this declaration.
     bool m_elaborateBody = false;
 };

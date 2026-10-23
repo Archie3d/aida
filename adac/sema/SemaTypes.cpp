@@ -381,7 +381,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Array: {
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
-        Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, false, true);
+        Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
         type->m_incompleteLayout = hasIncompleteParts(cell);
         if (cell != nullptr && cell->m_abstract) {
             m_diagnostics.error(decl->location, "abstract array components are not supported");
@@ -392,9 +392,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             return;
         }
         if (cell != nullptr && cell->kind == TypeKind::Array && !cell->constrained) {
-            m_diagnostics.error(definition->elementType->location, cell->m_boundsSymbol != nullptr
-                                    ? "runtime-constrained array components are not yet supported"
-                                    : "array components require a constrained array subtype");
+            recordArrayConstraint(cell, definition->elementType.get());
+            if (cell->m_boundsSymbol == nullptr) {
+                m_diagnostics.error(definition->elementType->location, "array components require a constrained array subtype");
+            }
         }
         bool dynamicBounds = false;
         Type* row = type;
@@ -613,7 +614,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             type->m_accessProfile = profile;
             type->m_accessScope = scope;
         } else {
-            type->target = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
+            type->target = resolveSubtypeIndication(definition->parent.get(), scope, true, true);
+            recordArrayConstraint(type->target, definition->parent.get());
         }
         break;
     }
@@ -729,6 +731,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_currentSubprogram->needsFrame = true;
         }
     }
+    if (type->kind == TypeKind::Record && hasRuntimeLayout(type) && type->m_layoutSymbol == nullptr) {
+        if (type->m_tagged) {
+            m_diagnostics.error(decl->location, "runtime-sized tagged records are not yet supported");
+        }
+        type->m_layoutSymbol = symbol;
+        symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(decl->lower + "__layout");
+        if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
+        m_types.refreshRecordSubtypes(type);
+    }
+
 }
 
 void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
@@ -793,7 +807,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         FieldInfo info;
         info.name = field.lower;
         info.displayName = field.name;
-        info.type = resolveSubtypeIndication(field.subtype.get(), scope, m_recordContract != nullptr, true);
+        info.type = resolveSubtypeIndication(field.subtype.get(), scope, true, true);
         type->m_incompleteLayout = type->m_incompleteLayout || hasIncompleteParts(info.type);
         if (info.type != nullptr && info.type->m_abstract) {
             m_diagnostics.error(field.location, "abstract record components are not supported");
@@ -803,13 +817,11 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             m_diagnostics.error(field.location, "a record component requires a definite subtype");
             return;
         }
-        bool symbolicComponent = m_recordContract != nullptr && info.type != nullptr
-            && (!field.subtype->indexLows.empty() || info.type->m_boundsSymbol != nullptr);
-        if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained
-            && !symbolicComponent) {
-            m_diagnostics.error(field.subtype->location, info.type->m_boundsSymbol != nullptr
-                                    ? "runtime-constrained record components are not yet supported"
-                                    : "record components require a constrained array subtype");
+        if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
+            recordArrayConstraint(info.type, field.subtype.get());
+            if (info.type->m_boundsSymbol == nullptr) {
+                m_diagnostics.error(field.subtype->location, "record components require a constrained array subtype");
+            }
         }
         info.index = fieldIndex++;
         info.variant = variantIndex;
@@ -1100,7 +1112,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
 
     long long bytes = bits / 8;
     if (type->kind == TypeKind::Array || type->kind == TypeKind::Record) {
-        if (type->m_boundsSymbol != nullptr || (type->kind == TypeKind::Array && !type->constrained)
+        if (hasRuntimeLayout(type)
             || type->m_incompleteLayout || hasIncompleteParts(type)) {
             m_diagnostics.error(decl->location, "a composite Size clause requires a complete static layout");
             return;
@@ -1246,6 +1258,7 @@ void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bo
     }
     if (m_scalarConstraintDeclaration != nullptr) {
         m_scalarConstraintDeclaration->m_scalarConstraints.push_back(type);
+        m_scalarConstraintDeclaration->constraintOrder.push_back(type);
     }
 }
 
@@ -1961,4 +1974,29 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
     type->m_enumCodesSpecified = true;
     type->byteSize = bytes;
     m_types.refreshEnumerationRepresentation(type);
+}
+
+void Sema::recordArrayConstraint(Type* type, SubtypeIndication* indication)
+{
+    if (type == nullptr || type->kind != TypeKind::Array || type->constrained
+        || type->m_boundsSymbol != nullptr || indication->indexLows.empty()) { return; }
+    std::string file = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
+    for (char& character : file) {
+        if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }
+    }
+    std::string name = "array_bounds_" + file + "_" + std::to_string(indication->location.line) + "_"
+        + std::to_string(indication->location.column) + "_"
+        + std::to_string(m_scalarConstraintDeclaration->arrayConstraints.size());
+    Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, name, name);
+    symbol->type = type;
+    symbol->owner = m_currentSubprogram;
+    symbol->isGlobal = m_currentSubprogram == nullptr;
+    symbol->qbeName = "$" + mangle(name);
+    type->m_boundsSymbol = symbol;
+    for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
+        type->m_boundExpressions.push_back({indication->indexLows[i].get(), indication->indexHighs[i].get()});
+    }
+    m_scalarConstraintDeclaration->arrayConstraints.push_back(type);
+    m_scalarConstraintDeclaration->constraintOrder.push_back(type);
+    if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
 }

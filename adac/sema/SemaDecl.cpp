@@ -96,6 +96,8 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     Decl* savedConstraintDeclaration = m_scalarConstraintDeclaration;
     m_scalarConstraintDeclaration = decl;
     decl->m_scalarConstraints.clear();
+    decl->arrayConstraints.clear();
+    decl->constraintOrder.clear();
     switch (decl->kind) {
     case DeclKind::Object:
         analyzeObjectDecl(static_cast<ObjectDecl*>(decl), scope);

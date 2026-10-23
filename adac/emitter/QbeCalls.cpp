@@ -163,7 +163,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::string resultStorage;
     bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
     if (compositeResult) {
-        resultStorage = allocScratch(taggedResult ? 8 : dynamicResult ? adaArrayResultSize(subprogram->returnType->arrayRank) : std::max(1LL, typeSize(subprogram->returnType)), typeAlignment(subprogram->returnType));
+        resultStorage = taggedResult || dynamicResult
+            ? allocScratch(taggedResult ? 8 : adaArrayResultSize(subprogram->returnType->arrayRank), 8)
+            : allocTypeScratch(subprogram->returnType);
         if (!resultTarget.empty() && !taggedResult && !dynamicResult) {
             resultStorage = resultTarget;
         }
@@ -488,7 +490,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         if (parameter->byReference && isScalar(formal)
             && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->m_enumCodes.empty()
                 || typeSize(formal) != typeSize(argument->type))) {
-            Value temporary { allocScratch(typeSize(formal)), 'l' };
+            Value temporary { allocTypeScratch(formal), 'l' };
             Value actual;
             if (parameter->mode != ParameterMode::In) {
                 actual = emitAddress(argument);

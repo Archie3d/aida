@@ -128,7 +128,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
     Value address;
     if (symbol->isGlobal) {
         address = Value { symbol->qbeName, 'l' };
-        if (symbol->kind == SymbolKind::Object && isUnconstrainedArray(symbol->type) && !symbol->m_objectReference) {
+        if (symbol->kind == SymbolKind::Object && hasRuntimeLayout(symbol->type) && !symbol->m_objectReference) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
             address.name = pointer;
@@ -141,7 +141,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         if ((symbol->kind == SymbolKind::Parameter && symbol->byReference)
             || (symbol->kind == SymbolKind::Object && !symbol->m_objectReference
-                && (isUnconstrainedArray(symbol->type)
+                && (hasRuntimeLayout(symbol->type)
                     || (symbol->type->kind == TypeKind::Array && typeSize(symbol->type) > m_arrayStackLimit)))) {
             std::string pointer = newTemp();
             line(pointer + " =l loadl " + address.name);
@@ -252,7 +252,7 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
         return;
     }
-    if (type->kind == TypeKind::Array && !type->constrained) {
+    if (hasRuntimeLayout(type)) {
         emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")", CallEffects::DeferredCheck);
         return;
     }
@@ -330,7 +330,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
                 }
                 const FieldInfo& field = record->fields[which];
                 std::string slot = newTemp();
-                line(slot + " =l add " + source.name + ", " + std::to_string(field.offset));
+                line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
                 Value actual = loadFrom(Value { slot, 'l' }, field.type);
                 std::string same = newTemp();
                 std::string good = newLabel("controlledconstraint");
@@ -396,7 +396,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             std::string wide = newTemp();
             std::string size = newTemp();
             line(wide + " =l copy " + targetLength.name);
-            emitCallInstruction(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + std::to_string(typeSize(type->element)) + ")", CallEffects::CheckException);
+            emitCallInstruction(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + arrayElementSize(address, type) + ")", CallEffects::CheckException);
             emitCallInstruction("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
             return;
         }
@@ -439,11 +439,11 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
                 // Unconstrained formals still designate constrained objects.
                 // Mutable discriminants are not part of the supported subset.
                 std::string targetSlot = newTemp();
-                line(targetSlot + " =l add " + address.name + ", " + std::to_string(field.offset));
+                line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));
                 expected = loadFrom(Value { targetSlot, 'l' }, field.type);
             }
             std::string slot = newTemp();
-            line(slot + " =l add " + source.name + ", " + std::to_string(field.offset));
+            line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
             Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
             std::string same = newTemp();
             line(same + " =w ceq" + std::string(1, discriminant.type) + " "
@@ -648,7 +648,7 @@ Value QbeEmitter::adaptCompositeStorage(Value actual, Type* actualType, Type* fo
     if (formal->kind == TypeKind::Array) {
         checkArrayShape(withBounds(Value {}, formal, nullptr), formal, actual, actualType);
     }
-    Value temporary = withBounds(Value {allocScratch(std::max(1LL, typeSize(formal)), typeAlignment(formal)), 'l'}, formal, nullptr);
+    Value temporary = withBounds(Value {allocTypeScratch(formal), 'l'}, formal, nullptr);
     copyInto(temporary, actual, formal);
     if (mode != ParameterMode::In) { copies.push_back({actual, temporary, actualType}); }
     return temporary;

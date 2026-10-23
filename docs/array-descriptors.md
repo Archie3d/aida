@@ -65,8 +65,8 @@ contiguous and overlap-safe where assignment requires it.
   frames are diagnosed (with alignment headroom) rather than wrapped. Large
   direct array locals use descriptors and managed storage instead.
 - `'Length` and `'Size` use contextual integer checks before narrowing. Dynamic
-  array object `'Size` is checked from its shape; runtime-constrained subtype
-  `'Size` remains diagnosed. Bit sizes exceeding signed 64-bit result capacity
+  array object and runtime-constrained subtype `'Size` are checked from their
+  shape. Bit sizes exceeding signed 64-bit result capacity
   are diagnosed or checked. Legacy runtime text/scalar APIs still take 32-bit
   lengths through an explicit checked bridge; they cannot silently truncate.
 
@@ -183,11 +183,11 @@ objects and array renamings save a pointer and a complete descriptor without
 copying. Instance-local array types and objects may depend on runtime scalar
 actuals. Broader generic constraint matching remains Phase 6g work.
 
-Runtime-constrained record/array components and allocators, runtime array
-subtype Size/stream attributes and explicit runtime constraints on derivation
-parents remain diagnosed. Components, allocators and subtype Size/streaming
-belong to the following Phase 6b item. Ordinary array object Size and supported object streaming continue to
-use their saved descriptors; general composite streaming remains Phase 7.
+[Runtime components and allocators](runtime-composites.md) subsequently added
+contiguous dynamic layouts, per-allocation bounds, runtime subtype Size and
+all-dimensional array streaming. Explicit runtime constraints on derivation
+parents remain diagnosed; general component-wise/controlled streaming remains
+Phase 7 work.
 
 `runtimearraylibrary` covers spec/body declarations, bound capture, grouped
 objects, named/anonymous and inferred constraints, nulls, multidimensional

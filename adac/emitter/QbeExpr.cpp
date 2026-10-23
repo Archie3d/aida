@@ -106,12 +106,12 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             }
             return constantValue(symbol->staticValue, qbeClass(symbol->type));
         }
-        if (symbol->kind == SymbolKind::TypeName && symbol->type->m_boundsSymbol != nullptr) {
-            return boundsFor(symbol->type->m_boundsSymbol);
+        if (symbol->kind == SymbolKind::TypeName && symbol->type->kind == TypeKind::Array) {
+            return withBounds(Value {}, symbol->type, nullptr);
         }
         Value address = symbol->m_protectedField >= 0 ? emitAddress(expr) : addressOf(symbol);
         if (isComposite(symbol->type)) {
-            return withBounds(address, symbol->type, symbol);
+            return withBounds(address, symbol->type, symbol->m_protectedField >= 0 ? nullptr : symbol);
         }
         return loadFrom(address, symbol->type);
     }
@@ -134,12 +134,12 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (symbol != nullptr && symbol->kind == SymbolKind::EnumerationLiteral) {
             return constantValue(symbol->enumerationValue, qbeClass(symbol->type));
         }
-        if (symbol != nullptr && symbol->kind == SymbolKind::TypeName && symbol->type->m_boundsSymbol != nullptr) {
-            return boundsFor(symbol->type->m_boundsSymbol);
+        if (symbol != nullptr && symbol->kind == SymbolKind::TypeName && symbol->type->kind == TypeKind::Array) {
+            return withBounds(Value {}, symbol->type, nullptr);
         }
         Value address = emitAddress(expr);
         if (isComposite(expr->type)) {
-            return withBounds(address, expr->type, selected->symbol);
+            return withBounds(address, expr->type, selected->symbol != nullptr && selected->symbol->m_protectedField >= 0 ? nullptr : selected->symbol);
         }
         return loadFrom(address, expr->type);
     }
@@ -173,7 +173,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 std::string bytes = objectBytes(converted, expr->type);
                 converted.name = newTemp();
                 emitCallInstruction(converted.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-                     + ", l 1, l 1, l " + (expr->type->constrained ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
+                     + ", l 1, l 1, l " + (!hasRuntimeLayout(expr->type) ? std::to_string(typeSize(expr->type)) : bytes) + ")", CallEffects::CheckException);
                 if (needsFinalization(expr->type)) {
                     bool saved = m_context->m_initializingTemporary;
                     m_context->m_initializingTemporary = true;
@@ -198,7 +198,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 emitRecordConstraintCheck(value, expr->type);
                 if (typeSize(expr->type) != typeSize(operand->type)
                     && (typeSize(expr->type) != typeLayoutSize(expr->type) || typeSize(operand->type) != typeLayoutSize(operand->type))) {
-                    Value converted {allocScratch(std::max(1LL, typeSize(expr->type)), typeAlignment(expr->type)), 'l'};
+                    Value converted {allocTypeScratch(expr->type), 'l'};
                     copyInto(converted, value, expr->type);
                     return converted;
                 }
@@ -386,8 +386,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
                 Value object = addressOf(expr->m_protectedReceiver);
                 const auto& field = identifier->symbol->m_protectedType->fields[identifier->symbol->m_protectedField];
                 Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + std::to_string(field.offset));
-                return address;
+                line(address.name + " =l add " + object.name + ", " + fieldOffset(identifier->symbol->m_protectedType, field));
+                return withBounds(address, field.type, nullptr);
             }
             return addressOf(identifier->symbol);
         }
@@ -401,8 +401,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
                 Value object = addressOf(expr->m_protectedReceiver);
                 const auto& field = selected->symbol->m_protectedType->fields[selected->symbol->m_protectedField];
                 Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + std::to_string(field.offset));
-                return address;
+                line(address.name + " =l add " + object.name + ", " + fieldOffset(selected->symbol->m_protectedType, field));
+                return withBounds(address, field.type, nullptr);
             }
             return addressOf(selected->symbol);
         }
@@ -410,7 +410,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
             // The designated object lives where the access value points.
             Value pointer = emitExpr(selected->prefix.get());
             checkNotNull(pointer);
-            return pointer;
+            return expr->type->kind == TypeKind::Array ? allocatedArrayView(pointer, expr->type) : pointer;
         }
         if (selected->fieldIndex >= 0) {
             Value base = emitAddress(selected->prefix.get());
@@ -424,13 +424,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
             if (selected->checkedVariant >= 0) {
                 checkVariant(base, record, selected->checkedVariant);
             }
-            long long offset = record->fields[selected->fieldIndex].offset;
-            if (offset == 0) {
-                return base;
-            }
-            std::string address = newTemp();
-            line(address + " =l add " + base.name + ", " + std::to_string(offset));
-            return Value { address, 'l' };
+            return fieldAddress(base, record, record->fields[selected->fieldIndex]);
         }
         break;
     }
@@ -449,6 +443,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
                 // The access value is already the address of the array.
                 checkNotNull(base);
                 array = array->target;
+                base = allocatedArrayView(base, array);
             }
             base = withBounds(base, array, nullptr);
             Value address = base;
@@ -483,7 +478,87 @@ Value QbeEmitter::emitAddress(Expr* expr)
 Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
-    long long size = typeSize(isScalar(designated) ? expr->type->target : designated);
+    Value bounds, source, initializerBounds;
+    bool array = designated->kind == TypeKind::Array;
+    bool preparedSource = false;
+    ArrayAggregatePlan aggregatePlan;
+    AggregateExpr* preparedAggregate = nullptr;
+    if (array) {
+        bool explicitBounds = designated->constrained || designated->m_boundsSymbol != nullptr
+            || !expr->subtype->indexLows.empty();
+        if (designated->constrained || designated->m_boundsSymbol != nullptr) {
+            bounds = withBounds(Value {}, designated, nullptr);
+        } else if (!expr->subtype->indexLows.empty()) {
+            Type* axis = designated;
+            for (int dimension = 0; dimension < designated->arrayRank; ++dimension) {
+                Value first = wideBound(emitExpr(expr->subtype->indexLows[dimension].get()));
+                Value last = wideBound(emitExpr(expr->subtype->indexHighs[dimension].get()));
+                Value nonNull {newTemp(), 'w'};
+                line(nonNull.name + " =w csgel " + last.name + ", " + first.name);
+                std::string check = newLabel("allocatorboundscheck"), ready = newLabel("allocatorboundsready");
+                branch(nonNull, check, ready);
+                label(check);
+                emitRangeCheck(first, axis->index, expr->location);
+                emitRangeCheck(last, axis->index, expr->location);
+                jump(ready);
+                label(ready);
+                if (dimension == 0) { bounds.first = first.name; bounds.last = last.name; }
+                else { bounds.innerBounds.push_back({first.name, last.name}); }
+                axis = axis->element;
+            }
+            bounds = arrayView(bounds, designated);
+        }
+        Expr* aggregate = expr->value.get();
+        while (aggregate != nullptr && aggregate->kind == ExprKind::Qualified) {
+            aggregate = static_cast<QualifiedExpr*>(aggregate)->operand.get();
+        }
+        if (aggregate != nullptr && aggregate->kind == ExprKind::Aggregate) {
+            preparedAggregate = static_cast<AggregateExpr*>(aggregate);
+            bounds = prepareArrayAggregate(aggregate, bounds, designated, aggregatePlan);
+        } else if (expr->value != nullptr && hasLimitedControlledParts(designated) && !explicitBounds) {
+            Value collection = collectionFor(expr->type);
+            std::string pending = newTemp();
+            emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
+            std::string failed = newLabel("arrayallocationfailed"), ready = newLabel("arrayallocationready");
+            pushHandler(failed);
+            m_context->m_resultTargetOwner = newTemp();
+            m_context->m_resultTargetArena = newTemp();
+            emitCallInstruction(m_context->m_resultTargetOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
+            emitCallInstruction(m_context->m_resultTargetArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
+            Value result = emitExpr(expr->value.get());
+            if (expr->type->target->m_boundsSymbol != nullptr || expr->type->target->constrained) {
+                checkArrayShape(withBounds(Value {}, expr->type->target, nullptr), expr->type->target, result, designated);
+            }
+            emitCallInstruction("call $__ada_collection_finish(l " + pending + ", l " + result.name + ")", CallEffects::CheckException);
+            std::string descriptor = allocScratch(adaArrayLocalSize(designated->arrayRank));
+            line("storel " + result.name + ", " + descriptor);
+            storeArrayView(descriptor, result, designated, false);
+            emitCallInstruction("call $__ada_allocation_set_array_bounds(l " + result.name + ", l " + descriptor
+                + ", w " + std::to_string(designated->arrayRank) + ")", CallEffects::CheckException);
+            m_context->handlerLabels.pop_back();
+            jump(ready);
+            label(failed);
+            emitCallInstruction("call $__ada_collection_abort(l " + pending + ")", CallEffects::DeferredCheck);
+            if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
+            else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
+            label(ready);
+            return result;
+        } else if (expr->value != nullptr && !(hasLimitedControlledParts(designated) && explicitBounds)) {
+            source = emitExpr(expr->value.get());
+            preparedSource = true;
+            if (!explicitBounds) { bounds = source; }
+            else { checkArrayShape(bounds, designated, source, expr->value->type); }
+        }
+        initializerBounds = bounds;
+        if (expr->type->target->constrained || expr->type->target->m_boundsSymbol != nullptr) {
+            Value target = withBounds(Value {}, expr->type->target, nullptr);
+            checkArrayShape(target, expr->type->target, bounds, designated);
+            bounds = target;
+            designated = expr->type->target;
+        }
+    }
+    std::string size = array ? objectBytes(bounds, designated)
+        : runtimeSize(isScalar(designated) ? expr->type->target : designated);
     if (designated->m_classRoot != nullptr && hasLimitedControlledParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
@@ -524,10 +599,18 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         Value collection = collectionFor(expr->type);
         Value object { newTemp(), 'l' };
         emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
-             + ", l " + std::to_string(size) + ")", CallEffects::CheckException);
+             + ", l " + size + ")", CallEffects::CheckException);
+        if (array) { bounds.name = object.name; bounds.type = 'l'; object = bounds; }
         std::string failed = newLabel("allocationfailed");
         std::string ready = newLabel("allocationready");
         pushHandler(failed);
+        if (array) {
+            std::string descriptor = allocScratch(adaArrayLocalSize(designated->arrayRank));
+            line("storel " + object.name + ", " + descriptor);
+            storeArrayView(descriptor, object, designated, false);
+            emitCallInstruction("call $__ada_allocation_set_array_bounds(l " + object.name + ", l " + descriptor
+                + ", w " + std::to_string(designated->arrayRank) + ")", CallEffects::CheckException);
+        }
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->m_tagName + ".finalize)", CallEffects::CheckException);
@@ -549,6 +632,14 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitRangeCheck(value, designated, expr->location);
             emitRangeCheck(value, expr->type->target, expr->location);
             storeInto(object, value, expr->type->target);
+        } else if (preparedAggregate != nullptr) {
+            initializerBounds.name = object.name;
+            initializerBounds.type = 'l';
+            emitDynamicAggregateInto(preparedAggregate, initializerBounds, expr->designated, &aggregatePlan);
+        } else if (preparedSource) {
+            checkArrayShape(object, designated, source, expr->value->type);
+            if (needsFinalization(designated)) { copyControlledObject(object, source, designated, true); }
+            else { copyInto(object, source, designated); }
         } else if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
         } else {
@@ -642,7 +733,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
              + m_context->m_taskGroup + ")", CallEffects::CheckException);
         return;
     }
-    if (type->kind == TypeKind::Array && !type->constrained) {
+    if (type->kind == TypeKind::Array && hasRuntimeLayout(type)) {
         emitArrayFill(address, type, nullptr);
         return;
     }
@@ -674,12 +765,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             branch(variantCondition(address, base, field.variant), active, next);
             label(active);
         }
-        Value slot = address;
-        if (field.offset != 0) {
-            std::string moved = newTemp();
-            line(moved + " =l add " + address.name + ", " + std::to_string(field.offset));
-            slot = Value { moved, 'l' };
-        }
+        Value slot = fieldAddress(address, base, field);
         long long fixed = 0;
         if (field.isDiscriminant && discriminantValueOf(type, field.index, fixed)) {
             storeInto(slot, constantValue(fixed, qbeClass(field.type)), field.type);

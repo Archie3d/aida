@@ -35,7 +35,7 @@ Value QbeEmitter::arrayView(Value value, Type* type)
         value.lengths.push_back(lengthOf(axis, nullptr).name);
         cell = cell->element;
     }
-    std::string stride = std::to_string(typeSize(cell));
+    std::string stride = runtimeSize(cell);
     for (int i = type->arrayRank - 1; i >= 0; --i) {
         value.strides[i] = stride;
         if (i != 0) {
@@ -371,7 +371,7 @@ std::string QbeEmitter::arrayElementSize(const Value& array, Type* type)
 {
     Value view = withBounds(array, type, nullptr);
     if (!view.strides.empty()) { return view.strides.front(); }
-    return std::to_string(typeSize(type->element));
+    return runtimeSize(type->element);
 }
 
 void QbeEmitter::checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType)
@@ -422,6 +422,7 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
     if (array->kind == TypeKind::Access) {
         checkNotNull(base);
         array = array->target;
+        base = allocatedArrayView(base, array);
     }
     base = withBounds(base, array, nullptr);
     Value low = emitExpr(expr->resolvedArguments[0]);
@@ -447,7 +448,7 @@ Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
     char boundClass = fixedAncestor ? 'l' : indexBounds.type;
     std::string indexFirst = wideBound(Value { indexBounds.first, boundClass }).name;
     std::string indexLast = wideBound(Value { indexBounds.last, boundClass }).name;
-    std::string stride = std::to_string(typeSize(component));
+    std::string stride = runtimeSize(component);
     struct Operand
     {
         Value value;
@@ -594,7 +595,7 @@ Value QbeEmitter::emitArrayArgument(Expr* argument, ParameterMode mode, std::vec
     std::string bytes = objectBytes(view, argument->type);
     copy.temporary.name = newTemp();
     emitCallInstruction(copy.temporary.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-         + ", l 1, l 1, l " + (argument->type->constrained ? std::to_string(typeSize(argument->type)) : bytes) + ")", CallEffects::CheckException);
+         + ", l 1, l 1, l " + (!hasRuntimeLayout(argument->type) ? std::to_string(typeSize(argument->type)) : bytes) + ")", CallEffects::CheckException);
     emitCallInstruction("call $memmove(l " + copy.temporary.name + ", l " + actual.name + ", l " + bytes + ")", CallEffects::DeferredCheck);
     copies.push_back(copy);
     return copy.temporary;

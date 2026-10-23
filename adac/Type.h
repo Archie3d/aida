@@ -195,6 +195,9 @@ public:
     Symbol* m_boundsSymbol = nullptr;
     std::vector<std::pair<struct Expr*, struct Expr*>> m_boundExpressions;
 
+    // Runtime record layout: total size followed by one offset per field.
+    Symbol* m_layoutSymbol = nullptr;
+
     // Record types.
     std::vector<FieldInfo> fields;
 
@@ -221,6 +224,7 @@ public:
 };
 
 // True when an object of this type, or one holding it, must be cleared.
+bool hasRuntimeLayout(const Type* type);
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
 bool needsCollection(const Type* type);

@@ -58,7 +58,7 @@ void renameUnit(Decl* decl, const std::string& name, const std::string& lower, c
 bool isDefinite(Type* type)
 {
     Type* base = baseType(type);
-    return base == nullptr || base->kind != TypeKind::Array || base->constrained;
+    return base == nullptr || base->kind != TypeKind::Array || base->constrained || base->m_boundsSymbol != nullptr;
 }
 
 // Copying a limited object requires build-in-place support, even when it is
@@ -788,7 +788,9 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (type == nullptr) {
                 return false;
             }
-            if (!acceptsFormalType(formal, type, decl->genericName, actual->location)) {
+            bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
+                && formal.lower == "object";
+            if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
                 return false;
             }
             if (formal.typeClass == FormalTypeClass::ArrayType
@@ -1199,10 +1201,18 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         if (symbol->kind == SymbolKind::TypeName && isComposite(type) && hasSharedParts(type)) {
             m_diagnostics.error(symbol->location, "composites containing atomic or volatile parts are not yet supported");
         }
-        if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second
-            && hasProtected(type) && (type->m_incompleteLayout || type->m_tagged || type->variantOn >= 0)) {
-            m_diagnostics.error(symbol->location,
-                "protected components require a complete ordinary record or array layout at declaration");
+        if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second) {
+            bool runtimeComponents = type->kind == TypeKind::Array ? hasRuntimeLayout(type->element)
+                : type->kind == TypeKind::Record && std::any_of(type->fields.begin(), type->fields.end(),
+                    [](const FieldInfo& field) { return hasRuntimeLayout(field.type); });
+            if (runtimeComponents && type->m_incompleteLayout) {
+                m_diagnostics.error(symbol->location,
+                    "runtime component layouts require complete component types at declaration");
+            }
+            if (hasProtected(type) && (type->m_incompleteLayout || type->m_tagged || type->variantOn >= 0)) {
+                m_diagnostics.error(symbol->location,
+                    "protected components require a complete ordinary record or array layout at declaration");
+            }
         }
     }
     for (const auto& use : m_deferredProtectedUses) {

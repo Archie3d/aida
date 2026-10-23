@@ -48,3 +48,5 @@ add_acats_test(c761002 REJECTION "goto statements are not yet supported")
 add_acats_test(c35507a)
 
 add_acats_test(c36203a)
+
+add_acats_test(c48005b)
