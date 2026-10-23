@@ -10,16 +10,16 @@
 // the checked 128-bit capacity fail explicitly instead of using host doubles.
 struct ExactReal
 {
-    __int128 m_numerator = 0;
-    __int128 m_denominator = 1;
-    bool m_valid = false;
+    __int128 numerator = 0;
+    __int128 denominator = 1;
+    bool valid = false;
 
     bool integer(long long& result) const
     {
-        if (!m_valid || m_denominator != 1 || m_numerator < LLONG_MIN || m_numerator > LLONG_MAX) {
+        if (!valid || denominator != 1 || numerator < LLONG_MIN || numerator > LLONG_MAX) {
             return false;
         }
-        result = static_cast<long long>(m_numerator);
+        result = static_cast<long long>(numerator);
         return true;
     }
 
@@ -28,12 +28,12 @@ struct ExactReal
     // preliminary host-double rounding can lose a bit at a Float midpoint.
     double real(int precision = 53) const
     {
-        if (!m_valid || m_numerator == 0) {
+        if (!valid || numerator == 0) {
             return 0.0;
         }
         using Magnitude = unsigned __int128;
-        Magnitude numerator = m_numerator < 0 ? -m_numerator : m_numerator;
-        Magnitude denominator = m_denominator;
+        Magnitude numeratorMagnitude = numerator < 0 ? -numerator : numerator;
+        Magnitude denominatorMagnitude = denominator;
         auto bits = [](Magnitude value) {
             int count = 0;
             for (; value != 0; value >>= 1) {
@@ -41,35 +41,35 @@ struct ExactReal
             }
             return count;
         };
-        int exponent = bits(numerator) - bits(denominator);
-        if (exponent >= 0 ? numerator < (denominator << exponent)
-                          : (numerator << -exponent) < denominator) {
+        int exponent = bits(numeratorMagnitude) - bits(denominatorMagnitude);
+        if (exponent >= 0 ? numeratorMagnitude < (denominatorMagnitude << exponent)
+                          : (numeratorMagnitude << -exponent) < denominatorMagnitude) {
             --exponent;
         }
         if (exponent >= 0) {
-            denominator <<= exponent;
+            denominatorMagnitude <<= exponent;
         } else {
-            numerator <<= -exponent;
+            numeratorMagnitude <<= -exponent;
         }
         // A supported rational can reach Float subnormals, but not Double
         // subnormals. Reduce precision to preserve the Float subnormal grid.
         int digits = precision == 24 && exponent < -126 ? precision + exponent + 126 : precision;
         unsigned long long significand = 1;
-        Magnitude remainder = numerator - denominator;
+        Magnitude remainder = numeratorMagnitude - denominatorMagnitude;
         for (int i = 1; i < digits; ++i) {
             remainder <<= 1;
             significand <<= 1;
-            if (remainder >= denominator) {
-                remainder -= denominator;
+            if (remainder >= denominatorMagnitude) {
+                remainder -= denominatorMagnitude;
                 significand |= 1;
             }
         }
-        if (remainder > denominator - remainder
-            || (remainder == denominator - remainder && (significand & 1))) {
+        if (remainder > denominatorMagnitude - remainder
+            || (remainder == denominatorMagnitude - remainder && (significand & 1))) {
             ++significand;
         }
         double result = std::ldexp(static_cast<double>(significand), exponent - digits + 1);
-        return m_numerator < 0 ? -result : result;
+        return numerator < 0 ? -result : result;
     }
 
     static __int128 gcd(__int128 a, __int128 b)
@@ -105,11 +105,11 @@ struct ExactReal
 
     static ExactReal operation(char op, ExactReal left, ExactReal right)
     {
-        if (!left.m_valid || !right.m_valid) {
+        if (!left.valid || !right.valid) {
             return {};
         }
-        __int128 a = left.m_numerator, b = left.m_denominator;
-        __int128 c = right.m_numerator, d = right.m_denominator;
+        __int128 a = left.numerator, b = left.denominator;
+        __int128 c = right.numerator, d = right.denominator;
         __int128 numerator, denominator, other;
         if (op == '+' || op == '-') {
             __int128 factor = gcd(b, d);
@@ -190,7 +190,7 @@ struct ExactReal
             }
         }
         value = operation('/', value, divisor);
-        if (!value.m_valid || value.m_numerator == 0) {
+        if (!value.valid || value.numerator == 0) {
             return value;
         }
         if (exponentAt != std::string::npos && exponentAt < text.size()) {
@@ -226,7 +226,7 @@ struct ExactReal
 
     bool scaled(int bits, long long& result) const
     {
-        return m_valid && fixedValidScale(bits)
-            && fixedScaleRatio(m_numerator, m_denominator, fixedTwos(bits), fixedFives(bits), 0, 0, &result);
+        return valid && fixedValidScale(bits)
+            && fixedScaleRatio(numerator, denominator, fixedTwos(bits), fixedFives(bits), 0, 0, &result);
     }
 };

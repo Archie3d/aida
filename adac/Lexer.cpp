@@ -234,7 +234,7 @@ Token Lexer::lexNumericLiteral()
         std::strtoll(digits.c_str(), nullptr, 10);
         bool overflowed = errno == ERANGE;
         ExactReal exact = ExactReal::parse(text);
-        overflowed = overflowed || !exact.m_valid;
+        overflowed = overflowed || !exact.valid;
         long long value = 0;
         exact.integer(value);
         if (overflowed) {

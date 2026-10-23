@@ -110,7 +110,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         expr->type = expected != nullptr && expected->kind == TypeKind::Float ? expected : m_types.universalReal();
         expr->isStatic = true;
         expr->staticReal = expr->m_exactReal.real();
-        if (!expr->m_exactReal.m_valid) {
+        if (!expr->m_exactReal.valid) {
             expr->staticFailure = StaticFailure::Capacity;
         }
         return expr->type;

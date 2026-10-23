@@ -39,9 +39,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         // Universal named numbers may be wider than every machine type.
         // Refuse an unrepresentable materialization instead of using the
         // deliberately unset machine-value cache as zero.
-        if (expr->m_exactReal.m_valid && expr->type->modulus != 0) {
-            expr->staticValue = static_cast<long long>(expr->m_exactReal.m_numerator);
-        } else if (expr->m_exactReal.m_valid && !expr->m_exactReal.integer(expr->staticValue)) {
+        if (expr->m_exactReal.valid && expr->type->modulus != 0) {
+            expr->staticValue = static_cast<long long>(expr->m_exactReal.numerator);
+        } else if (expr->m_exactReal.valid && !expr->m_exactReal.integer(expr->staticValue)) {
             m_diagnostics.error(expr->location, "static value exceeds supported 64-bit machine storage");
             return Value { "0", qbeClass(expr->type) };
         }

@@ -36,8 +36,8 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         value = counts;
         return true;
     }
-    if (expr->m_exactReal.m_valid && expr->m_exactReal.m_denominator == 1) {
-        value = expr->m_exactReal.m_numerator;
+    if (expr->m_exactReal.valid && expr->m_exactReal.denominator == 1) {
+        value = expr->m_exactReal.numerator;
         return true;
     }
     if (expr->isStatic) {
@@ -60,7 +60,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         return false;
     }
     auto checked = [&](bool overflow, __int128 result) {
-        if (overflow || !ExactReal::make(result).m_valid) {
+        if (overflow || !ExactReal::make(result).valid) {
             failure = StaticFailure::Capacity;
             return false;
         }
@@ -124,14 +124,14 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
             if (exactLeft && exactRight) {
                 // Compare reduced fractions by continued quotients. Cross
                 // multiplication can exceed capacity even when both fit.
-                int signA = a.m_numerator < 0 ? -1 : a.m_numerator > 0 ? 1 : 0;
-                int signB = b.m_numerator < 0 ? -1 : b.m_numerator > 0 ? 1 : 0;
+                int signA = a.numerator < 0 ? -1 : a.numerator > 0 ? 1 : 0;
+                int signB = b.numerator < 0 ? -1 : b.numerator > 0 ? 1 : 0;
                 if (signA != signB) {
                     left = signA < signB ? -1 : 1;
                 } else if (signA != 0) {
-                    __int128 an = signA < 0 ? -a.m_numerator : a.m_numerator;
-                    __int128 bn = signB < 0 ? -b.m_numerator : b.m_numerator;
-                    __int128 ad = a.m_denominator, bd = b.m_denominator;
+                    __int128 an = signA < 0 ? -a.numerator : a.numerator;
+                    __int128 bn = signB < 0 ? -b.numerator : b.numerator;
+                    __int128 ad = a.denominator, bd = b.denominator;
                     int direction = signA;
                     for (;;) {
                         __int128 aq = an / ad, bq = bn / bd;
@@ -153,7 +153,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                 auto machine = [](Expr* operand) {
                     return operand->isStatic && operand->staticFailure == StaticFailure::None
                         && operand->type != nullptr && operand->type->kind == TypeKind::Float
-                        && !operand->m_exactReal.m_valid && std::isfinite(operand->staticReal);
+                        && !operand->m_exactReal.valid && std::isfinite(operand->staticReal);
                 };
                 if (!exactLeft && !exactRight && machine(binary->left.get()) && machine(binary->right.get())) {
                     double x = binary->left->staticReal, y = binary->right->staticReal;
@@ -167,8 +167,8 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                     if (comparable && std::fabs(x) >= std::ldexp(1.0, 127)) {
                         order = x < 0 ? -1 : 1;
                     } else if (comparable && x != 0.0 && std::fabs(x) <= std::ldexp(1.0, -127)) {
-                        order = exact.m_numerator == 0 ? (x < 0 ? -1 : 1)
-                            : exact.m_numerator < 0 ? 1 : -1;
+                        order = exact.numerator == 0 ? (x < 0 ? -1 : 1)
+                            : exact.numerator < 0 ? 1 : -1;
                     } else {
                         if (binary->left->isStatic && binary->right->isStatic) {
                             failure = binary->left->staticFailure != StaticFailure::None
@@ -254,13 +254,13 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
             result = 1;
             while (right != 0) {
                 if ((right & 1) && (__builtin_mul_overflow(result, left, &result)
-                    || !ExactReal::make(result).m_valid)) {
+                    || !ExactReal::make(result).valid)) {
                     failure = StaticFailure::Capacity;
                     return false;
                 }
                 right >>= 1;
                 if (right != 0 && (__builtin_mul_overflow(left, left, &left)
-                    || !ExactReal::make(left).m_valid)) {
+                    || !ExactReal::make(left).valid)) {
                     failure = StaticFailure::Capacity;
                     return false;
                 }
@@ -380,7 +380,7 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
     default: break;
     }
     if (expr->staticFailure == StaticFailure::Capacity
-        || (expr->kind == ExprKind::RealLiteral && !expr->m_exactReal.m_valid)) {
+        || (expr->kind == ExprKind::RealLiteral && !expr->m_exactReal.valid)) {
         m_diagnostics.error(expr->location, "static expression exceeds supported exact evaluation limits (127-bit magnitude)");
     } else if (expr->staticFailure == StaticFailure::ZeroDivisor) {
         m_diagnostics.error(expr->location, "division by zero in static expression");
@@ -398,7 +398,7 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         && (expr->type->kind == TypeKind::UniversalInteger || expr->type->kind == TypeKind::UniversalReal)
         ? expected : expr->type;
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
-        && isReal(target) && expr->m_exactReal.m_valid) {
+        && isReal(target) && expr->m_exactReal.valid) {
         expr->staticReal = expr->m_exactReal.real(typeSize(target) == 4 ? 24 : 53);
     }
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
@@ -428,7 +428,7 @@ bool Sema::foldStaticReal(Expr* expr, double& value) const
         value = expr->staticReal;
         return true;
     }
-    if (expr->type != nullptr && expr->type->kind == TypeKind::UniversalReal && expr->m_exactReal.m_valid) {
+    if (expr->type != nullptr && expr->type->kind == TypeKind::UniversalReal && expr->m_exactReal.valid) {
         value = expr->m_exactReal.real();
         return true;
     }
@@ -555,7 +555,7 @@ void Sema::noteStaticValue(Expr* expr)
                 expr->isStatic = true;
                 ExactReal exponent;
                 bool zeroPower = binary->op == BinaryOp::Power && binary->left->staticReal == 0.0
-                    && exactValue(binary->right.get(), exponent) && exponent.m_numerator < 0;
+                    && exactValue(binary->right.get(), exponent) && exponent.numerator < 0;
                 expr->staticFailure = binary->left->staticFailure != StaticFailure::None
                     || binary->right->staticFailure != StaticFailure::None ? StaticFailure::Dependent
                     : zeroPower || (binary->op == BinaryOp::Divide && binary->right->staticReal == 0.0)
@@ -594,7 +594,7 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         value = ExactReal::fixed(counts, bits);
         return true;
     }
-    if (expr->m_exactReal.m_valid) {
+    if (expr->m_exactReal.valid) {
         value = expr->m_exactReal;
         return true;
     }
@@ -616,7 +616,7 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         }
         value = exponent >= 0 ? ExactReal::make(numerator * ((__int128)1 << exponent))
                               : ExactReal::make(numerator, (__int128)1 << -exponent);
-        return value.m_valid;
+        return value.valid;
     }
     if (expr->isStatic && isDiscrete(expr->type)) {
         value = ExactReal::make(expr->staticValue);
@@ -627,8 +627,8 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         if (unary->operatorCall || !exactValue(unary->operand.get(), value)) {
             return false;
         }
-        if (unary->op == UnaryOp::Negate || (unary->op == UnaryOp::Abs && value.m_numerator < 0)) {
-            value.m_numerator = -value.m_numerator;
+        if (unary->op == UnaryOp::Negate || (unary->op == UnaryOp::Abs && value.numerator < 0)) {
+            value.numerator = -value.numerator;
         }
         return unary->op != UnaryOp::Not;
     }
@@ -643,14 +643,14 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
             : binary->op == BinaryOp::Multiply ? '*' : binary->op == BinaryOp::Divide ? '/' : 0;
         if (op != 0) {
             value = ExactReal::operation(op, left, right);
-        } else if (binary->op == BinaryOp::Power && right.m_denominator == 1) {
-            __int128 exponent = right.m_numerator;
+        } else if (binary->op == BinaryOp::Power && right.denominator == 1) {
+            __int128 exponent = right.numerator;
             if (exponent < 0) {
-                left = ExactReal::make(left.m_denominator, left.m_numerator);
+                left = ExactReal::make(left.denominator, left.numerator);
                 exponent = -exponent;
             }
             value = ExactReal::make(1);
-            while (exponent != 0 && value.m_valid && left.m_valid) {
+            while (exponent != 0 && value.valid && left.valid) {
                 if (exponent & 1) {
                     value = ExactReal::operation('*', value, left);
                 }
@@ -659,11 +659,11 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
                     left = ExactReal::operation('*', left, left);
                 }
             }
-            return value.m_valid && left.m_valid;
+            return value.valid && left.valid;
         } else {
             return false;
         }
-        return value.m_valid;
+        return value.valid;
     }
     return false;
 }

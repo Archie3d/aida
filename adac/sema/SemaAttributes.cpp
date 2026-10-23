@@ -525,8 +525,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             if (name == "delta" && base->delta != nullptr) {
                 exactValue(base->delta, expr->m_exactReal);
             }
-            expr->staticReal = static_cast<double>(expr->m_exactReal.m_numerator)
-                / static_cast<double>(expr->m_exactReal.m_denominator);
+            expr->staticReal = static_cast<double>(expr->m_exactReal.numerator)
+                / static_cast<double>(expr->m_exactReal.denominator);
             return expr->type;
         }
         if (name == "first" || name == "last") {

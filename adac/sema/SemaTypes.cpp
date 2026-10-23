@@ -229,7 +229,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* deltaType = analyzeExpr(definition->m_delta.get(), scope, nullptr);
         ExactReal delta;
         if (!isReal(deltaType) || !exactValue(definition->m_delta.get(), delta)
-            || delta.m_numerator <= 0) {
+            || delta.numerator <= 0) {
             m_diagnostics.error(definition->location, "fixed-point delta must be a positive exact static real expression");
             delta = ExactReal::make(1);
         }
@@ -244,7 +244,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             int scale = ADA_FIXED_MIN_SCALE;
             for (; scale <= ADA_FIXED_MAX_SCALE; ++scale) {
                 ExactReal candidate = scale >= 0 ? ExactReal::make(1, fixedPower10(scale)) : ExactReal::make(fixedPower10(-scale));
-                if (candidate.m_numerator == delta.m_numerator && candidate.m_denominator == delta.m_denominator) { break; }
+                if (candidate.numerator == delta.numerator && candidate.denominator == delta.denominator) { break; }
             }
             if (scale > ADA_FIXED_MAX_SCALE) {
                 m_diagnostics.error(definition->location, "decimal delta must be a power of ten from 10.0**(-18) through 10.0**18");
@@ -272,7 +272,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                     ExactReal max = ExactReal::fixed(limit, type->fixedScale);
                     ExactReal below = ExactReal::operation('-', low, min);
                     ExactReal above = ExactReal::operation('-', max, high);
-                    if (!below.m_valid || !above.m_valid || below.m_numerator < 0 || above.m_numerator < 0) {
+                    if (!below.valid || !above.valid || below.numerator < 0 || above.numerator < 0) {
                         m_diagnostics.error(definition->location, "decimal bounds exceed the range permitted by digits");
                     }
                 }
@@ -286,11 +286,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         int bits = ADA_FIXED_MIN_BITS;
         auto belowSmall = [&]() {
-            return bits >= 0 ? delta.m_numerator <= (delta.m_denominator - 1) / ((__int128)1 << bits)
-                             : delta.m_numerator / delta.m_denominator < ((__int128)1 << -bits);
+            return bits >= 0 ? delta.numerator <= (delta.denominator - 1) / ((__int128)1 << bits)
+                             : delta.numerator / delta.denominator < ((__int128)1 << -bits);
         };
         while (bits < ADA_FIXED_MAX_BITS && belowSmall()) { ++bits; }
-        if (belowSmall() || delta.m_numerator / delta.m_denominator > ((__int128)1 << -ADA_FIXED_MIN_BITS)) {
+        if (belowSmall() || delta.numerator / delta.denominator > ((__int128)1 << -ADA_FIXED_MIN_BITS)) {
             m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-62) through 2.0**62");
         }
         if (decl->m_smallClause != nullptr) {
@@ -306,12 +306,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             Type* smallType = analyzeExpr(decl->m_smallClause, representationScope, nullptr);
             type->smallPending = false;
             ExactReal small;
-            bool valid = isReal(smallType) && exactValue(decl->m_smallClause, small) && small.m_numerator > 0;
+            bool valid = isReal(smallType) && exactValue(decl->m_smallClause, small) && small.numerator > 0;
             int selected = ADA_FIXED_MIN_BITS;
             for (; valid && selected <= ADA_FIXED_MAX_BITS; ++selected) {
                 ExactReal candidate = selected >= 0 ? ExactReal::make(1, (__int128)1 << selected)
                                                     : ExactReal::make((__int128)1 << -selected);
-                if (candidate.m_numerator == small.m_numerator && candidate.m_denominator == small.m_denominator) { break; }
+                if (candidate.numerator == small.numerator && candidate.denominator == small.denominator) { break; }
             }
             if (!valid || selected > ADA_FIXED_MAX_BITS) {
                 m_diagnostics.error(decl->m_smallClause->location, "Small must be a positive static power of two from 2.0**(-62) through 2.0**62");
@@ -325,7 +325,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->fixedScale = bits;
         __int128 decimalScale = 10;
         while (type->fixedAft < 20
-            && delta.m_numerator < (delta.m_denominator - 1) / decimalScale + 1) {
+            && delta.numerator < (delta.denominator - 1) / decimalScale + 1) {
             ++type->fixedAft;
             decimalScale *= 10;
         }

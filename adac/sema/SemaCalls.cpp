@@ -314,7 +314,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             } else if (operand->isStatic) {
                 expr->isStatic = true;
                 expr->staticFailure = operand->staticFailure != StaticFailure::None
-                    ? StaticFailure::Dependent : exact.m_valid ? StaticFailure::Check : StaticFailure::Capacity;
+                    ? StaticFailure::Dependent : exact.valid ? StaticFailure::Check : StaticFailure::Capacity;
             }
             return expr->type;
         }
@@ -327,15 +327,15 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 expr->staticFailure = StaticFailure::Capacity;
             } else if (isDiscrete(expr->type)) {
                 long long rounded = 0;
-                __int128 value = exact.m_numerator;
-                bool integral = exact.m_denominator == 1;
+                __int128 value = exact.numerator;
+                bool integral = exact.denominator == 1;
                 if (isReal(operand->type) || operand->type->kind == TypeKind::Fixed) {
                     if (expr->type->modulus != 0) {
-                        value = exact.m_numerator / exact.m_denominator;
-                        __int128 remainder = exact.m_numerator % exact.m_denominator;
+                        value = exact.numerator / exact.denominator;
+                        __int128 remainder = exact.numerator % exact.denominator;
                         __int128 magnitude = remainder < 0 ? -remainder : remainder;
-                        if (magnitude >= (exact.m_denominator / 2 + exact.m_denominator % 2)) {
-                            value += exact.m_numerator < 0 ? -1 : 1;
+                        if (magnitude >= (exact.denominator / 2 + exact.denominator % 2)) {
+                            value += exact.numerator < 0 ? -1 : 1;
                         }
                         integral = true;
                     } else {
