@@ -490,7 +490,7 @@ static void __ada_openImpl(AdaFileRef handle, int mode, const char* name, int le
 
 static void writeInteger(FILE* stream, int value, int width, int base)
 {
-    static const char* const digits = "0123456789ABCDEF";
+    static const char* const kDigits = "0123456789ABCDEF";
     char body[80];
     char text[96];
     int at = (int)sizeof body - 1;
@@ -508,7 +508,7 @@ static void writeInteger(FILE* stream, int value, int width, int base)
     magnitude = value < 0 ? (unsigned int)(-(long)value) : (unsigned int)value;
     body[at] = '\0';
     do {
-        body[--at] = digits[magnitude % (unsigned int)base];
+        body[--at] = kDigits[magnitude % (unsigned int)base];
         magnitude /= (unsigned int)base;
     } while (magnitude != 0);
 

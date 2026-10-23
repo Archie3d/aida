@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-static const double fullCycle = 6.283185307179586476925286766559;
+static const double kFullCycle = 6.283185307179586476925286766559;
 
 static double checkedResult(double value)
 {
@@ -28,7 +28,7 @@ static double cycleSin(double x, double cycle)
     if (phase == -0.25) {
         return -1.0;
     }
-    return sin(phase * fullCycle);
+    return sin(phase * kFullCycle);
 }
 
 static double cycleCos(double x, double cycle)
@@ -43,7 +43,7 @@ static double cycleCos(double x, double cycle)
     if (fabs(phase) == 0.25) {
         return 0.0;
     }
-    return cos(phase * fullCycle);
+    return cos(phase * kFullCycle);
 }
 
 double __ada_numerics_sqrt(double x)
@@ -163,12 +163,12 @@ double __ada_numerics_cot_cycle(double x, double y)
 
 double __ada_numerics_arcsin_cycle(double x, double y)
 {
-    return checkedResult((asin(x) / fullCycle) * y);
+    return checkedResult((asin(x) / kFullCycle) * y);
 }
 
 double __ada_numerics_arccos_cycle(double x, double y)
 {
-    return checkedResult((acos(x) / fullCycle) * y);
+    return checkedResult((acos(x) / kFullCycle) * y);
 }
 
 double __ada_numerics_arctan(double x, double y)
@@ -178,11 +178,11 @@ double __ada_numerics_arctan(double x, double y)
 
 double __ada_numerics_arctan_cycle(double x, double y, double cycle)
 {
-    return checkedResult((atan2(x, y) / fullCycle) * cycle);
+    return checkedResult((atan2(x, y) / kFullCycle) * cycle);
 }
 
 /* Single-precision mappings: all arithmetic and libm calls stay in float. */
-static const float fullCycle32 = 6.283185307179586476925286766559f;
+static const float kFullCycle32 = 6.283185307179586476925286766559f;
 
 static float checkedResult32(float value)
 {
@@ -207,7 +207,7 @@ static float cycleSin32(float x, float cycle)
     if (phase == -0.25f) {
         return -1.0f;
     }
-    return sinf(phase * fullCycle32);
+    return sinf(phase * kFullCycle32);
 }
 
 static float cycleCos32(float x, float cycle)
@@ -222,7 +222,7 @@ static float cycleCos32(float x, float cycle)
     if (fabsf(phase) == 0.25f) {
         return 0.0f;
     }
-    return cosf(phase * fullCycle32);
+    return cosf(phase * kFullCycle32);
 }
 
 float __ada_numerics_sqrt_f32(float x)
@@ -342,12 +342,12 @@ float __ada_numerics_cot_cycle_f32(float x, float y)
 
 float __ada_numerics_arcsin_cycle_f32(float x, float y)
 {
-    return checkedResult32((asinf(x) / fullCycle32) * y);
+    return checkedResult32((asinf(x) / kFullCycle32) * y);
 }
 
 float __ada_numerics_arccos_cycle_f32(float x, float y)
 {
-    return checkedResult32((acosf(x) / fullCycle32) * y);
+    return checkedResult32((acosf(x) / kFullCycle32) * y);
 }
 
 float __ada_numerics_arctan_f32(float x, float y)
@@ -357,6 +357,6 @@ float __ada_numerics_arctan_f32(float x, float y)
 
 float __ada_numerics_arctan_cycle_f32(float x, float y, float cycle)
 {
-    return checkedResult32((atan2f(x, y) / fullCycle32) * cycle);
+    return checkedResult32((atan2f(x, y) / kFullCycle32) * cycle);
 }
 

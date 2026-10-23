@@ -133,9 +133,9 @@ Symbol* Sema::addException(Scope* scope, const std::string& displayName)
 
 const std::vector<Symbol*>& Sema::exceptionsIn(const CompilationUnit* unit) const
 {
-    static const std::vector<Symbol*> none;
+    static const std::vector<Symbol*> kNoExceptions;
     auto found = m_unitExceptions.find(unit);
-    return found == m_unitExceptions.end() ? none : found->second;
+    return found == m_unitExceptions.end() ? kNoExceptions : found->second;
 }
 
 Symbol* Sema::addTypeTo(Scope* scope, Type* type)

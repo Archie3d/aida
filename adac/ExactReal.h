@@ -91,8 +91,8 @@ struct ExactReal
     static ExactReal make(__int128 numerator, __int128 denominator = 1)
     {
         // Reserve the most-negative wide value so normalization is safe.
-        const __int128 maximum = (((__int128)1 << 126) - 1) * 2 + 1;
-        if (denominator == 0 || numerator < -maximum || denominator < -maximum) {
+        const __int128 kMaximum = (((__int128)1 << 126) - 1) * 2 + 1;
+        if (denominator == 0 || numerator < -kMaximum || denominator < -kMaximum) {
             return {};
         }
         if (denominator < 0) {

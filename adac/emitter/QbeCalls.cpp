@@ -12,14 +12,14 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     // destination being constructed by this call.
     struct ConstructionContext
     {
-        std::string& m_owner;
-        std::string& m_arena;
-        std::string m_savedOwner;
-        std::string m_savedArena;
+        std::string& owner;
+        std::string& arena;
+        std::string savedOwner;
+        std::string savedArena;
         ~ConstructionContext()
         {
-            m_owner = m_savedOwner;
-            m_arena = m_savedArena;
+            owner = savedOwner;
+            arena = savedArena;
         }
     } construction { m_context->constructionOwner, m_context->constructionArena,
         std::exchange(m_context->constructionOwner, ""), std::exchange(m_context->constructionArena, "") };
@@ -199,11 +199,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 
     struct TagContext
     {
-        std::string& m_current;
-        std::string m_saved;
+        std::string& current;
+        std::string saved;
         ~TagContext()
         {
-            m_current = m_saved;
+            current = saved;
         }
     } tagContext { m_context->controllingTag, m_context->controllingTag };
     std::string controllingTag;
@@ -215,7 +215,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 && !argument->tagIndeterminate) {
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
-                if (m_context->controllingTag == tagContext.m_saved) {
+                if (m_context->controllingTag == tagContext.saved) {
                     std::string tag = newTemp();
                     line(tag + " =l loadl " + value.name);
                     m_context->controllingTag = tag;

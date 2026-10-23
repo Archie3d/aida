@@ -15,10 +15,10 @@ inline std::string digestOf(const std::string& text)
         hash *= 1099511628211ull;
     }
 
-    static const char digits[] = "0123456789abcdef";
+    static const char kDigits[] = "0123456789abcdef";
     std::string result(16, '0');
     for (int i = 15; i >= 0; --i) {
-        result[i] = digits[hash & 0xf];
+        result[i] = kDigits[hash & 0xf];
         hash >>= 4;
     }
     return result;

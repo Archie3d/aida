@@ -46,6 +46,19 @@ private:
 };
 ```
 
+- Inline getters and setters may stay on one line if reasonably short:
+```cpp
+class Record
+{
+public:
+    int getId() const { return m_id; }
+    void setId(int newId) { m_id = newId; }
+
+private:
+    int m_id{};
+};
+```
+
 - Constants must have `k` prefix, for example:
 ```cpp
 struct Object
@@ -55,6 +68,14 @@ struct Object
 
 constexpr float kFactor = 0.1f;
 ```
+
+- Preprocessor definitions must be capitalised and use snake-case style:
+```c
+#define USE_DIAGNOSTICS 1
+#define ADJUST_VALUE(x) ((x) * 2)
+```
+
+- C++ should prefer `constexpr` constants and templated types, but macros are still allowed when sensible.
 
 - Identifiers use Camel case convention, with UpperCamelCase for types, and lowerCamelCase for variables.
 
@@ -66,6 +87,11 @@ if (condition) {
         doSomethingElse();
     }
 }
+```
+
+- Ada runtime C exports must use `__ada_` prefix:
+```c
+double __ada_numerics_sqrt(double x);
 ```
 
 # Instructions

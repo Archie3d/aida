@@ -14,7 +14,7 @@ namespace
 
 const std::unordered_map<std::string, TokenKind>& keywordTable()
 {
-    static const std::unordered_map<std::string, TokenKind> table = {
+    static const std::unordered_map<std::string, TokenKind> kKeywords = {
         { "abort", TokenKind::KwAbort },
         { "abs", TokenKind::KwAbs },
         { "abstract", TokenKind::KwAbstract },
@@ -88,7 +88,7 @@ const std::unordered_map<std::string, TokenKind>& keywordTable()
         { "with", TokenKind::KwWith },
         { "xor", TokenKind::KwXor }
     };
-    return table;
+    return kKeywords;
 }
 
 bool isLetter(char c)
