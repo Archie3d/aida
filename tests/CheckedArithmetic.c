@@ -61,7 +61,7 @@ int checkedArithmetic(int operation, int bits, long long left, long long right,
 
 long long arithmeticSample(int index, int bits)
 {
-    static const int64_t edges[] = {
+    static const int64_t kEdges[] = {
         INT64_MIN, INT64_MIN + 1, -4611686018427387904LL,
         -4294967296LL, -3037000500LL, -3037000499LL,
         INT32_MIN, INT32_MIN + 1, -65536, -46341, -46340,
@@ -70,8 +70,8 @@ long long arithmeticSample(int index, int bits)
         4294967296LL, 4611686018427387904LL, INT64_MAX - 1, INT64_MAX
     };
     uint64_t sample;
-    if (index < (int)(sizeof(edges) / sizeof(edges[0]))) {
-        sample = (uint64_t)edges[index];
+    if (index < (int)(sizeof(kEdges) / sizeof(kEdges[0]))) {
+        sample = (uint64_t)kEdges[index];
     } else {
         sample = (uint64_t)index + UINT64_C(0x9e3779b97f4a7c15);
         sample = (sample ^ (sample >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
