@@ -234,7 +234,11 @@ private:
                                 std::vector<StorageCopyBack>& copies);
     void emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies);
     void copyInto(const Value& destination, const Value& source, Type* type);
-    void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false);
+    void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false,
+                    const std::string& constrained = "1");
+    Value recordConstrained(Expr* object);
+    void checkRecordAssignment(const Value& address, const Value& source, Type* type,
+                               bool initialize, const std::string& constrained);
 
     // Arrays (QbeArrays.cpp).
     void emitDynamicArray(ObjectDecl* object, Symbol* symbol);

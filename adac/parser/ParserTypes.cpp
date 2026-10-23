@@ -272,8 +272,8 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
 }
 
 // '(Kind : Figure; Size : Positive)' after a type name.  The components it
-// names come first in every value of the type and are fixed once an object of
-// it is declared.
+// names come first in every value of the type; defaults permit unconstrained
+// variables whose discriminants can change by whole-object assignment.
 void Parser::parseDiscriminantPart(std::vector<RecordField>& discriminants)
 {
     expect(TokenKind::LeftParen, "in discriminant part");
@@ -282,25 +282,16 @@ void Parser::parseDiscriminantPart(std::vector<RecordField>& discriminants)
         std::vector<std::string> lowered;
         std::vector<std::string> names = parseIdentifierList(lowered);
         expect(TokenKind::Colon, "in discriminant");
-        SubtypeIndicationPtr subtype = parseSubtypeIndication();
-        ExprPtr defaultValue;
-        if (match(TokenKind::Assign)) {
-            defaultValue = parseExpression();
-        }
-
+        std::size_t subtypeStart = m_position;
         for (std::size_t i = 0; i < names.size(); ++i) {
             RecordField field;
             field.name = names[i];
             field.lower = lowered[i];
             field.location = location;
-            auto copy = std::make_unique<SubtypeIndication>();
-            copy->location = subtype->location;
-            copy->name = subtype->name;
-            copy->lower = subtype->lower;
-            field.subtype = std::move(copy);
-            if (i + 1 == names.size()) {
-                field.subtype = std::move(subtype);
-                field.defaultValue = std::move(defaultValue);
+            m_position = subtypeStart;
+            field.subtype = parseSubtypeIndication();
+            if (match(TokenKind::Assign)) {
+                field.defaultValue = parseExpression();
             }
             discriminants.push_back(std::move(field));
         }

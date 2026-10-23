@@ -382,6 +382,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
+        if (baseType(cell) != nullptr && baseType(cell)->discriminantCount > 0
+            && !hasKnownDiscriminants(cell) && !hasDefaultDiscriminants(cell)) {
+            m_diagnostics.error(decl->location, "an array component requires a definite discriminated subtype");
+        }
         type->incompleteLayout = hasIncompleteParts(cell);
         if (cell != nullptr && cell->abstract) {
             m_diagnostics.error(decl->location, "abstract array components are not supported");
@@ -808,6 +812,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), scope, true, true);
+        if (baseType(info.type) != nullptr && baseType(info.type)->discriminantCount > 0
+            && !hasKnownDiscriminants(info.type) && !hasDefaultDiscriminants(info.type)) {
+            m_diagnostics.error(field.location, "a record component requires a definite discriminated subtype");
+        }
         type->incompleteLayout = type->incompleteLayout || hasIncompleteParts(info.type);
         if (info.type != nullptr && info.type->abstract) {
             m_diagnostics.error(field.location, "abstract record components are not supported");
@@ -860,12 +868,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
     };
 
     for (RecordField& discriminant : decl->discriminants) {
-        // A discriminant is fixed when the object is declared and never changes,
-        // so it has no value of its own to fall back on.
-        if (discriminant.defaultValue) {
-            m_diagnostics.error(discriminant.location,
-                                "a discriminant is fixed when the object is declared, so it takes no default");
-            discriminant.defaultValue.reset();
+        if (bool(discriminant.defaultValue) != bool(decl->discriminants.front().defaultValue)) {
+            m_diagnostics.error(discriminant.location, "defaults must be provided for all discriminants or none");
         }
         place(discriminant, -1, true);
         Type* discriminantType = type->fields.back().type;

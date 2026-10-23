@@ -1,4 +1,5 @@
 #include "../adac/Type.h"
+#include "../adac/Symbol.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -57,5 +58,37 @@ int main()
     CHECK(typeSize(slice) == 64 && typeLayoutSize(slice) == 64);
     slice->indexHigh = 0;
     CHECK(typeSize(slice) == 0);
+
+    // The hidden actual-constraint argument depends on the nominal subtype
+    // and mode; a constrained view must not inherit a mutable formal's ABI.
+    Type* discriminated = types.create(TypeKind::Record, "Discriminated");
+    IntegerLiteralExpr defaultValue;
+    FieldInfo discriminant;
+    discriminant.type = types.integerType();
+    discriminant.isDiscriminant = true;
+    discriminant.defaultValue = &defaultValue;
+    discriminated->fields = {discriminant};
+    discriminated->discriminantCount = 1;
+    Type* alias = types.makeSubtype("Alias", discriminated, 0, 0);
+    Symbol formal;
+    formal.type = alias;
+    CHECK(hasDefaultDiscriminants(alias));
+    CHECK(!needsConstrainedParameter(&formal));
+    formal.mode = ParameterMode::InOut;
+    CHECK(needsConstrainedParameter(&formal));
+    formal.mode = ParameterMode::Out;
+    CHECK(needsConstrainedParameter(&formal));
+    Type* fixed = types.makeSubtype("Fixed", alias, 0, 0);
+    fixed->discriminantsKnown = true;
+    fixed->discriminantValues = {1};
+    formal.type = fixed;
+    CHECK(!needsConstrainedParameter(&formal));
+    Type* inherited = types.makeSubtype("Inherited", alias, 0, 0);
+    inherited->discriminantConstraintSource = fixed;
+    formal.type = inherited;
+    CHECK(!needsConstrainedParameter(&formal));
+    discriminated->fields.front().defaultValue = nullptr;
+    formal.type = alias;
+    CHECK(!hasDefaultDiscriminants(alias) && !needsConstrainedParameter(&formal));
     return 0;
 }

@@ -288,6 +288,9 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             }
             value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies);
             arguments.push_back("l " + value.name);
+            if (needsConstrainedParameter(parameter)) {
+                arguments.push_back("w " + recordConstrained(argument).name);
+            }
             if (isUnconstrainedArray(parameter->type)) {
                 if (!value.hasBounds()) {
                     value = withBounds(value, argument->type, nullptr);

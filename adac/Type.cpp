@@ -468,6 +468,14 @@ void TypeTable::refreshStorageRepresentation(Type* type)
     }
 }
 
+bool hasDefaultDiscriminants(const Type* type)
+{
+    const Type* record = type;
+    while (record != nullptr && record->isSubtype) { record = record->base; }
+    return record != nullptr && record->discriminantCount > 0
+        && record->fields.front().defaultValue != nullptr;
+}
+
 bool discriminantValueOf(const Type* type, int index, long long& value)
 {
     for (const Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {

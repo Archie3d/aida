@@ -239,6 +239,15 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
     }
     expr->prefixType = prefixType;
+    if (expr->lower == "constrained") {
+        Type* record = baseType(prefixType);
+        if (prefixIsType || record == nullptr || record->discriminantCount == 0
+            || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "'Constrained requires a discriminated object and no arguments");
+        }
+        expr->type = m_types.booleanType();
+        return expr->type;
+    }
     if (expr->lower == "identity" || expr->lower == "callable" || expr->lower == "terminated") {
         Type* task = prefixType;
         if (task != nullptr && task->kind == TypeKind::Access) {

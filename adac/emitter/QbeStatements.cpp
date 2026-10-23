@@ -34,7 +34,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Assign: {
         auto* assign = static_cast<AssignStmt*>(statement);
         Value address = emitAddress(assign->target.get());
-        assignInto(address, assign->target->type, assign->value.get());
+        std::string constrained = assign->target->type->kind == TypeKind::Record
+            ? recordConstrained(assign->target.get()).name : "1";
+        assignInto(address, assign->target->type, assign->value.get(), false, constrained);
         break;
     }
 

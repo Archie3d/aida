@@ -27,9 +27,10 @@ Completed controlled components are finalized if a later default fails;
 limited-controlled elements initialize directly in their destination.
 Failed temporary construction leaves an assignment target unchanged.
 
-Existing restrictions remain: defaulted/dynamic discriminants belong to phase
-6c, general limited-record definitions to 6f, and task/protected aggregates to
-phase 9. Boxes do not circumvent these diagnostics. Runtime-sized tagged and
+Defaulted discriminants now use the [Phase 6c contract](default-discriminants.md);
+boxed defaults selecting variants must be static. Dynamic explicit discriminant
+constraints remain in 6c, general limited-record definitions in 6f, and
+task/protected aggregates in phase 9. Boxes do not circumvent these diagnostics. Runtime-sized tagged and
 delayed private-component layouts retain their phase 6f restriction.
 
 `boxaggregates`, `boxchecks`, `boxcleanup` and `boxtasking` cover grouped,

@@ -12,6 +12,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "constrained") {
+        emitExpr(expr->prefix.get());
+        return recordConstrained(expr->prefix.get());
+    }
     // Protected entry bodies execute in the calling task. Current_Task in an
     // entry body uses this same identity (the RM C.7.1 bounded-error choice).
     if (name == "width") {

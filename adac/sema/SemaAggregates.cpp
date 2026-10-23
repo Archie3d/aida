@@ -254,9 +254,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             if (field.defaultValue == nullptr) {
                 m_diagnostics.error(value->location, "a discriminant without a default requires an expression");
             }
+            long long defaultValue = 0;
             if (std::any_of(record->variants.begin(), record->variants.end(), [&](const VariantInfo& variant) {
                     return variant.discriminant == field.index;
-                })) {
+                }) && (field.defaultValue == nullptr || !foldStatic(field.defaultValue, defaultValue))) {
                 m_diagnostics.error(value->location, "a discriminant governing a variant requires a static expression");
             }
         }
@@ -378,6 +379,11 @@ bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope
 
     for (AggregateComponent& component : expr->components) {
         if (component.isOthers) {
+            if (component.value->kind == ExprKind::Box) {
+                if (source != nullptr) { *source = component.value.get(); }
+                Expr* defaultValue = record->fields[static_cast<std::size_t>(index)].defaultValue;
+                return defaultValue != nullptr && foldStatic(defaultValue, value);
+            }
             break;
         }
 
@@ -395,13 +401,13 @@ bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope
         if (which != index) {
             continue;
         }
-        if (component.value->kind == ExprKind::Box) {
-            return false;
+        Expr* expression = component.value.get();
+        if (source != nullptr) { *source = expression; }
+        if (expression->kind == ExprKind::Box) {
+            expression = record->fields[static_cast<std::size_t>(index)].defaultValue;
+            return expression != nullptr && foldStatic(expression, value);
         }
-        analyzeExpr(component.value.get(), scope, record->fields[static_cast<std::size_t>(index)].type);
-        if (source != nullptr) {
-            *source = component.value.get();
-        }
+        analyzeExpr(expression, scope, record->fields[static_cast<std::size_t>(index)].type);
         return foldStatic(component.value.get(), value);
     }
     return false;

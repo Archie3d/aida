@@ -35,8 +35,8 @@ struct FieldInfo
     // record is made without a value of its own.
     struct Expr* defaultValue = nullptr;
 
-    // A leading component named in the discriminant part, fixed when an object
-    // of the type is declared.
+    // A leading component named in the discriminant part. Only whole-object
+    // assignment to an unconstrained variable may change it.
     bool isDiscriminant = false;
 
     // Which alternative of the variant part the component belongs to, or -1
@@ -244,6 +244,7 @@ int variantPresence(Type* type, int variant);
 // What a constraint along the subtype chain fixed a discriminant to, if
 // anything did.
 bool discriminantValueOf(const Type* type, int index, long long& value);
+bool hasDefaultDiscriminants(const Type* type);
 
 // The type that carries the value representation (skips subtypes only).
 Type* baseType(Type* type);

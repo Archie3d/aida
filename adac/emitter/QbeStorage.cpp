@@ -1,5 +1,6 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
+#include "../sema/SemaSupport.h"
 
 using QbeSupport::isUnconstrainedArray;
 using QbeSupport::isLiteralOperand;
@@ -276,7 +277,90 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
     emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")", CallEffects::DeferredCheck);
 }
 
-void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool initialize)
+Value QbeEmitter::recordConstrained(Expr* object)
+{
+    long long fixed = 0;
+    if (object == nullptr || !hasDefaultDiscriminants(object->type)
+        || discriminantValueOf(object->type, 0, fixed)) {
+        return Value { "1", 'w' };
+    }
+    Symbol* symbol = object->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(object)->symbol
+        : object->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(object)->symbol : nullptr;
+    if (symbol != nullptr) {
+        if (symbol->sharedAlias != nullptr) {
+            return recordConstrained(symbol->sharedAlias);
+        }
+        if (symbol->isConstant || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In)) {
+            return Value { "1", 'w' };
+        }
+        if (symbol->kind == SymbolKind::Parameter && needsConstrainedParameter(symbol)) {
+            Value frame = symbol->owner == m_context->symbol
+                ? Value { m_context->frameTemp, 'l' } : staticLinkFor(symbol->owner->level);
+            std::string slot = newTemp(), result = newTemp();
+            line(slot + " =l add " + frame.name + ", " + std::to_string(symbol->constrainedOffset));
+            line(result + " =w loadw " + slot);
+            return Value { result, 'w' };
+        }
+        return Value { "0", 'w' };
+    }
+    if (object->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(object);
+        if (selected->isDereference) {
+            return Value { "1", 'w' }; // Allocated objects are constrained.
+        }
+        return Value { SemaSupport::objectView(object) == 1 ? "1" : "0", 'w' };
+    }
+    if (object->kind == ExprKind::Call && static_cast<CallExpr*>(object)->form == CallForm::Indexing) {
+        return Value { SemaSupport::objectView(object) == 1 ? "1" : "0", 'w' };
+    }
+    return Value { "1", 'w' };
+}
+
+void QbeEmitter::checkRecordAssignment(const Value& address, const Value& source, Type* type,
+                                      bool initialize, const std::string& constrained)
+{
+    std::string done;
+    if (!initialize && constrained != "0" && constrained != "1") {
+        std::string check = newLabel("recordconstraint");
+        done = newLabel("recordconstraintdone");
+        branch(Value { constrained, 'w' }, check, done);
+        label(check);
+    }
+    Type* record = baseType(type);
+    for (int which = 0; which < record->discriminantCount; ++which) {
+        long long fixed = 0;
+        bool known = discriminantValueOf(type, which, fixed);
+        if (!known && (initialize || constrained == "0")) {
+            continue;
+        }
+        const FieldInfo& field = record->fields[which];
+        Value expected = QbeSupport::constantValue(fixed, qbeClass(field.type));
+        if (!known) {
+            std::string targetSlot = newTemp();
+            line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));
+            expected = loadFrom(Value { targetSlot, 'l' }, field.type);
+        }
+        std::string slot = newTemp();
+        line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
+        Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
+        std::string same = newTemp();
+        line(same + " =w ceq" + std::string(1, discriminant.type) + " "
+             + discriminant.name + ", " + expected.name);
+        std::string ok = newLabel("recordconstraintok");
+        std::string bad = newLabel("recordconstraintbad");
+        branch(Value { same, 'w' }, ok, bad);
+        label(bad);
+        raiseConstraintError();
+        label(ok);
+    }
+    if (!done.empty()) {
+        jump(done);
+        label(done);
+    }
+}
+
+void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool initialize,
+                           const std::string& constrained)
 {
     if (value == nullptr) {
         return;
@@ -326,25 +410,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         if (type->kind == TypeKind::Array) {
             checkArrayShape(withBounds(address, type, nullptr), type, source, value->type);
         } else {
-            Type* record = baseType(type);
-            for (int which = 0; which < record->discriminantCount; ++which) {
-                long long fixed = 0;
-                if (!discriminantValueOf(type, which, fixed)) {
-                    continue;
-                }
-                const FieldInfo& field = record->fields[which];
-                std::string slot = newTemp();
-                line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
-                Value actual = loadFrom(Value { slot, 'l' }, field.type);
-                std::string same = newTemp();
-                std::string good = newLabel("controlledconstraint");
-                std::string bad = newLabel("controlledconstraintbad");
-                line(same + " =w ceq" + actual.type + " " + actual.name + ", " + std::to_string(fixed));
-                branch(Value { same, 'w' }, good, bad);
-                label(bad);
-                raiseConstraintError();
-                label(good);
-            }
+            checkRecordAssignment(address, source, type, initialize, constrained);
         }
         if (initialize && type->tagged) {
             line("storel " + typeTag(type).name + ", " + address.name);
@@ -365,12 +431,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     if (initialize && type != nullptr && type->tagged) {
         line("storel " + typeTag(type).name + ", " + address.name);
     }
-    if (value->kind == ExprKind::Aggregate && type != nullptr && type->kind == TypeKind::Record && !initialize) {
-        Value source = emitAggregate(static_cast<AggregateExpr*>(value));
-        copyInto(address, source, type);
-        return;
-    }
-    if (value->kind == ExprKind::Aggregate) {
+    if (value->kind == ExprKind::Aggregate
+        && (initialize || type == nullptr || type->kind != TypeKind::Record)) {
         emitAggregateInto(static_cast<AggregateExpr*>(value), address, type);
         return;
     }
@@ -428,37 +490,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     }
     if (isComposite(type)) {
         Value source = emitExpr(value);
-        // A constrained record view retains the actual object's discriminants.
-        // Check before copying so a failed assignment leaves it intact.
-        Type* record = baseType(type);
-        for (int which = 0; which < record->discriminantCount; ++which) {
-            long long fixed = 0;
-            bool known = discriminantValueOf(type, which, fixed);
-            if (!known && initialize) {
-                continue;
-            }
-            const FieldInfo& field = record->fields[which];
-            Value expected = QbeSupport::constantValue(fixed, qbeClass(field.type));
-            if (!known) {
-                // Unconstrained formals still designate constrained objects.
-                // Mutable discriminants are not part of the supported subset.
-                std::string targetSlot = newTemp();
-                line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));
-                expected = loadFrom(Value { targetSlot, 'l' }, field.type);
-            }
-            std::string slot = newTemp();
-            line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
-            Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
-            std::string same = newTemp();
-            line(same + " =w ceq" + std::string(1, discriminant.type) + " "
-                 + discriminant.name + ", " + expected.name);
-            std::string ok = newLabel("recordconstraintok");
-            std::string bad = newLabel("recordconstraintbad");
-            branch(Value { same, 'w' }, ok, bad);
-            label(bad);
-            raiseConstraintError();
-            label(ok);
-        }
+        checkRecordAssignment(address, source, type, initialize, constrained);
         copyInto(address, source, type);
         return;
     }

@@ -137,10 +137,18 @@ struct Symbol
     Symbol* owner = nullptr;
     bool isUplevel = false;
     long long frameOffset = -1;
+    long long constrainedOffset = -1; // Actual's constrainedness for a writable record formal.
     long long frameSize = 8;
     bool needsFrame = false;
     bool usesFinalization = false;
 };
+
+inline bool needsConstrainedParameter(const Symbol* parameter)
+{
+    long long value = 0;
+    return parameter->mode != ParameterMode::In && hasDefaultDiscriminants(parameter->type)
+        && !discriminantValueOf(parameter->type, 0, value);
+}
 
 inline int sharedObjectKind(const Expr* expr);
 

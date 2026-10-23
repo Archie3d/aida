@@ -1360,7 +1360,7 @@ add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
 foreach(dynamic_case scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
-    boxaggregates boxcleanup boxchecks boxtasking)
+    boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1400,3 +1400,5 @@ add_ada_error_test(runtimecomponenterrors SOURCES runtimecomponenterrors.adb)
 add_ada_error_test(runtimecomponentlateerrors SOURCES runtimecomponentlateerrors.ads)
 
 add_ada_error_test(boxpositionalerrors SOURCES boxpositionalerrors.adb)
+
+add_ada_error_test(defaultdiscriminanterrors SOURCES defaultdiscriminanterrors.adb)

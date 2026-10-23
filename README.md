@@ -82,7 +82,7 @@ Supported:
 - Runtime-sized array components and allocators, Size and array streams ([limits](docs/runtime-composites.md))
 - One-dimensional concatenation with scalar, composite, private and controlled components
 - Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md))
-- Nested variant records with checked selection and constrained assignment
+- Nested variants, default discriminants, mutable records and checked constrained assignment ([limits](docs/default-discriminants.md))
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
 - Derived Boolean operations and byte-character literals and strings
@@ -103,6 +103,7 @@ Not supported yet:
 - Task entries, entry families, select/requeue, abort, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
+- Runtime discriminant constraints, discriminant-dependent components and controlled variants
 - Runtime-sized tagged records and delayed private-component layouts
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts

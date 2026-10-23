@@ -1,6 +1,5 @@
 aggregateboxerrors.adb:17:18: error: an aggregate with no needed record components requires null record
 aggregateboxerrors.adb:18:40: error: duplicate record aggregate component 'Value'
-aggregateboxerrors.adb:19:5: error: an object of 'Required' has to fix its discriminants, as in 'X : Required (...)'
 aggregateboxerrors.adb:19:32: error: a discriminant without a default requires an expression
 aggregateboxerrors.adb:20:29: error: a discriminant without a default requires an expression
 aggregateboxerrors.adb:20:29: error: a discriminant governing a variant requires a static expression

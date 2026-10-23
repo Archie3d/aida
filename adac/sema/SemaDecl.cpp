@@ -216,10 +216,10 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         }
     }
 
-    // A discriminant is fixed when the object is declared, so the declaration
-    // has to say what to fix it to.
+    // Indefinite objects acquire their constraint from an explicit initializer.
     Type* record = baseType(type);
-    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type) && !decl->isRenaming) {
+    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type)
+        && !hasDefaultDiscriminants(type) && !decl->initializer && !decl->isRenaming) {
         m_diagnostics.error(decl->location, "an object of '" + record->name + "' has to fix its discriminants, as "
                                                 + "in 'X : " + record->name + " (...)'");
     }

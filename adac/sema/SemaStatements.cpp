@@ -81,8 +81,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
         return;
     }
 
-    // A discriminant is fixed when the object is declared and stays that way,
-    // since the components the value has were settled by it.
+    // Discriminants can change only as part of a whole-object assignment.
     if (target->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(target);
         if (selected->symbol != nullptr && selected->symbol->isConstant) {
@@ -96,7 +95,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
         if (selected->fieldIndex >= 0 && record != nullptr
             && record->fields[static_cast<std::size_t>(selected->fieldIndex)].isDiscriminant) {
             m_diagnostics.error(target->location, "'" + selected->selector
-                                                      + "' is a discriminant, fixed when the object was declared");
+                                                      + "' is a discriminant and cannot be assigned individually");
             return;
         }
     }

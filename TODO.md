@@ -440,8 +440,14 @@ construction, cleanup and dispatch mechanisms.
 
 ### 6c. Discriminated records
 
-- [ ] Default discriminants, constrained versus unconstrained objects, and
-  assignments that legally change discriminants.
+- [x] Default discriminants, constrained versus unconstrained objects, and
+  assignments that legally change discriminants: per-object checked defaults,
+  mutable untagged variants, initialized indefinite records and `Constrained`.
+  Actual constraints survive formals, callbacks, renamings, generics and protected
+  calls (`defaultdiscriminants*`, unit/whole/separate/determinism and four-task
+  checks; unchanged ACATS C37206A/C37306A). Explicit constraints and aggregate
+  variant choices remain static; dependent bounds and controlled variants follow
+  below. [Contract and limits](docs/default-discriminants.md).
 - [ ] Runtime discriminant constraints and components whose bounds depend on
   discriminants, such as `String (1 .. Length)`.
 - [ ] Controlled components in variant records.

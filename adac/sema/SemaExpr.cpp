@@ -259,6 +259,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     }
 
     expr->designated = designated;
+    if (baseType(designated)->discriminantCount > 0 && !hasKnownDiscriminants(designated)
+        && !hasDefaultDiscriminants(designated) && expr->value == nullptr) {
+        m_diagnostics.error(expr->location, "an allocator for an indefinite record requires a constraint or initializer");
+    }
     if (expr->value != nullptr) {
         if (hasIncompleteParts(designated)) {
             m_deferredProtectedUses.push_back({designated, expr->location});

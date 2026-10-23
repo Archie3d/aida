@@ -250,6 +250,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         first = false;
         char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
         signature += std::string(1, type) + " %p." + parameter->name;
+        if (needsConstrainedParameter(parameter)) {
+            signature += ", w %p." + parameter->name + ".constrained";
+        }
         if (isUnconstrainedArray(parameter->type)) {
             for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
                 std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
@@ -263,6 +266,14 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     for (Symbol* parameter : symbol->parameters) {
         std::string incoming = "%p." + parameter->name;
+        if (needsConstrainedParameter(parameter)) {
+            context.hasFrame = true;
+            parameter->constrainedOffset = reserveFrame(4, 4);
+            std::string slot = newTemp();
+            context.prologue << "    " << slot << " =l add " << context.frameTemp << ", "
+                             << parameter->constrainedOffset << "\n";
+            context.prologue << "    storew " << incoming << ".constrained, " << slot << "\n";
+        }
         bool unconstrained = isUnconstrainedArray(parameter->type);
         Value incomingView { incoming, 'l' };
         if (unconstrained) {

@@ -138,3 +138,19 @@ checks for others associations (RM 4.3.3). It has no box associations; those use
 local phase 6b regressions rather than an upstream box-conformance claim.
 Git blob: `305e010b930f3ed4e7f5ec6d25fb38ebdfc46d6f`.
 SHA-256: `dfd1c15d4431ae859efc4e151fc8e2e081edccb76e6a4c98d942862d965a81dd`.
+
+C37206A and C37306A come from
+[GCC releases/gcc-15 c3](https://github.com/gcc-mirror/gcc/tree/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3),
+retrieved 2026-10-23 and retained unchanged, including rights/disclaimers.
+C37206A passes unconstrained subtype aliases and initialized constants of a
+record type without discriminant defaults (RM 3.3.1, 3.7). C37306A passes
+non-monotonic variant choices and assignment changing a defaulted discriminant
+(RM 3.7, 3.8.1, 5.2). Formal constrainedness and concurrent use are covered by
+local `defaultdiscriminants*` regressions. C37402A was assessed but deferred:
+its unchanged test also requires discriminant-dependent matrix components and
+task rendezvous (P6c/P9); it is not counted as a pass or modified.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| c37206a.ada | `d37c794cb9eebe9c2b0ebce9d1fe58d790819ce3` | `c3f6fb0833ca12d0aa2d1bcda84471bdd7dde9cc2e9dd603722a97234558f218` |
+| c37306a.ada | `f50fe01958f6b7a7921b010a49bb51c590473d67` | `1547f579ef3b1547f5a7b4a62b46518f455e4d7cd9f4a003425dac9bdc802b3d` |

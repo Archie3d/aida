@@ -1,0 +1,14 @@
+defaultdiscriminanterrors.adb:2:37: error: defaults must be provided for all discriminants or none
+defaultdiscriminanterrors.adb:3:38: error: defaults must be provided for all discriminants or none
+defaultdiscriminanterrors.adb:4:32: error: no visible interpretation of 'True' matches this context
+defaultdiscriminanterrors.adb:7:9: error: a record component requires a definite discriminated subtype
+defaultdiscriminanterrors.adb:9:5: error: an array component requires a definite discriminated subtype
+defaultdiscriminanterrors.adb:11:16: error: an allocator for an indefinite record requires a constraint or initializer
+defaultdiscriminanterrors.adb:13:39: error: 'D' was fixed at TRUE when the object was declared
+defaultdiscriminanterrors.adb:13:39: error: box defaults are only allowed in aggregate component associations
+defaultdiscriminanterrors.adb:14:51: error: 'D' was fixed at TRUE when the object was declared
+defaultdiscriminanterrors.adb:14:51: error: box defaults are only allowed in aggregate component associations
+defaultdiscriminanterrors.adb:19:6: error: 'D' is a discriminant and cannot be assigned individually
+defaultdiscriminanterrors.adb:20:19: error: 'Constrained requires a discriminated object and no arguments
+defaultdiscriminanterrors.adb:21:11: error: 'Constrained requires a discriminated object and no arguments
+defaultdiscriminanterrors.adb:22:11: error: 'Constrained requires a discriminated object and no arguments
