@@ -57,3 +57,7 @@ add_acats_test(c433001)
 # Unconstrained initialized constants and mutable defaulted variant records.
 add_acats_test(c37206a)
 add_acats_test(c37306a)
+
+# Runtime discriminant constraint elaboration and default range checks.
+add_acats_test(c37211a)
+add_acats_test(c37108b)

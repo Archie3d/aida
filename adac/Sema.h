@@ -280,6 +280,7 @@ private:
     Symbol* m_main = nullptr;
     Symbol* m_currentSubprogram = nullptr;
     Decl* m_scalarConstraintDeclaration = nullptr;
+    bool m_allocatorDiscriminantConstraint = false;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;
     Type* m_currentProtectedType = nullptr;
     Scope* m_protectedBodyScope = nullptr;

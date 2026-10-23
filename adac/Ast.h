@@ -345,6 +345,7 @@ struct SubtypeIndication : Node
     ExprPtr rangeLow;
     ExprPtr rangeHigh;
     std::vector<ExprPtr> indexLows;   // Index constraint for array subtypes.
+    std::vector<std::vector<std::string>> discriminantNames;
     std::vector<ExprPtr> indexHighs;
     Type* resolved = nullptr;
 };
@@ -747,6 +748,7 @@ struct Decl : Node
     std::vector<Type*> constraintOrder;
     std::vector<Type*> arrayConstraints;
     std::vector<Type*> scalarConstraints; // Elaborated once with this declaration.
+    std::vector<Type*> discriminantConstraints;
     bool elaborateBody = false;
 };
 

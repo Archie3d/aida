@@ -8,6 +8,35 @@ using QbeSupport::isUnconstrainedArray;
 
 void QbeEmitter::emitTypeTag(Type* type)
 {
+    if (type != nullptr && type->dependentStorage && !m_emittedTags.contains(rootType(type))) {
+        type = rootType(type);
+        m_emittedTags[type] = true;
+        FunctionContext context;
+        context.traceName = type->name + " component storage";
+        context.propagateLabel = newLabel("storagepropagate");
+        FunctionContext* saved = m_context;
+        m_context = &context;
+        emitCallInstruction("call $__ada_array_release(l %object)", CallEffects::DeferredCheck);
+        finishFunction("export function " + type->tagName + ".finalize(l %object)");
+        FunctionContext adjustment;
+        adjustment.traceName = type->name + " component copy";
+        adjustment.propagateLabel = newLabel("storagecopypropagate");
+        m_context = &adjustment;
+        line("storel 0, %object");
+        std::string failed = newLabel("storagecopyfailed"), done = newLabel("storagecopydone");
+        pushHandler(failed);
+        cloneDependentStorage(Value {"%object", 'l'}, type);
+        m_context->handlerLabels.pop_back();
+        jump(done);
+        label(failed);
+        emitCallInstruction("call $__ada_array_release(l %object)", CallEffects::DeferredCheck);
+        m_context->usesPropagate = true;
+        jump(m_context->propagateLabel);
+        label(done);
+        finishFunction("export function " + type->tagName + ".adjust(l %object)");
+        m_context = saved;
+        return;
+    }
     if (type != nullptr && type->protectedScope != nullptr && !m_emittedTags.contains(rootType(type))) {
         type = rootType(type);
         m_emittedTags[type] = true;
@@ -95,6 +124,13 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             if (bounds->isGlobal) {
                 m_data << "export data " << bounds->qbeName << " = align 8 { z "
                     << adaArrayLocalSize(constraint->arrayRank) << " }\n";
+            }
+        }
+        for (Type* constraint : decl->discriminantConstraints) {
+            Symbol* bounds = constraint->discriminantSymbol;
+            if (bounds->isGlobal) {
+                m_data << "export data " << bounds->qbeName << " = align 8 { z "
+                       << constraint->discriminantCount * 8 << " }\n";
             }
         }
         for (Type* constraint : decl->scalarConstraints) {
@@ -196,7 +232,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         m_context->sourceLocation = decl->location;
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
-            else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+            else if (constraint->kind == TypeKind::Record) {
+                if (!constraint->discriminantObjectConstraint) { emitDiscriminantConstraint(constraint); }
+            } else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
@@ -238,6 +276,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (!symbol->isGlobal) {
                     continue;
                 }
+                if (symbol->type->discriminantObjectConstraint) { emitDiscriminantConstraint(symbol->type); }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
                 address.shared = sharedSymbolKind(symbol) != 0;
@@ -383,7 +422,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         m_context->sourceLocation = decl->location;
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
-            else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
+            else if (constraint->kind == TypeKind::Record) {
+                if (!constraint->discriminantObjectConstraint) { emitDiscriminantConstraint(constraint); }
+            } else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
         Symbol* subprogram = nullptr;
         if (decl->kind == DeclKind::SubprogramBody) {
@@ -444,6 +485,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
+                if (symbol->type->discriminantObjectConstraint) { emitDiscriminantConstraint(symbol->type); }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 if (symbol->classWideObject) {
                     emitClassWideObject(object, symbol);

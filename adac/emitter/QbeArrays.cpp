@@ -103,6 +103,26 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
     }
     Symbol* symbol = type->boundsSymbol;
     if (!symbol->isGlobal) { symbol->frameOffset = reserveFrame(adaArrayLocalSize(type->arrayRank)); }
+    if (type->partialDiscriminantBounds) {
+        Value address {symbol->qbeName, 'l'};
+        if (!symbol->isGlobal) {
+            address.name = newTemp();
+            line(address.name + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+        }
+        Type* axis = type;
+        for (int i = 0; i < type->arrayRank; ++i) {
+            auto [low, high] = type->boundExpressions[i];
+            Value first = low ? wideBound(emitExpr(low)) : Value {"0", 'l'};
+            Value last = high ? wideBound(emitExpr(high)) : Value {"0", 'l'};
+            for (int field = 0; field < 4; ++field) {
+                std::string slot = newTemp();
+                line(slot + " =l add " + address.name + ", " + std::to_string(adaArrayLocalFirst(i) + field * 8));
+                line("storel " + (field == 0 ? first.name : field == 1 ? last.name : "0") + ", " + slot);
+            }
+            axis = axis->element;
+        }
+        return;
+    }
     Value bounds;
     Type* axis = type;
     for (int dimension = 0; dimension < type->arrayRank; ++dimension) {

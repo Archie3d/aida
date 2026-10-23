@@ -154,3 +154,20 @@ task rendezvous (P6c/P9); it is not counted as a pass or modified.
 | --- | --- | --- |
 | c37206a.ada | `d37c794cb9eebe9c2b0ebce9d1fe58d790819ce3` | `c3f6fb0833ca12d0aa2d1bcda84471bdd7dde9cc2e9dd603722a97234558f218` |
 | c37306a.ada | `f50fe01958f6b7a7921b010a49bb51c590473d67` | `1547f579ef3b1547f5a7b4a62b46518f455e4d7cd9f4a003425dac9bdc802b3d` |
+
+C37211A and C37108B come from
+[GCC releases/gcc-15 c3](https://github.com/gcc-mirror/gcc/tree/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3),
+retrieved 2026-10-23 and retained unchanged, including rights/disclaimers.
+C37211A passes runtime discriminant constraint/default range failures in
+subtypes, array/record components, objects and allocators (RM 3.7.1).
+C37108B passes failed per-object array and nested-record constraints, including
+private and limited-private views (RM 3.8). Mutable payload ownership and
+cross-task collection use are covered by local `discriminant*` regressions.
+C37402A still requires task rendezvous (P9); its dependent matrix components
+are now supported, but the unchanged case remains deferred rather than counted
+as a pass.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| c37211a.ada | `4b718a9ec687889dddc3d30ff0d2dc600dd14d76` | `c9ee082dfe546ebe939a6e829a6d32d19fde39b3f75e191adbf7a99e2e6c915d` |
+| c37108b.ada | `9d71e9a729cff416a35454f655ccc4408ba1aeed` | `5bb94ec1285febbf4a61db94429e3c9b3f44e19bf3d67de0539a77f9a333e85b` |

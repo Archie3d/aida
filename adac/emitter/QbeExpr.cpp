@@ -481,6 +481,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
 Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
+    if (designated->discriminantPerEvaluation) { emitDiscriminantConstraint(designated); }
     Value bounds, source, initializerBounds;
     bool array = designated->kind == TypeKind::Array;
     bool preparedSource = false;
@@ -560,6 +561,14 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             designated = expr->type->target;
         }
     }
+    if (!array && designated->kind == TypeKind::Record && designated->discriminantCount > 0
+        && !designated->tagged && designated->classRoot == nullptr && expr->value != nullptr
+        && !hasLimitedControlledParts(designated)) {
+        source = emitExpr(expr->value.get());
+        emitRecordConstraintCheck(source, designated);
+        emitRecordConstraintCheck(source, expr->type->target);
+        preparedSource = true;
+    }
     // A static array's Size clause can add storage beyond its components.
     // Dynamic arrays use their evaluated shape; static objects reserve their
     // full storage size, just like records and local array declarations.
@@ -617,7 +626,9 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             emitCallInstruction("call $__ada_allocation_set_array_bounds(l " + object.name + ", l " + descriptor
                 + ", w " + std::to_string(designated->arrayRank) + ")", CallEffects::CheckException);
         }
+        initializeDependentStorage(object, designated);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
+            if (partType->dependentStorage) { line("storel 0, " + part.name); }
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
@@ -643,7 +654,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             initializerBounds.type = 'l';
             emitDynamicAggregateInto(preparedAggregate, initializerBounds, expr->designated, &aggregatePlan);
         } else if (preparedSource) {
-            checkArrayShape(object, designated, source, expr->value->type);
+            if (array) { checkArrayShape(object, designated, source, expr->value->type); }
             if (needsFinalization(designated)) { copyControlledObject(object, source, designated, true); }
             else { copyInto(object, source, designated); }
         } else if (expr->value != nullptr) {
@@ -655,6 +666,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         m_context->taskGroup = savedTaskGroup;
         m_context->constructionOwner = savedOwner;
         m_context->constructionArena = savedArena;
+        if (designated->kind == TypeKind::Record) { emitRecordConstraintCheck(object, expr->type->target); }
         if (hasTasks(designated)) {
             emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")", CallEffects::DeferredCheck);
         } else {
@@ -697,17 +709,12 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base->kind != TypeKind::Record) {
         return false;
     }
-    if (base->tagged) {
+    if (base->tagged || base->dependentStorage) {
         return true;
     }
     // A discriminant the subtype fixed is written into the object too, so that
     // reading it back gives what the declaration said.
-    long long fixed = 0;
-    for (int i = 0; i < base->discriminantCount; ++i) {
-        if (discriminantValueOf(type, i, fixed)) {
-            return true;
-        }
-    }
+    if (hasDiscriminantConstraint(type)) { return true; }
     for (const FieldInfo& field : base->fields) {
         if (field.defaultValue != nullptr || hasComponentDefaults(field.type)) {
             return true;
@@ -758,6 +765,11 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
     if (base->tagged) {
         line("storel " + typeTag(base).name + ", " + address.name);
     }
+    auto savedObjects = m_context->discriminantObjects;
+    for (Type* walk = base; walk != nullptr; walk = walk->parentType) {
+        m_context->discriminantObjects[baseType(walk)] = address;
+    }
+    if (base->dependentStorage) { activateControlledObject(address, type); }
     for (const FieldInfo& field : base->fields) {
         // Every enclosing alternative must be active before a default runs.
         int presence = variantPresence(type, field.variant);
@@ -771,10 +783,12 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             branch(variantCondition(address, base, field.variant), active, next);
             label(active);
         }
+        if (field.dependentBounds) { initializeDependentField(address, base, field); }
         Value slot = fieldAddress(address, base, field);
-        long long fixed = 0;
-        if (field.isDiscriminant && discriminantValueOf(type, field.index, fixed)) {
-            storeInto(slot, constantValue(fixed, qbeClass(field.type)), field.type);
+        Value fixed = field.isDiscriminant ? discriminantConstraint(type, field.index) : Value {};
+        if (!fixed.name.empty()) {
+            emitRangeCheck(fixed, field.type, m_context->sourceLocation);
+            storeInto(slot, fixed, field.type);
         } else if (field.defaultValue != nullptr) {
             assignInto(slot, field.type, field.defaultValue, true);
         } else {
@@ -785,6 +799,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
             label(next);
         }
     }
+    m_context->discriminantObjects = std::move(savedObjects);
     if (base->protectedScope != nullptr) {
         emitCallInstruction("call $__ada_protected_init(l " + address.name + ")", CallEffects::CheckException);
         activateControlledObject(address, type);

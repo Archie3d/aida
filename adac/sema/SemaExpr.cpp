@@ -234,7 +234,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
     }
+    bool savedAllocatorConstraint = m_allocatorDiscriminantConstraint;
+    m_allocatorDiscriminantConstraint = true;
     Type* designated = resolveSubtypeIndication(expr->subtype.get(), scope, true);
+    m_allocatorDiscriminantConstraint = savedAllocatorConstraint;
     if (designated == nullptr) {
         return nullptr;
     }

@@ -417,7 +417,14 @@ SubtypeIndicationPtr Parser::parseSubtypeIndication()
     if (check(TokenKind::LeftParen)) {
         advance();
         while (true) {
-            ExprPtr low = parseSimpleExpression();
+            std::vector<std::string> selectors;
+            if (check(TokenKind::Identifier) && (peek(1).kind == TokenKind::Arrow || peek(1).kind == TokenKind::Bar)) {
+                do { selectors.push_back(expect(TokenKind::Identifier, "in discriminant association").lower); }
+                while (match(TokenKind::Bar));
+                expect(TokenKind::Arrow, "after discriminant selector");
+            }
+            indication->discriminantNames.push_back(std::move(selectors));
+            ExprPtr low = parseExpression();
             ExprPtr high;
             if (match(TokenKind::DoubleDot)) {
                 high = parseSimpleExpression();

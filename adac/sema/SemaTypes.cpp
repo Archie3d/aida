@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "../../common/Array.h"
 
 #include <algorithm>
 #include <functional>
@@ -10,6 +11,51 @@
 
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
+
+static Type* discriminantDependency(Expr* expression)
+{
+    if (expression == nullptr) { return nullptr; }
+    switch (expression->kind) {
+    case ExprKind::Identifier:
+        return static_cast<IdentifierExpr*>(expression)->symbol == nullptr ? nullptr
+            : static_cast<IdentifierExpr*>(expression)->symbol->discriminantRecord;
+    case ExprKind::Binary: {
+        auto* binary = static_cast<BinaryExpr*>(expression);
+        Type* left = discriminantDependency(binary->left.get());
+        return left != nullptr ? left : discriminantDependency(binary->right.get());
+    }
+    case ExprKind::Unary: return discriminantDependency(static_cast<UnaryExpr*>(expression)->operand.get());
+    case ExprKind::Qualified: return discriminantDependency(static_cast<QualifiedExpr*>(expression)->operand.get());
+    case ExprKind::Attribute: {
+        auto* attribute = static_cast<AttributeExpr*>(expression);
+        Type* prefix = discriminantDependency(attribute->prefix.get());
+        if (prefix != nullptr) { return prefix; }
+        for (const auto& argument : attribute->arguments) {
+            if (Type* found = discriminantDependency(argument.get())) { return found; }
+        }
+        return nullptr;
+    }
+    case ExprKind::Call:
+        for (const auto& argument : static_cast<CallExpr*>(expression)->arguments) {
+            if (Type* found = discriminantDependency(argument.value.get())) { return found; }
+        }
+        return nullptr;
+    default: return nullptr;
+    }
+}
+
+static bool hasLanguageFinalization(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->controlled || type->protectedScope != nullptr || type->classRoot != nullptr) { return true; }
+    if (type->kind == TypeKind::Array) { return hasLanguageFinalization(type->element); }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasLanguageFinalization(field.type)) { return true; }
+        }
+    }
+    return false;
+}
 
 static bool checkArrayStorage(Type* type, Diagnostics& diagnostics, const SourceLocation& location)
 {
@@ -517,6 +563,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         built->base = nullptr;
         built->kind = parent->kind;
         built->literals = parent->literals;
+        if (hasKnownDiscriminants(parent)) { built->discriminantConstraintSource = parent; }
         // A derivation severs the subtype chain, so retain inherited constraints.
         for (int i = 0; i < parent->discriminantCount; ++i) {
             long long value = 0;
@@ -647,13 +694,17 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (hasTasks(type) && nonlimitedPrivateCompletion) {
         m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
     }
+    if (type->tagged && hasDependentStorage(type)) {
+        m_diagnostics.error(decl->location, "tagged records with discriminant-dependent components are not yet supported");
+    }
     if (hasTasks(type) && type->tagged) {
         m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
     }
     if (type->variantOn >= 0 && hasTasks(type)) {
         m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
     }
-    if (type->variantOn >= 0 && needsFinalization(type)) {
+    if (type->variantOn >= 0 && std::any_of(type->fields.begin(), type->fields.end(),
+            [](const FieldInfo& field) { return needsFinalization(field.type); })) {
         m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
     }
     type->abstract = definition->abstract;
@@ -665,10 +716,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
         type->controlled = true;
     }
-    if (definition->kind == TypeDefKind::Record && definition->isLimited && !needsFinalization(type) && !hasTasks(type)) {
+    if (definition->kind == TypeDefKind::Record && definition->isLimited && !hasLanguageFinalization(type) && !hasTasks(type)) {
         m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
     }
-    if (type->tagged && type->tagName.empty()) {
+    if (type->dependentStorage && type->parentType != nullptr && !type->tagged) { type->tagName.clear(); }
+    if ((type->tagged || type->dependentStorage) && type->tagName.empty()) {
         std::string name = "$" + mangle(decl->lower) + "__tag";
         std::size_t ordinal = ++m_tagNames[name];
         type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
@@ -799,6 +851,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
     long long offset = definition->extension ? typeSize(type->parentType)
         : type->tagged || type->protectedScope != nullptr ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
+    Scope* componentScope = m_symbolTable.createScope(scope);
 
     auto place = [&](RecordField& field, int variantIndex, bool isDiscriminant) {
         for (const FieldInfo& seen : type->fields) {
@@ -811,10 +864,14 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         FieldInfo info;
         info.name = field.lower;
         info.displayName = field.name;
-        info.type = resolveSubtypeIndication(field.subtype.get(), scope, true, true);
+        info.type = resolveSubtypeIndication(field.subtype.get(), isDiscriminant ? scope : componentScope, true, true);
         if (baseType(info.type) != nullptr && baseType(info.type)->discriminantCount > 0
             && !hasKnownDiscriminants(info.type) && !hasDefaultDiscriminants(info.type)) {
             m_diagnostics.error(field.location, "a record component requires a definite discriminated subtype");
+        }
+        if (isScalar(info.type) && (discriminantDependency(field.subtype->rangeLow.get())
+            || discriminantDependency(field.subtype->rangeHigh.get()))) {
+            m_diagnostics.error(field.location, "a discriminant cannot constrain a scalar component");
         }
         type->incompleteLayout = type->incompleteLayout || hasIncompleteParts(info.type);
         if (info.type != nullptr && info.type->abstract) {
@@ -827,7 +884,12 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         }
         if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
             recordArrayConstraint(info.type, field.subtype.get());
-            if (info.type->boundsSymbol == nullptr) {
+            info.dependentBounds = info.type->discriminantRecord != nullptr;
+            type->dependentStorage |= info.dependentBounds;
+            if (info.dependentBounds && (needsFinalization(info.type->element) || hasTasks(info.type->element))) {
+                m_diagnostics.error(field.location, "discriminant-dependent arrays with controlled, task or protected elements are not yet supported");
+            }
+            if (info.type->boundsSymbol == nullptr && !info.dependentBounds) {
                 m_diagnostics.error(field.subtype->location, "record components require a constrained array subtype");
             }
         }
@@ -838,7 +900,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             if (hasTasks(info.type)) {
                 m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");
             }
-            Type* valueType = analyzeExpr(field.defaultValue.get(), scope, info.type);
+            Type* valueType = analyzeExpr(field.defaultValue.get(), isDiscriminant ? scope : componentScope, info.type);
             if (hasLimitedControlledParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");
             }
@@ -849,10 +911,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             info.defaultValue = field.defaultValue.get();
         }
 
-        long long alignment = typeAlignment(info.type);
+        long long alignment = info.dependentBounds ? 8 : typeAlignment(info.type);
         __int128 aligned = offset;
         if (alignment > 0 && offset % alignment != 0) { aligned += alignment - offset % alignment; }
-        __int128 end = aligned + typeSize(info.type);
+        __int128 end = aligned + (info.dependentBounds ? adaArrayLocalSize(info.type->arrayRank) : typeSize(info.type));
         long long recordAlignment = std::max(typeAlignment(type), alignment);
         __int128 padded = end;
         if (recordAlignment > 0 && padded % recordAlignment != 0) { padded += recordAlignment - padded % recordAlignment; }
@@ -873,6 +935,12 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         }
         place(discriminant, -1, true);
         Type* discriminantType = type->fields.back().type;
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, discriminant.lower, discriminant.name);
+        symbol->type = discriminantType;
+        symbol->isConstant = true;
+        symbol->discriminantRecord = type;
+        symbol->discriminantIndex = type->fields.back().index;
+        componentScope->add(symbol);
         if (!isDiscrete(discriminantType)) {
             m_diagnostics.error(discriminant.location, "a discriminant has to be discrete, and '"
                                                            + (discriminantType != nullptr ? discriminantType->name
@@ -888,7 +956,23 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         place(field, -1, false);
     }
 
+    auto finish = [&]() {
+        if (type->dependentStorage) {
+            if (type->tagged) { m_diagnostics.error(decl->location, "discriminant-dependent tagged records are not yet supported"); }
+            bool overflow = false;
+            for (FieldInfo& field : type->fields) {
+                if (__builtin_add_overflow(field.offset, 16LL, &field.offset)) {
+                    field.offset = 0;
+                    overflow = true;
+                }
+            }
+            if (overflow || typeSize(type) == INT64_MAX) {
+                m_diagnostics.error(decl->location, "record layout exceeds signed 64-bit storage capacity");
+            }
+        }
+    };
     if (definition->variant == nullptr) {
+        finish();
         return;
     }
 
@@ -960,6 +1044,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         }
     };
     layoutVariant(*definition->variant, -1);
+    finish();
 }
 
 // A type may be named before it is described, but not left that way: an object
@@ -1427,6 +1512,16 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         if (array != nullptr && array->kind == TypeKind::Record) {
             return constrainDiscriminants(indication, base, scope);
         }
+        if (array != nullptr && array->kind == TypeKind::Access && array->target != nullptr
+            && baseType(array->target)->kind == TypeKind::Record) {
+            m_diagnostics.error(indication->location, "discriminant constraints on access subtypes are not yet supported");
+            return base;
+        }
+        if (std::any_of(indication->discriminantNames.begin(), indication->discriminantNames.end(),
+                [](const auto& names) { return !names.empty(); })) {
+            m_diagnostics.error(indication->location, "named constraints require a discriminated record subtype");
+            return base;
+        }
         if (array == nullptr || array->kind != TypeKind::Array) {
             m_diagnostics.error(indication->location, "index constraints require an array type");
             return base;
@@ -1535,10 +1630,44 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         m_diagnostics.error(indication->location, "a constrained record subtype cannot be constrained again");
         return base;
     }
-    if (static_cast<int>(indication->indexLows.size()) != record->discriminantCount) {
-        m_diagnostics.error(indication->location, "'" + record->name + "' has "
-                                                      + std::to_string(record->discriminantCount)
-                                                      + " discriminants, so that many values are expected");
+    std::vector<Expr*> values(record->discriminantCount, nullptr);
+    bool named = false;
+    int positional = 0;
+    for (std::size_t association = 0; association < indication->indexLows.size(); ++association) {
+        Expr* value = indication->indexLows[association].get();
+        if (indication->indexHighs[association] != nullptr) {
+            m_diagnostics.error(value->location, "a discriminant takes one value, not a range");
+        }
+        auto associate = [&](int index) {
+            if (index < 0 || index >= record->discriminantCount) {
+                m_diagnostics.error(value->location, "too many discriminant constraint values");
+            } else if (values[index] != nullptr) {
+                m_diagnostics.error(value->location, "duplicate discriminant constraint value");
+            } else { values[index] = value; }
+        };
+        if (association >= indication->discriminantNames.size() || indication->discriminantNames[association].empty()) {
+            if (named) { m_diagnostics.error(value->location, "positional discriminants must precede named associations"); }
+            associate(positional++);
+        } else {
+            named = true;
+            Type* associatedType = nullptr;
+            for (const std::string& selector : indication->discriminantNames[association]) {
+                auto field = std::find_if(record->fields.begin(), record->fields.begin() + record->discriminantCount,
+                    [&](const FieldInfo& candidate) { return candidate.name == selector; });
+                if (field == record->fields.begin() + record->discriminantCount) {
+                    m_diagnostics.error(value->location, "unknown discriminant '" + selector + "'");
+                    continue;
+                }
+                if (associatedType != nullptr && rootType(associatedType) != rootType(field->type)) {
+                    m_diagnostics.error(value->location, "grouped discriminant selectors must have the same type");
+                }
+                associatedType = field->type;
+                associate(field->index);
+            }
+        }
+    }
+    if (std::any_of(values.begin(), values.end(), [](Expr* value) { return value == nullptr; })) {
+        m_diagnostics.error(indication->location, "a discriminant constraint requires exactly one value for each discriminant");
         return base;
     }
 
@@ -1547,16 +1676,24 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
     subtype->discriminantsKnown = true;
 
     for (int i = 0; i < record->discriminantCount; ++i) {
-        Expr* value = indication->indexLows[static_cast<std::size_t>(i)].get();
-        if (indication->indexHighs[static_cast<std::size_t>(i)] != nullptr) {
-            m_diagnostics.error(value->location, "a discriminant takes one value, not a range");
-        }
+        Expr* value = values[i];
         Type* discriminantType = record->fields[static_cast<std::size_t>(i)].type;
-        analyzeExpr(value, scope, discriminantType);
+        Type* valueType = analyzeExpr(value, scope, discriminantType);
+        if (!typesCompatible(discriminantType, valueType)) {
+            m_diagnostics.error(value->location, "discriminant constraint has an incompatible type");
+        }
+        subtype->discriminantExpressions.push_back(value);
+        Type* dependency = m_allocatorDiscriminantConstraint ? nullptr : discriminantDependency(value);
+        subtype->discriminantPerObject.push_back(dependency != nullptr);
+        if (dependency != nullptr) {
+            subtype->discriminantRecord = dependency;
+            if (value->kind != ExprKind::Identifier) {
+                m_diagnostics.error(value->location, "a discriminant in a component constraint must appear alone");
+            }
+        }
 
         long long fixed = 0;
-        if (!foldStatic(value, fixed)) {
-            m_diagnostics.error(value->location, "a discriminant has to be fixed with a static value");
+        if (!foldStatic(value, fixed) || (discriminantType != nullptr && discriminantType->scalarBoundsSymbol != nullptr)) {
             subtype->discriminantsKnown = false;
         } else if (discriminantType != nullptr && (fixed < discriminantType->low || fixed > discriminantType->high)) {
             m_diagnostics.error(value->location, describeValue(discriminantType, fixed) + " is not a value '"
@@ -1566,6 +1703,27 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         subtype->discriminantValues.push_back(fixed);
     }
 
+    if (!subtype->discriminantsKnown) {
+        std::string file = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
+        for (char& character : file) {
+            if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }
+        }
+        std::string name = "discriminants_" + file + "_"
+            + std::to_string(indication->location.line) + "_" + std::to_string(indication->location.column)
+            + "_" + std::to_string(m_scalarConstraintDeclaration->discriminantConstraints.size());
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, name, name);
+        symbol->type = subtype;
+        symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(name);
+        subtype->discriminantSymbol = symbol;
+        subtype->discriminantPerEvaluation = m_allocatorDiscriminantConstraint;
+        if (!subtype->discriminantPerEvaluation) {
+            m_scalarConstraintDeclaration->discriminantConstraints.push_back(subtype);
+            m_scalarConstraintDeclaration->constraintOrder.push_back(subtype);
+        }
+        if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
+    }
     indication->resolved = subtype;
     return subtype;
 }
@@ -1574,15 +1732,7 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
 // discriminants of the record.
 bool Sema::hasKnownDiscriminants(Type* type) const
 {
-    for (Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
-        if (walk->discriminantConstraintSource != nullptr) {
-            return hasKnownDiscriminants(walk->discriminantConstraintSource);
-        }
-        if (walk->discriminantsKnown) {
-            return true;
-        }
-    }
-    return false;
+    return hasDiscriminantConstraint(type);
 }
 
 // What a fixed discriminant of the record was fixed to, if anything.
@@ -1984,6 +2134,46 @@ void Sema::recordArrayConstraint(Type* type, SubtypeIndication* indication)
 {
     if (type == nullptr || type->kind != TypeKind::Array || type->constrained
         || type->boundsSymbol != nullptr || indication->indexLows.empty()) { return; }
+    for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
+        Type* dependency = discriminantDependency(indication->indexLows[i].get());
+        if (dependency == nullptr) { dependency = discriminantDependency(indication->indexHighs[i].get()); }
+        if (dependency != nullptr) { type->discriminantRecord = dependency; }
+    }
+    if (type->discriminantRecord != nullptr) {
+        for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
+            type->boundExpressions.push_back({indication->indexLows[i].get(), indication->indexHighs[i].get()});
+            for (Expr* bound : {indication->indexLows[i].get(), indication->indexHighs[i].get()}) {
+                if (discriminantDependency(bound) != nullptr && bound->kind != ExprKind::Identifier) {
+                    m_diagnostics.error(bound->location, "a discriminant in a component constraint must appear alone");
+                }
+            }
+        }
+        Type* capture = m_types.makeSubtype(anonymousTypeName(), type, type->low, type->high);
+        capture->discriminantRecord = nullptr;
+        capture->partialDiscriminantBounds = true;
+        for (auto [low, high] : type->boundExpressions) {
+            capture->boundExpressions.push_back({discriminantDependency(low) ? nullptr : low,
+                discriminantDependency(high) ? nullptr : high});
+        }
+        std::string file = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
+        for (char& character : file) {
+            if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }
+        }
+        std::string name = "component_capture_" + file + "_" + std::to_string(indication->location.line) + "_"
+            + std::to_string(indication->location.column) + "_"
+            + std::to_string(m_scalarConstraintDeclaration->arrayConstraints.size());
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, name, name);
+        symbol->type = capture;
+        symbol->owner = m_currentSubprogram;
+        symbol->isGlobal = m_currentSubprogram == nullptr;
+        symbol->qbeName = "$" + mangle(name);
+        capture->boundsSymbol = symbol;
+        type->boundsSymbol = symbol;
+        m_scalarConstraintDeclaration->arrayConstraints.push_back(capture);
+        m_scalarConstraintDeclaration->constraintOrder.push_back(capture);
+        if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
+        return;
+    }
     std::string file = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
     for (char& character : file) {
         if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }

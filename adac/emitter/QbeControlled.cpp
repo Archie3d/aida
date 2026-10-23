@@ -204,7 +204,9 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         storeArrayView("%.result", destination, type, true);
     }
     if (!constructed) {
+        initializeDependentStorage(destination, type);
         walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
+            if (partType->dependentStorage) { line("storel 0, " + part.name); }
             emitCallInstruction("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         });
@@ -298,8 +300,9 @@ void QbeEmitter::initializeFinalization()
     m_context->prologue << "    storel 0, " << m_context->temporaryFinalizationChain << "\n";
 }
 
-// Only controlled nodes need records: plain composites borrow the records of
-// their components. Postorder registration gives parent-before-child cleanup.
+// Controlled nodes and records owning component storage need registrations;
+// ordinary composites borrow their components' records. Postorder registration
+// gives parent-before-child cleanup.
 void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirst,
                                 const std::function<void(const Value&, Type*)>& action)
 {
@@ -310,7 +313,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
         action(object, type);
         return;
     }
-    if (parentFirst && type->controlled) {
+    if (parentFirst && (type->controlled || type->dependentStorage)) {
         action(object, type);
     }
     if (type->kind == TypeKind::Array) {
@@ -350,14 +353,16 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
             }
         }
     }
-    if (!parentFirst && type->controlled) {
+    if (!parentFirst && (type->controlled || type->dependentStorage)) {
         action(object, type);
     }
 }
 
 void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool library)
 {
+    initializeDependentStorage(object, type);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
+        if (partType->dependentStorage) { line("storel 0, " + part.name); }
         if (library) {
             emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
             return;
@@ -371,7 +376,7 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
 
 void QbeEmitter::activateControlledObject(const Value& object, Type* type)
 {
-    if (type->controlled || type->protectedScope != nullptr) {
+    if (type->controlled || type->dependentStorage || type->protectedScope != nullptr) {
         emitCallInstruction("call $__ada_controlled_activate(l " + object.name + ", l " + rootType(type)->tagName + ".finalize)", CallEffects::CheckException);
     }
 }
@@ -381,6 +386,12 @@ void QbeEmitter::adjustControlledObject(const Value& object, Type* type, const s
     std::string failure = allocScratch(4);
     line("storew 0, " + failure);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
+        if (partType->dependentStorage) {
+            line("storel 0, " + part.name);
+            activateControlledObject(part, partType);
+            emitCallInstruction("call " + rootType(partType)->tagName + ".adjust(l " + part.name + ")", CallEffects::CheckException);
+            return;
+        }
         std::string failed = newTemp();
         std::string previous = newTemp();
         std::string combined = newTemp();

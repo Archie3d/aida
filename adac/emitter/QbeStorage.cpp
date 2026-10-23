@@ -126,6 +126,10 @@ Value QbeEmitter::staticLinkFor(int targetLevel)
 
 Value QbeEmitter::addressOf(Symbol* symbol)
 {
+    if (symbol->discriminantRecord != nullptr) {
+        Type* record = symbol->discriminantRecord;
+        return fieldAddress(m_context->discriminantObjects.at(record), record, record->fields[symbol->discriminantIndex]);
+    }
     Value address;
     if (symbol->isGlobal) {
         address = Value { symbol->qbeName, 'l' };
@@ -279,9 +283,8 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
 
 Value QbeEmitter::recordConstrained(Expr* object)
 {
-    long long fixed = 0;
     if (object == nullptr || !hasDefaultDiscriminants(object->type)
-        || discriminantValueOf(object->type, 0, fixed)) {
+        || hasDiscriminantConstraint(object->type)) {
         return Value { "1", 'w' };
     }
     Symbol* symbol = object->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(object)->symbol
@@ -328,13 +331,12 @@ void QbeEmitter::checkRecordAssignment(const Value& address, const Value& source
     }
     Type* record = baseType(type);
     for (int which = 0; which < record->discriminantCount; ++which) {
-        long long fixed = 0;
-        bool known = discriminantValueOf(type, which, fixed);
+        Value expected = discriminantConstraint(type, which);
+        bool known = !expected.name.empty();
         if (!known && (initialize || constrained == "0")) {
             continue;
         }
         const FieldInfo& field = record->fields[which];
-        Value expected = QbeSupport::constantValue(fixed, qbeClass(field.type));
         if (!known) {
             std::string targetSlot = newTemp();
             line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));

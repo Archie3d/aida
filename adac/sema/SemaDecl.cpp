@@ -96,6 +96,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     Decl* savedConstraintDeclaration = m_scalarConstraintDeclaration;
     m_scalarConstraintDeclaration = decl;
     decl->scalarConstraints.clear();
+    decl->discriminantConstraints.clear();
     decl->arrayConstraints.clear();
     decl->constraintOrder.clear();
     switch (decl->kind) {
@@ -176,6 +177,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     bool ownsScalarConstraint = type != nullptr && std::find(decl->scalarConstraints.begin(),
         decl->scalarConstraints.end(), type) != decl->scalarConstraints.end();
     if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }
+    bool ownsDiscriminantConstraint = type != nullptr && std::find(decl->discriminantConstraints.begin(),
+        decl->discriminantConstraints.end(), type) != decl->discriminantConstraints.end();
+    if (ownsDiscriminantConstraint) { type->discriminantObjectConstraint = true; }
 
     if (hasTasks(type) && !m_packages.empty()) {
         m_packages.back()->containsTasks = true;
@@ -302,6 +306,10 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             distinct->decimalConstraint = type->decimalConstraint;
             recordScalarConstraint(distinct, decl->subtype->location, true);
             symbol->type = distinct;
+        }
+        if (ownsDiscriminantConstraint && i != 0) {
+            symbol->type = constrainDiscriminants(decl->subtype.get(), type->base, scope);
+            symbol->type->discriminantObjectConstraint = true;
         }
         symbol->objectReference = decl->isRenaming;
         symbol->sharedAlias = decl->isRenaming ? decl->initializer.get() : nullptr;

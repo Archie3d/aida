@@ -47,6 +47,8 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool genericObject = false;
+    Type* discriminantRecord = nullptr;
+    int discriminantIndex = -1;
     int shared = 0;
     Expr* sharedAlias = nullptr;
     bool classWideObject = false;
@@ -145,9 +147,8 @@ struct Symbol
 
 inline bool needsConstrainedParameter(const Symbol* parameter)
 {
-    long long value = 0;
     return parameter->mode != ParameterMode::In && hasDefaultDiscriminants(parameter->type)
-        && !discriminantValueOf(parameter->type, 0, value);
+        && !hasDiscriminantConstraint(parameter->type);
 }
 
 inline int sharedObjectKind(const Expr* expr);

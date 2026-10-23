@@ -38,6 +38,7 @@ struct FieldInfo
     // A leading component named in the discriminant part. Only whole-object
     // assignment to an unconstrained variable may change it.
     bool isDiscriminant = false;
+    bool dependentBounds = false; // This field stores an object-owned array view.
 
     // Which alternative of the variant part the component belongs to, or -1
     // when every value of the record has it.
@@ -136,6 +137,12 @@ struct Type
     Type* discriminantConstraintSource = nullptr;
     bool discriminantsKnown = false;
     std::vector<long long> discriminantValues;
+    Symbol* discriminantSymbol = nullptr;
+    std::vector<struct Expr*> discriminantExpressions;
+    std::vector<bool> discriminantPerObject;
+    bool dependentStorage = false;
+    bool discriminantPerEvaluation = false;
+    bool discriminantObjectConstraint = false;
 
     // Semantic bounds include the unsigned 64-bit endpoint. Runtime values
     // still occupy at most 64 bits.
@@ -193,6 +200,8 @@ struct Type
     // activation. `constrained` continues to mean a static storage layout.
     Symbol* boundsSymbol = nullptr;
     std::vector<std::pair<struct Expr*, struct Expr*>> boundExpressions;
+    Type* discriminantRecord = nullptr;
+    bool partialDiscriminantBounds = false;
 
     // Runtime record layout: total size followed by one offset per field.
     Symbol* layoutSymbol = nullptr;
@@ -245,6 +254,8 @@ int variantPresence(Type* type, int variant);
 // anything did.
 bool discriminantValueOf(const Type* type, int index, long long& value);
 bool hasDefaultDiscriminants(const Type* type);
+bool hasDependentStorage(const Type* type);
+bool hasDiscriminantConstraint(const Type* type);
 
 // The type that carries the value representation (skips subtypes only).
 Type* baseType(Type* type);

@@ -434,7 +434,7 @@ construction, cleanup and dispatch mechanisms.
   `boxcleanup`, `boxtasking`, updated `aggregateboxerrors`, `boxpositionalerrors`;
   whole/separate/determinism and instrumented runtime/frontend checks).
   Unchanged ACATS C433001 covers the shared dynamic others constraint checks;
-  box-specific behavior uses local regressions. Default discriminants remain 6c;
+  box-specific behavior uses local regressions. Default discriminants landed in 6c;
   task/protected aggregates and general limited records retain their existing
   restrictions. [Contract and limits](docs/aggregate-defaults.md).
 
@@ -445,11 +445,17 @@ construction, cleanup and dispatch mechanisms.
   mutable untagged variants, initialized indefinite records and `Constrained`.
   Actual constraints survive formals, callbacks, renamings, generics and protected
   calls (`defaultdiscriminants*`, unit/whole/separate/determinism and four-task
-  checks; unchanged ACATS C37206A/C37306A). Explicit constraints and aggregate
-  variant choices remain static; dependent bounds and controlled variants follow
-  below. [Contract and limits](docs/default-discriminants.md).
-- [ ] Runtime discriminant constraints and components whose bounds depend on
-  discriminants, such as `String (1 .. Length)`.
+  checks; unchanged ACATS C37206A/C37306A). Runtime constraints and dependent
+  bounds follow in the next item; controlled variants remain below. [Contract and limits](docs/default-discriminants.md).
+- [x] Runtime discriminant constraints and components whose bounds depend on
+  discriminants: declaration/allocator captures, named/grouped associations,
+  per-object array views and nested record constraints. Stable wrappers reuse
+  owned results and finalization chains for mutable assignment and cross-task
+  collections (`runtimediscriminants`, `discriminantcomponents`,
+  `discriminantcleanup`, `discriminanttasking`; unit/whole/separate/determinism
+  checks; unchanged ACATS C37211A/C37108B). Dependent controlled/task/protected
+  array elements, tagged composites, access-subtype constraints and raw managed
+  record streams remain diagnosed. [Contract and limits](docs/runtime-discriminants.md).
 - [ ] Controlled components in variant records.
 - [ ] Record representation clauses (moved from Phase 5), including variant
   parts and discriminant-dependent components, replacing the Phase 1 rejection.

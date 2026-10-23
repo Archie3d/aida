@@ -90,5 +90,25 @@ int main()
     discriminated->fields.front().defaultValue = nullptr;
     formal.type = alias;
     CHECK(!hasDefaultDiscriminants(alias) && !needsConstrainedParameter(&formal));
+
+    Type* perObject = types.create(TypeKind::Record, "PerObject");
+    perObject->dependentStorage = true;
+    FieldInfo length;
+    length.type = types.integerType();
+    length.offset = 16;
+    FieldInfo text;
+    text.type = types.stringType();
+    text.offset = 24;
+    text.dependentBounds = true;
+    perObject->fields = {length, text};
+    CHECK(typeSize(perObject) == 64 && typeAlignment(perObject) == 8);
+    CHECK(needsFinalization(perObject) && hasDependentStorage(perObject));
+    CHECK(!hasRuntimeLayout(perObject));
+    Type* perObjectAlias = types.makeSubtype("PerObjectAlias", perObject, 0, 0);
+    CHECK(perObjectAlias->dependentStorage && typeSize(perObjectAlias) == 64);
+    text.offset = 64;
+    text.dependentBounds = false;
+    perObject->fields.push_back(text);
+    CHECK(hasRuntimeLayout(perObject));
     return 0;
 }

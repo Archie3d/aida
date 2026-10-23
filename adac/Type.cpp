@@ -1,4 +1,5 @@
 #include "Type.h"
+#include "../common/Array.h"
 #include "../common/Fixed.h"
 
 #include <limits>
@@ -160,7 +161,8 @@ long long typeSize(const Type* type)
             // The alternatives of a variant part share their storage, so the
             // record reaches as far as the largest of them and no further.
             long long end;
-            if (__builtin_add_overflow(field.offset, typeSize(field.type), &end)) {
+            long long fieldSize = field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) : typeSize(field.type);
+            if (__builtin_add_overflow(field.offset, fieldSize, &end)) {
                 return std::numeric_limits<long long>::max();
             }
             if (end > size) {
@@ -210,7 +212,7 @@ long long typeAlignment(const Type* type)
     case TypeKind::Array:
         return typeAlignment(type->element);
     case TypeKind::Record: {
-        long long alignment = type->tagged || type->protectedScope != nullptr ? 8 : 1;
+        long long alignment = type->tagged || type->dependentStorage || type->protectedScope != nullptr ? 8 : 1;
         for (const FieldInfo& field : type->fields) {
             long long fieldAlignment = typeAlignment(field.type);
             if (fieldAlignment > alignment) {
@@ -408,6 +410,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
     subtype->discriminantCount = parent->discriminantCount;
+    subtype->dependentStorage = parent->dependentStorage;
+    subtype->discriminantRecord = parent->discriminantRecord;
     subtype->variantOn = parent->variantOn;
     subtype->variants = parent->variants;
     return subtype;
@@ -425,6 +429,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->tagged = completed->tagged;
         subtype->privateViewTagged = completed->privateViewTagged;
         subtype->controlled = completed->controlled;
+        subtype->dependentStorage = completed->dependentStorage;
         subtype->tagName = completed->tagName;
         subtype->parentFieldCount = completed->parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
@@ -468,12 +473,36 @@ void TypeTable::refreshStorageRepresentation(Type* type)
     }
 }
 
+bool hasDependentStorage(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->dependentStorage) { return true; }
+    if (type->kind == TypeKind::Array) { return hasDependentStorage(type->element); }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasDependentStorage(field.type)) { return true; }
+        }
+    }
+    return false;
+}
+
 bool hasDefaultDiscriminants(const Type* type)
 {
     const Type* record = type;
     while (record != nullptr && record->isSubtype) { record = record->base; }
     return record != nullptr && record->discriminantCount > 0
         && record->fields.front().defaultValue != nullptr;
+}
+
+bool hasDiscriminantConstraint(const Type* type)
+{
+    for (const Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
+        if (walk->discriminantConstraintSource != nullptr) {
+            return hasDiscriminantConstraint(walk->discriminantConstraintSource);
+        }
+        if (walk->discriminantsKnown || walk->discriminantSymbol != nullptr) { return true; }
+    }
+    return false;
 }
 
 bool discriminantValueOf(const Type* type, int index, long long& value)
@@ -593,7 +622,7 @@ bool needsFinalization(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->protectedScope != nullptr || type->controlled || type->classRoot != nullptr) {
+    if (type->protectedScope != nullptr || type->dependentStorage || type->controlled || type->classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
@@ -784,7 +813,7 @@ bool hasRuntimeLayout(const Type* type)
     if (type->kind == TypeKind::Record) {
         if (type->layoutSymbol != nullptr) { return true; }
         for (const FieldInfo& field : type->fields) {
-            if (hasRuntimeLayout(field.type)) { return true; }
+            if (!field.dependentBounds && hasRuntimeLayout(field.type)) { return true; }
         }
     }
     return false;

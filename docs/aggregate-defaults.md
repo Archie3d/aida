@@ -28,8 +28,9 @@ limited-controlled elements initialize directly in their destination.
 Failed temporary construction leaves an assignment target unchanged.
 
 Defaulted discriminants now use the [Phase 6c contract](default-discriminants.md);
-boxed defaults selecting variants must be static. Dynamic explicit discriminant
-constraints remain in 6c, general limited-record definitions in 6f, and
+boxed defaults selecting variants must be static. Runtime explicit constraints
+use the [per-object component contract](runtime-discriminants.md); general
+limited-record definitions remain in 6f, and
 task/protected aggregates in phase 9. Boxes do not circumvent these diagnostics. Runtime-sized tagged and
 delayed private-component layouts retain their phase 6f restriction.
 

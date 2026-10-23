@@ -379,6 +379,11 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
     }
 
     if (target->kind == TypeKind::Record) {
+        auto savedObjects = m_context->discriminantObjects;
+        for (Type* walk = baseType(target); walk != nullptr; walk = walk->parentType) {
+            m_context->discriminantObjects[baseType(walk)] = address;
+        }
+        if (target->dependentStorage) { activateControlledObject(address, target); }
         if (expr->ancestor != nullptr) {
             if (expr->ancestorIsType) {
                 emitDefaultInit(address, expr->ancestorType);
@@ -399,13 +404,19 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
-            Value component = fieldAddress(address, target, field);
             Expr* value = expr->resolvedFields[i];
+            if (value == nullptr) { continue; }
+            if (field.dependentBounds) { initializeDependentField(address, baseType(target), field); }
+            Value component = fieldAddress(address, target, field);
             if (value != nullptr && value->kind == ExprKind::Box && field.defaultValue != nullptr) {
                 value = field.defaultValue;
             }
             assignInto(component, field.type, value, true);
+            if (field.isDiscriminant && field.index + 1 == target->discriminantCount) {
+                emitRecordConstraintCheck(address, type);
+            }
         }
+        m_context->discriminantObjects = std::move(savedObjects);
         if (target->controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
             activateControlledObject(address, target);

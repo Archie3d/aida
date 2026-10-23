@@ -101,7 +101,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
 
 void Sema::noteReference(Symbol* symbol)
 {
-    if (symbol == nullptr || symbol->owner == nullptr || symbol->isGlobal) {
+    if (symbol == nullptr || symbol->discriminantRecord != nullptr || symbol->owner == nullptr || symbol->isGlobal) {
         return;
     }
     if (symbol->owner != m_currentSubprogram) {

@@ -304,8 +304,8 @@ void QbeEmitter::raiseConstraintError()
 void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
 {
     for (int i = 0; i < type->discriminantCount; ++i) {
-        long long fixed = 0;
-        if (!discriminantValueOf(type, i, fixed)) {
+        Value expected = discriminantConstraint(type, i);
+        if (expected.name.empty()) {
             continue;
         }
         const FieldInfo& field = type->fields[i];
@@ -313,7 +313,7 @@ void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
         line(slot + " =l add " + value.name + ", " + fieldOffset(type, field));
         Value actual = loadFrom(Value { slot, 'l' }, field.type);
         std::string same = newTemp();
-        line(same + " =w ceq" + actual.type + " " + actual.name + ", " + std::to_string(fixed));
+        line(same + " =w ceq" + actual.type + " " + actual.name + ", " + expected.name);
         std::string good = newLabel("conversionconstraint");
         std::string bad = newLabel("conversionconstraintbad");
         branch(Value { same, 'w' }, good, bad);

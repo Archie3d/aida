@@ -170,6 +170,7 @@ bool conformingExpressions(const Expr* left, const Expr* right)
             && conformingExpressions(x->delta.get(), y->delta.get())
             && conformingExpressions(x->rangeLow.get(), y->rangeLow.get())
             && conformingExpressions(x->rangeHigh.get(), y->rangeHigh.get())
+            && x->discriminantNames == y->discriminantNames
             && sameList(x->indexLows, y->indexLows) && sameList(x->indexHighs, y->indexHighs);
     }
     }
@@ -206,8 +207,20 @@ bool staticallyMatches(Type* actual, Type* formal)
         }
         return true;
     }
-    return actual->discriminantsKnown == formal->discriminantsKnown
-        && actual->discriminantValues == formal->discriminantValues;
+    auto constraint = [](Type* type) {
+        while (type != nullptr) {
+            if (type->discriminantConstraintSource != nullptr) { type = type->discriminantConstraintSource; }
+            else if (type->discriminantsKnown || type->discriminantSymbol != nullptr) { return type; }
+            else { type = type->isSubtype ? type->base : nullptr; }
+        }
+        return static_cast<Type*>(nullptr);
+    };
+    Type* actualConstraint = constraint(actual);
+    Type* formalConstraint = constraint(formal);
+    if (actualConstraint == nullptr || formalConstraint == nullptr) { return actualConstraint == formalConstraint; }
+    return actualConstraint->discriminantSymbol == formalConstraint->discriminantSymbol
+        && actualConstraint->discriminantsKnown == formalConstraint->discriminantsKnown
+        && actualConstraint->discriminantValues == formalConstraint->discriminantValues;
 }
 
 bool isUniversal(const Type* type)

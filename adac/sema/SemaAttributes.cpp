@@ -594,6 +594,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
             return nullptr;
         }
+        if (hasDependentStorage(base)) {
+            m_diagnostics.error(expr->location, "discriminant-dependent record streaming requires component-wise stream support");
+            return nullptr;
+        }
         if (needsFinalization(base)) {
             m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
             return nullptr;

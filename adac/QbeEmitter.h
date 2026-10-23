@@ -74,6 +74,8 @@ private:
 
     struct FunctionContext
     {
+        std::unordered_map<Type*, Value> discriminantBounds;
+        std::unordered_map<Type*, Value> discriminantObjects;
         Symbol* symbol = nullptr;
         std::ostringstream prologue;
         std::ostringstream body;
@@ -237,6 +239,12 @@ private:
     void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false,
                     const std::string& constrained = "1");
     Value recordConstrained(Expr* object);
+    Value discriminantConstraint(Type* type, int index);
+    void emitDiscriminantConstraint(Type* type);
+    Value fieldStorage(const Value& object, Type* type, const FieldInfo& field);
+    void initializeDependentField(const Value& object, Type* type, const FieldInfo& field);
+    void cloneDependentStorage(const Value& object, Type* type);
+    void initializeDependentStorage(const Value& object, Type* type);
     void checkRecordAssignment(const Value& address, const Value& source, Type* type,
                                bool initialize, const std::string& constrained);
 

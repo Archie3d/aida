@@ -15,7 +15,8 @@ be definite: an unconstrained array component without bounds is still illegal.
 Constraints are elaborated with their type declaration, independently for each
 component in a grouped declaration. Scalar and array constraint plans preserve
 source order. Defaults run for each object, without reevaluating its captured
-component constraints. Bounds depending on discriminants remain Phase 6c work.
+component constraints. Discriminant-dependent bounds use the separate
+[per-object descriptor contract](runtime-discriminants.md).
 
 Arrays retain contiguous component storage. Their byte strides now include
 runtime component sizes, including arrays of arrays and arrays of records.
@@ -82,8 +83,9 @@ rank-one bound format and internal array call/result descriptor ABI are unchange
 
 Runtime-sized tagged records and layouts requiring a private component's full
 view after the enclosing type declaration remain explicitly diagnosed. Their
-layout/tag completion work belongs to Phase 6f. Discriminant-dependent bounds,
-controlled variants, general limited records, custom storage pools and foreign
+layout/tag completion work belongs to Phase 6f. Discriminant-dependent
+components now follow their [own contract](runtime-discriminants.md). Controlled
+variants, general limited records, custom storage pools and foreign
 unconstrained-array descriptors remain separately tracked. Fully defined private
 completions, ordinary nested records and supported controlled/limited component
 lifetimes work through the existing mechanisms.
