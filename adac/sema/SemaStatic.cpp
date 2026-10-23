@@ -36,15 +36,15 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
         value = counts;
         return true;
     }
-    if (expr->m_exactReal.valid && expr->m_exactReal.denominator == 1) {
-        value = expr->m_exactReal.numerator;
+    if (expr->exactReal.valid && expr->exactReal.denominator == 1) {
+        value = expr->exactReal.numerator;
         return true;
     }
     if (expr->isStatic) {
         value = expr->staticValue;
         return true;
     }
-    if (expr->kind == ExprKind::Binary && static_cast<BinaryExpr*>(expr)->m_fixedResult) {
+    if (expr->kind == ExprKind::Binary && static_cast<BinaryExpr*>(expr)->fixedResult) {
         auto* binary = static_cast<BinaryExpr*>(expr);
         long long left, right, rounded;
         if (foldFixed(binary->left.get(), left) && foldFixed(binary->right.get(), right)) {
@@ -77,7 +77,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
     case ExprKind::Membership: {
         auto* membership = static_cast<MembershipExpr*>(expr);
         __int128 operand, low, high;
-        if (membership->m_testedTaggedType != nullptr
+        if (membership->testedTaggedType != nullptr
             || !foldWideInteger(membership->operand.get(), operand, failure)
             || !foldWideInteger(membership->low.get(), low, failure)
             || !foldWideInteger(membership->high.get(), high, failure)) {
@@ -153,7 +153,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
                 auto machine = [](Expr* operand) {
                     return operand->isStatic && operand->staticFailure == StaticFailure::None
                         && operand->type != nullptr && operand->type->kind == TypeKind::Float
-                        && !operand->m_exactReal.valid && std::isfinite(operand->staticReal);
+                        && !operand->exactReal.valid && std::isfinite(operand->staticReal);
                 };
                 if (!exactLeft && !exactRight && machine(binary->left.get()) && machine(binary->right.get())) {
                     double x = binary->left->staticReal, y = binary->right->staticReal;
@@ -294,8 +294,8 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
     }
     auto visit = [&](Expr* child, bool parentStatic) { validateStatic(child, parentStatic); };
     bool nested = expr->isStatic;
-    if (expr->m_implicitCall) {
-        visit(expr->m_implicitCall.get(), false);
+    if (expr->implicitCall) {
+        visit(expr->implicitCall.get(), false);
     }
     switch (expr->kind) {
     case ExprKind::Unary: {
@@ -348,7 +348,7 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         break;
     case ExprKind::Aggregate: {
         auto* aggregate = static_cast<AggregateExpr*>(expr);
-        visit(aggregate->m_ancestor.get(), false);
+        visit(aggregate->ancestor.get(), false);
         for (auto& component : aggregate->components) {
             visit(component.value.get(), false);
             for (auto& low : component.choiceLows) { visit(low.get(), false); }
@@ -369,7 +369,7 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         if (allocator->subtype) {
             auto& subtype = *allocator->subtype;
             visit(subtype.digits.get(), false);
-            visit(subtype.m_delta.get(), false);
+            visit(subtype.delta.get(), false);
             visit(subtype.rangeLow.get(), false);
             visit(subtype.rangeHigh.get(), false);
             for (auto& low : subtype.indexLows) { visit(low.get(), false); }
@@ -380,7 +380,7 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
     default: break;
     }
     if (expr->staticFailure == StaticFailure::Capacity
-        || (expr->kind == ExprKind::RealLiteral && !expr->m_exactReal.valid)) {
+        || (expr->kind == ExprKind::RealLiteral && !expr->exactReal.valid)) {
         m_diagnostics.error(expr->location, "static expression exceeds supported exact evaluation limits (127-bit magnitude)");
     } else if (expr->staticFailure == StaticFailure::ZeroDivisor) {
         m_diagnostics.error(expr->location, "division by zero in static expression");
@@ -398,8 +398,8 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         && (expr->type->kind == TypeKind::UniversalInteger || expr->type->kind == TypeKind::UniversalReal)
         ? expected : expr->type;
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
-        && isReal(target) && expr->m_exactReal.valid) {
-        expr->staticReal = expr->m_exactReal.real(typeSize(target) == 4 ? 24 : 53);
+        && isReal(target) && expr->exactReal.valid) {
+        expr->staticReal = expr->exactReal.real(typeSize(target) == 4 ? 24 : 53);
     }
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
         && target != nullptr && target->kind == TypeKind::Integer) {
@@ -428,8 +428,8 @@ bool Sema::foldStaticReal(Expr* expr, double& value) const
         value = expr->staticReal;
         return true;
     }
-    if (expr->type != nullptr && expr->type->kind == TypeKind::UniversalReal && expr->m_exactReal.valid) {
-        value = expr->m_exactReal.real();
+    if (expr->type != nullptr && expr->type->kind == TypeKind::UniversalReal && expr->exactReal.valid) {
+        value = expr->exactReal.real();
         return true;
     }
 
@@ -546,7 +546,7 @@ void Sema::noteStaticValue(Expr* expr)
     if (isReal(expr->type)) {
         ExactReal exact;
         if (exactValue(expr, exact)) {
-            expr->m_exactReal = exact;
+            expr->exactReal = exact;
             expr->isStatic = true;
             expr->staticReal = exact.real();
         } else if (expr->kind == ExprKind::Binary) {
@@ -571,8 +571,8 @@ void Sema::noteStaticValue(Expr* expr)
     StaticFailure failure = StaticFailure::None;
     if (foldWideInteger(expr, value, failure)) {
         expr->isStatic = true;
-        expr->m_exactReal = ExactReal::make(value);
-        expr->m_exactReal.integer(expr->staticValue);
+        expr->exactReal = ExactReal::make(value);
+        expr->exactReal.integer(expr->staticValue);
     } else if (failure != StaticFailure::None && staticOperands) {
         expr->isStatic = true;
         expr->staticFailure = failure;
@@ -594,8 +594,8 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
         value = ExactReal::fixed(counts, bits);
         return true;
     }
-    if (expr->m_exactReal.valid) {
-        value = expr->m_exactReal;
+    if (expr->exactReal.valid) {
+        value = expr->exactReal;
         return true;
     }
     if (expr->kind == ExprKind::RealLiteral) {
@@ -670,7 +670,7 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
 
 bool Sema::foldFixed(Expr* expr, long long& value) const
 {
-    if (expr == nullptr || expr->staticFailure != StaticFailure::None || expr->m_fixedInvalid
+    if (expr == nullptr || expr->staticFailure != StaticFailure::None || expr->fixedInvalid
         || (expr->type != nullptr && expr->type->formalFixed)) {
         return false;
     }
@@ -701,8 +701,8 @@ bool Sema::foldFixed(Expr* expr, long long& value) const
         switch (binary->op) {
         case BinaryOp::Add: op = FixedAdd; break;
         case BinaryOp::Subtract: op = FixedSubtract; break;
-        case BinaryOp::Multiply: op = binary->m_roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
-        case BinaryOp::Divide: op = binary->m_roundFixed ? FixedDivideRounded : FixedDivide; break;
+        case BinaryOp::Multiply: op = binary->roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
+        case BinaryOp::Divide: op = binary->roundFixed ? FixedDivideRounded : FixedDivide; break;
         default: break;
         }
         return fixedOperation(op, left, binary->left->type->fixedScale,

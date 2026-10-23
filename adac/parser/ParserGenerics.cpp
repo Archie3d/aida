@@ -26,7 +26,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             formal.name = name.text;
             formal.lower = name.lower;
             expect(TokenKind::KwIs, "in generic formal type");
-            formal.m_limited = check(TokenKind::KwLimited);
+            formal.limited = check(TokenKind::KwLimited);
             // Parse the entire supported definition. Never infer private-type
             // semantics from an unrecognized or partially consumed form.
             auto rejectUnsupportedFormal = [&]() {
@@ -45,15 +45,15 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             if (check(TokenKind::KwArray)) {
                 formal.typeClass = FormalTypeClass::ArrayType;
                 std::size_t start = m_position;
-                formal.m_arrayDefinition = parseTypeDefinition();
+                formal.arrayDefinition = parseTypeDefinition();
                 std::size_t boxes = 0;
                 for (std::size_t i = start; i < m_position; ++i) {
                     boxes += m_tokens[i].kind == TokenKind::Box ? 1 : 0;
                 }
-                if (boxes != 0 && boxes != formal.m_arrayDefinition->indexTypes.size()) {
+                if (boxes != 0 && boxes != formal.arrayDefinition->indexTypes.size()) {
                     fail("formal array indexes must be all constrained or all unconstrained");
                 }
-                for (const auto& index : formal.m_arrayDefinition->indexTypes) {
+                for (const auto& index : formal.arrayDefinition->indexTypes) {
                     if (index->name.empty() || index->rangeLow || index->rangeHigh) {
                         fail("a constrained formal array index must be a subtype mark");
                     }
@@ -108,16 +108,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             SubprogramSpec spec = parseSubprogramSpec();
             formal.name = spec.name;
             formal.lower = spec.lower;
-            formal.m_subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+            formal.subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                 m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
             if (match(TokenKind::KwIs)) {
-                formal.m_boxDefault = match(TokenKind::Box);
-                if (!formal.m_boxDefault) {
+                formal.boxDefault = match(TokenKind::Box);
+                if (!formal.boxDefault) {
                     formal.defaultValue = parseExpression();
                 }
             }
-            formal.m_subprogramTokens.push_back(current()); // The terminating semicolon.
-            formal.m_subprogramTokens.push_back(m_tokens.back());
+            formal.subprogramTokens.push_back(current()); // The terminating semicolon.
+            formal.subprogramTokens.push_back(m_tokens.back());
         } else if (check(TokenKind::Identifier)) {
             std::size_t start = m_position;
             const Token& name = advance();
@@ -125,11 +125,11 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             formal.name = name.text;
             formal.lower = name.lower;
             expect(TokenKind::Colon, "in generic formal object");
-            formal.m_objectTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+            formal.objectTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                 m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
             if (match(TokenKind::KwIn)) {
                 if (match(TokenKind::KwOut)) {
-                    formal.m_mode = ParameterMode::InOut;
+                    formal.mode = ParameterMode::InOut;
                 }
             } else if (match(TokenKind::KwOut)) {
                 m_diagnostics.error(formal.location, "a generic formal object mode must be in or in out");
@@ -138,15 +138,15 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             formal.subtype = parseSubtypeIndication();
             if (match(TokenKind::Assign)) {
                 formal.defaultValue = parseExpression();
-                if (formal.m_mode != ParameterMode::In) {
+                if (formal.mode != ParameterMode::In) {
                     m_diagnostics.error(formal.location, "an in out generic formal object cannot have a default");
                 }
             }
-            formal.m_objectTokens.insert(formal.m_objectTokens.end(),
+            formal.objectTokens.insert(formal.objectTokens.end(),
                 m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                 m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
-            formal.m_objectTokens.push_back(current());
-            formal.m_objectTokens.push_back(m_tokens.back());
+            formal.objectTokens.push_back(current());
+            formal.objectTokens.push_back(m_tokens.back());
         } else {
             fail("expected a generic formal parameter");
         }
@@ -161,21 +161,21 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     if (unit == nullptr) {
         fail("a generic declaration must name a unit");
     }
-    decl->m_elaborateBody = unit->m_elaborateBody;
+    decl->elaborateBody = unit->elaborateBody;
     switch (unit->kind) {
     case DeclKind::PackageSpecification:
         decl->name = static_cast<PackageSpecDecl*>(unit.get())->name;
         decl->lower = static_cast<PackageSpecDecl*>(unit.get())->lower;
         break;
     case DeclKind::SubprogramDeclaration:
-        decl->m_isFunction = static_cast<SubprogramDecl*>(unit.get())->spec.isFunction;
-        decl->m_hasBody = static_cast<SubprogramDecl*>(unit.get())->m_renamedName != nullptr;
+        decl->isFunction = static_cast<SubprogramDecl*>(unit.get())->spec.isFunction;
+        decl->hasBody = static_cast<SubprogramDecl*>(unit.get())->renamedName != nullptr;
         decl->name = static_cast<SubprogramDecl*>(unit.get())->spec.name;
         decl->lower = static_cast<SubprogramDecl*>(unit.get())->spec.lower;
         break;
     case DeclKind::SubprogramBody:
-        decl->m_isFunction = static_cast<SubprogramBody*>(unit.get())->spec.isFunction;
-        decl->m_hasBody = true;
+        decl->isFunction = static_cast<SubprogramBody*>(unit.get())->spec.isFunction;
+        decl->hasBody = true;
         decl->name = static_cast<SubprogramBody*>(unit.get())->spec.name;
         decl->lower = static_cast<SubprogramBody*>(unit.get())->spec.lower;
         break;
@@ -193,7 +193,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         if (!packageBody && !subprogramBody) {
             break;
         }
-        decl->m_hasBody = true;
+        decl->hasBody = true;
         if (packageBody) {
             parsePackage();
         } else {
@@ -203,7 +203,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
 
     decl->tokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                         m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
-    if (decl->m_elaborateBody) {
+    if (decl->elaborateBody) {
         for (std::size_t i = 0; i + 1 < decl->tokens.size(); ++i) {
             if (decl->tokens[i].kind == TokenKind::KwPragma
                 && decl->tokens[i + 1].lower == "elaborate_body") {

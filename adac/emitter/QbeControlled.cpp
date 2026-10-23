@@ -248,17 +248,17 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         std::string bodyDone = newLabel("returnbodydone");
         m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
         m_context->extendedReturnLabel = bodyDone;
-        if (extended->m_handlers.empty()) {
-            emitStatements(extended->m_body);
+        if (extended->handlers.empty()) {
+            emitStatements(extended->body);
         } else {
             std::string dispatch = newLabel("returnhandler");
             std::string handled = newLabel("returnhandled");
             m_context->handlerStorage[dispatch] = storageCheckpoint();
             pushHandler(dispatch);
-            emitStatements(extended->m_body);
+            emitStatements(extended->body);
             m_context->handlerLabels.pop_back();
             jump(handled);
-            emitHandlers(extended->m_handlers, handled, dispatch);
+            emitHandlers(extended->handlers, handled, dispatch);
             label(handled);
         }
         label(bodyDone);

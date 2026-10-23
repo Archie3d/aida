@@ -180,11 +180,11 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
     }
     expr->symbol = chosen;
     if (chosen->protectedField >= 0) {
-        expr->m_protectedReceiver = protectedReceiver(chosen->protectedType);
-        if (expr->m_protectedReceiver == nullptr) {
+        expr->protectedReceiver = protectedReceiver(chosen->protectedType);
+        if (expr->protectedReceiver == nullptr) {
             m_diagnostics.error(expr->location, "protected components require the current protected instance");
         } else {
-            noteReference(expr->m_protectedReceiver);
+            noteReference(expr->protectedReceiver);
         }
     } else {
         bindProtectedCall(expr, chosen, nullptr, scope);
@@ -201,7 +201,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
             expr->isStatic = true;
             expr->staticValue = chosen->staticValue;
             expr->staticReal = chosen->staticReal;
-            expr->m_exactReal = chosen->exactReal;
+            expr->exactReal = chosen->exactReal;
         }
         return expr->type;
     case SymbolKind::Number:
@@ -209,7 +209,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         expr->isStatic = chosen->hasStaticValue;
         expr->staticValue = chosen->staticValue;
         expr->staticReal = chosen->staticReal;
-        expr->m_exactReal = chosen->exactReal;
+        expr->exactReal = chosen->exactReal;
         return expr->type;
     case SymbolKind::EnumerationLiteral:
         expr->type = chosen->type;
@@ -218,7 +218,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         return expr->type;
     case SymbolKind::Subprogram:
         expr->type = chosen->returnType;
-        expr->m_tagIndeterminate = chosen->controllingType != nullptr
+        expr->tagIndeterminate = chosen->controllingType != nullptr
             && rootType(chosen->returnType) == chosen->controllingType
             && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
                 return rootType(parameter->type) == chosen->controllingType;
@@ -278,7 +278,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         noteReference(chosen);
         if (chosen->kind == SymbolKind::Subprogram) {
             expr->type = chosen->returnType;
-            expr->m_tagIndeterminate = chosen->controllingType != nullptr
+            expr->tagIndeterminate = chosen->controllingType != nullptr
                 && rootType(chosen->returnType) == chosen->controllingType
                 && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
                     return rootType(parameter->type) == chosen->controllingType;
@@ -292,7 +292,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
                 expr->isStatic = true;
                 expr->staticValue = chosen->staticValue;
                 expr->staticReal = chosen->staticReal;
-                expr->m_exactReal = chosen->exactReal;
+                expr->exactReal = chosen->exactReal;
             }
         }
         return expr->type;
@@ -355,8 +355,8 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             && isProtectedCurrentInstance(expr->prefix.get(), record, scope)) {
             expr->symbol = operation;
             expr->type = operation->type;
-            expr->m_protectedReceiver = protectedReceiver(record);
-            noteReference(expr->m_protectedReceiver);
+            expr->protectedReceiver = protectedReceiver(record);
+            noteReference(expr->protectedReceiver);
             return expr->type;
         }
         if (operation == nullptr || operation->kind != SymbolKind::Subprogram) {
@@ -419,11 +419,11 @@ Type* Sema::classWideType(Type* specific)
 // dispatch or class-wide assignment supplies the tag without re-resolving names.
 void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
 {
-    if (expr == nullptr || !expr->m_tagIndeterminate) {
+    if (expr == nullptr || !expr->tagIndeterminate) {
         return;
     }
-    if (expr->m_implicitCall != nullptr) {
-        dispatchIndeterminate(expr->m_implicitCall.get(), controlling);
+    if (expr->implicitCall != nullptr) {
+        dispatchIndeterminate(expr->implicitCall.get(), controlling);
     } else if (expr->kind == ExprKind::Qualified) {
         dispatchIndeterminate(static_cast<QualifiedExpr*>(expr)->operand.get(), controlling);
     } else if (expr->kind == ExprKind::Binary) {
@@ -436,7 +436,7 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
             dispatchIndeterminate(call->operatorExpression.get(), controlling);
         }
         if (call->subprogram != nullptr && call->subprogram->controllingType == controlling) {
-            call->m_dispatching = true;
+            call->dispatching = true;
             for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
                 if (rootType(call->subprogram->parameters[i]->type) == controlling) {
                     dispatchIndeterminate(call->resolvedArguments[i], controlling);

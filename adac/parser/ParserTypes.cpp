@@ -55,7 +55,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
 
     if (match(TokenKind::KwAbstract)) {
         auto definition = parseTypeDefinition();
-        definition->m_abstract = true;
+        definition->abstract = true;
         definition->location = location;
         return definition;
     }
@@ -66,7 +66,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
             fail("expected record, null record or private after tagged");
         }
         auto definition = parseTypeDefinition();
-        definition->m_tagged = true;
+        definition->tagged = true;
         definition->location = location;
         return definition;
     }
@@ -132,7 +132,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
     if (match(TokenKind::KwDelta)) {
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::FixedDelta);
         definition->location = location;
-        definition->m_delta = parseSimpleExpression();
+        definition->delta = parseSimpleExpression();
         if (match(TokenKind::KwDigits)) {
             definition->digits = parseSimpleExpression();
             if (!check(TokenKind::KwRange)) { return definition; }
@@ -228,7 +228,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
                 fail("only record extensions are supported after with");
             }
             auto extension = parseTypeDefinition();
-            definition->m_extension = true;
+            definition->extension = true;
             definition->fields = std::move(extension->fields);
             definition->variant = std::move(extension->variant);
         }
@@ -249,8 +249,8 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
             fail("access-to-constant types are not yet supported");
         }
         if (check(TokenKind::KwFunction) || check(TokenKind::KwProcedure)) {
-            definition->m_accessProfile = std::make_unique<SubprogramSpec>();
-            SubprogramSpec& profile = *definition->m_accessProfile;
+            definition->accessProfile = std::make_unique<SubprogramSpec>();
+            SubprogramSpec& profile = *definition->accessProfile;
             profile.isFunction = match(TokenKind::KwFunction);
             if (!profile.isFunction) {
                 expect(TokenKind::KwProcedure, "in access-to-subprogram type");
@@ -488,8 +488,8 @@ void Parser::parseDiscreteRange(std::string& typeName, std::string& typeLower, E
             low = makeAttribute("first");
             high = makeAttribute("last");
             auto* firstBound = static_cast<AttributeExpr*>(low.get());
-            firstBound->m_rangeFirst = firstBound;
-            static_cast<AttributeExpr*>(high.get())->m_rangeFirst = firstBound;
+            firstBound->rangeFirst = firstBound;
+            static_cast<AttributeExpr*>(high.get())->rangeFirst = firstBound;
             return;
         }
     }

@@ -63,7 +63,7 @@ DeclPtr Parser::parsePackage(bool library)
 
 void Parser::parseElaborateBody(Decl& decl, const std::string& name, bool inside)
 {
-    if (decl.m_elaborateBody) {
+    if (decl.elaborateBody) {
         m_diagnostics.error(current().location, "duplicate pragma Elaborate_Body");
     }
     advance();
@@ -82,5 +82,5 @@ void Parser::parseElaborateBody(Decl& decl, const std::string& name, bool inside
         expect(TokenKind::RightParen, "after Elaborate_Body unit name");
     }
     expect(TokenKind::Semicolon, "after Elaborate_Body");
-    decl.m_elaborateBody = true;
+    decl.elaborateBody = true;
 }

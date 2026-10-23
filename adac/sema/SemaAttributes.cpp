@@ -130,8 +130,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         noteReference(receiver);
-        expr->m_protectedReceiver = receiver;
-        expr->m_countEntry = entry;
+        expr->protectedReceiver = receiver;
+        expr->countEntry = entry;
         expr->type = m_types.universalInteger();
         return expr->type;
     }
@@ -196,7 +196,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         } else {
             chosen->addressTaken = true;
         }
-        expr->m_accessSubprogram = chosen;
+        expr->accessSubprogram = chosen;
         recordContractName(expr->prefix.get(), chosen);
         expr->type = expected;
         return expr->type;
@@ -256,12 +256,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
                     if (owner == task->taskBody && named != nullptr && !named->type->isSubtype
                         && owner->name == "__task_" + named->name) {
-                        expr->m_taskCurrentInstance = owner->taskIdentity;
-                        noteReference(expr->m_taskCurrentInstance);
+                        expr->taskCurrentInstance = owner->taskIdentity;
+                        noteReference(expr->taskCurrentInstance);
                         break;
                     }
                 }
-                valid &= expr->m_taskCurrentInstance != nullptr;
+                valid &= expr->taskCurrentInstance != nullptr;
             } else {
                 valid &= objectView(expr->prefix.get()) != 0
                     || (prefixType != nullptr && prefixType->kind == TypeKind::Access);
@@ -270,7 +270,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 m_diagnostics.error(expr->location, "task attribute requires a task object or its current instance and no arguments");
                 return nullptr;
             }
-            expr->m_taskAttribute = true;
+            expr->taskAttribute = true;
             expr->type = expr->lower == "identity" ? m_taskIdType : m_types.booleanType();
             return expr->type;
         }
@@ -402,7 +402,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     bool staticArrayPrefix = prefixIsType;
-    if (expr->prefix->kind == ExprKind::Identifier && expr->prefix->m_implicitCall == nullptr) {
+    if (expr->prefix->kind == ExprKind::Identifier && expr->prefix->implicitCall == nullptr) {
         Symbol* symbol = static_cast<IdentifierExpr*>(expr->prefix.get())->symbol;
         staticArrayPrefix = staticArrayPrefix || (symbol != nullptr
             && (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter));
@@ -456,7 +456,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                     for (Type* candidate : expressionTypes(binary->right.get(), scope)) {
                         if (candidate->kind == TypeKind::Fixed) { context = m_types.scalarBaseType(base); }
                     }
-                    binary->m_roundFixed = context != nullptr;
+                    binary->roundFixed = context != nullptr;
                 }
             }
             if (context == nullptr) {
@@ -521,20 +521,20 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_exactReal = ExactReal::fixed(1, base->fixedScale);
+            expr->exactReal = ExactReal::fixed(1, base->fixedScale);
             if (name == "delta" && base->delta != nullptr) {
-                exactValue(base->delta, expr->m_exactReal);
+                exactValue(base->delta, expr->exactReal);
             }
-            expr->staticReal = static_cast<double>(expr->m_exactReal.numerator)
-                / static_cast<double>(expr->m_exactReal.denominator);
+            expr->staticReal = static_cast<double>(expr->exactReal.numerator)
+                / static_cast<double>(expr->exactReal.denominator);
             return expr->type;
         }
         if (name == "first" || name == "last") {
             expr->type = prefixType;
             expr->isStatic = !base->formalFixed && base->scalarBoundsSymbol == nullptr;
             if (expr->isStatic) {
-                expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
-                expr->m_exactReal.integer(expr->staticValue);
+                expr->exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
+                expr->exactReal.integer(expr->staticValue);
             }
             return expr->type;
         }
@@ -658,8 +658,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         } else if (!fixed && foldWideInteger(expr->arguments[0].get(), left, failure)
             && foldWideInteger(expr->arguments[1].get(), right, failure)) {
             expr->isStatic = true;
-            expr->m_exactReal = ExactReal::make(name == "min" ? std::min(left, right) : std::max(left, right));
-            expr->m_exactReal.integer(expr->staticValue);
+            expr->exactReal = ExactReal::make(name == "min" ? std::min(left, right) : std::max(left, right));
+            expr->exactReal.integer(expr->staticValue);
         }
         return expr->type;
     }
@@ -679,8 +679,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             value %= base->modulus;
             if (value < 0) { value += base->modulus; }
             expr->isStatic = true;
-            expr->m_exactReal = ExactReal::make(value);
-            expr->m_exactReal.integer(expr->staticValue);
+            expr->exactReal = ExactReal::make(value);
+            expr->exactReal.integer(expr->staticValue);
         }
         return expr->type;
     }
@@ -691,8 +691,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = true;
-        expr->m_exactReal = ExactReal::make(base != nullptr ? base->modulus : 0);
-        expr->m_exactReal.integer(expr->staticValue);
+        expr->exactReal = ExactReal::make(base != nullptr ? base->modulus : 0);
+        expr->exactReal.integer(expr->staticValue);
         return expr->type;
     }
 
@@ -709,8 +709,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             expr->type = prefixType;
             expr->isStatic = prefixType->scalarBoundsSymbol == nullptr;
             if (expr->isStatic) {
-                expr->m_exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
-                expr->m_exactReal.integer(expr->staticValue);
+                expr->exactReal = ExactReal::make(name == "first" ? prefixType->low : prefixType->high);
+                expr->exactReal.integer(expr->staticValue);
             }
             return expr->type;
         }
@@ -753,7 +753,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->type = m_types.universalInteger();
         expr->isStatic = expr->arguments.front()->isStatic;
         expr->staticValue = expr->arguments.front()->staticValue;
-        expr->m_exactReal = expr->arguments.front()->m_exactReal;
+        expr->exactReal = expr->arguments.front()->exactReal;
         if (expr->arguments.front()->staticFailure != StaticFailure::None) {
             expr->staticFailure = StaticFailure::Dependent;
         }
@@ -812,7 +812,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                     expr->staticFailure = StaticFailure::Check;
                 } else {
                     expr->staticValue = static_cast<long long>(value);
-                    expr->m_exactReal = ExactReal::make(value);
+                    expr->exactReal = ExactReal::make(value);
                 }
             }
         }
@@ -854,7 +854,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = prefixIsType;
-        expr->m_alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
+        expr->alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
         expr->staticValue = prefixIsType && prefixType->alignment == 0 ? 0 : typeAlignment(prefixType);
         return expr->type;
     }

@@ -75,9 +75,9 @@ std::string declarationName(const Decl& decl)
 bool isOptionalCompletion(const Decl& decl)
 {
     return (decl.kind == DeclKind::SubprogramDeclaration
-            && static_cast<const SubprogramDecl&>(decl).m_renamedName != nullptr)
+            && static_cast<const SubprogramDecl&>(decl).renamedName != nullptr)
         || (decl.kind == DeclKind::SubprogramBody
-            && static_cast<const SubprogramBody&>(decl).m_isNull);
+            && static_cast<const SubprogramBody&>(decl).isNull);
 }
 
 bool isBody(const Decl& decl)
@@ -91,7 +91,7 @@ bool allowsBody(const Decl& decl)
     return decl.kind == DeclKind::PackageSpecification
         || (decl.kind == DeclKind::SubprogramDeclaration && !isOptionalCompletion(decl))
         || (decl.kind == DeclKind::GenericDeclaration
-            && !static_cast<const GenericDecl&>(decl).m_hasBody);
+            && !static_cast<const GenericDecl&>(decl).hasBody);
 }
 
 enum class LibraryKind
@@ -111,12 +111,12 @@ LibraryKind libraryKind(const Decl& decl)
     case DeclKind::GenericDeclaration: {
         const auto& generic = static_cast<const GenericDecl&>(decl);
         return generic.isPackage ? LibraryKind::Package
-            : generic.m_isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+            : generic.isFunction ? LibraryKind::Function : LibraryKind::Procedure;
     }
     case DeclKind::GenericInstantiation: {
         const auto& instance = static_cast<const GenericInstantiationDecl&>(decl);
         return instance.isPackage ? LibraryKind::Package
-            : instance.m_isFunction ? LibraryKind::Function : LibraryKind::Procedure;
+            : instance.isFunction ? LibraryKind::Function : LibraryKind::Procedure;
     }
     default:
         return LibraryKind::Package;
@@ -511,7 +511,7 @@ bool UnitLoader::orderUnits()
     std::vector<std::pair<CompilationUnit*, CompilationUnit*>> immediateBodies;
     for (CompilationUnit* unit : m_discoveredUnits) {
         // An instance's spec and body already elaborate as one library item.
-        if (unit->units.front()->m_elaborateBody
+        if (unit->units.front()->elaborateBody
             && unit->units.front()->kind != DeclKind::GenericInstantiation) {
             CompilationUnit* body = bodyOf(unit);
             if (body == nullptr) {

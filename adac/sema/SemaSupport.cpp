@@ -58,16 +58,16 @@ bool conformingExpressions(const Expr* left, const Expr* right)
     };
     switch (left->kind) {
     case ExprKind::IntegerLiteral: {
-        ExactReal a = left->m_exactReal.valid ? left->m_exactReal
+        ExactReal a = left->exactReal.valid ? left->exactReal
             : ExactReal::make(static_cast<const IntegerLiteralExpr*>(left)->value);
-        ExactReal b = right->m_exactReal.valid ? right->m_exactReal
+        ExactReal b = right->exactReal.valid ? right->exactReal
             : ExactReal::make(static_cast<const IntegerLiteralExpr*>(right)->value);
         return a.numerator == b.numerator;
     }
     case ExprKind::RealLiteral:
-        return left->m_exactReal.valid && right->m_exactReal.valid
-            && left->m_exactReal.numerator == right->m_exactReal.numerator
-            && left->m_exactReal.denominator == right->m_exactReal.denominator;
+        return left->exactReal.valid && right->exactReal.valid
+            && left->exactReal.numerator == right->exactReal.numerator
+            && left->exactReal.denominator == right->exactReal.denominator;
     case ExprKind::StringLiteral:
         return static_cast<const StringLiteralExpr*>(left)->value == static_cast<const StringLiteralExpr*>(right)->value;
     case ExprKind::CharacterLiteral:
@@ -115,8 +115,8 @@ bool conformingExpressions(const Expr* left, const Expr* right)
         auto* a = static_cast<const AttributeExpr*>(left);
         auto* b = static_cast<const AttributeExpr*>(right);
         return a->lower == b->lower && a->prefixType == b->prefixType
-            && a->exceptionSymbol == b->exceptionSymbol && a->m_accessSubprogram == b->m_accessSubprogram
-            && (a->m_accessSubprogram != nullptr || a->exceptionSymbol != nullptr
+            && a->exceptionSymbol == b->exceptionSymbol && a->accessSubprogram == b->accessSubprogram
+            && (a->accessSubprogram != nullptr || a->exceptionSymbol != nullptr
                 || conformingExpressions(a->prefix.get(), b->prefix.get()))
             && sameList(a->arguments, b->arguments);
     }
@@ -128,11 +128,11 @@ bool conformingExpressions(const Expr* left, const Expr* right)
     case ExprKind::Aggregate: {
         auto* a = static_cast<const AggregateExpr*>(left);
         auto* b = static_cast<const AggregateExpr*>(right);
-        bool ancestorMatches = a->m_ancestorIsType && b->m_ancestorIsType
-            ? a->m_ancestorType == b->m_ancestorType
-            : conformingExpressions(a->m_ancestor.get(), b->m_ancestor.get());
-        if (a->components.size() != b->components.size() || a->m_nullRecord != b->m_nullRecord
-            || a->m_ancestorIsType != b->m_ancestorIsType || !ancestorMatches) {
+        bool ancestorMatches = a->ancestorIsType && b->ancestorIsType
+            ? a->ancestorType == b->ancestorType
+            : conformingExpressions(a->ancestor.get(), b->ancestor.get());
+        if (a->components.size() != b->components.size() || a->nullRecord != b->nullRecord
+            || a->ancestorIsType != b->ancestorIsType || !ancestorMatches) {
             return false;
         }
         for (std::size_t i = 0; i < a->components.size(); ++i) {
@@ -150,7 +150,7 @@ bool conformingExpressions(const Expr* left, const Expr* right)
     case ExprKind::Membership: {
         auto* a = static_cast<const MembershipExpr*>(left);
         auto* b = static_cast<const MembershipExpr*>(right);
-        return a->negated == b->negated && a->m_membershipSubtype == b->m_membershipSubtype
+        return a->negated == b->negated && a->membershipSubtype == b->membershipSubtype
             && conformingExpressions(a->operand.get(), b->operand.get())
             && conformingExpressions(a->low.get(), b->low.get()) && conformingExpressions(a->high.get(), b->high.get());
     }
@@ -167,7 +167,7 @@ bool conformingExpressions(const Expr* left, const Expr* right)
         const auto& x = a->subtype;
         const auto& y = b->subtype;
         return conformingExpressions(x->digits.get(), y->digits.get())
-            && conformingExpressions(x->m_delta.get(), y->m_delta.get())
+            && conformingExpressions(x->delta.get(), y->delta.get())
             && conformingExpressions(x->rangeLow.get(), y->rangeLow.get())
             && conformingExpressions(x->rangeHigh.get(), y->rangeHigh.get())
             && sameList(x->indexLows, y->indexLows) && sameList(x->indexHighs, y->indexHighs);
@@ -229,13 +229,13 @@ void adaptUniversal(Expr* expr, Type* type)
             expr->isStatic = false;
             return;
         }
-        expr->m_fixedInvalid = !expr->m_exactReal.scaled(type->fixedScale, expr->staticValue);
-        expr->isStatic = !expr->m_fixedInvalid;
+        expr->fixedInvalid = !expr->exactReal.scaled(type->fixedScale, expr->staticValue);
+        expr->isStatic = !expr->fixedInvalid;
         expr->type = type;
         return;
     }
-    if (isReal(type) && expr->type->kind == TypeKind::UniversalInteger && expr->m_exactReal.valid) {
-        expr->staticReal = expr->m_exactReal.real(typeSize(type) == 4 ? 24 : 53);
+    if (isReal(type) && expr->type->kind == TypeKind::UniversalInteger && expr->exactReal.valid) {
+        expr->staticReal = expr->exactReal.real(typeSize(type) == 4 ? 24 : 53);
     }
     expr->type = type;
     if (expr->kind == ExprKind::Unary) {
@@ -269,7 +269,7 @@ std::vector<std::string> splitDottedName(const std::string& name)
 // 0 is not an object name, 1 is a constant view, 2 is a variable view.
 int objectView(Expr* expr)
 {
-    if (expr->m_implicitCall != nullptr) {
+    if (expr->implicitCall != nullptr) {
         return 0;
     }
     Symbol* symbol = nullptr;
@@ -302,8 +302,8 @@ int objectView(Expr* expr)
     if (symbol == nullptr) {
         return 0;
     }
-    if (symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr
-        && expr->m_protectedReceiver->mode == ParameterMode::In) {
+    if (symbol->protectedField >= 0 && expr->protectedReceiver != nullptr
+        && expr->protectedReceiver->mode == ParameterMode::In) {
         return 1;
     }
     if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter

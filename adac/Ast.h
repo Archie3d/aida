@@ -92,16 +92,16 @@ struct Expr : Node
     }
 
     ExprKind kind;
-    Expr* m_protectedObject = nullptr; // Borrowed target of an external protected call.
-    Symbol* m_protectedReceiver = nullptr; // Current instance for fields/internal calls.
-    bool m_tagIndeterminate = false;
-    std::unique_ptr<Expr> m_implicitCall; // Desugared parameterless subprogram dereference.
+    Expr* protectedObject = nullptr; // Borrowed target of an external protected call.
+    Symbol* protectedReceiver = nullptr; // Current instance for fields/internal calls.
+    bool tagIndeterminate = false;
+    std::unique_ptr<Expr> implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
     bool isStatic = false;
     long long staticValue = 0;
-    ExactReal m_exactReal;
+    ExactReal exactReal;
     StaticFailure staticFailure = StaticFailure::None;
-    bool m_fixedInvalid = false;
+    bool fixedInvalid = false;
     double staticReal = 0.0;   // Holds the folded value of a real expression.
 };
 
@@ -196,10 +196,10 @@ struct BinaryExpr : Expr
 
     BinaryOp op = BinaryOp::Add;
     bool predefinedOnly = false;
-    bool m_fixedResult = false;
-    bool m_roundFixed = false;
-    bool m_explicitFixedContext = false;
-    bool m_standardFixed = false;
+    bool fixedResult = false;
+    bool roundFixed = false;
+    bool explicitFixedContext = false;
+    bool standardFixed = false;
     ExprPtr left;
     ExprPtr right;
     ExprPtr operatorCall; // Resolved user-defined operator.
@@ -249,8 +249,8 @@ struct CallExpr : Expr
     ExprPtr operatorExpression; // Explicit unqualified operator call.
     CallForm form = CallForm::Unresolved;
     Symbol* subprogram = nullptr;
-    bool m_indirect = false;
-    bool m_dispatching = false;
+    bool indirect = false;
+    bool dispatching = false;
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
 };
 
@@ -268,14 +268,14 @@ struct AttributeExpr : Expr
     Type* prefixType = nullptr;
     // The two lowered bounds of 'Range share one prefix evaluation.
     // The first bound points to itself; the last points to the first.
-    AttributeExpr* m_rangeFirst = nullptr;
+    AttributeExpr* rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
-    Symbol* m_accessSubprogram = nullptr;
-    Symbol* m_countEntry = nullptr;
-    bool m_taskAttribute = false;
-    bool m_alignmentObjectView = false;
+    Symbol* accessSubprogram = nullptr;
+    Symbol* countEntry = nullptr;
+    bool taskAttribute = false;
+    bool alignmentObjectView = false;
     bool sizeTypePrefix = false;
-    Symbol* m_taskCurrentInstance = nullptr;
+    Symbol* taskCurrentInstance = nullptr;
 };
 
 struct AggregateComponent
@@ -295,10 +295,10 @@ struct AggregateExpr : Expr
     {
     }
 
-    ExprPtr m_ancestor;
-    Type* m_ancestorType = nullptr;
-    bool m_ancestorIsType = false;
-    bool m_nullRecord = false;
+    ExprPtr ancestor;
+    Type* ancestorType = nullptr;
+    bool ancestorIsType = false;
+    bool nullRecord = false;
     std::vector<AggregateComponent> components;
     std::vector<Expr*> resolvedFields;  // Record aggregates, in field order.
 };
@@ -324,8 +324,8 @@ struct MembershipExpr : Expr
 
     ExprPtr operand;
     bool negated = false;
-    Type* m_testedTaggedType = nullptr;
-    Type* m_membershipSubtype = nullptr;
+    Type* testedTaggedType = nullptr;
+    Type* membershipSubtype = nullptr;
     std::string typeName;   // "X in Positive"
     std::string typeLower;
     ExprPtr low;            // "X in 1 .. 10"
@@ -341,7 +341,7 @@ struct SubtypeIndication : Node
     std::string name;
     std::string lower;
     ExprPtr digits;
-    ExprPtr m_delta;   // Accuracy constraint on a floating point subtype.
+    ExprPtr delta;   // Accuracy constraint on a floating point subtype.
     ExprPtr rangeLow;
     ExprPtr rangeHigh;
     std::vector<ExprPtr> indexLows;   // Index constraint for array subtypes.
@@ -441,7 +441,7 @@ struct ParameterDecl
     ParameterMode mode = ParameterMode::In;
     SubtypeIndicationPtr subtype;
     ExprPtr defaultValue;
-    std::vector<Token> m_defaultTokens;
+    std::vector<Token> defaultTokens;
     SourceLocation location;
     Symbol* symbol = nullptr;
 };
@@ -449,10 +449,10 @@ struct ParameterDecl
 struct SubprogramSpec
 {
     // 0: omitted, 1: overriding, -1: not overriding.
-    int m_overriding = 0;
+    int overriding = 0;
     bool isFunction = false;
-    bool m_entry = false;
-    bool m_entryBarrier = false;
+    bool entry = false;
+    bool entryBarrier = false;
     std::string name;
     std::string lower;
     std::vector<ParameterDecl> parameters;
@@ -479,7 +479,7 @@ struct TypeDefinition : Node
 
     // Floating point
     ExprPtr digits;
-    ExprPtr m_delta;
+    ExprPtr delta;
 
     // Array
     std::vector<SubtypeIndicationPtr> indexTypes;
@@ -487,15 +487,15 @@ struct TypeDefinition : Node
     SubtypeIndicationPtr elementType;
 
     // Record
-    bool m_tagged = false;
-    bool m_abstract = false;
-    bool m_extension = false;
+    bool tagged = false;
+    bool abstract = false;
+    bool extension = false;
     std::vector<RecordField> fields;
     VariantPartPtr variant;
 
     // Derived / access
     SubtypeIndicationPtr parent;
-    std::unique_ptr<SubprogramSpec> m_accessProfile;
+    std::unique_ptr<SubprogramSpec> accessProfile;
 
     // Private
     bool isLimited = false;
@@ -661,9 +661,9 @@ struct ReturnStmt : Stmt
     ~ReturnStmt() override;
 
     ExprPtr value;
-    DeclPtr m_object;
-    StmtList m_body;
-    std::vector<ExceptionHandler> m_handlers;
+    DeclPtr object;
+    StmtList body;
+    std::vector<ExceptionHandler> handlers;
 };
 
 struct CaseAlternative
@@ -710,7 +710,7 @@ struct RaiseStmt : Stmt
     std::string name;
     std::string lower;
     Symbol* exceptionSymbol = nullptr;
-    Symbol* m_accessSubprogram = nullptr;
+    Symbol* accessSubprogram = nullptr;
     ExprPtr message;
 };
 
@@ -746,8 +746,8 @@ struct Decl : Node
     DeclKind kind;
     std::vector<Type*> constraintOrder;
     std::vector<Type*> arrayConstraints;
-    std::vector<Type*> m_scalarConstraints; // Elaborated once with this declaration.
-    bool m_elaborateBody = false;
+    std::vector<Type*> scalarConstraints; // Elaborated once with this declaration.
+    bool elaborateBody = false;
 };
 
 struct ObjectDecl : Decl
@@ -762,7 +762,7 @@ struct ObjectDecl : Decl
     bool isConstant = false;
     SubtypeIndicationPtr subtype;
     ExprPtr initializer;
-    bool m_isRenaming = false; // initializer names the object whose address is saved.
+    bool isRenaming = false; // initializer names the object whose address is saved.
     std::vector<Symbol*> symbols;
 
     // A deferred constant: named in the visible part of a package, with its
@@ -796,10 +796,10 @@ struct TypeDecl : Decl
     std::vector<RecordField> discriminants;
     TypeDefinitionPtr definition;
     Type* declaredType = nullptr;
-    Expr* m_smallClause = nullptr;
-    DeclList m_taskObjects; // Anonymous type followed by its single concurrent object.
-    DeclList m_protectedDeclarations;
-    bool m_protectedBody = false;
+    Expr* smallClause = nullptr;
+    DeclList taskObjects; // Anonymous type followed by its single concurrent object.
+    DeclList protectedDeclarations;
+    bool protectedBody = false;
 };
 
 struct SubtypeDecl : Decl
@@ -813,7 +813,7 @@ struct SubtypeDecl : Decl
     std::string lower;
     SubtypeIndicationPtr subtype;
     Type* declaredType = nullptr;
-    Expr* m_smallClause = nullptr;
+    Expr* smallClause = nullptr;
 };
 
 struct SubprogramDecl : Decl
@@ -824,12 +824,12 @@ struct SubprogramDecl : Decl
     }
 
     SubprogramSpec spec;
-    bool m_protectedPrivate = false;
+    bool protectedPrivate = false;
     Symbol* symbol = nullptr;
-    ExprPtr m_renamedName;
-    std::vector<Token> m_renamedTokens;
-    DeclList m_renamingExpansion;
-    Symbol* m_callbackBinding = nullptr;
+    ExprPtr renamedName;
+    std::vector<Token> renamedTokens;
+    DeclList renamingExpansion;
+    Symbol* callbackBinding = nullptr;
 };
 
 struct SubprogramBody : Decl
@@ -840,16 +840,16 @@ struct SubprogramBody : Decl
     }
 
     SubprogramSpec spec;
-    bool m_isNull = false;
-    SubprogramBody* m_barrierBody = nullptr; // Owned by the protected body declaration list.
-    bool m_taskBody = false;
-    std::string m_taskName;
+    bool isNull = false;
+    SubprogramBody* barrierBody = nullptr; // Owned by the protected body declaration list.
+    bool taskBody = false;
+    std::string taskName;
     DeclList declarations;
     StmtList body;
     std::vector<ExceptionHandler> handlers;
     Symbol* symbol = nullptr;
 
-    Symbol* m_genericBody = nullptr;
+    Symbol* genericBody = nullptr;
 
     // As for a package body: a generic subprogram declared in one file has its
     // body in another, and every instance parses that body again.
@@ -884,7 +884,7 @@ struct PackageBodyDecl : Decl
     std::vector<ExceptionHandler> handlers;
     Symbol* symbol = nullptr;
 
-    Symbol* m_genericBody = nullptr;
+    Symbol* genericBody = nullptr;
 
     // The tokens the body was written with.  They matter when the body belongs
     // to a generic declared in another file, since an instance has to parse the
@@ -894,8 +894,8 @@ struct PackageBodyDecl : Decl
 
 struct UseDecl : Decl
 {
-    bool m_typeOnly = false;
-    bool m_all = false;
+    bool typeOnly = false;
+    bool all = false;
     UseDecl()
         : Decl(DeclKind::Use)
     {
@@ -961,14 +961,14 @@ struct GenericFormal
     std::string lower;
     SubtypeIndicationPtr subtype;   // The type of an object formal.
     ExprPtr defaultValue;
-    TypeDefinitionPtr m_arrayDefinition;
-    std::vector<Token> m_subprogramTokens;
-    std::vector<Token> m_objectTokens;
-    ParameterMode m_mode = ParameterMode::In;
-    bool m_boxDefault = false;
-    bool m_limited = false;
-    std::vector<Symbol*> m_defaultCandidates;
-    bool m_defaultUsesFormal = false;
+    TypeDefinitionPtr arrayDefinition;
+    std::vector<Token> subprogramTokens;
+    std::vector<Token> objectTokens;
+    ParameterMode mode = ParameterMode::In;
+    bool boxDefault = false;
+    bool limited = false;
+    std::vector<Symbol*> defaultCandidates;
+    bool defaultUsesFormal = false;
     SourceLocation location;
 };
 
@@ -985,8 +985,8 @@ struct GenericDecl : Decl
     std::string name;
     std::string lower;
     bool isPackage = true;
-    bool m_isFunction = false;
-    bool m_hasBody = false;
+    bool isFunction = false;
+    bool hasBody = false;
     std::vector<GenericFormal> formals;
     std::vector<Token> tokens;
     Symbol* symbol = nullptr;
@@ -1003,9 +1003,9 @@ struct GenericInstantiationDecl : Decl
     std::string lower;
     std::string genericName;
     std::string genericLower;
-    Symbol* m_generic = nullptr;
+    Symbol* generic = nullptr;
     bool isPackage = true;
-    bool m_isFunction = false;
+    bool isFunction = false;
     std::vector<Association> arguments;
     Symbol* symbol = nullptr;
 

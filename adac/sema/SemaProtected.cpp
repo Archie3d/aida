@@ -81,19 +81,19 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
             m_diagnostics.error(expr->location, "a protected function cannot call a procedure on its constant current instance");
         }
         noteReference(receiver);
-        expr->m_protectedReceiver = receiver;
+        expr->protectedReceiver = receiver;
     } else {
         if (operation->returnType == nullptr) {
             checkAssignable(object, scope, true);
         }
-        expr->m_protectedObject = object;
+        expr->protectedObject = object;
     }
 }
 
 void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
 {
     Type* type = decl->declaredType;
-    if (decl->m_protectedBody) {
+    if (decl->protectedBody) {
         Symbol* named = lookupName(decl->lower, scope);
         type = named == nullptr ? nullptr : baseType(named->type);
         if (type == nullptr || type->protectedScope == nullptr) {
@@ -121,13 +121,13 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
-    m_namePrefix.push_back(decl->m_protectedBody ? decl->lower
-        : decl->m_taskObjects.empty() ? decl->lower
-        : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
+    m_namePrefix.push_back(decl->protectedBody ? decl->lower
+        : decl->taskObjects.empty() ? decl->lower
+        : static_cast<ObjectDecl*>(decl->taskObjects.front().get())->namesLower.front());
     Scope* inner = type->protectedScope;
-    if (!decl->m_protectedBody) {
-        type->protectedName = decl->m_taskObjects.empty() ? decl->lower
-            : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front();
+    if (!decl->protectedBody) {
+        type->protectedName = decl->taskObjects.empty() ? decl->lower
+            : static_cast<ObjectDecl*>(decl->taskObjects.front().get())->namesLower.front();
         for (const FieldInfo& field : type->fields) {
             if (field.name == type->protectedName) {
                 m_diagnostics.error(decl->location, "protected component conflicts with the current instance name");
@@ -146,8 +146,8 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
     Type* savedType = m_currentProtectedType;
     Scope* savedScope = m_protectedBodyScope;
     m_currentProtectedType = type;
-    m_protectedBodyScope = decl->m_protectedBody ? inner : nullptr;
-    for (const auto& operation : decl->m_protectedDeclarations) {
+    m_protectedBodyScope = decl->protectedBody ? inner : nullptr;
+    for (const auto& operation : decl->protectedDeclarations) {
         SubprogramSpec* spec = nullptr;
         if (operation->kind == DeclKind::SubprogramDeclaration) {
             spec = &static_cast<SubprogramDecl*>(operation.get())->spec;
@@ -162,12 +162,12 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             declareProtectedOperation(symbol, type);
             auto* declaration = static_cast<SubprogramDecl*>(operation.get());
             declaration->symbol = symbol;
-            symbol->protectedPrivate = declaration->m_protectedPrivate;
+            symbol->protectedPrivate = declaration->protectedPrivate;
         } else {
             auto* body = static_cast<SubprogramBody*>(operation.get());
             analyzeSubprogramBody(body, inner);
-            if (body->symbol != nullptr && body->spec.m_entry) {
-                Symbol* barrier = body->m_barrierBody->symbol;
+            if (body->symbol != nullptr && body->spec.entry) {
+                Symbol* barrier = body->barrierBody->symbol;
                 if (barrier != nullptr) {
                     barrier->qbeName = body->symbol->qbeName + ".barrier";
                 }
@@ -177,8 +177,8 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             }
         }
     }
-    if (decl->m_protectedBody) {
-        reportMissingBodies(decl->m_protectedDeclarations);
+    if (decl->protectedBody) {
+        reportMissingBodies(decl->protectedDeclarations);
     }
     m_currentProtectedType = savedType;
     m_protectedBodyScope = savedScope;

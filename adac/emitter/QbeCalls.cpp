@@ -27,7 +27,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
-    if (!expr->m_dispatching && subprogram->inheritedFrom != nullptr) {
+    if (!expr->dispatching && subprogram->inheritedFrom != nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;
         inherited.form = CallForm::Subprogram;
@@ -50,7 +50,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
         return result;
     }
-    if (!expr->m_dispatching && subprogram->negatedEquality != nullptr) {
+    if (!expr->dispatching && subprogram->negatedEquality != nullptr) {
         CallExpr equality;
         equality.location = expr->location;
         equality.form = CallForm::Subprogram;
@@ -74,7 +74,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             return Value { "0", 'w' };
         }
     }
-    if (!expr->m_dispatching && (subprogram->renamedSubprogram != nullptr || subprogram->renamedAccess != nullptr)) {
+    if (!expr->dispatching && (subprogram->renamedSubprogram != nullptr || subprogram->renamedAccess != nullptr)) {
         CallExpr renamed;
         renamed.location = expr->location;
         renamed.form = CallForm::Subprogram;
@@ -88,7 +88,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             callee->type = binding->type;
             callee->location = expr->location;
             renamed.callee = std::move(callee);
-            renamed.m_indirect = true;
+            renamed.indirect = true;
             renamed.subprogram = binding->type->accessProfile;
         }
         return emitCall(&renamed);
@@ -106,13 +106,13 @@ Value QbeEmitter::emitCall(CallExpr* expr)
 
     Value protectedObject;
     if (subprogram->protectedType != nullptr) {
-        if (expr->m_protectedObject != nullptr) {
-            protectedObject = emitExpr(expr->m_protectedObject);
-            if (baseType(expr->m_protectedObject->type)->kind == TypeKind::Access) {
+        if (expr->protectedObject != nullptr) {
+            protectedObject = emitExpr(expr->protectedObject);
+            if (baseType(expr->protectedObject->type)->kind == TypeKind::Access) {
                 checkNotNull(protectedObject);
             }
-        } else if (expr->m_protectedReceiver != nullptr) {
-            protectedObject = addressOf(expr->m_protectedReceiver);
+        } else if (expr->protectedReceiver != nullptr) {
+            protectedObject = addressOf(expr->protectedReceiver);
         }
     }
     std::string resultTarget = std::move(m_context->resultTarget);
@@ -127,13 +127,13 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     m_context->resultTargetOwner.clear();
     m_context->resultTargetArena.clear();
 
-    bool dispatchEquality = expr->m_dispatching && (subprogram->name == "=" || subprogram->name == "/=")
+    bool dispatchEquality = expr->dispatching && (subprogram->name == "=" || subprogram->name == "/=")
         && subprogram->parameters.size() == 2
         && rootType(subprogram->parameters[0]->type) == subprogram->controllingType
         && rootType(subprogram->parameters[1]->type) == subprogram->controllingType;
     std::string callee = subprogram->qbeName;
     std::string indirectLink;
-    if (expr->m_indirect) {
+    if (expr->indirect) {
         Value descriptor = emitExpr(expr->callee.get());
         checkNotNull(descriptor);
         callee = newTemp();
@@ -188,7 +188,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             }
         }
     }
-    if (subprogram->level > 0 && !expr->m_dispatching) {
+    if (subprogram->level > 0 && !expr->dispatching) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
     }
@@ -208,11 +208,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     } tagContext { m_context->controllingTag, m_context->controllingTag };
     std::string controllingTag;
     std::vector<Value> controllingValues(subprogram->parameters.size());
-    if (expr->m_dispatching) {
+    if (expr->dispatching) {
         for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
             Expr* argument = expr->resolvedArguments[i];
             if (rootType(subprogram->parameters[i]->type) == subprogram->controllingType
-                && !argument->m_tagIndeterminate) {
+                && !argument->tagIndeterminate) {
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
                 if (m_context->controllingTag == tagContext.m_saved) {
@@ -270,7 +270,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 value.last = target.last;
                 value.innerBounds = target.innerBounds;
             }
-            if (expr->m_dispatching && rootType(parameter->type) == subprogram->controllingType) {
+            if (expr->dispatching && rootType(parameter->type) == subprogram->controllingType) {
                 std::string tag = newTemp();
                 line(tag + " =l loadl " + value.name);
                 if (controllingTag.empty()) {
@@ -307,7 +307,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
     }
 
-    if (expr->m_dispatching) {
+    if (expr->dispatching) {
         if (controllingTag.empty()) {
             controllingTag = m_context->controllingTag;
         }
@@ -341,7 +341,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     std::string protectedAction;
-    if (expr->m_protectedObject != nullptr && subprogram->protectedType != nullptr) {
+    if (expr->protectedObject != nullptr && subprogram->protectedType != nullptr) {
         protectedAction = allocScratch(16);
         if (subprogram->entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
@@ -363,7 +363,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         emitCallInstruction("call " + callee + "(" + actuals + ")", CallEffects::DeferredCheck);
         return Value { "0", 'w' };
     };
-    if (expr->m_indirect || expr->m_dispatching) {
+    if (expr->indirect || expr->dispatching) {
         std::string nested = newLabel("nestedcallback");
         std::string library = newLabel("librarycallback");
         std::string done = newLabel("callbackdone");
@@ -413,7 +413,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         std::string pointer = newTemp();
         line(pointer + " =l loadl " + resultStorage);
         result = Value { pointer, 'l' };
-        if (expr->m_dispatching && rootType(subprogram->returnType) == subprogram->controllingType) {
+        if (expr->dispatching && rootType(subprogram->returnType) == subprogram->controllingType) {
             line("storel " + controllingTag + ", " + pointer);
         }
     } else if (dynamicResult) {

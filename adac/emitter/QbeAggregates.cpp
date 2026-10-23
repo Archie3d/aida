@@ -379,23 +379,23 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
     }
 
     if (target->kind == TypeKind::Record) {
-        if (expr->m_ancestor != nullptr) {
-            if (expr->m_ancestorIsType) {
-                emitDefaultInit(address, expr->m_ancestorType);
+        if (expr->ancestor != nullptr) {
+            if (expr->ancestorIsType) {
+                emitDefaultInit(address, expr->ancestorType);
             } else {
-                if (needsFinalization(expr->m_ancestorType)) {
-                    assignInto(address, expr->m_ancestorType, expr->m_ancestor.get(), true);
+                if (needsFinalization(expr->ancestorType)) {
+                    assignInto(address, expr->ancestorType, expr->ancestor.get(), true);
                 } else {
-                    Value ancestor = emitExpr(expr->m_ancestor.get());
-                    copyInto(address, ancestor, expr->m_ancestorType);
+                    Value ancestor = emitExpr(expr->ancestor.get());
+                    copyInto(address, ancestor, expr->ancestorType);
                 }
             }
         }
         if (target->tagged && !target->controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
         }
-        if (target->controlled && expr->m_ancestor != nullptr && expr->m_ancestorType->controlled) {
-            activateControlledObject(address, expr->m_ancestorType);
+        if (target->controlled && expr->ancestor != nullptr && expr->ancestorType->controlled) {
+            activateControlledObject(address, expr->ancestorType);
         }
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];

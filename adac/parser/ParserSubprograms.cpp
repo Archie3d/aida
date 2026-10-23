@@ -8,9 +8,9 @@ SubprogramSpec Parser::parseSubprogramSpec(bool allowInstantiation)
     spec.location = current().location;
     if (match(TokenKind::KwNot)) {
         expect(TokenKind::KwOverriding, "after not");
-        spec.m_overriding = -1;
+        spec.overriding = -1;
     } else if (match(TokenKind::KwOverriding)) {
-        spec.m_overriding = 1;
+        spec.overriding = 1;
     }
     if (match(TokenKind::KwFunction)) {
         spec.isFunction = true;
@@ -70,7 +70,7 @@ void Parser::parseParameterList(SubprogramSpec& spec)
             if (match(TokenKind::Assign)) {
                 std::size_t defaultStart = m_position;
                 parameter.defaultValue = parseExpression();
-                parameter.m_defaultTokens.assign(m_tokens.begin() + defaultStart, m_tokens.begin() + m_position);
+                parameter.defaultTokens.assign(m_tokens.begin() + defaultStart, m_tokens.begin() + m_position);
             }
             spec.parameters.push_back(std::move(parameter));
         }
@@ -93,8 +93,8 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
         decl->location = location;
         decl->spec = std::move(spec);
         std::size_t nameStart = m_position;
-        decl->m_renamedName = parseExpression();
-        decl->m_renamedTokens.assign(m_tokens.begin() + nameStart, m_tokens.begin() + m_position);
+        decl->renamedName = parseExpression();
+        decl->renamedTokens.assign(m_tokens.begin() + nameStart, m_tokens.begin() + m_position);
         expect(TokenKind::Semicolon, "after subprogram renaming");
         return decl;
     }
@@ -112,7 +112,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     }
     if (match(TokenKind::KwNew)) {
         DeclPtr instance = parseGenericInstantiation(location, spec.name, spec.lower, false);
-        static_cast<GenericInstantiationDecl*>(instance.get())->m_isFunction = spec.isFunction;
+        static_cast<GenericInstantiationDecl*>(instance.get())->isFunction = spec.isFunction;
         return instance;
     }
     if (check(TokenKind::KwSeparate)) {
@@ -123,7 +123,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     body->location = location;
     body->spec = std::move(spec);
     if (match(TokenKind::KwNull)) {
-        body->m_isNull = true;
+        body->isNull = true;
         if (body->spec.isFunction) {
             fail("only a procedure can have a null body");
         }
@@ -155,8 +155,8 @@ DeclPtr Parser::parseTask()
         const Token& name = expect(TokenKind::Identifier, "after task body");
         auto body = std::make_unique<SubprogramBody>();
         body->location = location;
-        body->m_taskBody = true;
-        body->m_taskName = name.lower;
+        body->taskBody = true;
+        body->taskName = name.lower;
         body->spec.name = name.text;
         body->spec.lower = "__task_" + name.lower;
         body->spec.location = location;
@@ -232,7 +232,7 @@ DeclPtr Parser::parseTask()
         object->subtype->location = location;
         object->subtype->name = decl->name;
         object->subtype->lower = decl->lower;
-        decl->m_taskObjects.push_back(std::move(object));
+        decl->taskObjects.push_back(std::move(object));
     }
     return decl;
 }

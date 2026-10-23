@@ -18,15 +18,15 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     if (expr->operatorExpression != nullptr) {
         expr->type = analyzeExpr(expr->operatorExpression.get(), scope, expected);
         expr->isStatic = expr->operatorExpression->isStatic;
-        expr->m_tagIndeterminate = expr->operatorExpression->m_tagIndeterminate;
+        expr->tagIndeterminate = expr->operatorExpression->tagIndeterminate;
         expr->staticValue = expr->operatorExpression->staticValue;
         expr->staticReal = expr->operatorExpression->staticReal;
-        expr->m_exactReal = expr->operatorExpression->m_exactReal;
+        expr->exactReal = expr->operatorExpression->exactReal;
         expr->staticFailure = expr->operatorExpression->staticFailure;
         return expr->type;
     }
     expr->resolvedArguments.clear();
-    expr->m_dispatching = false;
+    expr->dispatching = false;
     // Collect the entities the callee may denote.
     std::vector<Symbol*> candidates;
     if (expr->callee->kind == ExprKind::Identifier) {
@@ -99,13 +99,13 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             if (type->accessProfile != nullptr) {
                 analyzeExpr(expr->callee.get(), scope, type);
                 candidates = { type->accessProfile };
-                expr->m_indirect = true;
+                expr->indirect = true;
                 break;
             }
         }
     }
 
-    if (!expr->m_indirect) {
+    if (!expr->indirect) {
         candidates = contractNames(expr->callee.get(), std::move(candidates));
     }
 
@@ -225,7 +225,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                     if ((std::any_of(left.begin(), left.end(), fixed) && std::any_of(right.begin(), right.end(), realOperand))
                         || (std::any_of(right.begin(), right.end(), fixed) && std::any_of(left.begin(), left.end(), realOperand))) {
                         context = conversion;
-                        binary->m_explicitFixedContext = true;
+                        binary->explicitFixedContext = true;
                     }
                 }
             }
@@ -347,7 +347,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                     expr->staticFailure = StaticFailure::Check;
                 } else {
                     expr->staticValue = value;
-                    expr->m_exactReal = ExactReal::make(value);
+                    expr->exactReal = ExactReal::make(value);
                 }
             } else if (isReal(expr->type)) {
                 expr->staticReal = exact.real(typeSize(expr->type) == 4 ? 24 : 53);
@@ -410,7 +410,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         Expr* protectedObject = expr->callee->kind == ExprKind::Selected
             ? static_cast<SelectedExpr*>(expr->callee.get())->prefix.get() : nullptr;
         bindProtectedCall(expr, chosen, protectedObject, scope);
-        if (!expr->m_indirect) {
+        if (!expr->indirect) {
             recordContractName(expr->callee.get(), chosen);
         }
         expr->resolvedArguments.assign(chosen->parameters.size(), nullptr);
@@ -431,7 +431,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 for (Type* actual : expressionTypes(argument, scope)) {
                     if (actual->classRoot == chosen->controllingType) {
                         context = actual;
-                        expr->m_dispatching = true;
+                        expr->dispatching = true;
                     }
                 }
             }
@@ -450,19 +450,19 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
             }
         }
-        expr->m_tagIndeterminate = chosen->controllingType != nullptr
+        expr->tagIndeterminate = chosen->controllingType != nullptr
             && rootType(chosen->returnType) == chosen->controllingType
-            && !expr->m_dispatching;
+            && !expr->dispatching;
         for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
             if (rootType(chosen->parameters[i]->type) == chosen->controllingType) {
-                expr->m_tagIndeterminate = expr->m_tagIndeterminate && expr->resolvedArguments[i] != nullptr
-                    && expr->resolvedArguments[i]->m_tagIndeterminate;
+                expr->tagIndeterminate = expr->tagIndeterminate && expr->resolvedArguments[i] != nullptr
+                    && expr->resolvedArguments[i]->tagIndeterminate;
             }
         }
-        if (expr->m_dispatching) {
+        if (expr->dispatching) {
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
                 if (rootType(chosen->parameters[i]->type) == chosen->controllingType
-                    && expr->resolvedArguments[i] != nullptr && expr->resolvedArguments[i]->m_tagIndeterminate) {
+                    && expr->resolvedArguments[i] != nullptr && expr->resolvedArguments[i]->tagIndeterminate) {
                     dispatchIndeterminate(expr->resolvedArguments[i], chosen->controllingType);
                 }
             }
@@ -476,7 +476,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
         }
         expr->type = chosen->returnType;
-        if (expr->m_dispatching && chosen->returnType != nullptr
+        if (expr->dispatching && chosen->returnType != nullptr
             && rootType(chosen->returnType) == chosen->controllingType) {
             expr->type = classWideType(chosen->controllingType);
         }

@@ -116,7 +116,7 @@ DeclPtr Parser::parseObjectOrNumberDecl()
         if (decl->names.size() != 1 || isConstant) {
             fail("an object renaming requires one name and no constant keyword");
         }
-        decl->m_isRenaming = true;
+        decl->isRenaming = true;
         decl->initializer = parseExpression();
     } else if (match(TokenKind::Assign)) {
         decl->initializer = parseExpression();
@@ -130,9 +130,9 @@ DeclPtr Parser::parseUseClause()
     auto decl = std::make_unique<UseDecl>();
     decl->location = current().location;
     expect(TokenKind::KwUse, "in use clause");
-    decl->m_all = match(TokenKind::KwAll);
-    decl->m_typeOnly = match(TokenKind::KwType);
-    if (decl->m_all && !decl->m_typeOnly) {
+    decl->all = match(TokenKind::KwAll);
+    decl->typeOnly = match(TokenKind::KwType);
+    if (decl->all && !decl->typeOnly) {
         fail("expected type after use all");
     }
     while (true) {

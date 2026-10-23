@@ -304,7 +304,7 @@ void Sema::analyze(CompilationUnit& unit)
                 candidate = static_cast<SubprogramBody*>(decl.get())->symbol;
             } else if (decl->kind == DeclKind::SubprogramDeclaration) {
                 auto* renaming = static_cast<SubprogramDecl*>(decl.get());
-                if (!renaming->m_renamingExpansion.empty()) {
+                if (!renaming->renamingExpansion.empty()) {
                     candidate = renaming->symbol;
                 }
             }

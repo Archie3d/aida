@@ -57,7 +57,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
 {
     (void)scope;
 
-    if (target->m_protectedReceiver != nullptr && target->m_protectedReceiver->mode == ParameterMode::In) {
+    if (target->protectedReceiver != nullptr && target->protectedReceiver->mode == ParameterMode::In) {
         Symbol* field = target->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(target)->symbol
             : target->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(target)->symbol : nullptr;
         if (field != nullptr && field->protectedField >= 0) {
@@ -65,8 +65,8 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
             return;
         }
     }
-    if (target->m_implicitCall != nullptr
-        || (target->kind == ExprKind::Call && static_cast<CallExpr*>(target)->m_indirect)) {
+    if (target->implicitCall != nullptr
+        || (target->kind == ExprKind::Call && static_cast<CallExpr*>(target)->indirect)) {
         m_diagnostics.error(target->location, "the target of an assignment must be a variable");
         return;
     }
@@ -235,10 +235,10 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
         }
         if (targetType != nullptr && targetType->classRoot != nullptr
-            && valueType != nullptr && valueType->classRoot == nullptr && !assign->value->m_tagIndeterminate) {
+            && valueType != nullptr && valueType->classRoot == nullptr && !assign->value->tagIndeterminate) {
             m_diagnostics.error(assign->location, "class-wide assignment requires a dynamically tagged value");
         }
-        if (targetType != nullptr && targetType->classRoot != nullptr && assign->value->m_tagIndeterminate) {
+        if (targetType != nullptr && targetType->classRoot != nullptr && assign->value->tagIndeterminate) {
             dispatchIndeterminate(assign->value.get(), targetType->classRoot);
         }
         adaptUniversal(assign->value.get(), targetType);
@@ -265,8 +265,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (m_diagnostics.errorCount() != errorsBefore) {
             break;
         }
-        if (expression->m_implicitCall != nullptr) {
-            expression = expression->m_implicitCall.get();
+        if (expression->implicitCall != nullptr) {
+            expression = expression->implicitCall.get();
         }
         Symbol* target = nullptr;
         if (expression->kind == ExprKind::Identifier) {
@@ -390,13 +390,13 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             break;
         }
         if (!m_extendedReturns.empty() && m_extendedReturns.back() == m_currentSubprogram) {
-            if (returnStatement->value != nullptr || returnStatement->m_object != nullptr) {
+            if (returnStatement->value != nullptr || returnStatement->object != nullptr) {
                 m_diagnostics.error(returnStatement->location, "a return inside an extended return cannot have a value");
             }
             break;
         }
-        if (returnStatement->m_object != nullptr) {
-            auto* object = static_cast<ObjectDecl*>(returnStatement->m_object.get());
+        if (returnStatement->object != nullptr) {
+            auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
             Scope* inner = m_symbolTable.createScope(scope);
             analyzeObjectDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
@@ -415,8 +415,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 object->symbols.front()->objectReference = true;
             }
             m_extendedReturns.push_back(m_currentSubprogram);
-            analyzeStatements(returnStatement->m_body, inner);
-            analyzeHandlers(returnStatement->m_handlers, inner);
+            analyzeStatements(returnStatement->body, inner);
+            analyzeHandlers(returnStatement->handlers, inner);
             m_extendedReturns.pop_back();
             break;
         }

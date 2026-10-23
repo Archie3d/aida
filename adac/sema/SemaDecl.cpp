@@ -13,11 +13,11 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
     for (std::size_t i = 0; i < declarations.size(); ++i) {
         if (declarations[i]->kind != DeclKind::Type) { continue; }
         auto* type = static_cast<TypeDecl*>(declarations[i].get());
-        type->m_smallClause = nullptr;
+        type->smallClause = nullptr;
         for (std::size_t j = i + 1; j < declarations.size() && declarations[j]->kind == DeclKind::Representation; ++j) {
             auto* clause = static_cast<RepresentationDecl*>(declarations[j].get());
-            if (clause->lower == type->lower && clause->attribute == "small" && type->m_smallClause == nullptr) {
-                type->m_smallClause = clause->value.get();
+            if (clause->lower == type->lower && clause->attribute == "small" && type->smallClause == nullptr) {
+                type->smallClause = clause->value.get();
             }
         }
     }
@@ -31,7 +31,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
         std::size_t firstSymbol = m_symbolTable.symbols().size();
         analyzeDecl(decl.get(), scope);
         if (decl->kind == DeclKind::SubprogramBody
-            && !static_cast<SubprogramBody*>(decl.get())->m_isNull) {
+            && !static_cast<SubprogramBody*>(decl.get())->isNull) {
             // A body freezes preceding declarations in its declarative part.
             // Register the body's own profile first: it can itself override.
             for (const auto& symbol : m_symbolTable.symbols()) {
@@ -71,7 +71,7 @@ void Sema::reportMissingBodies(const DeclList& declarations)
         }
         if (decl->kind == DeclKind::Type) {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
-            reportMissingBodies(typeDecl->m_protectedDeclarations);
+            reportMissingBodies(typeDecl->protectedDeclarations);
             Type* type = typeDecl->declaredType;
             if (type != nullptr && type->taskBody != nullptr && !type->taskBody->hasBody
                 && !type->taskBody->missingBodyReported) {
@@ -95,7 +95,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
     Decl* savedConstraintDeclaration = m_scalarConstraintDeclaration;
     m_scalarConstraintDeclaration = decl;
-    decl->m_scalarConstraints.clear();
+    decl->scalarConstraints.clear();
     decl->arrayConstraints.clear();
     decl->constraintOrder.clear();
     switch (decl->kind) {
@@ -107,7 +107,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     case DeclKind::Type: {
         auto* typeDecl = static_cast<TypeDecl*>(decl);
-        if (typeDecl->m_protectedBody) {
+        if (typeDecl->protectedBody) {
             analyzeProtected(typeDecl, scope);
             break;
         }
@@ -115,10 +115,10 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr) {
             analyzeProtected(typeDecl, scope);
         }
-        analyzeDeclarativePart(typeDecl->m_taskObjects, scope);
+        analyzeDeclarativePart(typeDecl->taskObjects, scope);
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr
-            && !typeDecl->m_taskObjects.empty()) {
-            auto* object = static_cast<ObjectDecl*>(typeDecl->m_taskObjects.front().get());
+            && !typeDecl->taskObjects.empty()) {
+            auto* object = static_cast<ObjectDecl*>(typeDecl->taskObjects.front().get());
             if (!object->symbols.empty()) {
                 typeDecl->declaredType->protectedObject = object->symbols.front();
             }
@@ -130,7 +130,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     case DeclKind::SubprogramDeclaration: {
         auto* subprogram = static_cast<SubprogramDecl*>(decl);
-        if (subprogram->m_renamedName != nullptr) {
+        if (subprogram->renamedName != nullptr) {
             analyzeSubprogramRenaming(subprogram, scope);
         } else {
             subprogram->symbol = declareSubprogram(subprogram->spec, scope, false);
@@ -171,10 +171,10 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
-                                          true, !decl->m_isRenaming);
+                                          true, !decl->isRenaming);
 
-    bool ownsScalarConstraint = type != nullptr && std::find(decl->m_scalarConstraints.begin(),
-        decl->m_scalarConstraints.end(), type) != decl->m_scalarConstraints.end();
+    bool ownsScalarConstraint = type != nullptr && std::find(decl->scalarConstraints.begin(),
+        decl->scalarConstraints.end(), type) != decl->scalarConstraints.end();
     if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }
 
     if (hasTasks(type) && !m_packages.empty()) {
@@ -184,17 +184,17 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         rootType(type)->dispatchFrozen = true;
     }
 
-    if (type != nullptr && !decl->m_isRenaming) {
+    if (type != nullptr && !decl->isRenaming) {
         if (type->abstract && type->classRoot == nullptr) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
     }
 
-    if (type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming && !decl->initializer) {
+    if (type != nullptr && type->classRoot != nullptr && !decl->isRenaming && !decl->initializer) {
         m_diagnostics.error(decl->location, "a class-wide object requires an initializer");
         return;
     }
-    if (decl->m_isRenaming) {
+    if (decl->isRenaming) {
         Type* targetType = analyzeExpr(decl->initializer.get(), scope, type);
         int view = objectView(decl->initializer.get());
         if (view == 0) {
@@ -219,12 +219,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     // A discriminant is fixed when the object is declared, so the declaration
     // has to say what to fix it to.
     Type* record = baseType(type);
-    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type) && !decl->m_isRenaming) {
+    if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type) && !decl->isRenaming) {
         m_diagnostics.error(decl->location, "an object of '" + record->name + "' has to fix its discriminants, as "
                                                 + "in 'X : " + record->name + " (...)'");
     }
 
-    if (decl->initializer && !decl->m_isRenaming) {
+    if (decl->initializer && !decl->isRenaming) {
         if (hasIncompleteParts(type)) {
             m_deferredProtectedUses.push_back({type, decl->location});
         }
@@ -270,7 +270,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
                 deferred = candidate;
             }
         }
-        if (deferred != nullptr && !decl->m_isRenaming) {
+        if (deferred != nullptr && !decl->isRenaming) {
             if (decl->awaitsValue) {
                 m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been named here");
                 continue;
@@ -303,9 +303,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             recordScalarConstraint(distinct, decl->subtype->location, true);
             symbol->type = distinct;
         }
-        symbol->objectReference = decl->m_isRenaming;
-        symbol->sharedAlias = decl->m_isRenaming ? decl->initializer.get() : nullptr;
-        symbol->classWideObject = type != nullptr && type->classRoot != nullptr && !decl->m_isRenaming;
+        symbol->objectReference = decl->isRenaming;
+        symbol->sharedAlias = decl->isRenaming ? decl->initializer.get() : nullptr;
+        symbol->classWideObject = type != nullptr && type->classRoot != nullptr && !decl->isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
         symbol->location = decl->location;
@@ -316,7 +316,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (symbol->isGlobal) {
             symbol->qbeName = "$" + mangle(decl->namesLower[i]);
         }
-        if (decl->isConstant && decl->initializer && !decl->m_isRenaming && type->scalarBoundsSymbol == nullptr
+        if (decl->isConstant && decl->initializer && !decl->isRenaming && type->scalarBoundsSymbol == nullptr
             && sharedTypeKind(type) == 0) {
             long long value = 0;
             double realValue = 0.0;
@@ -329,7 +329,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             }
         }
         if (decl->initializer && type->kind != TypeKind::Float) {
-            symbol->exactReal = decl->initializer->m_exactReal;
+            symbol->exactReal = decl->initializer->exactReal;
         }
         scope->add(symbol);
         decl->symbols.push_back(symbol);
@@ -407,7 +407,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
     // The synthetic barrier profile always uses Standard.Boolean, independent
     // of source declarations hiding Boolean (or Standard) at this point.
-    Type* returnType = spec.m_entryBarrier ? m_types.booleanType()
+    Type* returnType = spec.entryBarrier ? m_types.booleanType()
         : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
     if (hasIncompleteParts(returnType)) {
         m_deferredProtectedUses.push_back({returnType, spec.location});
@@ -500,9 +500,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     for (Type* parameter : parameterTypes) {
         pendingOverride = pendingOverride || incompletePrivate(parameter);
     }
-    if (!pendingOverride && spec.m_overriding == 1 && !overrides) {
+    if (!pendingOverride && spec.overriding == 1 && !overrides) {
         m_diagnostics.error(spec.location, "subprogram marked overriding does not override an inherited operation");
-    } else if (!pendingOverride && spec.m_overriding == -1 && overrides) {
+    } else if (!pendingOverride && spec.overriding == -1 && overrides) {
         m_diagnostics.error(spec.location, "subprogram marked not overriding overrides an inherited operation");
     }
     Symbol* contractDeclaration = nullptr;
@@ -532,7 +532,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (!matches) {
             continue;
         }
-        if (spec.m_overriding == -1 && !isPrimitive(candidate)) {
+        if (spec.overriding == -1 && !isPrimitive(candidate)) {
             m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
         }
         if (!isBody || candidate->hasBody) {
@@ -555,7 +555,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 m_diagnostics.error(spec.location, "subprogram body does not conform to the previous declaration");
             }
         }
-        if (candidate->entry != spec.m_entry) {
+        if (candidate->entry != spec.entry) {
             m_diagnostics.error(spec.location, "entry and procedure declarations cannot complete one another");
         }
         candidate->hasBody = candidate->hasBody || isBody;
@@ -573,10 +573,10 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->returnType = returnType;
     symbol->pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
-    symbol->entry = spec.m_entry;
+    symbol->entry = spec.entry;
     symbol->requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->overrides = overrides;
-    symbol->pendingOverride = pendingOverride ? spec.m_overriding : 0;
+    symbol->pendingOverride = pendingOverride ? spec.overriding : 0;
     symbol->declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
@@ -620,7 +620,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             adaptUniversal(declaration.defaultValue.get(), parameterTypes[i]);
             parameter->hasDefault = true;
             parameter->defaultExpr = declaration.defaultValue.get();
-            parameter->defaultTokens = declaration.m_defaultTokens;
+            parameter->defaultTokens = declaration.defaultTokens;
         }
         declaration.symbol = parameter;
         symbol->parameters.push_back(parameter);
@@ -628,7 +628,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 
     scope->add(symbol);
     registerPrimitive(symbol, scope);
-    if (spec.m_overriding == -1 && !isPrimitive(symbol)) {
+    if (spec.overriding == -1 && !isPrimitive(symbol)) {
         m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
     }
     if (spec.lower == "=" && m_types.isBoolean(returnType)) {
@@ -652,11 +652,11 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 
 void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 {
-    if (body->m_taskBody) {
-        Symbol* task = lookupName(body->m_taskName, scope);
+    if (body->taskBody) {
+        Symbol* task = lookupName(body->taskName, scope);
         if (task == nullptr || task->type == nullptr || task->type->taskBody == nullptr
             || (task->kind != SymbolKind::TypeName && task->kind != SymbolKind::Object)
-            || task->type->taskBody->name != "__task_" + body->m_taskName) {
+            || task->type->taskBody->name != "__task_" + body->taskName) {
             m_diagnostics.error(body->location, "task body requires a task declaration in the same declarative region");
             return;
         }
@@ -675,7 +675,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
             m_diagnostics.error(body->location, "generic '" + named->displayName + "' already has a body");
             return;
         }
-        body->m_genericBody = named;
+        body->genericBody = named;
         named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
         Token endOfFile = tokens.back();
@@ -693,8 +693,8 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     scope->m_publicChildPart = false;
     symbol->hasBody = true;
     body->symbol = symbol;
-    symbol->entryBarrierFunction = body->spec.m_entryBarrier;
-    if (body->m_taskBody && symbol->taskIdentity == nullptr) {
+    symbol->entryBarrierFunction = body->spec.entryBarrier;
+    if (body->taskBody && symbol->taskIdentity == nullptr) {
         Symbol* identity = m_symbolTable.createSymbol(SymbolKind::Object, "__task_identity", "__task_identity");
         identity->type = m_taskIdType;
         identity->owner = symbol;

@@ -7,12 +7,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 {
     SubprogramSpec& spec = decl->spec;
     int errors = m_diagnostics.errorCount();
-    for (std::size_t i = 0; i < decl->m_renamedTokens.size(); ++i) {
-        const Token& token = decl->m_renamedTokens[i];
-        bool selector = i > 0 && (decl->m_renamedTokens[i - 1].kind == TokenKind::Dot
-            || decl->m_renamedTokens[i - 1].kind == TokenKind::Tick);
-        bool association = i + 1 < decl->m_renamedTokens.size()
-            && decl->m_renamedTokens[i + 1].kind == TokenKind::Arrow;
+    for (std::size_t i = 0; i < decl->renamedTokens.size(); ++i) {
+        const Token& token = decl->renamedTokens[i];
+        bool selector = i > 0 && (decl->renamedTokens[i - 1].kind == TokenKind::Dot
+            || decl->renamedTokens[i - 1].kind == TokenKind::Tick);
+        bool association = i + 1 < decl->renamedTokens.size()
+            && decl->renamedTokens[i + 1].kind == TokenKind::Arrow;
         if (token.kind == TokenKind::Identifier && !selector && !association) {
             for (const ParameterDecl& parameter : spec.parameters) {
                 if (parameter.lower == token.lower) {
@@ -49,7 +49,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     };
 
     // Resolve the target before adding the new name, so it cannot hide its target.
-    Expr* name = decl->m_renamedName.get();
+    Expr* name = decl->renamedName.get();
     std::vector<Symbol*> candidates = expressionNames(name, scope);
     std::string operation;
     if (name->kind == ExprKind::StringLiteral) {
@@ -269,8 +269,8 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         object->location = decl->location;
         object->symbols.push_back(binding);
         object->initializer = std::move(prefix);
-        decl->m_renamingExpansion.push_back(std::move(object));
-        decl->m_callbackBinding = binding;
+        decl->renamingExpansion.push_back(std::move(object));
+        decl->callbackBinding = binding;
     }
     if (completion == nullptr && !intrinsic && !enumeration && attributeType == nullptr) {
         alias->renamedSubprogram = access == nullptr ? chosen : nullptr;
@@ -311,7 +311,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             attributeScope->add(parameter);
         }
         analyzeExpr(attribute, attributeScope, alias->returnType);
-        implementation = std::move(decl->m_renamedName);
+        implementation = std::move(decl->renamedName);
     } else if (intrinsic) {
         CallExpr call;
         call.location = decl->location;
@@ -344,7 +344,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             callee->type = binding->type;
             callee->location = decl->location;
             call->callee = std::move(callee);
-            call->m_indirect = true;
+            call->indirect = true;
         }
     }
     m_currentSubprogram = saved;
@@ -364,5 +364,5 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         statement->call = std::move(implementation);
         body->body.push_back(std::move(statement));
     }
-    decl->m_renamingExpansion.push_back(std::move(body));
+    decl->renamingExpansion.push_back(std::move(body));
 }

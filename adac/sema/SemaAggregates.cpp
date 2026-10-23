@@ -41,44 +41,44 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
     }
 
     std::size_t firstField = 0;
-    if (expr->m_ancestor != nullptr) {
+    if (expr->ancestor != nullptr) {
         Type* extension = rootType(target);
         if (!extension->tagged || extension->parentType == nullptr) {
             m_diagnostics.error(expr->location, "an extension aggregate requires a record extension type");
             return nullptr;
         }
-        for (Symbol* candidate : expressionNames(expr->m_ancestor.get(), scope)) {
+        for (Symbol* candidate : expressionNames(expr->ancestor.get(), scope)) {
             if (candidate->kind == SymbolKind::TypeName) {
-                expr->m_ancestorType = candidate->type;
-                expr->m_ancestorIsType = true;
-                recordContractName(expr->m_ancestor.get(), candidate);
+                expr->ancestorType = candidate->type;
+                expr->ancestorIsType = true;
+                recordContractName(expr->ancestor.get(), candidate);
                 break;
             }
         }
-        if (!expr->m_ancestorIsType) {
-            for (Type* candidate : expressionTypes(expr->m_ancestor.get(), scope)) {
+        if (!expr->ancestorIsType) {
+            for (Type* candidate : expressionTypes(expr->ancestor.get(), scope)) {
                 if (isTaggedAncestor(candidate, extension) && rootType(candidate) != extension) {
-                    if (expr->m_ancestorType != nullptr && rootType(expr->m_ancestorType) != rootType(candidate)) {
+                    if (expr->ancestorType != nullptr && rootType(expr->ancestorType) != rootType(candidate)) {
                         m_diagnostics.error(expr->location, "ambiguous ancestor expression in extension aggregate");
                         return nullptr;
                     }
-                    expr->m_ancestorType = candidate;
+                    expr->ancestorType = candidate;
                 }
             }
         }
-        if (!isTaggedAncestor(expr->m_ancestorType, extension) || rootType(expr->m_ancestorType) == extension) {
+        if (!isTaggedAncestor(expr->ancestorType, extension) || rootType(expr->ancestorType) == extension) {
             m_diagnostics.error(expr->location, "extension aggregate ancestor must be a proper tagged ancestor of the result type");
             return nullptr;
         }
-        if (!expr->m_ancestorIsType) {
-            analyzeExpr(expr->m_ancestor.get(), scope, expr->m_ancestorType);
+        if (!expr->ancestorIsType) {
+            analyzeExpr(expr->ancestor.get(), scope, expr->ancestorType);
         }
-        firstField = expr->m_ancestorType->fields.size();
+        firstField = expr->ancestorType->fields.size();
     } else if (target->tagged && rootType(target)->parentType != nullptr) {
         m_diagnostics.error(expr->location, "a record extension requires an extension aggregate");
         return nullptr;
     }
-    if (target->kind != TypeKind::Record && expr->m_nullRecord) {
+    if (target->kind != TypeKind::Record && expr->nullRecord) {
         m_diagnostics.error(expr->location, "null record requires a record aggregate");
         return nullptr;
     }
@@ -125,7 +125,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         auto present = [&](const FieldInfo& field) {
             return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || active[field.variant]);
         };
-        if (!expr->m_nullRecord && std::none_of(target->fields.begin(), target->fields.end(), present)) {
+        if (!expr->nullRecord && std::none_of(target->fields.begin(), target->fields.end(), present)) {
             m_diagnostics.error(expr->location, "an aggregate with no needed record components requires null record");
         }
         // A grouped association has one expected type, but its expression is

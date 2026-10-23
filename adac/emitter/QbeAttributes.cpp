@@ -47,10 +47,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         emitCallInstruction(identity + " =l call $__ada_current_task()", CallEffects::DeferredCheck);
         return Value { identity, 'l' };
     }
-    if (expr->m_taskAttribute) {
+    if (expr->taskAttribute) {
         Value identity;
-        if (expr->m_taskCurrentInstance != nullptr) {
-            identity = loadFrom(addressOf(expr->m_taskCurrentInstance), expr->m_taskCurrentInstance->type);
+        if (expr->taskCurrentInstance != nullptr) {
+            identity = loadFrom(addressOf(expr->taskCurrentInstance), expr->taskCurrentInstance->type);
         } else {
             Value object = emitExpr(expr->prefix.get());
             if (prefixType->kind == TypeKind::Access) {
@@ -68,10 +68,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { result, 'w' };
     }
     if (name == "count") {
-        Value object = addressOf(expr->m_protectedReceiver);
+        Value object = addressOf(expr->protectedReceiver);
         std::string count = newTemp();
         emitCallInstruction(count + " =w call $__ada_protected_count(l " + object.name
-            + ", l " + expr->m_countEntry->qbeName + ".barrier)", CallEffects::DeferredCheck);
+            + ", l " + expr->countEntry->qbeName + ".barrier)", CallEffects::DeferredCheck);
         if (qbeClass(expr->type) == 'l') {
             std::string wide = newTemp();
             line(wide + " =l extsw " + count);
@@ -80,7 +80,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { count, 'w' };
     }
     if (name == "access") {
-        Symbol* subprogram = expr->m_accessSubprogram;
+        Symbol* subprogram = expr->accessSubprogram;
         if (subprogram->renamedAccess != nullptr) {
             Symbol* binding = subprogram->renamedAccess;
             return loadFrom(addressOf(binding), binding->type);
@@ -297,7 +297,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "alignment") {
         // Evaluating an object view must not read an uninitialized scalar.
-        if (expr->m_alignmentObjectView) {
+        if (expr->alignmentObjectView) {
             emitAddress(expr->prefix.get());
         } else {
             emitExpr(expr->prefix.get());
@@ -376,12 +376,12 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         }
         if (base != nullptr && base->kind == TypeKind::Array) {
             Value array;
-            if (expr->m_rangeFirst != nullptr && expr->m_rangeFirst != expr) {
-                array = m_context->rangePrefixes.at(expr->m_rangeFirst);
-                m_context->rangePrefixes.erase(expr->m_rangeFirst);
+            if (expr->rangeFirst != nullptr && expr->rangeFirst != expr) {
+                array = m_context->rangePrefixes.at(expr->rangeFirst);
+                m_context->rangePrefixes.erase(expr->rangeFirst);
             } else {
                 array = emitExpr(expr->prefix.get());
-                if (expr->m_rangeFirst == expr) {
+                if (expr->rangeFirst == expr) {
                     m_context->rangePrefixes[expr] = array;
                 }
             }

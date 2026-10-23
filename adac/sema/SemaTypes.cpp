@@ -117,13 +117,13 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
     TypeDefinition* definition = decl->definition.get();
     if (completing != nullptr && completing->privateTo != nullptr && completing->tagged
-        && !(definition->kind == TypeDefKind::Record && definition->m_tagged)
-        && !(definition->kind == TypeDefKind::Derived && definition->m_extension)) {
+        && !(definition->kind == TypeDefKind::Record && definition->tagged)
+        && !(definition->kind == TypeDefKind::Derived && definition->extension)) {
         m_diagnostics.error(decl->location, "a tagged private type requires a tagged full definition");
         return;
     }
     if (completing != nullptr && completing->privateTo != nullptr
-        && completing->abstract != definition->m_abstract) {
+        && completing->abstract != definition->abstract) {
         m_diagnostics.error(decl->location, "a private type and its completion must agree on abstractness");
         return;
     }
@@ -155,8 +155,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->needsZeroInit = true;
         SubprogramSpec spec;
         spec.name = decl->name;
-        spec.lower = "__task_" + (decl->m_taskObjects.empty() ? decl->lower
-            : static_cast<ObjectDecl*>(decl->m_taskObjects.front().get())->namesLower.front());
+        spec.lower = "__task_" + (decl->taskObjects.empty() ? decl->lower
+            : static_cast<ObjectDecl*>(decl->taskObjects.front().get())->namesLower.front());
         spec.location = decl->location;
         type->taskBody = declareSubprogram(spec, scope, false);
         type->taskBody->taskBody = true;
@@ -226,9 +226,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::FixedDelta: {
         type = makeType(TypeKind::Fixed);
-        Type* deltaType = analyzeExpr(definition->m_delta.get(), scope, nullptr);
+        Type* deltaType = analyzeExpr(definition->delta.get(), scope, nullptr);
         ExactReal delta;
-        if (!isReal(deltaType) || !exactValue(definition->m_delta.get(), delta)
+        if (!isReal(deltaType) || !exactValue(definition->delta.get(), delta)
             || delta.numerator <= 0) {
             m_diagnostics.error(definition->location, "fixed-point delta must be a positive exact static real expression");
             delta = ExactReal::make(1);
@@ -254,7 +254,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             type->fixedAft = std::max(1, scale);
             type->fixedRadix = 10;
             type->digits = static_cast<int>(digits);
-            type->delta = definition->m_delta.get();
+            type->delta = definition->delta.get();
             long long limit = static_cast<long long>(fixedPower10(static_cast<int>(digits)) - 1);
             long long lowCounts = -limit, highCounts = limit;
             if (definition->rangeLow && definition->rangeHigh) {
@@ -293,20 +293,20 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (belowSmall() || delta.numerator / delta.denominator > ((__int128)1 << -ADA_FIXED_MIN_BITS)) {
             m_diagnostics.error(definition->location, "supported fixed-point deltas are 2.0**(-62) through 2.0**62");
         }
-        if (decl->m_smallClause != nullptr) {
-            type->smallClause = decl->m_smallClause;
+        if (decl->smallClause != nullptr) {
+            type->smallClause = decl->smallClause;
             // Delta may be referenced in the clause before the final type
             // symbol is published; Small itself is still being defined.
-            type->delta = definition->m_delta.get();
+            type->delta = definition->delta.get();
             Scope* representationScope = m_symbolTable.createScope(scope);
             Symbol* self = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
             self->type = type;
             representationScope->add(self);
             type->smallPending = true;
-            Type* smallType = analyzeExpr(decl->m_smallClause, representationScope, nullptr);
+            Type* smallType = analyzeExpr(decl->smallClause, representationScope, nullptr);
             type->smallPending = false;
             ExactReal small;
-            bool valid = isReal(smallType) && exactValue(decl->m_smallClause, small) && small.numerator > 0;
+            bool valid = isReal(smallType) && exactValue(decl->smallClause, small) && small.numerator > 0;
             int selected = ADA_FIXED_MIN_BITS;
             for (; valid && selected <= ADA_FIXED_MAX_BITS; ++selected) {
                 ExactReal candidate = selected >= 0 ? ExactReal::make(1, (__int128)1 << selected)
@@ -314,11 +314,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 if (candidate.numerator == small.numerator && candidate.denominator == small.denominator) { break; }
             }
             if (!valid || selected > ADA_FIXED_MAX_BITS) {
-                m_diagnostics.error(decl->m_smallClause->location, "Small must be a positive static power of two from 2.0**(-62) through 2.0**62");
+                m_diagnostics.error(decl->smallClause->location, "Small must be a positive static power of two from 2.0**(-62) through 2.0**62");
             } else {
                 bits = selected;
                 if (belowSmall()) {
-                    m_diagnostics.error(decl->m_smallClause->location, "Small must not exceed the type's delta");
+                    m_diagnostics.error(decl->smallClause->location, "Small must not exceed the type's delta");
                 }
             }
         }
@@ -329,7 +329,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             ++type->fixedAft;
             decimalScale *= 10;
         }
-        type->delta = definition->m_delta.get();
+        type->delta = definition->delta.get();
         ExactReal low, high;
         long long lowCounts = 0, highCounts = 0;
         Type* lowType = analyzeExpr(definition->rangeLow.get(), scope, nullptr);
@@ -457,7 +457,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Record: {
         type = makeType(TypeKind::Record);
-        type->tagged = definition->m_tagged;
+        type->tagged = definition->tagged;
         layoutRecord(decl, definition, type, scope);
         break;
     }
@@ -495,11 +495,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent->tagged) {
             parent = rootType(parent);
         }
-        if (definition->m_extension && (!parent->tagged || parent->kind != TypeKind::Record)) {
+        if (definition->extension && (!parent->tagged || parent->kind != TypeKind::Record)) {
             m_diagnostics.error(decl->location, "a record extension requires a tagged parent type");
             return;
         }
-        if (parent->tagged && !definition->m_extension) {
+        if (parent->tagged && !definition->extension) {
             m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
             return;
         }
@@ -551,7 +551,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->dispatchFrozen = false;
         rootType(parent)->dispatchFrozen = parent->tagged;
         type->name = name;
-        if (definition->m_extension) {
+        if (definition->extension) {
             type->byteSize = 0;
             type->tagName.clear();
             type->parentFieldCount = static_cast<int>(parent->fields.size());
@@ -586,8 +586,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Access: {
         type = makeType(TypeKind::Access);
-        if (definition->m_accessProfile != nullptr) {
-            SubprogramSpec& spec = *definition->m_accessProfile;
+        if (definition->accessProfile != nullptr) {
+            SubprogramSpec& spec = *definition->accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
             profile->location = decl->location;
@@ -626,8 +626,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         type = makeType(TypeKind::Record);
         type->isIncomplete = true;
-        type->tagged = definition->m_tagged;
-        type->privateViewTagged = definition->m_tagged;
+        type->tagged = definition->tagged;
+        type->privateViewTagged = definition->tagged;
         type->privateTo = m_packages.back();
         type->isLimited = definition->isLimited;
         break;
@@ -652,7 +652,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type->variantOn >= 0 && needsFinalization(type)) {
         m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
     }
-    type->abstract = definition->m_abstract;
+    type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type) || hasTasks(type) || hasProtected(type);
     if (type->abstract && !type->tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
@@ -792,7 +792,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         m_diagnostics.error(decl->location, "discriminated tagged records are not yet supported");
         return;
     }
-    long long offset = definition->m_extension ? typeSize(type->parentType)
+    long long offset = definition->extension ? typeSize(type->parentType)
         : type->tagged || type->protectedScope != nullptr ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
 
@@ -876,7 +876,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
                                                            + "' is not");
         }
     }
-    if (!definition->m_extension) {
+    if (!definition->extension) {
         type->discriminantCount = static_cast<int>(type->fields.size());
     }
 
@@ -1246,7 +1246,7 @@ void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bo
         }
         std::string name = "scalar_bounds_" + file + "_" + std::to_string(location.line)
             + "_" + std::to_string(location.column) + "_"
-            + std::to_string(m_scalarConstraintDeclaration == nullptr ? 0 : m_scalarConstraintDeclaration->m_scalarConstraints.size());
+            + std::to_string(m_scalarConstraintDeclaration == nullptr ? 0 : m_scalarConstraintDeclaration->scalarConstraints.size());
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, name, name);
         symbol->type = type;
         symbol->location = location;
@@ -1257,7 +1257,7 @@ void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bo
         if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
     }
     if (m_scalarConstraintDeclaration != nullptr) {
-        m_scalarConstraintDeclaration->m_scalarConstraints.push_back(type);
+        m_scalarConstraintDeclaration->scalarConstraints.push_back(type);
         m_scalarConstraintDeclaration->constraintOrder.push_back(type);
     }
 }
@@ -1629,7 +1629,7 @@ ExprPtr Sema::scalarBoundExpr(Type* type, bool first, const SourceLocation& loca
         literal->type = type;
         literal->isStatic = true;
         literal->staticValue = literal->value;
-        literal->m_exactReal = ExactReal::make(first ? type->low : type->high);
+        literal->exactReal = ExactReal::make(first ? type->low : type->high);
         return literal;
     }
     auto prefix = std::make_unique<IdentifierExpr>();
@@ -1690,7 +1690,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
             for (Symbol* parameter : symbol->parameters) {
                 if (rootType(parameter->type) == type && parameter->hasDefault
-                    && !parameter->defaultExpr->m_tagIndeterminate) {
+                    && !parameter->defaultExpr->tagIndeterminate) {
                     m_diagnostics.error(parameter->location, "a controlling parameter default must be tag indeterminate");
                 }
             }
@@ -1867,7 +1867,7 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
         return;
     }
     auto* aggregate = static_cast<AggregateExpr*>(decl->value.get());
-    if (aggregate->m_ancestor != nullptr || aggregate->m_nullRecord) {
+    if (aggregate->ancestor != nullptr || aggregate->nullRecord) {
         m_diagnostics.error(decl->location, "an enumeration representation clause requires a one-dimensional array aggregate");
         return;
     }

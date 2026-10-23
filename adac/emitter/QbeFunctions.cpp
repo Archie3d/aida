@@ -31,13 +31,13 @@ bool hasControlledObjects(DeclList& declarations)
         if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             for (Symbol* symbol : object->symbols) {
-                if (!object->m_isRenaming && needsFinalization(symbol->type)) {
+                if (!object->isRenaming && needsFinalization(symbol->type)) {
                     return true;
                 }
             }
         } else if (decl->kind == DeclKind::Type) {
             if (needsCollection(static_cast<TypeDecl*>(decl.get())->declaredType)
-                || hasControlledObjects(static_cast<TypeDecl*>(decl.get())->m_taskObjects)) {
+                || hasControlledObjects(static_cast<TypeDecl*>(decl.get())->taskObjects)) {
                 return true;
             }
         } else if (decl->kind == DeclKind::PackageSpecification) {
@@ -66,7 +66,7 @@ bool hasControlledObjects(StmtList& statements)
         switch (statement->kind) {
         case StmtKind::Return: {
             auto* result = static_cast<ReturnStmt*>(statement.get());
-            if (result->m_object != nullptr || hasControlledObjects(result->m_body)) {
+            if (result->object != nullptr || hasControlledObjects(result->body)) {
                 return true;
             }
             break;
@@ -141,10 +141,10 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
         case DeclKind::SubprogramDeclaration:
-            emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+            emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->renamingExpansion);
             break;
         case DeclKind::Type:
-            emitSubprogramsIn(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
+            emitSubprogramsIn(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
             break;
         case DeclKind::SubprogramBody:
             emitSubprogram(static_cast<SubprogramBody*>(decl.get()));
@@ -195,7 +195,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // depend on their access type's collection. Scalar leaf calls thus keep
     // their existing entry/exit cost. Task-valued results and aggregates remain
     // diagnosed until build-in-place lifetimes support them.
-    context.hasMaster = body->m_taskBody || !body->declarations.empty() || usesFinalization;
+    context.hasMaster = body->taskBody || !body->declarations.empty() || usesFinalization;
     context.traceName = symbol->displayName;
     context.sourceLocation = symbol->location;
     context.hasFrame = symbol->needsFrame;
@@ -352,7 +352,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);
     }
 
-    if (body->m_taskBody) {
+    if (body->taskBody) {
         emitCallInstruction("call $__ada_task_activated(l %.taskContext)", CallEffects::DeferredCheck);
     }
     if (body->handlers.empty()) {

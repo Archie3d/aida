@@ -145,8 +145,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     if (expr == nullptr) {
         return result;
     }
-    if (expr->m_implicitCall != nullptr) {
-        return expressionTypes(expr->m_implicitCall.get(), scope, expected);
+    if (expr->implicitCall != nullptr) {
+        return expressionTypes(expr->implicitCall.get(), scope, expected);
     }
     switch (expr->kind) {
     case ExprKind::IntegerLiteral:
@@ -179,8 +179,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::Aggregate: {
         auto* aggregate = static_cast<AggregateExpr*>(expr);
         if (expected != nullptr && (expected->kind == TypeKind::Array || expected->kind == TypeKind::Record)) {
-            if (aggregate->m_ancestor != nullptr) {
-                for (Type* ancestor : expressionTypes(aggregate->m_ancestor.get(), scope)) {
+            if (aggregate->ancestor != nullptr) {
+                for (Type* ancestor : expressionTypes(aggregate->ancestor.get(), scope)) {
                     if (isTaggedAncestor(ancestor, expected) && rootType(ancestor) != rootType(expected)) {
                         add(expected);
                     }
@@ -375,7 +375,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
         } else {
             for (const OperatorCandidate& candidate : operatorCandidates(operatorName(binary->op),
-                    { binary->left.get(), binary->right.get() }, scope, expected, binary->m_standardFixed || binary->predefinedOnly)) {
+                    { binary->left.get(), binary->right.get() }, scope, expected, binary->standardFixed || binary->predefinedOnly)) {
                 add(candidate.result);
             }
         }

@@ -93,7 +93,7 @@ Symbol* mainIn(const LibraryUnit& unit)
                 candidate = static_cast<SubprogramBody*>(declaration.get())->symbol;
             } else if (declaration->kind == DeclKind::SubprogramDeclaration) {
                 auto* renaming = static_cast<SubprogramDecl*>(declaration.get());
-                if (!renaming->m_renamingExpansion.empty()) {
+                if (!renaming->renamingExpansion.empty()) {
                     candidate = renaming->symbol;
                 }
             }
@@ -118,7 +118,7 @@ UnitRecord describe(const LibraryUnit& unit)
             record.sources.push_back(part->fileName);
         }
         record.parts.push_back(UnitPartRecord {
-            part->partKey, part->dependencies, part->units.front()->m_elaborateBody
+            part->partKey, part->dependencies, part->units.front()->elaborateBody
                 && part->units.front()->kind != DeclKind::GenericInstantiation });
         for (const WithClause& clause : part->withClauses) {
             for (const std::string& name : clause.names) {

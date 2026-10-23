@@ -172,14 +172,14 @@ ExprPtr Parser::parsePrimary()
     case TokenKind::IntegerLiteral: {
         auto expr = std::make_unique<IntegerLiteralExpr>();
         expr->location = location;
-        expr->m_exactReal = ExactReal::parse(current().text);
+        expr->exactReal = ExactReal::parse(current().text);
         expr->value = advance().intValue;
         return expr;
     }
     case TokenKind::RealLiteral: {
         auto expr = std::make_unique<RealLiteralExpr>();
         expr->location = location;
-        expr->m_exactReal = ExactReal::parse(current().text);
+        expr->exactReal = ExactReal::parse(current().text);
         expr->value = advance().realValue;
         return expr;
     }
@@ -249,7 +249,7 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
         expect(TokenKind::RightParen, "after null record aggregate");
         auto aggregate = std::make_unique<AggregateExpr>();
         aggregate->location = location;
-        aggregate->m_nullRecord = true;
+        aggregate->nullRecord = true;
         return aggregate;
     }
     if (!check(TokenKind::KwOthers)) {
@@ -280,11 +280,11 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
 
     auto aggregate = std::make_unique<AggregateExpr>();
     aggregate->location = location;
-    aggregate->m_ancestor = std::move(ancestor);
-    if (aggregate->m_ancestor != nullptr && match(TokenKind::KwNull)) {
+    aggregate->ancestor = std::move(ancestor);
+    if (aggregate->ancestor != nullptr && match(TokenKind::KwNull)) {
         expect(TokenKind::KwRecord, "in extension aggregate");
         expect(TokenKind::RightParen, "after extension aggregate");
-        aggregate->m_nullRecord = true;
+        aggregate->nullRecord = true;
         return aggregate;
     }
 

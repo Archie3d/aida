@@ -97,7 +97,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
                     << adaArrayLocalSize(constraint->arrayRank) << " }\n";
             }
         }
-        for (Type* constraint : decl->m_scalarConstraints) {
+        for (Type* constraint : decl->scalarConstraints) {
             Symbol* bounds = constraint->scalarBoundsSymbol;
             if (bounds != nullptr && bounds->isGlobal) {
                 m_data << "export data " << bounds->qbeName << " = align 8 { z 16 }\n";
@@ -106,11 +106,11 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
         switch (decl->kind) {
         case DeclKind::Type: {
             auto* taskDecl = static_cast<TypeDecl*>(decl.get());
-            collectGlobals(taskDecl->m_taskObjects);
-            collectGlobals(taskDecl->m_protectedDeclarations);
+            collectGlobals(taskDecl->taskObjects);
+            collectGlobals(taskDecl->protectedDeclarations);
             Type* type = taskDecl->declaredType;
             emitTypeTag(type);
-            if (!taskDecl->m_protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
+            if (!taskDecl->protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
                 && type->layoutSymbol != nullptr && type->layoutSymbol->type == type && type->layoutSymbol->isGlobal) {
                 m_data << "export data " << type->layoutSymbol->qbeName << " = align 8 { z "
                     << (type->fields.size() + 1) * 8 << " }\n";
@@ -143,7 +143,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             break;
         }
         case DeclKind::SubprogramDeclaration:
-            collectGlobals(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+            collectGlobals(static_cast<SubprogramDecl*>(decl.get())->renamingExpansion);
             break;
         case DeclKind::Object: {
             auto* object = static_cast<ObjectDecl*>(decl.get());
@@ -200,20 +200,20 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
-            if (generic->m_hasBody) {
+            if (generic->hasBody) {
                 line("storew 1, " + elaborationFlag(generic->symbol).name);
             }
         } else if (decl->kind == DeclKind::SubprogramBody) {
             auto* body = static_cast<SubprogramBody*>(decl.get());
-            Symbol* symbol = body->symbol != nullptr ? body->symbol : body->m_genericBody;
+            Symbol* symbol = body->symbol != nullptr ? body->symbol : body->genericBody;
             if (symbol != nullptr) {
                 line("storew 1, " + elaborationFlag(symbol).name);
             }
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
-            emitElaborationDeclarations(renaming->m_renamingExpansion);
-            if (renaming->m_callbackBinding != nullptr) {
-                checkNotNull(loadFrom(addressOf(renaming->m_callbackBinding), renaming->m_callbackBinding->type));
+            emitElaborationDeclarations(renaming->renamingExpansion);
+            if (renaming->callbackBinding != nullptr) {
+                checkNotNull(loadFrom(addressOf(renaming->callbackBinding), renaming->callbackBinding->type));
             }
         } else if (decl->kind == DeclKind::Subtype) {
             emitTypeBounds(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
@@ -222,13 +222,13 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }
-            if (!typeDecl->m_protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
+            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
                 emitRecordLayout(typeDecl->declaredType);
             }
             initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
             initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
-            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_taskObjects);
-            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
+            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->taskObjects);
+            emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
         } else if (decl->kind == DeclKind::Object) {
             auto* object = static_cast<ObjectDecl*>(decl.get());
             if (object->awaitsValue) {
@@ -278,8 +278,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::PackageBody) {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
             if (package->symbol == nullptr) {
-                if (package->m_genericBody != nullptr) {
-                    line("storew 1, " + elaborationFlag(package->m_genericBody).name);
+                if (package->genericBody != nullptr) {
+                    line("storew 1, " + elaborationFlag(package->genericBody).name);
                 }
                 continue;
             }
@@ -305,8 +305,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             emitElaborationDeclarations(package->privatePart);
         } else if (decl->kind == DeclKind::GenericInstantiation) {
             auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
-            if (instance->m_generic != nullptr && instance->m_generic->hasBody) {
-                emitElaborationCheck(instance->m_generic);
+            if (instance->generic != nullptr && instance->generic->hasBody) {
+                emitElaborationCheck(instance->generic);
             }
             emitElaborationDeclarations(instance->expansion);
         }
@@ -329,7 +329,7 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
                 line("storew 0, " + flag.name);
             }
         } else if (decl->kind == DeclKind::Type) {
-            prepareElaborationFlags(static_cast<TypeDecl*>(decl.get())->m_protectedDeclarations);
+            prepareElaborationFlags(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
         } else if (decl->kind == DeclKind::PackageSpecification) {
             auto* package = static_cast<PackageSpecDecl*>(decl.get());
             prepareElaborationFlags(package->publicPart);
@@ -339,7 +339,7 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
         } else if (decl->kind == DeclKind::GenericInstantiation) {
             prepareElaborationFlags(static_cast<GenericInstantiationDecl*>(decl.get())->expansion);
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
-            prepareElaborationFlags(static_cast<SubprogramDecl*>(decl.get())->m_renamingExpansion);
+            prepareElaborationFlags(static_cast<SubprogramDecl*>(decl.get())->renamingExpansion);
         }
     }
 }
@@ -405,10 +405,10 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         switch (decl->kind) {
         case DeclKind::SubprogramDeclaration: {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
-            if (!renaming->m_renamingExpansion.empty()) {
-                emitLocalDeclarations(renaming->m_renamingExpansion);
-                if (renaming->m_callbackBinding != nullptr) {
-                    checkNotNull(loadFrom(addressOf(renaming->m_callbackBinding), renaming->m_callbackBinding->type));
+            if (!renaming->renamingExpansion.empty()) {
+                emitLocalDeclarations(renaming->renamingExpansion);
+                if (renaming->callbackBinding != nullptr) {
+                    checkNotNull(loadFrom(addressOf(renaming->callbackBinding), renaming->callbackBinding->type));
                 }
             }
             break;
@@ -416,16 +416,16 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             emitTypeTag(typeDecl->declaredType);
-            if (!typeDecl->m_protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
+            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
                 emitRecordLayout(typeDecl->declaredType);
             }
             initializeTypeTag(typeDecl->declaredType);
             initializeCollection(typeDecl->declaredType);
-            if (!typeDecl->m_taskObjects.empty()) {
-                emitLocalDeclarations(typeDecl->m_taskObjects);
+            if (!typeDecl->taskObjects.empty()) {
+                emitLocalDeclarations(typeDecl->taskObjects);
             }
-            if (!typeDecl->m_protectedDeclarations.empty()) {
-                emitLocalDeclarations(typeDecl->m_protectedDeclarations);
+            if (!typeDecl->protectedDeclarations.empty()) {
+                emitLocalDeclarations(typeDecl->protectedDeclarations);
             }
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
@@ -508,15 +508,15 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::GenericDeclaration: {
             auto* generic = static_cast<GenericDecl*>(decl.get());
-            if (generic->m_hasBody) {
+            if (generic->hasBody) {
                 line("storew 1, " + elaborationFlag(generic->symbol).name);
             }
             break;
         }
         case DeclKind::SubprogramBody: {
             auto* body = static_cast<SubprogramBody*>(decl.get());
-            if (body->m_genericBody != nullptr) {
-                line("storew 1, " + elaborationFlag(body->m_genericBody).name);
+            if (body->genericBody != nullptr) {
+                line("storew 1, " + elaborationFlag(body->genericBody).name);
             }
             if (body->symbol != nullptr) {
                 line("storew 1, " + elaborationFlag(body->symbol).name);
@@ -541,8 +541,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::PackageBody: {
             auto* package = static_cast<PackageBodyDecl*>(decl.get());
-            if (package->m_genericBody != nullptr) {
-                line("storew 1, " + elaborationFlag(package->m_genericBody).name);
+            if (package->genericBody != nullptr) {
+                line("storew 1, " + elaborationFlag(package->genericBody).name);
                 break;
             }
             std::string savedGroup = m_context->taskGroup;
@@ -571,8 +571,8 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::GenericInstantiation: {
             auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
-            if (instance->m_generic != nullptr && instance->m_generic->hasBody) {
-                emitElaborationCheck(instance->m_generic);
+            if (instance->generic != nullptr && instance->generic->hasBody) {
+                emitElaborationCheck(instance->generic);
             }
             emitLocalDeclarations(instance->expansion);
             break;

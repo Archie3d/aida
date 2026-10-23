@@ -25,12 +25,12 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return Value { "0", 'w' };
     }
 
-    if (expr->m_fixedInvalid) {
+    if (expr->fixedInvalid) {
         m_diagnostics.error(expr->location, "fixed-point value exceeds supported exact evaluation or storage limits");
         return Value { "0", 'l' };
     }
-    if (expr->m_implicitCall != nullptr) {
-        return emitExpr(expr->m_implicitCall.get());
+    if (expr->implicitCall != nullptr) {
+        return emitExpr(expr->implicitCall.get());
     }
     if (expr->isStatic && expr->type != nullptr && expr->type->kind == TypeKind::Fixed) {
         return Value { std::to_string(expr->staticValue), 'l' };
@@ -39,9 +39,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         // Universal named numbers may be wider than every machine type.
         // Refuse an unrepresentable materialization instead of using the
         // deliberately unset machine-value cache as zero.
-        if (expr->m_exactReal.valid && expr->type->modulus != 0) {
-            expr->staticValue = static_cast<long long>(expr->m_exactReal.numerator);
-        } else if (expr->m_exactReal.valid && !expr->m_exactReal.integer(expr->staticValue)) {
+        if (expr->exactReal.valid && expr->type->modulus != 0) {
+            expr->staticValue = static_cast<long long>(expr->exactReal.numerator);
+        } else if (expr->exactReal.valid && !expr->exactReal.integer(expr->staticValue)) {
             m_diagnostics.error(expr->location, "static value exceeds supported 64-bit machine storage");
             return Value { "0", qbeClass(expr->type) };
         }
@@ -89,11 +89,11 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
-            call.m_protectedObject = expr->m_protectedObject;
-            call.m_protectedReceiver = expr->m_protectedReceiver;
+            call.protectedObject = expr->protectedObject;
+            call.protectedReceiver = expr->protectedReceiver;
             call.type = expr->type;
-            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
-            call.m_tagIndeterminate = expr->m_tagIndeterminate;
+            call.dispatching = expr->tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
+            call.tagIndeterminate = expr->tagIndeterminate;
             return emitCall(&call);
         }
         if (symbol->kind == SymbolKind::EnumerationLiteral) {
@@ -124,11 +124,11 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.location = expr->location;
             call.form = CallForm::Subprogram;
             call.subprogram = symbol;
-            call.m_protectedObject = expr->m_protectedObject;
-            call.m_protectedReceiver = expr->m_protectedReceiver;
+            call.protectedObject = expr->protectedObject;
+            call.protectedReceiver = expr->protectedReceiver;
             call.type = expr->type;
-            call.m_dispatching = expr->m_tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
-            call.m_tagIndeterminate = expr->m_tagIndeterminate;
+            call.dispatching = expr->tagIndeterminate && expr->type != nullptr && expr->type->classRoot != nullptr;
+            call.tagIndeterminate = expr->tagIndeterminate;
             return emitCall(&call);
         }
         if (symbol != nullptr && symbol->kind == SymbolKind::EnumerationLiteral) {
@@ -331,8 +331,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     case ExprKind::Membership: {
         auto* membership = static_cast<MembershipExpr*>(expr);
         Value operand = emitExpr(membership->operand.get());
-        if (membership->m_testedTaggedType != nullptr) {
-            Type* tested = membership->m_testedTaggedType;
+        if (membership->testedTaggedType != nullptr) {
+            Type* tested = membership->testedTaggedType;
             Value result { "1", 'w' };
             if (membership->operand->type->classRoot != nullptr) {
                 if (tested->classRoot != nullptr) {
@@ -375,8 +375,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
 
 Value QbeEmitter::emitAddress(Expr* expr)
 {
-    if (expr->m_implicitCall != nullptr) {
-        return emitAddress(expr->m_implicitCall.get());
+    if (expr->implicitCall != nullptr) {
+        return emitAddress(expr->implicitCall.get());
     }
     switch (expr->kind) {
     case ExprKind::Identifier: {
@@ -385,8 +385,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
             && (identifier->symbol->kind == SymbolKind::Object
                 || identifier->symbol->kind == SymbolKind::Parameter
                 || identifier->symbol->kind == SymbolKind::LoopParameter)) {
-            if (identifier->symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
-                Value object = addressOf(expr->m_protectedReceiver);
+            if (identifier->symbol->protectedField >= 0 && expr->protectedReceiver != nullptr) {
+                Value object = addressOf(expr->protectedReceiver);
                 const auto& field = identifier->symbol->protectedType->fields[identifier->symbol->protectedField];
                 Value address { newTemp(), 'l' };
                 line(address.name + " =l add " + object.name + ", " + fieldOffset(identifier->symbol->protectedType, field));
@@ -400,8 +400,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
         auto* selected = static_cast<SelectedExpr*>(expr);
         if (selected->symbol != nullptr
             && (selected->symbol->kind == SymbolKind::Object || selected->symbol->kind == SymbolKind::Parameter)) {
-            if (selected->symbol->protectedField >= 0 && expr->m_protectedReceiver != nullptr) {
-                Value object = addressOf(expr->m_protectedReceiver);
+            if (selected->symbol->protectedField >= 0 && expr->protectedReceiver != nullptr) {
+                Value object = addressOf(expr->protectedReceiver);
                 const auto& field = selected->symbol->protectedType->fields[selected->symbol->protectedField];
                 Value address { newTemp(), 'l' };
                 line(address.name + " =l add " + object.name + ", " + fieldOffset(selected->symbol->protectedType, field));

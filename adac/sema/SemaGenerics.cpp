@@ -117,7 +117,7 @@ bool requiresGenericBody(const DeclList& declarations)
             }
         } else if (declaration->kind == DeclKind::Type) {
             auto* type = static_cast<TypeDecl*>(declaration.get());
-            if (requiresGenericBody(type->m_protectedDeclarations)) {
+            if (requiresGenericBody(type->protectedDeclarations)) {
                 return true;
             }
         } else if (declaration->kind == DeclKind::PackageSpecification) {
@@ -194,8 +194,8 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
             } else if (value->kind == ExprKind::StringLiteral) {
                 defaultLower = operatorSymbol(static_cast<StringLiteralExpr*>(value)->value);
             }
-            formal.m_defaultUsesFormal = std::find(preceding.begin(), preceding.end(), defaultLower) != preceding.end();
-            formal.m_defaultCandidates = value->kind == ExprKind::StringLiteral
+            formal.defaultUsesFormal = std::find(preceding.begin(), preceding.end(), defaultLower) != preceding.end();
+            formal.defaultCandidates = value->kind == ExprKind::StringLiteral
                 ? target->lookup(defaultLower) : expressionNames(value, target);
         }
         preceding.push_back(formal.lower);
@@ -204,7 +204,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Generic, lower, name);
     symbol->location = decl->location;
     symbol->generic = decl;
-    symbol->hasBody = decl->m_hasBody;
+    symbol->hasBody = decl->hasBody;
     symbol->requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->owner = m_currentSubprogram;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
@@ -327,7 +327,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             break;
         }
         if (formal.kind == GenericFormalKind::SubprogramFormal) {
-            Parser parser(formal.m_subprogramTokens, m_diagnostics);
+            Parser parser(formal.subprogramTokens, m_diagnostics);
             DeclList profile = parser.parseDeclarations();
             if (profile.size() == 1) {
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
@@ -343,9 +343,9 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 array.name = formal.name;
                 array.lower = formal.lower;
                 array.location = formal.location;
-                array.definition = std::move(formal.m_arrayDefinition);
+                array.definition = std::move(formal.arrayDefinition);
                 analyzeTypeDecl(&array, bindings);
-                formal.m_arrayDefinition = std::move(array.definition);
+                formal.arrayDefinition = std::move(array.definition);
                 continue;
             }
             TypeKind kind = (formal.typeClass == FormalTypeClass::IntegerType || formal.typeClass == FormalTypeClass::ModularType) ? TypeKind::Integer
@@ -368,7 +368,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             type->formalFixed = kind == TypeKind::Fixed;
             if (formal.typeClass == FormalTypeClass::Any) {
                 type->privateTo = decl->symbol;
-                type->isLimited = formal.m_limited;
+                type->isLimited = formal.limited;
             }
             Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
             symbol->type = type;
@@ -379,7 +379,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
             symbol->type = type;
             symbol->location = formal.location;
-            symbol->isConstant = formal.m_mode == ParameterMode::In;
+            symbol->isConstant = formal.mode == ParameterMode::In;
             // Formal values are unknown while checking the contract. Symbolic
             // layouts are retained here and resolved when instantiating.
             if (formal.defaultValue) {
@@ -462,7 +462,7 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
     case FormalTypeClass::Any:
         if (!isDefinite(actual)) {
             wanted = "a type of a fixed size";
-        } else if (!formal.m_limited && base->isLimited) {
+        } else if (!formal.limited && base->isLimited) {
             wanted = "a nonlimited type";
         }
         break;
@@ -480,7 +480,7 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
 bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,
                                const SourceLocation& location)
 {
-    const TypeDefinition& definition = *formal.m_arrayDefinition;
+    const TypeDefinition& definition = *formal.arrayDefinition;
     bool matches = actual->arrayRank == static_cast<int>(definition.indexTypes.size())
         && actual->constrained != definition.unconstrainedIndexes && actual->boundsSymbol == nullptr;
     Type* axis = actual;
@@ -513,11 +513,11 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
 {
     if (namedDefault) {
         Scope* defaults = m_symbolTable.createScope(nullptr);
-        const auto& candidates = formal.m_defaultUsesFormal
+        const auto& candidates = formal.defaultUsesFormal
             ? bindings->lookupLocal(formal.defaultValue->kind == ExprKind::Identifier
                 ? static_cast<IdentifierExpr*>(formal.defaultValue.get())->lower
                 : operatorSymbol(static_cast<StringLiteralExpr*>(formal.defaultValue.get())->value))
-            : formal.m_defaultCandidates;
+            : formal.defaultCandidates;
         for (Symbol* candidate : candidates) {
             defaults->add(candidate);
         }
@@ -527,7 +527,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     defaultName.name = formal.name;
     defaultName.lower = formal.lower;
     defaultName.location = decl->location;
-    if (actual == nullptr && formal.m_boxDefault) {
+    if (actual == nullptr && formal.boxDefault) {
         actual = &defaultName;
     }
     if (actual == nullptr) {
@@ -537,7 +537,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
 
     // Parse a fresh profile for every instance: defaults acquire instance-local
     // type and symbol annotations, and must live as long as the generated body.
-    Parser parser(formal.m_subprogramTokens, m_diagnostics);
+    Parser parser(formal.subprogramTokens, m_diagnostics);
     DeclList declarations = parser.parseDeclarations();
     if (declarations.size() != 1 || declarations.front()->kind != DeclKind::SubprogramDeclaration) {
         return false;
@@ -584,7 +584,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     }
     std::vector<Symbol*> candidates;
     const auto& actualCandidates = namedDefault && actual->kind == ExprKind::Selected
-        ? formal.m_defaultCandidates : expressionNames(actual, actualScope);
+        ? formal.defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
         if (matches(candidate) && candidate->protectedType != nullptr) {
             m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
@@ -815,7 +815,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
 
         // Reparse the subtype/default so its semantic annotations belong to
         // this instance. Declaration-site names replay the checked contract.
-        Parser objectParser(formal.m_objectTokens, m_diagnostics);
+        Parser objectParser(formal.objectTokens, m_diagnostics);
         DeclList objects = objectParser.parseDeclarations();
         if (objects.size() != 1 || objects.front()->kind != DeclKind::Object) {
             return false;
@@ -851,7 +851,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             m_diagnostics.error(actual->location, "access generic formal objects are not yet supported");
             return false;
         }
-        bool reference = formal.m_mode == ParameterMode::InOut;
+        bool reference = formal.mode == ParameterMode::InOut;
         if (reference) {
             m_sharedGenericActuals.push_back({actual, type});
             int errors = m_diagnostics.errorCount();
@@ -940,7 +940,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");
         return;
     }
-    decl->m_generic = generic;
+    decl->generic = generic;
     if (m_instantiationDepth > 16) {
         m_diagnostics.error(decl->location, "generic instantiation nests too deeply");
         return;
@@ -1080,7 +1080,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
 void Sema::completeGenericInstance(PendingGenericInstance pending)
 {
     auto* instance = pending.instance;
-    Symbol* generic = instance->m_generic;
+    Symbol* generic = instance->generic;
     auto* contract = pending.contract;
     if (!contract->valid) {
         return;
@@ -1155,7 +1155,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     while (progress && !m_diagnostics.hasErrors()) {
         progress = false;
         for (std::size_t i = 0; i < m_pendingGenericInstances.size() && !m_diagnostics.hasErrors();) {
-            if (!m_pendingGenericInstances[i].instance->m_generic->hasBody) {
+            if (!m_pendingGenericInstances[i].instance->generic->hasBody) {
                 ++i;
                 continue;
             }
@@ -1221,7 +1221,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         }
     }
     for (const auto& pending : m_pendingGenericInstances) {
-        Symbol* generic = pending.instance->m_generic;
+        Symbol* generic = pending.instance->generic;
         if (!generic->generic->isPackage || requiresGenericBody(pending.instance->expansion)) {
             m_diagnostics.error(pending.instance->location,
                 std::string(generic->generic->isPackage ? "generic package '" : "generic subprogram '")

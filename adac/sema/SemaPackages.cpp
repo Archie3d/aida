@@ -153,7 +153,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "generic '" + named->displayName + "' already has a body");
             return;
         }
-        decl->m_genericBody = named;
+        decl->genericBody = named;
         named->hasBody = true;
         std::vector<Token>& tokens = named->generic->tokens;
         Token endOfFile = tokens.back();
@@ -212,10 +212,10 @@ void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
     Symbol* privateTo = scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()
         ? m_packages.back() : nullptr;
     for (std::size_t i = 0; i < decl.namesLower.size(); ++i) {
-        if (decl.m_typeOnly) {
+        if (decl.typeOnly) {
             Type* type = resolveTypeName(decl.namesLower[i], scope, decl.location);
             if (type != nullptr) {
-                scope->addUseType(type, decl.m_all, privateTo);
+                scope->addUseType(type, decl.all, privateTo);
             }
             continue;
         }

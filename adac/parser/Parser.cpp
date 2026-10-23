@@ -186,7 +186,7 @@ void Parser::parseContextClause(CompilationUnit& unit)
                     if (!withed) {
                         std::string resolved;
                         for (const UseDecl& use : unit.useClauses) {
-                            if (use.m_typeOnly) {
+                            if (use.typeOnly) {
                                 continue;
                             }
                             for (const std::string& prefix : use.namesLower) {

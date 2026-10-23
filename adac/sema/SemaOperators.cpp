@@ -267,7 +267,7 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
             for (Type* actual : expressionTypes(operands[i].get(), scope)) {
                 if (actual->classRoot == symbol->controllingType) {
                     context = actual;
-                    call->m_dispatching = true;
+                    call->dispatching = true;
                 }
             }
         }
@@ -278,19 +278,19 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
         argument.value = std::move(operands[i]);
         call->arguments.push_back(std::move(argument));
     }
-    call->m_tagIndeterminate = symbol->controllingType != nullptr
-        && rootType(call->type) == symbol->controllingType && !call->m_dispatching;
+    call->tagIndeterminate = symbol->controllingType != nullptr
+        && rootType(call->type) == symbol->controllingType && !call->dispatching;
     for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
         if (rootType(symbol->parameters[i]->type) == symbol->controllingType) {
-            call->m_tagIndeterminate = call->m_tagIndeterminate && call->resolvedArguments[i]->m_tagIndeterminate;
+            call->tagIndeterminate = call->tagIndeterminate && call->resolvedArguments[i]->tagIndeterminate;
         }
     }
-    if (call->m_dispatching) {
+    if (call->dispatching) {
         if (rootType(call->type) == symbol->controllingType) {
             call->type = classWideType(symbol->controllingType);
         }
         for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
-            if (call->resolvedArguments[i]->m_tagIndeterminate) {
+            if (call->resolvedArguments[i]->tagIndeterminate) {
                 dispatchIndeterminate(call->resolvedArguments[i], symbol->controllingType);
             }
             if (rootType(symbol->parameters[i]->type) == symbol->controllingType
@@ -434,7 +434,7 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
                 unary->operand = std::move(call->arguments[0].value);
                 if (boundCall != nullptr) {
                     unary->type = boundResult;
-                    unary->m_tagIndeterminate = boundCall->m_tagIndeterminate;
+                    unary->tagIndeterminate = boundCall->tagIndeterminate;
                     unary->operatorCall = std::move(boundCall);
                 }
                 return unary;
@@ -448,13 +448,13 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
                 binary->location = call->location;
                 binary->op = op;
                 binary->predefinedOnly = predefinedOnly;
-                binary->m_standardFixed = standard;
-                binary->m_explicitFixedContext = standard;
+                binary->standardFixed = standard;
+                binary->explicitFixedContext = standard;
                 binary->left = std::move(call->arguments[0].value);
                 binary->right = std::move(call->arguments[1].value);
                 if (boundCall != nullptr) {
                     binary->type = boundResult;
-                    binary->m_tagIndeterminate = boundCall->m_tagIndeterminate;
+                    binary->tagIndeterminate = boundCall->tagIndeterminate;
                     binary->operatorCall = std::move(boundCall);
                 }
                 return binary;

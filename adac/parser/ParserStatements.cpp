@@ -331,11 +331,11 @@ StmtPtr Parser::parseReturnStatement()
         if (match(TokenKind::Assign)) {
             object->initializer = parseExpression();
         }
-        statement->m_object = std::move(object);
+        statement->object = std::move(object);
         if (match(TokenKind::KwDo)) {
-            statement->m_body = parseSequenceOfStatements();
+            statement->body = parseSequenceOfStatements();
             if (check(TokenKind::KwException)) {
-                statement->m_handlers = parseExceptionHandlers();
+                statement->handlers = parseExceptionHandlers();
             }
             expect(TokenKind::KwEnd, "after extended return body");
             expect(TokenKind::KwReturn, "after end");

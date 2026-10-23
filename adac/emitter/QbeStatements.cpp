@@ -191,13 +191,13 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Return: {
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* resultType = m_context->symbol == nullptr ? nullptr : m_context->symbol->returnType;
-        if (returnStatement->value == nullptr && returnStatement->m_object == nullptr
+        if (returnStatement->value == nullptr && returnStatement->object == nullptr
             && !m_context->extendedReturnLabel.empty()) {
             jump(m_context->extendedReturnLabel);
             break;
         }
-        if (returnStatement->m_object != nullptr) {
-            emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->m_object.get()), returnStatement);
+        if (returnStatement->object != nullptr) {
+            emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->object.get()), returnStatement);
             emitReturn();
         } else if (returnStatement->value && isComposite(resultType)) {
             if (needsFinalization(resultType) || resultType->tagged) {

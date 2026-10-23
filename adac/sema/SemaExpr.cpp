@@ -61,8 +61,8 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         expr->type = expected;
         return expected;
     }
-    if (expr->m_implicitCall != nullptr) {
-        expr->type = analyzeExpr(expr->m_implicitCall.get(), scope, expected);
+    if (expr->implicitCall != nullptr) {
+        expr->type = analyzeExpr(expr->implicitCall.get(), scope, expected);
         return expr->type;
     }
     if (expr->kind == ExprKind::Selected) {
@@ -73,8 +73,8 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
                     auto call = std::make_unique<CallExpr>();
                     call->location = expr->location;
                     call->callee = std::move(selected->prefix);
-                    expr->m_implicitCall = std::move(call);
-                    expr->type = analyzeExpr(expr->m_implicitCall.get(), scope, expected);
+                    expr->implicitCall = std::move(call);
+                    expr->type = analyzeExpr(expr->implicitCall.get(), scope, expected);
                     return expr->type;
                 }
             }
@@ -101,16 +101,16 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !literal->m_exactReal.scaled(expected->fixedScale, expr->staticValue);
-            if (expr->m_fixedInvalid) {
+            expr->fixedInvalid = !literal->exactReal.scaled(expected->fixedScale, expr->staticValue);
+            if (expr->fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }
             return expr->type;
         }
         expr->type = expected != nullptr && expected->kind == TypeKind::Float ? expected : m_types.universalReal();
         expr->isStatic = true;
-        expr->staticReal = expr->m_exactReal.real();
-        if (!expr->m_exactReal.valid) {
+        expr->staticReal = expr->exactReal.real();
+        if (!expr->exactReal.valid) {
             expr->staticFailure = StaticFailure::Capacity;
         }
         return expr->type;
@@ -187,7 +187,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         }
         adaptUniversal(qualified->operand.get(), type);
         expr->type = type;
-        expr->m_tagIndeterminate = qualified->operand->m_tagIndeterminate;
+        expr->tagIndeterminate = qualified->operand->tagIndeterminate;
         expr->isStatic = type != nullptr && type->kind != TypeKind::Fixed && qualified->operand->isStatic && type != nullptr && type->scalarBoundsSymbol == nullptr;
         if (expr->isStatic && type->modulus != 0
             && (qualified->operand->staticValue < type->low || qualified->operand->staticValue > type->high)) {
@@ -200,7 +200,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
             expr->isStatic = true;
             expr->staticFailure = qualified->operand->staticFailure == StaticFailure::None
                 ? StaticFailure::None : StaticFailure::Dependent;
-            expr->m_exactReal = qualified->operand->m_exactReal;
+            expr->exactReal = qualified->operand->exactReal;
             __int128 value = 0;
             StaticFailure failure = StaticFailure::None;
             bool valid = isReal(type)
@@ -227,7 +227,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
-    if (expr->subtype->rangeLow || expr->subtype->digits || expr->subtype->m_delta) {
+    if (expr->subtype->rangeLow || expr->subtype->digits || expr->subtype->delta) {
         Type* mark = resolveTypeName(expr->subtype->lower, scope, expr->subtype->location);
         if (mark != nullptr && isScalar(mark)) {
             m_diagnostics.error(expr->location, "a scalar allocator cannot have an explicit constraint");
@@ -339,14 +339,14 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     Type* operandContext = nullptr;
     Type* rightContext = nullptr;
     if (!name.empty()) {
-        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->m_standardFixed || expr->predefinedOnly);
+        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->standardFixed || expr->predefinedOnly);
         if (expected != nullptr && expected->kind == TypeKind::Fixed
             && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
             auto universal = expressionTypes(expr, scope);
             if (universal.size() == 1 && universal.front()->kind == TypeKind::UniversalReal) {
                 analyzeBinaryOperation(expr, scope, nullptr, nullptr);
                 adaptUniversal(expr, expected);
-                if (expr->m_fixedInvalid) {
+                if (expr->fixedInvalid) {
                     m_diagnostics.error(expr->location, "fixed-point expression exceeds exact evaluation or storage limits");
                 }
                 return expr->type;
@@ -372,7 +372,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 operands.push_back(std::move(expr->right));
                 expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
                 expr->type = chosen.result;
-                expr->m_tagIndeterminate = expr->operatorCall->m_tagIndeterminate;
+                expr->tagIndeterminate = expr->operatorCall->tagIndeterminate;
                 expr->isStatic = false;
                 return expr->type;
             }
@@ -383,9 +383,9 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 adaptUniversal(expr->left.get(), chosen.parameters[0]);
                 adaptUniversal(expr->right.get(), chosen.parameters[1]);
                 expr->type = chosen.result;
-                expr->m_fixedResult = chosen.parameters[0]->kind == TypeKind::Fixed
+                expr->fixedResult = chosen.parameters[0]->kind == TypeKind::Fixed
                     && chosen.parameters[1]->kind == TypeKind::Fixed;
-                if (expr->m_fixedResult && !expr->m_explicitFixedContext) {
+                if (expr->fixedResult && !expr->explicitFixedContext) {
                     bool requiresConversion = false;
                     for (Type* operand : chosen.parameters) {
                         for (Symbol* primitive : rootType(operand)->primitives) {
@@ -639,7 +639,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
             operands.push_back(std::move(expr->operand));
             expr->operatorCall = bindOperator(chosen.symbol, std::move(operands), scope, expr->location);
             expr->type = chosen.result;
-            expr->m_tagIndeterminate = expr->operatorCall->m_tagIndeterminate;
+            expr->tagIndeterminate = expr->operatorCall->tagIndeterminate;
             expr->isStatic = false;
             return expr->type;
         }
@@ -653,8 +653,8 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
                 return expr->type;
             }
             expr->isStatic = true;
-            expr->m_fixedInvalid = !exact.scaled(expected->fixedScale, expr->staticValue);
-            if (expr->m_fixedInvalid) {
+            expr->fixedInvalid = !exact.scaled(expected->fixedScale, expr->staticValue);
+            if (expr->fixedInvalid) {
                 m_diagnostics.error(expr->location, "fixed-point literal exceeds exact evaluation or storage limits");
             }
             return expr->type;
@@ -692,7 +692,7 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 {
     Type* mark = expr->typeLower.empty() ? nullptr
         : resolveTypeName(expr->typeLower, scope, expr->location);
-    expr->m_membershipSubtype = mark;
+    expr->membershipSubtype = mark;
     Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
     if (taggedViewVisible(mark) && taggedViewVisible(operand)) {
         Type* target = mark->classRoot != nullptr ? mark->classRoot : mark;
@@ -701,7 +701,7 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
             && !(operand->classRoot != nullptr && isTaggedAncestor(source, target))) {
             m_diagnostics.error(expr->location, "tagged membership requires convertible types");
         }
-        expr->m_testedTaggedType = mark;
+        expr->testedTaggedType = mark;
         expr->type = m_types.booleanType();
         return expr->type;
     }
@@ -732,8 +732,8 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 
 bool Sema::buildsLimitedResult(Expr* expression) const
 {
-    if (expression->m_implicitCall != nullptr) {
-        return buildsLimitedResult(expression->m_implicitCall.get());
+    if (expression->implicitCall != nullptr) {
+        return buildsLimitedResult(expression->implicitCall.get());
     }
     if (expression->kind == ExprKind::Qualified) {
         return buildsLimitedResult(static_cast<QualifiedExpr*>(expression)->operand.get());

@@ -22,7 +22,7 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
     Value left = emitExpr(expr->left.get());
     Value right = emitExpr(expr->right.get());
-    if (expr->m_fixedResult && expr->type->kind != TypeKind::Fixed) {
+    if (expr->fixedResult && expr->type->kind != TypeKind::Fixed) {
         std::string result = newTemp();
         bool real = isReal(expr->type);
         std::string arguments = "(w " + std::to_string(expr->op == BinaryOp::Multiply ? 2 : 3)
@@ -56,8 +56,8 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
         switch (expr->op) {
         case BinaryOp::Add: operation = FixedAdd; break;
         case BinaryOp::Subtract: operation = FixedSubtract; break;
-        case BinaryOp::Multiply: operation = expr->m_roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
-        case BinaryOp::Divide: operation = expr->m_roundFixed ? FixedDivideRounded : FixedDivide; break;
+        case BinaryOp::Multiply: operation = expr->roundFixed ? FixedMultiplyRounded : FixedMultiply; break;
+        case BinaryOp::Divide: operation = expr->roundFixed ? FixedDivideRounded : FixedDivide; break;
         default: break;
         }
         std::string result = newTemp();
