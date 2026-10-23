@@ -167,6 +167,9 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         return analyzeCall(static_cast<CallExpr*>(expr), scope, expected);
     case ExprKind::Attribute:
         return analyzeAttribute(static_cast<AttributeExpr*>(expr), scope, expected);
+    case ExprKind::Box:
+        m_diagnostics.error(expr->location, "box defaults are only allowed in aggregate component associations");
+        return nullptr;
     case ExprKind::Aggregate:
         return analyzeAggregate(static_cast<AggregateExpr*>(expr), scope, expected);
     case ExprKind::Binary:

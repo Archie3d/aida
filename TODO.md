@@ -426,9 +426,17 @@ construction, cleanup and dispatch mechanisms.
   sanitizer checks; ACATS C48005B). Runtime-sized tagged records and delayed
   private-component layouts remain Phase 6f; discriminant-dependent bounds
   remain Phase 6c. [Contract and limits](docs/runtime-composites.md).
-- [ ] Ada 2005 box defaults (`<>`) in record and array aggregates: component
-  default initialization, legality, per-component evaluation and partial-failure
-  cleanup. Replace the current `aggregateboxerrors` rejection coverage.
+- [x] Ada 2005 box defaults (`<>`) in record and array aggregates: declaration
+  defaults and subtype initialization run independently per component, with null
+  access defaults, checked runtime subtypes and partial controlled/limited cleanup.
+  Named/grouped/others boxes, extension aggregates, generic instances and library
+  runtime layouts share existing construction paths (`boxaggregates`, `boxchecks`,
+  `boxcleanup`, `boxtasking`, updated `aggregateboxerrors`, `boxpositionalerrors`;
+  whole/separate/determinism and instrumented runtime/frontend checks).
+  Unchanged ACATS C433001 covers the shared dynamic others constraint checks;
+  box-specific behavior uses local regressions. Default discriminants remain 6c;
+  task/protected aggregates and general limited records retain their existing
+  restrictions. [Contract and limits](docs/aggregate-defaults.md).
 
 ### 6c. Discriminated records
 

@@ -81,7 +81,7 @@ Supported:
 - Arrays with 64-bit bounds, lengths and byte strides, including library runtime bounds and generic objects ([descriptor ABI](docs/array-descriptors.md))
 - Runtime-sized array components and allocators, Size and array streams ([limits](docs/runtime-composites.md))
 - One-dimensional concatenation with scalar, composite, private and controlled components
-- Checked record and array aggregates, including sliding and inferred bounds
+- Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md))
 - Nested variant records with checked selection and constrained assignment
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
@@ -104,7 +104,6 @@ Not supported yet:
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
 - Runtime-sized tagged records and delayed private-component layouts
-- Ada 2005 box defaults (`<>`) in aggregates
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed

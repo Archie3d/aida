@@ -400,7 +400,11 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
             Value component = fieldAddress(address, target, field);
-            assignInto(component, field.type, expr->resolvedFields[i], true);
+            Expr* value = expr->resolvedFields[i];
+            if (value != nullptr && value->kind == ExprKind::Box && field.defaultValue != nullptr) {
+                value = field.defaultValue;
+            }
+            assignInto(component, field.type, value, true);
         }
         if (target->m_controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);

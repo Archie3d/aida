@@ -35,6 +35,7 @@ enum class ExprKind
     Call,
     Attribute,
     Aggregate,
+    Box, // Aggregate association default; never an ordinary expression.
     Qualified,
     Membership,
     Allocator

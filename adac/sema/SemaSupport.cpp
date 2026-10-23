@@ -73,6 +73,7 @@ bool conformingExpressions(const Expr* left, const Expr* right)
     case ExprKind::CharacterLiteral:
         return left->type == right->type
             && static_cast<const CharacterLiteralExpr*>(left)->value == static_cast<const CharacterLiteralExpr*>(right)->value;
+    case ExprKind::Box:
     case ExprKind::Null:
         return true;
     case ExprKind::Identifier:

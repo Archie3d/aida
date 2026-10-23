@@ -1,1 +1,11 @@
-aggregateboxerrors.adb:5:33: error: box aggregate defaults are not yet supported
+aggregateboxerrors.adb:17:18: error: an aggregate with no needed record components requires null record
+aggregateboxerrors.adb:18:40: error: duplicate record aggregate component 'Value'
+aggregateboxerrors.adb:19:5: error: an object of 'Required' has to fix its discriminants, as in 'X : Required (...)'
+aggregateboxerrors.adb:19:32: error: a discriminant without a default requires an expression
+aggregateboxerrors.adb:20:29: error: a discriminant without a default requires an expression
+aggregateboxerrors.adb:20:29: error: a discriminant governing a variant requires a static expression
+aggregateboxerrors.adb:21:30: error: multidimensional aggregate requires nested subaggregates
+aggregateboxerrors.adb:22:29: error: 'unknown' is not a component of 'Item'
+aggregateboxerrors.adb:22:17: error: component 'Value' has no value in the aggregate
+aggregateboxerrors.adb:23:28: error: others must appear once, as the final aggregate association
+aggregateboxerrors.adb:23:41: error: duplicate record aggregate component 'Value'

@@ -281,6 +281,10 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     if (value == nullptr) {
         return;
     }
+    if (value->kind == ExprKind::Box) {
+        emitDefaultInit(address, type);
+        return;
+    }
     if (type->m_classRoot != nullptr) {
         std::string saved = m_context->m_controllingTag;
         std::string tag = newTemp();

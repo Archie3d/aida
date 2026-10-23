@@ -315,6 +315,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitUnary(static_cast<UnaryExpr*>(expr));
     case ExprKind::Attribute:
         return emitAttribute(static_cast<AttributeExpr*>(expr));
+    case ExprKind::Box:
+        m_diagnostics.error(expr->location, "box default cannot be emitted as an expression");
+        return Value {};
     case ExprKind::Aggregate:
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
@@ -682,7 +685,7 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base == nullptr) {
         return false;
     }
-    if (base->m_taskBody != nullptr || base->m_protectedScope != nullptr) {
+    if (base->kind == TypeKind::Access || base->m_taskBody != nullptr || base->m_protectedScope != nullptr) {
         return true;
     }
     if (base->kind == TypeKind::Array) {
@@ -710,13 +713,13 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     return false;
 }
 
-// Gives an object the values its component declarations named.  Anything a
-// component says nothing about is left as it was found, which for storage from
-// an allocator means cleared.
+// Apply declaration defaults and recursive subtype initialization. Access
+// values must be explicitly null even when constructing into reused storage;
+// scalar components without defaults retain their unspecified initial value.
 void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
 {
     Type* base = baseType(type);
-    if (base != nullptr && base->kind == TypeKind::Access && (address.m_shared || sharedTypeKind(type) != 0)) {
+    if (base != nullptr && base->kind == TypeKind::Access) {
         storeInto(address, Value { "0", 'l' }, type);
         return;
     }

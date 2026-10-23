@@ -125,10 +125,18 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         auto present = [&](const FieldInfo& field) {
             return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || active[field.variant]);
         };
+        if (!expr->m_nullRecord && std::none_of(target->fields.begin(), target->fields.end(), present)) {
+            m_diagnostics.error(expr->location, "an aggregate with no needed record components requires null record");
+        }
         // A grouped association has one expected type, but its expression is
         // evaluated separately for each field by the emitter.
         std::unordered_map<Expr*, Type*> associationTypes;
         auto analyzeComponent = [&](Expr* value, Type* fieldType) {
+            // A box has no common expected type: every selected component
+            // uses its own declaration's default or subtype initialization.
+            if (value->kind == ExprKind::Box) {
+                return;
+            }
             auto [entry, inserted] = associationTypes.emplace(value, fieldType);
             if (!inserted) {
                 if (baseType(entry->second) != baseType(fieldType)) {
@@ -168,7 +176,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                         expr->resolvedFields[i] = component.value.get();
                     }
                 }
-                if (!associated) {
+                if (!associated && component.value->kind != ExprKind::Box) {
                     m_diagnostics.error(component.value->location, "record association has no components");
                 }
                 continue;
@@ -237,6 +245,21 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             }
         }
 
+        for (std::size_t i = 0; i < expr->resolvedFields.size(); ++i) {
+            Expr* value = expr->resolvedFields[i];
+            const FieldInfo& field = target->fields[i];
+            if (value == nullptr || value->kind != ExprKind::Box || !field.isDiscriminant) {
+                continue;
+            }
+            if (field.defaultValue == nullptr) {
+                m_diagnostics.error(value->location, "a discriminant without a default requires an expression");
+            }
+            if (std::any_of(record->variants.begin(), record->variants.end(), [&](const VariantInfo& variant) {
+                    return variant.discriminant == field.index;
+                })) {
+                m_diagnostics.error(value->location, "a discriminant governing a variant requires a static expression");
+            }
+        }
         for (std::size_t i = 0; i < expr->resolvedFields.size() && !complained; ++i) {
             if (expr->resolvedFields[i] == nullptr && present(target->fields[i])) {
                 m_diagnostics.error(expr->location, "component '" + target->fields[i].displayName
@@ -262,10 +285,16 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                                target->index != nullptr ? target->index : m_types.integerType());
             }
         }
+        if (component.value->kind == ExprKind::Box && target->arrayRank == 1) {
+            continue;
+        }
         bool invalidRow = target->arrayRank > 1 && component.value->kind != ExprKind::Aggregate
             && !(target->arrayRank == 2 && component.value->kind == ExprKind::StringLiteral);
         if (invalidRow) {
             m_diagnostics.error(component.value->location, "multidimensional aggregate requires nested subaggregates");
+            if (component.value->kind == ExprKind::Box) {
+                continue;
+            }
         }
         Type* valueType = analyzeExpr(component.value.get(), scope, target->element);
         if (hasLimitedControlledParts(target->element) && !buildsLimitedResult(component.value.get())) {
@@ -365,6 +394,9 @@ bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope
         }
         if (which != index) {
             continue;
+        }
+        if (component.value->kind == ExprKind::Box) {
+            return false;
         }
         analyzeExpr(component.value.get(), scope, record->fields[static_cast<std::size_t>(index)].type);
         if (source != nullptr) {

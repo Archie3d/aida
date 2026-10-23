@@ -130,3 +130,11 @@ Runtime component layouts, dynamic bound evaluation and ownership use the P6b
 regressions; broader allocator/discriminant coverage remains P6c/P8.
 Git blob: `c03bde6e04df8b3bcdc9a09cbe7fc9023d5107c0`.
 SHA-256: `ec6b9aaf6ee59c074ee179558e2033d866e2988f2a5531421e7eb64f3778ab74`.
+
+C433001 comes from [GCC releases/gcc-15 c4/c433001.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c433001.a),
+retrieved 2026-10-23 and stored as `c433001.ada`, unmodified including rights
+and disclaimer. It passes dynamic applicable index constraints and outside-index
+checks for others associations (RM 4.3.3). It has no box associations; those use
+local phase 6b regressions rather than an upstream box-conformance claim.
+Git blob: `305e010b930f3ed4e7f5ec6d25fb38ebdfc46d6f`.
+SHA-256: `dfd1c15d4431ae859efc4e151fc8e2e081edccb76e6a4c98d942862d965a81dd`.

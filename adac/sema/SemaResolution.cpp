@@ -169,6 +169,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         add(m_types.isString(expected) && representationVisible(expected)
             && representationVisible(expected->element) ? expected : m_types.stringType());
         break;
+    case ExprKind::Box:
+        break;
     case ExprKind::Null:
         if (expected != nullptr && expected->kind == TypeKind::Access) {
             add(expected);
