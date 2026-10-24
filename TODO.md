@@ -411,8 +411,14 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   library-level accessibility, including anonymous access parameters and local
   tags; ordinary aliasing, subtype, constness and storage rules retained.
   `uncheckedaccess`, `uncheckedaccesserrors`, `semantics.unchecked_access`;
-  whole/separate/determinism and four tasks. CA110232 now PASS; C3A2004 exact
-  XFAIL for dereferenced subprogram Access. [Contract](docs/unchecked-access.md).
+  whole/separate/determinism and four tasks. CA110232/C3A2004 PASS after the
+  callback follow-up below. [Contract](docs/unchecked-access.md).
+- [x] `'Access` of dereferenced access-to-subprogram values (pulled forward
+  from Phase 8): contextual overloaded function results, single evaluation,
+  null checks and captured-frame identity; profile, convention, privacy and
+  accessibility legality retained. `callbackdereference*` covers whole/separate/
+  determinism and four tasks; unchanged ACATS C3A2004 PASS.
+  [Contract](docs/subprogram-access.md#dereferenced-callbacks).
 - [ ] Separate subunits for subprogram and package bodies: loading, and
   analysis in the parent's scope. Replaces the Phase 1 diagnostic.
 - [ ] Extended return statements for results that are not controlled types,
@@ -545,8 +551,6 @@ Ada 2005 additions and track annex packages separately.
   checking Phase 2's no-slowdown goal on other hosts and targets.
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.
-- [ ] `'Access` of dereferenced access-to-subprogram values, including
-  contextual overloaded function results (ACATS C3A2004 exact compile XFAIL).
 - [ ] Serialized semantic interfaces, so clients compile without dependency
   sources. `.ali` files hold only build metadata today.
 - [ ] Robust artifact publication and concurrent builds: interrupted writes,

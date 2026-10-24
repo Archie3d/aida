@@ -153,9 +153,60 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         if (expected != nullptr && expected->kind == TypeKind::Access && expected->accessProfile == nullptr) {
             return analyzeObjectAccess(expr, scope, expected);
         }
-        if (expected == nullptr || expected->accessProfile == nullptr || !expr->arguments.empty()) {
+        if (expected == nullptr || expected->accessProfile == nullptr || !representationVisible(expected) || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "subprogram 'Access requires an access-to-subprogram type context");
             return nullptr;
+        }
+        if (expr->prefix->kind == ExprKind::Selected
+            && static_cast<SelectedExpr*>(expr->prefix.get())->isDereference) {
+            auto* selected = static_cast<SelectedExpr*>(expr->prefix.get());
+            Type* source = nullptr;
+            for (Type* candidate : expressionTypes(selected->prefix.get(), scope)) {
+                if (candidate->accessProfile != nullptr && representationVisible(candidate)
+                    && matchesAccessProfile(candidate->accessProfile, expected)) {
+                    if (source != nullptr) {
+                        m_diagnostics.error(expr->location, "ambiguous subprogram 'Access");
+                        return nullptr;
+                    }
+                    source = candidate;
+                }
+            }
+            if (source == nullptr) {
+                m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
+                return nullptr;
+            }
+            if (source->accessProtected != expected->accessProtected) {
+                m_diagnostics.error(expr->location, "subprogram and access type must have matching protected conventions");
+                return nullptr;
+            }
+            if (source->accessConventionC != expected->accessConventionC) {
+                m_diagnostics.error(expr->location, "subprogram and access type must have the same calling convention");
+                return nullptr;
+            }
+            // RM 3.10.2(15): a dereferenced subprogram has the accessibility
+            // of its access type, regardless of the callback's captured frame.
+            bool parameterContext = expected->anonymousAccess && expected->accessParameter;
+            bool accessible = source->accessLevel <= expected->accessLevel;
+            for (Scope* enclosing = expected->accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
+                accessible = accessible || enclosing == source->accessScope;
+            }
+            if (!parameterContext && (source->accessParameter || !accessible)) {
+                m_diagnostics.error(expr->location, "subprogram is deeper than the access type");
+                return nullptr;
+            }
+            analyzeExpr(selected->prefix.get(), scope, source);
+            Expr* operand = selected->prefix.get();
+            Symbol* entity = operand->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(operand)->symbol
+                : operand->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(operand)->symbol : nullptr;
+            if (entity != nullptr && entity->kind == SymbolKind::TypeName) {
+                m_diagnostics.error(expr->location, "subprogram dereference requires an access value, not a type name");
+                return nullptr;
+            }
+            selected->type = source;
+            expr->prefixType = source;
+            expr->dereferencedSubprogramAccess = true;
+            expr->type = expected;
+            return expected;
         }
         Symbol* chosen = nullptr;
         for (Symbol* candidate : expressionNames(expr->prefix.get(), scope)) {

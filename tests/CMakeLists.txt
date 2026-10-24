@@ -1604,3 +1604,21 @@ add_test(NAME semantics.unchecked_access
         -DWORKDIR=${ADA_TEST_WORK_DIR}/unchecked-access-ir
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUncheckedAccess.cmake)
 set_tests_properties(semantics.unchecked_access PROPERTIES TIMEOUT 30)
+
+# Subprogram Access of explicit callback dereferences, preserving closures.
+add_ada_test(callbackdereference SOURCES callbackdereference.adb)
+add_determinism_test(callbackdereference SOURCE callbackdereference.adb)
+add_test(NAME runtime.callbackdereference_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/callbackdereference.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/callbackdereference.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/callbackdereference-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.callbackdereference runtime.callbackdereference_modes PROPERTIES TIMEOUT 60)
+add_ada_error_test(callbackdereferenceerrors SOURCES callbackdereferenceerrors.adb)

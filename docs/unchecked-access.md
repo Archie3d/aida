@@ -41,8 +41,6 @@ calls and continued null checks. Compiler AddressSanitizer checks cover these
 compilation paths.
 
 Unchanged ACATS CA110232 now executes successfully. CA120012 remains an exact
-compile XFAIL for general limited records. Newly pinned C3A2004 is an exact
-compile XFAIL for existing dereferenced subprogram `'Access` limitations, owned
-by Phase 8; it is not an upstream execution pass. Its object `Unchecked_Access`
-forms no longer produce diagnostics. Provenance is recorded in the
-[ACATS inventory](../tests/acats/README.md).
+compile XFAIL for general limited records. C3A2004 now also passes unchanged
+following [dereferenced callback Access](subprogram-access.md#dereferenced-callbacks)
+support. Provenance is recorded in the [ACATS inventory](../tests/acats/README.md).

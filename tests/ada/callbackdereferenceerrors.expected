@@ -1,0 +1,16 @@
+callbackdereferenceerrors.adb:10:30: error: no subprogram matches the designated access profile
+callbackdereferenceerrors.adb:11:31: error: no subprogram matches the designated access profile
+callbackdereferenceerrors.adb:12:33: error: no subprogram matches the designated access profile
+callbackdereferenceerrors.adb:13:24: error: no subprogram matches the designated access profile
+callbackdereferenceerrors.adb:15:39: error: subprogram is deeper than the access type
+callbackdereferenceerrors.adb:16:71: error: subprogram is deeper than the access type
+callbackdereferenceerrors.adb:23:37: error: subprogram and access type must have the same calling convention
+callbackdereferenceerrors.adb:24:32: error: subprogram and access type must have the same calling convention
+callbackdereferenceerrors.adb:35:53: error: subprogram and access type must have matching protected conventions
+callbackdereferenceerrors.adb:36:32: error: subprogram 'Access requires an access-to-subprogram type context
+callbackdereferenceerrors.adb:42:36: error: subprogram is deeper than the access type
+callbackdereferenceerrors.adb:57:37: error: ambiguous subprogram 'Access
+callbackdereferenceerrors.adb:58:32: error: 'Unchecked_Access requires an access-to-object type context
+callbackdereferenceerrors.adb:72:47: error: no subprogram matches the designated access profile
+callbackdereferenceerrors.adb:73:43: error: subprogram 'Access requires an access-to-subprogram type context
+callbackdereferenceerrors.adb:74:39: error: subprogram dereference requires an access value, not a type name

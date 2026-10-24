@@ -280,6 +280,7 @@ struct AttributeExpr : Expr
     Type* prefixedAccessType = nullptr; // Implicit Access retains the receiver's dynamic view.
     Symbol* accessObject = nullptr;
     bool objectAccess = false;
+    bool dereferencedSubprogramAccess = false;
     int objectAccessLevel = 0;
     Symbol* countEntry = nullptr;
     bool taskAttribute = false;

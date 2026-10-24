@@ -118,6 +118,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             }
             return object;
         }
+        if (expr->dereferencedSubprogramAccess) {
+            auto* selected = static_cast<SelectedExpr*>(expr->prefix.get());
+            Value callback = emitExpr(selected->prefix.get());
+            // The dereference must check null even when no call follows.
+            // Reusing the descriptor retains both the code and captured frame.
+            checkNotNull(callback);
+            return callback;
+        }
         Symbol* subprogram = expr->accessSubprogram;
         if (expr->type->accessProtected) {
             Value object;

@@ -111,4 +111,4 @@ add_acats_test(ca120012 REJECTION "limited record definitions outside Ada.Finali
 add_acats_test(ca12002 REJECTION "subprogram stubs ('is separate') are not yet supported")
 
 # Contextual Access/Unchecked_Access overload resolution and controlling access.
-add_acats_test(c3a2004 REJECTION "no subprogram matches the designated access profile")
+add_acats_test(c3a2004)

@@ -504,6 +504,17 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     }
                 }
             } else if (expected != nullptr && name == "access") {
+                if (attribute->prefix->kind == ExprKind::Selected) {
+                    auto* selected = static_cast<SelectedExpr*>(attribute->prefix.get());
+                    if (selected->isDereference) {
+                        for (Type* source : expressionTypes(selected->prefix.get(), scope)) {
+                            if (source->accessProfile != nullptr && representationVisible(source)
+                                && representationVisible(expected) && matchesAccessProfile(source->accessProfile, expected)) {
+                                add(expected);
+                            }
+                        }
+                    }
+                }
                 for (Symbol* candidate : expressionNames(attribute->prefix.get(), scope)) {
                     if (matchesAccessProfile(candidate, expected)) {
                         add(expected);

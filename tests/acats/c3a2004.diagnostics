@@ -1,2 +1,0 @@
-c3a2004.ada:368:36: error: no subprogram matches the designated access profile
-c3a2004.ada:373:23: error: subprogram 'Access requires an access-to-subprogram type context

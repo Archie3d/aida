@@ -352,11 +352,9 @@ cycles, binder membership and incremental dependency invalidation.
 
 CA110232 above now passes unchanged. C3A2004 adds contextual overload and
 controlling-access coverage from the same pinned Ada 2005 snapshot, unchanged
-except for its `.ada` filename. It is an exact compile XFAIL, not an execution
-pass: the remaining diagnostics concern `Func.all'Access` where `Func` returns
-access-to-subprogram. That callback attribute form remains owned by Phase 8;
-the unchecked object forms no longer produce diagnostics. CA120012 remains
-blocked only by general limited records (Phase 6f).
+except for its `.ada` filename. C3A2004 now compiles and executes successfully,
+including `Func.all'Access` where `Func` returns access-to-subprogram. CA120012
+remains blocked only by general limited records (Phase 6f).
 
 Local `uncheckedaccess` covers nested and generic scopes, anonymous parameters,
 access discriminants/components, overload selection, borrowed array bounds,
@@ -365,6 +363,11 @@ Whole/per-unit execution and deterministic compilation are checked;
 `uncheckedaccesserrors` and `uncheckedsharederrors` record legality diagnostics and
 `semantics.unchecked_access` excludes object/tag accessibility helpers while
 retaining null checks. See [the contract](../../docs/unchecked-access.md).
+`callbackdereference` adds closure identity, overload selection, protected/C
+callbacks, anonymous forwarding, null checks and four tasks in whole/per-unit
+and deterministic modes. `callbackdereferenceerrors` records profile,
+convention, privacy and accessibility diagnostics; compiler ASan checks both.
+See the [callback contract](../../docs/subprogram-access.md#dereferenced-callbacks).
 
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |

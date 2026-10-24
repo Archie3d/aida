@@ -6,6 +6,32 @@ profile checks, null exclusions, accessibility, renaming identity and exception
 propagation still apply. Intrinsic subprograms, including inherited untagged
 operations, remain illegal prefixes.
 
+## Dereferenced callbacks
+
+`Callback.all'Access` and `Function_Returning_Callback.all'Access` are supported
+as a Phase 6e follow-up. The expected designated profile selects an overloaded
+prefix. The compiler evaluates the access-valued prefix once and checks it for
+null immediately, raising Constraint_Error even if the resulting callback is
+never called. It reuses the existing callback value, preserving its code,
+captured environment and, for protected callbacks, protected receiver. Native
+C callbacks keep their native pointer representation.
+
+Profile subtype conformance, parameter modes, calling convention, protected
+convention and private-view visibility remain checked. Under RM 3.10.2(15),
+the dereferenced subprogram has the accessibility of the source access type.
+A deeper named type cannot escape through this attribute; a derived access type
+retains its ancestor's level. Anonymous callback parameters can be forwarded to
+other anonymous callback parameters, but cannot escape into named or stand-alone
+anonymous callback objects. `Unchecked_Access` remains object-only in Ada 2005.
+
+`callbackdereference` covers captured variables, procedure/function callbacks,
+record/array components, overloaded parameterless and explicit function calls,
+forwarding, protected and C callbacks, nested access types, null checks and
+failed-assignment preservation. Whole/per-unit execution, deterministic IR and
+four workers are checked. `callbackdereferenceerrors` checks profile/mode/subtype,
+convention, privacy, ambiguity and accessibility diagnostics. Compiler ASan
+covers both paths. Unchanged ACATS C3A2004 now compiles and executes successfully.
+
 ## Imported subprograms
 
 Ada imports use the AIDA Ada calling convention, including array descriptors,
