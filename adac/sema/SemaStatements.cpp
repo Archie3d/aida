@@ -397,7 +397,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (returnStatement->object != nullptr) {
             auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
             Scope* inner = m_symbolTable.createScope(scope);
-            analyzeObjectDecl(object, inner);
+            analyzeDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
             if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
                 || !needsFinalization(expected) || actual->classRoot != nullptr) {

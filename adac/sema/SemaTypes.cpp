@@ -703,10 +703,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type->variantOn >= 0 && hasTasks(type)) {
         m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
     }
-    if (type->variantOn >= 0 && std::any_of(type->fields.begin(), type->fields.end(),
-            [](const FieldInfo& field) { return needsFinalization(field.type); })) {
-        m_diagnostics.error(decl->location, "variant records with controlled components are not yet supported");
-    }
     type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type) || hasTasks(type) || hasProtected(type);
     if (type->abstract && !type->tagged) {

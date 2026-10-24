@@ -456,7 +456,14 @@ construction, cleanup and dispatch mechanisms.
   checks; unchanged ACATS C37211A/C37108B). Dependent controlled/task/protected
   array elements, tagged composites, access-subtype constraints and raw managed
   record streams remain diagnosed. [Contract and limits](docs/runtime-discriminants.md).
-- [ ] Controlled components in variant records.
+- [x] Controlled components in variant records: active-arm initialization,
+  adjustment and finalization; nested/overlaid components, mutable assignment,
+  limited returns, allocations and class-wide copies. Reservations cover all
+  possible arms before construction and preserve partial-failure cleanup
+  (`controlledvariants`, `controlledvariantlimited`; unit/whole/separate/
+  determinism checks; unchanged ACATS C760007 PASS, C761012 compile XFAIL for
+  new derived tagged discriminants). Dependent controlled arrays and task/
+  protected variants remain diagnosed. [Contract and limits](docs/controlled-variants.md).
 - [ ] Record representation clauses (moved from Phase 5), including variant
   parts and discriminant-dependent components, replacing the Phase 1 rejection.
 

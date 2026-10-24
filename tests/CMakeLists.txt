@@ -1357,7 +1357,7 @@ target_link_libraries(scalar_bounds_test PRIVATE adart)
 add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
-foreach(dynamic_case scalardynamic scalarstreams scalartasking
+foreach(dynamic_case controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary

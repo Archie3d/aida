@@ -103,7 +103,7 @@ Not supported yet:
 - Task entries, entry families, select/requeue, abort, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
-- Controlled variants and controlled/task/protected elements in discriminant-dependent arrays
+- Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
 - Interfaces, `goto`, `separate` subunits, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts

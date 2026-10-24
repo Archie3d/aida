@@ -37,8 +37,9 @@ variant selection still requires a static discriminant expression or static
 boxed default, including `others => <>`.
 
 Runtime explicit constraints and dependent component bounds now follow the
-[runtime-discriminant contract](runtime-discriminants.md). Controlled variant
-components, tagged discriminants, access discriminants, new derived
+[runtime-discriminant contract](runtime-discriminants.md); controlled variant
+components follow the [controlled-variant contract](controlled-variants.md).
+Tagged discriminants, access discriminants, new derived
 discriminant parts and general limited records retain their existing
 restrictions. Named discriminant constraints landed with runtime constraints; discriminant
 constraints on access subtypes remain unsupported. No broader representation or stream support is

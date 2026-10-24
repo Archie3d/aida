@@ -215,7 +215,7 @@ private:
     void prepareControlledObject(const Value& object, Type* type, bool library = false);
     void activateControlledObject(const Value& object, Type* type);
     void walkControlled(const Value& object, Type* type, bool parentFirst,
-                        const std::function<void(const Value&, Type*)>& action);
+                        const std::function<void(const Value&, Type*)>& action, bool activeOnly = true);
     void adjustControlledObject(const Value& object, Type* type, const std::string& viewTag = "");
     void finalizeControlledObject(const Value& object, Type* type, const std::string& viewTag = "");
     void copyControlledObject(const Value& target, const Value& source, Type* type, bool initialize);

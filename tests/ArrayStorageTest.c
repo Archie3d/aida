@@ -90,6 +90,11 @@ static void finalizeValue(void* object)
     }
 }
 
+static void finalizeAlternative(void* object)
+{
+    finalizationOrder = finalizationOrder * 10 + *(int*)object + 3;
+}
+
 static int adjustments;
 static void adjustValue(void* object)
 {
@@ -279,6 +284,20 @@ int main(void)
     CHECK(__ada_controlled_finalize(&firstObject) == 0 && finalizationOrder == 1);
     __ada_finalize_to(&finalizations, NULL);
     CHECK(finalizationOrder == 1 && __ada_task_context()->registeredFinalizations == NULL);
+    __ada_array_release(&owner);
+    CHECK(liveAllocations == 0);
+    /* Overlaid variant arms share addresses but select different finalizers.
+       Reserve before construction, then switch hooks after old-arm cleanup. */
+    finalizationOrder = 0;
+    __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeValue);
+    __ada_finalization_reserve(&finalizations, &owner, &firstObject, finalizeAlternative);
+    __ada_controlled_activate(&firstObject, finalizeValue);
+    CHECK(__ada_controlled_finalize(&firstObject) == 0 && finalizationOrder == 1);
+    __ada_controlled_activate(&firstObject, finalizeAlternative);
+    CHECK(__ada_controlled_adjust(&firstObject, adjustValue) == 0);
+    __ada_finalize_to(&finalizations, NULL);
+    CHECK(finalizationOrder == 14 && __ada_exception == NULL);
+    CHECK(__ada_task_context()->registeredFinalizations == NULL);
     __ada_array_release(&owner);
     CHECK(liveAllocations == 0);
     /* Library registrations outlive elaboration arenas. Shutdown must skip

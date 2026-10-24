@@ -81,7 +81,7 @@ available; general component-wise record streams remain Phase 7 work.
 ## Remaining limits and evidence
 
 Dependent arrays with controlled, task or protected elements are diagnosed.
-Controlled components in variant records remain the next Phase 6c item.
+Controlled variant components now follow the [controlled-variant contract](controlled-variants.md).
 Tagged composites containing managed dependent records and general limited
 record definitions retain their Phase 6f restrictions. Discriminant constraints
 on access subtypes remain unsupported; access types designating a constrained

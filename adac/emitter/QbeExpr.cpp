@@ -631,7 +631,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             if (partType->dependentStorage) { line("storel 0, " + part.name); }
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
-        });
+        }, false);
         std::string savedTaskCollection = m_context->taskCollection;
         std::string savedTaskGroup = m_context->taskGroup;
         m_context->taskCollection = collection.name;

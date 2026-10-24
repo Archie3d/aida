@@ -45,7 +45,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
 {
     Type* returnType = m_context->symbol->returnType;
     bool wideExtended = object != nullptr && returnType->classRoot != nullptr;
-    Type* type = wideExtended ? object->symbols.front()->type : returnType;
+    Type* type = object != nullptr && (wideExtended || returnType->kind == TypeKind::Record)
+        ? object->symbols.front()->type : returnType;
     if (type->classRoot != nullptr) {
         bool limited = hasLimitedControlledParts(type) || hasLimitedControlledParts(expression->type);
         std::string mark = newTemp();
@@ -102,6 +103,11 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     std::string ready = newLabel("resultready");
     pushHandler(failed);
 
+    if (object != nullptr) {
+        for (Type* constraint : object->constraintOrder) {
+            if (constraint->kind == TypeKind::Record) { emitDiscriminantConstraint(constraint); }
+        }
+    }
     Value destination { "%.result", 'l' };
     Value source;
     bool dynamic = QbeSupport::isUnconstrainedArray(type);
@@ -209,7 +215,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             if (partType->dependentStorage) { line("storel 0, " + part.name); }
             emitCallInstruction("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
-        });
+        }, false);
     }
     std::string savedOwner = m_context->constructionOwner;
     std::string savedArena = m_context->constructionArena;
@@ -302,9 +308,10 @@ void QbeEmitter::initializeFinalization()
 
 // Controlled nodes and records owning component storage need registrations;
 // ordinary composites borrow their components' records. Postorder registration
-// gives parent-before-child cleanup.
+// gives parent-before-child cleanup. Reservation walks include every possible
+// arm without reading discriminants; operations on live objects select active arms.
 void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirst,
-                                const std::function<void(const Value&, Type*)>& action)
+                                const std::function<void(const Value&, Type*)>& action, bool activeOnly)
 {
     if (!needsFinalization(type)) {
         return;
@@ -339,7 +346,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
         cell.name = newTemp();
         line(offset + " =l mul " + index + ", " + elementSize);
         line(cell.name + " =l add " + object.name + ", " + offset);
-        walkControlled(cell, type->element, parentFirst, action);
+        walkControlled(cell, type->element, parentFirst, action, activeOnly);
         std::string next = newTemp();
         line(next + " =l add " + index + ", 1");
         line("storel " + next + ", " + cursor);
@@ -348,8 +355,16 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     } else if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : baseType(type)->fields) {
             if (needsFinalization(field.type)) {
+                std::string done;
+                if (activeOnly && field.variant >= 0) {
+                    std::string active = newLabel("controlledvariant");
+                    done = newLabel("controlledvariantdone");
+                    branch(variantCondition(object, baseType(type), field.variant), active, done);
+                    label(active);
+                }
                 Value component = fieldAddress(object, baseType(type), field);
-                walkControlled(component, field.type, parentFirst, action);
+                walkControlled(component, field.type, parentFirst, action, activeOnly);
+                if (!done.empty()) { jump(done); label(done); }
             }
         }
     }
@@ -371,7 +386,7 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
         std::string owner = temporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
         emitCallInstruction("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)
              + ", l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
-    });
+    }, false);
 }
 
 void QbeEmitter::activateControlledObject(const Value& object, Type* type)
@@ -391,6 +406,11 @@ void QbeEmitter::adjustControlledObject(const Value& object, Type* type, const s
             activateControlledObject(part, partType);
             emitCallInstruction("call " + rootType(partType)->tagName + ".adjust(l " + part.name + ")", CallEffects::CheckException);
             return;
+        }
+        // Variant alternatives can reuse an address with a different hook.
+        // Select the current component's finalizer before adjustment.
+        if (viewTag.empty() || part.name != object.name || partType != type) {
+            activateControlledObject(part, partType);
         }
         std::string failed = newTemp();
         std::string previous = newTemp();
@@ -513,6 +533,16 @@ void QbeEmitter::emitControlledParts(Type* type)
         emitCallInstruction("call %visit(l " + part.name + ", l " + root->tagName + ".finalize, l "
              + (root->isLimited ? "0" : root->tagName + ".adjust") + ", l %context)", CallEffects::CheckException);
     };
+    std::string reserve = newLabel("partsreserve");
+    std::string active = newLabel("partsactive");
+    std::string reserving = newTemp();
+    line(reserving + " =w ceqw %parentFirst, 2");
+    branch(Value { reserving, 'w' }, reserve, active);
+    label(reserve);
+    walkControlled(Value { "%object", 'l' }, type, false, visit, false);
+    emitReturn();
+    context.terminated = true;
+    label(active);
     std::string parent = newLabel("partsparent");
     std::string child = newLabel("partschild");
     branch(Value { "%parentFirst", 'w' }, parent, child);

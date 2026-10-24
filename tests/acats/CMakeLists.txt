@@ -61,3 +61,7 @@ add_acats_test(c37306a)
 # Runtime discriminant constraint elaboration and default range checks.
 add_acats_test(c37211a)
 add_acats_test(c37108b)
+
+# Controlled copy and anonymous variant object lifetime.
+add_acats_test(c760007)
+add_acats_test(c761012 REJECTION "new discriminant parts on derived types are not yet supported")

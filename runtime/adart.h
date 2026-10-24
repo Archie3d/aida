@@ -33,6 +33,7 @@ typedef struct AdaTag
     int64_t slotCount;
     int64_t isAbstract;
     int64_t needsFinalization;
+    /* Walk mode: 0 active child-first, 1 active parent-first, 2 reserve all alternatives. */
     void (*parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
     int64_t hasLimitedParts;
 } AdaTag;

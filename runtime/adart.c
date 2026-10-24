@@ -1694,8 +1694,8 @@ static void reserveTaggedPart(void* part, void (*finalize)(void*), void (*adjust
 
 static void adjustTaggedPart(void* part, void (*finalize)(void*), void (*adjust)(void*), void* context)
 {
-    (void)finalize;
     TaggedCopyContext* copy = context;
+    __ada_controlled_activate(part, finalize);
     copy->failed |= __ada_controlled_adjust(part, adjust);
 }
 
@@ -1716,7 +1716,7 @@ static void copyTaggedObject(void* target, const void* source, TaggedCopyContext
         return;
     }
     if (reserve && tag->parts != NULL) {
-        tag->parts(target, reserveTaggedPart, copy, 0);
+        tag->parts(target, reserveTaggedPart, copy, 2);
         if (context->exception != NULL) {
             return;
         }

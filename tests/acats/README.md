@@ -171,3 +171,18 @@ as a pass.
 | --- | --- | --- |
 | c37211a.ada | `4b718a9ec687889dddc3d30ff0d2dc600dd14d76` | `c9ee082dfe546ebe939a6e829a6d32d19fde39b3f75e191adbf7a99e2e6c915d` |
 | c37108b.ada | `9d71e9a729cff416a35454f655ccc4408ba1aeed` | `5bb94ec1285febbf4a61db94429e3c9b3f44e19bf3d67de0539a77f9a333e85b` |
+
+Controlled-component selection (2026-10-24): unchanged
+[C760007](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c7/c760007.a)
+and [C761012](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c7/c761012.a)
+are stored with `.ada` extensions and retain their rights/disclaimers.
+C760007 passes controlled adjustment/copy requirements (RM 7.6).
+C761012 checks anonymous variant-object lifetime after failed selection
+(RM 7.6.1); it is an exact compile XFAIL for unsupported new discriminants on
+derived tagged types. Local `controlledvariants` and `controlledvariantlimited`
+cover controlled variant components; C761012 is not claimed as an upstream pass.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| c760007.ada | `c1ddfcb93452dce1c0ceeedabb8b776693219476` | `10a56a3ec80555fdfd5336e6a0c65f90a84491306582ca8489064bd3b6db737f` |
+| c761012.ada | `77b9e2253bf7a3f271a3cd8c4381c1763f254887` | `b8e5d2f38a7fe0b6258762c6330934df7f848f3838f6b15aa678051867087c25` |

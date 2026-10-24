@@ -273,5 +273,5 @@ void QbeEmitter::initializeDependentStorage(const Value& object, Type* type)
         std::string slot = newTemp();
         line(slot + " =l add " + part.name + ", 8");
         line("storel " + (partType->layoutSymbol ? layoutAddress(partType).name : "0") + ", " + slot);
-    });
+    }, false);
 }

@@ -4,6 +4,5 @@ nestedvariantserrors.adb:17:44: error: 'Inner' was fixed at TRUE when the object
 nestedvariantserrors.adb:23:26: error: TRUE is covered by an earlier choice
 nestedvariantserrors.adb:32:17: error: the variant part leaves FALSE uncovered
 nestedvariantserrors.adb:42:17: error: 'Value' is not a discriminant of 'Bad_Selector'
-nestedvariantserrors.adb:49:5: error: variant records with controlled components are not yet supported
 nestedvariantserrors.adb:60:6: error: 'Leaf' belongs to another variant of 'Item' than the one this value has
 nestedvariantserrors.adb:61:6: error: 'Leaf' belongs to another variant of 'Item' than the one this value has
