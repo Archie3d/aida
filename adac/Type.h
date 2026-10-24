@@ -38,6 +38,10 @@ struct FieldInfo
     // A leading component named in the discriminant part. Only whole-object
     // assignment to an unconstrained variable may change it.
     bool isDiscriminant = false;
+    // An explicit slot includes any reserved trailing bytes. Dependent arrays
+    // use inline payload storage in represented records instead of a view slot.
+    long long representationSize = -1;
+    bool inlineDependent = false;
     bool dependentBounds = false; // This field stores an object-owned array view.
 
     // Which alternative of the variant part the component belongs to, or -1
@@ -127,6 +131,7 @@ struct Type
     // selector, or -1 when there is no variant part. Each nested alternative
     // records its own selector and parent in variants.
     int discriminantCount = 0;
+    bool recordRepresentationSpecified = false;
     int variantOn = -1;
     std::vector<VariantInfo> variants;
 
@@ -240,6 +245,8 @@ bool hasTasks(const Type* type);
 bool hasProtected(const Type* type);
 bool hasIncompleteParts(const Type* type);
 bool hasLimitedControlledParts(const Type* type);
+long long fieldStorageSize(const FieldInfo& field);
+bool variantsExclusive(const Type* type, int left, int right);
 
 // The type identity at the root of a subtype chain.
 Type* rootType(Type* type);

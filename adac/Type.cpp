@@ -161,7 +161,7 @@ long long typeSize(const Type* type)
             // The alternatives of a variant part share their storage, so the
             // record reaches as far as the largest of them and no further.
             long long end;
-            long long fieldSize = field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) : typeSize(field.type);
+            long long fieldSize = fieldStorageSize(field);
             if (__builtin_add_overflow(field.offset, fieldSize, &end)) {
                 return std::numeric_limits<long long>::max();
             }
@@ -178,6 +178,25 @@ long long typeSize(const Type* type)
     }
     }
     return 0;
+}
+
+long long fieldStorageSize(const FieldInfo& field)
+{
+    if (field.representationSize >= 0) { return field.representationSize; }
+    return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) : typeSize(field.type);
+}
+
+bool variantsExclusive(const Type* type, int left, int right)
+{
+    for (int a = left; a >= 0; a = type->variants[a].parent) {
+        for (int b = right; b >= 0; b = type->variants[b].parent) {
+            if (a != b && type->variants[a].parent == type->variants[b].parent
+                && type->variants[a].discriminant == type->variants[b].discriminant) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 // Size clauses add trailing storage without changing component offsets.
@@ -434,6 +453,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->parentFieldCount = completed->parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->fields = completed->fields;
+        subtype->recordRepresentationSpecified = completed->recordRepresentationSpecified;
         subtype->layoutSymbol = completed->layoutSymbol;
         subtype->taskBody = completed->taskBody;
         subtype->protectedScope = completed->protectedScope;

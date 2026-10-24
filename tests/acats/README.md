@@ -186,3 +186,22 @@ cover controlled variant components; C761012 is not claimed as an upstream pass.
 | --- | --- | --- |
 | c760007.ada | `c1ddfcb93452dce1c0ceeedabb8b776693219476` | `10a56a3ec80555fdfd5336e6a0c65f90a84491306582ca8489064bd3b6db737f` |
 | c761012.ada | `77b9e2253bf7a3f271a3cd8c4381c1763f254887` | `b8e5d2f38a7fe0b6258762c6330934df7f848f3838f6b15aa678051867087c25` |
+
+Record representation selection (2026-10-24): unchanged
+[CD4051A](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd4051a.ada)
+and [CD1C03H](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd1c03h.ada)
+pass record placement and inherited component positions/sizes (RM 13.5.1–13.5.2).
+[CD4031A](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd4031a.ada)
+checks overlapping variants with bit-packed fields; it is an exact compile
+XFAIL for unsupported bit storage, not an upstream executable pass. All three
+files were retrieved on 2026-10-24 and retain their original rights/disclaimers.
+CD4051B/CD1C04E were assessed and deferred because they change a derived record's
+inherited layout; that extension and representation-aware conversions remain
+Phase 8. CD1009N additionally requires representation items across a package's
+visible/private boundary; the current conservative adjacency rule rejects it.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| cd4051a.ada | `746f82bcd095abc314be330f366f4adf20585d48` | `ce7a16a8cc4ad1adb791fc931ece34101f406dc9c5159bfd106c3756e23e8adb` |
+| cd1c03h.ada | `ad84e9196110dfbfdee090794c679ae0b8dfd83d` | `b0ae09307d146d6cec4e3b5b7d0f9fcbb986e5d60c014f68477b0cb5652f4ef6` |
+| cd4031a.ada | `936088d6502a611b2a04e5f289743f7668948d0a` | `c32e432ec7e5aafd7c5f541ac1140cc82df7595029c5a62e54571bd264e1db55` |

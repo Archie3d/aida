@@ -1357,7 +1357,7 @@ target_link_libraries(scalar_bounds_test PRIVATE adart)
 add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
-foreach(dynamic_case controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
+foreach(dynamic_case recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
@@ -1407,3 +1407,23 @@ add_ada_error_test(defaultdiscriminanterrors SOURCES defaultdiscriminanterrors.a
 add_ada_error_test(discriminantcomponenterrors SOURCES discriminantcomponenterrors.adb)
 
 set_tests_properties(error.discriminantcomponenterrors PROPERTIES TIMEOUT 10)
+
+foreach(record_case recordrepresentation recorddependent)
+    add_determinism_test(${record_case} SOURCE ${record_case}.adb)
+    add_test(NAME runtime.${record_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/SizeStorage.c
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${record_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${record_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${record_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${record_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_ada_error_test(recordrepresentationerrors SOURCES recordrepresentationerrors.adb)

@@ -3,8 +3,8 @@
 Ada 2005 RM 13.1 and [13.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-3.html)
 and [13.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-4.html)
 are the baseline. Phase 5 implements byte-addressable Size, alignment and
-enumeration mapping. Record representation clauses
-follow discriminated records in Phase 6c.
+enumeration mapping; Phase 6c adds byte-addressable record component clauses,
+including variants and bounded discriminant-dependent arrays.
 
 ## Alignment subset
 
@@ -106,8 +106,9 @@ align subsequent fields using the selected component sizes.
 For static, complete, untagged noncontrolled composites, Size can add trailing
 storage or remove previously inherited trailing storage. It cannot shrink below
 the existing component layout or choose a size not divisible by alignment.
-Fields, variants and array elements retain their offsets; record representation
-clauses, component packing and dynamic layouts remain separate work. Changing
+Size clauses preserve field, variant and array-element offsets. Record component
+clauses below can choose field offsets; bit packing and dynamic layouts remain
+separate work. Changing
 sizes of limited, task/protected or controlled composites is diagnosed.
 Confirming clauses retain the existing behavior.
 
@@ -127,6 +128,85 @@ destination subtype before copy-back. Record streams retain native storage;
 array streams retain contiguous component data, omitting trailing array storage.
 Static array Input allocates the full subtype storage before reading that data.
 This remains representation-oriented streaming, not general Ada stream support.
+
+## Record components
+
+Ada 2005 RM [13.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-5-1.html)
+and [13.5.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-5-2.html)
+are the baseline. Complete, visible, untagged record first subtypes can specify
+some, all or none of their components, including discriminants:
+
+```ada
+type Pair is record
+    A, B : Integer;
+end record;
+for Pair use record
+    B at 0 range 0 .. 31;
+    A at 4 range 0 .. 31;
+end record;
+```
+
+Position and bit bounds must be static integers. Position and first bit must
+be nonnegative; last bit may be first bit minus one for empty storage. Offsets,
+extents and final alignment padding are checked for overflow. The current
+subset requires whole bytes and natural component alignment. A nonzero first
+bit that is a byte multiple is normalized into the byte position. Integer and
+enumeration components can use smaller 8/16/32/64-bit storage when supported by
+the existing scalar load/store model and all subtype values fit (enumerations
+stop at 32 bits). Their arithmetic and scalar call ABI retain the original type.
+Other components require at least their existing storage size. A larger slot
+reserves trailing bytes without changing the value's load/store format.
+
+Repeated/unknown component names, duplicate clauses, insufficient storage,
+alignment violations and overlapping components that can coexist produce
+diagnostics. Distinct alternatives of the same variant part may overlay;
+nested alternatives inherit their enclosing exclusions. Common components and
+a nested variant's parent components must remain distinct. Omitted components
+are placed after all specified slots, in declaration order; a confirming clause
+on a derived type preserves inherited positions. Derivation and subtype aliases
+inherit settled layouts, including narrowed scalar fields.
+
+Clauses must belong to the adjacent representation group after the type
+specification. Component placement is settled before the group's Size and
+Alignment items, so either textual order works. Size must cover the final
+layout; existing alignment constraints still apply. The obsolescent `at mod N;`
+form supports 1/2/4/8 alignment without weakening component alignment.
+
+`Position`, `First_Bit` and `Last_Bit` accept selected record components without
+arguments and evaluate their enclosing object once. They report normalized
+byte position, zero first bit and the specified slot's last bit. Without a
+component clause, the existing component layout is reported. A scalar
+component's Size reports its reserved slot. Array component Size continues to
+report the actual per-object payload extent. Storage-place queries for
+separately allocated dependent array payloads are explicitly diagnosed.
+
+### Discriminant-dependent arrays
+
+A record clause changes direct dependent arrays from object-owned descriptors
+to inline slots. Their maximum extent is conservatively bounded from static
+component bounds and the discriminants' declared scalar ranges. Each specified
+slot must cover that maximum; omitted dependent components receive such a slot
+automatically. For example, a discriminant subtype `Natural range 0 .. 6` allows
+`String (1 .. N)` in a six-byte slot. Bounds with no static maximum, including
+nonstatic captured bounds, remain diagnosed. One- and multidimensional arrays
+use the same rule.
+
+The record has fixed size and contains its payload directly. Component array
+views still derive bounds and strides from the enclosing object's current
+discriminants. Construction checks the actual extent against its slot before
+writing. Default/aggregate initialization, mutable variant assignment, copies,
+function results, array elements and allocations therefore retain independent
+values without descriptor ownership or a new runtime allocator. Controlled
+components elsewhere in the record keep their existing lifetime registrations.
+
+### Remaining record restrictions
+
+Bit-packed or unaligned fields, changing an inherited record layout, tagged,
+task/protected representations, declaration-sized runtime layouts, general
+freezing and clauses separated from their type declaration remain diagnosed.
+Dependent arrays of controlled/task/protected elements retain their existing
+restriction. Extending byte storage, derived layout conversion and freezing is
+tracked in Phase 8; tagged representations remain Phase 6f.
 
 ## Evidence
 
@@ -174,3 +254,22 @@ explicit compile XFAIL for unsupported Pack/bit storage. This is a tracked gap,
 not an upstream pass; the normal ACATS suite and its strict XFAIL grading remain
 required. Other reviewed Size cases require packing, unchecked conversion,
 implementation substitutions or facilities outside this step.
+
+`recordrepresentation` checks actual component addresses and C-observed bytes,
+partial/reordered/normalized clauses, narrowed scalar fields and calls, Size
+before/after placement, globals, captures, derived layouts, generic swapping,
+heap objects and four concurrent tasks. `recorddependent` covers inline one-
+and two-dimensional arrays, mutable discriminants, nested variant storage,
+copy independence, derived types, arrays of records, results and deallocation.
+`recordcontrolled` checks overlaid controlled components, assignment failure,
+recovery and cleanup. All run whole/separate compilation with deterministic IR.
+`recordrepresentationerrors` pins legality and subset limits; the storage unit
+test checks explicit extents and nested variant exclusivity.
+
+The full suite passes. The focused frontend/unit/ACATS checks pass with UBSan;
+the three execution regressions pass whole/separate with an ASan/UBSan runtime
+and C observer. The four-task placement test also passes whole/separate with
+a ThreadSanitizer runtime. QBE-generated memory accesses remain uninstrumented.
+Unchanged ACATS CD4051A and CD1C03H pass placement and inherited storage-place
+requirements. CD4031A is an exact compile XFAIL for bit-packed variant fields,
+not an executable conformance pass. Provenance is in `tests/acats/README.md`.

@@ -86,7 +86,7 @@ Tagged composites containing managed dependent records and general limited
 record definitions retain their Phase 6f restrictions. Discriminant constraints
 on access subtypes remain unsupported; access types designating a constrained
 record subtype and record allocator constraints are supported. Record
-representation clauses remain the later Phase 6c item.
+clauses can instead use [bounded inline payloads](representation-clauses.md).
 
 `runtimediscriminants`, `discriminantcomponents`, `discriminantcleanup` and
 `discriminanttasking` cover evaluation timing, grouped/named constraints,

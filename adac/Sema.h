@@ -137,6 +137,7 @@ private:
     void analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope);
     void layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope);
     void reportIncompleteTypes(DeclList& declarations);
+    void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);
     void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);
     void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,

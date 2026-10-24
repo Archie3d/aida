@@ -65,3 +65,8 @@ add_acats_test(c37108b)
 # Controlled copy and anonymous variant object lifetime.
 add_acats_test(c760007)
 add_acats_test(c761012 REJECTION "new discriminant parts on derived types are not yet supported")
+
+# Byte-addressable record placement and inherited storage attributes.
+add_acats_test(cd4051a)
+add_acats_test(cd1c03h)
+add_acats_test(cd4031a REJECTION "bit-packed record components are not yet supported")

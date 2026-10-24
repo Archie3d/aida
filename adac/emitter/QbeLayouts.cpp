@@ -70,6 +70,11 @@ Value QbeEmitter::fieldStorage(const Value& object, Type* type, const FieldInfo&
 Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo& field)
 {
     Value address = fieldStorage(object, type, field);
+    if (field.inlineDependent) {
+        Value view = dependentFieldBounds(object, type, field);
+        view.name = address.name;
+        return view;
+    }
     if (field.dependentBounds) {
         Value view = loadArrayView(address.name, field.type->arrayRank, false);
         view.name = newTemp();
@@ -79,8 +84,13 @@ Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo&
     return withBounds(address, field.type, nullptr);
 }
 
-void QbeEmitter::initializeDependentField(const Value& object, Type* type, const FieldInfo& field)
+Value QbeEmitter::dependentFieldBounds(const Value& object, Type* type, const FieldInfo& field)
 {
+    auto savedObjects = m_context->discriminantObjects;
+    // Derived records retain the original discriminant expressions.
+    for (Type* walk = baseType(type); walk != nullptr; walk = walk->parentType) {
+        m_context->discriminantObjects[baseType(walk)] = object;
+    }
     Value view;
     Type* axis = field.type;
     Value captured = boundsFor(field.type->boundsSymbol);
@@ -107,6 +117,23 @@ void QbeEmitter::initializeDependentField(const Value& object, Type* type, const
         axis = axis->element;
     }
     view = arrayView(view, field.type);
+    m_context->discriminantObjects = std::move(savedObjects);
+    return view;
+}
+
+void QbeEmitter::initializeDependentField(const Value& object, Type* type, const FieldInfo& field)
+{
+    Value view = dependentFieldBounds(object, type, field);
+    if (field.inlineDependent) {
+        std::string bytes = objectBytes(view, field.type);
+        std::string fits = newTemp(), ready = newLabel("inlinecomponentready"), bad = newLabel("inlinecomponentoverflow");
+        line(fits + " =w culel " + bytes + ", " + std::to_string(field.representationSize));
+        branch(Value {fits, 'w'}, ready, bad);
+        label(bad);
+        raiseConstraintError();
+        label(ready);
+        return;
+    }
     view.name = newTemp();
     emitCallInstruction(view.name + " =l call $__ada_array_local(l " + object.name + ", l " + view.first
         + ", l " + view.last + ", l " + view.strides.front() + ")", CallEffects::CheckException);
@@ -118,7 +145,7 @@ void QbeEmitter::initializeDependentField(const Value& object, Type* type, const
 void QbeEmitter::cloneDependentStorage(const Value& object, Type* type)
 {
     for (const FieldInfo& field : baseType(type)->fields) {
-        if (!field.dependentBounds) { continue; }
+        if (!field.dependentBounds || field.inlineDependent) { continue; }
         std::string done;
         if (field.variant >= 0) {
             std::string active = newLabel("clonestorage");

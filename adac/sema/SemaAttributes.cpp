@@ -859,6 +859,30 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    if (name == "position" || name == "first_bit" || name == "last_bit") {
+        auto* component = expr->prefix->kind == ExprKind::Selected
+            ? static_cast<SelectedExpr*>(expr->prefix.get()) : nullptr;
+        Type* record = component != nullptr ? component->prefix->type : nullptr;
+        if (record != nullptr && record->kind == TypeKind::Access) { record = record->target; }
+        record = baseType(record);
+        if (component == nullptr || component->fieldIndex < 0 || record == nullptr
+            || !representationVisible(record) || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "a storage-place attribute requires a visible record component and no arguments");
+            return nullptr;
+        }
+        const FieldInfo& field = record->fields[component->fieldIndex];
+        if (field.dependentBounds && !field.inlineDependent) {
+            m_diagnostics.error(expr->location, "storage-place attributes of discontiguous dependent array components are not yet supported");
+            return nullptr;
+        }
+        if (name == "last_bit" && !hasRuntimeLayout(field.type) && fieldStorageSize(field) > INT64_MAX / 8) {
+            m_diagnostics.error(expr->location, "'Last_Bit exceeds signed 64-bit result capacity");
+            return nullptr;
+        }
+        expr->type = m_types.universalInteger();
+        return expr->type;
+    }
+
     if (name == "alignment") {
         if (prefixType == nullptr || !representationVisible(prefixType) || prefixType->isIncomplete
             || prefixType->classRoot != nullptr || !expr->arguments.empty()) {
@@ -892,7 +916,18 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return expr->type;
         }
         expr->isStatic = true;
-        if (__builtin_mul_overflow(typeSize(prefixType), 8LL, &expr->staticValue)) {
+        long long size = typeSize(prefixType);
+        if (expr->prefix->kind == ExprKind::Selected) {
+            auto* component = static_cast<SelectedExpr*>(expr->prefix.get());
+            Type* record = component->prefix->type;
+            if (record != nullptr && record->kind == TypeKind::Access) { record = record->target; }
+            record = baseType(record);
+            if (component->fieldIndex >= 0 && record != nullptr && record->kind == TypeKind::Record) {
+                const FieldInfo& field = record->fields[component->fieldIndex];
+                if (field.representationSize >= 0 && !field.inlineDependent) { size = field.representationSize; }
+            }
+        }
+        if (__builtin_mul_overflow(size, 8LL, &expr->staticValue)) {
             m_diagnostics.error(expr->location, "'Size exceeds signed 64-bit result capacity");
         }
         return expr->type;

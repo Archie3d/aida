@@ -110,5 +110,31 @@ int main()
     text.dependentBounds = false;
     perObject->fields.push_back(text);
     CHECK(hasRuntimeLayout(perObject));
+    // Explicit slots determine extent independently of a component's value size.
+    Type* represented = types.create(TypeKind::Record, "Represented");
+    FieldInfo slot;
+    slot.type = types.integerType();
+    slot.offset = 16;
+    slot.representationSize = 12;
+    represented->fields = {slot};
+    CHECK(fieldStorageSize(slot) == 12 && typeLayoutSize(represented) == 28);
+    slot.type = types.stringType();
+    slot.dependentBounds = true;
+    slot.inlineDependent = true;
+    slot.representationSize = 8;
+    represented->fields = {slot};
+    CHECK(typeSize(represented) == 24 && !hasRuntimeLayout(represented));
+    CHECK(!needsFinalization(represented) && !hasDependentStorage(represented));
+    Type* variants = types.create(TypeKind::Record, "Variants");
+    variants->variants = {
+        {-1, 0, {}, false}, {-1, 0, {}, true},
+        {0, 1, {}, false}, {0, 1, {}, true}
+    };
+    CHECK(variantsExclusive(variants, 0, 1));
+    CHECK(variantsExclusive(variants, 2, 1));
+    CHECK(variantsExclusive(variants, 2, 3));
+    CHECK(!variantsExclusive(variants, -1, 2));
+    CHECK(!variantsExclusive(variants, 0, 2));
+    CHECK(!variantsExclusive(variants, 2, 2));
     return 0;
 }

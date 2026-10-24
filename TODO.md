@@ -326,7 +326,7 @@ gaps retain their later-phase owners in the coverage matrix.
 - [x] **Representation clauses.** Implement alignment and enumeration
   representation clauses, one at a time, replacing their Phase 1 rejections.
   Also let `'Size` change subtype storage and composite layouts. Record
-  representation clauses follow discriminated records in Phase 6.
+  representation clauses landed after discriminated records in Phase 6c.
   - [x] Alignment first-subtype clauses and subtype/object attributes: 0 and
     powers of two through 8, adjacent representation items, inherited alignment,
     record padding and aligned composite storage (`alignmentclauses`,
@@ -464,8 +464,15 @@ construction, cleanup and dispatch mechanisms.
   determinism checks; unchanged ACATS C760007 PASS, C761012 compile XFAIL for
   new derived tagged discriminants). Dependent controlled arrays and task/
   protected variants remain diagnosed. [Contract and limits](docs/controlled-variants.md).
-- [ ] Record representation clauses (moved from Phase 5), including variant
-  parts and discriminant-dependent components, replacing the Phase 1 rejection.
+- [x] Record representation clauses (moved from Phase 5): byte-addressable
+  component/discriminant positions, narrowed scalar storage, nested variant
+  overlays, bounded inline dependent arrays and storage-place attributes,
+  replacing the Phase 1 rejection (`recordrepresentation`, `recorddependent`,
+  `recordcontrolled`, `recordrepresentationerrors`; unit/whole/separate/
+  determinism, four-task and sanitizer checks; unchanged ACATS CD4051A/CD1C03H
+  PASS, CD4031A packing XFAIL). Bit packing, unaligned fields, changed inherited
+  layouts and general freezing remain diagnosed and tracked in Phase 8;
+  tagged layouts remain Phase 6f. [Contract](docs/representation-clauses.md).
 
 ### 6d. Access types
 
@@ -587,6 +594,11 @@ Ada 2005 additions and track annex packages separately.
   and ACATS coverage, and owning roadmap item. Include completed features in the
   gap review; classify core requirements, implementation-defined choices,
   extensions and selected Specialized Needs Annex facilities separately.
+- [ ] Extend record representation support beyond the Phase 6c byte subset:
+  bit-packed and unaligned fields, changed layouts on untagged derived types
+  with representation-aware conversions/inherited operations, general freezing
+  and nonadjacent/private-part clauses. Track CD4031A (packing XFAIL), CD4051B
+  and CD1C04E (changed derived layouts) as applicable upstream cases.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada

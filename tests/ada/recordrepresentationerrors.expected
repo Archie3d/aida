@@ -1,0 +1,28 @@
+recordrepresentationerrors.adb:7:5: error: component storage overlaps for 'B' and 'A'
+recordrepresentationerrors.adb:16:9: error: duplicate component clause for 'A'
+recordrepresentationerrors.adb:17:9: error: 'Unknown' is not a component of 'Duplicate'
+recordrepresentationerrors.adb:23:14: error: a record representation expression must be a static integer
+recordrepresentationerrors.adb:29:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
+recordrepresentationerrors.adb:30:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
+recordrepresentationerrors.adb:31:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
+recordrepresentationerrors.adb:37:9: error: bit-packed record components are not yet supported; component storage must be byte-aligned
+recordrepresentationerrors.adb:43:9: error: component storage is smaller than its required representation
+recordrepresentationerrors.adb:49:9: error: a record component position must respect its natural alignment
+recordrepresentationerrors.adb:55:9: error: record component storage exceeds signed 64-bit capacity
+recordrepresentationerrors.adb:59:5: error: duplicate record representation clause
+recordrepresentationerrors.adb:62:5: error: a record representation clause must be adjacent to its type declaration, before representation use
+recordrepresentationerrors.adb:64:5: error: a record representation clause requires a complete, visible, untagged record first subtype without task or protected parts
+recordrepresentationerrors.adb:66:5: error: a record representation clause requires a complete, visible, untagged record first subtype without task or protected parts
+recordrepresentationerrors.adb:71:9: error: component storage is smaller than its required representation
+recordrepresentationerrors.adb:76:5: error: record representation clauses with declaration-sized runtime components are not yet supported
+recordrepresentationerrors.adb:81:5: error: changing inherited record component layouts is not yet supported
+recordrepresentationerrors.adb:81:5: error: changing inherited record component layouts is not yet supported
+recordrepresentationerrors.adb:88:5: error: composite Size must cover its components and be a multiple of its alignment
+recordrepresentationerrors.adb:93:5: error: a record mod clause supports alignments 1, 2, 4 and 8 no smaller than natural alignment
+recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Parent_Field' and 'Common'
+recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Leaf' and 'Common'
+recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Leaf' and 'Parent_Field'
+recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Other' and 'Common'
+recordrepresentationerrors.adb:117:34: error: a storage-place attribute requires a visible record component and no arguments
+recordrepresentationerrors.adb:118:38: error: a storage-place attribute requires a visible record component and no arguments
+recordrepresentationerrors.adb:123:43: error: storage-place attributes of discontiguous dependent array components are not yet supported

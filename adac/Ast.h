@@ -1042,6 +1042,16 @@ struct PragmaDecl : Decl
 //
 //     for Stream_Element'Size use 8;
 //
+struct ComponentClause
+{
+    SourceLocation location;
+    std::string name;
+    std::string lower;
+    ExprPtr position;
+    ExprPtr firstBit;
+    ExprPtr lastBit;
+};
+
 struct RepresentationDecl : Decl
 {
     RepresentationDecl()
@@ -1053,6 +1063,8 @@ struct RepresentationDecl : Decl
     std::string lower;
     std::string attribute;
     ExprPtr value;
+    ExprPtr modulus;
+    std::vector<ComponentClause> components;
 };
 
 // ---------------------------------------------------------------------------

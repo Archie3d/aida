@@ -583,6 +583,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool isLimited = type->isLimited;
         bool privateViewTagged = type->privateViewTagged;
         *type = *built;
+        type->recordRepresentationSpecified = false;
         if (completing != nullptr) {
             type->privateTo = privateTo;
             type->privateViewTagged = privateViewTagged;
@@ -1079,6 +1080,10 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     if (symbol == nullptr || symbol->kind != SymbolKind::TypeName || symbol->type == nullptr
         || std::find(localSymbols.begin(), localSymbols.end(), symbol) == localSymbols.end()) {
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
+        return;
+    }
+    if (decl->attribute == "record") {
+        analyzeRecordRepresentation(decl, scope, symbol->type, precedingType);
         return;
     }
     if (decl->attribute == "enumeration") {

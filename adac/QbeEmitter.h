@@ -199,6 +199,7 @@ private:
     void emitRecordLayout(Type* type);
     std::string fieldOffset(Type* type, const FieldInfo& field);
     Value fieldAddress(const Value& object, Type* type, const FieldInfo& field);
+    Value dependentFieldBounds(const Value& object, Type* type, const FieldInfo& field);
     Value allocatedArrayView(Value pointer, Type* type);
     long long reserveFrame(long long size, long long alignment = 8);
     std::string allocScratch(long long size, long long alignment = 1);

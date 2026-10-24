@@ -258,8 +258,8 @@ DeclPtr Parser::parsePragma(bool allowShared)
     return pragma;
 }
 
-// Diagnose unsupported forms here, including record clauses whose internal
-// semicolons need special recovery, instead of dropping their requested layout.
+// Parse each representation form explicitly; unsupported forms must never
+// silently discard a requested layout.
 DeclPtr Parser::parseRepresentationClause()
 {
     SourceLocation location = current().location;
@@ -276,15 +276,31 @@ DeclPtr Parser::parseRepresentationClause()
             return decl;
         }
         if (match(TokenKind::KwRecord)) {
-            m_diagnostics.error(location, "record representation clauses are not yet supported");
-            while (!check(TokenKind::EndOfFile)) {
-                if (check(TokenKind::KwEnd) && peek(1).kind == TokenKind::KwRecord) {
-                    advance();
-                    advance();
-                    break;
-                }
-                advance();
+            decl->attribute = "record";
+            if (match(TokenKind::KwAt)) {
+                expect(TokenKind::KwMod, "in record mod clause");
+                decl->modulus = parseExpression();
+                expect(TokenKind::Semicolon, "after record mod clause");
             }
+            while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {
+                ComponentClause component;
+                component.location = current().location;
+                const Token& name = expect(TokenKind::Identifier, "as component name");
+                component.name = name.text;
+                component.lower = name.lower;
+                expect(TokenKind::KwAt, "after component name");
+                component.position = parseExpression();
+                expect(TokenKind::KwRange, "after component position");
+                component.firstBit = parseSimpleExpression();
+                expect(TokenKind::DoubleDot, "in component bit range");
+                component.lastBit = parseSimpleExpression();
+                expect(TokenKind::Semicolon, "after component clause");
+                decl->components.push_back(std::move(component));
+            }
+            expect(TokenKind::KwEnd, "after component clauses");
+            expect(TokenKind::KwRecord, "after end");
+            expect(TokenKind::Semicolon, "after record representation clause");
+            return decl;
         } else {
             m_diagnostics.error(location, check(TokenKind::KwAt)
                 ? "address clauses are not yet supported"

@@ -1,0 +1,4 @@
+cd4031a.ada:60:16: error: bit-packed record components are not yet supported; component storage must be byte-aligned
+cd4031a.ada:62:16: error: bit-packed record components are not yet supported; component storage must be byte-aligned
+cd4031a.ada:64:16: error: bit-packed record components are not yet supported; component storage must be byte-aligned
+cd4031a.ada:66:16: error: bit-packed record components are not yet supported; component storage must be byte-aligned

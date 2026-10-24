@@ -2,6 +2,7 @@
 #include "SemaSupport.h"
 
 #include <algorithm>
+#include <unordered_set>
 
 using SemaSupport::adaptUniversal;
 using SemaSupport::objectView;
@@ -22,14 +23,29 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
         }
     }
     Type* precedingType = nullptr;
-    for (const DeclPtr& decl : declarations) {
+    std::unordered_set<const Decl*> settledRecordClauses;
+    for (std::size_t i = 0; i < declarations.size(); ++i) {
+        const DeclPtr& decl = declarations[i];
         if (decl->kind == DeclKind::Representation) {
+            if (settledRecordClauses.contains(decl.get())) { continue; }
             analyzeRepresentation(static_cast<RepresentationDecl*>(decl.get()), scope, precedingType);
             // Adjacent representation items can jointly settle size/alignment.
             continue;
         }
         std::size_t firstSymbol = m_symbolTable.symbols().size();
         analyzeDecl(decl.get(), scope);
+        if (decl->kind == DeclKind::Type) {
+            auto* type = static_cast<TypeDecl*>(decl.get());
+            // Resolve component placement before adjacent Size/Alignment items,
+            // including when those items textually precede the record clause.
+            for (std::size_t j = i + 1; j < declarations.size() && declarations[j]->kind == DeclKind::Representation; ++j) {
+                auto* clause = static_cast<RepresentationDecl*>(declarations[j].get());
+                if (clause->attribute == "record" && clause->lower == type->lower) {
+                    analyzeRepresentation(clause, scope, type->declaredType);
+                    settledRecordClauses.insert(clause);
+                }
+            }
+        }
         if (decl->kind == DeclKind::SubprogramBody
             && !static_cast<SubprogramBody*>(decl.get())->isNull) {
             // A body freezes preceding declarations in its declarative part.

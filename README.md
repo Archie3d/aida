@@ -94,7 +94,7 @@ Supported:
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
-- Size, alignment and enumeration clauses, including sized subtype storage ([limits](docs/representation-clauses.md))
+- Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
 - Text and stream I/O
 - Separate compilation and incremental builds
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas

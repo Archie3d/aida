@@ -35,7 +35,8 @@ storage. Dependent arrays of controlled/task/protected elements remain
 unsupported, as do task/protected variant components, new discriminants on
 derived tagged types, managed tagged dependent storage and general limited
 records outside the existing controlled subset. These constructs retain
-explicit diagnostics. Record representation clauses are the next roadmap item.
+explicit diagnostics. Byte-addressable [record representation clauses](representation-clauses.md)
+now support these controlled components.
 
 `controlledvariants` checks nested/null arms, distinct overlaid finalizers,
 mutable/constrained/self assignment, default and boxed construction, copies,

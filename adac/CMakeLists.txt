@@ -30,6 +30,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaPackages.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaGenerics.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaTypes.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaRecordRepresentation.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaStatements.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaNames.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaExpr.cpp

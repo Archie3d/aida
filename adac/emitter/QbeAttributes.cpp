@@ -299,6 +299,34 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value address = isComposite(prefixType) ? emitExpr(expr->prefix.get()) : emitAddress(expr->prefix.get());
         return Value { address.name, 'l' };
     }
+    if (name == "position" || name == "first_bit" || name == "last_bit") {
+        auto result = [&](const std::string& wide) {
+            if (qbeClass(expr->type) == 'l') { return Value {wide, 'l'}; }
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + wide);
+            return Value {narrow, 'w'};
+        };
+        auto* component = static_cast<SelectedExpr*>(expr->prefix.get());
+        Type* record = component->prefix->type;
+        Value object = emitExpr(component->prefix.get());
+        if (record->kind == TypeKind::Access) { checkNotNull(object); record = record->target; }
+        record = baseType(record);
+        if (component->checkedVariant >= 0) { checkVariant(object, record, component->checkedVariant); }
+        const FieldInfo& field = record->fields[component->fieldIndex];
+        if (name == "first_bit") { return constantValue(0, qbeClass(expr->type)); }
+        if (name == "position") {
+            Value address = fieldStorage(object, record, field);
+            std::string offset = newTemp();
+            line(offset + " =l sub " + address.name + ", " + object.name);
+            return result(offset);
+        }
+        std::string bytes = field.representationSize >= 0 ? std::to_string(field.representationSize)
+            : objectBytes(fieldAddress(object, record, field), field.type);
+        std::string bits = newTemp(), last = newTemp();
+        line(bits + " =l mul " + bytes + ", 8");
+        line(last + " =l sub " + bits + ", 1");
+        return result(last);
+    }
     if (name == "alignment") {
         // Evaluating an object view must not read an uninitialized scalar.
         if (expr->alignmentObjectView) {
