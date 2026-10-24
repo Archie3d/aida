@@ -108,7 +108,8 @@ Not supported yet:
   protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Interfaces, `goto`, `separate` subunits, formal packages
+- Interfaces, abstract subprograms, prefixed calls, `goto`, `separate` subunits,
+  `limited with`/`private with`, package renaming, formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals

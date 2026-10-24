@@ -74,450 +74,318 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
 
 ## Phase 1 — Stop silent acceptance
 
-Complete. Constructs that were accepted while their meaning was dropped now get
-diagnostics; later phases replace each rejection as they implement it.
+Complete. Constructs whose meaning was dropped now get diagnostics; later
+phases replace each rejection as they implement it.
 
-- [x] **Pragmas.** `Import` is implemented; `Inline`, `Pure` and `Preelaborate`
-  are advisory; every other pragma is rejected (`pragmas`, `pragma*errors`).
-- [x] **Representation clauses.** Validated `'Size` clauses (Phase 5 adds Small) are accepted
-  (`sizeclauses`, `representationerrors`, `size*errors`).
-- [x] **Imports.** C and Ada conventions only, with exactly three positional
-  arguments and a nonempty external name (`importconvention*`).
-- [x] **Stubs.** Subprogram and package body stubs (`is separate`) get a single
-  diagnostic without cascading errors (`subprogramstuberrors`).
+- [x] **Pragmas.** `Import` implemented; `Inline`, `Pure`, `Preelaborate`
+  advisory; others rejected (`pragmas`, `pragma*errors`). Elaboration,
+  `Atomic` and `Volatile` pragmas were added in Phases 3–4.
+- [x] **Representation clauses.** Only validated `'Size` clauses accepted
+  (`sizeclauses`, `representationerrors`, `size*errors`); Phases 5 and 6c add
+  the other supported clauses.
+- [x] **Imports.** C and Ada conventions, three positional arguments, nonempty
+  external name (`importconvention*`).
+- [x] **Stubs.** `is separate` gets one diagnostic without cascades
+  (`subprogramstuberrors`).
 - [x] **Reserved words.** `aliased`, `protected`, `requeue`, `until`,
-  `interface` and `synchronized` are reserved; their unsupported constructs are
-  rejected, including in generic formals (`reserved*`).
-- [x] **Generic formal types.** Private, limited private, discrete, integer,
-  floating, ordinary/decimal fixed and array formals only; other categories and trailing
-  tokens are rejected (`genericformal*errors`, `deallocationformalerrors`).
+  `interface`, `synchronized` reserved; unsupported uses rejected (`reserved*`).
+- [x] **Generic formal types.** Unsupported categories and trailing tokens
+  rejected (`genericformal*errors`, `deallocationformalerrors`).
 - [x] **Unsupported syntax.** Abstract subprograms, `goto`/labels, `select`,
-  task entries, `limited with` and `private with` get named diagnostics with
-  recovery (`unsupported*errors`).
+  task entries, `limited with`, `private with`: named diagnostics with recovery
+  (`unsupported*errors`).
 
 ## Phase 2 — Tasking foundations
 
-Complete. Run-time and code-generation groundwork for several threads, with no
-new Ada syntax. Finalization chains and storage checkpoints live in stack frames
-and exceptions propagate by explicit checks, so neither needed redesign.
-Measurements are in `tests/benchmarks/README.md`; open cross-host validation
-moved to Phase 8.
+Complete. Run-time and code-generation groundwork for threads, with no new Ada
+syntax. Measurements: `tests/benchmarks/README.md`; cross-host validation moved
+to Phase 8.
 
-- [x] **Per-task context.** Pending exception, message, trace frame and the
-  finalization/allocation registries live in one context record, bound through
-  C11 thread-local storage. The environment task owns library lifetime storage;
-  stack registry operations require the owning context (`runtime.task_context`,
-  `runtime.array_storage`). Phase 6a subsequently shares collection registries.
-- [x] **Generated access to the context.** QBE `thread` data is unusable for
-  arm64 Linux externs and Windows amd64, so the traceback-entry call returns the
-  context; generated code loads the pending exception at offset zero and passes
-  the context to traceback exit. No hidden parameter or TLS reference
-  (`runtime.generated_contexts`, `determinism.generatedcontexts`).
-- [x] **Result buffers.** Images, fixed-point text and stream results use
-  caller-owned storage instead of rotating static buffers; signed 32-bit length
-  limits remain (`imageresults`, `streamresults`, `runtime.result_buffers`).
-- [x] **Shared run-time tables.** Per-file mutexes with a short table lock and
-  pins, a locked tag registry and an atomic exit status. No generated callback
-  runs under a table mutex, and blocking I/O never holds the table lock
+- [x] **Per-task context.** Exception state, trace frame and finalization/
+  allocation registries in one C11 thread-local record; the environment task
+  owns library storage (`runtime.task_context`, `runtime.array_storage`).
+- [x] **Generated access to the context.** The traceback-entry call returns the
+  context (QBE `thread` data is unusable for arm64 Linux externs and Windows
+  amd64); no hidden parameter or TLS reference (`runtime.generated_contexts`,
+  `determinism.generatedcontexts`).
+- [x] **Result buffers.** Caller-owned storage for images, fixed-point text and
+  stream results; signed 32-bit length limits remain (`imageresults`,
+  `streamresults`, `runtime.result_buffers`).
+- [x] **Shared run-time tables.** Per-file mutexes, locked tag registry, atomic
+  exit status; no callbacks or blocking I/O under table locks
   (`runtime.shared_tables`, `runtime.blocking_io`, `filesnapshots`).
-- [x] **Threading layer.** `adathread` wraps POSIX threads (winpthreads on
-  MSYS2): threads, mutexes, monotonic condition waits and sequentially
-  consistent 8–64-bit atomics requiring native lock-free support
+- [x] **Threading layer.** `adathread` over POSIX threads (winpthreads on
+  MSYS2): threads, mutexes, monotonic waits, lock-free 8–64-bit atomics
   (`runtime.threading`).
 - [x] **Masters and activation hooks.** `adamaster` brackets subprograms,
-  blocks, collections and the library master with entry, activation, await and
-  exit hooks; scopes await, finalize and release inside-out on every exit path.
-  Statically empty boundaries are elided (`runtime.master*`,
+  blocks, collections and the library master; inside-out await/finalize/release
+  on every exit; empty boundaries elided (`runtime.master*`,
   `determinism.masterhooks`).
 
 ## Phase 3 — Harden the existing subset
 
-Complete. Audits of supported features against the Ada 95/2005 RM, each with
-focused regressions (not ACATS), whole/separate compilation and determinism
-tests where code generation changed. Remaining restrictions are listed per item
+Complete. RM audits of supported features with focused regressions and
+whole/separate/determinism tests. Remaining restrictions are listed per item
 and in README.md.
 
-- [x] **Unit identity and loading.** Declaration-based identities per library
-  item, separate spec/body dependency nodes with their own context clauses,
-  canonical-path deduplication, automatic spec/body lookup with
-  filename/declaration checks, completion classification and cycle diagnostics
-  (`loading.*`, `ada.{load,child,bundle,completion}_main`). Source bundles and
-  custom filenames remain extensions; generic renaming completions are
-  unsupported.
-- [x] **Elaboration order and checks.** The binder validates manifest entries,
-  order and implied spec/body and parent/child constraints. Subprogram and
-  generic bodies have elaboration flags raising `Program_Error` on early calls
-  or instantiations; forward generic instances defer body expansion until the
-  template body is available (`binding.elaboration_order`, `elaboration*`,
-  `forward*`).
-- [x] **Elaboration pragmas.** `Elaborate`, `Elaborate_All` and
-  `Elaborate_Body` with placement, argument and visibility checks; requirements
-  flow through format 5 manifests, binding and incremental rebuilds, and
-  impossible constraints report cycles (`elaboration.pragmas`,
+- [x] **Unit identity and loading.** Per-declaration identities, separate
+  spec/body nodes, canonical deduplication, automatic lookup and cycle
+  diagnostics (`loading.*`, `ada.*_main`). Source bundles and custom filenames
+  are extensions; generic renaming completions unsupported.
+- [x] **Elaboration order and checks.** Binder validation of order and implied
+  constraints; elaboration flags raise `Program_Error` on early calls or
+  instantiations (`binding.elaboration_order`, `elaboration*`, `forward*`).
+- [x] **Elaboration pragmas.** `Elaborate`, `Elaborate_All`, `Elaborate_Body`
+  through manifests, binding and incremental rebuilds (`elaboration.pragmas`,
   `pragmaelaborationerrors`, `ada.ep_main`).
-- [x] **Visibility and conformance.** Duplicate and homograph declarations,
-  direct-over-use visibility, private-part and body-local isolation, per-item
-  contexts, full spec/body conformance (names, modes, subtypes, defaults) and
-  missing required bodies diagnosed before linking (`duplicate*errors`,
-  `profile*`, `visibility*`, `requiredcompletionerrors`,
-  `semantics.visibility_conformance`). Library package bodies without
-  `Elaborate_Body` remain optional.
-- [x] **Blocks during package-body elaboration.** A per-unit elaboration frame
-  holds block locals, captures and nested units, with the usual scoped cleanup
-  (`elaborationblock*`). Library-level runtime bounds were added in Phase 6b.
-- [x] **Aggregates.** Shared checked shape, choice and sliding logic for
-  arrays; record aggregates go through a temporary, with ordering and coverage
-  checks and per-component defaults (`aggregateaudit*`, `aggregatecleanup`).
-  Box defaults are rejected (`aggregateboxerrors`).
-- [x] **Array conversions.** Per-dimension checks and sliding; writable
-  converted actuals evaluate once and copy back only on normal return
-  (`arrayconversion*`, `controlledconversions`). Cross-type views require
-  identical component subtypes; limited controlled array conversions are
-  unsupported.
-- [x] **Derived types.** Untagged conversions, inherited constraints and
-  profiles, derived Boolean/character categories, and derived access types
-  sharing their parent's collection (`derived*`). Writable non-array untagged
-  conversions, new discriminant parts, derivation before private completion and
-  character components wider than a byte remain diagnosed.
-- [x] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last` and
-  `'Range` with prefix, arity, base-range and width rules and single prefix
-  evaluation (`attributeaudit*`, `attributebounds`).
-- [x] **Primitive operations.** Overriding indicators, hiding versus
-  overriding, subtype conformance, controlling defaults and results, and
-  freezing by objects and bodies (`primitiveaudit*`, `primitiveplacementerrors`).
-  Tagged discriminants, private extensions, anonymous controlling access
-  profiles and general freezing remain open.
-- [x] **Variant records.** Nested variants keep their enclosing alternatives
-  through layout, aggregates, initialization, selection and equality; assignment
-  through unconstrained formals checks discriminants first (`nestedvariants*`).
-  Explicit constraints must be static; mutable discriminants and controlled
-  variant components remain in Phase 6.
-- [x] **Feature interactions.** Overloads, renamed generic instances, defaults,
-  array conversions, controlled ownership and exceptions in combination,
-  checking copy-back and cleanup on every exit (`interaction*`,
-  `semantics.interaction_modes`).
+- [x] **Visibility and conformance.** Homographs, use/direct visibility,
+  private/body isolation, full spec/body conformance, missing bodies diagnosed
+  before linking (`duplicate*errors`, `profile*`, `visibility*`,
+  `requiredcompletionerrors`). Library package bodies without `Elaborate_Body`
+  remain optional.
+- [x] **Blocks during package-body elaboration.** Per-unit elaboration frame
+  with scoped cleanup (`elaborationblock*`).
+- [x] **Aggregates.** Shared checked shape/choice/sliding logic; record
+  aggregates via a checked temporary (`aggregateaudit*`, `aggregatecleanup`).
+  Box defaults added in 6b.
+- [x] **Array conversions.** Per-dimension checks and sliding; writable actuals
+  evaluate once and copy back on normal return (`arrayconversion*`,
+  `controlledconversions`). Identical component subtypes required; limited
+  controlled array conversions unsupported.
+- [x] **Derived types.** Untagged conversions, inherited constraints/profiles,
+  derived Boolean/character, shared access collections (`derived*`). Writable
+  non-array untagged conversions, new discriminant parts, derivation before
+  private completion and wide character components remain diagnosed.
+- [x] **Attributes.** `'Pos`, `'Val`, `'Succ`, `'Pred`, `'First`, `'Last`,
+  `'Range` with single prefix evaluation (`attributeaudit*`, `attributebounds`).
+- [x] **Primitive operations.** Overriding indicators, hiding, subtype
+  conformance, controlling defaults/results, freezing by objects and bodies
+  (`primitiveaudit*`, `primitiveplacementerrors`). Tagged discriminants,
+  private extensions and general freezing remain open.
+- [x] **Variant records.** Nested variants through layout, aggregates,
+  initialization, selection and equality (`nestedvariants*`). Runtime and
+  mutable discriminants and controlled variant components added in 6c.
+- [x] **Feature interactions.** Combined overloads, instances, defaults,
+  conversions, controlled ownership and exceptions, checking copy-back and
+  cleanup on every exit (`interaction*`, `semantics.interaction_modes`).
 
 ## Phase 4 — Minimal tasking
 
-Complete. A tested subset close to the Ravenscar profile, without claiming
-compliance; Phase 9 completes core tasking. Every item runs in whole and
-separate compilation with IR determinism. ThreadSanitizer, AddressSanitizer
-and UBSan pass with an instrumented C run time; QBE-generated accesses are
-uninstrumented (see Phase 8). RM baseline: 3.11, 7.5, 7.6.1, 9.1–9.10, C.6,
-C.7.1 and D.8.
+Complete. A tested near-Ravenscar subset without claiming compliance; Phase 9
+completes core tasking. Each item has whole/separate/determinism tests and
+passes TSan/ASan/UBSan on the C run time (QBE code is uninstrumented, see
+Phase 8). RM: 3.11, 7.5, 7.6.1, 9.1–9.10, C.6, C.7.1, D.8.
 
-- [x] **Tasks.** Entry-free task types and single tasks, grouped activation
-  after declarations or library elaboration, masters joining dependents before
-  finalization, and task components and allocated tasks owned by their
-  collection's master (`tasks`, `taskallocations`, `tasklibrarymain`,
-  `taskactivationfailure`, `task*errors`, `runtime.tasking*`). Tasks and
-  containing composites cannot be copied; discriminants, entries, tagged or
-  variant task composites, aggregates and function results are diagnosed.
-- [x] **Protected objects.** Procedures and functions under one exclusive lock
-  per object, a hidden receiver, and locks on the finalization chains
+- [x] **Tasks.** Entry-free task types and single tasks, grouped activation,
+  masters joining dependents, task components and allocated tasks (`tasks`,
+  `taskallocations`, `tasklibrarymain`, `taskactivationfailure`, `task*errors`,
+  `runtime.tasking*`). Not copyable; discriminants, entries, tagged/variant task
+  composites, aggregates and function results diagnosed.
+- [x] **Protected objects.** Procedures and functions under one lock per object
   (`protected*`, `runtime.protected_lifecycle`). Not copyable; discriminants,
-  interfaces, operation renaming/access and generic actuals are diagnosed.
+  interfaces, operation renaming, named access and generic actuals diagnosed.
   External self-calls and task creation in an action raise `Program_Error`.
-- [x] **Protected entries.** Single entries with Boolean barriers, FIFO queues
-  serviced on procedure/entry completion, `'Count`, and copy-back after release
-  (`protectedentries`, `entry*`, `runtime.entry_lifecycle`). Barrier exceptions
-  raise `Program_Error` in queued callers. Families, select forms and requeue
-  are diagnosed.
-- [x] **Time.** `Duration` (64-bit, `Small = 2**(-30)`), relative `delay`,
-  `delay until` and `Ada.Real_Time` on 64-bit nanoseconds and the host
-  monotonic clock (`time*`, `runtime.time_lifecycle`). No hard real-time
-  guarantees; delays in protected actions raise `Program_Error`.
-- [x] **Shared variables.** `Atomic` and `Volatile` scalar objects and types
-  through sequentially consistent run-time loads and stores, with snapshots and
-  checked copy-back for actuals (`shared*`, `semantics.shared_ir`). Shared
-  composite parts and component pragmas are diagnosed; aligned RAM only.
+- [x] **Protected entries.** Single entries with Boolean barriers, FIFO queues,
+  `'Count`, copy-back after release (`protectedentries`, `entry*`,
+  `runtime.entry_lifecycle`). Barrier exceptions raise `Program_Error` in
+  queued callers; families, select and requeue diagnosed.
+- [x] **Time.** 64-bit `Duration` (`Small = 2**(-30)`), `delay`, `delay until`,
+  `Ada.Real_Time` on the monotonic clock (`time*`, `runtime.time_lifecycle`).
+  No hard real-time guarantees; delays in protected actions raise
+  `Program_Error`.
+- [x] **Shared variables.** `Atomic`/`Volatile` scalar objects and types via
+  sequentially consistent run-time accesses (`shared*`, `semantics.shared_ir`).
+  Shared composite parts and component pragmas diagnosed; aligned RAM only.
 - [x] **Task identity.** `Ada.Task_Identification`, `'Identity`, `'Callable`,
-  `'Terminated` and entry `'Caller`. Entry bodies run in the caller's task, so
-  `Current_Task` there returns the caller (`taskidentity*`). `Abort_Task`
-  waits for Phase 9.
+  `'Terminated`, entry `'Caller`; `Current_Task` in an entry body returns the
+  caller (`taskidentity*`). `Abort_Task` waits for Phase 9.
 
-Task entries, select/requeue, abort, shared collections (Phase 6) and
-Ravenscar compliance remain for later phases.
+Task entries, select/requeue, abort and Ravenscar compliance remain for Phase 9.
 
 ## Phase 5 — Numeric and representation foundations
 
-Complete for the documented subsets below. These foundations unblock several
-Phase 6 features, especially wider arrays. Remaining language and conformance
-gaps retain their later-phase owners in the coverage matrix.
+Complete for the documented subsets. Remaining gaps keep their later-phase
+owners in the coverage matrix. Unless noted, items have whole/separate/
+determinism tests and instrumented C run-time checks.
 
 ### Prelude
 
-- [x] **Validation baseline.** RM-clause and predefined-unit skeleton in
-  `docs/ada2005-coverage.md` records completed Phases 1–4, restrictions, regression
-  evidence and roadmap owners. Offline CTest ACATS selection: C52005A/C53007A
-  pass; C59002A is an explicit compile XFAIL for goto/labels, with pinned
-  diagnostics and XPASS detection (`acats.*`). Sources retain upstream rights
-  notices and provenance. The local REPORT adapter supports only these C-tests;
-  B-tests, full support protocol and Ada 2005-specific additions remain open
-  (`tests/acats/README.md`). Phase 8 maintains and extends both baselines.
-- [x] **Lowering decision.** Retain direct QBE emission with explicit layout,
-  call/result and scope-exit contracts rather than a separate lowering IR.
-  [Decision and migration gates](docs/lowering-decision.md) weigh strides,
-  discriminant-dependent components, build-in-place results, cleanup, dispatch
-  and `select`. Phase 8 records closure; implementation stays with the named
-  Phase 5/6/9 features.
+- [x] **Validation baseline.** Coverage matrix skeleton
+  (`docs/ada2005-coverage.md`) and offline CTest ACATS harness with pinned
+  XFAIL/XPASS detection (`acats.*`, `tests/acats/README.md`). The local REPORT
+  adapter supports only C-tests; B-tests and the full support protocol remain
+  open. Phase 8 maintains both.
+- [x] **Lowering decision.** Keep direct QBE emission with explicit layout,
+  call/result and scope-exit contracts
+  ([decision and migration gates](docs/lowering-decision.md)).
 
 ### Numeric and representation work
 
-- [x] **Static arithmetic.** Universal integer named numbers and checked exact
-  scalar folding are separate from machine arithmetic; signed 64-bit literal
-  endpoints, maximal-expression base checks, static check failures and skipped
-  short-circuit operands are covered (`staticarithmetic*`, `integerliteral*`,
-  `determinism.staticarithmetic`, ACATS C49022A). Final real rounding is binary
-  nearest/even. The bounded implementation retains 127-bit integer/rational
-  magnitudes and 64-bit scaled fixed intermediates, with explicit diagnostics;
-  arbitrary precision and the full RM staticness audit remain unsupported/open
-  ([limits and evidence](docs/static-arithmetic.md); Phase 8 coverage matrix).
-- [x] **Real edge cases.** Checked binary32/64 arithmetic and real powers with
-  Integer exponents, including negatives and `Integer'First`; zero divisors,
-  nonfinite results and narrowing overflow raise `Constraint_Error`. Static
-  zero-to-negative powers are diagnosed; exact powers use squaring without the
-  old exponent-128 restriction. `Machine_Overflows`/`Machine_Rounds` are True
-  (`realedges`, `realtasking`, `realedgeerrors`, `runtime.real_arithmetic`,
-  whole/separate/determinism checks, ACATS C45523A). C runtime ASan/UBSan and
-  ThreadSanitizer checks pass. The [floating model](docs/floating-point.md)
-  records default-environment requirements, underflow behavior and remaining
-  static-capacity, model-attribute and Annex G restrictions.
-- [x] **Floating-point `'Value`.** Scalar base results for Float, Long_Float,
-  derived types and constrained prefixes; decimal/based Ada syntax with signs,
-  underscores and exponents. Exact rational parsing rounds once to binary32/64,
-  independent of locale; malformed text and overflow raise `Constraint_Error`,
-  underflow is gradual. No fixed input buffer (`realvalue*`, `runtime.real_value`,
-  whole/separate/determinism and task-context sanitizer checks).
-  [Contract and remaining I/O boundary](docs/floating-point.md#floating-value).
-- [x] **Array descriptors.** Shared local/parameter/result layouts and view
-  accessors precede ABI v2: signed 64-bit bounds, lengths and byte strides;
-  checked extents, offsets, byte/bit sizes and allocation arithmetic. Wide
-  indexing, slices, sliding, captures, aggregates, results and streams migrate
-  together; incompatible caches and serialized bounds require rebuilding.
-  (`arraydescriptor*`, `arrayframeerrors`, `runtime.array_descriptors`, whole/separate/determinism,
-  C runtime/task-context sanitizer checks). [Contract and limits](docs/array-descriptors.md).
-- [x] **Concatenation.** General nonlimited one-dimensional `&` in all four
-  element/array combinations, including components wider than a byte, private
-  and controlled components. Preserve RM bounds and binary-node checks;
-  checked sizes, component constraints and controlled temporary cleanup share
-  the descriptor and ownership machinery (`concatenation`, `concattasking`,
-  `concaterrors`, `runtime.concatenation`, mode/determinism and sanitizer checks,
-  ACATS C45347A). [Contract and limits](docs/array-descriptors.md#concatenation).
-- [x] **Modular types.** Unsigned 64-bit storage through `mod 2 ** 64`, modular
-  generic formals, Ada 2005 `'Mod` and `Ada.Text_IO.Modular_IO`; unsigned
-  arithmetic, conversions, attributes, case choices and task-local failures
-  (`modular*`, whole/separate/determinism, `runtime.modular`, sanitizer checks,
-  ACATS C354002). Array index subtypes and variant choices retain signed 64-bit
-  bounds; compact unsigned 32-bit storage remains unsupported.
-  [Contract and limits](docs/modular-types.md).
-- [x] **Ordinary fixed point.** Binary scales `2.0**(-62)` through `2.0**62`,
-  adjacent explicit Small clauses, named local dynamic bounds, scalar attributes
-  and checked fixed streams. Ada 2005 fixed-by-fixed numeric result contexts,
-  explicit Standard operations and primitive-selection rules (`fixedwide*`,
-  `fixedoperator*`, `fixedstreams`, `fixedtasking`, `runtime.fixed_arithmetic`,
-  whole/separate/determinism, sanitizer checks and ACATS C35A08B).
-  [Contract and remaining restrictions](docs/fixed-point.md).
-- [x] **Decimal fixed point.** Exact decimal scales `10.0**(-18)` through
-  `10.0**18`, 1–18 digits, digits constraints, truncating arithmetic and Round,
-  mixed numeric conversions, decimal formals and Decimal_IO (`decimal*`,
-  `runtime.decimal`, whole/separate/determinism and sanitizer checks;
-  unchanged ACATS CXF2002/CXF2003). [Contract and limits](docs/decimal-fixed-point.md).
-- [x] **Representation clauses.** Implement alignment and enumeration
-  representation clauses, one at a time, replacing their Phase 1 rejections.
-  Also let `'Size` change subtype storage and composite layouts. Record
-  representation clauses landed after discriminated records in Phase 6c.
-  - [x] Alignment first-subtype clauses and subtype/object attributes: 0 and
-    powers of two through 8, adjacent representation items, inherited alignment,
-    record padding and aligned composite storage (`alignmentclauses`,
-    `alignmenterrors`, whole/separate/determinism and concurrent tasks).
-    Natural alignment cannot be weakened; scalar/array stride padding,
-    object clauses, tagged/task/protected types and general freezing remain
-    unsupported. [Contract](docs/representation-clauses.md).
-  - [x] Enumeration representation clauses: adjacent positional/named static
-    mappings with distinct increasing signed 32-bit codes, 8/16/32-bit storage,
-    inherited and overridden derived mappings, checked imports/streams and
-    positional attributes/indexing/loops (`enumrepresentation`, `enumstreams`,
-    `enumtasking`, `enumrepresentationerrors`, `runtime.enumeration`,
-    whole/separate/determinism and unchanged ACATS CD3014A/CD3014D).
-    Boolean/Character-derived mappings, wider codes, general freezing and
-    clauses after a private-view subtype remain unsupported. [Contract](docs/representation-clauses.md).
-  - [x] Size-changing subtype and composite layouts: static scalar subtype
-    storage with base-width arithmetic; byte-aligned trailing record/array
-    storage, component strides, adapted actuals/results and checked streams
+- [x] **Static arithmetic.** Checked exact folding separate from machine
+  arithmetic (`staticarithmetic*`, `integerliteral*`, ACATS C49022A). Bounded
+  to 127-bit integer/rational and 64-bit scaled fixed intermediates; arbitrary
+  precision and the full RM staticness audit remain open
+  ([limits](docs/static-arithmetic.md)).
+- [x] **Real edge cases.** Checked binary32/64 arithmetic and Integer-exponent
+  powers; zero divisors, nonfinite results and narrowing overflow raise
+  `Constraint_Error` (`realedges`, `realtasking`, `realedgeerrors`,
+  `runtime.real_arithmetic`, ACATS C45523A). Static-capacity, model-attribute
+  and Annex G restrictions: [floating model](docs/floating-point.md).
+- [x] **Floating-point `'Value`.** Locale-independent decimal/based parsing,
+  rounded once to binary32/64 (`realvalue*`, `runtime.real_value`).
+  [Contract](docs/floating-point.md#floating-value).
+- [x] **Array descriptors.** ABI v2: signed 64-bit bounds, lengths and byte
+  strides with checked size arithmetic for all array views
+  (`arraydescriptor*`, `arrayframeerrors`, `runtime.array_descriptors`). Old
+  caches require rebuilding. [Contract](docs/array-descriptors.md).
+- [x] **Concatenation.** General nonlimited one-dimensional `&`, including
+  wide, private and controlled components (`concatenation`, `concattasking`,
+  `concaterrors`, `runtime.concatenation`, ACATS C45347A).
+  [Limits](docs/array-descriptors.md#concatenation).
+- [x] **Modular types.** Through `mod 2 ** 64`, modular formals, `'Mod`,
+  `Modular_IO` (`modular*`, `runtime.modular`, ACATS C354002). Index subtypes
+  and variant choices keep signed 64-bit bounds; compact unsigned 32-bit
+  storage unsupported. [Limits](docs/modular-types.md).
+- [x] **Ordinary fixed point.** Binary scales `2.0**(-62)`–`2.0**62`, Small
+  clauses, dynamic local bounds, Ada 2005 fixed-by-fixed rules, fixed streams
+  (`fixedwide*`, `fixedoperator*`, `fixedstreams`, `fixedtasking`,
+  `runtime.fixed_arithmetic`, ACATS C35A08B). [Limits](docs/fixed-point.md).
+- [x] **Decimal fixed point.** Scales `10.0**(-18)`–`10.0**18`, 1–18 digits,
+  truncating arithmetic, Round, decimal formals and Decimal_IO (`decimal*`,
+  `runtime.decimal`, ACATS CXF2002/CXF2003).
+  [Limits](docs/decimal-fixed-point.md).
+- [x] **Representation clauses** ([contract](docs/representation-clauses.md);
+  record clauses landed in 6c).
+  - [x] Alignment: 0 and powers of two through 8, inherited, padded composite
+    storage (`alignmentclauses`, `alignmenterrors`). Weakening natural
+    alignment, stride padding, object clauses and tagged/task/protected types
+    unsupported.
+  - [x] Enumeration: static increasing signed 32-bit codes, 8/16/32-bit
+    storage, derived mappings (`enumrepresentation`, `enumstreams`,
+    `enumtasking`, `enumrepresentationerrors`, `runtime.enumeration`, ACATS
+    CD3014A/CD3014D). Boolean/Character-derived mappings, wider codes and
+    clauses after a private-view subtype unsupported.
+  - [x] Size-changing scalar subtypes and byte-aligned composite layouts
     (`sizestorage`, `sizestreams`, `sizetasking`, `sizestorageerrors`,
-    `semantics.type_storage`, whole/separate/determinism and ASan/UBSan).
-    Named-subtype Size clauses are an AIDA extension to Ada 2005. Bit packing,
-    dynamic layouts and nonconfirming tagged/controlled/limited/task/protected
-    sizes remain diagnosed; ACATS CD2A22A is an explicit packing XFAIL, using
-    unchanged official Length_Check support. [Contract](docs/representation-clauses.md).
-- [x] **Checked arithmetic speed.** Signed 32/64-bit add, subtract, multiply,
-  divide, rem/mod, negation, abs and powers now check inline, with the same
-  Constraint_Error and cleanup paths. Common 64-bit products avoid the general
-  unsigned bound division. Whole/separate differential tests cover 88,000
-  boundary/generated cases per mode; concurrent protected cleanup, deterministic
-  IL and helper-call exclusion are checked. ACATS C45504A/C45611A pass.
-  Named operator calls now resolve Left/Right (unary Right), reordered/mixed
-  associations and user-defined formal names without changing overload selection;
-  malformed calls get operator/association diagnostics (`namedoperators`,
-  `namedoperatorerrors`, whole/separate/determinism). ACATS C45503A now passes.
-  [Contract](docs/checked-arithmetic.md) and
+    `semantics.type_storage`). Named-subtype Size clauses are an AIDA
+    extension. Bit packing, dynamic layouts and nonconfirming tagged/
+    controlled/limited/task/protected sizes diagnosed; ACATS CD2A22A is a
+    packing XFAIL.
+- [x] **Checked arithmetic speed.** Inline signed 32/64-bit checks for all
+  integer operators with unchanged failure paths; 88,000 differential cases per
+  mode (ACATS C45504A/C45611A). [Contract](docs/checked-arithmetic.md),
   [measurements](tests/benchmarks/README.md#checked-integer-arithmetic).
-
-Tests: an ACATS harness smoke run, literal endpoints, `2.0 ** (-3)`, huge
-array sizes, integer array concatenation, signed small representations,
-invalid size clauses.
+- [x] **Named operator calls.** Left/Right associations for predefined and user
+  operators (`namedoperators`, `namedoperatorerrors`, ACATS C45503A).
 
 ## Phase 6 — Complete the core language
 
 Complete the remaining Ada 95 foundations and Ada 2005 additions together.
 Grouped by dependency into milestones 6a–6h, taken in order; within a group,
-work top to bottom. Prefixed calls and the 6h pragmas have no prerequisites
-here and may be pulled forward. Reuse the existing controlled-result
-construction, cleanup and dispatch mechanisms.
+work top to bottom, except that the first three 6e items come before the
+remaining 6d items. The 6h pragmas have no prerequisites here and may be
+pulled forward. Reuse the existing controlled-result construction, cleanup
+and dispatch mechanisms. Completed items have
+whole/separate/determinism tests and, where relevant, four-task and sanitizer
+checks.
 
 ### 6a. Tasking prerequisites
 
-- [x] Abort-deferral foundation: task-owned nesting counter, balanced protected
-  actions (including entry servicing/queue failures) and existing chain/view
-  finalization paths. Explicit call effects and return insertion points replace
-  textual call/return recognition; shared master exits retain cleanup order.
-  Four-task runtime/Ada, whole/separate and determinism tests (`abortdeferral`,
-  `runtime.abort_deferral`, protected/entry lifecycle); 83 baseline units retain
-  identical IR. [Design and Phase 9 delivery gates](docs/abort-deferral.md).
-  Abort delivery, blocking cancellation, deferred Initialize/whole controlled
-  assignments and master waits remain Phase 9; no abort ACATS pass is claimed.
-- [x] Shared access-type collections: environment-context indexes synchronize
-  allocation/deallocation and heap finalization records across tasks; plain
-  scalar/composite allocators now use the same lifetime/cleanup path. Derived
-  access types retain their ancestor's collection. Collection tasks belong to
-  the access type's original master, whose waits resample concurrent dependents
-  before local finalization. Callbacks and joins run outside service locks
-  (`sharedcollections`, `sharedtaskcollections`, `runtime.shared_collections`,
-  whole/separate/determinism, ASan/UBSan and runtime ThreadSanitizer).
-  ACATS C761002 is an unchanged goto/label XFAIL pending 6e, not an executable
-  pass. Foreign stack chains, custom pools and general access extensions remain
-  unsupported. [Ownership and limits](docs/shared-collections.md).
+- [x] Abort-deferral foundation: task-owned nesting counter, balanced across
+  protected actions, entry servicing and finalization paths; explicit call
+  effects and return insertion points (`abortdeferral`,
+  `runtime.abort_deferral`). Abort delivery, blocking cancellation, deferred
+  Initialize/controlled assignment and master waits remain Phase 9.
+  [Design](docs/abort-deferral.md).
+- [x] Shared access-type collections: synchronized allocation, deallocation and
+  heap finalization across tasks; collection tasks belong to the access type's
+  master (`sharedcollections`, `sharedtaskcollections`,
+  `runtime.shared_collections`; ACATS C761002 goto XFAIL pending 6e). Foreign
+  stack chains and custom pools unsupported.
+  [Limits](docs/shared-collections.md).
 
 ### 6b. Dynamic data
 
-- [x] Runtime scalar constraints: declaration-owned plans for named/anonymous
-  local and library bounds, independent grouped objects/components, binary32/64
-  real bounds and membership, runtime discrete Width and checked scalar streams.
-  Generic instances, aliases, calls/results and designated scalar initialization
-  reuse the captured bounds (`scalardynamic`, `scalarstreams`, `scalartasking`,
-  `scalardynamicerrors`, `runtime.scalar_bounds`, whole/separate/determinism and
-  instrumented runtime checks). Deferred completions require static matching;
-  explicit scalar allocator constraints remain illegal. ACATS C35507A passes.
-  Wide attributes, legacy delta constraints and dynamic array layouts remain
-  separately tracked. [Contract and limits](docs/runtime-scalars.md).
-- [x] Library-level arrays and types with runtime bounds: exported descriptors
-  capture type/subtype and object bounds during elaboration, with library-owned
-  data and finalization. Generic array copies, views and runtime-bound instance
-  declarations share the descriptor path (`runtimearraylibrary*`, whole/separate,
-  determinism, four-task and instrumented runtime checks; ACATS C36203A).
-  Runtime-constrained components/allocators and subtype Size/streaming were
-  added in the following item. [Contract and limits](docs/array-descriptors.md#library-level-runtime-bounds).
-- [x] Runtime-constrained array components and allocators: captured contiguous
-  record/array layouts, per-allocation descriptors, Size and all-dimensional
-  array streams. Generic deallocation, limited results, partial cleanup and
-  cross-task ownership reuse existing collections (`runtimecomponent*`,
-  `runtimeallocators`, `runtime.dynamic_layout`, whole/separate/determinism,
-  sanitizer checks; ACATS C48005B). Runtime-sized tagged records and delayed
-  private-component layouts remain Phase 6f; discriminant-dependent bounds
-  remain Phase 6c. [Contract and limits](docs/runtime-composites.md).
-- [x] Ada 2005 box defaults (`<>`) in record and array aggregates: declaration
-  defaults and subtype initialization run independently per component, with null
-  access defaults, checked runtime subtypes and partial controlled/limited cleanup.
-  Named/grouped/others boxes, extension aggregates, generic instances and library
-  runtime layouts share existing construction paths (`boxaggregates`, `boxchecks`,
-  `boxcleanup`, `boxtasking`, updated `aggregateboxerrors`, `boxpositionalerrors`;
-  whole/separate/determinism and instrumented runtime/frontend checks).
-  Unchanged ACATS C433001 covers the shared dynamic others constraint checks;
-  box-specific behavior uses local regressions. Default discriminants landed in 6c;
-  task/protected aggregates and general limited records retain their existing
-  restrictions. [Contract and limits](docs/aggregate-defaults.md).
+- [x] Runtime scalar constraints: captured local/library bounds, real bounds,
+  runtime Width and checked scalar streams, reused by generics, aliases and
+  calls (`scalardynamic`, `scalarstreams`, `scalartasking`,
+  `scalardynamicerrors`, `runtime.scalar_bounds`, ACATS C35507A). Deferred
+  completions need static matching; explicit scalar allocator constraints are
+  illegal. [Limits](docs/runtime-scalars.md).
+- [x] Library-level arrays and types with runtime bounds, captured during
+  elaboration (`runtimearraylibrary*`, ACATS C36203A).
+  [Limits](docs/array-descriptors.md#library-level-runtime-bounds).
+- [x] Runtime-constrained array components and allocators, with Size and
+  all-dimensional streams (`runtimecomponent*`, `runtimeallocators`,
+  `runtime.dynamic_layout`, ACATS C48005B). Runtime-sized tagged records and
+  delayed private-component layouts remain 6f.
+  [Limits](docs/runtime-composites.md).
+- [x] Ada 2005 box defaults (`<>`) in record and array aggregates, with checked
+  subtypes and partial cleanup (`boxaggregates`, `boxchecks`, `boxcleanup`,
+  `boxtasking`, `aggregateboxerrors`, `boxpositionalerrors`). Task/protected
+  aggregates and general limited records keep their restrictions.
+  [Limits](docs/aggregate-defaults.md).
 
 ### 6c. Discriminated records
 
-- [x] Default discriminants, constrained versus unconstrained objects, and
-  assignments that legally change discriminants: per-object checked defaults,
-  mutable untagged variants, initialized indefinite records and `Constrained`.
-  Actual constraints survive formals, callbacks, renamings, generics and protected
-  calls (`defaultdiscriminants*`, unit/whole/separate/determinism and four-task
-  checks; unchanged ACATS C37206A/C37306A). Runtime constraints and dependent
-  bounds follow in the next item; controlled variants remain below. [Contract and limits](docs/default-discriminants.md).
-- [x] Runtime discriminant constraints and components whose bounds depend on
-  discriminants: declaration/allocator captures, named/grouped associations,
-  per-object array views and nested record constraints. Stable wrappers reuse
-  owned results and finalization chains for mutable assignment and cross-task
-  collections (`runtimediscriminants`, `discriminantcomponents`,
-  `discriminantcleanup`, `discriminanttasking`; unit/whole/separate/determinism
-  checks; unchanged ACATS C37211A/C37108B). Dependent controlled/task/protected
-  array elements, tagged composites, access-subtype constraints and raw managed
-  record streams remain diagnosed. [Contract and limits](docs/runtime-discriminants.md).
-- [x] Controlled components in variant records: active-arm initialization,
-  adjustment and finalization; nested/overlaid components, mutable assignment,
-  limited returns, allocations and class-wide copies. Reservations cover all
-  possible arms before construction and preserve partial-failure cleanup
-  (`controlledvariants`, `controlledvariantlimited`; unit/whole/separate/
-  determinism checks; unchanged ACATS C760007 PASS, C761012 compile XFAIL for
-  new derived tagged discriminants). Dependent controlled arrays and task/
-  protected variants remain diagnosed. [Contract and limits](docs/controlled-variants.md).
-- [x] Record representation clauses (moved from Phase 5): byte-addressable
-  component/discriminant positions, narrowed scalar storage, nested variant
-  overlays, bounded inline dependent arrays and storage-place attributes,
-  replacing the Phase 1 rejection (`recordrepresentation`, `recorddependent`,
-  `recordcontrolled`, `recordrepresentationerrors`; unit/whole/separate/
-  determinism, four-task and sanitizer checks; unchanged ACATS CD4051A/CD1C03H
-  PASS, CD4031A packing XFAIL). Bit packing, unaligned fields, changed inherited
-  layouts and general freezing remain diagnosed and tracked in Phase 8;
-  tagged layouts remain Phase 6f. [Contract](docs/representation-clauses.md).
+- [x] Default discriminants, constrained/unconstrained objects, mutable
+  untagged variants and `'Constrained` (`defaultdiscriminants*`, ACATS
+  C37206A/C37306A). [Limits](docs/default-discriminants.md).
+- [x] Runtime discriminant constraints and discriminant-dependent components
+  (`runtimediscriminants`, `discriminantcomponents`, `discriminantcleanup`,
+  `discriminanttasking`, ACATS C37211A/C37108B). Dependent controlled/task/
+  protected arrays, tagged composites, access-subtype constraints and raw
+  managed record streams diagnosed. [Limits](docs/runtime-discriminants.md).
+- [x] Controlled components in variant records, with partial-failure cleanup
+  (`controlledvariants`, `controlledvariantlimited`; ACATS C760007 PASS,
+  C761012 XFAIL for new derived tagged discriminants). Task/protected variants
+  diagnosed. [Limits](docs/controlled-variants.md).
+- [x] Record representation clauses: byte-addressable positions, narrowed
+  scalars, variant overlays, bounded dependent arrays (`recordrepresentation`,
+  `recorddependent`, `recordcontrolled`, `recordrepresentationerrors`; ACATS
+  CD4051A/CD1C03H PASS, CD4031A packing XFAIL). Bit packing, unaligned fields,
+  changed inherited layouts and general freezing are Phase 8; tagged layouts
+  6f. [Contract](docs/representation-clauses.md).
 
 ### 6d. Access types
 
-- [x] General access types: `aliased` objects/components, `access all`, object
-  `'Access`, access-to-constant and accessibility checks. Named conversions
-  check tags, designated constraints and generic-body accessibility; borrowed
-  array descriptors and mutable record constrainedness preserve object identity
-  and lifetime (`generalaccess*`, unit/whole/separate/determinism and four-task
-  checks; runtime sanitizers). Unchanged ACATS C3A0013 is a compile XFAIL pending
-  private extensions/package renaming (its access discriminants were added
-  in the following item); no upstream execution pass is claimed for C3A0013.
-  Conservative dependent-component checks,
-  limited current instances and broader generic/private cases remain documented
-  with their roadmap owners. [Contract](docs/general-access.md).
-- [x] Anonymous access definitions in supported object/component/array,
-  discriminant, parameter, result, extended-return and renaming contexts,
-  including access-to-constant, nested/protected callbacks and controlling
-  access dispatch. Enforce actual master ancestry on calls, conversions,
-  assignment and returned values (including callback results); own access-
-  parameter allocators and coextensions across cleanup/failure paths.
-  `anonymousaccess*`, `anonymouscoextensions`, `anonymousprotected`,
-  `anonymousdispatch`; unit/whole/separate/determinism/four-task and runtime
-  sanitizer checks. Unchanged C460001/C460002/C3A2002 PASS; C3A0013 now reaches
-  private-extension/package-renaming/range-attribute blockers. Broader limited/
+- [x] General access types: `aliased`, `access all`, `'Access`,
+  access-to-constant, accessibility and checked named conversions
+  (`generalaccess*`). Dependent-component checks are conservative; limited
+  current instances are 6f; ACATS C3A0013 remains a compile XFAIL (6e, 6f,
+  Phase 8). [Contract](docs/general-access.md).
+- [x] Anonymous access definitions in object, component, discriminant,
+  parameter, result, extended-return and renaming contexts, with master-ancestry
+  checks, coextensions, protected callbacks and controlling access dispatch
+  (`anonymousaccess*`, `anonymouscoextensions`, `anonymousprotected`,
+  `anonymousdispatch`; ACATS C460001/C460002/C3A2002). Inline anonymous array
+  objects (`anonymousarrayobjects`, `anonymousarrayerrors`). Broader limited/
   tagged definitions, generic formals and task/protected discriminants remain
-  6f/6g/9. Follow-up: inline anonymous array object declarations, including
-  anonymous access elements; grouped objects have independent types, bounds
-  evaluation and initializers (`anonymousarrayobjects`, `anonymousarrayerrors`,
-  library/whole/separate/determinism and runtime sanitizer checks).
-  [Contract and ABI](docs/anonymous-access.md).
+  6f/6g/9. [Contract](docs/anonymous-access.md).
 - [ ] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic matching and required runtime checks.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
 
-### 6e. Program structure
+### 6e. Program structure and names
 
+The first three items are cheap and unblock common Ada 2005 code and ACATS
+cases (C59002A, C761002, part of C3A0013); take them next, ahead of the
+remaining 6d items.
+
+- [ ] Labels and `goto`, with legality checks for transfers between scopes.
+  Reuse the `exit`/`return` scope-exit paths so outward transfers unwind
+  masters, finalization chains and storage in order.
+- [ ] Package and generic renaming (object, subprogram and exception renaming
+  exist).
+- [ ] Prefixed calls (`Object.Operation (...)`) on tagged types, including
+  inherited primitives, class-wide dispatch, access prefixes and overload
+  resolution. Interface prefixes follow with 6f interfaces.
 - [ ] Limited and private `with` clauses, including `limited private with`:
   incomplete and tagged incomplete views, visibility and completion rules.
   Distinguish limited dependencies from ordinary semantic and elaboration edges
   so legal mutual dependencies survive loading, binding and incremental builds.
 - [ ] Separate subunits for subprogram and package bodies: loading, and
   analysis in the parent's scope. Replaces the Phase 1 diagnostic.
-- [ ] Package and generic renaming (object, subprogram and exception renaming
-  exist).
-- [ ] Labels and `goto`, with legality checks for transfers between scopes.
 - [ ] Extended return statements for results that are not controlled types,
   general limited aggregates and build-in-place results. Extend the existing
   limited controlled-result support to all required Ada 2005 cases, preserving
@@ -526,9 +394,8 @@ construction, cleanup and dispatch mechanisms.
 ### 6f. Object orientation
 
 - [ ] Abstract subprograms and their full legality rules.
-- [ ] Prefixed calls (`Object.Operation (...)`), including inherited primitives,
-  class-wide dispatch, access prefixes and overload resolution. Complete Ada
-  2005 overriding-indicator and null-procedure legality beyond the existing subset.
+- [ ] Complete Ada 2005 overriding-indicator and null-procedure legality beyond
+  the existing subset.
 - [ ] Discriminated tagged types, private extensions, extensions of private
   views, general limited record definitions, and tagged size clauses. Include
   runtime-sized tagged records and delayed private-component layouts diagnosed
@@ -606,9 +473,8 @@ Ada 2005 additions and track annex packages separately.
 
 ## Phase 8 — Tooling and validation (alongside the phases above)
 
-- [x] Establish Ada 2005 as the language target, distinguishing the currently
-  implemented subset from the goal without claiming full conformance. Track
-  supported behavior and restrictions in README.md and progress in this roadmap.
+- [x] Establish Ada 2005 as the language target without claiming full
+  conformance; README.md tracks the subset, this roadmap the progress.
 - [ ] Maintain an Ada 2005 coverage matrix (skeleton from the Phase 5 prelude)
   by RM clause and predefined unit:
   implemented behavior, restrictions, missing legality/runtime checks, regression
@@ -626,10 +492,8 @@ Ada 2005 additions and track annex packages separately.
   memory accesses are not instrumented; find another way to cover them, for
   example a race detector at the run-time boundary or an instrumented IR pass
   outside `qbe/`.
-  - [x] Record-component syntax recovery preserves record/variant boundaries;
-    declaration recovery preserves the next declaration's introducer after a
-    missing delimiter. Covered by `recordrecoveryaccess`,
-    `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
+  - [x] Record-component and declaration syntax recovery after missing
+    delimiters (`recordrecovery*`, with timeouts).
 - [ ] Complete discrete-range syntax using range attributes in array type
   definitions, including `array (Commuters'Range) of Natural` in C3A0013.
   Preserve the index type and evaluate bounds once at type elaboration; cover
@@ -652,15 +516,10 @@ Ada 2005 additions and track annex packages separately.
   dependency changes or removal, search-path shadowing.
 - [ ] Driver: skip scan, bind and link when nothing changed; let `--clean` work
   without a source argument.
-- [x] Lowering layer decision: keep direct semantic-AST-to-QBE emission;
-  no separate lowering IR before the descriptor rework.
-  [Rationale, scope and migration order](docs/lowering-decision.md) assign
-  shared layout/view contracts to Phase 5 descriptors, explicit call/exit
-  handling to Phase 6a, component/result/dispatch plans to Phase 6b–6f, and
-  select operation plans to Phase 9. These are pending feature prerequisites,
-  not completed refactors. Reopen before select emission if those contracts
-  cannot express its cleanup/cancellation paths without duplication, or when
-  an independent backend/pass requires a separate representation.
+- [x] Lowering layer decision: see the Phase 5 prelude. Reopen before select
+  emission if the existing contracts cannot express its cleanup/cancellation
+  paths without duplication, or when an independent backend needs a separate
+  representation.
 
 ## Phase 9 — Full tasking
 
@@ -690,25 +549,27 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 For orientation; extend these rather than restart them. Details are in the README.
 
 - Scalars: checked 32/64-bit integers, modular types up to `2 ** 64`, floating
-  point, ordinary fixed point, and local runtime subtype bounds.
-- Arrays: one- and multi-dimensional, runtime-bounded locals, aggregate bound
-  inference, sliding, identity rules, overlap-safe slice assignment, scoped
-  storage reclamation.
-- Records: grouped field defaults, discriminant-constrained variants, and
-  active-component equality.
+  point, ordinary and decimal fixed point, local and library runtime bounds.
+- Arrays: one- and multi-dimensional, 64-bit descriptors, runtime-bounded
+  locals, library objects, components and allocators, aggregate bound
+  inference, sliding, overlap-safe slice assignment, scoped storage reclamation.
+- Records: grouped field defaults, default and runtime discriminants, mutable
+  variants, controlled variant components, representation clauses.
 - Calls: context-driven overload resolution, user operators, defaults,
   copy-in/copy-out, caller-owned composite results, fall-through checks.
 - Exceptions: occurrences, messages, saved occurrences, re-raise, tracebacks,
   package-body handlers.
 - Packages: local packages and generic instances, elaboration order and
   failure reporting.
-- Access: object allocators with collections, and named access-to-subprogram
-  types with nested callbacks.
+- Access: shared collections, general and anonymous access, accessibility
+  checks, coextensions, named access-to-subprogram types and nested callbacks.
 - Renaming: objects, components, subprograms, operators, attributes, exceptions.
 - Generics: private, discrete, numeric, fixed and array formals, formal
   subprograms and objects, contract checking.
 - Tagged and controlled types (stages 1–4c): inheritance, class-wide values,
   dispatching, `Ada.Tags`, full controlled lifetimes and ownership.
+- Tasking: per-task context, masters, entry-free tasks, protected objects and
+  entries, delays, `Ada.Real_Time`, atomics, abort-deferral regions.
 - Library: `Text_IO` and its generics, sequential, direct and stream I/O,
   numerics, Latin-1 characters, fixed and bounded strings, command line.
 - Toolchain: per-unit compilation, manifest binding, incremental caching,
