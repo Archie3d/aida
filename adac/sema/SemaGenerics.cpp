@@ -157,6 +157,11 @@ Symbol* declaredSymbol(Decl* decl)
 
 void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
 {
+    if (!decl->renamesLower.empty()) {
+        decl->symbol = declareUnitRenaming(decl->name, decl->lower, decl->renames, decl->renamesLower,
+            decl->location, scope, true, decl->isPackage, decl->isFunction);
+        return;
+    }
     // Register the generic before checking its formal contract.
     // One with a dotted name is a child like any other, so it is declared
     // inside its parent rather than under a name with a dot in it.
@@ -969,6 +974,13 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     Symbol* generic = lookupName(decl->genericLower, scope);
     if (generic == nullptr || generic->kind != SymbolKind::Generic) {
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");
+        return;
+    }
+    if (generic->renamedUnit != nullptr) {
+        generic = generic->renamedUnit;
+    }
+    if (generic->generic->isPackage != decl->isPackage || generic->generic->isFunction != decl->isFunction) {
+        m_diagnostics.error(decl->location, "generic unit kind does not match this instantiation");
         return;
     }
     decl->generic = generic;

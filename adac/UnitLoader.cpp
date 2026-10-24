@@ -88,7 +88,8 @@ bool isBody(const Decl& decl)
 
 bool allowsBody(const Decl& decl)
 {
-    return decl.kind == DeclKind::PackageSpecification
+    return (decl.kind == DeclKind::PackageSpecification
+            && static_cast<const PackageSpecDecl&>(decl).renamesLower.empty())
         || (decl.kind == DeclKind::SubprogramDeclaration && !isOptionalCompletion(decl))
         || (decl.kind == DeclKind::GenericDeclaration
             && !static_cast<const GenericDecl&>(decl).hasBody);
@@ -470,6 +471,14 @@ bool UnitLoader::orderUnits()
                     return false;
                 }
                 const Decl& parentDecl = *m_parts.at(parentKey + ".spec")->units.front();
+                bool renamedParent = (parentDecl.kind == DeclKind::PackageSpecification
+                    && !static_cast<const PackageSpecDecl&>(parentDecl).renamesLower.empty())
+                    || (parentDecl.kind == DeclKind::GenericDeclaration
+                        && !static_cast<const GenericDecl&>(parentDecl).renamesLower.empty());
+                if (renamedParent) {
+                    m_diagnostics.error(decl->location, "a renamed package cannot be the parent of a child unit");
+                    return false;
+                }
                 if (libraryKind(parentDecl) != LibraryKind::Package) {
                     m_diagnostics.error(decl->location, "parent unit '" + parent + "' is not a package");
                     return false;

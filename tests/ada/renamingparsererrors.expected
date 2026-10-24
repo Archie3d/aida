@@ -1,0 +1,5 @@
+renamingparsererrors.adb:2:24: error: expected 'identifier' in name, found ';'
+renamingparsererrors.adb:3:42: error: expected 'identifier' in name, found ';'
+renamingparsererrors.adb:5:5: error: a generic renaming cannot have a formal part or subprogram profile
+renamingparsererrors.adb:8:5: error: a generic renaming cannot have a formal part
+renamingparsererrors.adb:8:41: error: expected ';' after package renaming, found '('

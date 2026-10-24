@@ -913,6 +913,8 @@ struct PackageSpecDecl : Decl
 
     std::string name;
     std::string lower;
+    std::string renames;
+    std::string renamesLower;
     DeclList publicPart;
     DeclList privatePart;
     Symbol* symbol = nullptr;
@@ -1035,6 +1037,8 @@ struct GenericDecl : Decl
     bool isPackage = true;
     bool isFunction = false;
     bool hasBody = false;
+    std::string renames;
+    std::string renamesLower;
     std::vector<GenericFormal> formals;
     std::vector<Token> tokens;
     Symbol* symbol = nullptr;

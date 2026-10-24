@@ -45,15 +45,14 @@ GCC's release branch itself may change. No download is needed at build/test time
 | C51004A | 5.1, 8.2 | PASS: statement identifiers become visible at the end of block, subprogram, package, generic and task declarative parts | Phase 6e labels/goto complete |
 | C59002B | 5.8 | PASS: jumps out of nested if, loop, case and block statements | Phase 6e labels/goto complete |
 | C59002A | 5.8, 11.2 | PASS: forward/backward jumps from exception handlers to enclosing sequences | Phase 6e labels/goto complete |
-| C761002 | 7.6.1, 13.11.2 | XFAIL at compilation: missing root Unchecked_Deallocation compatibility generic | P6e generic renaming; P6a/P6e runtime regressions |
+| C85011A | 8.5.3, 8.4 | PASS: package alias chains, use clauses, and current instances of generic/nongeneric packages | P6e package renaming complete |
+| C761002 | 7.6.1, 13.11.2, J.1 | PASS: controlled collection lifetime/deallocation across scope exits, goto and exceptions; root compatibility generic renaming | P6a/P6e complete for these scenarios |
 
 C761002 was retrieved from the same GCC release branch on 2026-10-23.
-It exercises collection lifetime, explicit deallocation and exits through nested
-scopes, return, goto and exceptions. Labels/goto are now supported, and it
-reaches a missing root
-`Unchecked_Deallocation` compatibility generic (Ada 2005 J.1). It remains an
-unchanged compile XFAIL for this next gap; no upstream executable pass is
-claimed. The local TCTouch adapter now also records Touch/Validate traces.
+It passes unchanged, exercising collection lifetime, explicit deallocation and
+exits through nested scopes, return, goto and exceptions. The root compatibility
+`Unchecked_Deallocation` generic renames the existing Ada child unit. The local
+TCTouch adapter records and validates its Touch/Validate traces.
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
@@ -214,7 +213,7 @@ C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mir
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights
 and disclaimer. It covers general access to allocated/aliased objects and
 implicitly aliased tagged formals/limited current instances. It is a pinned
-compile XFAIL for private extensions (P6f) and package renaming (P6e), not an
+compile XFAIL for private extensions (P6f), not an
 upstream execution pass. Anonymous access discriminants now parse. The case
 also needs limited current-instance Access (P6f) and `array (Object'Range)`
 index-range syntax (P8); these now have explicit roadmap entries.
@@ -266,7 +265,7 @@ Their exact diagnostics are pinned; no upstream bodies are changed.
 
 The following unchanged sources use the same [ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5)
 as the null-exclusion cases. C3A0006 passes (library callback arrays and calls).
-C3A0009 remains a compile XFAIL for private extensions and package renaming;
+C3A0009 remains a compile XFAIL for private extensions;
 its exact diagnostics are pinned. Local Ada/C ABI and inheritance regressions
 cover the implemented contexts without editing upstream test bodies.
 
@@ -284,3 +283,8 @@ out of compound statements. Their content is pinned below.
 | --- | --- | --- |
 | c51004a.ada | `75fa271d0e56b2d3f3f0f8bb2a273380044fc384` | `ede6184296bb0a4254f71792698c6c4d3073b748a8c9b761a1b3883e1fe13b6c` |
 | c59002b.ada | `aee5839a7e4eb2776ea6751971269860e6a9f7a3` | `b86a4e7a73760b7e92f83b7fcbe77153b90c58a2ad1a06720aab9798051fa73c` |
+
+C85011A comes from [GCC releases/gcc-14 c8/c85011a.ada](https://github.com/gcc-mirror/gcc/blob/releases/gcc-14/gcc/testsuite/ada/acats/tests/c8/c85011a.ada),
+retrieved 2026-10-24 and retained unchanged, including rights and disclaimer.
+Its git blob is `538f9c235862c74b9a20afd40e39611922159b95` and SHA-256 is
+`a2b84ba57c2f57ec47e2a713604b55698b25cbbceeb18e174a9ddf88f7052f0a`.

@@ -1,0 +1,13 @@
+unitrenamingerrors.adb:27:5: error: 'Value' does not denote a package
+unitrenamingerrors.adb:28:5: error: 'Generic_Package' does not denote a package
+unitrenamingerrors.adb:29:5: error: 'Absent' does not denote a package
+unitrenamingerrors.adb:30:5: error: 'Good' has already been declared in this scope
+unitrenamingerrors.adb:31:5: error: 'Plain' does not denote a generic package
+unitrenamingerrors.adb:32:5: error: 'Generic_Function' does not denote a generic procedure
+unitrenamingerrors.adb:33:5: error: 'Generic_Procedure' does not denote a generic function
+unitrenamingerrors.adb:34:5: error: 'Generic_Procedure' does not denote a generic package
+unitrenamingerrors.adb:35:5: error: 'Absent' does not denote a generic procedure
+unitrenamingerrors.adb:37:5: error: 'Good_Generic' has already been declared in this scope
+unitrenamingerrors.adb:38:5: error: generic unit kind does not match this instantiation
+unitrenamingerrors.adb:41:18: error: 'Hidden' is not declared in 'Good'
+unitrenamingerrors.adb:42:20: error: '.' reaches inside a value of 'Item', whose representation 'Plain' keeps to itself

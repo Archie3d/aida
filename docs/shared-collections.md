@@ -97,10 +97,9 @@ Both new Ada programs pass whole/separate modes with each instrumented runtime.
 Generated Ada memory accesses are not instrumented, so this verifies runtime
 boundaries rather than proving absence of every Ada data race.
 
-Unchanged upstream ACATS C761002 remains a compile XFAIL for the missing root
-`Unchecked_Deallocation` compatibility generic (Phase 6e renaming). Labels/goto
-are implemented; local `gotocleanup` covers collection and master cleanup on
-outward transfers. C761002 is not counted as an executable upstream pass.
+Unchanged upstream ACATS C761002 passes after Phase 6e labels/goto and the root
+`Unchecked_Deallocation` generic renaming. Local `gotocleanup` also covers
+collection and master cleanup on outward transfers.
 General/anonymous access, accessibility extensions, custom storage
 pools and runtime-constrained array allocators remain outside this change.
 Cross-host validation remains Phase 8 work; abort delivery remains Phase 9.

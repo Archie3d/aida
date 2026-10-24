@@ -1486,3 +1486,33 @@ foreach(goto_case gotostatements gotocleanup)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${goto_case} runtime.${goto_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
+
+# Phase 6e: package and generic renamed views, including library compatibility.
+foreach(renaming_case unitrenaming renaminglibrary)
+    add_ada_test(${renaming_case} SOURCES ${renaming_case}.adb)
+    add_determinism_test(${renaming_case} SOURCE ${renaming_case}.adb)
+    add_test(NAME runtime.${renaming_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${renaming_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${renaming_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${renaming_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${renaming_case} runtime.${renaming_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_ada_error_test(unitrenamingerrors SOURCES unitrenamingerrors.adb)
+add_ada_error_test(renamingvisibilityerrors SOURCES renamingvisibilityerrors.adb)
+add_ada_error_test(renamingparsererrors SOURCES renamingparsererrors.adb)
+
+add_test(NAME semantics.unit_renaming
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}/ada
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/unit-renaming-errors
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnitRenaming.cmake)
+set_tests_properties(semantics.unit_renaming PROPERTIES TIMEOUT 30)

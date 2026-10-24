@@ -85,6 +85,7 @@ private:
         std::unordered_map<std::string, Symbol*> operators;
         std::unordered_map<std::string, Symbol*> subprograms;
         std::unordered_map<std::string, Symbol*> typeNames;
+        std::unordered_map<std::string, Symbol*> unitNames;
         std::unordered_map<std::string, std::vector<Symbol*>> instances;
         bool valid = false;
     };
@@ -123,6 +124,10 @@ private:
     void recordContractName(Expr* expr, Symbol* symbol);
     void checkGenericContract(GenericDecl* decl, Scope* scope);
     void analyzeGenericDecl(GenericDecl* decl, Scope* scope);
+    Symbol* declareUnitRenaming(const std::string& name, const std::string& lower,
+                                const std::string& renamed, const std::string& renamedLower,
+                                SourceLocation location, Scope* scope, bool isGeneric,
+                                bool isPackage, bool isFunction);
     bool acceptsFormalType(const GenericFormal& formal, Type* actual, const std::string& genericName,
                            const SourceLocation& location);
     bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,

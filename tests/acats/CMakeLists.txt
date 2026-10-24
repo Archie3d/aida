@@ -42,8 +42,8 @@ add_acats_test(c45504a)
 add_acats_test(c45503a)
 add_acats_test(c45611a)
 
-# Labels/goto now compile; the root compatibility generic remains unavailable.
-add_acats_test(c761002 REJECTION "cannot find the unit 'Unchecked_Deallocation'")
+# Collection cleanup across goto and the root compatibility generic renaming.
+add_acats_test(c761002)
 
 add_acats_test(c35507a)
 
@@ -91,3 +91,6 @@ add_acats_test(c3a0009 REJECTION "only record extensions are supported after wit
 # Implicit statement declarations and transfers out of nested compound statements.
 add_acats_test(c51004a)
 add_acats_test(c59002b)
+
+# Package alias chains, use clauses and current instances.
+add_acats_test(c85011a)

@@ -180,7 +180,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
         }
         case DeclKind::GenericDeclaration: {
             Symbol* symbol = static_cast<GenericDecl*>(decl.get())->symbol;
-            if (symbol != nullptr && symbol->hasBody && symbol->level == 0) {
+            if (symbol != nullptr && symbol->renamedUnit == nullptr && symbol->hasBody && symbol->level == 0) {
                 m_data << "export data " << symbol->qbeName << ".elaborated = align 4 { w 0 }\n";
             }
             break;
@@ -246,7 +246,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         }
         if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
-            if (generic->hasBody) {
+            if (generic->hasBody && generic->renamesLower.empty()) {
                 line("storew 1, " + elaborationFlag(generic->symbol).name);
             }
         } else if (decl->kind == DeclKind::SubprogramBody) {
@@ -370,7 +370,7 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
             Symbol* symbol = decl->kind == DeclKind::SubprogramBody
                 ? static_cast<SubprogramBody*>(decl.get())->symbol
                 : static_cast<GenericDecl*>(decl.get())->symbol;
-            if (symbol != nullptr && symbol->level > 0 && symbol->elaborationOffset < 0) {
+            if (symbol != nullptr && symbol->renamedUnit == nullptr && symbol->level > 0 && symbol->elaborationOffset < 0) {
                 m_context->hasFrame = true;
                 symbol->elaborationOffset = reserveFrame(4, 4);
                 Value flag = elaborationFlag(symbol);
@@ -558,7 +558,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::GenericDeclaration: {
             auto* generic = static_cast<GenericDecl*>(decl.get());
-            if (generic->hasBody) {
+            if (generic->hasBody && generic->renamesLower.empty()) {
                 line("storew 1, " + elaborationFlag(generic->symbol).name);
             }
             break;

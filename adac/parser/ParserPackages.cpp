@@ -34,6 +34,11 @@ DeclPtr Parser::parsePackage(bool library)
     auto spec = std::make_unique<PackageSpecDecl>();
     spec->location = location;
     spec->name = parseCompoundName(spec->lower);
+    if (match(TokenKind::KwRenames)) {
+        spec->renames = parseCompoundName(spec->renamesLower);
+        expect(TokenKind::Semicolon, "after package renaming");
+        return spec;
+    }
     expect(TokenKind::KwIs, "in package specification");
     if (match(TokenKind::KwNew)) {
         return parseGenericInstantiation(location, spec->name, spec->lower, true);

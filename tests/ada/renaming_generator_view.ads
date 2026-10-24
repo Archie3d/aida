@@ -1,0 +1,2 @@
+with Renaming_Generator;
+generic package Renaming_Generator_View renames Renaming_Generator;

@@ -56,6 +56,11 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
 
 void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
 {
+    if (!decl->renamesLower.empty()) {
+        decl->symbol = declareUnitRenaming(decl->name, decl->lower, decl->renames, decl->renamesLower,
+            decl->location, scope, false, true, false);
+        return;
+    }
     std::size_t pushed = 0;
     Symbol* symbol = declarePackagePath(decl->lower, decl->name, scope, decl->location, pushed);
     decl->symbol = symbol;

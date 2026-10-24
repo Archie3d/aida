@@ -131,7 +131,7 @@ and in README.md.
 - [x] **Unit identity and loading.** Per-declaration identities, separate
   spec/body nodes, canonical deduplication, automatic lookup and cycle
   diagnostics (`loading.*`, `ada.*_main`). Source bundles and custom filenames
-  are extensions; generic renaming completions unsupported.
+  are extensions; generic subprogram renaming-as-body completions unsupported.
 - [x] **Elaboration order and checks.** Binder validation of order and implied
   constraints; elaboration flags raise `Program_Error` on early calls or
   instantiations (`binding.elaboration_order`, `elaboration*`, `forward*`).
@@ -300,8 +300,8 @@ checks.
 - [x] Shared access-type collections: synchronized allocation, deallocation and
   heap finalization across tasks; collection tasks belong to the access type's
   master (`sharedcollections`, `sharedtaskcollections`,
-  `runtime.shared_collections`; ACATS C761002 compatibility-unit XFAIL
-  pending 6e). Foreign stack chains and custom pools unsupported.
+  `runtime.shared_collections`; ACATS C761002 PASS after P6e labels/renaming).
+  Foreign stack chains and custom pools unsupported.
   [Limits](docs/shared-collections.md).
 
 ### 6b. Dynamic data
@@ -355,7 +355,7 @@ formals, protected callback types and foreign ABI work retain their later owners
 - [x] General access types: `aliased`, `access all`, `'Access`,
   access-to-constant, accessibility and checked named conversions
   (`generalaccess*`). Dependent-component checks are conservative; limited
-  current instances are 6f; ACATS C3A0013 remains a compile XFAIL (6e, 6f,
+  current instances are 6f; ACATS C3A0013 remains a compile XFAIL (6f,
   Phase 8). [Contract](docs/general-access.md).
 - [x] Anonymous access definitions in object, component, discriminant,
   parameter, result, extended-return and renaming contexts, with master-ancestry
@@ -372,7 +372,7 @@ formals, protected callback types and foreign ABI work retain their later owners
 - [x] `'Access` of imported Ada/C subprograms and inherited tagged operations,
   with calling-convention checks, native C callbacks, inherited entries and
   result tags (`importedcallback*`, `inheritedcallback*`, `callbackextension*`;
-  ACATS C3A0006 PASS, C3A0009 private-extension/package-renaming XFAIL).
+  ACATS C3A0006 PASS, C3A0009 private-extension XFAIL).
   [Contract and remaining ABI limits](docs/subprogram-access.md).
 
 ### 6e. Program structure and names
@@ -385,10 +385,14 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   visibility and sequence/body boundaries checked. Outward transfers reuse
   master/finalization/storage cleanup (`gotostatements`, `gotocleanup`,
   `goto*errors`, whole/separate/determinism; ACATS C51004A/C59002A/C59002B PASS).
-  C761002 now reaches the missing root `Unchecked_Deallocation` compatibility
-  generic (renaming item below); it remains a compile XFAIL for that gap.
-- [ ] Package and generic renaming (object, subprogram and exception renaming
-  exist).
+- [x] Package and generic renaming: new views share package declarations,
+  type/object identity and generic contracts, including alias chains and current
+  package instances. Library alias loading, completion/child restrictions,
+  privacy, defaults and elaboration checked (`unitrenaming*`, `renaminglibrary`,
+  `renaming*errors`, `semantics.unit_renaming`; whole/separate/determinism).
+  Root `Unchecked_Deallocation` compatibility view reuses the Ada child unit;
+  unchanged ACATS C85011A and C761002 PASS. Generic subprogram renaming-as-body
+  completions retain the existing Phase 3 limitation (Phase 8 audit).
 - [ ] Prefixed calls (`Object.Operation (...)`) on tagged types, including
   inherited primitives, class-wide dispatch, access prefixes and overload
   resolution. Interface prefixes follow with 6f interfaces.

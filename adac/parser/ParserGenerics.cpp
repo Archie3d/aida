@@ -13,6 +13,23 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     auto decl = std::make_unique<GenericDecl>();
     decl->location = location;
 
+    // A generic renaming has neither a formal part nor a subprogram profile.
+    if ((check(TokenKind::KwPackage) || check(TokenKind::KwProcedure) || check(TokenKind::KwFunction))
+        && peek(1).kind == TokenKind::Identifier) {
+        std::size_t saved = m_position;
+        decl->isPackage = check(TokenKind::KwPackage);
+        decl->isFunction = check(TokenKind::KwFunction);
+        advance();
+        decl->name = parseCompoundName(decl->lower);
+        if (match(TokenKind::KwRenames)) {
+            decl->renames = parseCompoundName(decl->renamesLower);
+            expect(TokenKind::Semicolon, "after generic renaming");
+            decl->hasBody = true; // A renaming is a complete declaration.
+            return decl;
+        }
+        m_position = saved;
+    }
+
     while (!check(TokenKind::KwPackage) && !check(TokenKind::KwProcedure) && !check(TokenKind::KwFunction)) {
         if (check(TokenKind::EndOfFile)) {
             fail("expected a package, procedure or function after the generic formal part");
@@ -164,10 +181,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     decl->elaborateBody = unit->elaborateBody;
     switch (unit->kind) {
     case DeclKind::PackageSpecification:
+        if (!static_cast<PackageSpecDecl*>(unit.get())->renamesLower.empty()) {
+            fail("a generic renaming cannot have a formal part");
+        }
         decl->name = static_cast<PackageSpecDecl*>(unit.get())->name;
         decl->lower = static_cast<PackageSpecDecl*>(unit.get())->lower;
         break;
     case DeclKind::SubprogramDeclaration:
+        if (static_cast<SubprogramDecl*>(unit.get())->renamedName != nullptr) {
+            fail("a generic renaming cannot have a formal part or subprogram profile");
+        }
         decl->isFunction = static_cast<SubprogramDecl*>(unit.get())->spec.isFunction;
         decl->hasBody = static_cast<SubprogramDecl*>(unit.get())->renamedName != nullptr;
         decl->name = static_cast<SubprogramDecl*>(unit.get())->spec.name;

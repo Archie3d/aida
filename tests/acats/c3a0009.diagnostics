@@ -1,4 +1,1 @@
 c3a0009.ada:70:41: error: only record extensions are supported after with
-c3a0009.ada:160:25: error: expected 'is' in package specification, found 'renames'
-c3a0009.ada:180:28: error: expected 'is' in package specification, found 'renames'
-c3a0009.ada:181:28: error: expected 'is' in package specification, found 'renames'

@@ -100,6 +100,7 @@ struct Symbol
     int dispatchSlot = -1;
     int pendingOverride = 0;
     bool pendingControlledResult = false;
+    Symbol* renamedUnit = nullptr; // Canonical package/generic behind a renamed view.
     Symbol* renamedSubprogram = nullptr;
     Symbol* renamedAccess = nullptr;
     bool intrinsicRenaming = false;

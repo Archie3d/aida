@@ -376,3 +376,75 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     }
     decl->renamingExpansion.push_back(std::move(body));
 }
+
+// A renamed unit shares the original declarations and generic contract. Only
+// its defining name and visibility belong to this new view.
+Symbol* Sema::declareUnitRenaming(const std::string& name, const std::string& lower,
+                                 const std::string& renamed, const std::string& renamedLower,
+                                 SourceLocation location, Scope* scope, bool isGeneric,
+                                 bool isPackage, bool isFunction)
+{
+    std::string key = contractKey(location) + ":" + renamedLower;
+    Symbol* original = nullptr;
+    if (m_replayContract != nullptr) {
+        auto found = m_replayContract->unitNames.find(key);
+        if (found != m_replayContract->unitNames.end()) {
+            original = instanceSymbol(found->second);
+            if (original == nullptr) {
+                m_diagnostics.error(location, "cannot map a renamed unit to its generic instance");
+                return nullptr;
+            }
+        }
+    }
+    if (original == nullptr) {
+        original = lookupName(renamedLower, scope);
+    }
+    if (m_recordContract != nullptr && original != nullptr) {
+        m_recordContract->unitNames[key] = original;
+    }
+    Symbol* renamedView = original;
+    if (original != nullptr && original->renamedUnit != nullptr) {
+        original = original->renamedUnit;
+    }
+    bool matches = original != nullptr && (isGeneric
+        ? original->kind == SymbolKind::Generic && original->generic != nullptr
+            && original->generic->isPackage == isPackage && original->generic->isFunction == isFunction
+        : original->kind == SymbolKind::Package);
+    if (!matches) {
+        std::string kind = isGeneric ? isPackage ? "a generic package" : isFunction ? "a generic function" : "a generic procedure"
+            : "a package";
+        m_diagnostics.error(location, "'" + renamed + "' does not denote " + kind);
+        return nullptr;
+    }
+    if (scope == m_unitScope && renamedView->libraryName.empty()) {
+        m_diagnostics.error(location, "a library unit renaming must rename a library unit");
+        return nullptr;
+    }
+    Scope* home = scope;
+    std::string simple = lower;
+    std::string display = name;
+    auto dot = lower.rfind('.');
+    if (dot != std::string::npos) {
+        std::size_t pushed = 0;
+        Symbol* parent = declarePackagePath(lower.substr(0, dot), name.substr(0, dot), scope, location, pushed);
+        for (std::size_t i = 0; i < pushed; ++i) {
+            m_namePrefix.pop_back();
+        }
+        home = parent->scope;
+        simple = lower.substr(dot + 1);
+        display = name.substr(dot + 1);
+    }
+    if (!home->lookupDeclaration(simple).empty()) {
+        m_diagnostics.error(location, "'" + name + "' has already been declared in this scope");
+        return nullptr;
+    }
+    Symbol* alias = m_symbolTable.createSymbol(original->kind, simple, display);
+    alias->location = location;
+    alias->renamedUnit = original;
+    alias->scope = original->scope;
+    alias->generic = original->generic;
+    alias->hasSpecification = true;
+    alias->hasBody = true;
+    home->add(alias);
+    return alias;
+}

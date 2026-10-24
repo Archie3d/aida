@@ -1,6 +1,3 @@
 c3a0013.ada:103:42: error: only record extensions are supported after with
 c3a0013.ada:115:44: error: only record extensions are supported after with
-c3a0013.ada:246:18: error: expected 'is' in package specification, found 'renames'
-c3a0013.ada:247:18: error: expected 'is' in package specification, found 'renames'
-c3a0013.ada:248:18: error: expected 'is' in package specification, found 'renames'
 c3a0013.ada:319:39: error: expected ')' after array index list, found '''
