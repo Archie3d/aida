@@ -105,16 +105,31 @@ bool matchingStorage(Type* target, Type* source)
 
 Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expected)
 {
+    bool unchecked = expr->lower == "unchecked_access";
+    std::string attribute = unchecked ? "'Unchecked_Access" : "'Access";
     if (!representationVisible(expected) || !expected->generalAccess || !expr->arguments.empty()) {
-        m_diagnostics.error(expr->location, "object 'Access requires a general access type context and no arguments");
+        m_diagnostics.error(expr->location, "object " + attribute + " requires a general access type context and no arguments");
         return nullptr;
     }
-    Type* source = analyzeExpr(expr->prefix.get(), scope, expected->target);
-    if (source == nullptr) { return nullptr; }
-    if (!checkCompleteView(source, expr->location, "object 'Access")) { return nullptr; }
+    int errors = m_diagnostics.errorCount();
+    // An object-access prefix is a name, never an implicit subprogram call.
+    // In particular, an overloaded F.all must select an object designation
+    // rather than invoke an access-to-subprogram alternative (RM 3.10.2(2.3)).
+    auto* dereference = expr->prefix->kind == ExprKind::Selected
+        ? static_cast<SelectedExpr*>(expr->prefix.get()) : nullptr;
+    Type* source = dereference != nullptr && dereference->isDereference
+        ? analyzeSelected(dereference, scope, expected->target)
+        : analyzeExpr(expr->prefix.get(), scope, expected->target);
+    if (source == nullptr) {
+        if (m_diagnostics.errorCount() == errors) {
+            m_diagnostics.error(expr->location, "object " + attribute + " requires an aliased object view");
+        }
+        return nullptr;
+    }
+    if (!checkCompleteView(source, expr->location, ("object " + attribute).c_str())) { return nullptr; }
     ObjectAccessView view = accessView(expr->prefix.get());
     if (!view.aliased || SemaSupport::objectView(expr->prefix.get()) == 0) {
-        m_diagnostics.error(expr->location, "object 'Access requires an aliased object view");
+        m_diagnostics.error(expr->location, "object " + attribute + " requires an aliased object view");
         return nullptr;
     }
     if (!expected->accessConstant && SemaSupport::objectView(expr->prefix.get()) != 2) {
@@ -122,7 +137,7 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         return nullptr;
     }
     if (view.unstable) {
-        m_diagnostics.error(expr->location, "'Access cannot designate a discriminant-dependent component of an unconstrained variable");
+        m_diagnostics.error(expr->location, attribute + " cannot designate a discriminant-dependent component of an unconstrained variable");
         return nullptr;
     }
     if (!matchingDesignated(expected->target, source)
@@ -131,10 +146,10 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         return nullptr;
     }
     if (!matchingStorage(completeView(expected->target, scope), source)) {
-        m_diagnostics.error(expr->location, "object 'Access requires matching designated storage representation");
+        m_diagnostics.error(expr->location, "object " + attribute + " requires matching designated storage representation");
         return nullptr;
     }
-    if (view.level > expected->accessLevel && !view.dynamic && !expected->accessParameter && !expected->accessDiscriminant && m_replayContract == nullptr) {
+    if (!unchecked && view.level > expected->accessLevel && !view.dynamic && !expected->accessParameter && !expected->accessDiscriminant && m_replayContract == nullptr) {
         m_diagnostics.error(expr->location, "object is deeper than the access type");
         return nullptr;
     }
@@ -144,7 +159,7 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         view.object->owner->needsFrame = true;
     }
     expr->objectAccess = true;
-    expr->objectAccessLevel = view.level;
+    expr->objectAccessLevel = unchecked ? 0 : view.level;
     expr->prefixType = source;
     expr->type = expected;
     m_sharedEscapes.push_back(expr->prefix.get());

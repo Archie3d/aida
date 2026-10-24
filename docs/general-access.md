@@ -2,7 +2,8 @@
 
 Phase 6d supports `aliased` variables/constants, aliased record components and
 array elements, named `access all` and `access constant` types, and contextual
-object `'Access`. Renaming preserves aliasing and accessibility. Tagged formal
+object `'Access`. [Object `Unchecked_Access`](unchecked-access.md) subsequently
+added the same object-view rules with library-level accessibility. Renaming preserves aliasing and accessibility. Tagged formal
 parameters are implicitly aliased. Dereferences of access-to-constant values
 are constant views; an access-to-variable component stored in such a view still
 permits modification of its designated object.

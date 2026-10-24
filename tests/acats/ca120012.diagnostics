@@ -1,9 +1,1 @@
 ca120010.ada:157:5: error: limited record definitions outside Ada.Finalization are not yet supported
-ca120012.ada:139:31: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:142:33: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:146:33: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:168:42: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:175:52: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:360:46: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:368:45: error: unsupported attribute 'Unchecked_Access'
-ca120012.ada:376:54: error: unsupported attribute 'Unchecked_Access'

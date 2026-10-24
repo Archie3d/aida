@@ -136,6 +136,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->type = m_types.universalInteger();
         return expr->type;
     }
+    if (expr->lower == "unchecked_access") {
+        if (expected == nullptr || expected->kind != TypeKind::Access || expected->accessProfile != nullptr) {
+            m_diagnostics.error(expr->location, "'Unchecked_Access requires an access-to-object type context");
+            return nullptr;
+        }
+        return analyzeObjectAccess(expr, scope, expected);
+    }
     if (expr->lower == "access") {
         if (expr->prefixedAccessType != nullptr) { expected = expr->prefixedAccessType; }
         if (expr->prefix->kind == ExprKind::Selected

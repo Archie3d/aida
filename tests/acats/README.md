@@ -325,11 +325,11 @@ compilation/execution and exact XFAIL grading still apply.
 | Case / inputs | Expectation | Remaining gap / owner |
 | --- | --- | --- |
 | CA20003: CA200030, CA200031 | PASS: a package reached only by limited with still belongs to the executable partition and elaborates | Further partition/host audit: P8 |
-| CA110232: CA110230–CA110232 | Compile XFAIL: unsupported Unchecked_Access in the unchanged mutual-reference case | Unchecked_Access/accessibility audit: P8 |
-| CA120012: CA120010–CA120012 | Compile XFAIL: general limited records; also needs Unchecked_Access | P6f/P8 |
+| CA110232: CA110230–CA110232 | PASS: unchanged mutual-reference case, including Unchecked_Access | Broader accessibility audit: P8 |
+| CA120012: CA120010–CA120012 | Compile XFAIL: general limited records | P6f/P8 |
 | CA12002 | Compile XFAIL: separate subprogram stubs and subunit syntax | Next P6e item |
 
-The three XFAILs are not execution passes. Local `limitedwith`, `privatewith`
+The two XFAILs are not execution passes. Local `limitedwith`, `privatewith`
 and `taggedincomplete` exercise the implemented views with whole/per-unit/
 deterministic compilation, private children, runtime array aliases, four tasks,
 allocation and deallocation. `semantics.context_views` covers illegal uses,
@@ -347,3 +347,25 @@ cycles, binder membership and incremental dependency invalidation.
 | [tests/ca/ca120011.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca120011.a) | `9b72caa33b113e9d5bf264a46777e0972ff3f86b` | `ca41f91aa6efc55e9038ad71f39e5b18d3b1a38237fef27f80a947acc54942a2` |
 | [tests/ca/ca120012.am](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca120012.am) | `6787cc51e06b98b97db3cbf30bbe1d0707311ff0` | `737a9b872b8f80f3a25492747cb809c5d81347ade32a3f72c9576cec30ee7f88` |
 | [tests/ca/ca12002.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca12002.a) | `f87bdd3f3819aeec91d1f9d97f9cf6f7e8ca174d` | `9c7e4281f44e2813506f20db19944039dbb6f96b66964622d3b61c363109af6e` |
+
+## Unchecked object access (RM 13.10)
+
+CA110232 above now passes unchanged. C3A2004 adds contextual overload and
+controlling-access coverage from the same pinned Ada 2005 snapshot, unchanged
+except for its `.ada` filename. It is an exact compile XFAIL, not an execution
+pass: the remaining diagnostics concern `Func.all'Access` where `Func` returns
+access-to-subprogram. That callback attribute form remains owned by Phase 8;
+the unchecked object forms no longer produce diagnostics. CA120012 remains
+blocked only by general limited records (Phase 6f).
+
+Local `uncheckedaccess` covers nested and generic scopes, anonymous parameters,
+access discriminants/components, overload selection, borrowed array bounds,
+mutable records, local tags, dispatch, controlled lifetime and four tasks.
+Whole/per-unit execution and deterministic compilation are checked;
+`uncheckedaccesserrors` and `uncheckedsharederrors` record legality diagnostics and
+`semantics.unchecked_access` excludes object/tag accessibility helpers while
+retaining null checks. See [the contract](../../docs/unchecked-access.md).
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/c3/c3a2004.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a2004.a) | `333ededda715908c7d5da59a4f3ab191a68031c0` | `b5f50611a12ff72c129c42effac7c3a4d6c35cfc56717c928c065c2065c3d48c` |

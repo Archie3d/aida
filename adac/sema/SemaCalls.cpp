@@ -497,7 +497,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 && chosen->controllingType != nullptr && controllingParameterType(formal) == chosen->controllingType
                 && argument->kind == ExprKind::Attribute) {
                 auto* attribute = static_cast<AttributeExpr*>(argument);
-                if (attribute->lower == "access" && attribute->prefixedAccessType == nullptr) {
+                if ((attribute->lower == "access" || attribute->lower == "unchecked_access")
+                    && attribute->prefixedAccessType == nullptr) {
                     for (Type* actual : expressionTypes(attribute->prefix.get(), scope)) {
                         if (actual->classRoot == chosen->controllingType) {
                             context = m_types.create(TypeKind::Access, anonymousTypeName());

@@ -1575,3 +1575,32 @@ add_test(NAME loading.context_dependencies
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckContextDependencies.cmake)
 set_tests_properties(loading.context_dependencies PROPERTIES TIMEOUT 90)
+
+# RM 13.10: unchecked object access retains ordinary object-view rules.
+foreach(unchecked_case uncheckedaccess uncheckedaccessir)
+    add_ada_test(${unchecked_case} SOURCES ${unchecked_case}.adb)
+    add_determinism_test(${unchecked_case} SOURCE ${unchecked_case}.adb)
+    add_test(NAME runtime.${unchecked_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${unchecked_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${unchecked_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${unchecked_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${unchecked_case} runtime.${unchecked_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_ada_error_test(uncheckedaccesserrors SOURCES uncheckedaccesserrors.adb)
+add_ada_error_test(uncheckedsharederrors SOURCES uncheckedsharederrors.adb)
+add_test(NAME semantics.unchecked_access
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/uncheckedaccessir.adb
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/unchecked-access-ir
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUncheckedAccess.cmake)
+set_tests_properties(semantics.unchecked_access PROPERTIES TIMEOUT 30)

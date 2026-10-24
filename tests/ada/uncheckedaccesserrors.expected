@@ -1,0 +1,13 @@
+uncheckedaccesserrors.adb:17:30: error: object 'Unchecked_Access requires an aliased object view
+uncheckedaccesserrors.adb:18:30: error: access-to-variable cannot designate a constant view
+uncheckedaccesserrors.adb:19:40: error: object view does not match the designated subtype
+uncheckedaccesserrors.adb:20:23: error: object 'Unchecked_Access requires a general access type context and no arguments
+uncheckedaccesserrors.adb:21:27: error: 'Unchecked_Access requires an access-to-object type context
+uncheckedaccesserrors.adb:22:26: error: 'Unchecked_Access requires an access-to-object type context
+uncheckedaccesserrors.adb:23:32: error: object 'Unchecked_Access requires an aliased object view
+uncheckedaccesserrors.adb:24:30: error: object 'Unchecked_Access requires an aliased object view
+uncheckedaccesserrors.adb:25:31: error: object 'Unchecked_Access requires a general access type context and no arguments
+uncheckedaccesserrors.adb:27:45: error: 'Unchecked_Access cannot designate a discriminant-dependent component of an unconstrained variable
+uncheckedaccesserrors.adb:30:34: error: object 'Unchecked_Access requires an aliased object view
+uncheckedaccesserrors.adb:38:35: error: object 'Unchecked_Access requires matching designated storage representation
+uncheckedaccesserrors.adb:42:40: error: object is deeper than the access type

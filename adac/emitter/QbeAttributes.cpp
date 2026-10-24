@@ -83,17 +83,21 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         }
         return Value { count, 'w' };
     }
-    if (name == "access") {
+    if (name == "access" || name == "unchecked_access") {
         if (expr->objectAccess) {
             Value object = emitAddress(expr->prefix.get());
-            if (expr->accessObject != nullptr) { object.accessLevel = accessLevelFor(expr->accessObject); }
+            // Keep library-level accessibility when forwarding through an
+            // anonymous access parameter as well as for this attribute itself.
+            if (name == "unchecked_access") { object.accessLevel = "0"; }
+            else if (expr->accessObject != nullptr) { object.accessLevel = accessLevelFor(expr->accessObject); }
             else if (object.accessLevel.empty()) { object.accessLevel = currentAccessLevel(); }
-            if (!expr->type->accessParameter && !expr->type->accessDiscriminant
+            if (name != "unchecked_access" && !expr->type->accessParameter && !expr->type->accessDiscriminant
                 && (expr->objectAccessLevel > expr->type->accessLevel || object.accessLevel[0] == '%')) {
                 emitCallInstruction("call $__ada_accessibility_check(w " + object.accessLevel
                     + ", w " + accessLevelFor(expr->type) + ")", CallEffects::CheckException);
             }
-            if (expr->prefixType->tagged && !expr->type->accessParameter && !expr->type->accessDiscriminant) {
+            if (name != "unchecked_access" && expr->prefixType->tagged
+                && !expr->type->accessParameter && !expr->type->accessDiscriminant) {
                 emitCallInstruction("call $__ada_tag_check_accessibility(l " + object.name + ", w "
                     + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
             }

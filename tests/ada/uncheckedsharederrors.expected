@@ -1,0 +1,1 @@
+uncheckedsharederrors.adb:5:17: error: address escape and streaming of shared scalars are not yet supported

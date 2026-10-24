@@ -491,7 +491,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     case ExprKind::Attribute: {
         auto* attribute = static_cast<AttributeExpr*>(expr);
         const std::string& name = attribute->lower;
-        if (name == "access") {
+        if (name == "access" || name == "unchecked_access") {
             if (attribute->prefixedAccessType != nullptr) {
                 add(attribute->prefixedAccessType);
                 break;
@@ -503,7 +503,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                         add(expected);
                     }
                 }
-            } else if (expected != nullptr) {
+            } else if (expected != nullptr && name == "access") {
                 for (Symbol* candidate : expressionNames(attribute->prefix.get(), scope)) {
                     if (matchesAccessProfile(candidate, expected)) {
                         add(expected);

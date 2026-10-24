@@ -404,9 +404,15 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   limited graph/manifest edges preserve mutual dependencies without imposing
   elaboration order (`limitedwith`, `privatewith`, `taggedincomplete`,
   `semantics.context_views`, `loading.context_dependencies`; whole/separate/
-  determinism, four tasks). ACATS CA20003 PASS; CA110232/CA120012/CA12002 exact
-  XFAILs for Unchecked_Access, limited records and subunits. Existing full-type
+  determinism, four tasks). ACATS CA20003/CA110232 PASS; CA120012/CA12002 exact
+  XFAILs for limited records and subunits. Existing full-type
   restrictions remain; [contract](docs/context-views.md).
+- [x] Object `Unchecked_Access` (pulled forward from the Phase 8 access audit):
+  library-level accessibility, including anonymous access parameters and local
+  tags; ordinary aliasing, subtype, constness and storage rules retained.
+  `uncheckedaccess`, `uncheckedaccesserrors`, `semantics.unchecked_access`;
+  whole/separate/determinism and four tasks. CA110232 now PASS; C3A2004 exact
+  XFAIL for dereferenced subprogram Access. [Contract](docs/unchecked-access.md).
 - [ ] Separate subunits for subprogram and package bodies: loading, and
   analysis in the parent's scope. Replaces the Phase 1 diagnostic.
 - [ ] Extended return statements for results that are not controlled types,
@@ -539,6 +545,8 @@ Ada 2005 additions and track annex packages separately.
   checking Phase 2's no-slowdown goal on other hosts and targets.
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.
+- [ ] `'Access` of dereferenced access-to-subprogram values, including
+  contextual overloaded function results (ACATS C3A2004 exact compile XFAIL).
 - [ ] Serialized semantic interfaces, so clients compile without dependency
   sources. `.ali` files hold only build metadata today.
 - [ ] Robust artifact publication and concurrent builds: interrupted writes,

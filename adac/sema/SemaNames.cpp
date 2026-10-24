@@ -310,6 +310,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     for (Type* type : expressionTypes(expr->prefix.get(), scope)) {
         Type* designated = baseType(type);
         if (designated->kind == TypeKind::Access) {
+            if (designated->accessProfile != nullptr) { continue; }
             designated = baseType(completeView(designated->target, scope));
         } else if (expr->isDereference) {
             continue;
