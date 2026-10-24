@@ -205,3 +205,19 @@ visible/private boundary; the current conservative adjacency rule rejects it.
 | cd4051a.ada | `746f82bcd095abc314be330f366f4adf20585d48` | `ce7a16a8cc4ad1adb791fc931ece34101f406dc9c5159bfd106c3756e23e8adb` |
 | cd1c03h.ada | `ad84e9196110dfbfdee090794c679ae0b8dfd83d` | `b0ae09307d146d6cec4e3b5b7d0f9fcbb986e5d60c014f68477b0cb5652f4ef6` |
 | cd4031a.ada | `936088d6502a611b2a04e5f289743f7668948d0a` | `c32e432ec7e5aafd7c5f541ac1140cc82df7595029c5a62e54571bd264e1db55` |
+
+C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a0013.a),
+retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights
+and disclaimer. It covers general access to allocated/aliased objects and
+implicitly aliased tagged formals/limited current instances. It is a pinned
+compile XFAIL for anonymous access discriminants (P6d), private extensions
+(P6f) and package renaming (P6e), not an upstream execution pass. The case
+also needs limited current-instance Access (P6f) and `array (Object'Range)`
+index-range syntax (P8); these now have explicit roadmap entries.
+Git blob: `b23d4ee11514f0cf96d3a20ca7de30cd0c5efcc6`.
+SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
+C3A0014 tests the superseded Ada 95 aliased-constrained rule and is inapplicable
+here. C3A0015 needs storage pools; C3A2002/C3A2003/C460001/C460002 need anonymous
+access parameters; C3A2A01/C460A01/C460A02 need formal access types. These cases
+are deferred unchanged; [local evidence and limits](../../docs/general-access.md)
+cover the implemented named-access subset.

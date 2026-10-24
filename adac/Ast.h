@@ -271,6 +271,8 @@ struct AttributeExpr : Expr
     AttributeExpr* rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* accessSubprogram = nullptr;
+    bool objectAccess = false;
+    int objectAccessLevel = 0;
     Symbol* countEntry = nullptr;
     bool taskAttribute = false;
     bool alignmentObjectView = false;
@@ -393,6 +395,7 @@ enum class TypeDefKind
 
 struct RecordField
 {
+    bool aliased = false;
     std::string name;
     std::string lower;
     SubtypeIndicationPtr subtype;
@@ -485,6 +488,7 @@ struct TypeDefinition : Node
     // Array
     std::vector<SubtypeIndicationPtr> indexTypes;
     bool unconstrainedIndexes = false;
+    bool aliasedElements = false;
     SubtypeIndicationPtr elementType;
 
     // Record
@@ -497,6 +501,8 @@ struct TypeDefinition : Node
     // Derived / access
     SubtypeIndicationPtr parent;
     std::unique_ptr<SubprogramSpec> accessProfile;
+    bool generalAccess = false;
+    bool accessConstant = false;
 
     // Private
     bool isLimited = false;
@@ -762,6 +768,7 @@ struct ObjectDecl : Decl
     std::vector<std::string> names;
     std::vector<std::string> namesLower;
     bool isConstant = false;
+    bool aliased = false;
     SubtypeIndicationPtr subtype;
     ExprPtr initializer;
     bool isRenaming = false; // initializer names the object whose address is saved.

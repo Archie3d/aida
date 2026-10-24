@@ -196,6 +196,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         }
         expect(TokenKind::RightParen, "after array index list");
         expect(TokenKind::KwOf, "in array type definition");
+        definition->aliasedElements = match(TokenKind::KwAliased);
         definition->elementType = parseSubtypeIndication();
         return definition;
     }
@@ -242,11 +243,14 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         if (check(TokenKind::KwProtected)) {
             fail("access-to-protected-subprogram types are not yet supported");
         }
-        if (check(TokenKind::KwAll)) {
-            fail("general access types ('access all') are not yet supported");
+        definition->generalAccess = match(TokenKind::KwAll);
+        if (definition->generalAccess && check(TokenKind::KwConstant)) {
+            fail("'access all' cannot be combined with 'constant'");
         }
-        if (check(TokenKind::KwConstant)) {
-            fail("access-to-constant types are not yet supported");
+        definition->accessConstant = match(TokenKind::KwConstant);
+        definition->generalAccess |= definition->accessConstant;
+        if (definition->generalAccess && (check(TokenKind::KwProcedure) || check(TokenKind::KwFunction))) {
+            fail("a general access modifier requires an object subtype");
         }
         if (check(TokenKind::KwFunction) || check(TokenKind::KwProcedure)) {
             definition->accessProfile = std::make_unique<SubprogramSpec>();
@@ -328,6 +332,7 @@ void Parser::parseRecordComponents(std::vector<RecordField>& fields)
                 field.lower = lowered[i];
                 field.location = fieldLocation;
                 m_position = subtypeStart;
+                field.aliased = match(TokenKind::KwAliased);
                 field.subtype = parseSubtypeIndication();
                 if (match(TokenKind::Assign)) {
                     field.defaultValue = parseExpression();

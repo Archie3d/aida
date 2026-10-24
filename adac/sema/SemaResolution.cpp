@@ -400,7 +400,11 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         auto* attribute = static_cast<AttributeExpr*>(expr);
         const std::string& name = attribute->lower;
         if (name == "access") {
-            if (expected != nullptr) {
+            if (expected != nullptr && expected->kind == TypeKind::Access && expected->accessProfile == nullptr) {
+                for (Type* prefix : expressionTypes(attribute->prefix.get(), scope, expected->target)) {
+                    if (typesCompatible(expected->target, prefix)) { add(expected); }
+                }
+            } else if (expected != nullptr) {
                 for (Symbol* candidate : expressionNames(attribute->prefix.get(), scope)) {
                     if (matchesAccessProfile(candidate, expected)) {
                         add(expected);

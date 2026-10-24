@@ -239,7 +239,7 @@ private:
     void copyInto(const Value& destination, const Value& source, Type* type);
     void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false,
                     const std::string& constrained = "1");
-    Value recordConstrained(Expr* object);
+    Value recordConstrained(Expr* object, const Value* evaluated = nullptr);
     Value discriminantConstraint(Type* type, int index);
     void emitDiscriminantConstraint(Type* type);
     Value fieldStorage(const Value& object, Type* type, const FieldInfo& field);

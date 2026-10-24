@@ -70,3 +70,6 @@ add_acats_test(c761012 REJECTION "new discriminant parts on derived types are no
 add_acats_test(cd4051a)
 add_acats_test(cd1c03h)
 add_acats_test(cd4031a REJECTION "bit-packed record components are not yet supported")
+
+# General object access case awaits anonymous access discriminants/private extensions.
+add_acats_test(c3a0013 REJECTION "expected 'identifier' in name, found 'access'")

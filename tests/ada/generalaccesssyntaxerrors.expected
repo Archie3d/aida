@@ -1,0 +1,1 @@
+generalaccesssyntaxerrors.adb:2:32: error: 'access all' cannot be combined with 'constant'

@@ -168,6 +168,39 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (call->form == CallForm::Conversion) {
             Expr* operand = call->resolvedArguments.front();
             Value value = emitExpr(operand);
+            if (expr->type->kind == TypeKind::Access && operand->type->kind == TypeKind::Access
+                && expr->type->accessProfile == nullptr && operand->type->accessProfile == nullptr) {
+                if (operand->type->accessLevel > expr->type->accessLevel) {
+                    emitCallInstruction("call $__ada_access_check(w " + std::to_string(operand->type->accessLevel)
+                        + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
+                }
+                Type* target = expr->type->target;
+                Type* source = operand->type->target;
+                if (target->tagged && source->classRoot != nullptr && target->classRoot == nullptr) {
+                    std::string nonNull = newTemp(), check = newLabel("accessconvert"), ready = newLabel("accessconverted");
+                    line(nonNull + " =w cnel " + value.name + ", 0");
+                    branch(Value {nonNull, 'w'}, check, ready);
+                    label(check);
+                    Value valid = taggedMembership(value, target);
+                    std::string good = newLabel("accesstagvalid"), bad = newLabel("accesstaginvalid");
+                    branch(valid, good, bad);
+                    label(bad);
+                    raiseConstraintError();
+                    label(good);
+                    jump(ready);
+                    label(ready);
+                }
+                if (target->kind == TypeKind::Record && hasDiscriminantConstraint(target)) {
+                    std::string nonNull = newTemp(), check = newLabel("accessconstraint"), ready = newLabel("accessconstraintdone");
+                    line(nonNull + " =w cnel " + value.name + ", 0");
+                    branch(Value {nonNull, 'w'}, check, ready);
+                    label(check);
+                    checkRecordAssignment(value, value, target, true, "1");
+                    jump(ready);
+                    label(ready);
+                }
+                return value;
+            }
             if (expr->type->kind == TypeKind::Array) {
                 Value converted = convertArrayBounds(value, operand->type, expr->type, expr->location);
                 std::string bytes = objectBytes(converted, expr->type);
@@ -538,7 +571,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             line("storel " + result.name + ", " + descriptor);
             storeArrayView(descriptor, result, designated, false);
             emitCallInstruction("call $__ada_allocation_set_array_bounds(l " + result.name + ", l " + descriptor
-                + ", w " + std::to_string(designated->arrayRank) + ")", CallEffects::CheckException);
+                + ", w " + std::to_string(designated->arrayRank)
+                + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ")", CallEffects::CheckException);
             m_context->handlerLabels.pop_back();
             jump(ready);
             label(failed);
@@ -624,7 +658,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
             line("storel " + object.name + ", " + descriptor);
             storeArrayView(descriptor, object, designated, false);
             emitCallInstruction("call $__ada_allocation_set_array_bounds(l " + object.name + ", l " + descriptor
-                + ", w " + std::to_string(designated->arrayRank) + ")", CallEffects::CheckException);
+                + ", w " + std::to_string(designated->arrayRank)
+                + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ")", CallEffects::CheckException);
         }
         initializeDependentStorage(object, designated);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {

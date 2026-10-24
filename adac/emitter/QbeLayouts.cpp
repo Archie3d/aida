@@ -223,8 +223,8 @@ Value QbeEmitter::allocatedArrayView(Value pointer, Type* type)
 {
     if (type->constrained || type->boundsSymbol != nullptr) { return withBounds(pointer, type, nullptr); }
     std::string descriptor = newTemp();
-    emitCallInstruction(descriptor + " =l call $__ada_allocation_array_bounds(l " + pointer.name
-        + ", w " + std::to_string(type->arrayRank) + ")", CallEffects::CheckException);
+    emitCallInstruction(descriptor + " =l call $__ada_access_array_bounds(l " + pointer.name
+        + ", w " + std::to_string(type->arrayRank) + ", l " + stringData(rootType(type)->accessIdentity) + ")", CallEffects::CheckException);
     Value view = loadArrayView(descriptor, type->arrayRank, false);
     view.name = pointer.name;
     view.type = 'l';

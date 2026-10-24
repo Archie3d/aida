@@ -126,6 +126,10 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
             return;
         }
         Type* prefix = baseType(selected->prefix->type);
+        if (selected->symbol == nullptr && prefix != nullptr && prefix->kind == TypeKind::Access && prefix->accessConstant) {
+            m_diagnostics.error(target->location, "a constant access view cannot be modified");
+            return;
+        }
         if (selected->symbol == nullptr && prefix != nullptr && prefix->kind != TypeKind::Access) {
             checkAssignable(selected->prefix.get(), scope, true);
         }
@@ -141,6 +145,9 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
                 return;
             }
             Expr* operand = call->resolvedArguments.front();
+            if (call->type->aliasedElements && !operand->type->aliasedElements) {
+                m_diagnostics.error(target->location, "an aliased array view requires aliased source components");
+            }
             if (rootType(call->type) != rootType(operand->type)
                 && hasPrivateOrTaggedParts(operand->type)) {
                 m_diagnostics.error(target->location,
@@ -161,6 +168,10 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
         }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
+            if (prefix != nullptr && prefix->kind == TypeKind::Access && prefix->accessConstant) {
+                m_diagnostics.error(target->location, "a constant access view cannot be modified");
+                return;
+            }
             if (prefix != nullptr && prefix->kind != TypeKind::Access) {
                 checkAssignable(call->callee.get(), scope, true);
             }

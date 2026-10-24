@@ -471,6 +471,72 @@ int main(void)
     __ada_exception = NULL;
     releaseTags();
     CHECK(liveAllocations == 0);
+    /* General access borrows metadata, never the stack object's storage.
+       Nested collection cleanup must leave an outer view alive. */
+    int borrowedObject = 19;
+    void* outerCollection = __ada_collection_create(&finalizations, &owner);
+    __ada_object_borrow(outerCollection, &borrowedObject, "mutable", 0);
+    __ada_object_borrow(outerCollection, &borrowedObject, "fixed", 1);
+    CHECK(!__ada_access_constrained(&borrowedObject, "mutable"));
+    CHECK(__ada_access_constrained(&borrowedObject, "fixed"));
+    AdaFinalization* outerMark = finalizations;
+    void* innerCollection = __ada_collection_create(&finalizations, &owner);
+    __ada_object_borrow(innerCollection, &borrowedObject, "mutable", 0);
+    __ada_finalize_to(&finalizations, outerMark);
+    CHECK(!__ada_access_constrained(&borrowedObject, "mutable") && borrowedObject == 19);
+    __ada_access_check(2, 1);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR);
+    __ada_exception = NULL;
+    __ada_access_check(1, 2);
+    CHECK(__ada_exception == NULL);
+    __ada_finalize_to(&finalizations, NULL);
+    __ada_array_release(&owner);
+    CHECK(borrowedObject == 19 && liveAllocations == 0);
+    CHECK(__ada_task_context()->registeredAllocations == NULL);
+    for (int failure = 0; failure < 4; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        failAfter = failure;
+        __ada_object_borrow(collection, &borrowedObject, "failure", 0);
+        failAfter = -1;
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(borrowedObject == 19 && liveAllocations == 0);
+        CHECK(__ada_task_context()->registeredAllocations == NULL);
+        __ada_exception = NULL;
+    }
+    int64_t borrowedBounds[] = {0, 1, 3, 3, 4};
+    int64_t borrowedMatrix[] = {0, 1, 1, 1, 12, 1, 3, 3, 4};
+    for (int failure = 0; failure < 6; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        failAfter = failure;
+        __ada_array_borrow(collection, &borrowedObject, borrowedBounds, 1, "array");
+        failAfter = -1;
+        CHECK(__ada_exception == NULL || __ada_exception == ADA_STORAGE_ERROR);
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(borrowedObject == 19 && liveAllocations == 0);
+        CHECK(__ada_task_context()->registeredAllocations == NULL);
+        __ada_exception = NULL;
+    }
+    outerCollection = __ada_collection_create(&finalizations, &owner);
+    __ada_array_borrow(outerCollection, &borrowedObject, borrowedBounds, 1, "array");
+    __ada_array_borrow(outerCollection, &borrowedObject, borrowedMatrix, 2, "matrix");
+    __ada_object_borrow(outerCollection, &borrowedObject, "overlaid", 0);
+    CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 1, "array"), borrowedBounds, sizeof borrowedBounds) == 0);
+    CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 2, "matrix"), borrowedMatrix, sizeof borrowedMatrix) == 0);
+    int64_t alternateBounds[] = {0, -2, 4, 7, 1};
+    __ada_array_borrow(outerCollection, &borrowedObject, alternateBounds, 1, "alternate");
+    CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 1, "alternate"), alternateBounds, sizeof alternateBounds) == 0);
+    CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 1, "array"), borrowedBounds, sizeof borrowedBounds) == 0);
+    outerMark = finalizations;
+    innerCollection = __ada_collection_create(&finalizations, &owner);
+    __ada_array_borrow(innerCollection, &borrowedObject, borrowedBounds, 1, "array");
+    __ada_finalize_to(&finalizations, outerMark);
+    CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 1, "array"), borrowedBounds, sizeof borrowedBounds) == 0);
+    __ada_finalize_to(&finalizations, NULL);
+    __ada_array_release(&owner);
+    CHECK(borrowedObject == 19 && liveAllocations == 0);
+
     /* A context owns its pending message, including failure paths and disposal
        after detaching. The original context must remain untouched. */
     AdaTaskContext task = { 0 };

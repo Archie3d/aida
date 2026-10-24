@@ -38,6 +38,7 @@ struct FieldInfo
     // A leading component named in the discriminant part. Only whole-object
     // assignment to an unconstrained variable may change it.
     bool isDiscriminant = false;
+    bool aliased = false;
     // An explicit slot includes any reserved trailing bytes. Dependent arrays
     // use inline payload storage in represented records instead of a view slot.
     long long representationSize = -1;
@@ -216,6 +217,10 @@ struct Type
 
     // Access types.
     Type* target = nullptr;
+    std::string accessIdentity;
+    bool generalAccess = false;
+    bool accessConstant = false;
+    bool aliasedElements = false;
     // Subprogram access uses a signature instead of an object target.
     Symbol* accessProfile = nullptr;
     Scope* accessScope = nullptr;

@@ -211,6 +211,8 @@ private:
 
     // SemaAttributes.cpp
     Type* analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected = nullptr);
+    Type* analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expected);
+    bool checkObjectAccessConversion(CallExpr* expr, Type* target, Type* source);
     bool matchesAccessProfile(Symbol* candidate, Type* access) const;
 
     // SemaAggregates.cpp

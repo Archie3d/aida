@@ -1423,6 +1423,9 @@ typedef struct AdaAllocation
     AdaFinalization* finalizations;
     void* arena;
     int arenaOwnsObject;
+    int borrowed;
+    int constrained;
+    const char* viewIdentity;
     long size;
     void* arrayBounds;
     int arrayRank;
@@ -1454,9 +1457,15 @@ static AdaAllocation* findAllocation(void* address)
 {
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     AdaAllocation* allocation = __ada_main_context.registeredAllocations;
-    while (allocation != NULL && allocation->object != address) {
+    AdaAllocation* borrowed = NULL;
+    while (allocation != NULL) {
+        if (allocation->object == address) {
+            if (!allocation->borrowed) { break; }
+            if (borrowed == NULL) { borrowed = allocation; }
+        }
         allocation = allocation->registeredNext;
     }
+    if (allocation == NULL) { allocation = borrowed; }
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     return allocation;
 }
@@ -1491,10 +1500,12 @@ static void releaseAllocation(AdaAllocation* allocation)
     }
     *link = allocation->registeredNext;
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
-    __ada_task_discard(context, &allocation->collection->master, allocation->object, allocation->size);
+    if (!allocation->borrowed) {
+        __ada_task_discard(context, &allocation->collection->master, allocation->object, allocation->size);
+    }
     __ada_finalize_to(&allocation->finalizations, NULL);
     __ada_array_release(&allocation->arena);
-    if (!allocation->arenaOwnsObject) {
+    if (!allocation->arenaOwnsObject && !allocation->borrowed) {
         free(allocation->object);
     }
     free(allocation);
@@ -1505,6 +1516,10 @@ static int releaseControlledAllocation(void* address)
     AdaAllocation* allocation = findAllocation(address);
     if (allocation == NULL) {
         return 0;
+    }
+    if (allocation->borrowed) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return 1;
     }
     releaseAllocation(allocation);
     return 1;
@@ -1582,7 +1597,7 @@ void* __ada_collection_allocate(void* owner, long size)
     return allocation->object;
 }
 
-void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank)
+void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank, const char* identity)
 {
     AdaAllocation* allocation = findAllocation(object);
     if (allocation == NULL || rank < 1 || rank > INT_MAX / (int)sizeof(AdaArrayDimension)) {
@@ -1595,16 +1610,117 @@ void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int
     memcpy(bounds, descriptor, size);
     allocation->arrayBounds = bounds;
     allocation->arrayRank = rank;
+    allocation->viewIdentity = identity;
+}
+
+void __ada_access_check(int sourceLevel, int targetLevel)
+{
+    if (sourceLevel > targetLevel) { __ada_raise(ADA_PROGRAM_ERROR); }
+}
+
+/* Borrowed array bounds use the existing shared allocation index. The access
+   type's collection owns metadata only; the aliased object's master still owns
+   its storage and any controlled elements. Never mutate a published view. */
+void __ada_array_borrow(void* owner, void* object, const void* descriptor, int rank, const char* identity)
+{
+    AdaCollection* collection = owner;
+    if (object == NULL || rank < 1 || rank > INT_MAX / (int)sizeof(AdaArrayDimension)) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* existing = __ada_main_context.registeredAllocations;
+    while (existing != NULL) {
+        if (existing->object == object && (!existing->borrowed || existing->collection == collection)
+            && existing->arrayBounds != NULL && existing->arrayRank == rank
+            && existing->viewIdentity != NULL && strcmp(existing->viewIdentity, identity) == 0) {
+            break;
+        }
+        existing = existing->registeredNext;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (existing != NULL) { return; }
+    AdaAllocation* allocation = calloc(1, sizeof *allocation);
+    if (allocation == NULL) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    allocation->object = object;
+    allocation->borrowed = 1;
+    allocation->arrayRank = rank;
+    allocation->viewIdentity = identity;
+    int64_t size = adaArrayLocalSize(rank);
+    allocation->arrayBounds = __ada_array_local(&allocation->arena, 1, 1, size);
+    if (allocation->arrayBounds == NULL) { free(allocation); return; }
+    memcpy(allocation->arrayBounds, descriptor, (size_t)size);
+    if (!registerAllocation(collection, allocation)) {
+        __ada_array_release(&allocation->arena);
+        free(allocation);
+    }
 }
 
 void* __ada_allocation_array_bounds(void* object, int rank)
 {
-    AdaAllocation* allocation = findAllocation(object);
-    if (allocation == NULL || allocation->arrayBounds == NULL || allocation->arrayRank != rank) {
-        __ada_raise(ADA_PROGRAM_ERROR);
-        return NULL;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* allocation = __ada_main_context.registeredAllocations;
+    while (allocation != NULL && (allocation->object != object || allocation->arrayBounds == NULL || allocation->arrayRank != rank)) {
+        allocation = allocation->registeredNext;
     }
-    return allocation->arrayBounds;
+    void* bounds = allocation != NULL ? allocation->arrayBounds : NULL;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (bounds == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
+    return bounds;
+}
+
+void* __ada_access_array_bounds(void* object, int rank, const char* identity)
+{
+    void* bounds = NULL;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
+         allocation = allocation->registeredNext) {
+        if (allocation->object == object && allocation->arrayBounds != NULL && allocation->arrayRank == rank
+            && allocation->viewIdentity != NULL && strcmp(allocation->viewIdentity, identity) == 0) {
+            bounds = allocation->arrayBounds;
+            break;
+        }
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (bounds == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
+    return bounds;
+}
+
+void __ada_object_borrow(void* owner, void* object, const char* identity, int constrained)
+{
+    AdaCollection* collection = owner;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* existing = __ada_main_context.registeredAllocations;
+    while (existing != NULL) {
+        if (existing->object == object && existing->borrowed && existing->collection == collection
+            && existing->viewIdentity != NULL && strcmp(existing->viewIdentity, identity) == 0) { break; }
+        existing = existing->registeredNext;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (existing != NULL) { return; }
+    AdaAllocation* allocation = calloc(1, sizeof *allocation);
+    if (allocation == NULL) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    allocation->object = object;
+    allocation->borrowed = 1;
+    allocation->constrained = constrained;
+    allocation->viewIdentity = identity;
+    if (!registerAllocation(collection, allocation)) { free(allocation); }
+}
+
+int __ada_access_constrained(void* object, const char* identity)
+{
+    int constrained = 1;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
+         allocation = allocation->registeredNext) {
+        if (allocation->object == object && allocation->viewIdentity != NULL
+            && strcmp(allocation->viewIdentity, identity) == 0) {
+            constrained = allocation->constrained;
+            break;
+        }
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    return constrained;
 }
 
 int64_t __ada_layout_append(int64_t offset, int64_t size, int64_t alignment)

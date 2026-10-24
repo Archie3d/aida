@@ -44,7 +44,7 @@ int main(void)
     } descriptor = {NULL, {{-5, -3, 3, 8}, {7, 8, 2, 4}}};
     void* object = __ada_collection_allocate(collection, 24);
     CHECK(object != NULL);
-    __ada_allocation_set_array_bounds(object, &descriptor, 2);
+    __ada_allocation_set_array_bounds(object, &descriptor, 2, "matrix");
     CHECK(context->exception == NULL);
     void* saved = __ada_allocation_array_bounds(object, 2);
     CHECK(saved != NULL && saved != &descriptor);
@@ -54,6 +54,12 @@ int main(void)
     CHECK(__ada_allocation_array_bounds(object, 1) == NULL);
     CHECK(context->exception == ADA_PROGRAM_ERROR);
     context->exception = NULL;
+    /* An aliased subobject may share an allocation's base address. Its view
+       must not replace the owning array's descriptor, even at the same rank. */
+    descriptor.axes[0].first = -100;
+    __ada_array_borrow(collection, object, &descriptor, 2, "subobject");
+    CHECK(((AdaArrayDimension*)((char*)__ada_access_array_bounds(object, 2, "matrix") + 8))[0].first == -5);
+    CHECK(((AdaArrayDimension*)((char*)__ada_access_array_bounds(object, 2, "subobject") + 8))[0].first == -100);
     __ada_deallocate(object);
     CHECK(context->exception == NULL);
     __ada_library_finalize();

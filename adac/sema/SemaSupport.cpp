@@ -295,7 +295,7 @@ int objectView(Expr* expr)
             Type* prefix = baseType(selected->prefix->type);
             bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
             Type* record = access ? baseType(prefix->target) : prefix;
-            int view = access ? 2 : objectView(selected->prefix.get());
+            int view = access ? (prefix->accessConstant ? 1 : 2) : objectView(selected->prefix.get());
             if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
                 && record->fields[selected->fieldIndex].isDiscriminant) {
                 return 1;
@@ -309,7 +309,8 @@ int objectView(Expr* expr)
         }
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
-            return prefix != nullptr && prefix->kind == TypeKind::Access ? 2 : objectView(call->callee.get());
+            return prefix != nullptr && prefix->kind == TypeKind::Access
+                ? (prefix->accessConstant ? 1 : 2) : objectView(call->callee.get());
         }
     }
     if (symbol == nullptr) {

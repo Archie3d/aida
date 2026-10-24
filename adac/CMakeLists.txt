@@ -24,6 +24,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/Type.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Scope.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/Sema.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaAccess.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaProtected.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaDecl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sema/SemaRenames.cpp

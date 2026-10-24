@@ -427,6 +427,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Array: {
         type = makeType(TypeKind::Array);
         int rank = static_cast<int>(definition->indexTypes.size());
+        type->aliasedElements = definition->aliasedElements;
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
         if (baseType(cell) != nullptr && baseType(cell)->discriminantCount > 0
             && !hasKnownDiscriminants(cell) && !hasDefaultDiscriminants(cell)) {
@@ -450,6 +451,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool dynamicBounds = false;
         Type* row = type;
         for (int dimension = 0; dimension < rank; ++dimension) {
+            row->aliasedElements = definition->aliasedElements;
             row->arrayRank = rank - dimension;
             row->constrained = !definition->unconstrainedIndexes;
             SubtypeIndication* index = definition->indexTypes[dimension].get();
@@ -638,6 +640,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Access: {
         type = makeType(TypeKind::Access);
+        type->generalAccess = definition->generalAccess;
+        type->accessConstant = definition->accessConstant;
+        type->accessScope = scope;
         if (definition->accessProfile != nullptr) {
             SubprogramSpec& spec = *definition->accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
@@ -721,6 +726,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = "$" + mangle(decl->lower) + "__tag";
         std::size_t ordinal = ++m_tagNames[name];
         type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+    }
+    if (type->kind == TypeKind::Record || type->kind == TypeKind::Array) {
+        type->accessIdentity = mangle(decl->lower) + ":"
+            + std::filesystem::path(m_diagnostics.fileName(decl->location.file)).filename().string()
+            + ":" + std::to_string(decl->location.line) + ":" + std::to_string(decl->location.column);
     }
     type->declarationScope = scope;
     if (type->kind == TypeKind::Access && type->accessProfile == nullptr) {
@@ -893,6 +903,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.index = fieldIndex++;
         info.variant = variantIndex;
         info.isDiscriminant = isDiscriminant;
+        info.aliased = field.aliased;
         if (field.defaultValue) {
             if (hasTasks(info.type)) {
                 m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");

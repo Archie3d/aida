@@ -59,6 +59,18 @@ int main()
     slice->indexHigh = 0;
     CHECK(typeSize(slice) == 0);
 
+    // Subtype aliases retain access accessibility, mutability and aliased elements.
+    Type* general = types.create(TypeKind::Access, "General");
+    general->target = record;
+    general->generalAccess = true;
+    general->accessConstant = true;
+    general->accessLevel = 3;
+    Type* accessAlias = types.makeSubtype("Access_Alias", general, 0, 0);
+    CHECK(accessAlias->generalAccess && accessAlias->accessConstant && accessAlias->accessLevel == 3);
+    array->aliasedElements = true;
+    Type* aliasedArray = types.makeSubtype("Aliased_Array", array, 0, 0);
+    CHECK(aliasedArray->aliasedElements);
+
     // The hidden actual-constraint argument depends on the nominal subtype
     // and mode; a constrained view must not inherit a mutable formal's ABI.
     Type* discriminated = types.create(TypeKind::Record, "Discriminated");

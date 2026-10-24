@@ -481,7 +481,8 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
                                const SourceLocation& location)
 {
     const TypeDefinition& definition = *formal.arrayDefinition;
-    bool matches = actual->arrayRank == static_cast<int>(definition.indexTypes.size())
+    bool matches = (!definition.aliasedElements || actual->aliasedElements)
+        && actual->arrayRank == static_cast<int>(definition.indexTypes.size())
         && actual->constrained != definition.unconstrainedIndexes && actual->boundsSymbol == nullptr;
     Type* axis = actual;
     for (const auto& index : definition.indexTypes) {
@@ -922,7 +923,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         Symbol* name = lookupName("name", bindings);
         Type* access = name != nullptr ? baseType(name->type) : nullptr;
         if (object == nullptr || access == nullptr || access->kind != TypeKind::Access
-            || access->accessProfile != nullptr
+            || access->accessProfile != nullptr || access->accessConstant
             || !SemaSupport::staticallyMatches(access->target, object->type)) {
             m_diagnostics.error(decl->location,
                 "Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object");

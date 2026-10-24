@@ -43,6 +43,7 @@ struct Symbol
 
     // Objects, constants and parameters.
     bool isConstant = false;
+    bool aliased = false;
     bool awaitsValue = false;   // A deferred constant, until its value is given.
     bool isGlobal = false;
     bool byReference = false;

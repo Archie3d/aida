@@ -1,2 +1,18 @@
-generalaccesserrors.adb:3:32: error: general access types ('access all') are not yet supported
-generalaccesserrors.adb:4:34: error: access-to-constant types are not yet supported
+generalaccesserrors.adb:10:22: error: object 'Access requires an aliased object view
+generalaccesserrors.adb:11:22: error: access-to-variable cannot designate a constant view
+generalaccesserrors.adb:12:31: error: object view does not match the designated subtype
+generalaccesserrors.adb:13:22: error: object 'Access requires a general access type context and no arguments
+generalaccesserrors.adb:15:26: error: this type conversion is not allowed
+generalaccesserrors.adb:16:5: error: Ada.Unchecked_Deallocation requires Name to be an access-to-object type designating Object
+generalaccesserrors.adb:20:21: error: object is deeper than the access type
+generalaccesserrors.adb:29:35: error: 'Access cannot designate a discriminant-dependent component of an unconstrained variable
+generalaccesserrors.adb:44:6: error: a constant access view cannot be modified
+generalaccesserrors.adb:45:7: error: a constant access view cannot be modified
+generalaccesserrors.adb:46:7: error: a constant access view cannot be modified
+generalaccesserrors.adb:47:16: error: a constant access view cannot be modified
+generalaccesserrors.adb:48:14: error: a constant access view cannot be modified
+generalaccesserrors.adb:52:29: error: object is deeper than the access type
+generalaccesserrors.adb:56:19: error: object is deeper than the access type
+generalaccesserrors.adb:57:19: error: source access type is deeper than the target access type
+generalaccesserrors.adb:69:42: error: object 'Access requires matching designated storage representation
+generalaccesserrors.adb:70:51: error: object access conversion requires matching designated storage representation

@@ -476,12 +476,18 @@ construction, cleanup and dispatch mechanisms.
 
 ### 6d. Access types
 
-- [ ] General access types: `aliased` objects, `access all`, `'Access` of
-  objects, access-to-constant, and accessibility checks.
-  `access all` and `access constant` currently receive explicit unsupported-type
-  diagnostics, covered by `generalaccesserrors`.
+- [x] General access types: `aliased` objects/components, `access all`, object
+  `'Access`, access-to-constant and accessibility checks. Named conversions
+  check tags, designated constraints and generic-body accessibility; borrowed
+  array descriptors and mutable record constrainedness preserve object identity
+  and lifetime (`generalaccess*`, unit/whole/separate/determinism and four-task
+  checks; runtime sanitizers). Unchanged ACATS C3A0013 is a compile XFAIL pending
+  anonymous access discriminants/private extensions/package renaming; no new
+  upstream execution pass is claimed. Conservative dependent-component checks,
+  limited current instances and broader generic/private cases remain documented
+  with their roadmap owners. [Contract](docs/general-access.md).
 - [ ] Anonymous access types in all Ada 2005 contexts, including access-to-constant
-  and anonymous access-to-subprogram parameters with nested callbacks. Enforce
+  and access discriminants (C3A0013), and anonymous access-to-subprogram parameters with nested callbacks. Enforce
   accessibility on calls, conversions, assignments and returned access values.
 - [ ] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic matching and required runtime checks.
@@ -512,7 +518,8 @@ construction, cleanup and dispatch mechanisms.
 - [ ] Discriminated tagged types, private extensions, extensions of private
   views, general limited record definitions, and tagged size clauses. Include
   runtime-sized tagged records and delayed private-component layouts diagnosed
-  by Phase 6b.
+  by Phase 6b. Support implicitly aliased limited current instances and their
+  `'Access` in component defaults/access-discriminant constraints (C3A0013).
 - [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
   operations, overriding, interface conversions and class-wide dispatch. Extend
   the single-parent tag/dispatch model with a representation that also supports
@@ -609,6 +616,11 @@ Ada 2005 additions and track annex packages separately.
     declaration recovery preserves the next declaration's introducer after a
     missing delimiter. Covered by `recordrecoveryaccess`,
     `recordrecoverymissingsemicolon` and `recordrecoveryerrors`, with timeouts.
+- [ ] Complete discrete-range syntax using range attributes in array type
+  definitions, including `array (Commuters'Range) of Natural` in C3A0013.
+  Preserve the index type and evaluate bounds once at type elaboration; cover
+  explicit dimensions and runtime bounds. Existing `'Range` support in loops
+  and other contexts does not cover this declaration syntax.
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime

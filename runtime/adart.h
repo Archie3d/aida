@@ -349,7 +349,12 @@ int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), voi
 int __ada_controlled_finalize_view(void* object, void (*finalize)(void*, void*), void* tag);
 
 int64_t __ada_layout_append(int64_t offset, int64_t size, int64_t alignment);
-void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank);
+void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank, const char* identity);
 void* __ada_allocation_array_bounds(void* object, int rank);
+void __ada_access_check(int sourceLevel, int targetLevel);
+void __ada_object_borrow(void* collection, void* object, const char* identity, int constrained);
+int __ada_access_constrained(void* object, const char* identity);
+void __ada_array_borrow(void* collection, void* object, const void* descriptor, int rank, const char* identity);
+void* __ada_access_array_bounds(void* object, int rank, const char* identity);
 
 #endif

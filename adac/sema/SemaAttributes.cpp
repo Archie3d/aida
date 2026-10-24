@@ -136,6 +136,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "access") {
+        if (expected != nullptr && expected->kind == TypeKind::Access && expected->accessProfile == nullptr) {
+            return analyzeObjectAccess(expr, scope, expected);
+        }
         if (expected == nullptr || expected->accessProfile == nullptr || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "subprogram 'Access requires an access-to-subprogram type context");
             return nullptr;

@@ -281,7 +281,7 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
     emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")", CallEffects::DeferredCheck);
 }
 
-Value QbeEmitter::recordConstrained(Expr* object)
+Value QbeEmitter::recordConstrained(Expr* object, const Value* evaluated)
 {
     if (object == nullptr || !hasDefaultDiscriminants(object->type)
         || hasDiscriminantConstraint(object->type)) {
@@ -291,7 +291,7 @@ Value QbeEmitter::recordConstrained(Expr* object)
         : object->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(object)->symbol : nullptr;
     if (symbol != nullptr) {
         if (symbol->sharedAlias != nullptr) {
-            return recordConstrained(symbol->sharedAlias);
+            return recordConstrained(symbol->sharedAlias, evaluated);
         }
         if (symbol->isConstant || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In)) {
             return Value { "1", 'w' };
@@ -309,7 +309,16 @@ Value QbeEmitter::recordConstrained(Expr* object)
     if (object->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(object);
         if (selected->isDereference) {
-            return Value { "1", 'w' }; // Allocated objects are constrained.
+            Type* access = selected->prefix->type;
+            if (access->generalAccess && !access->accessConstant) {
+                Value pointer = evaluated != nullptr ? *evaluated : emitExpr(selected->prefix.get());
+                checkNotNull(pointer);
+                std::string result = newTemp();
+                emitCallInstruction(result + " =w call $__ada_access_constrained(l " + pointer.name + ", l "
+                    + stringData(rootType(access->target)->accessIdentity) + ")", CallEffects::CheckException);
+                return Value {result, 'w'};
+            }
+            return Value { "1", 'w' }; // Pool objects and constant views are constrained.
         }
         return Value { SemaSupport::objectView(object) == 1 ? "1" : "0", 'w' };
     }

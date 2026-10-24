@@ -332,6 +332,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         symbol->classWideObject = type != nullptr && type->classRoot != nullptr && !decl->isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
+        symbol->aliased = decl->aliased;
         symbol->location = decl->location;
         symbol->owner = m_currentSubprogram;
         symbol->accessibilityLevel = m_accessibilityLevel;
@@ -627,6 +628,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameter->mode = declaration.mode;
         parameter->location = declaration.location;
         parameter->owner = symbol;
+        parameter->accessibilityLevel = symbol->accessibilityLevel + 1;
         parameter->level = symbol->level;
         parameter->isConstant = declaration.mode == ParameterMode::In;
         parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameterTypes[i]);

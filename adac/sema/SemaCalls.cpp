@@ -112,6 +112,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     // A range as the only argument selects a slice of an array.
     if (expr->arguments.size() == 1 && expr->arguments.front().high) {
         Type* prefixType = analyzeExpr(expr->callee.get(), scope, nullptr);
+        if (prefixType != nullptr && prefixType->kind == TypeKind::Access) { prefixType = prefixType->target; }
         if (prefixType == nullptr || prefixType->kind != TypeKind::Array) {
             m_diagnostics.error(expr->location, "only an array can be sliced");
             return nullptr;
@@ -208,7 +209,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         if (source->type == nullptr && source->kind != ExprKind::Aggregate) {
             Type* conversion = candidates.front()->type;
-            Type* context = nullptr;
+            Type* context = source->kind == ExprKind::Null && conversion->kind == TypeKind::Access ? conversion : nullptr;
             Expr* operation = source;
             if (source->kind == ExprKind::Call) {
                 auto* call = static_cast<CallExpr*>(source);
@@ -254,6 +255,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
         if (expr->type->kind == TypeKind::Array && hasLimitedControlledParts(expr->type)) {
             m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
+        }
+        if (expr->type->kind == TypeKind::Access && checkObjectAccessConversion(expr, expr->type, operand->type)) {
+            return expr->type;
         }
         bool numeric = isNumeric(baseType(expr->type)) && isNumeric(baseType(operand->type))
             && representationVisible(expr->type) && representationVisible(operand->type);

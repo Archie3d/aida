@@ -1,0 +1,13 @@
+c3a0013.ada:87:29: error: expected 'identifier' in name, found 'access'
+c3a0013.ada:90:7: error: expected ';' after package specification, found 'record'
+c3a0013.ada:94:3: error: expected a procedure, function or package declaration
+c3a0013.ada:96:5: error: expected a procedure, function or package declaration
+c3a0013.ada:97:5: error: expected a procedure, function or package declaration
+c3a0013.ada:98:3: error: expected a procedure, function or package declaration
+c3a0013.ada:99:1: error: expected a procedure, function or package declaration
+c3a0013.ada:103:42: error: only record extensions are supported after with
+c3a0013.ada:115:44: error: only record extensions are supported after with
+c3a0013.ada:246:18: error: expected 'is' in package specification, found 'renames'
+c3a0013.ada:247:18: error: expected 'is' in package specification, found 'renames'
+c3a0013.ada:248:18: error: expected 'is' in package specification, found 'renames'
+c3a0013.ada:319:39: error: expected ')' after array index list, found '''

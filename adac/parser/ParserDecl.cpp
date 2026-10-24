@@ -94,7 +94,9 @@ DeclPtr Parser::parseObjectOrNumberDecl()
         return decl;
     }
 
+    bool aliased = match(TokenKind::KwAliased);
     bool isConstant = match(TokenKind::KwConstant);
+    if (aliased && isConstant && check(TokenKind::Assign)) { fail("an aliased constant requires a subtype"); }
     if (isConstant && check(TokenKind::Assign)) {
         auto decl = std::make_unique<NumberDecl>();
         decl->location = location;
@@ -111,9 +113,10 @@ DeclPtr Parser::parseObjectOrNumberDecl()
     decl->names = std::move(names);
     decl->namesLower = std::move(lowered);
     decl->isConstant = isConstant;
+    decl->aliased = aliased;
     decl->subtype = parseSubtypeIndication();
     if (match(TokenKind::KwRenames)) {
-        if (decl->names.size() != 1 || isConstant) {
+        if (decl->names.size() != 1 || isConstant || aliased) {
             fail("an object renaming requires one name and no constant keyword");
         }
         decl->isRenaming = true;

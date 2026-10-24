@@ -421,6 +421,11 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->fields = parent->fields;
     subtype->layoutSymbol = parent->layoutSymbol;
     subtype->target = parent->target;
+    subtype->accessIdentity = parent->accessIdentity;
+    subtype->generalAccess = parent->generalAccess;
+    subtype->accessConstant = parent->accessConstant;
+    subtype->aliasedElements = parent->aliasedElements;
+    subtype->accessLevel = parent->accessLevel;
     subtype->accessProfile = parent->accessProfile;
     subtype->accessScope = parent->accessScope;
     subtype->privateTo = parent->privateTo;

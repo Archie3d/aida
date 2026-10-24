@@ -13,8 +13,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
     if (name == "constrained") {
-        emitExpr(expr->prefix.get());
-        return recordConstrained(expr->prefix.get());
+        Value object = emitExpr(expr->prefix.get());
+        return recordConstrained(expr->prefix.get(), &object);
     }
     // Protected entry bodies execute in the calling task. Current_Task in an
     // entry body uses this same identity (the RM C.7.1 bounded-error choice).
@@ -84,6 +84,33 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { count, 'w' };
     }
     if (name == "access") {
+        if (expr->objectAccess) {
+            Value object = emitAddress(expr->prefix.get());
+            if (expr->objectAccessLevel > expr->type->accessLevel) {
+                emitCallInstruction("call $__ada_access_check(w " + std::to_string(expr->objectAccessLevel)
+                    + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
+            }
+            if (expr->prefixType->tagged) {
+                emitCallInstruction("call $__ada_tag_check_accessibility(l " + object.name + ", w "
+                    + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
+            }
+            if (expr->type->target->kind == TypeKind::Array && !expr->type->target->constrained) {
+                std::string descriptor = allocScratch(adaArrayLocalSize(expr->prefixType->arrayRank));
+                line("storel " + object.name + ", " + descriptor);
+                storeArrayView(descriptor, object, expr->prefixType, false);
+                Value collection = collectionFor(expr->type);
+                emitCallInstruction("call $__ada_array_borrow(l " + collection.name + ", l " + object.name
+                    + ", l " + descriptor + ", w " + std::to_string(expr->prefixType->arrayRank)
+                    + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ")", CallEffects::CheckException);
+            }
+            if (!expr->type->accessConstant && expr->type->target->kind == TypeKind::Record && hasDefaultDiscriminants(expr->type->target)) {
+                Value constrained = recordConstrained(expr->prefix.get(), &object);
+                Value collection = collectionFor(expr->type);
+                emitCallInstruction("call $__ada_object_borrow(l " + collection.name + ", l " + object.name
+                    + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ", w " + constrained.name + ")", CallEffects::CheckException);
+            }
+            return Value {object.name, 'l'};
+        }
         Symbol* subprogram = expr->accessSubprogram;
         if (subprogram->renamedAccess != nullptr) {
             Symbol* binding = subprogram->renamedAccess;
