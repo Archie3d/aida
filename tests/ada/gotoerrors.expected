@@ -1,0 +1,21 @@
+gotoerrors.adb:5:9: error: goto target 'Outer_Label' does not denote a label
+gotoerrors.adb:64:7: error: statement identifier 'Value' conflicts with a declaration
+gotoerrors.adb:68:7: error: duplicate statement identifier 'Collision' in the same body
+gotoerrors.adb:68:7: error: statement identifier 'Collision' conflicts with a declaration
+gotoerrors.adb:8:5: error: goto target 'Missing' does not denote a label
+gotoerrors.adb:9:5: error: goto target 'Value' does not denote a label
+gotoerrors.adb:10:5: error: goto target 'Named_Loop' does not denote a label
+gotoerrors.adb:11:5: error: goto target 'In_Block' does not denote a label
+gotoerrors.adb:12:5: error: goto target 'In_Loop' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:13:5: error: goto target 'In_Then' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:14:5: error: goto target 'In_Handler' does not denote a label
+gotoerrors.adb:25:9: error: goto target 'In_Then' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:30:24: error: goto target 'In_Case' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:37:13: error: goto target 'Protected_Label' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:38:24: error: goto target 'In_Handler' is not in the same or an enclosing sequence of statements
+gotoerrors.adb:43:13: error: goto target 'GotoErrors.Outer_Label' does not denote a label
+gotoerrors.adb:47:9: error: goto target 'GotoErrors.Outer_Label' does not denote a label
+gotoerrors.adb:48:18: error: statement identifier 'Outer_Label' cannot be used as a value
+gotoerrors.adb:49:9: error: statement identifier 'Outer_Label' cannot be used as a value
+gotoerrors.adb:57:9: error: goto target 'GotoErrors.Outer_Label' does not denote a label
+gotoerrors.adb:62:11: error: duplicate statement identifier 'dUPLICATE' in the same body

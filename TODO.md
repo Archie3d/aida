@@ -91,7 +91,7 @@ phases replace each rejection as they implement it.
   `interface`, `synchronized` reserved; unsupported uses rejected (`reserved*`).
 - [x] **Generic formal types.** Unsupported categories and trailing tokens
   rejected (`genericformal*errors`, `deallocationformalerrors`).
-- [x] **Unsupported syntax.** Abstract subprograms, `goto`/labels, `select`,
+- [x] **Unsupported syntax.** Abstract subprograms, `select`,
   task entries, `limited with`, `private with`: named diagnostics with recovery
   (`unsupported*errors`).
 
@@ -300,8 +300,8 @@ checks.
 - [x] Shared access-type collections: synchronized allocation, deallocation and
   heap finalization across tasks; collection tasks belong to the access type's
   master (`sharedcollections`, `sharedtaskcollections`,
-  `runtime.shared_collections`; ACATS C761002 goto XFAIL pending 6e). Foreign
-  stack chains and custom pools unsupported.
+  `runtime.shared_collections`; ACATS C761002 compatibility-unit XFAIL
+  pending 6e). Foreign stack chains and custom pools unsupported.
   [Limits](docs/shared-collections.md).
 
 ### 6b. Dynamic data
@@ -380,9 +380,13 @@ formals, protected callback types and foreign ABI work retain their later owners
 The first three items are cheap and unblock common Ada 2005 code and ACATS
 cases (C59002A, C761002, part of C3A0013); take them next.
 
-- [ ] Labels and `goto`, with legality checks for transfers between scopes.
-  Reuse the `exit`/`return` scope-exit paths so outward transfers unwind
-  masters, finalization chains and storage in order.
+- [x] Labels and `goto`, with legality checks for transfers between scopes.
+  Forward/backward and expanded label names; statement identifier uniqueness,
+  visibility and sequence/body boundaries checked. Outward transfers reuse
+  master/finalization/storage cleanup (`gotostatements`, `gotocleanup`,
+  `goto*errors`, whole/separate/determinism; ACATS C51004A/C59002A/C59002B PASS).
+  C761002 now reaches the missing root `Unchecked_Deallocation` compatibility
+  generic (renaming item below); it remains a compile XFAIL for that gap.
 - [ ] Package and generic renaming (object, subprogram and exception renaming
   exist).
 - [ ] Prefixed calls (`Object.Operation (...)`) on tagged types, including

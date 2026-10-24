@@ -1,0 +1,6 @@
+gotoparsererrors.adb:3:7: error: expected 'identifier' in statement label, found '>>'
+gotoparsererrors.adb:4:19: error: expected '>>' after statement label, found 'null'
+gotoparsererrors.adb:5:9: error: expected 'identifier' in name, found ';'
+gotoparsererrors.adb:6:15: error: expected ';' after goto statement, found '('
+gotoparsererrors.adb:8:1: error: expected an expression
+gotoparsererrors.adb:9:1: error: expected 'end' at end of subprogram body, found 'end of file'

@@ -26,8 +26,8 @@ add_acats_test(c53007a)
 add_acats_test(c49022a)
 add_acats_test(c45523a)
 add_acats_test(c45347a)
-# Phase 6e: valid Ada rejected because goto/labels are not implemented.
-add_acats_test(c59002a REJECTION "goto statements are not yet supported")
+# Transfers from exception handlers to enclosing statement sequences.
+add_acats_test(c59002a)
 
 add_test(NAME acats.harness
     COMMAND ${CMAKE_COMMAND}
@@ -42,8 +42,8 @@ add_acats_test(c45504a)
 add_acats_test(c45503a)
 add_acats_test(c45611a)
 
-# Collection/deallocation coverage retained unchanged; transfer cases await P6e.
-add_acats_test(c761002 REJECTION "goto statements are not yet supported")
+# Labels/goto now compile; the root compatibility generic remains unavailable.
+add_acats_test(c761002 REJECTION "cannot find the unit 'Unchecked_Deallocation'")
 
 add_acats_test(c35507a)
 
@@ -87,3 +87,7 @@ add_acats_test(c3a0025 REJECTION "access generic formal objects are not yet supp
 # Callback structures, and inherited operations pending private extensions/renaming.
 add_acats_test(c3a0006)
 add_acats_test(c3a0009 REJECTION "only record extensions are supported after with")
+
+# Implicit statement declarations and transfers out of nested compound statements.
+add_acats_test(c51004a)
+add_acats_test(c59002b)

@@ -152,6 +152,9 @@ private:
 
     // SemaStatements.cpp
     void analyzeStatements(StmtList& statements, Scope* scope);
+    void declareStatementNames(StmtList& statements, Scope* scope);
+    void analyzeBodyStatements(StmtList& statements, std::vector<ExceptionHandler>& handlers,
+                               Scope* scope, const std::string& name, Symbol* identifier);
     void analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope);
     void checkAssignable(Expr* target, Scope* scope, bool allowLimited = false, bool allowArrayView = false);
     void analyzeStatement(Stmt* statement, Scope* scope);
@@ -295,6 +298,15 @@ private:
     int m_handlerDepth = 0;
     std::vector<Symbol*> m_extendedReturns;
     std::vector<LoopStmt*> m_loops;
+    std::vector<StmtList*> m_statementSequences;
+    std::unordered_set<std::string> m_statementIdentifiers;
+    struct StatementRegion
+    {
+        std::string name;
+        Scope* scope;
+        Symbol* identifier;
+    };
+    std::vector<StatementRegion> m_statementRegions;
     std::vector<std::string> m_namePrefix;
     std::unordered_map<std::string, std::size_t> m_subprogramNames;
     std::unordered_map<std::string, std::size_t> m_tagNames;

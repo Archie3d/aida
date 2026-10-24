@@ -6,7 +6,25 @@ using QbeSupport::comparisonInstruction;
 
 void QbeEmitter::emitStatements(StmtList& statements)
 {
+    // Capture the sequence entry state, which dominates forward and backward
+    // transfers. A checkpoint at the target itself would not dominate a goto.
+    bool hasLabels = std::any_of(statements.begin(), statements.end(), [](const StmtPtr& statement) {
+        return !statement->labels.empty();
+    });
+    if (hasLabels) {
+        auto checkpoint = storageCheckpoint();
+        for (const StmtPtr& statement : statements) {
+            if (!statement->labels.empty()) {
+                m_context->gotoTargets[statement.get()] = { newLabel("adalabel"), checkpoint,
+                    m_context->blockMasters.size(), m_context->handlerLabels.size(),
+                    m_context->returnCleanups.size() };
+            }
+        }
+    }
     for (const StmtPtr& statement : statements) {
+        if (!statement->labels.empty()) {
+            label(m_context->gotoTargets.at(statement.get()).label);
+        }
         SourceLocation saved = m_context->sourceLocation;
         m_context->sourceLocation = statement->location;
         auto checkpoint = storageCheckpoint();
@@ -21,6 +39,31 @@ void QbeEmitter::emitStatements(StmtList& statements)
 void QbeEmitter::emitStatement(Stmt* statement)
 {
     switch (statement->kind) {
+    case StmtKind::Goto: {
+        auto* transfer = static_cast<GotoStmt*>(statement);
+        const auto target = m_context->gotoTargets.at(transfer->target);
+        auto masters = m_context->blockMasters;
+        auto handlers = m_context->handlerLabels;
+        // An abandoned extended return owns registrations in the caller's
+        // result chain. Unwind its inner blocks before discarding that result.
+        for (std::size_t i = m_context->returnCleanups.size(); i > target.returnDepth; --i) {
+            const auto& result = m_context->returnCleanups[i - 1];
+            emitBlockExits(result.masterDepth);
+            m_context->blockMasters.resize(result.masterDepth);
+            m_context->handlerLabels.resize(result.handlerDepth);
+            emitCallInstruction("call $__ada_finalize_to(l %.resultOwner, l " + result.ownerMark + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
+            emitExceptionCheck();
+        }
+        emitBlockExits(target.masterDepth);
+        m_context->blockMasters.resize(target.masterDepth);
+        m_context->handlerLabels.resize(target.handlerDepth);
+        rewindStorage(target.storage);
+        jump(target.label);
+        m_context->blockMasters = std::move(masters);
+        m_context->handlerLabels = std::move(handlers);
+        break;
+    }
     case StmtKind::Delay: {
         auto* delay = static_cast<DelayStmt*>(statement);
         Value value = emitExpr(delay->expression.get());

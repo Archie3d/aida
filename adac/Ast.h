@@ -542,7 +542,15 @@ enum class StmtKind
     Case,
     Block,
     Raise,
-    Delay
+    Delay,
+    Goto
+};
+
+struct StatementLabel
+{
+    std::string name;
+    std::string lower;
+    SourceLocation location;
 };
 
 struct Stmt : Node
@@ -553,6 +561,7 @@ struct Stmt : Node
     }
 
     StmtKind kind;
+    std::vector<StatementLabel> labels;
 };
 
 using StmtPtr = std::unique_ptr<Stmt>;
@@ -574,6 +583,18 @@ struct ExceptionHandler
     bool isOthers = false;
     StmtList body;
     SourceLocation location;
+};
+
+struct GotoStmt : Stmt
+{
+    GotoStmt()
+        : Stmt(StmtKind::Goto)
+    {
+    }
+
+    std::string name;
+    std::string lower;
+    Stmt* target = nullptr;
 };
 
 struct DelayStmt : Stmt

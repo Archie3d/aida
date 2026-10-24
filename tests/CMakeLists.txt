@@ -1463,3 +1463,26 @@ add_test(NAME runtime.importedcallbackabi_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}/importedcallbackabi-modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.importedcallbackabi_modes PROPERTIES TIMEOUT 60)
+
+# Phase 6e: labels, transfer legality and master/finalization cleanup.
+add_ada_test(gotostatements SOURCES gotostatements.adb)
+add_ada_test(gotocleanup SOURCES gotocleanup.adb)
+add_ada_error_test(gotoerrors SOURCES gotoerrors.adb)
+add_ada_error_test(gotoparsererrors SOURCES gotoparsererrors.adb)
+
+foreach(goto_case gotostatements gotocleanup)
+    add_determinism_test(${goto_case} SOURCE ${goto_case}.adb)
+    add_test(NAME runtime.${goto_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${goto_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${goto_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${goto_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${goto_case} runtime.${goto_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()

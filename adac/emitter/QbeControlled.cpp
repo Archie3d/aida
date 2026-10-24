@@ -270,6 +270,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         std::string bodyDone = newLabel("returnbodydone");
         m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
         m_context->extendedReturnLabel = bodyDone;
+        m_context->returnCleanups.push_back({ ownerMark, arenaMark,
+            m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
         if (extended->handlers.empty()) {
             emitStatements(extended->body);
         } else {
@@ -284,6 +286,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             label(handled);
         }
         label(bodyDone);
+        m_context->returnCleanups.pop_back();
         m_context->extendedReturnLabel = savedReturn;
     } else if (limitedAggregate) {
         emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregate), destination, type, &aggregatePlan);

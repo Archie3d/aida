@@ -74,18 +74,28 @@ StmtPtr Parser::parseStatement()
     SourceLocation location = current().location;
 
     switch (current().kind) {
-    case TokenKind::KwGoto:
-        fail("goto statements are not yet supported");
-    case TokenKind::LeftLabel:
-        m_diagnostics.error(location, "statement labels are not yet supported");
-        // A label has no semicolon; leave its following statement intact.
+    case TokenKind::KwGoto: {
         advance();
-        while (!check(TokenKind::RightLabel) && !check(TokenKind::Semicolon)
-            && !check(TokenKind::EndOfFile)) {
-            advance();
+        auto statement = std::make_unique<GotoStmt>();
+        statement->location = location;
+        statement->name = parseCompoundName(statement->lower);
+        expect(TokenKind::Semicolon, "after goto statement");
+        return statement;
+    }
+    case TokenKind::LeftLabel: {
+        std::vector<StatementLabel> labels;
+        while (match(TokenKind::LeftLabel)) {
+            const Token& name = expect(TokenKind::Identifier, "in statement label");
+            labels.push_back({ name.text, name.lower, name.location });
+            expect(TokenKind::RightLabel, "after statement label");
         }
-        match(TokenKind::RightLabel);
-        return nullptr;
+        StmtPtr statement = parseStatement();
+        if (!statement) {
+            fail("a label must be followed by a statement");
+        }
+        statement->labels = std::move(labels);
+        return statement;
+    }
     case TokenKind::KwSelect: {
         m_diagnostics.error(location, "select statements are not yet supported");
         advance();

@@ -132,6 +132,10 @@ Symbol* Sema::resolveBareName(const std::vector<Symbol*>& candidates, Type* expe
                 m_diagnostics.error(location, "ambiguous name '" + name + "'");
                 return nullptr;
             }
+            if (candidate->kind == SymbolKind::Statement) {
+                m_diagnostics.error(location, "statement identifier '" + name + "' cannot be used as a value");
+                return nullptr;
+            }
             return candidate;
         }
     }

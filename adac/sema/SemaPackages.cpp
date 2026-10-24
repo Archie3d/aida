@@ -196,8 +196,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     if (m_currentSubprogram == nullptr) {
         m_currentSubprogram = elaborationOwner(m_currentUnit);
     }
-    analyzeStatements(decl->body, bodyScope);
-    analyzeHandlers(decl->handlers, bodyScope);
+    analyzeBodyStatements(decl->body, decl->handlers, bodyScope, decl->lower, symbol);
     m_currentSubprogram = savedSubprogram;
     m_packages.pop_back();
     m_handlerDepth = savedHandlerDepth;

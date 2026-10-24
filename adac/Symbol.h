@@ -20,7 +20,8 @@ enum class SymbolKind
     EnumerationLiteral,
     Exception,
     LoopParameter,
-    Generic
+    Generic,
+    Statement
 };
 
 enum class BuiltinKind
@@ -40,6 +41,10 @@ struct Symbol
     std::string displayName;  // Original spelling.
     Type* type = nullptr;
     SourceLocation location;
+
+    // Implicit statement identifiers (labels and named compound statements).
+    Stmt* statement = nullptr;
+    StmtList* statementSequence = nullptr;
 
     // Objects, constants and parameters.
     bool isConstant = false;

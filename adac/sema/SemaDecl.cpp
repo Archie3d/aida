@@ -772,8 +772,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 
     analyzeDeclarativePart(body->declarations, inner);
     reportMissingBodies(body->declarations);
-    analyzeStatements(body->body, inner);
-    analyzeHandlers(body->handlers, inner);
+    analyzeBodyStatements(body->body, body->handlers, inner, body->spec.lower, symbol);
 
     m_namePrefix.pop_back();
     m_currentSubprogram = savedSubprogram;

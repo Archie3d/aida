@@ -98,6 +98,14 @@ private:
         std::string temporaryFinalizationChain;
         bool initializingTemporary = false;
         std::string extendedReturnLabel;
+        struct ReturnCleanup
+        {
+            std::string ownerMark;
+            std::string arenaMark;
+            std::size_t masterDepth;
+            std::size_t handlerDepth;
+        };
+        std::vector<ReturnCleanup> returnCleanups;
         std::string resultTarget;
         Value resultTargetShape;
         std::string resultDescriptor;
@@ -124,6 +132,15 @@ private:
         std::unordered_map<const AttributeExpr*, Value> rangePrefixes;
         std::vector<std::string> handlerLabels;
         std::unordered_map<std::string, StorageCheckpoint> handlerStorage;
+        struct GotoTarget
+        {
+            std::string label;
+            StorageCheckpoint storage;
+            std::size_t masterDepth;
+            std::size_t handlerDepth;
+            std::size_t returnDepth;
+        };
+        std::unordered_map<const Stmt*, GotoTarget> gotoTargets;
         std::unordered_map<const LoopStmt*, StorageCheckpoint> loopStorage;
         std::unordered_map<const LoopStmt*, std::size_t> loopHandlerDepth;
         std::vector<std::string> activeExceptions;

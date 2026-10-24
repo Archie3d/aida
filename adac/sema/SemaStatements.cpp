@@ -8,9 +8,97 @@ using SemaSupport::adaptUniversal;
 
 void Sema::analyzeStatements(StmtList& statements, Scope* scope)
 {
+    m_statementSequences.push_back(&statements);
     for (const StmtPtr& statement : statements) {
         analyzeStatement(statement.get(), scope);
     }
+    m_statementSequences.pop_back();
+}
+
+// Statement identifiers are implicitly declared at the end of the enclosing
+// block/body declarative part, including identifiers in branches and loops.
+void Sema::declareStatementNames(StmtList& statements, Scope* scope)
+{
+    auto declare = [&](const std::string& name, const std::string& lower,
+                       SourceLocation location, Stmt* target, StmtList* sequence) {
+        if (!m_statementIdentifiers.insert(lower).second) {
+            m_diagnostics.error(location, "duplicate statement identifier '" + name + "' in the same body");
+        }
+        if (!scope->lookupLocal(lower).empty()) {
+            m_diagnostics.error(location, "statement identifier '" + name + "' conflicts with a declaration");
+            return;
+        }
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Statement, lower, name);
+        symbol->location = location;
+        symbol->statement = target;
+        symbol->statementSequence = sequence;
+        scope->add(symbol);
+    };
+    for (const StmtPtr& statement : statements) {
+        for (const StatementLabel& label : statement->labels) {
+            declare(label.name, label.lower, label.location, statement.get(), &statements);
+        }
+        switch (statement->kind) {
+        case StmtKind::If: {
+            auto* conditional = static_cast<IfStmt*>(statement.get());
+            for (auto& branch : conditional->branches) {
+                declareStatementNames(branch.body, scope);
+            }
+            declareStatementNames(conditional->elseBody, scope);
+            break;
+        }
+        case StmtKind::Case:
+            for (auto& alternative : static_cast<CaseStmt*>(statement.get())->alternatives) {
+                declareStatementNames(alternative.body, scope);
+            }
+            break;
+        case StmtKind::Loop: {
+            auto* loop = static_cast<LoopStmt*>(statement.get());
+            if (!loop->labelLower.empty()) {
+                declare(loop->label, loop->labelLower, loop->location, nullptr, nullptr);
+            }
+            declareStatementNames(loop->body, scope);
+            break;
+        }
+        case StmtKind::Return: {
+            auto* result = static_cast<ReturnStmt*>(statement.get());
+            declareStatementNames(result->body, scope);
+            for (auto& handler : result->handlers) {
+                declareStatementNames(handler.body, scope);
+            }
+            break;
+        }
+        case StmtKind::Block: {
+            auto* block = static_cast<BlockStmt*>(statement.get());
+            if (!block->label.empty()) {
+                declare(block->label, block->label, block->location, nullptr, nullptr);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
+void Sema::analyzeBodyStatements(StmtList& statements, std::vector<ExceptionHandler>& handlers,
+                                 Scope* scope, const std::string& name, Symbol* identifier)
+{
+    auto savedSequences = std::move(m_statementSequences);
+    auto savedIdentifiers = std::move(m_statementIdentifiers);
+    auto savedRegions = std::move(m_statementRegions);
+    m_statementSequences.clear();
+    m_statementIdentifiers.clear();
+    m_statementRegions = { { name, scope, identifier } };
+    declareStatementNames(statements, scope);
+    for (auto& handler : handlers) {
+        declareStatementNames(handler.body, scope);
+    }
+    analyzeStatements(statements, scope);
+    analyzeHandlers(handlers, scope);
+    m_statementSequences = std::move(savedSequences);
+    m_statementIdentifiers = std::move(savedIdentifiers);
+    m_statementRegions = std::move(savedRegions);
 }
 
 void Sema::analyzeHandlers(std::vector<ExceptionHandler>& handlers, Scope* scope)
@@ -206,6 +294,59 @@ Type* Sema::analyzeCondition(Expr* expr, Scope* scope)
 void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 {
     switch (statement->kind) {
+    case StmtKind::Goto: {
+        auto* transfer = static_cast<GotoStmt*>(statement);
+        std::vector<Symbol*> found;
+        std::size_t dot = transfer->lower.rfind('.');
+        if (dot == std::string::npos) {
+            found = scope->lookup(transfer->lower);
+        } else {
+            std::string prefix = transfer->lower.substr(0, dot);
+            // Expanded names can include several enclosing named regions;
+            // anonymous blocks and loops do not contribute a prefix.
+            for (std::size_t end = m_statementRegions.size(); end > 0; --end) {
+                if (m_statementRegions[end - 1].name.empty()) {
+                    continue;
+                }
+                std::string expanded;
+                for (std::size_t start = end; start > 0; --start) {
+                    const auto& region = m_statementRegions[start - 1];
+                    if (region.name.empty()) {
+                        continue;
+                    }
+                    expanded = region.name + (expanded.empty() ? "" : "." + expanded);
+                    if (expanded != prefix) {
+                        continue;
+                    }
+                    // The first prefix must denote this region, rather than
+                    // an object, label or another unit hiding its identifier.
+                    auto candidates = scope->lookup(region.name);
+                    bool visible = std::find(candidates.begin(), candidates.end(), region.identifier) != candidates.end();
+                    if (region.name.find('.') != std::string::npos) {
+                        visible = lookupName(region.name, scope) == region.identifier;
+                    }
+                    if (visible) {
+                        found = m_statementRegions[end - 1].scope->lookupLocal(transfer->lower.substr(dot + 1));
+                    }
+                    break;
+                }
+                if (!found.empty()) {
+                    break;
+                }
+            }
+        }
+        Symbol* target = found.size() == 1 ? found.front() : nullptr;
+        if (target == nullptr || target->kind != SymbolKind::Statement || target->statement == nullptr) {
+            m_diagnostics.error(transfer->location, "goto target '" + transfer->name + "' does not denote a label");
+        } else if (std::find(m_statementSequences.begin(), m_statementSequences.end(), target->statementSequence)
+                   == m_statementSequences.end()) {
+            m_diagnostics.error(transfer->location, "goto target '" + transfer->name
+                + "' is not in the same or an enclosing sequence of statements");
+        } else {
+            transfer->target = target->statement;
+        }
+        break;
+    }
     case StmtKind::Delay: {
         auto* delay = static_cast<DelayStmt*>(statement);
         Type* type = analyzeExpr(delay->expression.get(), scope, delay->until ? nullptr : m_types.durationType());
@@ -476,8 +617,16 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         Scope* inner = m_symbolTable.createScope(scope);
         analyzeDeclarativePart(block->declarations, inner);
         reportMissingBodies(block->declarations);
+        auto identifiers = scope->lookupLocal(block->label);
+        Symbol* identifier = identifiers.size() == 1 ? identifiers.front() : nullptr;
+        m_statementRegions.push_back({ block->label, inner, identifier });
+        declareStatementNames(block->body, inner);
+        for (auto& handler : block->handlers) {
+            declareStatementNames(handler.body, inner);
+        }
         analyzeStatements(block->body, inner);
         analyzeHandlers(block->handlers, inner);
+        m_statementRegions.pop_back();
         --m_accessibilityLevel;
         break;
     }

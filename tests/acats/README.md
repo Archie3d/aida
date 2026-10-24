@@ -42,13 +42,17 @@ GCC's release branch itself may change. No download is needed at build/test time
 | C45503A | 4.5, 4.5.5, 6.4.1 | PASS: predefined Integer REM/MOD, including named Left/Right associations and all operand sign combinations | Broader explicit-operator selection: Phase 8 |
 | C45523A | 4.5.5, 3.5.8 | PASS: Machine_Overflows multiplication and zero-division checks | Finite-value floating model: Phase 5; full coverage: Phase 8 |
 | C49022A | 4.9, 4.5 | PASS: integer named-number arithmetic and comparisons | Bounded exact evaluation: Phase 5; broader coverage: Phase 8 |
-| C59002A | 5.8, 11.2 | XFAIL at compilation: goto and labels unsupported | Phase 6e labels/goto |
-| C761002 | 7.6.1, 13.11.2 | XFAIL at compilation: goto and labels in collection lifetime/deallocation test | P6a runtime regressions; P6e transfer cases |
+| C51004A | 5.1, 8.2 | PASS: statement identifiers become visible at the end of block, subprogram, package, generic and task declarative parts | Phase 6e labels/goto complete |
+| C59002B | 5.8 | PASS: jumps out of nested if, loop, case and block statements | Phase 6e labels/goto complete |
+| C59002A | 5.8, 11.2 | PASS: forward/backward jumps from exception handlers to enclosing sequences | Phase 6e labels/goto complete |
+| C761002 | 7.6.1, 13.11.2 | XFAIL at compilation: missing root Unchecked_Deallocation compatibility generic | P6e generic renaming; P6a/P6e runtime regressions |
 
 C761002 was retrieved from the same GCC release branch on 2026-10-23.
 It exercises collection lifetime, explicit deallocation and exits through nested
-scopes, return, goto and exceptions. It is retained unchanged as a compile XFAIL
-for the two unsupported goto/label constructs; no upstream executable pass is
+scopes, return, goto and exceptions. Labels/goto are now supported, and it
+reaches a missing root
+`Unchecked_Deallocation` compatibility generic (Ada 2005 J.1). It remains an
+unchanged compile XFAIL for this next gap; no upstream executable pass is
 claimed. The local TCTouch adapter now also records Touch/Validate traces.
 
 | File | Upstream git blob | SHA-256 |
@@ -270,3 +274,13 @@ cover the implemented contexts without editing upstream test bodies.
 | --- | --- | --- |
 | [tests/c3/c3a0006.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0006.a) | `effab3465811671874e98662d2b4761aa635078b` | `6462c1aa360510e3674dffd4d8601ac7e52931e0c595f06186ccede9e614adfa` |
 | [tests/c3/c3a0009.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0009.a) | `ba3f2f6e1e7c75435b4fdfb34b5df0dcdca1c203` | `a993a4f8f27bb4675f7fa3557185bb9405cd5bf3c4357fd0ed89a14a893d261b` |
+
+C51004A and C59002B come from [GCC releases/gcc-14 c5](https://github.com/gcc-mirror/gcc/tree/releases/gcc-14/gcc/testsuite/ada/acats/tests/c5),
+retrieved 2026-10-24 and retained unchanged, including rights and disclaimer.
+They cover statement identifier visibility in declarative parts and transfers
+out of compound statements. Their content is pinned below.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| c51004a.ada | `75fa271d0e56b2d3f3f0f8bb2a273380044fc384` | `ede6184296bb0a4254f71792698c6c4d3073b748a8c9b761a1b3883e1fe13b6c` |
+| c59002b.ada | `aee5839a7e4eb2776ea6751971269860e6a9f7a3` | `b86a4e7a73760b7e92f83b7fcbe77153b90c58a2ad1a06720aab9798051fa73c` |
