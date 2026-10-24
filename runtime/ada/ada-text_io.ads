@@ -3,17 +3,11 @@
 -- contributes the profiles, the defaults and the names, and nothing else.
 
 with Ada.IO_Exceptions;
+with System;
 
 package Ada.Text_IO is
 
-    -- A file is a handle the run time hands back, wrapped in a record so that
-    -- an uninitialised File_Type starts out null and Is_Open can say so.
-    type File_Handle is access Integer;
-
-    type File_Type is
-    record
-        Handle : File_Handle;
-    end record;
+    type File_Type is limited private;
 
     type File_Mode is (In_File, Out_File, Append_File);
 
@@ -155,5 +149,16 @@ package Ada.Text_IO is
     End_Error    : exception renames IO_Exceptions.End_Error;
     Data_Error   : exception renames IO_Exceptions.Data_Error;
     Layout_Error : exception renames IO_Exceptions.Layout_Error;
+
+private
+
+    -- The C runtime owns the file object; Ada stores only its opaque address.
+    -- The wrapper starts out null so Is_Open can inspect an unopened file.
+    type File_Handle is new System.Address;
+
+    type File_Type is
+    record
+        Handle : File_Handle;
+    end record;
 
 end Ada.Text_IO;

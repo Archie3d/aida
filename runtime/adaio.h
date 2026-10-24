@@ -29,8 +29,8 @@ typedef struct AdaFile
     struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
 } AdaFile;
 
-/* An Ada File_Type is a one component record holding one of these pointers, so
-   every entry point receives the address of that record. */
+/* Ada File_Type wraps an opaque System.Address-derived handle containing an
+   AdaFile pointer. Entry points receive the address of that record. */
 typedef AdaFile** AdaFileRef;
 
 /* Internal, non-nesting operation scope. Begin pins/locks the selected file

@@ -3,23 +3,16 @@
 -- package is what opens one and says where in it to work.
 
 with Ada.IO_Exceptions;
+with System;
 
 package Ada.Streams.Stream_IO is
 
-    -- A file is a handle the run time hands back, wrapped in a record so that
-    -- an uninitialised File_Type starts out null and Is_Open can say so.
-    type File_Handle is access Integer;
-
-    type File_Type is
-    record
-        Handle : File_Handle;
-    end record;
+    type File_Type is limited private;
 
     type File_Mode is (In_File, Out_File, Append_File);
 
-    -- Without tagged types a stream is just the file it belongs to, so the
-    -- access type points at nothing the language can name.
-    type Stream_Access is access Integer;
+    -- The current stream ABI uses an opaque address owned by the C runtime.
+    type Stream_Access is new System.Address;
 
     subtype Count is Integer range 0 .. 2147483647;
     subtype Positive_Count is Integer range 1 .. 2147483647;
@@ -89,5 +82,16 @@ package Ada.Streams.Stream_IO is
     Device_Error : exception renames Ada.IO_Exceptions.Device_Error;
     End_Error    : exception renames Ada.IO_Exceptions.End_Error;
     Data_Error   : exception renames Ada.IO_Exceptions.Data_Error;
+
+private
+
+    -- The C runtime owns the file object; Ada stores only its opaque address.
+    -- The wrapper starts out null so Is_Open can inspect an unopened file.
+    type File_Handle is new System.Address;
+
+    type File_Type is
+    record
+        Handle : File_Handle;
+    end record;
 
 end Ada.Streams.Stream_IO;

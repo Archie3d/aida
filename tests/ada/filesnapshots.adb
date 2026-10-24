@@ -1,6 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 procedure Filesnapshots is
-    First, Second, Saved : File_Type;
+    First, Second : File_Type;
     procedure Check_Names (A, B : String) is
     begin
         if A /= "snapshot-first.tmp" or B /= "snapshot-second.tmp" then
@@ -11,10 +11,13 @@ begin
     Create (First, Out_File, "snapshot-first.tmp");
     Create (Second, Out_File, "snapshot-second.tmp");
     Set_Output (First);
-    Saved := Current_Output;
-    Set_Output (Second);
-    Put_Line (Saved, "saved selection");
-    Check_Names (Name (First), Name (Second));
+    declare
+        Saved : constant File_Type := Current_Output;
+    begin
+        Set_Output (Second);
+        Put_Line (Saved, "saved selection");
+        Check_Names (Name (First), Name (Second));
+    end;
     declare
         Old_Name : String := Name (First);
     begin

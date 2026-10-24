@@ -110,9 +110,9 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.5 | Ada.Numerics | Root constants/exceptions | `numerics` | P8 |
 | A.5.1 | Ada.Numerics.Generic_Elementary_Functions; Ada.Numerics.Elementary_Functions; Ada.Numerics.Long_Elementary_Functions | Host numeric functions; core arithmetic model documented, full library/Annex G accuracy audit remains | `runtime.numerics_precision` | P5 Real edge cases complete; P8 |
 | A.7 | Ada.IO_Exceptions | I/O exception declarations | `textfiles`, `seqio`, `directio` | P8 |
-| A.8.1 | Ada.Sequential_IO | Generic file I/O; representation-based elements | `seqio` | P7 streaming |
-| A.8.4 | Ada.Direct_IO | Generic direct files; representation-based elements | `directio` | P7 streaming |
-| A.10 | Ada.Text_IO | Text files and formatting subset; remaining grammar cases pending | `textfiles`, `filesnapshots` | P7 Text_IO |
+| A.8.1 | Ada.Sequential_IO | Generic file I/O; limited private File_Type with opaque storage; representation-based elements and file-object finalization audit pending | `seqio`, `iofileprivacyerrors` | P7 streaming |
+| A.8.4 | Ada.Direct_IO | Generic direct files; limited private File_Type with opaque storage; representation-based elements and file-object finalization audit pending | `directio`, `iofileprivacyerrors` | P7 streaming |
+| A.10 | Ada.Text_IO | Text files and formatting subset; limited private File_Type with opaque storage; remaining grammar and file-object finalization audit pending | `textfiles`, `filesnapshots`, `iofileprivacyerrors` | P7 Text_IO |
 | A.10.8 | Ada.Text_IO.Modular_IO | Unsigned 64-bit decimal/based file and string I/O; full Text_IO audit pending | `modulario`, mode/determinism and sanitizer checks | P5 Modular types; P7 I/O |
 | A.10.8 | Ada.Text_IO.Integer_IO; Ada.Integer_Text_IO | Integer input/output subset | `typeio` | P7 numeric grammar |
 | A.10.9 | Ada.Text_IO.Float_IO; Ada.Float_Text_IO | Real input/output subset; floating model audit pending | `floats`, `typeio` | P5 real edge cases; P7 |
@@ -120,7 +120,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.10.9 | Ada.Text_IO.Decimal_IO | Exact decimal file/current-file/string I/O, formatting, parsing and subtype checks; full Text_IO audit pending | `decimalpoint`, `decimalchecks`, `decimaltasking`, mode/determinism and sanitizer checks | P5 Decimal fixed point; P7 I/O |
 | A.10.11 | Ada.Text_IO.Enumeration_IO | Enumeration input/output subset | `enumio` | P7 Text_IO |
 | A.12.1 | Ada.Streams | Representation-oriented stream support; full abstraction/attributes pending | `streamio`, `streamresults` | P7 streaming |
-| A.12.1 | Ada.Streams.Stream_IO | File stream subset; type-aware/class-wide streaming pending | `streamio` | P7 streaming |
+| A.12.1 | Ada.Streams.Stream_IO | File stream subset; limited private File_Type with opaque storage; type-aware/class-wide streaming and file-object finalization audit pending | `streamio`, `iofileprivacyerrors` | P7 streaming |
 | A.15 | Ada.Command_Line | Arguments/environment exit status | `commandline`, `runtime.shared_tables` | P8 |
 | A.18 | Ada.Containers families (missing) | Not implemented, including Ada 2005 indefinite containers | — | P7 containers |
 | A.16–A.17 | Ada.Environment_Variables; Ada.Directories (missing) | Need host policies; Directories depends on Calendar.Time | — | P7 |

@@ -1516,3 +1516,6 @@ add_test(NAME semantics.unit_renaming
         -DWORKDIR=${ADA_TEST_WORK_DIR}/unit-renaming-errors
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnitRenaming.cmake)
 set_tests_properties(semantics.unit_renaming PROPERTIES TIMEOUT 30)
+
+# File objects expose limited private views in all four I/O packages.
+add_ada_error_test(iofileprivacyerrors SOURCES iofileprivacyerrors.adb)

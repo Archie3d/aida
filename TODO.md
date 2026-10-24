@@ -476,7 +476,10 @@ Ada 2005 additions and track annex packages separately.
   wide names, occurrence streaming and occurrence-valued function results.
 - [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
   access-to-subprogram support now permits.
-- [ ] Remaining `Text_IO` and numeric input grammar cases.
+- [ ] Remaining `Text_IO` and numeric input grammar cases. File objects in
+  Text_IO, Sequential_IO, Direct_IO and Stream_IO now expose limited private
+  views over opaque addresses (`iofileprivacyerrors`, `filesnapshots`);
+  complete the file-object scope-finalization/lifetime audit for these packages.
 - [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
   arithmetic, formatting and time-zone child packages. The base package has no
   Phase 5–6 prerequisites and may be pulled forward.
