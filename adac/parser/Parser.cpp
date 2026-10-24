@@ -123,9 +123,7 @@ DeclList Parser::parseDeclarations()
     while (!check(TokenKind::EndOfFile)) {
         try {
             DeclPtr decl = parseDeclarativeItem();
-            if (decl) {
-                declarations.push_back(std::move(decl));
-            }
+            appendDeclaration(declarations, std::move(decl));
         } catch (const ParseError&) {
             skipToSemicolon();
         }

@@ -40,6 +40,7 @@ private:
     DeclPtr parseTask();
     DeclPtr parseProtected();
     DeclPtr parseObjectOrNumberDecl();
+    void appendDeclaration(DeclList& declarations, DeclPtr declaration);
     DeclPtr parseUseClause();
     DeclPtr parsePragma(bool allowShared = false);
     DeclPtr parseRepresentationClause();

@@ -1,0 +1,2 @@
+anonymousarrayerrors.adb:3:5: error: an unconstrained array object needs an initializer or index constraint
+anonymousarrayerrors.adb:5:5: error: the assigned value has an incompatible type

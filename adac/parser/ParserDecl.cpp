@@ -20,9 +20,7 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
         std::size_t declarationStart = m_position;
         try {
             DeclPtr decl = parseDeclarativeItem();
-            if (decl) {
-                declarations.push_back(std::move(decl));
-            }
+            appendDeclaration(declarations, std::move(decl));
         } catch (const ParseError&) {
             // A missing delimiter can leave us at the next declaration. Keep
             // its introducer instead of consuming its first internal semicolon.
@@ -108,6 +106,45 @@ DeclPtr Parser::parseObjectOrNumberDecl()
         return decl;
     }
 
+    if (check(TokenKind::KwArray)) {
+        auto group = std::make_unique<ObjectDecl>();
+        group->location = location;
+        std::size_t definitionStart = m_position;
+        // Each object gets its own type, bounds evaluation and initializer,
+        // including when a defining_identifier_list contains several names.
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            m_position = definitionStart;
+            auto type = std::make_unique<TypeDecl>();
+            type->location = current().location;
+            type->name = "anonymous array for " + names[i];
+            type->lower = "__anonymous_array_" + lowered[i] + "_"
+                + std::to_string(location.line) + "_" + std::to_string(location.column);
+            type->definition = parseTypeDefinition();
+            auto object = std::make_unique<ObjectDecl>();
+            object->location = location;
+            object->names = {names[i]};
+            object->namesLower = {lowered[i]};
+            object->isConstant = isConstant;
+            object->aliased = aliased;
+            object->subtype = std::make_unique<SubtypeIndication>();
+            object->subtype->location = type->location;
+            object->subtype->name = type->name;
+            object->subtype->lower = type->lower;
+            if (check(TokenKind::KwRenames)) {
+                fail("an object renaming requires a subtype mark");
+            }
+            if (match(TokenKind::Assign)) {
+                object->initializer = parseExpression();
+            } else if (isConstant) {
+                fail("an anonymous array constant requires an initializer");
+            }
+            expect(TokenKind::Semicolon, "after object declaration");
+            group->anonymousArrayDeclarations.push_back(std::move(type));
+            group->anonymousArrayDeclarations.push_back(std::move(object));
+        }
+        return group;
+    }
+
     auto decl = std::make_unique<ObjectDecl>();
     decl->location = location;
     decl->names = std::move(names);
@@ -126,6 +163,20 @@ DeclPtr Parser::parseObjectOrNumberDecl()
     }
     expect(TokenKind::Semicolon, "after object declaration");
     return decl;
+}
+
+void Parser::appendDeclaration(DeclList& declarations, DeclPtr declaration)
+{
+    if (declaration != nullptr && declaration->kind == DeclKind::Object) {
+        auto* object = static_cast<ObjectDecl*>(declaration.get());
+        if (!object->anonymousArrayDeclarations.empty()) {
+            for (DeclPtr& expanded : object->anonymousArrayDeclarations) {
+                declarations.push_back(std::move(expanded));
+            }
+            return;
+        }
+    }
+    if (declaration != nullptr) { declarations.push_back(std::move(declaration)); }
 }
 
 DeclPtr Parser::parseUseClause()

@@ -78,7 +78,8 @@ Supported:
 - Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))
 - Modular types through `2 ** 64`, modular generics, `'Mod` and `Modular_IO` ([limits](docs/modular-types.md))
 - Checked binary32/64 arithmetic, integer powers and floating `'Value` ([floating model](docs/floating-point.md))
-- Arrays with 64-bit bounds, lengths and byte strides, including library runtime bounds and generic objects ([descriptor ABI](docs/array-descriptors.md))
+- Arrays with 64-bit bounds, lengths and byte strides, anonymous object declarations,
+  library runtime bounds and generic objects ([descriptor ABI](docs/array-descriptors.md))
 - Runtime-sized array components and allocators, Size and array streams ([limits](docs/runtime-composites.md))
 - One-dimensional concatenation with scalar, composite, private and controlled components
 - Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md))

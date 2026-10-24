@@ -235,3 +235,11 @@ applicable to Ada 2005. They use the existing REPORT adapter without extra suppo
 | [c4/c460001.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c460001.a) | `907b8564f6d3a596b22cef9955e92fa0c81ee1f6` | `d41446b18267f995cea1b19474dded33f884e474a11282597c24ef99a024fc05` |
 | [c4/c460002.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c460002.a) | `945dd567720121eff8e8016748a74e49e2e69773` | `941d65ef9b5ba6098347041e44a13828f87016227cd05af63791c0641ce54ab5` |
 | [c3/c3a2002.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a2002.a) | `63ea7008b66b2c996ff20c054560e36ce56fd831` | `49e2e6018c247aecd161390e7951f90b9677032a87c31bd4216ec324c823f624` |
+
+Anonymous array object follow-up (2026-10-24): unchanged
+[C36180A](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c36180a.ada)
+uses inline array object declarations, but also requires `array (A'Range)`
+index syntax. That independently tracked P8 gap still rejects the case, so no
+new executable ACATS pass is claimed for this parser fix. The exact access-array
+example and independent grouped type/bound/initializer semantics are covered by
+`anonymousarrayobjects` and rejection regressions.

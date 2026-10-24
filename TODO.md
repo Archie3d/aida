@@ -498,7 +498,11 @@ construction, cleanup and dispatch mechanisms.
   sanitizer checks. Unchanged C460001/C460002/C3A2002 PASS; C3A0013 now reaches
   private-extension/package-renaming/range-attribute blockers. Broader limited/
   tagged definitions, generic formals and task/protected discriminants remain
-  6f/6g/9. [Contract and ABI](docs/anonymous-access.md).
+  6f/6g/9. Follow-up: inline anonymous array object declarations, including
+  anonymous access elements; grouped objects have independent types, bounds
+  evaluation and initializers (`anonymousarrayobjects`, `anonymousarrayerrors`,
+  library/whole/separate/determinism and runtime sanitizer checks).
+  [Contract and ABI](docs/anonymous-access.md).
 - [ ] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic matching and required runtime checks.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.

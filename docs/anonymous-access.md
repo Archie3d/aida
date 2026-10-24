@@ -4,7 +4,11 @@ Phase 6d accepts anonymous access definitions for stand-alone objects and
 renamings, record/array components, record discriminants, parameters, function
 results and anonymous extended returns. Access-to-constant and anonymous
 access-to-subprogram profiles are supported, including nested callbacks and
-protected procedure/function callbacks. Access parameters have no explicit
+protected procedure/function callbacks. Stand-alone arrays may define their
+array type inline, for example `A : array (1 .. 10) of access Cell :=
+(others => new Cell);`. Each grouped object gets its own array type, bound
+evaluation and initializer. These declarations reuse the named-array layout,
+collection and initialization paths. Access parameters have no explicit
 parameter mode. Their profiles participate in overload resolution, declaration/
 body conformance and tagged overriding. Controlling access parameters dispatch
 through the designated object's tag and implicitly exclude null.
@@ -82,6 +86,9 @@ object's identity. Copying pointer values does not extend the owner's lifetime.
 renaming, forwarded parameters, nested and protected callbacks, callback results,
 controlling access, extended returns, coextensions, exception cleanup and four
 concurrent workers. They run in whole/separate compilation and determinism modes.
+`anonymousarrayobjects` additionally checks inline arrays, distinct allocations
+for `others => new Cell`, grouped bounds/initializer evaluation, multidimensional
+and inferred bounds, aliased elements, generics and library elaboration.
 `runtime.access_levels` checks caller/callee ancestry, sibling task identities,
 master address reuse and coextension ownership. Storage/type unit tests check
 metadata layout, descriptor snapshots and allocation-failure cleanup. Runtime

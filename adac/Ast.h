@@ -782,6 +782,7 @@ struct ObjectDecl : Decl
 
     std::vector<std::string> names;
     std::vector<std::string> namesLower;
+    DeclList anonymousArrayDeclarations; // Flattened by the parser before semantic analysis.
     bool isConstant = false;
     bool aliased = false;
     SubtypeIndicationPtr subtype;
