@@ -180,6 +180,7 @@ void Sema::checkAssignable(Expr* target, Scope* scope, bool allowLimited, bool a
         if (record != nullptr && record->kind == TypeKind::Access) {
             record = baseType(record->target);
         }
+        if (selected->recordType != nullptr) { record = selected->recordType; }
         if (selected->fieldIndex >= 0 && record != nullptr
             && record->fields[static_cast<std::size_t>(selected->fieldIndex)].isDiscriminant) {
             m_diagnostics.error(target->location, "'" + selected->selector

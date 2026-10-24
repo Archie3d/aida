@@ -12,6 +12,7 @@ struct UnitPartRecord
     std::string key;
     std::vector<std::string> dependencies;
     bool elaborateBody = false;
+    std::vector<std::string> limitedDependencies;
 };
 
 struct UnitRecord

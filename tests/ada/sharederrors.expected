@@ -9,4 +9,5 @@ sharederrors.adb:19:5: error: Atomic and Volatile currently require a complete, 
 sharederrors.adb:22:5: error: shared type pragma must precede objects and parameter profiles using the type
 sharederrors.adb:26:5: error: shared type pragma must precede objects and parameter profiles using the type
 sharederrors.adb:28:9: error: shared-variable pragma requires an object or full type declared here
+sharederrors.adb:27:5: error: an incomplete type must be completed before an intervening body
 sharederrors.adb:18:5: error: 'Incomplete' is never described

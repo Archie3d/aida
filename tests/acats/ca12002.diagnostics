@@ -1,0 +1,3 @@
+ca12002.ada:108:33: error: subprogram stubs ('is separate') are not yet supported
+ca12002.ada:112:1: error: expected a procedure, function or package declaration
+ca12002.ada:116:1: error: expected a procedure, function or package declaration

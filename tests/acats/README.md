@@ -107,7 +107,7 @@ Alignment selection assessment (2026-10-22): upstream `cd/cd30002.a` directly
 covers specified type/object alignments and address divisibility (RM 13.3).
 It requires implementation-defined `Impdef` constants, `System.Storage_Elements`,
 object alignment clauses and several library units. These are not yet supported
-by this subset and single-source C-test harness, so it is deferred rather than
+by this subset, so it is deferred rather than
 modified or counted as a pass. The local `alignmentclauses` test checks actual
 addresses via a C helper in whole/separate modes, including components,
 allocators, captured locals and concurrent tasks. CD30001 additionally needs
@@ -312,3 +312,38 @@ It is not counted as a pass or weakened to fit the implemented call subset.
 | [tests/c4/c413002.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413002.a) | `68b02c01c59740a9737f4e52c18a6d25f1cf229d` | `7ec90991e0504277573829d58f8316c692f042a325fa9901c10d4142c544942e` |
 | [tests/c4/c413003.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413003.a) | `2d2662ac356d1a042ff85719dcac0f1d70467bb3` | `8ef927d6a0ad5e0f98e8118391f0a9a53035aebeefb5029bd017ea034e727b77` |
 | [tests/c4/c413004.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413004.a) | `3d45095afdfc19d8757995b4af6e5e6b4b9012bb` | `7e1fad9c34868f5fa0d5cfed5eea468d41257779ff237e47eb31eb409d2ec08b` |
+
+## Limited and private contexts (Phase 6e)
+
+The following unchanged sources were retrieved on 2026-10-24 from the pinned
+[ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+retaining all rights/disclaimers and stored with `.ada` extensions. The harness
+now accepts explicit `SOURCES` lists for split cases and an explicit `TEST_NAME`
+when the REPORT identity differs from the main source filename. Normal bounded
+compilation/execution and exact XFAIL grading still apply.
+
+| Case / inputs | Expectation | Remaining gap / owner |
+| --- | --- | --- |
+| CA20003: CA200030, CA200031 | PASS: a package reached only by limited with still belongs to the executable partition and elaborates | Further partition/host audit: P8 |
+| CA110232: CA110230–CA110232 | Compile XFAIL: unsupported Unchecked_Access in the unchanged mutual-reference case | Unchecked_Access/accessibility audit: P8 |
+| CA120012: CA120010–CA120012 | Compile XFAIL: general limited records; also needs Unchecked_Access | P6f/P8 |
+| CA12002 | Compile XFAIL: separate subprogram stubs and subunit syntax | Next P6e item |
+
+The three XFAILs are not execution passes. Local `limitedwith`, `privatewith`
+and `taggedincomplete` exercise the implemented views with whole/per-unit/
+deterministic compilation, private children, runtime array aliases, four tasks,
+allocation and deallocation. `semantics.context_views` covers illegal uses,
+source ordering and renamed views; `loading.context_dependencies` covers mixed
+cycles, binder membership and incremental dependency invalidation.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/ca/ca200030.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca200030.a) | `1677a450a6dd38959e05936b870fbe47d33d8257` | `ac75b1af6084d2887e070068275fcd72e06d8b1cb8457681ccf01a23772e1a73` |
+| [tests/ca/ca200031.am](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca200031.am) | `79d03d26e6a6314316cad1606668e2949ffd75ec` | `5e5198d97e99094733c760057f6e6569da10a0207aebe0101a46b9e98c462660` |
+| [tests/ca/ca110230.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca110230.a) | `28443767e153960ab514abadda2556ccfaf8e3bc` | `c39cf4bb5e90e5ae7691f5c58a8a517434cf23763cea2406c00f6baf5370cb2b` |
+| [tests/ca/ca110231.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca110231.a) | `fef10544886ede1c59f00d154b40bc09267882b9` | `751749bcf2edd856a52ca7d16d0bfe46d5df4e7155a51fc4e7c87b2706ef691d` |
+| [tests/ca/ca110232.am](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca110232.am) | `4d2a92e37cdeede03c9f96e447ce5a97d351c849` | `8ce35c900830911bc0a26c2207368b19545b4cba3ac05fe0a7a227c064fa868c` |
+| [tests/ca/ca120010.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca120010.a) | `303ccc3e7dde821a0a83f9ea616570a3bbdbe783` | `f6353bd6f5a620afb357993121ec07b53b8405606c79d1076faa3a35c8a22041` |
+| [tests/ca/ca120011.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca120011.a) | `9b72caa33b113e9d5bf264a46777e0972ff3f86b` | `ca41f91aa6efc55e9038ad71f39e5b18d3b1a38237fef27f80a947acc54942a2` |
+| [tests/ca/ca120012.am](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca120012.am) | `6787cc51e06b98b97db3cbf30bbe1d0707311ff0` | `737a9b872b8f80f3a25492747cb809c5d81347ade32a3f72c9576cec30ee7f88` |
+| [tests/ca/ca12002.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca12002.a) | `f87bdd3f3819aeec91d1f9d97f9cf6f7e8ca174d` | `9c7e4281f44e2813506f20db19944039dbb6f96b66964622d3b61c363109af6e` |

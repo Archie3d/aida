@@ -198,6 +198,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
     case ExprKind::Qualified: {
         auto* qualified = static_cast<QualifiedExpr*>(expr);
         Type* type = resolveTypeName(qualified->typeLower, scope, qualified->location);
+        if (!checkCompleteView(type, expr->location, "a qualified expression")) { return nullptr; }
         Type* operand = analyzeExpr(qualified->operand.get(), scope, type);
         if (!typesCompatible(type, operand)) {
             m_diagnostics.error(expr->location, "a qualified expression must have the named type");
@@ -258,6 +259,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     if (designated == nullptr) {
         return nullptr;
     }
+    if (!checkCompleteView(designated, expr->location, "an allocator")) { return access; }
     if (designated->abstract && designated->classRoot == nullptr) {
         m_diagnostics.error(expr->location, "class-wide controlled or abstract allocators are not yet supported");
         return nullptr;
@@ -716,6 +718,7 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
 {
     Type* mark = expr->typeLower.empty() ? nullptr
         : resolveTypeName(expr->typeLower, scope, expr->location);
+    checkCompleteView(mark, expr->location, "membership testing");
     expr->membershipSubtype = mark;
     Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
     if (taggedViewVisible(mark) && taggedViewVisible(operand)) {

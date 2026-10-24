@@ -119,6 +119,10 @@ struct Symbol
     bool importAda = false;
     bool canRaise = false;
 
+    bool limitedView = false;
+    Symbol* fullPackage = nullptr;
+    bool privateUnit = false;
+
     // Packages.  A child names the parent it was declared in, which is what
     // lets it see what its parent keeps private.
     Scope* scope = nullptr;

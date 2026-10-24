@@ -191,6 +191,8 @@ bool profileTypeMatches(Type* actual, Type* formal)
 // Subtype constraints are part of the contract for array indexes/components.
 bool staticallyMatches(Type* actual, Type* formal)
 {
+    if (actual != nullptr && actual->limitedView) { actual = rootType(actual); }
+    if (formal != nullptr && formal->limitedView) { formal = rootType(formal); }
     if (actual != nullptr && formal != nullptr && actual->excludesNull != formal->excludesNull) { return false; }
     if (actual != nullptr && formal != nullptr && actual->anonymousAccess && formal->anonymousAccess) {
         if (actual->accessConstant != formal->accessConstant || actual->accessProtected != formal->accessProtected
@@ -323,6 +325,7 @@ int objectView(Expr* expr)
             Type* prefix = baseType(selected->prefix->type);
             bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
             Type* record = access ? baseType(prefix->target) : prefix;
+            if (selected->recordType != nullptr) { record = selected->recordType; }
             int view = access ? (prefix->accessConstant ? 1 : 2) : objectView(selected->prefix.get());
             if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
                 && record->fields[selected->fieldIndex].isDiscriminant) {

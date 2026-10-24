@@ -27,11 +27,16 @@ public:
 
     void setParent(Scope* scope) { m_parent = scope; }
     Scope* parent() const { return m_parent; }
-    void addLibraryVisibility(const std::string& name) { m_visibleLibraries.insert(name); }
+    void addLibraryVisibility(const std::string& name, bool privateWith = false);
+    void addLimitedLibraryVisibility(const std::string& name, Symbol* view, bool privateWith);
+    Symbol* limitedLibraryView(const std::string& name) const;
     bool privateVisible(Symbol* package) const;
     bool libraryVisible(const std::string& name) const;
     void setCompletionScope(Scope* scope) { m_completionScope = scope; }
     std::vector<Symbol*> lookupDeclaration(const std::string& name) const;
+    bool m_privateRegion = false;
+    std::string m_packageName;
+    std::string m_libraryPackage;
     bool m_contextClause = false;
     bool m_isLibraryRegistry = false;
     bool m_publicChildPart = false;
@@ -40,6 +45,9 @@ private:
     Scope* m_parent = nullptr;
     Scope* m_completionScope = nullptr;
     std::unordered_set<std::string> m_visibleLibraries;
+    std::unordered_set<std::string> m_privateLibraries;
+    std::unordered_map<std::string, Symbol*> m_limitedLibraries;
+    std::unordered_map<std::string, Symbol*> m_privateLimitedLibraries;
     std::unordered_map<std::string, std::vector<Symbol*>> m_symbols;
     std::vector<Scope*> m_useScopes;
     std::unordered_map<Scope*, Symbol*> m_privateUseScopes;

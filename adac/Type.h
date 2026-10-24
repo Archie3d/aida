@@ -114,6 +114,10 @@ struct Type
     // type can point at a record declared further down, and the full definition
     // fills this very object in, which keeps every pointer already taken good.
     bool isIncomplete = false;
+    bool limitedView = false;
+    bool incompleteInPrivatePart = false;
+    struct TypeDecl* incompleteDeclaration = nullptr;
+    std::string limitedPackage;
 
     // Set for a type declared private: what it is made of is only in reach
     // inside the package that declared it.  A limited one lends not even

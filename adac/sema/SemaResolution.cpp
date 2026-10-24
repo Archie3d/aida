@@ -16,7 +16,8 @@ std::vector<Symbol*> Sema::prefixedOperations(SelectedExpr* expr, Scope* scope)
     }
     std::vector<Symbol*> result;
     for (Type* prefix : expressionTypes(expr->prefix.get(), scope)) {
-        Type* type = designatedViewType(prefix);
+        Type* type = completeView(designatedViewType(prefix), scope);
+        if (type != nullptr && type->limitedView) { continue; }
         type = rootType(type != nullptr && type->classRoot != nullptr ? type->classRoot : type);
         if (type == nullptr || !taggedViewVisible(type)) { continue; }
         if (representationVisible(type) && std::any_of(type->fields.begin(), type->fields.end(), [&](const FieldInfo& field) {
@@ -46,7 +47,8 @@ Type* Sema::prefixedPrefixType(SelectedExpr* expr, Symbol* operation, Scope* sco
     if (!formal->tagged) { return nullptr; }
     Type* chosen = nullptr;
     for (Type* prefix : expressionTypes(expr->prefix.get(), scope)) {
-        Type* actual = designatedViewType(prefix);
+        Type* actual = completeView(designatedViewType(prefix), scope);
+        if (actual != nullptr && actual->limitedView) { continue; }
         if (actual == nullptr || !taggedViewVisible(actual)) { continue; }
         Type* specific = actual->classRoot != nullptr ? actual->classRoot : rootType(actual);
         if (representationVisible(specific) && std::any_of(specific->fields.begin(), specific->fields.end(), [&](const FieldInfo& field) {
@@ -310,7 +312,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                         }
                         continue;
                     }
-                    record = baseType(record->target);
+                    record = baseType(completeView(record->target, scope));
                     if (selected->isDereference) {
                         add(record);
                         continue;

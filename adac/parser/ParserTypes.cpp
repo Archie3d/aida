@@ -13,7 +13,12 @@ DeclPtr Parser::parseTypeDecl()
 
     // 'type Shape (Kind : Figure)' names the discriminants an object of the
     // type is fixed with when it is declared.
-    if (check(TokenKind::LeftParen)) {
+    if (check(TokenKind::LeftParen) && peek(1).kind == TokenKind::Box) {
+        advance();
+        advance();
+        expect(TokenKind::RightParen, "after unknown discriminants");
+        decl->unknownDiscriminants = true;
+    } else if (check(TokenKind::LeftParen)) {
         parseDiscriminantPart(decl->discriminants);
     }
 
@@ -24,6 +29,13 @@ DeclPtr Parser::parseTypeDecl()
     }
 
     expect(TokenKind::KwIs, "in type declaration");
+    if (check(TokenKind::KwTagged) && peek(1).kind == TokenKind::Semicolon) {
+        advance();
+        advance();
+        decl->taggedIncomplete = true;
+        return decl;
+    }
+    if (decl->unknownDiscriminants) { fail("unknown discriminants on full or private type declarations are not yet supported"); }
     decl->definition = parseTypeDefinition();
     expect(TokenKind::Semicolon, "after type declaration");
     return decl;

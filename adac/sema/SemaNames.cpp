@@ -47,7 +47,7 @@ std::vector<Symbol*> Sema::lookupAll(const std::string& lower, Scope* scope)
 Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location)
 {
     if (lower.ends_with("'class")) {
-        Type* specific = rootType(resolveTypeName(lower.substr(0, lower.size() - 6), scope, location));
+        Type* specific = resolveTypeName(lower.substr(0, lower.size() - 6), scope, location);
         if (specific == nullptr) {
             return nullptr;
         }
@@ -96,7 +96,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         m_diagnostics.error(location, "the current protected instance cannot be used as a subtype mark");
         return nullptr;
     }
-    return symbol->type;
+    return completeView(symbol->type, scope);
 }
 
 void Sema::noteReference(Symbol* symbol)
@@ -310,7 +310,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     for (Type* type : expressionTypes(expr->prefix.get(), scope)) {
         Type* designated = baseType(type);
         if (designated->kind == TypeKind::Access) {
-            designated = baseType(designated->target);
+            designated = baseType(completeView(designated->target, scope));
         } else if (expr->isDereference) {
             continue;
         }
@@ -335,14 +335,15 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "only an access value designates an object with '.all'");
             return nullptr;
         }
-        expr->type = access->target;
+        expr->type = completeView(access->target, scope);
         return expr->type;
     }
 
     Type* record = baseType(prefixType);
     if (record != nullptr && record->kind == TypeKind::Access && record->target != nullptr) {
-        record = baseType(record->target);
+        record = baseType(completeView(record->target, scope));
     }
+    if (!checkCompleteView(record, expr->location, "component selection")) { return nullptr; }
     if (record == nullptr || record->kind != TypeKind::Record) {
         m_diagnostics.error(expr->location, "'" + expr->selector + "' is not a component of a record");
         return nullptr;
@@ -377,6 +378,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     if (!checkNotPrivate(record, expr->location, "'.' reaches inside a value")) {
         return nullptr;
     }
+    expr->recordType = record;
     for (const FieldInfo& field : record->fields) {
         if (field.name != expr->selectorLower) {
             continue;
@@ -407,6 +409,20 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
 
 Type* Sema::classWideType(Type* specific)
 {
+    if (specific->limitedView) {
+        if (specific->classWide == nullptr) {
+            Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
+            *wide = *specific;
+            wide->name = specific->name + "'Class";
+            wide->base = classWideType(rootType(specific));
+            wide->classRoot = rootType(specific);
+            wide->classWide = nullptr;
+            specific->classWide = wide;
+            m_limitedTypes.push_back(wide);
+        }
+        return specific->classWide;
+    }
+
     specific = rootType(specific);
     if (specific->classWide == nullptr) {
         Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");

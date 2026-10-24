@@ -192,17 +192,23 @@ void Sema::analyze(CompilationUnit& unit)
     }
     Scope* context = m_symbolTable.createScope(parent);
     m_unitScope = context;
-    auto mention = [&](const std::string& fullName) {
+    auto mention = [&](const std::string& fullName, bool limited = false, bool privateWith = false) {
         std::size_t end = 0;
         do {
             end = fullName.find('.', end);
-            context->addLibraryVisibility(fullName.substr(0, end));
+            std::string prefix = fullName.substr(0, end);
+            if (limited && m_limitedPackages.contains(prefix)) {
+                context->addLimitedLibraryVisibility(prefix, m_limitedPackages.at(prefix), privateWith);
+            } else {
+                context->addLibraryVisibility(prefix, privateWith);
+            }
             if (end != std::string::npos) {
                 ++end;
             }
         } while (end != std::string::npos);
         std::string root = fullName.substr(0, fullName.find('.'));
         auto symbols = m_globalScope->lookupLocal(root);
+        if (symbols.empty() && limited && m_limitedPackages.contains(root)) { symbols.push_back(m_limitedPackages.at(root)); }
         for (Symbol* symbol : symbols) {
             auto local = context->lookupLocal(root);
             if (std::find(local.begin(), local.end(), symbol) == local.end()) {
@@ -216,14 +222,17 @@ void Sema::analyze(CompilationUnit& unit)
     }
     for (const WithClause& clause : unit.withClauses) {
         for (std::size_t i = 0; i < clause.names.size(); ++i) {
-            Symbol* symbol = lookupName(clause.namesLower[i], m_globalScope);
+            Symbol* symbol = clause.limited && m_limitedPackages.contains(clause.namesLower[i])
+                ? m_limitedPackages.at(clause.namesLower[i]) : lookupName(clause.namesLower[i], m_globalScope);
             if (symbol == nullptr || (symbol->kind != SymbolKind::Package && symbol->kind != SymbolKind::Generic
                 && symbol->kind != SymbolKind::Subprogram)) {
                 m_diagnostics.error(clause.location, "cannot find the unit '" + clause.names[i] + "'");
             }
-            mention(clause.namesLower[i]);
+            mention(clause.namesLower[i], clause.limited, clause.privateWith);
         }
     }
+    context->m_privateRegion = unit.units.front()->privateUnit;
+    if (!unit.isSpec && unit.units.front()->kind == DeclKind::PackageBody) { context->m_privateRegion = true; }
     context->m_contextClause = true;
     for (UseDecl& use : unit.useClauses) {
         analyzeUseClause(use, context);
@@ -289,6 +298,7 @@ void Sema::analyze(CompilationUnit& unit)
     }
     if (declared != nullptr) {
         declared->libraryName = name;
+        declared->privateUnit = unit.units.front()->privateUnit || (existing != nullptr && existing->privateUnit);
         if (parts.size() == 1 && m_globalScope->lookupLocal(name).empty()) {
             m_globalScope->add(declared);
         }

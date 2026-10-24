@@ -46,14 +46,17 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                 }
             }
         }
-        if (decl->kind == DeclKind::SubprogramBody
-            && !static_cast<SubprogramBody*>(decl.get())->isNull) {
+        if (decl->kind == DeclKind::PackageBody || (decl->kind == DeclKind::SubprogramBody
+            && !static_cast<SubprogramBody*>(decl.get())->isNull)) {
             // A body freezes preceding declarations in its declarative part.
             // Register the body's own profile first: it can itself override.
             for (const auto& symbol : m_symbolTable.symbols()) {
                 if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
-                    && symbol->type->declarationScope == scope && symbol->type->tagged) {
-                    rootType(symbol->type)->dispatchFrozen = true;
+                    && symbol->type->declarationScope == scope) {
+                    if (symbol->type->isIncomplete && symbol->type->privateTo == nullptr) {
+                        m_diagnostics.error(decl->location, "an incomplete type must be completed before an intervening body");
+                    }
+                    if (symbol->type->tagged) { rootType(symbol->type)->dispatchFrozen = true; }
                 }
             }
         }
@@ -195,6 +198,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           true, !decl->isRenaming);
 
+    checkCompleteView(type, decl->location, "an object declaration");
     bool ownsScalarConstraint = type != nullptr && std::find(decl->scalarConstraints.begin(),
         decl->scalarConstraints.end(), type) != decl->scalarConstraints.end();
     if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }
@@ -444,12 +448,16 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             && (scope == m_packageSpecScope || spec.overriding == 1)) {
             parameterType->excludesNull = true;
         }
+        if (parameterType != nullptr && (!parameterType->tagged || isBody)) {
+            checkCompleteView(parameterType, parameter.location, "this subprogram parameter");
+        }
         parameterTypes.push_back(parameterType);
     }
     // The synthetic barrier profile always uses Standard.Boolean, independent
     // of source declarations hiding Boolean (or Standard) at this point.
     Type* returnType = spec.entryBarrier ? m_types.booleanType()
         : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+    checkCompleteView(returnType, spec.location, "a function result");
     if (hasIncompleteParts(returnType)) {
         m_deferredProtectedUses.push_back({returnType, spec.location});
     }
@@ -756,6 +764,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     }
 
     Scope* inner = m_symbolTable.createScope(scope);
+    inner->m_privateRegion = true;
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {
         Symbol* parameter = symbol->parameters[i];
         body->spec.parameters[i].symbol = parameter;

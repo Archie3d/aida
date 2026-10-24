@@ -16,10 +16,18 @@ endif()
 if(NAME STREQUAL "c354002" OR NAME STREQUAL "c761002")
     list(APPEND extra_support "${ROOT}/support/tctouch.ads" "${ROOT}/support/tctouch.adb")
 endif()
+set(test_sources "${ROOT}/upstream/${NAME}.ada")
+if(DEFINED SOURCE_LIST AND NOT SOURCE_LIST STREQUAL "")
+    string(REPLACE "|" ";" source_names "${SOURCE_LIST}")
+    set(test_sources)
+    foreach(source IN LISTS source_names)
+        list(APPEND test_sources "${ROOT}/upstream/${source}")
+    endforeach()
+endif()
 execute_process(
     COMMAND "${ADA}" -o "${program}"
         "${ROOT}/support/report.ads" "${ROOT}/support/report.adb" ${extra_support}
-        "${ROOT}/upstream/${NAME}.ada"
+        ${test_sources}
     WORKING_DIRECTORY "${work}"
     TIMEOUT 40
     RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors
@@ -54,6 +62,9 @@ execute_process(
 )
 file(WRITE "${work}/run.log" "${output}${errors}")
 string(TOUPPER "${NAME}" test_name)
+if(DEFINED EXPECTED_TEST_NAME AND NOT EXPECTED_TEST_NAME STREQUAL "")
+    set(test_name "${EXPECTED_TEST_NAME}")
+endif()
 string(REPLACE "\r\n" "\n" output "${output}")
 if(NOT status STREQUAL "0" OR NOT errors STREQUAL ""
         OR NOT output STREQUAL "TEST ${test_name}\nPASSED\n")

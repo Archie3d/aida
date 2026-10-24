@@ -152,6 +152,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             collectGlobals(taskDecl->taskObjects);
             collectGlobals(taskDecl->protectedDeclarations);
             Type* type = taskDecl->declaredType;
+            if (taskDecl->definition == nullptr) { break; }
             emitTypeTag(type);
             if (!taskDecl->protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
                 && type->layoutSymbol != nullptr && type->layoutSymbol->type == type && type->layoutSymbol->isGlobal) {
@@ -171,7 +172,9 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             break;
         }
         case DeclKind::Subtype: {
-            Type* type = static_cast<SubtypeDecl*>(decl.get())->declaredType;
+            auto* subtype = static_cast<SubtypeDecl*>(decl.get());
+            if (subtype->incompleteAlias) { break; }
+            Type* type = subtype->declaredType;
             if (type != nullptr && !type->boundExpressions.empty() && type->boundsSymbol->isGlobal) {
                 m_data << "export data " << type->boundsSymbol->qbeName << " = align 8 { z "
                        << adaArrayLocalSize(type->arrayRank) << " }\n";
@@ -457,6 +460,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::Type: {
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
+            if (typeDecl->definition == nullptr) { break; }
             emitTypeTag(typeDecl->declaredType);
             if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
                 emitRecordLayout(typeDecl->declaredType);
@@ -481,7 +485,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             break;
         }
         case DeclKind::Subtype:
-            emitTypeBounds(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
+            if (!static_cast<SubtypeDecl*>(decl.get())->incompleteAlias) {
+                emitTypeBounds(static_cast<SubtypeDecl*>(decl.get())->declaredType, decl->location);
+            }
             break;
         case DeclKind::Object: {
             auto* object = static_cast<ObjectDecl*>(decl.get());

@@ -829,6 +829,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (type == nullptr) {
                 return false;
             }
+            if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
             bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
                 && formal.lower == "object";
             if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
@@ -1216,6 +1217,8 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     if (m_diagnostics.hasErrors()) {
         return;
     }
+    finishLimitedViews();
+    if (m_diagnostics.hasErrors()) { return; }
     // Private completions can reveal noncopying parts after an earlier use was
     // analyzed. Reject unsupported delayed layouts and value operations before
     // emitting code, rather than treating a partial view as an empty record.
@@ -1278,6 +1281,10 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     if (requireLibraryBodies && !m_diagnostics.hasErrors()) {
         for (const auto& symbol : m_symbolTable.symbols()) {
+            if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
+                && symbol->type->isIncomplete && symbol->type->incompleteInPrivatePart) {
+                m_diagnostics.error(symbol->location, "an incomplete declaration in a private part has no completion");
+            }
             if (symbol->requiresBody && !symbol->hasBody && !symbol->missingBodyReported) {
                 if (symbol->kind == SymbolKind::Generic && symbol->generic->isPackage) {
                     auto contract = m_genericContracts.find(symbol->generic);

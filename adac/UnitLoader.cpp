@@ -442,6 +442,7 @@ bool UnitLoader::orderUnits()
     std::unordered_map<CompilationUnit*, std::vector<CompilationUnit*>> dependencies;
     for (CompilationUnit* unit : m_discoveredUnits) {
         unit->dependencies.clear();
+        unit->limitedDependencies.clear();
         dependencies[unit];
         auto add = [&](const std::string& name, bool ownBody, bool sameSourceAllowed) {
             std::string key = fileKey(name);
@@ -486,15 +487,94 @@ bool UnitLoader::orderUnits()
                 add(parent, false, true);
             }
         }
+        const Decl& client = *unit->units.front();
+        std::string clientName = declarationName(client);
+        if (client.privateUnit && !unit->isSpec) {
+            m_diagnostics.error(client.location, "private may precede a library declaration or renaming, not a body");
+            return false;
+        }
+        if (client.privateUnit && parentOf(clientName).empty()) {
+            m_diagnostics.error(client.location, "a private library unit must be a child unit");
+            return false;
+        }
         for (const WithClause& clause : unit->withClauses) {
+            if (clause.limited && (!unit->isSpec
+                || (client.kind == DeclKind::PackageSpecification && !static_cast<const PackageSpecDecl&>(client).renamesLower.empty())
+                || (client.kind == DeclKind::GenericDeclaration && !static_cast<const GenericDecl&>(client).renamesLower.empty())
+                || (client.kind == DeclKind::SubprogramDeclaration && static_cast<const SubprogramDecl&>(client).renamedName != nullptr))) {
+                m_diagnostics.error(clause.location, "a limited with clause is not allowed on a body or library renaming");
+                return false;
+            }
             for (const std::string& name : clause.names) {
+                std::string lower = toLower(name);
                 std::string key = fileKey(name);
+                if (clause.limited && lower == toLower(clientName)) {
+                    m_diagnostics.error(clause.location, "a limited with clause cannot name its own library unit");
+                    return false;
+                }
+                if (clause.limited) {
+                    auto checkContext = [&](CompilationUnit* context) {
+                        for (const WithClause& other : context->withClauses) {
+                            if (other.limited) { continue; }
+                            for (const std::string& ordinary : other.namesLower) {
+                                if (ordinary == lower || ordinary.starts_with(lower + ".")) { return false; }
+                            }
+                        }
+                        return true;
+                    };
+                    bool valid = checkContext(unit);
+                    for (std::string parent = parentOf(clientName); !parent.empty(); parent = parentOf(parent)) {
+                        auto ancestor = m_parts.find(fileKey(parent) + ".spec");
+                        if (ancestor != m_parts.end()) { valid = valid && checkContext(ancestor->second); }
+                    }
+                    if (!valid) {
+                        m_diagnostics.error(clause.location, "limited and nonlimited with clauses for the same package cannot overlap");
+                        return false;
+                    }
+                }
+                for (std::string mentioned = lower; !mentioned.empty(); mentioned = parentOf(mentioned)) {
+                    auto target = m_parts.find(fileKey(mentioned) + ".spec");
+                    if (target == m_parts.end()) { continue; }
+                    const Decl& declaration = *target->second->units.front();
+                    if (clause.limited && (declaration.kind != DeclKind::PackageSpecification
+                        || !static_cast<const PackageSpecDecl&>(declaration).renamesLower.empty())) {
+                        m_diagnostics.error(clause.location, "a limited with clause requires a nongeneric library package declaration");
+                        return false;
+                    }
+                    if (declaration.privateUnit) {
+                        std::string owner = parentOf(mentioned);
+                        bool descendant = toLower(clientName) == owner || toLower(clientName).starts_with(owner + ".");
+                        bool privateDescendant = client.privateUnit;
+                        for (std::string parent = parentOf(clientName); !parent.empty(); parent = parentOf(parent)) {
+                            auto ancestor = m_parts.find(fileKey(parent) + ".spec");
+                            privateDescendant = privateDescendant || (ancestor != m_parts.end() && ancestor->second->units.front()->privateUnit);
+                        }
+                        bool allowed = descendant && (privateDescendant || !unit->isSpec || clause.privateWith);
+                        if (!allowed) {
+                            m_diagnostics.error(clause.location, "private child unit is not accessible in this context clause");
+                            return false;
+                        }
+                    }
+                }
                 if (!m_parts.contains(key + ".spec") && !m_parts.contains(key + ".body")
                     && key != "standard" && key != "system") {
                     m_diagnostics.error(clause.location, "cannot find the unit '" + name + "'");
                     return false;
                 }
-                add(name, false, false);
+                if (clause.limited) {
+                    auto target = m_parts.find(key + ".spec");
+                    if (target == m_parts.end() || target->second->units.front()->kind != DeclKind::PackageSpecification
+                        || !static_cast<PackageSpecDecl*>(target->second->units.front().get())->renamesLower.empty()) {
+                        m_diagnostics.error(clause.location, "a limited with clause requires a nongeneric library package declaration");
+                        return false;
+                    }
+                    if (std::find(unit->limitedDependencies.begin(), unit->limitedDependencies.end(), target->second->partKey)
+                        == unit->limitedDependencies.end()) {
+                        unit->limitedDependencies.push_back(target->second->partKey);
+                    }
+                } else {
+                    add(name, false, false);
+                }
             }
         }
     }

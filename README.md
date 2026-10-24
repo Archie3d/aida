@@ -102,6 +102,7 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
 - Text and stream I/O
+- Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
 
@@ -111,8 +112,7 @@ Not supported yet:
   protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Interfaces, abstract subprograms, prefixed calls, `goto`, `separate` subunits,
-  `limited with`/`private with`, package renaming, formal packages
+- Interfaces, abstract subprograms, `separate` subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals

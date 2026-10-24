@@ -81,7 +81,9 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
             if (check(TokenKind::EndOfFile)) {
                 break;
             }
+            bool privateUnit = match(TokenKind::KwPrivate);
             DeclPtr decl = parseLibraryUnit();
+            if (decl != nullptr) { decl->privateUnit = privateUnit; }
             if (decl) {
                 while (check(TokenKind::KwPragma) && peek(1).lower != "elaborate"
                     && peek(1).lower != "elaborate_all") {
@@ -135,18 +137,13 @@ DeclList Parser::parseDeclarations()
 void Parser::parseContextClause(CompilationUnit& unit)
 {
     while (true) {
-        if (check(TokenKind::KwLimited)
-            && (peek(1).kind == TokenKind::KwWith
-                || (peek(1).kind == TokenKind::KwPrivate && peek(2).kind == TokenKind::KwWith))) {
-            fail("limited with clauses are not yet supported");
-        }
-        if (check(TokenKind::KwPrivate) && peek(1).kind == TokenKind::KwWith) {
-            fail("private with clauses are not yet supported");
-        }
-        if (check(TokenKind::KwWith)) {
+        if (check(TokenKind::KwWith) || check(TokenKind::KwLimited)
+            || (check(TokenKind::KwPrivate) && peek(1).kind == TokenKind::KwWith)) {
             WithClause clause;
             clause.location = current().location;
-            advance();
+            clause.limited = match(TokenKind::KwLimited);
+            clause.privateWith = match(TokenKind::KwPrivate);
+            expect(TokenKind::KwWith, "in context clause");
             while (true) {
                 std::string lowered;
                 std::string name = parseCompoundName(lowered);
@@ -177,6 +174,7 @@ void Parser::parseContextClause(CompilationUnit& unit)
                     parseCompoundName(lower);
                     bool withed = false;
                     for (const WithClause& clause : unit.withClauses) {
+                        if (clause.limited) { continue; }
                         for (const std::string& name : clause.namesLower) {
                             withed = withed || name == lower || name.starts_with(lower + ".");
                         }
@@ -190,6 +188,7 @@ void Parser::parseContextClause(CompilationUnit& unit)
                             for (const std::string& prefix : use.namesLower) {
                                 std::string candidate = prefix + "." + lower;
                                 for (const WithClause& clause : unit.withClauses) {
+                                    if (clause.limited) { continue; }
                                     for (const std::string& name : clause.namesLower) {
                                         if (name == candidate || name.starts_with(candidate + ".")) {
                                             if (!resolved.empty() && resolved != candidate) {

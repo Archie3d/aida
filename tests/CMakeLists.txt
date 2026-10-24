@@ -100,7 +100,7 @@ add_ada_error_test(genericformalsyntaxerrors SOURCES genericformalsyntaxerrors.a
 add_ada_error_test(deallocationformalerrors SOURCES deallocationformalerrors.adb)
 add_ada_error_test(unsupportedrecoveryerrors SOURCES unsupportedrecoveryerrors.adb)
 add_ada_error_test(unsupportedconstructerrors SOURCES unsupportedconstructerrors.adb)
-add_ada_error_test(unsupportedcontexterrors SOURCES unsupportedcontexterrors.adb)
+add_ada_test(unsupportedcontexterrors SOURCES unsupportedcontexterrors.adb)
 
 add_ada_test(subprogramcompletions SOURCES subprogramcompletions.adb)
 add_ada_error_test(missingbodyerrors SOURCES missingbodyerrors.adb)
@@ -1540,3 +1540,38 @@ foreach(prefixed_case prefixedcalls prefixedcleanup)
 endforeach()
 add_ada_error_test(prefixederrors SOURCES prefixederrors.adb)
 add_ada_error_test(prefixedviewerrors SOURCES prefixedviewerrors.adb)
+
+# Phase 6e: limited/private contexts and incomplete type views.
+foreach(context_case limitedwith privatewith taggedincomplete)
+    add_ada_test(${context_case} SOURCES ${context_case}.adb)
+    add_determinism_test(${context_case} SOURCE ${context_case}.adb)
+    add_test(NAME runtime.${context_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${context_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${context_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${context_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${context_case} runtime.${context_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+
+add_test(NAME semantics.context_views
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}/ada
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/context-views
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckContextViews.cmake)
+set_tests_properties(semantics.context_views PROPERTIES TIMEOUT 60)
+
+add_test(NAME loading.context_dependencies
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckContextDependencies.cmake)
+set_tests_properties(loading.context_dependencies PROPERTIES TIMEOUT 90)

@@ -446,6 +446,7 @@ Symbol* Sema::declareUnitRenaming(const std::string& name, const std::string& lo
     Symbol* alias = m_symbolTable.createSymbol(original->kind, simple, display);
     alias->location = location;
     alias->renamedUnit = original;
+    alias->declarationScope = home;
     alias->scope = original->scope;
     alias->generic = original->generic;
     alias->hasSpecification = true;

@@ -96,14 +96,47 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
     }
 
+    if (completing == nullptr) {
+        for (Symbol* candidate : scope->lookupDeclaration(decl->lower)) {
+            if (candidate->kind == SymbolKind::TypeName && candidate->type != nullptr
+                && candidate->type->isIncomplete && candidate->type->incompleteInPrivatePart) {
+                completing = candidate->type;
+            }
+        }
+    }
+    bool predeclared = false;
+    if (completing == nullptr) {
+        auto pending = m_limitedCompletions.find(decl);
+        if (pending != m_limitedCompletions.end()) {
+            completing = pending->second;
+            predeclared = true;
+        }
+    }
     if (decl->definition == nullptr) {
-        if (completing != nullptr) {
+        if (completing != nullptr && !predeclared) {
             m_diagnostics.error(decl->location, "'" + decl->name + "' has already been named here");
             return;
         }
-        Type* placeholder = m_types.create(TypeKind::Record, decl->name);
+        Type* placeholder = completing != nullptr ? completing : m_types.create(TypeKind::Record, decl->name);
+        placeholder->tagged = decl->taggedIncomplete;
+        placeholder->privateViewTagged = decl->taggedIncomplete;
         placeholder->isIncomplete = true;
+        placeholder->incompleteInPrivatePart = scope == m_packageSpecScope && !m_inVisiblePart;
+        placeholder->incompleteDeclaration = decl;
+        placeholder->constrained = decl->discriminants.empty() && !decl->unknownDiscriminants;
         placeholder->declarationScope = scope;
+        placeholder->discriminantCount = static_cast<int>(decl->discriminants.size());
+        for (RecordField& discriminant : decl->discriminants) {
+            FieldInfo field;
+            field.name = discriminant.lower;
+            field.displayName = discriminant.name;
+            field.index = static_cast<int>(placeholder->fields.size());
+            field.type = resolveSubtypeIndication(discriminant.subtype.get(), scope);
+            field.isDiscriminant = true;
+            field.defaultValue = discriminant.defaultValue.get();
+            if (discriminant.defaultValue != nullptr) { analyzeExpr(discriminant.defaultValue.get(), scope, field.type); }
+            placeholder->fields.push_back(field);
+        }
         decl->declaredType = placeholder;
 
         Symbol* named = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
@@ -111,6 +144,26 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         named->location = decl->location;
         scope->add(named);
         return;
+    }
+
+    if (completing != nullptr && completing->incompleteDeclaration != nullptr
+        && !completing->incompleteDeclaration->discriminants.empty()) {
+        const auto& previous = completing->incompleteDeclaration->discriminants;
+        bool conforms = previous.size() == decl->discriminants.size();
+        for (std::size_t i = 0; conforms && i < previous.size(); ++i) {
+            const auto& before = previous[i];
+            const auto& after = decl->discriminants[i];
+            Type* beforeType = completing->fields[i].type;
+            Type* afterType = resolveSubtypeIndication(after.subtype.get(), scope);
+            if (after.defaultValue != nullptr) { analyzeExpr(after.defaultValue.get(), scope, afterType); }
+            conforms = before.lower == after.lower && SemaSupport::staticallyMatches(beforeType, afterType)
+                && before.subtype->nullExclusion == after.subtype->nullExclusion
+                && SemaSupport::conformingExpressions(before.defaultValue.get(), after.defaultValue.get());
+        }
+        if (!conforms) {
+            m_diagnostics.error(decl->location, "completion discriminants do not conform to the incomplete declaration");
+            return;
+        }
     }
 
     // Every branch below builds the type through this, so that a completion
@@ -162,10 +215,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     };
 
     TypeDefinition* definition = decl->definition.get();
-    if (completing != nullptr && completing->privateTo != nullptr && completing->tagged
-        && !(definition->kind == TypeDefKind::Record && definition->tagged)
-        && !(definition->kind == TypeDefKind::Derived && definition->extension)) {
-        m_diagnostics.error(decl->location, "a tagged private type requires a tagged full definition");
+    bool taggedDefinition = (definition->kind == TypeDefKind::Record && definition->tagged)
+        || (definition->kind == TypeDefKind::Derived && definition->extension);
+    if (!taggedDefinition && definition->kind == TypeDefKind::Derived && definition->parent != nullptr) {
+        Symbol* parent = lookupName(definition->parent->lower, scope);
+        taggedDefinition = parent != nullptr && parent->kind == SymbolKind::TypeName && taggedViewVisible(parent->type);
+    }
+    if (completing != nullptr && !predeclared && completing->tagged && !taggedDefinition) {
+        m_diagnostics.error(decl->location, completing->privateTo != nullptr
+            ? "a tagged private type requires a tagged full definition"
+            : "a tagged incomplete type requires a tagged full definition");
         return;
     }
     if (completing != nullptr && completing->privateTo != nullptr
@@ -429,6 +488,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         int rank = static_cast<int>(definition->indexTypes.size());
         type->aliasedElements = definition->aliasedElements;
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
+        checkCompleteView(cell, decl->location, "an array component");
         if (baseType(cell) != nullptr && baseType(cell)->discriminantCount > 0
             && !hasKnownDiscriminants(cell) && !hasDefaultDiscriminants(cell)) {
             m_diagnostics.error(decl->location, "an array component requires a definite discriminated subtype");
@@ -515,6 +575,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Derived: {
         Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
+        if (!checkCompleteView(parent, decl->location, "type derivation")) { return; }
         if (parent == nullptr) {
             return;
         }
@@ -648,12 +709,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             SubprogramSpec& spec = *definition->accessProfile;
             Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", decl->name);
             profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+            if (profile->returnType != nullptr && profile->returnType->limitedView) {
+                checkCompleteView(profile->returnType, decl->location, "an access-to-subprogram result");
+            }
             profile->location = decl->location;
             profile->pendingControlledResult = profile->returnType != nullptr
                 && rootType(profile->returnType)->isIncomplete;
             for (ParameterDecl& declaration : spec.parameters) {
                 Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
                 parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
+                if (parameter->type != nullptr && parameter->type->limitedView && !parameter->type->tagged) {
+                    checkCompleteView(parameter->type, declaration.location, "an access-to-subprogram parameter");
+                }
                 parameter->mode = declaration.mode;
                 parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameter->type);
                 if (declaration.defaultValue != nullptr) {
@@ -771,10 +838,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     decl->declaredType = type;
     Symbol* symbol = nullptr;
-    if (completing != nullptr) {
+    if (completing != nullptr && !predeclared) {
         // Reuse the name of the incomplete declaration, including its runtime
         // bounds storage when the full declaration supplies a dynamic array.
-        for (Symbol* candidate : scope->lookupLocal(decl->lower)) {
+        for (Symbol* candidate : scope->lookupDeclaration(decl->lower)) {
             if (candidate->kind == SymbolKind::TypeName && candidate->type == type) {
                 symbol = candidate;
                 break;
@@ -816,10 +883,27 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
         return;
     }
 
+    Symbol* namedView = lookupName(decl->subtype->lower, scope);
+    Type* incomplete = namedView != nullptr && namedView->kind == SymbolKind::TypeName
+        ? baseType(completeView(namedView->type, scope)) : nullptr;
+    if (incomplete != nullptr && incomplete->isIncomplete && incomplete->privateTo == nullptr
+        && (decl->subtype->nullExclusion || decl->subtype->rangeLow || !decl->subtype->indexLows.empty())) {
+        m_diagnostics.error(decl->location, "an incomplete subtype declaration cannot add constraints");
+        return;
+    }
     // Preserve dynamic constraints for capture when the declaration elaborates,
     // including symbolic generic bounds resolved by instantiation.
     Type* base = resolveSubtypeIndication(decl->subtype.get(), scope, true, true);
     if (base == nullptr) {
+        return;
+    }
+    if (base->limitedView || (baseType(base)->isIncomplete && baseType(base)->privateTo == nullptr)) {
+        decl->incompleteAlias = true;
+        decl->declaredType = base;
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, decl->lower, decl->name);
+        symbol->type = base;
+        symbol->location = decl->location;
+        scope->add(symbol);
         return;
     }
     Type* type = m_types.makeSubtype(decl->name, base, base->low, base->high);
@@ -873,6 +957,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.name = field.lower;
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), isDiscriminant ? scope : componentScope, true, true);
+        checkCompleteView(info.type, field.location, "a record component");
         if (baseType(info.type) != nullptr && baseType(info.type)->discriminantCount > 0
             && !hasKnownDiscriminants(info.type) && !hasDefaultDiscriminants(info.type)) {
             m_diagnostics.error(field.location, "a record component requires a definite discriminated subtype");
@@ -1080,7 +1165,8 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
                 }
             }
         }
-        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->isIncomplete) {
+        if (typeDecl->declaredType != nullptr && typeDecl->declaredType->isIncomplete
+            && !typeDecl->declaredType->incompleteInPrivatePart) {
             m_diagnostics.error(decl->location, "'" + typeDecl->name + "' is never described");
         }
     }
@@ -1377,6 +1463,11 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     Type* base = resolveTypeName(indication->lower, scope, indication->location);
     if (base == nullptr) {
         return nullptr;
+    }
+    if (base->limitedView && (indication->nullExclusion || indication->rangeLow || indication->digits
+        || !indication->indexLows.empty())) {
+        m_diagnostics.error(indication->location, "an incomplete type view cannot be constrained");
+        return base;
     }
     if (base->accessProfile != nullptr) { rootType(base)->accessConventionFrozen = true; }
     if (indication->nullExclusion) {

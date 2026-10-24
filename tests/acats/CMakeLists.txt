@@ -1,6 +1,7 @@
 # Explicit selection and expectations: never silently discover new cases.
 function(add_acats_test name)
-    cmake_parse_arguments(ACATS "" "REJECTION" "" ${ARGN})
+    cmake_parse_arguments(ACATS "" "REJECTION;TEST_NAME" "SOURCES" ${ARGN})
+    string(REPLACE ";" "|" sources "${ACATS_SOURCES}")
     add_test(NAME acats.${name}
         COMMAND ${CMAKE_COMMAND}
             -DNAME=${name}
@@ -8,6 +9,8 @@ function(add_acats_test name)
             -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}/work
             -DREJECTION=${ACATS_REJECTION}
+            -DSOURCE_LIST=${sources}
+            -DEXPECTED_TEST_NAME=${ACATS_TEST_NAME}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunAcats.cmake
     )
     set_tests_properties(acats.${name} PROPERTIES TIMEOUT 60 LABELS "acats")
@@ -100,3 +103,9 @@ add_acats_test(c413001)
 add_acats_test(c413002)
 add_acats_test(c413003)
 add_acats_test(c413004)
+
+# Limited dependencies still include their packages in the executable partition.
+add_acats_test(ca200031 TEST_NAME CA20003 SOURCES ca200030.ada ca200031.ada)
+add_acats_test(ca110232 REJECTION "unsupported attribute 'Unchecked_Access'" SOURCES ca110230.ada ca110231.ada ca110232.ada)
+add_acats_test(ca120012 REJECTION "limited record definitions outside Ada.Finalization are not yet supported" SOURCES ca120010.ada ca120011.ada ca120012.ada)
+add_acats_test(ca12002 REJECTION "subprogram stubs ('is separate') are not yet supported")

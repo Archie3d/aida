@@ -70,6 +70,11 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
                     return "invalid elaboration order: '" + dependency + "' must precede '" + part.key + "'";
                 }
             }
+            for (const std::string& dependency : part.limitedDependencies) {
+                if (!positions.contains(dependency)) {
+                    return "missing limited-view dependency '" + dependency + "' of '" + part.key + "'";
+                }
+            }
             for (const std::string& dependency : part.dependencies) {
                 if (!positions.contains(dependency)) {
                     return "unknown elaboration dependency '" + dependency + "' of '" + part.key + "'";

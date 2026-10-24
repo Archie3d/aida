@@ -251,6 +251,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
     }
     expr->prefixType = prefixType;
+    if (expr->lower != "class" && !checkCompleteView(prefixType, expr->location, "this attribute")) { return nullptr; }
     if (expr->lower == "constrained") {
         Type* record = baseType(prefixType);
         if (prefixIsType || record == nullptr || record->discriminantCount == 0
@@ -876,7 +877,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             ? static_cast<SelectedExpr*>(expr->prefix.get()) : nullptr;
         Type* record = component != nullptr ? component->prefix->type : nullptr;
         if (record != nullptr && record->kind == TypeKind::Access) { record = record->target; }
-        record = baseType(record);
+        record = component != nullptr && component->recordType != nullptr ? component->recordType : baseType(record);
         if (component == nullptr || component->fieldIndex < 0 || record == nullptr
             || !representationVisible(record) || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "a storage-place attribute requires a visible record component and no arguments");
@@ -933,7 +934,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             auto* component = static_cast<SelectedExpr*>(expr->prefix.get());
             Type* record = component->prefix->type;
             if (record != nullptr && record->kind == TypeKind::Access) { record = record->target; }
-            record = baseType(record);
+            record = component->recordType != nullptr ? component->recordType : baseType(record);
             if (component->fieldIndex >= 0 && record != nullptr && record->kind == TypeKind::Record) {
                 const FieldInfo& field = record->fields[component->fieldIndex];
                 if (field.representationSize >= 0 && !field.inlineDependent) { size = field.representationSize; }

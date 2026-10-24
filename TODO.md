@@ -399,10 +399,14 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   whole/separate/determinism, four workers; ACATS C413001–C413004 PASS).
   [Contract](docs/prefixed-calls.md). Interfaces follow in 6f; prefixed-view
   renaming/generic actuals remain diagnosed for the Phase 8 audit.
-- [ ] Limited and private `with` clauses, including `limited private with`:
-  incomplete and tagged incomplete views, visibility and completion rules.
-  Distinguish limited dependencies from ordinary semantic and elaboration edges
-  so legal mutual dependencies survive loading, binding and incremental builds.
+- [x] Limited/private `with`, including `limited private with`: distinct
+  incomplete/tagged views, private/child visibility and completion checks;
+  limited graph/manifest edges preserve mutual dependencies without imposing
+  elaboration order (`limitedwith`, `privatewith`, `taggedincomplete`,
+  `semantics.context_views`, `loading.context_dependencies`; whole/separate/
+  determinism, four tasks). ACATS CA20003 PASS; CA110232/CA120012/CA12002 exact
+  XFAILs for Unchecked_Access, limited records and subunits. Existing full-type
+  restrictions remain; [contract](docs/context-views.md).
 - [ ] Separate subunits for subprogram and package bodies: loading, and
   analysis in the parent's scope. Replaces the Phase 1 diagnostic.
 - [ ] Extended return statements for results that are not controlled types,
@@ -416,7 +420,8 @@ cases (C59002A, C761002, part of C3A0013); take them next.
 - [ ] Complete Ada 2005 overriding-indicator and null-procedure legality beyond
   the existing subset.
 - [ ] Discriminated tagged types, private extensions, extensions of private
-  views, general limited record definitions, and tagged size clauses. Include
+  views, general limited record definitions, unknown-discriminant private views,
+  and tagged size clauses. Include
   runtime-sized tagged records and delayed private-component layouts diagnosed
   by Phase 6b. Support implicitly aliased limited current instances and their
   `'Access` in component defaults/access-discriminant constraints (C3A0013).

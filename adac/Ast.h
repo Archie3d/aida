@@ -134,6 +134,7 @@ struct SelectedExpr : Expr
     std::string selector;
     std::string selectorLower;
     Symbol* symbol = nullptr;      // Set when the selection names an entity.
+    Type* recordType = nullptr;     // Record view used to resolve a component.
     int fieldIndex = -1;           // Set when the selection is a record component.
     bool isDereference = false;    // Set for 'P.all', the object an access value designates.
 
@@ -784,6 +785,7 @@ enum class DeclKind
 
 struct Decl : Node
 {
+    bool privateUnit = false;
     explicit Decl(DeclKind declKind)
         : kind(declKind)
     {
@@ -836,6 +838,8 @@ struct NumberDecl : Decl
 
 struct TypeDecl : Decl
 {
+    bool taggedIncomplete = false;
+    bool unknownDiscriminants = false;
     TypeDecl()
         : Decl(DeclKind::Type)
     {
@@ -854,6 +858,7 @@ struct TypeDecl : Decl
 
 struct SubtypeDecl : Decl
 {
+    bool incompleteAlias = false;
     SubtypeDecl()
         : Decl(DeclKind::Subtype)
     {
@@ -1125,6 +1130,8 @@ struct RepresentationDecl : Decl
 
 struct WithClause
 {
+    bool limited = false;
+    bool privateWith = false;
     std::vector<std::string> names;
     std::vector<std::string> namesLower;
     SourceLocation location;
@@ -1153,6 +1160,7 @@ struct CompilationUnit
 
     // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;
+    std::vector<std::string> limitedDependencies;
 };
 
 using CompilationUnitPtr = std::unique_ptr<CompilationUnit>;

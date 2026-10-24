@@ -47,6 +47,7 @@ ObjectAccessView accessView(Expr* expression)
         if (dereference) { view.dynamic = prefix->accessParameter || prefix->accessDiscriminant; }
         if (selected->isDereference) { return view; }
         Type* record = dereference ? baseType(prefix->target) : prefix;
+        if (selected->recordType != nullptr) { record = selected->recordType; }
         if (selected->fieldIndex >= 0 && record != nullptr) {
             const FieldInfo& field = record->fields[selected->fieldIndex];
             view.unstable |= !view.constrained && (field.variant >= 0 || field.dependentBounds
@@ -92,6 +93,8 @@ bool matchingDesignated(Type* target, Type* source)
 
 bool matchingStorage(Type* target, Type* source)
 {
+    if (target->limitedView) { target = rootType(target); }
+    if (source->limitedView) { source = rootType(source); }
     if (target->classRoot != nullptr || source->classRoot != nullptr
         || rootType(target) != rootType(source)
         || hasRuntimeLayout(target) || hasRuntimeLayout(source)) { return true; }
@@ -108,6 +111,7 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
     }
     Type* source = analyzeExpr(expr->prefix.get(), scope, expected->target);
     if (source == nullptr) { return nullptr; }
+    if (!checkCompleteView(source, expr->location, "object 'Access")) { return nullptr; }
     ObjectAccessView view = accessView(expr->prefix.get());
     if (!view.aliased || SemaSupport::objectView(expr->prefix.get()) == 0) {
         m_diagnostics.error(expr->location, "object 'Access requires an aliased object view");
@@ -126,7 +130,7 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         m_diagnostics.error(expr->location, "object view does not match the designated subtype");
         return nullptr;
     }
-    if (!matchingStorage(expected->target, source)) {
+    if (!matchingStorage(completeView(expected->target, scope), source)) {
         m_diagnostics.error(expr->location, "object 'Access requires matching designated storage representation");
         return nullptr;
     }
@@ -196,9 +200,15 @@ Type* Sema::resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope)
         SubprogramSpec& spec = *definition->accessProfile;
         Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", type->name);
         profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+        if (profile->returnType != nullptr && profile->returnType->limitedView) {
+            checkCompleteView(profile->returnType, indication->location, "an access-to-subprogram result");
+        }
         for (ParameterDecl& declaration : spec.parameters) {
             Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
             parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
+            if (parameter->type != nullptr && parameter->type->limitedView && !parameter->type->tagged) {
+                checkCompleteView(parameter->type, declaration.location, "an access-to-subprogram parameter");
+            }
             parameter->mode = declaration.mode;
             parameter->isConstant = declaration.mode == ParameterMode::In;
             parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameter->type);

@@ -15,6 +15,7 @@ class Sema
 public:
     explicit Sema(Diagnostics& diagnostics);
 
+    void prepareLimitedViews(const std::vector<CompilationUnit*>& units);
     void analyze(CompilationUnit& unit);
     void finishAnalysis(bool requireLibraryBodies = true);
 
@@ -29,6 +30,15 @@ public:
     bool usesFinalization(const CompilationUnit* unit) const { return m_finalizingUnits.contains(unit); }
 
 private:
+    // SemaLimited.cpp
+    Type* completeView(Type* type, Scope* scope);
+    bool checkCompleteView(Type* type, const SourceLocation& location, const char* use);
+    void finishLimitedViews();
+    std::unordered_map<std::string, Symbol*> m_limitedPackages;
+    std::unordered_map<std::string, Symbol*> m_limitedPackageViews;
+    std::unordered_map<const TypeDecl*, Type*> m_limitedCompletions;
+    std::vector<Type*> m_limitedTypes;
+
     // Sema.cpp
     void setupStandardScope();
     Symbol* addException(Scope* scope, const std::string& displayName);

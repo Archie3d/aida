@@ -119,7 +119,7 @@ UnitRecord describe(const LibraryUnit& unit)
         }
         record.parts.push_back(UnitPartRecord {
             part->partKey, part->dependencies, part->units.front()->elaborateBody
-                && part->units.front()->kind != DeclKind::GenericInstantiation });
+                && part->units.front()->kind != DeclKind::GenericInstantiation, part->limitedDependencies });
         for (const WithClause& clause : part->withClauses) {
             for (const std::string& name : clause.names) {
                 std::string key = toLower(name);
@@ -464,6 +464,7 @@ int main(int argc, char** argv)
     std::vector<CompilationUnit*> units = loader.units();
 
     Sema sema(diagnostics);
+    sema.prepareLimitedViews(units);
     for (CompilationUnit* unit : units) {
         sema.analyze(*unit);
     }

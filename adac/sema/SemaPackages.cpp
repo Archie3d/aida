@@ -34,7 +34,7 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
             }
         }
         for (Symbol* candidate : candidates) {
-            if (candidate->kind == SymbolKind::Package) {
+            if (candidate->kind == SymbolKind::Package && !candidate->limitedView) {
                 symbol = candidate;
                 break;
             }
@@ -47,7 +47,24 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
             symbol->parentPackage = parent;
             enclosing->add(symbol);
         }
+        if (i == 0) {
+            for (Symbol* candidate : candidates) {
+                if (candidate->limitedView) { enclosing->remove(candidate); }
+            }
+        }
         m_namePrefix.push_back(symbol->name);
+        if (i + 1 == parts.size() || symbol->scope->m_libraryPackage.empty()) {
+            symbol->scope->m_libraryPackage = m_currentUnit->partKey.substr(0, m_currentUnit->partKey.rfind('.'));
+            std::replace(symbol->scope->m_libraryPackage.begin(), symbol->scope->m_libraryPackage.end(), '-', '.');
+        }
+        symbol->scope->m_packageName.clear();
+        for (const std::string& part : m_namePrefix) {
+            if (!symbol->scope->m_packageName.empty()) { symbol->scope->m_packageName += "."; }
+            symbol->scope->m_packageName += part;
+        }
+        if (auto view = m_limitedPackageViews.find(symbol->scope->m_packageName); view != m_limitedPackageViews.end()) {
+            view->second->fullPackage = symbol;
+        }
         ++pushed;
         parent = symbol;
         enclosing = symbol->scope;
@@ -85,9 +102,27 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     m_inVisiblePart = true;
     symbol->scope->m_publicChildPart = symbol->parentPackage != nullptr;
     analyzeDeclarativePart(decl->publicPart, symbol->scope, false);
+    for (const DeclPtr& item : decl->publicPart) {
+        if (item->kind != DeclKind::Type) { continue; }
+        auto* type = static_cast<TypeDecl*>(item.get());
+        if (type->definition == nullptr && type->declaredType != nullptr && type->declaredType->isIncomplete) {
+            m_diagnostics.error(type->location, "an incomplete declaration in the visible part requires a completion in the same visible part");
+        }
+    }
     m_inVisiblePart = false;
+    bool savedPrivateRegion = symbol->scope->m_privateRegion;
+    symbol->scope->m_privateRegion = true;
     symbol->scope->m_publicChildPart = false;
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
+    symbol->scope->m_privateRegion = savedPrivateRegion;
+    for (const DeclPtr& item : decl->privatePart) {
+        if (item->kind != DeclKind::Type) { continue; }
+        auto* type = static_cast<TypeDecl*>(item.get());
+        if (type->declaredType != nullptr && type->declaredType->isIncomplete
+            && type->declaredType->incompleteInPrivatePart && !type->declaredType->primitives.empty()) {
+            m_diagnostics.error(type->location, "a private incomplete type with primitive declarations must be completed in the private part");
+        }
+    }
     // A private type can acquire inherited operations only at its completion.
     // Check indicators and result restrictions on earlier declarations once
     // the ancestry and controlled lifetime requirements are known.
@@ -193,6 +228,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         });
     Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(symbol->scope);
     bodyScope->setCompletionScope(symbol->scope);
+    bodyScope->m_privateRegion = true;
 
     int savedHandlerDepth = m_handlerDepth;
     m_handlerDepth = 0;
@@ -219,12 +255,19 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
 
 void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
 {
+    for (const std::string& name : decl.namesLower) {
+        Symbol* package = lookupName(name, scope);
+        if (package != nullptr && package->kind == SymbolKind::Package && package->limitedView) {
+            m_diagnostics.error(decl.location, "a limited package view cannot be named in a use clause");
+            return;
+        }
+    }
     Symbol* privateTo = scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()
         ? m_packages.back() : nullptr;
     for (std::size_t i = 0; i < decl.namesLower.size(); ++i) {
         if (decl.typeOnly) {
             Type* type = resolveTypeName(decl.namesLower[i], scope, decl.location);
-            if (type != nullptr) {
+            if (type != nullptr && checkCompleteView(type, decl.location, "a use type clause")) {
                 scope->addUseType(type, decl.all, privateTo);
             }
             continue;

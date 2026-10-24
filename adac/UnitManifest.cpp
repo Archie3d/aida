@@ -48,6 +48,9 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
             for (const std::string& dependency : part.dependencies) {
                 out << "requires " << dependency << "\n";
             }
+            for (const std::string& dependency : part.limitedDependencies) {
+                out << "limited " << dependency << "\n";
+            }
         }
         out << "end\n";
     }
@@ -103,6 +106,8 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
         } else if (keyword == "immediate-body" && !units.back().parts.empty()
             && rest == units.back().parts.back().key && !units.back().parts.back().elaborateBody) {
             units.back().parts.back().elaborateBody = true;
+        } else if (keyword == "limited" && !units.back().parts.empty()) {
+            units.back().parts.back().limitedDependencies.push_back(rest);
         } else if (keyword == "requires" && !units.back().parts.empty()) {
             units.back().parts.back().dependencies.push_back(rest);
         } else {

@@ -42,14 +42,48 @@ std::vector<Symbol*> Scope::lookupLocal(const std::string& name) const
     return it->second;
 }
 
+void Scope::addLibraryVisibility(const std::string& name, bool privateWith)
+{
+    (privateWith ? m_privateLibraries : m_visibleLibraries).insert(name);
+}
+
+void Scope::addLimitedLibraryVisibility(const std::string& name, Symbol* view, bool privateWith)
+{
+    (privateWith ? m_privateLimitedLibraries : m_limitedLibraries)[name] = view;
+}
+
 bool Scope::libraryVisible(const std::string& name) const
 {
+    bool privateRegion = false;
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
-        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)) {
+        privateRegion = privateRegion || scope->m_privateRegion;
+        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)
+            || scope->m_limitedLibraries.contains(name)
+            || (privateRegion && (scope->m_privateLibraries.contains(name) || scope->m_privateLimitedLibraries.contains(name)))) {
             return true;
         }
     }
     return false;
+}
+
+Symbol* Scope::limitedLibraryView(const std::string& name) const
+{
+    bool privateRegion = false;
+    Symbol* limited = nullptr;
+    for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
+        privateRegion = privateRegion || scope->m_privateRegion;
+        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)
+            || (privateRegion && scope->m_privateLibraries.contains(name))) { return nullptr; }
+        if (auto found = scope->m_limitedLibraries.find(name); found != scope->m_limitedLibraries.end()) {
+            limited = found->second;
+        }
+        if (privateRegion) {
+            if (auto found = scope->m_privateLimitedLibraries.find(name); found != scope->m_privateLimitedLibraries.end()) {
+                limited = found->second;
+            }
+        }
+    }
+    return limited;
 }
 
 std::vector<Symbol*> Scope::lookupDeclaration(const std::string& name) const
@@ -80,13 +114,46 @@ bool Scope::privateVisible(Symbol* package) const
 
 std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Scope* from) const
 {
+    if (!m_packageName.empty()) {
+        if (Symbol* limited = from->limitedLibraryView(m_packageName + "." + name)) { return {limited}; }
+    }
     auto symbols = lookupLocal(name);
     std::erase_if(symbols, [&](Symbol* symbol) {
-        if (!symbol->libraryName.empty() && !from->libraryVisible(symbol->libraryName)) {
-            return true;
-        }
+        if (!symbol->libraryName.empty() && !from->libraryVisible(symbol->libraryName)) { return true; }
         return !from->privateVisible(symbol->privatePrimitiveTo);
     });
+    // RM 8.3: when a limited package view is visible, package renamings
+    // denote that same view, including renamings of nested packages.
+    for (Symbol*& symbol : symbols) {
+        if (symbol->kind != SymbolKind::Package || symbol->scope == nullptr) { continue; }
+        Symbol* original = symbol->renamedUnit;
+        if (original != nullptr && original->limitedView) {
+            bool immediate = false;
+            for (const Scope* scope = from; scope != nullptr; scope = scope->m_parent) {
+                immediate = immediate || scope == symbol->declarationScope;
+            }
+            const std::string& library = original->scope->m_libraryPackage;
+            if (!immediate && !from->libraryVisible(library)) { symbol = nullptr; continue; }
+            if (from->limitedLibraryView(library) == nullptr && original->fullPackage != nullptr) {
+                symbol = original->fullPackage;
+                continue;
+            }
+        }
+        const std::string& owner = symbol->scope->m_libraryPackage;
+        Symbol* limited = from->limitedLibraryView(owner.empty() ? symbol->libraryName : owner);
+        if (limited == nullptr) { continue; }
+        std::string path = symbol->scope->m_packageName;
+        std::size_t start = owner.size();
+        while (limited != nullptr && start < path.size()) {
+            ++start;
+            std::size_t dot = path.find('.', start);
+            auto nested = limited->scope->lookupLocal(path.substr(start, dot - start));
+            limited = nested.size() == 1 && nested.front()->kind == SymbolKind::Package ? nested.front() : nullptr;
+            start = dot == std::string::npos ? path.size() : dot;
+        }
+        symbol = limited;
+    }
+    std::erase(symbols, nullptr);
     return symbols;
 }
 

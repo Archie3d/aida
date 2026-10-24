@@ -199,6 +199,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "a type conversion takes exactly one operand");
             return nullptr;
         }
+        if (!checkCompleteView(candidates.front()->type, expr->location, "a type conversion")) { return nullptr; }
         Expr* source = expr->arguments.front().value.get();
         if (candidates.front()->type->kind == TypeKind::Array
             && (source->kind == ExprKind::Aggregate || source->kind == ExprKind::StringLiteral)) {
