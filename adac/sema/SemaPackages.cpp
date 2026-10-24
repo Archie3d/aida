@@ -1,6 +1,8 @@
 #include "Sema.h"
 #include "SemaSupport.h"
 
+#include <algorithm>
+
 using SemaSupport::splitDottedName;
 
 // A library unit written as Ada.Text_IO is a child declared inside Ada, so each
@@ -185,7 +187,11 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         m_namePrefix.push_back(part);
         ++pushed;
     }
-    Scope* bodyScope = scope == m_unitScope ? scope : m_symbolTable.createScope(symbol->scope);
+    bool libraryBody = scope == m_unitScope && m_currentUnit != nullptr
+        && std::any_of(m_currentUnit->units.begin(), m_currentUnit->units.end(), [&](const DeclPtr& unit) {
+            return unit.get() == decl;
+        });
+    Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(symbol->scope);
     bodyScope->setCompletionScope(symbol->scope);
 
     int savedHandlerDepth = m_handlerDepth;

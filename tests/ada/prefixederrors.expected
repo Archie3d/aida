@@ -1,0 +1,17 @@
+prefixederrors.adb:36:5: error: 'C' cannot be assigned to
+prefixederrors.adb:37:5: error: object 'Access requires an aliased object view
+prefixederrors.adb:38:5: error: access-to-variable cannot designate a constant view
+prefixederrors.adb:39:5: error: the target of an assignment must be a variable
+prefixederrors.adb:40:16: error: '.' reaches inside a value of 'Private_Root', whose representation 'Prefixed_Model' keeps to itself
+prefixederrors.adb:41:6: error: 'Outside' is not a component of type 'Root'
+prefixederrors.adb:42:11: error: no visible subprogram matches this call
+prefixederrors.adb:43:11: error: no visible subprogram matches this call
+prefixederrors.adb:44:25: error: a positional argument cannot follow a named argument
+prefixederrors.adb:45:35: error: a parameter cannot be supplied more than once
+prefixederrors.adb:46:22: error: no visible subprogram matches this call
+prefixederrors.adb:47:15: error: object 'Access requires an aliased object view
+prefixederrors.adb:48:21: error: ambiguous prefix of prefixed call
+prefixederrors.adb:49:6: error: 'Named_First' is not a component of type 'Root'
+prefixederrors.adb:50:6: error: 'Second' is not a component of type 'Root'
+prefixederrors.adb:50:14: error: only arrays and subprograms can be applied to arguments
+prefixederrors.adb:51:13: error: 'Invalid' is not a component of type 'Plain'

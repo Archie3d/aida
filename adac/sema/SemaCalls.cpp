@@ -30,7 +30,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     expr->dispatching = false;
     // Collect the entities the callee may denote.
     std::vector<Symbol*> candidates;
-    if (expr->callee->kind == ExprKind::Identifier) {
+    if (expr->prefixedSubprogram != nullptr) {
+        candidates = {expr->prefixedSubprogram};
+    } else if (expr->callee->kind == ExprKind::Identifier) {
         auto* identifier = static_cast<IdentifierExpr*>(expr->callee.get());
         candidates = expressionNames(expr->callee.get(), scope);
         if (identifier->lower.ends_with("'base") || identifier->lower.ends_with("'class")) {
@@ -61,9 +63,11 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
         } else if (selected->prefix->kind == ExprKind::Selected) {
             auto* nested = static_cast<SelectedExpr*>(selected->prefix.get());
-            analyzeSelected(nested, scope, nullptr);
-            if (nested->symbol != nullptr && nested->symbol->kind == SymbolKind::Package) {
-                prefixSymbol = nested->symbol;
+            for (Symbol* candidate : expressionNames(nested, scope)) {
+                if (candidate->kind == SymbolKind::Package) {
+                    prefixSymbol = candidate;
+                    nested->symbol = candidate;
+                }
             }
         }
         if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
@@ -404,6 +408,54 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
 
+        // Lower only after overload resolution. This preserves a single prefix
+        // evaluation and lets the ordinary call path enforce modes, accessibility,
+        // defaults, dispatching and cleanup (RM 6.4(10.1)).
+        if (expr->prefixedSubprogram == nullptr && expr->callee->kind == ExprKind::Selected) {
+            auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
+            bool ambiguousPrefix = false;
+            Type* prefixType = prefixedPrefixType(selected, chosen, scope, &ambiguousPrefix);
+            if (ambiguousPrefix) {
+                m_diagnostics.error(expr->location, "ambiguous prefix of prefixed call");
+                return nullptr;
+            }
+            if (prefixType != nullptr) {
+                ExprPtr receiver = std::move(selected->prefix);
+                if (baseType(prefixType)->kind == TypeKind::Access) {
+                    auto dereference = std::make_unique<SelectedExpr>();
+                    dereference->location = receiver->location;
+                    dereference->selector = dereference->selectorLower = "all";
+                    dereference->isDereference = true;
+                    dereference->prefix = std::move(receiver);
+                    receiver = std::move(dereference);
+                }
+                Type* formal = chosen->parameters.front()->type;
+                if (formal->kind == TypeKind::Access) {
+                    auto access = std::make_unique<AttributeExpr>();
+                    access->location = receiver->location;
+                    access->name = "Access";
+                    access->lower = "access";
+                    Type* accessType = m_types.create(TypeKind::Access, anonymousTypeName());
+                    *accessType = *formal;
+                    accessType->target = designatedViewType(prefixType);
+                    access->prefixedAccessType = accessType;
+                    access->prefix = std::move(receiver);
+                    receiver = std::move(access);
+                }
+                Association first;
+                first.value = std::move(receiver);
+                expr->arguments.insert(expr->arguments.begin(), std::move(first));
+                auto callee = std::make_unique<IdentifierExpr>();
+                callee->location = expr->callee->location;
+                callee->name = chosen->displayName;
+                callee->lower = chosen->name;
+                callee->symbol = chosen;
+                expr->callee = std::move(callee);
+                expr->prefixedSubprogram = chosen;
+                return analyzeCall(expr, scope, expected);
+            }
+        }
+
         expr->form = CallForm::Subprogram;
         expr->subprogram = chosen;
         if (hasProtected(chosen->returnType)) {
@@ -437,6 +489,22 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                     if (designatedViewType(actual)->classRoot == chosen->controllingType) {
                         context = actual;
                         expr->dispatching = true;
+                    }
+                }
+            }
+            if (formal->kind == TypeKind::Access && formal->anonymousAccess
+                && chosen->controllingType != nullptr && controllingParameterType(formal) == chosen->controllingType
+                && argument->kind == ExprKind::Attribute) {
+                auto* attribute = static_cast<AttributeExpr*>(argument);
+                if (attribute->lower == "access" && attribute->prefixedAccessType == nullptr) {
+                    for (Type* actual : expressionTypes(attribute->prefix.get(), scope)) {
+                        if (actual->classRoot == chosen->controllingType) {
+                            context = m_types.create(TypeKind::Access, anonymousTypeName());
+                            *context = *formal;
+                            context->target = actual;
+                            expr->dispatching = true;
+                            break;
+                        }
                     }
                 }
             }

@@ -253,6 +253,7 @@ struct CallExpr : Expr
     ExprPtr operatorExpression; // Explicit unqualified operator call.
     CallForm form = CallForm::Unresolved;
     Symbol* subprogram = nullptr;
+    Symbol* prefixedSubprogram = nullptr; // Underlying operation after prefixed-call lowering.
     bool indirect = false;
     bool dispatching = false;
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
@@ -275,6 +276,7 @@ struct AttributeExpr : Expr
     AttributeExpr* rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* accessSubprogram = nullptr;
+    Type* prefixedAccessType = nullptr; // Implicit Access retains the receiver's dynamic view.
     Symbol* accessObject = nullptr;
     bool objectAccess = false;
     int objectAccessLevel = 0;

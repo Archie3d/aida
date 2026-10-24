@@ -94,3 +94,9 @@ add_acats_test(c59002b)
 
 # Package alias chains, use clauses and current instances.
 add_acats_test(c85011a)
+
+# Ada 2005 prefixed calls: values/access prefixes and access-parameter operations.
+add_acats_test(c413001)
+add_acats_test(c413002)
+add_acats_test(c413003)
+add_acats_test(c413004)

@@ -1519,3 +1519,24 @@ set_tests_properties(semantics.unit_renaming PROPERTIES TIMEOUT 30)
 
 # File objects expose limited private views in all four I/O packages.
 add_ada_error_test(iofileprivacyerrors SOURCES iofileprivacyerrors.adb)
+
+# Phase 6e: tagged prefixed calls through ordinary call lowering.
+foreach(prefixed_case prefixedcalls prefixedcleanup)
+    add_ada_test(${prefixed_case} SOURCES ${prefixed_case}.adb)
+    add_determinism_test(${prefixed_case} SOURCE ${prefixed_case}.adb)
+    add_test(NAME runtime.${prefixed_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${prefixed_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${prefixed_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${prefixed_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${prefixed_case} runtime.${prefixed_case}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_ada_error_test(prefixederrors SOURCES prefixederrors.adb)
+add_ada_error_test(prefixedviewerrors SOURCES prefixedviewerrors.adb)

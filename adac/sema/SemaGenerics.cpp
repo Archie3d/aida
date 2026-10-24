@@ -589,6 +589,11 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     } else if (actual->kind == ExprKind::Identifier) {
         operation = operatorSymbol(static_cast<IdentifierExpr*>(actual)->lower);
     }
+    if (actual->kind == ExprKind::Selected
+        && !prefixedOperations(static_cast<SelectedExpr*>(actual), actualScope).empty()) {
+        m_diagnostics.error(actual->location, "prefixed views as generic actuals are not yet supported");
+        return false;
+    }
     std::vector<Symbol*> candidates;
     const auto& actualCandidates = namedDefault && actual->kind == ExprKind::Selected
         ? formal.defaultCandidates : expressionNames(actual, actualScope);

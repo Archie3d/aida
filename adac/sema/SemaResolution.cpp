@@ -5,6 +5,68 @@
 
 using SemaSupport::isUniversal;
 
+// RM 4.1.3: selected operations belong to the type's declaration region,
+// including class-wide operations in an ancestor's region. A visible component
+// with the same name takes precedence, even when it is itself callable.
+std::vector<Symbol*> Sema::prefixedOperations(SelectedExpr* expr, Scope* scope)
+{
+    if (expr->isDereference || expr->prefix == nullptr) { return {}; }
+    for (Symbol* name : expressionNames(expr->prefix.get(), scope)) {
+        if (name->kind == SymbolKind::Package || name->kind == SymbolKind::TypeName) { return {}; }
+    }
+    std::vector<Symbol*> result;
+    for (Type* prefix : expressionTypes(expr->prefix.get(), scope)) {
+        Type* type = designatedViewType(prefix);
+        type = rootType(type != nullptr && type->classRoot != nullptr ? type->classRoot : type);
+        if (type == nullptr || !taggedViewVisible(type)) { continue; }
+        if (representationVisible(type) && std::any_of(type->fields.begin(), type->fields.end(), [&](const FieldInfo& field) {
+                return field.name == expr->selectorLower;
+            })) { continue; }
+        for (Type* ancestor = type; ancestor != nullptr; ancestor = ancestor->parentType) {
+            if (ancestor->declarationScope == nullptr) { continue; }
+            for (Symbol* operation : ancestor->declarationScope->lookupVisibleLocal(expr->selectorLower, scope)) {
+                if (prefixedPrefixType(expr, operation, scope) != nullptr
+                    && std::find(result.begin(), result.end(), operation) == result.end()) {
+                    result.push_back(operation);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+Type* Sema::prefixedPrefixType(SelectedExpr* expr, Symbol* operation, Scope* scope, bool* ambiguous)
+{
+    if (expr->isDereference || operation->kind != SymbolKind::Subprogram || operation->parameters.empty()) { return nullptr; }
+    Type* formal = operation->parameters.front()->type;
+    if (formal->kind == TypeKind::Access) {
+        if (!formal->anonymousAccess || !formal->accessParameter) { return nullptr; }
+        formal = formal->target;
+    }
+    if (!formal->tagged) { return nullptr; }
+    Type* chosen = nullptr;
+    for (Type* prefix : expressionTypes(expr->prefix.get(), scope)) {
+        Type* actual = designatedViewType(prefix);
+        if (actual == nullptr || !taggedViewVisible(actual)) { continue; }
+        Type* specific = actual->classRoot != nullptr ? actual->classRoot : rootType(actual);
+        if (representationVisible(specific) && std::any_of(specific->fields.begin(), specific->fields.end(), [&](const FieldInfo& field) {
+                return field.name == expr->selectorLower;
+            })) { continue; }
+        bool regionMatches = false;
+        for (Type* ancestor = specific; ancestor != nullptr; ancestor = ancestor->parentType) {
+            regionMatches = regionMatches || ancestor->declarationScope == operation->declarationScope;
+            if (!ancestor->parentVisible && !representationVisible(ancestor)) { break; }
+        }
+        if (!regionMatches) { continue; }
+        if ((formal->classRoot != nullptr && isTaggedAncestor(formal->classRoot, specific))
+            || (formal->classRoot == nullptr && rootType(formal) == specific)) {
+            if (chosen != nullptr && chosen != prefix && ambiguous != nullptr) { *ambiguous = true; }
+            chosen = prefix;
+        }
+    }
+    return chosen;
+}
+
 // This pass discovers possible types, without choosing symbols, adapting
 // literals, folding expressions, or emitting diagnostics. Legality checks and
 // AST annotation belong to the subsequent analysis of the selected context.
@@ -35,7 +97,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
                 return contractNames(expr, prefix->scope->lookupVisibleLocal(selected->selectorLower, scope));
             }
         }
-        std::vector<Symbol*> operations;
+        std::vector<Symbol*> operations = prefixedOperations(selected, scope);
         for (Type* prefix : expressionTypes(selected->prefix.get(), scope)) {
             Type* type = baseType(prefix);
             if (type != nullptr && type->kind == TypeKind::Access) {
@@ -63,17 +125,24 @@ bool Sema::matchesExpression(Expr* expr, Scope* scope, Type* expected)
 }
 
 bool Sema::matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
-                              std::vector<std::size_t>& positions)
+                              std::vector<std::size_t>& positions, SelectedExpr* prefix)
 {
     positions.clear();
-    if (expr->arguments.size() > candidate->parameters.size()) {
+    if (prefix == nullptr && expr->prefixedSubprogram == nullptr && expr->callee != nullptr
+        && expr->callee->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
+        if (prefixedPrefixType(selected, candidate, scope) != nullptr) { prefix = selected; }
+    }
+    std::size_t offset = prefix != nullptr ? 1 : 0;
+    if (expr->arguments.size() + offset > candidate->parameters.size()) {
         return false;
     }
     std::vector<bool> filled(candidate->parameters.size(), false);
+    if (offset != 0) { filled[0] = true; }
     bool sawNamed = false;
     for (std::size_t i = 0; i < expr->arguments.size(); ++i) {
         const Association& argument = expr->arguments[i];
-        std::size_t index = i;
+        std::size_t index = i + offset;
         if (!argument.nameLower.empty()) {
             sawNamed = true;
             index = candidate->parameters.size();
@@ -206,7 +275,21 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         std::vector<Symbol*> names = expressionNames(expr, scope);
         for (Symbol* symbol : names) {
             if (symbol->kind == SymbolKind::Subprogram) {
-                if (symbol->returnType != nullptr
+                bool prefixed = expr->kind == ExprKind::Selected
+                    && prefixedPrefixType(static_cast<SelectedExpr*>(expr), symbol, scope) != nullptr;
+                CallExpr call;
+                std::vector<std::size_t> positions;
+                if (prefixed && symbol->returnType != nullptr
+                    && matchCallArguments(&call, symbol, scope, positions, static_cast<SelectedExpr*>(expr))) {
+                    Type* resultType = symbol->returnType;
+                    Type* prefix = designatedViewType(prefixedPrefixType(static_cast<SelectedExpr*>(expr), symbol, scope));
+                    if (symbol->controllingType != nullptr && prefix->classRoot == symbol->controllingType
+                        && rootType(resultType) == symbol->controllingType) {
+                        resultType = classWideType(symbol->controllingType);
+                    }
+                    add(resultType);
+                }
+                if (!prefixed && symbol->returnType != nullptr
                     && std::all_of(symbol->parameters.begin(), symbol->parameters.end(), [](Symbol* parameter) {
                         return parameter->hasDefault;
                     })) {
@@ -256,7 +339,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
             break;
         }
-        std::vector<Symbol*> names = expressionNames(call->callee.get(), scope);
+        std::vector<Symbol*> names = call->prefixedSubprogram != nullptr
+            ? std::vector<Symbol*> {call->prefixedSubprogram} : expressionNames(call->callee.get(), scope);
         bool callable = false;
         if (call->callee->kind == ExprKind::Identifier) {
             const std::string& name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
@@ -283,6 +367,12 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     && matchCallArguments(call, symbol, scope, positions)) {
                     Type* resultType = symbol->returnType;
                     if (symbol->controllingType != nullptr && rootType(resultType) == symbol->controllingType) {
+                        if (call->prefixedSubprogram == nullptr && call->callee->kind == ExprKind::Selected) {
+                            Type* prefix = prefixedPrefixType(static_cast<SelectedExpr*>(call->callee.get()), symbol, scope);
+                            if (prefix != nullptr && designatedViewType(prefix)->classRoot == symbol->controllingType) {
+                                resultType = classWideType(symbol->controllingType);
+                            }
+                        }
                         for (std::size_t i = 0; i < positions.size(); ++i) {
                             if (controllingParameterType(symbol->parameters[positions[i]]->type) == symbol->controllingType) {
                                 for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
@@ -400,9 +490,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         auto* attribute = static_cast<AttributeExpr*>(expr);
         const std::string& name = attribute->lower;
         if (name == "access") {
+            if (attribute->prefixedAccessType != nullptr) {
+                add(attribute->prefixedAccessType);
+                break;
+            }
             if (expected != nullptr && expected->kind == TypeKind::Access && expected->accessProfile == nullptr) {
-                for (Type* prefix : expressionTypes(attribute->prefix.get(), scope, expected->target)) {
-                    if (typesCompatible(expected->target, prefix)) { add(expected); }
+                for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
+                    if (typesCompatible(expected->target, prefix)
+                        || (expected->anonymousAccess && prefix->classRoot == rootType(expected->target))) {
+                        add(expected);
+                    }
                 }
             } else if (expected != nullptr) {
                 for (Symbol* candidate : expressionNames(attribute->prefix.get(), scope)) {

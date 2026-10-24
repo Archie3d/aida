@@ -137,6 +137,12 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "access") {
+        if (expr->prefixedAccessType != nullptr) { expected = expr->prefixedAccessType; }
+        if (expr->prefix->kind == ExprKind::Selected
+            && !prefixedOperations(static_cast<SelectedExpr*>(expr->prefix.get()), scope).empty()) {
+            m_diagnostics.error(expr->location, "'Access of an intrinsic prefixed view is not allowed");
+            return nullptr;
+        }
         if (expected != nullptr && expected->kind == TypeKind::Access && expected->accessProfile == nullptr) {
             return analyzeObjectAccess(expr, scope, expected);
         }

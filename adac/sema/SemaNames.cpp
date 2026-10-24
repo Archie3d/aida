@@ -260,9 +260,11 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         }
     } else if (expr->prefix->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr->prefix.get());
-        analyzeSelected(selected, scope, nullptr);
-        if (selected->symbol != nullptr && selected->symbol->kind == SymbolKind::Package) {
-            prefixSymbol = selected->symbol;
+        for (Symbol* candidate : expressionNames(selected, scope)) {
+            if (candidate->kind == SymbolKind::Package) {
+                prefixSymbol = candidate;
+                selected->symbol = candidate;
+            }
         }
     }
 

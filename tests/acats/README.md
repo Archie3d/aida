@@ -288,3 +288,27 @@ C85011A comes from [GCC releases/gcc-14 c8/c85011a.ada](https://github.com/gcc-m
 retrieved 2026-10-24 and retained unchanged, including rights and disclaimer.
 Its git blob is `538f9c235862c74b9a20afd40e39611922159b95` and SHA-256 is
 `a2b84ba57c2f57ec47e2a713604b55698b25cbbceeb18e174a9ddf88f7052f0a`.
+
+## Tagged prefixed calls (Phase 6e)
+
+C413001–C413004 were retrieved on 2026-10-24 from the unchanged
+[ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+stored with `.ada` extensions and retaining all rights/disclaimer notices.
+All four PASS: value/access prefixes combined with value/access first formals,
+inherited and overridden operations, dispatch, ancestor class-wide operations
+and named actuals (RM 4.1.3, 6.4). They also exercise nested package bodies
+inside library package bodies. Local `prefixedcalls` adds defaults, contextual
+overloads, private tagged views, single evaluation, null checks and concurrent
+workers; `prefixedcleanup` adds controlled-temporary lifetime checks.
+
+[C413005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413005.a)
+was assessed and deferred: it needs prefixed-view renaming and generic
+subprogram actuals, now explicitly diagnosed and tracked in Phase 8.
+It is not counted as a pass or weakened to fit the implemented call subset.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/c4/c413001.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413001.a) | `a1dccaf034623cb538b3d46f42953f908969b790` | `5a354dd650e4dbced9954d2be4f64abf729ebc7045386ea1b4610b562030efe5` |
+| [tests/c4/c413002.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413002.a) | `68b02c01c59740a9737f4e52c18a6d25f1cf229d` | `7ec90991e0504277573829d58f8316c692f042a325fa9901c10d4142c544942e` |
+| [tests/c4/c413003.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413003.a) | `2d2662ac356d1a042ff85719dcac0f1d70467bb3` | `8ef927d6a0ad5e0f98e8118391f0a9a53035aebeefb5029bd017ea034e727b77` |
+| [tests/c4/c413004.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413004.a) | `3d45095afdfc19d8757995b4af6e5e6b4b9012bb` | `7e1fad9c34868f5fa0d5cfed5eea468d41257779ff237e47eb31eb409d2ec08b` |

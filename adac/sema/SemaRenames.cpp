@@ -50,6 +50,11 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 
     // Resolve the target before adding the new name, so it cannot hide its target.
     Expr* name = decl->renamedName.get();
+    if (name->kind == ExprKind::Selected
+        && !prefixedOperations(static_cast<SelectedExpr*>(name), scope).empty()) {
+        m_diagnostics.error(name->location, "renaming prefixed views is not yet supported");
+        return;
+    }
     std::vector<Symbol*> candidates = expressionNames(name, scope);
     std::string operation;
     if (name->kind == ExprKind::StringLiteral) {

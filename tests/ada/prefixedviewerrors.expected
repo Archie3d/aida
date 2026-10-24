@@ -1,0 +1,3 @@
+prefixedviewerrors.adb:5:25: error: 'Access of an intrinsic prefixed view is not allowed
+prefixedviewerrors.adb:6:75: error: renaming prefixed views is not yet supported
+prefixedviewerrors.adb:14:46: error: prefixed views as generic actuals are not yet supported

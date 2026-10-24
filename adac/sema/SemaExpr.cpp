@@ -69,6 +69,20 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
     }
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
+        if (!prefixedOperations(selected, scope).empty()) {
+            auto call = std::make_unique<CallExpr>();
+            call->location = expr->location;
+            auto callee = std::make_unique<SelectedExpr>();
+            callee->location = selected->location;
+            callee->selector = selected->selector;
+            callee->selectorLower = selected->selectorLower;
+            callee->prefix = std::move(selected->prefix);
+            call->callee = std::move(callee);
+            expr->implicitCall = std::move(call);
+            expr->type = analyzeExpr(expr->implicitCall.get(), scope, expected);
+            expr->tagIndeterminate = expr->implicitCall->tagIndeterminate;
+            return expr->type;
+        }
         if (selected->isDereference) {
             for (Type* type : expressionTypes(selected->prefix.get(), scope)) {
                 if (type->accessProfile != nullptr) {

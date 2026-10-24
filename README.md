@@ -88,7 +88,7 @@ Supported:
 - Derived-type conversions and inherited profiles with checked constraints
 - Derived Boolean operations and byte-character literals and strings
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
-- Generics and tagged types with dispatching
+- Generics and tagged types with dispatching and prefixed calls ([limits](docs/prefixed-calls.md))
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md))
 - Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md))

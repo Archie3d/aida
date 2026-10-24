@@ -207,12 +207,14 @@ private:
     Type* analyzeMembership(MembershipExpr* expr, Scope* scope);
 
     // SemaResolution.cpp: inspect interpretations without binding the AST.
+    std::vector<Symbol*> prefixedOperations(SelectedExpr* expr, Scope* scope);
+    Type* prefixedPrefixType(SelectedExpr* expr, Symbol* operation, Scope* scope, bool* ambiguous = nullptr);
     std::vector<Symbol*> expressionNames(Expr* expr, Scope* scope);
     std::vector<Type*> expressionTypes(Expr* expr, Scope* scope, Type* expected = nullptr);
     std::vector<Type*> discoverExpressionTypes(Expr* expr, Scope* scope, Type* expected);
     bool matchesExpression(Expr* expr, Scope* scope, Type* expected);
     bool matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
-                            std::vector<std::size_t>& positions);
+                            std::vector<std::size_t>& positions, SelectedExpr* prefix = nullptr);
     Type* commonOperandType(Expr* left, Expr* right, Scope* scope, Type* expected);
 
     // SemaCalls.cpp

@@ -393,9 +393,12 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   Root `Unchecked_Deallocation` compatibility view reuses the Ada child unit;
   unchanged ACATS C85011A and C761002 PASS. Generic subprogram renaming-as-body
   completions retain the existing Phase 3 limitation (Phase 8 audit).
-- [ ] Prefixed calls (`Object.Operation (...)`) on tagged types, including
-  inherited primitives, class-wide dispatch, access prefixes and overload
-  resolution. Interface prefixes follow with 6f interfaces.
+- [x] Prefixed calls (`Object.Operation (...)`) on tagged types: inherited
+  primitives, class-wide dispatch/operations, access prefixes/formals, defaults
+  and overload resolution (`prefixedcalls`, `prefixedcleanup`, `prefixed*errors`;
+  whole/separate/determinism, four workers; ACATS C413001–C413004 PASS).
+  [Contract](docs/prefixed-calls.md). Interfaces follow in 6f; prefixed-view
+  renaming/generic actuals remain diagnosed for the Phase 8 audit.
 - [ ] Limited and private `with` clauses, including `limited private with`:
   incomplete and tagged incomplete views, visibility and completion rules.
   Distinguish limited dependencies from ordinary semantic and elaboration edges
@@ -529,6 +532,8 @@ Ada 2005 additions and track annex packages separately.
   relocation, library lookup, paths with spaces. Includes validation left open
   by completed items: running the suite on MSYS2 (Phase 2 threading), and
   checking Phase 2's no-slowdown goal on other hosts and targets.
+- [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
+  preserving receiver binding, lifetime and reduced-profile conformance.
 - [ ] Serialized semantic interfaces, so clients compile without dependency
   sources. `.ali` files hold only build metadata today.
 - [ ] Robust artifact publication and concurrent builds: interrupted writes,
