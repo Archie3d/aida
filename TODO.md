@@ -362,8 +362,10 @@ checks.
   objects (`anonymousarrayobjects`, `anonymousarrayerrors`). Broader limited/
   tagged definitions, generic formals and task/protected discriminants remain
   6f/6g/9. [Contract](docs/anonymous-access.md).
-- [ ] Null exclusions (`not null`): profile conformance, initialization,
-  conversions, generic matching and required runtime checks.
+- [x] Null exclusions (`not null`): profile conformance, initialization,
+  conversions, generic subprogram matching and runtime checks
+  (`nullexclusion*`, ACATS C3A0030 PASS; C3A0020/C3A0025 compile XFAIL for
+  6g access objects and 6f limited records). [Contract](docs/null-exclusions.md).
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
 
 ### 6e. Program structure and names

@@ -146,6 +146,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 
 void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLocation& location)
 {
+    if (type != nullptr && type->kind == TypeKind::Access && type->excludesNull) { checkNotNull(value); }
     if (type != nullptr && type->kind == TypeKind::Float) {
         Value bounds = scalarBounds(type);
         char type_ = value.type;

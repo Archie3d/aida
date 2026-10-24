@@ -332,6 +332,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             if (profile.size() == 1) {
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
                 declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
+                declaration->symbol->genericFormalSubprogram = true;
                 contract->profiles.push_back(std::move(profile.front()));
             }
             continue;
@@ -562,7 +563,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     }
     body->symbol = wrapper;
 
-    auto sameType = [](Type* a, Type* b) { return baseType(a) == baseType(b); };
+    auto sameType = [](Type* a, Type* b) { return SemaSupport::profileTypeMatches(a, b); };
     auto matches = [&](Symbol* candidate) {
         if (candidate->kind != SymbolKind::Subprogram || !sameType(candidate->returnType, wrapper->returnType)
             || candidate->parameters.size() != wrapper->parameters.size()) {
@@ -592,6 +593,19 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
             return false;
         }
         if (matches(candidate)) {
+            if (body->spec.returnType != nullptr && body->spec.returnType->nullExclusion
+                && !((candidate->genericFormalSubprogram && m_genericBodyContext) ? candidate->explicitNullExclusion : candidate->returnType->excludesNull)) {
+                m_diagnostics.error(actual->location, "generic actual result must exclude null");
+                return false;
+            }
+            for (std::size_t i = 0; i < wrapper->parameters.size(); ++i) {
+                if (body->spec.parameters[i].subtype->nullExclusion
+                    && !((candidate->genericFormalSubprogram && m_genericBodyContext) ? candidate->parameters[i]->explicitNullExclusion
+                        : candidate->parameters[i]->type->excludesNull)) {
+                    m_diagnostics.error(actual->location, "generic actual parameter must exclude null");
+                    return false;
+                }
+            }
             candidates.push_back(candidate);
         }
     }
@@ -647,6 +661,22 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         m_diagnostics.error(actual->location, (count == 0 ? "no matching actual for generic formal '"
             : "ambiguous actual for generic formal '") + formal.name + "'");
         return false;
+    }
+
+    // An instance's formal subprogram is a view of its actual. Preserve the
+    // actual's null contract even when the formal used a named subtype.
+    if (!intrinsic) {
+        auto actualSubtype = [&](Type* formalType, Type* actualType) {
+            if (formalType == nullptr || formalType->kind != TypeKind::Access) { return formalType; }
+            Type* view = m_types.makeSubtype(anonymousTypeName(), formalType, formalType->low, formalType->high);
+            view->excludesNull = actualType->excludesNull;
+            return view;
+        };
+        wrapper->returnType = actualSubtype(wrapper->returnType, candidates.front()->returnType);
+        for (std::size_t i = 0; i < wrapper->parameters.size(); ++i) {
+            wrapper->parameters[i]->type = actualSubtype(wrapper->parameters[i]->type, candidates.front()->parameters[i]->type);
+            operands[i]->type = wrapper->parameters[i]->type;
+        }
     }
 
     Symbol* savedSubprogram = m_currentSubprogram;

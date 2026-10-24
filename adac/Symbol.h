@@ -48,6 +48,8 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool genericObject = false;
+    bool genericFormalSubprogram = false;
+    bool explicitNullExclusion = false;
     Type* discriminantRecord = nullptr;
     int discriminantIndex = -1;
     int shared = 0;

@@ -218,6 +218,7 @@ struct Type
     // Access types.
     Type* target = nullptr;
     std::string accessIdentity;
+    bool excludesNull = false;
     bool anonymousAccess = false;
     bool accessParameter = false;
     bool accessDiscriminant = false;

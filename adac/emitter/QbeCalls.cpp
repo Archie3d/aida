@@ -522,7 +522,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         }
 
         if (parameter->byReference && isScalar(formal)
-            && (sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->enumCodes.empty()
+            && (formal->excludesNull || sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->enumCodes.empty()
                 || typeSize(formal) != typeSize(argument->type))) {
             Value temporary { allocTypeScratch(formal), 'l' };
             Value actual;

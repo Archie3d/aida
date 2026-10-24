@@ -243,3 +243,17 @@ index syntax. That independently tracked P8 gap still rejects the case, so no
 new executable ACATS pass is claimed for this parser fix. The exact access-array
 example and independent grouped type/bound/initializer semantics are covered by
 `anonymousarrayobjects` and rejection regressions.
+
+## Null exclusions (Phase 6d)
+
+Imported unchanged from [simonjwright/ACATS](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+revision `2785c30c1f8577d97ac7b3043882f6818781e9c5` (the GCC snapshot above predates these Ada 2005 tests).
+C3A0030 executes as PASS. C3A0020 is a compile XFAIL for generic access
+objects (6g); C3A0025 additionally requires general limited records (6f).
+Their exact diagnostics are pinned; no upstream bodies are changed.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/c3/c3a0020.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0020.a) | `b93fb70a57faae00b476a90d8e36ce493af7dfdb` | `40f307512bf27a5d837caa2f7340018b287916405d10f2856361b0996269fc77` |
+| [tests/c3/c3a0025.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0025.a) | `ea2cb2911e470ab89815ec59a0ccd53131368e28` | `5fc8dd54d83be8113b469a9c7543e5eafa3d8ee5f7e8a68ca3853e034e92237e` |
+| [tests/c3/c3a0030.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0030.a) | `38244a19732935b4ef064337cfa9eff03b4338c7` | `34214aa810bd046823a4707df48bd2171f6f7406bd3b2db568b9ba496bee7ae4` |

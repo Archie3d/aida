@@ -110,6 +110,7 @@ private:
     void completeGenericInstance(PendingGenericInstance pending);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
+    bool m_genericBodyContext = false;
     GenericContract* m_replayContract = nullptr;
     GenericContract* m_instanceOwnerContract = nullptr;
     std::size_t m_instanceFirstSymbol = 0;

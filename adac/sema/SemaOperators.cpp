@@ -92,7 +92,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             return false;
         }
         for (std::size_t i = 0; i < a.parameters.size(); ++i) {
-            if (rootType(a.parameters[i]) != rootType(b.parameters[i])) {
+            if (!SemaSupport::profileTypeMatches(a.parameters[i], b.parameters[i])) {
                 return false;
             }
         }

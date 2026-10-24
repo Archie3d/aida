@@ -189,6 +189,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         if (call->form == CallForm::Conversion) {
             Expr* operand = call->resolvedArguments.front();
             Value value = emitExpr(operand);
+            if (expr->type->kind == TypeKind::Access && expr->type->excludesNull) { checkNotNull(value); }
             if (expr->type->kind == TypeKind::Access && operand->type->kind == TypeKind::Access
                 && expr->type->accessProfile == nullptr && operand->type->accessProfile == nullptr) {
                 if (operand->type->anonymousAccess
@@ -380,7 +381,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
         Value value = emitExpr(static_cast<QualifiedExpr*>(expr)->operand.get());
-        if (expr->type->scalarBoundsSymbol != nullptr || expr->type->modulus != 0 || expr->type->kind == TypeKind::Fixed) {
+        if (expr->type->excludesNull || expr->type->scalarBoundsSymbol != nullptr || expr->type->modulus != 0 || expr->type->kind == TypeKind::Fixed) {
             emitRangeCheck(value, expr->type, expr->location);
         }
         return value;
@@ -730,7 +731,9 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         } else if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
         } else {
-            emitDefaultInit(object, designated);
+            // For an elementary allocator, the created object's nominal
+            // subtype is the access type's designated subtype (RM 4.8).
+            emitDefaultInit(object, designated->kind == TypeKind::Access ? expr->type->target : designated);
         }
         m_context->taskCollection = savedTaskCollection;
         m_context->taskGroup = savedTaskGroup;
@@ -803,6 +806,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
 {
     Type* base = baseType(type);
     if (base != nullptr && base->kind == TypeKind::Access) {
+        if (type->excludesNull) { raiseConstraintError(); }
         storeInto(address, Value { "0", 'l' }, type);
         return;
     }

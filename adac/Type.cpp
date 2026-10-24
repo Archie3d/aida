@@ -426,6 +426,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->layoutSymbol = parent->layoutSymbol;
     subtype->target = parent->target;
     subtype->accessIdentity = parent->accessIdentity;
+    subtype->excludesNull = parent->excludesNull;
     subtype->anonymousAccess = parent->anonymousAccess;
     subtype->accessParameter = parent->accessParameter;
     subtype->accessDiscriminant = parent->accessDiscriminant;

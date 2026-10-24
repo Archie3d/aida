@@ -348,6 +348,7 @@ struct SubtypeIndication : Node
     SubtypeIndication();
     ~SubtypeIndication() override;
     std::unique_ptr<TypeDefinition> accessDefinition;
+    bool nullExclusion = false;
     bool accessParameter = false;
     bool accessDiscriminant = false;
     std::string name;
@@ -482,6 +483,7 @@ struct TypeDefinition : Node
     }
 
     TypeDefKind kind;
+    bool nullExclusion = false;
 
     // Enumeration
     std::vector<std::string> literals;

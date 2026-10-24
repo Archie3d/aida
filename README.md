@@ -91,6 +91,8 @@ Supported:
 - Generics and tagged types with dispatching
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md))
+- Null exclusions with checked initialization, calls and conversions
+  ([limits](docs/null-exclusions.md))
 - Primitive inheritance, overriding checks and dispatch through private overrides
 - Controlled types and finalization with protected/finalizer abort-deferral regions ([design](docs/abort-deferral.md))
 - Entry-free tasks, grouped activation, master-based waiting and task identity/status
@@ -113,7 +115,7 @@ Not supported yet:
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals
-- Explicit `not null`, `'Access` of imported/inherited tagged operations, and
+- `'Access` of imported/inherited tagged operations, and
   named protected callback types
 - Many representation clauses and pragmas
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and

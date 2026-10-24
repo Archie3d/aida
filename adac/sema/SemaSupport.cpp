@@ -177,9 +177,21 @@ bool conformingExpressions(const Expr* left, const Expr* right)
     return false;
 }
 
+bool profileTypeMatches(Type* actual, Type* formal)
+{
+    if (rootType(actual) == rootType(formal)) { return true; }
+    if (actual == nullptr || formal == nullptr || !actual->anonymousAccess || !formal->anonymousAccess) { return false; }
+    Type a = *actual;
+    Type b = *formal;
+    a.excludesNull = false;
+    b.excludesNull = false;
+    return staticallyMatches(&a, &b);
+}
+
 // Subtype constraints are part of the contract for array indexes/components.
 bool staticallyMatches(Type* actual, Type* formal)
 {
+    if (actual != nullptr && formal != nullptr && actual->excludesNull != formal->excludesNull) { return false; }
     if (actual != nullptr && formal != nullptr && actual->anonymousAccess && formal->anonymousAccess) {
         if (actual->accessConstant != formal->accessConstant || actual->accessProtected != formal->accessProtected) { return false; }
         if (actual->accessProfile != nullptr || formal->accessProfile != nullptr) {

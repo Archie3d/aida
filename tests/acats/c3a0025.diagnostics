@@ -1,0 +1,10 @@
+c3a0025.ada:261:10: error: limited record definitions outside Ada.Finalization are not yet supported
+c3a0025.ada:361:40: error: access generic formal objects are not yet supported
+c3a0025.ada:378:13: error: 'Inst_1' is not declared
+c3a0025.ada:378:19: error: 'User' is not a component of a record
+c3a0025.ada:386:42: error: access generic formal objects are not yet supported
+c3a0025.ada:389:13: error: 'Inst_2' is not declared
+c3a0025.ada:389:19: error: 'User' is not a component of a record
+c3a0025.ada:397:42: error: access generic formal objects are not yet supported
+c3a0025.ada:399:13: error: 'Inst_3' is not declared
+c3a0025.ada:399:19: error: 'User' is not a component of a record

@@ -422,17 +422,18 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             analyzeDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
             if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
-                || (!needsFinalization(expected) && !anonymousResult) || actual->classRoot != nullptr) {
+                || (!needsFinalization(expected) && expected->kind != TypeKind::Access) || actual->classRoot != nullptr) {
                 m_diagnostics.error(returnStatement->location,
                     "extended return requires the specific controlled result subtype");
             }
             if (expected != nullptr && actual != nullptr
                 && ((expected->kind == TypeKind::Array && expected->constrained)
+                    || expected->kind == TypeKind::Access
                     || (expected->kind == TypeKind::Record && hasKnownDiscriminants(expected)))
                 && !SemaSupport::staticallyMatches(actual, expected)) {
                 m_diagnostics.error(returnStatement->location, "extended return subtype must statically match the result subtype");
             }
-            if (!object->symbols.empty() && !anonymousResult) {
+            if (!object->symbols.empty() && (expected == nullptr || expected->kind != TypeKind::Access)) {
                 object->symbols.front()->objectReference = true;
             }
             m_extendedReturns.push_back(m_currentSubprogram);

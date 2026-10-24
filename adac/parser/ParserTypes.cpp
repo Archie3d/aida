@@ -236,10 +236,13 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
         return definition;
     }
 
-    if (check(TokenKind::KwAccess)) {
+    if (check(TokenKind::KwAccess) || check(TokenKind::KwNot)) {
+        bool nullExclusion = match(TokenKind::KwNot);
+        if (nullExclusion) { expect(TokenKind::KwNull, "after not in null exclusion"); }
         auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Access);
         definition->location = location;
-        advance();
+        definition->nullExclusion = nullExclusion;
+        expect(TokenKind::KwAccess, "in access type definition");
         if (check(TokenKind::KwProtected)) {
             if (!allowProtectedAccess) { fail("access-to-protected-subprogram types are not yet supported"); }
             advance();
@@ -409,11 +412,16 @@ SubtypeIndicationPtr Parser::parseSubtypeIndication(bool allowAccess)
     }
     auto indication = std::make_unique<SubtypeIndication>();
     indication->location = current().location;
+    indication->nullExclusion = match(TokenKind::KwNot);
+    if (indication->nullExclusion) { expect(TokenKind::KwNull, "after not in null exclusion"); }
     if (check(TokenKind::KwAccess)) {
         if (!allowAccess) { fail("an anonymous access definition is not allowed in this context"); }
         if (peek(1).kind == TokenKind::KwAll) { fail("anonymous access definitions cannot specify 'all'"); }
         indication->accessDefinition = parseTypeDefinition(true);
         const auto& parent = indication->accessDefinition->parent;
+        if (parent != nullptr && parent->nullExclusion) {
+            fail("an anonymous access definition requires a designated subtype mark without a null exclusion");
+        }
         if (parent != nullptr && (parent->rangeLow != nullptr || !parent->indexLows.empty()
             || parent->digits != nullptr || parent->delta != nullptr)) {
             fail("an anonymous access definition requires a subtype mark without a constraint");

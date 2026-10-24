@@ -211,7 +211,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             if (isUnconstrainedArray(resultType)) { result = loadArrayView("%.result", resultType->arrayRank, true); }
             checkAccessDiscriminants(result, resultType, accessLevelFor(m_context->symbol), "%.resultOwner");
         };
-        if (returnStatement->object != nullptr && resultType->anonymousAccess) {
+        if (returnStatement->object != nullptr && resultType->kind == TypeKind::Access) {
             DeclList declarations;
             declarations.push_back(std::move(returnStatement->object));
             emitLocalDeclarations(declarations);
@@ -235,7 +235,8 @@ void QbeEmitter::emitStatement(Stmt* statement)
             label(bodyDone);
             m_context->extendedReturnLabel = savedReturn;
             Value result = loadFrom(addressOf(object->symbols.front()), resultType);
-            line("storew " + accessLevelFor(resultType) + ", %.accessResultLevel");
+            emitRangeCheck(result, resultType, returnStatement->location);
+            if (resultType->anonymousAccess) { line("storew " + accessLevelFor(resultType) + ", %.accessResultLevel"); }
             emitReturn(result.name);
         } else if (returnStatement->object != nullptr) {
             emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->object.get()), returnStatement);

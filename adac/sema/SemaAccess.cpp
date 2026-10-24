@@ -183,6 +183,7 @@ Type* Sema::resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope)
     Type* type = m_types.create(TypeKind::Access, anonymousTypeName());
     indication->resolved = type;
     type->anonymousAccess = true;
+    type->excludesNull = indication->nullExclusion;
     type->accessParameter = indication->accessParameter;
     type->accessDiscriminant = indication->accessDiscriminant;
     type->generalAccess = true;

@@ -78,3 +78,8 @@ add_acats_test(c3a0013 REJECTION "only record extensions are supported after wit
 add_acats_test(c460001)
 add_acats_test(c460002)
 add_acats_test(c3a2002)
+
+# Null exclusions; generic access objects remain Phase 6g.
+add_acats_test(c3a0030)
+add_acats_test(c3a0020 REJECTION "access generic formal objects are not yet supported")
+add_acats_test(c3a0025 REJECTION "access generic formal objects are not yet supported")

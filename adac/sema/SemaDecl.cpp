@@ -109,6 +109,10 @@ void Sema::reportMissingBodies(const DeclList& declarations)
 
 void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
+    bool savedGenericBody = m_genericBodyContext;
+    if (m_recordContract != nullptr && (decl->kind == DeclKind::SubprogramBody || decl->kind == DeclKind::PackageBody)) {
+        m_genericBodyContext = true;
+    }
     Decl* savedConstraintDeclaration = m_scalarConstraintDeclaration;
     m_scalarConstraintDeclaration = decl;
     decl->scalarConstraints.clear();
@@ -183,6 +187,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     }
     m_scalarConstraintDeclaration = savedConstraintDeclaration;
+    m_genericBodyContext = savedGenericBody;
 }
 
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
@@ -222,9 +227,12 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             return;
         }
         if (type == nullptr || targetType == nullptr || (rootType(type) != rootType(targetType)
-            && !(type->anonymousAccess && SemaSupport::staticallyMatches(type, targetType)))) {
+            && !(type->anonymousAccess && SemaSupport::profileTypeMatches(type, targetType)))) {
             m_diagnostics.error(decl->location, "renamed object is not compatible with the declared subtype");
             return;
+        }
+        if (decl->subtype->nullExclusion && !targetType->excludesNull) {
+            m_diagnostics.error(decl->location, "a null-excluding renaming requires an object that excludes null");
         }
         // A renaming inherits the object's constraints and constant/variable view.
         type = targetType;
@@ -429,7 +437,14 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 break;
             }
         }
-        parameterTypes.push_back(resolveSubtypeIndication(parameter.subtype.get(), scope));
+        Type* parameterType = resolveSubtypeIndication(parameter.subtype.get(), scope);
+        if (parameterType != nullptr && parameterType->anonymousAccess && parameterType->target != nullptr
+            && parameterType->target->tagged && parameterType->target->classRoot == nullptr
+            && rootType(parameterType->target)->declarationScope == scope
+            && (scope == m_packageSpecScope || spec.overriding == 1)) {
+            parameterType->excludesNull = true;
+        }
+        parameterTypes.push_back(parameterType);
     }
     // The synthetic barrier profile always uses Standard.Boolean, independent
     // of source declarations hiding Boolean (or Standard) at this point.
@@ -546,12 +561,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         bool matches = candidate->kind == SymbolKind::Subprogram
             && candidate->parameters.size() == parameterTypes.size()
-            && (rootType(candidate->returnType) == rootType(returnType)
-                || SemaSupport::staticallyMatches(candidate->returnType, returnType));
+            && SemaSupport::profileTypeMatches(candidate->returnType, returnType);
         for (std::size_t i = 0; matches && i < parameterTypes.size(); ++i) {
-            matches = (rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i])
-                    || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]))
-                || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]);
+            matches = SemaSupport::profileTypeMatches(candidate->parameters[i]->type, parameterTypes[i]);
         }
         bool literalHomograph = candidate->kind == SymbolKind::EnumerationLiteral && parameterTypes.empty()
             && rootType(candidate->type) == rootType(returnType);
@@ -572,7 +584,13 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 || SemaSupport::staticallyMatches(candidate->returnType, returnType);
             for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
                 Symbol* parameter = candidate->parameters[i];
+                if (candidate->controllingType != nullptr && parameterTypes[i] != nullptr
+                    && parameterTypes[i]->anonymousAccess
+                    && controllingParameterType(parameterTypes[i]) == candidate->controllingType) {
+                    parameterTypes[i]->excludesNull = true;
+                }
                 conforms = conforms && parameter->name == spec.parameters[i].lower
+                    && parameter->explicitNullExclusion == spec.parameters[i].subtype->nullExclusion
                     && parameter->mode == spec.parameters[i].mode
                     && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
                 if (spec.parameters[i].defaultValue != nullptr) {
@@ -622,6 +640,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     // across the compilation, so shadowing never creates duplicate QBE symbols.
     std::string name = "$" + mangle(spec.lower);
     std::size_t ordinal = ++m_subprogramNames[name];
+    symbol->explicitNullExclusion = spec.returnType != nullptr && spec.returnType->nullExclusion;
     symbol->qbeName = name;
     if (ordinal > 1) {
         symbol->qbeName += "__" + std::to_string(ordinal);
@@ -631,6 +650,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         ParameterDecl& declaration = spec.parameters[i];
         Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
         parameter->type = parameterTypes[i];
+        parameter->explicitNullExclusion = declaration.subtype->nullExclusion;
         parameter->mode = declaration.mode;
         parameter->location = declaration.location;
         parameter->owner = symbol;

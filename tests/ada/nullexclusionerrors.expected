@@ -1,0 +1,9 @@
+nullexclusionerrors.adb:4:27: error: a null exclusion requires an access subtype
+nullexclusionerrors.adb:5:25: error: a null exclusion cannot apply to a subtype that already excludes null
+nullexclusionerrors.adb:7:5: error: subprogram body does not conform to the previous declaration
+nullexclusionerrors.adb:12:5: error: subprogram body does not conform to the previous declaration
+nullexclusionerrors.adb:21:5: error: a null-excluding renaming requires an object that excludes null
+nullexclusionerrors.adb:22:22: error: a null-excluding renaming parameter requires a parameter that excludes null
+nullexclusionerrors.adb:24:29: error: no subprogram matches the designated access profile
+nullexclusionerrors.adb:26:5: error: subprogram body does not conform to the previous declaration
+nullexclusionerrors.adb:35:9: error: subprogram body does not conform to the previous declaration

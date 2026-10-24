@@ -40,8 +40,8 @@ through an unconstrained general mutable access view or unconstrained formal,
 even if a particular actual object is constrained.
 
 [Anonymous access and access discriminants](anonymous-access.md) landed in the
-following Phase 6d item. Null exclusions and broader generic formal access types
-remain separate roadmap items. Current limited instances
+following Phase 6d item. [Null exclusions](null-exclusions.md) are supported;
+broader generic formal access types remain separate roadmap items. Current limited instances
 need the broader limited-type work in Phase 6f. Constraints on access subtypes,
 custom storage pools, and general representation freezing remain Phase 8 work;
 unsupported syntax receives diagnostics. Applications must synchronize concurrent

@@ -1,0 +1,1 @@
+nullexclusionsyntaxerrors.adb:3:29: error: an anonymous access definition requires a designated subtype mark without a null exclusion

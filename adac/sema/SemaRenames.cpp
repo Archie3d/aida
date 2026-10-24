@@ -35,12 +35,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         return;
     }
     auto matches = [&](Symbol* candidate) {
-        if (candidate->kind != SymbolKind::Subprogram || baseType(candidate->returnType) != baseType(result)
+        if (candidate->kind != SymbolKind::Subprogram || !SemaSupport::profileTypeMatches(candidate->returnType, result)
             || candidate->parameters.size() != types.size()) {
             return false;
         }
         for (std::size_t i = 0; i < types.size(); ++i) {
-            if (baseType(candidate->parameters[i]->type) != baseType(types[i])
+            if (!SemaSupport::profileTypeMatches(candidate->parameters[i]->type, types[i])
                 || candidate->parameters[i]->mode != spec.parameters[i].mode) {
                 return false;
             }
@@ -156,6 +156,16 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         return;
     }
 
+    if (chosen != nullptr) {
+        if (spec.returnType != nullptr && spec.returnType->nullExclusion && !chosen->returnType->excludesNull) {
+            m_diagnostics.error(spec.location, "a null-excluding renaming result requires a result that excludes null");
+        }
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            if (spec.parameters[i].subtype->nullExclusion && !chosen->parameters[i]->type->excludesNull) {
+                m_diagnostics.error(spec.parameters[i].location, "a null-excluding renaming parameter requires a parameter that excludes null");
+            }
+        }
+    }
     Symbol* completion = nullptr;
     for (Symbol* existing : scope->lookupDeclaration(spec.lower)) {
         if (existing->inheritedFrom != nullptr) {

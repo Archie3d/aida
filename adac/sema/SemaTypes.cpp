@@ -640,6 +640,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Access: {
         type = makeType(TypeKind::Access);
+        type->excludesNull = definition->nullExclusion;
         type->generalAccess = definition->generalAccess;
         type->accessConstant = definition->accessConstant;
         type->accessScope = scope;
@@ -1376,6 +1377,16 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     Type* base = resolveTypeName(indication->lower, scope, indication->location);
     if (base == nullptr) {
         return nullptr;
+    }
+    if (indication->nullExclusion) {
+        if (base->kind != TypeKind::Access) {
+            m_diagnostics.error(indication->location, "a null exclusion requires an access subtype");
+        } else if (base->excludesNull) {
+            m_diagnostics.error(indication->location, "a null exclusion cannot apply to a subtype that already excludes null");
+        } else {
+            base = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            base->excludesNull = true;
+        }
     }
     indication->resolved = base;
 
