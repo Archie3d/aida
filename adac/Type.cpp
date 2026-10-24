@@ -433,6 +433,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->generalAccess = parent->generalAccess;
     subtype->accessConstant = parent->accessConstant;
     subtype->accessProtected = parent->accessProtected;
+    subtype->accessConventionC = parent->accessConventionC;
     subtype->aliasedElements = parent->aliasedElements;
     subtype->accessLevel = parent->accessLevel;
     subtype->accessProfile = parent->accessProfile;

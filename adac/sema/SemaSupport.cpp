@@ -193,7 +193,8 @@ bool staticallyMatches(Type* actual, Type* formal)
 {
     if (actual != nullptr && formal != nullptr && actual->excludesNull != formal->excludesNull) { return false; }
     if (actual != nullptr && formal != nullptr && actual->anonymousAccess && formal->anonymousAccess) {
-        if (actual->accessConstant != formal->accessConstant || actual->accessProtected != formal->accessProtected) { return false; }
+        if (actual->accessConstant != formal->accessConstant || actual->accessProtected != formal->accessProtected
+            || actual->accessConventionC != formal->accessConventionC) { return false; }
         if (actual->accessProfile != nullptr || formal->accessProfile != nullptr) {
             Symbol* a = actual->accessProfile;
             Symbol* b = formal->accessProfile;

@@ -14,7 +14,9 @@ body conformance and tagged overriding. Controlling access parameters dispatch
 through the designated object's tag and implicitly exclude null.
 
 This extends the [named general-access contract](general-access.md).
-[Null exclusions](null-exclusions.md) cover named and anonymous definitions. The existing restrictions on
+[Null exclusions](null-exclusions.md) cover named and anonymous definitions.
+[Imported and inherited tagged callbacks](subprogram-access.md) extend the
+same callback and call machinery. The existing restrictions on
 limited/tagged definitions (6f), generic formal objects/types (6g), and task/
 protected discriminants and named protected callback types (9) still apply and
 produce diagnostics. Anonymous access definitions require subtype marks;

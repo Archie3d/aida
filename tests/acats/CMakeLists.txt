@@ -83,3 +83,7 @@ add_acats_test(c3a2002)
 add_acats_test(c3a0030)
 add_acats_test(c3a0020 REJECTION "access generic formal objects are not yet supported")
 add_acats_test(c3a0025 REJECTION "access generic formal objects are not yet supported")
+
+# Callback structures, and inherited operations pending private extensions/renaming.
+add_acats_test(c3a0006)
+add_acats_test(c3a0009 REJECTION "only record extensions are supported after with")

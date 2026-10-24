@@ -241,7 +241,8 @@ bool Sema::compatibleAnonymousAccess(Type* target, Type* source) const
         || source->kind != TypeKind::Access) { return false; }
     if (target->accessProfile != nullptr || source->accessProfile != nullptr) {
         return target->accessProfile != nullptr && source->accessProfile != nullptr
-            && target->accessProtected == source->accessProtected && matchesAccessProfile(source->accessProfile, target);
+            && target->accessProtected == source->accessProtected
+            && target->accessConventionC == source->accessConventionC && matchesAccessProfile(source->accessProfile, target);
     }
     bool designated = matchingDesignated(target->target, source->target);
     if (target->target->tagged && source->target->classRoot != nullptr) {

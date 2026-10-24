@@ -864,6 +864,34 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         shared = std::max(shared, decl->lower == "atomic" ? 2 : 1);
         return;
     }
+    if (decl->lower == "convention") {
+        Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
+        Type* type = entity != nullptr ? entity->type : nullptr;
+        if (entity == nullptr || entity->kind != SymbolKind::TypeName || type == nullptr
+            || type->isSubtype || type->accessProfile == nullptr || type->anonymousAccess) {
+            m_diagnostics.error(decl->location, "pragma Convention currently requires a named access-to-subprogram type");
+            return;
+        }
+        if (type->accessConventionFrozen || type->accessConventionSpecified) {
+            m_diagnostics.error(decl->location, "callback Convention must be specified once, before uses of the access type");
+            return;
+        }
+        if (!decl->conventionAda) {
+            auto supported = [](Type* value) {
+                return value == nullptr || (isScalar(value) && !value->anonymousAccess
+                    && (value->accessProfile == nullptr || value->accessConventionC));
+            };
+            bool valid = supported(type->accessProfile->returnType);
+            for (Symbol* parameter : type->accessProfile->parameters) { valid &= supported(parameter->type); }
+            if (!valid) {
+                m_diagnostics.error(decl->location, "C callback profiles currently require scalar or named access parameters and results");
+                return;
+            }
+        }
+        type->accessConventionC = !decl->conventionAda;
+        type->accessConventionSpecified = true;
+        return;
+    }
     Symbol* target = nullptr;
     for (Symbol* candidate : candidates) {
         if (candidate->kind == SymbolKind::Subprogram) {
@@ -876,6 +904,10 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         return;
     }
 
+    if (target->addressTaken) {
+        m_diagnostics.error(decl->location, "pragma Import must precede subprogram Access uses");
+        return;
+    }
     target->builtin = BuiltinKind::Runtime;
     if (needsFinalization(target->returnType)) {
         m_diagnostics.error(decl->location, "imported controlled function results are not yet supported");

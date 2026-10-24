@@ -1378,6 +1378,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (base == nullptr) {
         return nullptr;
     }
+    if (base->accessProfile != nullptr) { rootType(base)->accessConventionFrozen = true; }
     if (indication->nullExclusion) {
         if (base->kind != TypeKind::Access) {
             m_diagnostics.error(indication->location, "a null exclusion requires an access subtype");
@@ -1970,10 +1971,17 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             type->dispatchSlots[inherited->dispatchSlot] = inherited;
         }
         inherited->declarationScope = scope;
+        inherited->accessibilityLevel = m_accessibilityLevel;
         inherited->returnType = corresponding(primitive->returnType);
         inherited->hasBody = true;
-        inherited->level = primitive->level;
-        inherited->owner = primitive->owner;
+        inherited->level = type->tagged && m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : primitive->level;
+        inherited->owner = type->tagged ? m_currentSubprogram : primitive->owner;
+        if (type->tagged) {
+            std::string name = "$" + mangle(type->name + "__" + primitive->name + "__inherited");
+            std::size_t ordinal = ++m_subprogramNames[name];
+            inherited->qbeName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+            if (inherited->owner != nullptr) { inherited->owner->needsFrame = true; }
+        }
         if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
             inherited->privatePrimitiveTo = m_packages.back();
         }

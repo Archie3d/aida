@@ -27,6 +27,32 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
+    if (expr->indirect && expr->callee != nullptr && expr->callee->type->accessConventionC) {
+        Value code = emitExpr(expr->callee.get());
+        checkNotNull(code);
+        Symbol imported = *subprogram;
+        imported.runtimeSymbol = code.name;
+        imported.importAda = false;
+        Value result = emitRuntimeCall(expr, &imported);
+        emitExceptionCheck();
+        emitRangeCheck(result, imported.returnType, expr->location);
+        return result;
+    }
+    if (subprogram->builtin == BuiltinKind::Runtime && subprogram->importAda) {
+        Symbol imported = *subprogram;
+        imported.builtin = BuiltinKind::None;
+        imported.qbeName = subprogram->runtimeSymbol;
+        imported.level = 0;
+        imported.owner = nullptr;
+        imported.requiresBody = false;
+        CallExpr call;
+        call.location = expr->location;
+        call.form = CallForm::Subprogram;
+        call.subprogram = &imported;
+        call.type = expr->type;
+        call.resolvedArguments = expr->resolvedArguments;
+        return emitCall(&call);
+    }
     if (!expr->dispatching && subprogram->inheritedFrom != nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;

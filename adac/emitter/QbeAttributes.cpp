@@ -144,6 +144,18 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             Symbol* binding = subprogram->renamedAccess;
             return loadFrom(addressOf(binding), binding->type);
         }
+        if (subprogram->builtin == BuiltinKind::Runtime) {
+            std::string descriptor = subprogram->qbeName + ".import_access";
+            if (m_importedAccessDescriptors.insert(subprogram).second) {
+                m_data << "data " << descriptor << " = align 8 { l " << subprogram->runtimeSymbol << ", l 0 }\n";
+            }
+            if (expr->type->accessConventionC) {
+                Value code {newTemp(), 'l'};
+                line(code.name + " =l loadl " + descriptor);
+                return code;
+            }
+            return Value {descriptor, 'l'};
+        }
         if (subprogram->level == 0) {
             std::string descriptor = subprogram->qbeName + ".access";
             return Value { descriptor, 'l' };

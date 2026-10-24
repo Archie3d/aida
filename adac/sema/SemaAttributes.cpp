@@ -171,21 +171,20 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         while (chosen->renamedSubprogram != nullptr) {
             chosen = chosen->renamedSubprogram;
         }
-        if (chosen->inheritedFrom != nullptr) {
-            bool tagged = chosen->returnType != nullptr && chosen->returnType->tagged;
-            for (Symbol* parameter : chosen->parameters) {
-                tagged = tagged || parameter->type->tagged;
-            }
-            if (tagged) {
-                m_diagnostics.error(expr->location, "'Access of inherited tagged subprograms is not yet supported");
-                return nullptr;
-            }
-        }
-        if (chosen->intrinsicRenaming || chosen->inheritedFrom != nullptr) {
+        if (chosen->intrinsicRenaming || (chosen->inheritedFrom != nullptr && chosen->controllingType != nullptr
+            && !chosen->controllingType->tagged)) {
             m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
             return nullptr;
         }
-        bool accessible = false;
+        Symbol* implementation = chosen;
+        while (implementation->inheritedFrom != nullptr) { implementation = implementation->inheritedFrom; }
+        bool importedC = chosen->renamedAccess != nullptr ? chosen->renamedAccess->type->accessConventionC
+            : implementation->builtin == BuiltinKind::Runtime && !implementation->importAda;
+        if (expected->accessConventionC != importedC) {
+            m_diagnostics.error(expr->location, "subprogram and access type must have the same calling convention");
+            return nullptr;
+        }
+        bool accessible = chosen->accessibilityLevel <= expected->accessLevel;
         Scope* declarationScope = chosen->renamedAccess != nullptr
             ? chosen->renamedAccess->type->accessScope : chosen->declarationScope;
         for (Scope* enclosing = expected->accessScope; enclosing != nullptr; enclosing = enclosing->parent()) {
@@ -197,14 +196,11 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "subprogram is deeper than the access type");
             return nullptr;
         }
-        if (chosen->builtin != BuiltinKind::None) {
-            m_diagnostics.error(expr->location, "'Access of imported subprograms is not yet supported");
-            return nullptr;
-        }
         if (chosen->renamedAccess != nullptr) {
             noteReference(chosen->renamedAccess);
         } else {
             chosen->addressTaken = true;
+            implementation->addressTaken = true;
         }
         expr->accessSubprogram = chosen;
         recordContractName(expr->prefix.get(), chosen);

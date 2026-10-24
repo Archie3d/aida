@@ -349,6 +349,9 @@ checks.
 
 ### 6d. Access types
 
+Complete for the documented access subsets. Broader type definitions, generic
+formals, protected callback types and foreign ABI work retain their later owners.
+
 - [x] General access types: `aliased`, `access all`, `'Access`,
   access-to-constant, accessibility and checked named conversions
   (`generalaccess*`). Dependent-component checks are conservative; limited
@@ -366,13 +369,16 @@ checks.
   conversions, generic subprogram matching and runtime checks
   (`nullexclusion*`, ACATS C3A0030 PASS; C3A0020/C3A0025 compile XFAIL for
   6g access objects and 6f limited records). [Contract](docs/null-exclusions.md).
-- [ ] `'Access` of imported subprograms and of inherited tagged operations.
+- [x] `'Access` of imported Ada/C subprograms and inherited tagged operations,
+  with calling-convention checks, native C callbacks, inherited entries and
+  result tags (`importedcallback*`, `inheritedcallback*`, `callbackextension*`;
+  ACATS C3A0006 PASS, C3A0009 private-extension/package-renaming XFAIL).
+  [Contract and remaining ABI limits](docs/subprogram-access.md).
 
 ### 6e. Program structure and names
 
 The first three items are cheap and unblock common Ada 2005 code and ACATS
-cases (C59002A, C761002, part of C3A0013); take them next, ahead of the
-remaining 6d items.
+cases (C59002A, C761002, part of C3A0013); take them next.
 
 - [ ] Labels and `goto`, with legality checks for transfers between scopes.
   Reuse the `exit`/`return` scope-exit paths so outward transfers unwind

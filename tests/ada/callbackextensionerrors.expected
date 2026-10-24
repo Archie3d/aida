@@ -1,0 +1,7 @@
+callbackextensionerrors.adb:11:32: error: subprogram and access type must have the same calling convention
+callbackextensionerrors.adb:12:28: error: subprogram and access type must have the same calling convention
+callbackextensionerrors.adb:14:5: error: C callback profiles currently require scalar or named access parameters and results
+callbackextensionerrors.adb:17:5: error: callback Convention must be specified once, before uses of the access type
+callbackextensionerrors.adb:24:5: error: pragma Import must precede subprogram Access uses
+callbackextensionerrors.adb:25:5: error: pragma Convention currently requires a named access-to-subprogram type
+callbackextensionerrors.adb:22:5: error: subprogram 'Late_Import' has no body

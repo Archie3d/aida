@@ -225,6 +225,9 @@ struct Type
     bool generalAccess = false;
     bool accessConstant = false;
     bool accessProtected = false;
+    bool accessConventionC = false;
+    bool accessConventionFrozen = false;
+    bool accessConventionSpecified = false;
     bool aliasedElements = false;
     // Subprogram access uses a signature instead of an object target.
     Symbol* accessProfile = nullptr;

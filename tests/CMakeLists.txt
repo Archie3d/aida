@@ -1357,7 +1357,7 @@ target_link_libraries(scalar_bounds_test PRIVATE adart)
 add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
-foreach(dynamic_case nullexclusions nullexclusiontasking anonymousarrayobjects anonymousaccess anonymousaccessrecords anonymousaccessarrays anonymouscoextensions anonymousprotected anonymousdispatch anonymousaccesstasking generalaccess generalaccessarrays generalaccesschecks generalaccesstasking recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
+foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibrary callbackextensiontasking nullexclusions nullexclusiontasking anonymousarrayobjects anonymousaccess anonymousaccessrecords anonymousaccessarrays anonymouscoextensions anonymousprotected anonymousdispatch anonymousaccesstasking generalaccess generalaccessarrays generalaccesschecks generalaccesstasking recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
@@ -1445,3 +1445,21 @@ add_ada_error_test(nullexclusionerrors SOURCES nullexclusionerrors.adb)
 add_ada_error_test(nullexclusiongenericerrors SOURCES nullexclusiongenericerrors.adb)
 
 add_ada_error_test(nullexclusionsyntaxerrors SOURCES nullexclusionsyntaxerrors.adb)
+
+add_ada_error_test(callbackextensionerrors SOURCES callbackextensionerrors.adb)
+
+add_determinism_test(importedcallbackabi SOURCE importedcallbackabi.adb)
+add_test(NAME runtime.importedcallbackabi_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/importedcallbackabi.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/importedcallbackabi.expected
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/ImportedCallbacks.c
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/importedcallbackabi-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.importedcallbackabi_modes PROPERTIES TIMEOUT 60)

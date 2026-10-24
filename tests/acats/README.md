@@ -257,3 +257,16 @@ Their exact diagnostics are pinned; no upstream bodies are changed.
 | [tests/c3/c3a0020.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0020.a) | `b93fb70a57faae00b476a90d8e36ce493af7dfdb` | `40f307512bf27a5d837caa2f7340018b287916405d10f2856361b0996269fc77` |
 | [tests/c3/c3a0025.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0025.a) | `ea2cb2911e470ab89815ec59a0ccd53131368e28` | `5fc8dd54d83be8113b469a9c7543e5eafa3d8ee5f7e8a68ca3853e034e92237e` |
 | [tests/c3/c3a0030.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0030.a) | `38244a19732935b4ef064337cfa9eff03b4338c7` | `34214aa810bd046823a4707df48bd2171f6f7406bd3b2db568b9ba496bee7ae4` |
+
+## Imported and inherited callbacks (Phase 6d)
+
+The following unchanged sources use the same [ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5)
+as the null-exclusion cases. C3A0006 passes (library callback arrays and calls).
+C3A0009 remains a compile XFAIL for private extensions and package renaming;
+its exact diagnostics are pinned. Local Ada/C ABI and inheritance regressions
+cover the implemented contexts without editing upstream test bodies.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/c3/c3a0006.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0006.a) | `effab3465811671874e98662d2b4761aa635078b` | `6462c1aa360510e3674dffd4d8601ac7e52931e0c595f06186ccede9e614adfa` |
+| [tests/c3/c3a0009.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0009.a) | `ba3f2f6e1e7c75435b4fdfb34b5df0dcdca1c203` | `a993a4f8f27bb4675f7fa3557185bb9405cd5bf3c4357fd0ed89a14a893d261b` |

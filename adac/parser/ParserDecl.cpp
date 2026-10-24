@@ -252,9 +252,28 @@ DeclPtr Parser::parsePragma(bool allowShared)
         expect(TokenKind::Semicolon, "after pragma");
         return pragma;
     }
+    if (name.lower == "convention") {
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->name = name.text;
+        pragma->lower = name.lower;
+        expect(TokenKind::LeftParen, "after pragma Convention");
+        const Token& convention = expect(TokenKind::Identifier, "as Convention name");
+        if (convention.lower != "ada" && convention.lower != "c") {
+            fail("pragma Convention supports only Ada and C for access-to-subprogram types");
+        }
+        pragma->conventionAda = convention.lower == "ada";
+        expect(TokenKind::Comma, "after Convention name");
+        const Token& entity = expect(TokenKind::Identifier, "as Convention entity");
+        pragma->entity = entity.text;
+        pragma->entityLower = entity.lower;
+        expect(TokenKind::RightParen, "after Convention arguments");
+        expect(TokenKind::Semicolon, "after pragma");
+        return pragma;
+    }
     if (name.lower != "import") {
         m_diagnostics.error(name.location, "unsupported or unknown pragma '" + name.text
-            + "'; supported pragmas are Import, Inline, Pure, Preelaborate, Atomic and Volatile");
+            + "'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile");
         skipToSemicolon();
         return nullptr;
     }

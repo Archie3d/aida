@@ -91,6 +91,7 @@ Supported:
 - Generics and tagged types with dispatching
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md))
+- Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md))
 - Null exclusions with checked initialization, calls and conversions
   ([limits](docs/null-exclusions.md))
 - Primitive inheritance, overriding checks and dispatch through private overrides
@@ -115,8 +116,7 @@ Not supported yet:
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals
-- `'Access` of imported/inherited tagged operations, and
-  named protected callback types
+- Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
 - Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
   `Ada.Calendar`

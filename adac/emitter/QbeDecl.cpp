@@ -443,17 +443,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             subprogram = static_cast<SubprogramDecl*>(decl.get())->symbol;
         }
         if (subprogram != nullptr) { captureAccessLevel(subprogram); }
-        if (subprogram != nullptr && subprogram->addressTaken && subprogram->renamedAccess == nullptr
-            && subprogram->level > 0
-            && subprogram->descriptorOffset < 0) {
-            subprogram->descriptorOffset = reserveFrame(16);
-            std::string descriptor = newTemp();
-            std::string linkSlot = newTemp();
-            line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(subprogram->descriptorOffset));
-            line("storel " + subprogram->qbeName + ", " + descriptor);
-            line(linkSlot + " =l add " + descriptor + ", 8");
-            line("storel " + m_context->frameTemp + ", " + linkSlot);
-        }
+        initializeAccessDescriptor(subprogram);
         switch (decl->kind) {
         case DeclKind::SubprogramDeclaration: {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
@@ -472,6 +462,12 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 emitRecordLayout(typeDecl->declaredType);
             }
             initializeTypeTag(typeDecl->declaredType);
+            if (typeDecl->declaredType != nullptr) {
+                for (Symbol* primitive : typeDecl->declaredType->primitives) {
+                    if (primitive->inheritedFrom != nullptr) { initializeAccessDescriptor(primitive); }
+                }
+                emitInheritedAccessEntries(typeDecl->declaredType);
+            }
             initializeCollection(typeDecl->declaredType);
             if (!typeDecl->taskObjects.empty()) {
                 emitLocalDeclarations(typeDecl->taskObjects);
@@ -897,4 +893,16 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
         m_context->locals[symbol] = slot;
     }
     line("storel " + pointer + ", " + slot);
+}
+
+void QbeEmitter::initializeAccessDescriptor(Symbol* symbol)
+{
+    if (symbol == nullptr || !symbol->addressTaken || symbol->renamedAccess != nullptr
+        || symbol->builtin != BuiltinKind::None || symbol->level == 0 || symbol->descriptorOffset >= 0) { return; }
+    symbol->descriptorOffset = reserveFrame(16);
+    std::string descriptor = newTemp(), linkSlot = newTemp();
+    line(descriptor + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->descriptorOffset));
+    line("storel " + symbol->qbeName + ", " + descriptor);
+    line(linkSlot + " =l add " + descriptor + ", 8");
+    line("storel " + m_context->frameTemp + ", " + linkSlot);
 }

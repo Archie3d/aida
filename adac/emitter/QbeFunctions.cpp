@@ -145,6 +145,7 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
             emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->renamingExpansion);
             break;
         case DeclKind::Type:
+            emitInheritedAccessEntries(static_cast<TypeDecl*>(decl.get())->declaredType);
             emitSubprogramsIn(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
             break;
         case DeclKind::SubprogramBody:
@@ -374,7 +375,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // Check at the shared entry so callbacks, dispatch and generated
     // finalization calls obey the same rule as direct source-level calls.
     // This precedes declarations and the subprogram's own handlers.
-    emitElaborationCheck(symbol);
+    if (symbol->inheritedFrom == nullptr) { emitElaborationCheck(symbol); }
 
     for (Symbol* parameter : symbol->parameters) {
         captureAccessLevel(parameter);
@@ -549,4 +550,56 @@ std::string QbeEmitter::functionExitActions(const FunctionContext& context)
     }
     actions += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
     return actions;
+}
+
+void QbeEmitter::emitInheritedAccessEntries(Type* type)
+{
+    if (type == nullptr || !type->tagged) { return; }
+    for (Symbol* primitive : type->primitives) {
+        if (primitive->inheritedFrom == nullptr || !m_emittedAccessEntries.insert(primitive).second) { continue; }
+        // Give the inherited view its own entry and descriptor. Its ordinary
+        // call path already adapts ancestor arguments and retags results.
+        Symbol entry = *primitive;
+        entry.needsFrame = false;
+        entry.usesFinalization = needsFinalization(entry.returnType) || hasAccessDiscriminants(entry.returnType)
+            || (entry.returnType != nullptr && entry.returnType->tagged);
+        entry.parameters.clear();
+        SubprogramBody body;
+        body.symbol = &entry;
+        body.location = primitive->location;
+        auto call = std::make_unique<CallExpr>();
+        call->location = primitive->location;
+        call->form = CallForm::Subprogram;
+        call->subprogram = primitive;
+        call->type = primitive->returnType;
+        std::vector<std::unique_ptr<Symbol>> parameters;
+        for (Symbol* formal : primitive->parameters) {
+            auto parameter = std::make_unique<Symbol>(*formal);
+            parameter->owner = &entry;
+            parameter->isUplevel = false;
+            parameter->frameOffset = -1;
+            auto operand = std::make_unique<IdentifierExpr>();
+            operand->location = primitive->location;
+            operand->symbol = parameter.get();
+            operand->type = parameter->type;
+            call->resolvedArguments.push_back(operand.get());
+            Association argument;
+            argument.value = std::move(operand);
+            call->arguments.push_back(std::move(argument));
+            entry.parameters.push_back(parameter.get());
+            parameters.push_back(std::move(parameter));
+        }
+        if (entry.returnType != nullptr) {
+            auto statement = std::make_unique<ReturnStmt>();
+            statement->location = primitive->location;
+            statement->value = std::move(call);
+            body.body.push_back(std::move(statement));
+        } else {
+            auto statement = std::make_unique<ProcedureCallStmt>();
+            statement->location = primitive->location;
+            statement->call = std::move(call);
+            body.body.push_back(std::move(statement));
+        }
+        emitSubprogram(&body);
+    }
 }
