@@ -22,6 +22,7 @@ typedef struct AdaProtectedLock
     AdaCondition changed;
     AdaEntryWaiter* queue;
     int servicing;
+    int accessLevel;
     unsigned long epoch;
 } AdaProtectedLock;
 
@@ -94,7 +95,7 @@ static int serviceQueue(AdaTaskContext* context, AdaProtectedLock* lock)
     return 0;
 }
 
-void __ada_protected_init(void** object)
+void __ada_protected_init_access(void** object, int accessLevel)
 {
     *object = NULL;
     AdaProtectedLock* lock = malloc(sizeof *lock);
@@ -113,6 +114,7 @@ void __ada_protected_init(void** object)
         __ada_raise(ADA_STORAGE_ERROR);
         return;
     }
+    lock->accessLevel = accessLevel;
     lock->queue = NULL;
     lock->servicing = 0;
     lock->epoch = 0;
@@ -254,4 +256,15 @@ int __ada_protected_count(void** object, AdaProtectedBarrier barrier)
         count += waiter->barrier == barrier;
     }
     return count;
+}
+
+void __ada_protected_init(void** object)
+{
+    int level = __ada_current_access_level();
+    if (__ada_exception == NULL) { __ada_protected_init_access(object, level); }
+}
+
+int __ada_protected_access_level(void** object)
+{
+    return ((AdaProtectedLock*)*object)->accessLevel;
 }

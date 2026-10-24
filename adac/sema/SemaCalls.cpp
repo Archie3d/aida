@@ -8,6 +8,7 @@ using SemaSupport::adaptUniversal;
 
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
+    expr->accessCreationLevel = m_accessibilityLevel;
     if (expr->operatorExpression == nullptr) {
         int errors = m_diagnostics.errorCount();
         expr->operatorExpression = explicitOperator(expr, scope, expected);
@@ -431,9 +432,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             Expr* argument = expr->arguments[i].value.get();
             Type* formal = chosen->parameters[index]->type;
             Type* context = formal;
-            if (rootType(formal) == chosen->controllingType) {
+            if (controllingParameterType(formal) == chosen->controllingType) {
                 for (Type* actual : expressionTypes(argument, scope)) {
-                    if (actual->classRoot == chosen->controllingType) {
+                    if (designatedViewType(actual)->classRoot == chosen->controllingType) {
                         context = actual;
                         expr->dispatching = true;
                     }
@@ -458,23 +459,23 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             && rootType(chosen->returnType) == chosen->controllingType
             && !expr->dispatching;
         for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-            if (rootType(chosen->parameters[i]->type) == chosen->controllingType) {
+            if (controllingParameterType(chosen->parameters[i]->type) == chosen->controllingType) {
                 expr->tagIndeterminate = expr->tagIndeterminate && expr->resolvedArguments[i] != nullptr
                     && expr->resolvedArguments[i]->tagIndeterminate;
             }
         }
         if (expr->dispatching) {
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-                if (rootType(chosen->parameters[i]->type) == chosen->controllingType
+                if (controllingParameterType(chosen->parameters[i]->type) == chosen->controllingType
                     && expr->resolvedArguments[i] != nullptr && expr->resolvedArguments[i]->tagIndeterminate) {
                     dispatchIndeterminate(expr->resolvedArguments[i], chosen->controllingType);
                 }
             }
             for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
-                if (rootType(chosen->parameters[i]->type) == chosen->controllingType
+                if (controllingParameterType(chosen->parameters[i]->type) == chosen->controllingType
                     && expr->resolvedArguments[i] != nullptr
                     && expr->resolvedArguments[i]->type != nullptr
-                    && expr->resolvedArguments[i]->type->classRoot == nullptr) {
+                    && designatedViewType(expr->resolvedArguments[i]->type)->classRoot == nullptr) {
                     m_diagnostics.error(expr->location, "all controlling operands of a dispatching call must be class-wide");
                 }
             }

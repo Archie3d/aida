@@ -3,6 +3,7 @@
 
 #include "Binder.h"
 
+#include <algorithm>
 #include <cctype>
 
 using QbeSupport::isUnconstrainedArray;
@@ -188,7 +189,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
 
     FunctionContext context;
     context.symbol = symbol;
-    bool usesFinalization = symbol->usesFinalization || hasControlledObjects(body->declarations)
+    bool accessParameters = std::any_of(symbol->parameters.begin(), symbol->parameters.end(), [](Symbol* parameter) { return parameter->type->accessParameter; });
+    bool usesFinalization = accessParameters || symbol->usesFinalization || hasControlledObjects(body->declarations)
         || hasControlledObjects(body->body) || hasControlledObjects(body->handlers);
     // Elide a statically empty boundary: no declarations, collections or
     // owned temporaries. Nested blocks carry their own masters, and allocators
@@ -215,14 +217,19 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     }
     signature += symbol->qbeName + "(";
     bool first = true;
+    if (symbol->returnType != nullptr && symbol->returnType->anonymousAccess) {
+        signature += "l %.accessResultLevel";
+        first = false;
+    }
     if (isComposite(symbol->returnType)) {
         signature += "l %.result";
-        if (needsFinalization(symbol->returnType) || symbol->returnType->tagged) {
+        if (needsFinalization(symbol->returnType) || symbol->returnType->tagged || hasAccessDiscriminants(symbol->returnType)) {
             signature += ", l %.resultOwner, l %.resultArena";
             if (symbol->returnType->tagged || hasLimitedControlledParts(symbol->returnType)) {
                 signature += ", w %.resultProvided";
             }
         }
+        if (hasAccessDiscriminants(symbol->returnType)) { signature += ", w %.resultAccessLevel"; }
         first = false;
     }
     if (symbol->level > 0 || symbol->taskBody || symbol->entryBarrierFunction) {
@@ -250,6 +257,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         first = false;
         char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
         signature += std::string(1, type) + " %p." + parameter->name;
+        if (parameter->type->accessParameter) { signature += ", w %p." + parameter->name + ".accessLevel"; }
         if (needsConstrainedParameter(parameter)) {
             signature += ", w %p." + parameter->name + ".constrained";
         }
@@ -308,6 +316,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                 context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", "
                                  << address << "\n";
             }
+            if (parameter->type->accessParameter) {
+                std::string levelSlot = newTemp();
+                context.prologue << "    " << levelSlot << " =l add " << address << ", 8\n";
+                context.prologue << "    storew " << incoming << ".accessLevel, " << levelSlot << "\n";
+            }
             if (unconstrained) {
                 storeArrayView(address, incomingView, parameter->type, false);
             }
@@ -331,6 +344,11 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         } else {
             context.prologue << "    " << qbeStoreInstruction(parameter->type) << " " << incoming << ", " << slot
                              << "\n";
+        }
+        if (parameter->type->accessParameter) {
+            std::string levelSlot = newTemp();
+            context.prologue << "    " << levelSlot << " =l add " << slot << ", 8\n";
+            context.prologue << "    storew " << incoming << ".accessLevel, " << levelSlot << "\n";
         }
         context.locals[parameter] = slot;
     }
@@ -358,6 +376,23 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // This precedes declarations and the subprogram's own handlers.
     emitElaborationCheck(symbol);
 
+    for (Symbol* parameter : symbol->parameters) {
+        captureAccessLevel(parameter);
+        if (!parameter->type->accessParameter || parameter->type->accessProfile != nullptr) { continue; }
+        Value slot = addressOf(parameter);
+        Value incoming = loadFrom(slot, parameter->type);
+        std::string owned = newTemp(), adopt = newLabel("parameteradopt"), ready = newLabel("parameterready");
+        line(owned + " =w ceqw " + incoming.accessLevel + ", -1");
+        branch(Value {owned, 'w'}, adopt, ready);
+        label(adopt);
+        std::string levelSlot = newTemp();
+        line(levelSlot + " =l add " + slot.name + ", 8");
+        line("storew " + currentAccessLevel() + ", " + levelSlot);
+        emitCallInstruction("call $__ada_access_parameter_adopt(l " + m_context->finalizationChain
+            + ", l " + storageArena(false, true) + ", l " + incoming.name + ")", CallEffects::CheckException);
+        jump(ready);
+        label(ready);
+    }
     emitLocalDeclarations(body->declarations);
     if (context.hasMaster) {
         emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);

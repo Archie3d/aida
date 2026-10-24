@@ -9,7 +9,7 @@ protectederrors.adb:44:5: error: function results containing protected objects a
 protectederrors.adb:45:5: error: function results containing protected objects are not yet supported
 protectederrors.adb:47:9: error: a limited result must be built in place
 protectederrors.adb:49:5: error: renaming protected operations is not yet supported
-protectederrors.adb:51:45: error: access to protected subprograms is not yet supported
+protectederrors.adb:51:45: error: access to protected subprograms requires an anonymous protected subprogram access type
 protectederrors.adb:59:44: error: protected operation generic actuals are not yet supported
 protectederrors.adb:61:9: error: subprogram 'Operation' has no body
 protectederrors.adb:64:5: error: objects containing protected parts cannot be assigned

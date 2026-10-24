@@ -141,7 +141,7 @@ long long typeSize(const Type* type)
         return type->digits > 6 ? 8 : 4;
     case TypeKind::Fixed:
     case TypeKind::Access:
-        return 8;
+        return type->accessDiscriminant ? 24 : type->accessParameter ? 16 : 8;
     case TypeKind::Array: {
         long long count = arrayLength(type);
         long long elementSize = typeSize(type->element);
@@ -228,6 +228,8 @@ long long typeAlignment(const Type* type)
         return 8;
     }
     switch (type->kind) {
+    case TypeKind::Access:
+        return 8;
     case TypeKind::Array:
         return typeAlignment(type->element);
     case TypeKind::Record: {
@@ -284,6 +286,7 @@ char qbeClass(const Type* type)
 
 const char* qbeLoadInstruction(const Type* type)
 {
+    if (type->kind == TypeKind::Access) { return "loadl"; }
     switch (typeSize(type)) {
     case 1:
         return scalarStorageSigned(type) ? "loadsb" : "loadub";
@@ -304,6 +307,7 @@ const char* qbeLoadInstruction(const Type* type)
 
 const char* qbeStoreInstruction(const Type* type)
 {
+    if (type->kind == TypeKind::Access) { return "storel"; }
     switch (typeSize(type)) {
     case 1:
         return "storeb";
@@ -422,8 +426,12 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->layoutSymbol = parent->layoutSymbol;
     subtype->target = parent->target;
     subtype->accessIdentity = parent->accessIdentity;
+    subtype->anonymousAccess = parent->anonymousAccess;
+    subtype->accessParameter = parent->accessParameter;
+    subtype->accessDiscriminant = parent->accessDiscriminant;
     subtype->generalAccess = parent->generalAccess;
     subtype->accessConstant = parent->accessConstant;
+    subtype->accessProtected = parent->accessProtected;
     subtype->aliasedElements = parent->aliasedElements;
     subtype->accessLevel = parent->accessLevel;
     subtype->accessProfile = parent->accessProfile;
@@ -688,8 +696,8 @@ bool needsCollection(const Type* type)
 {
     // Every named object access type owns a collection, including scalar and
     // plain composite designations. Access-to-subprogram values own no storage.
-    return type != nullptr && type->kind == TypeKind::Access && type->target != nullptr
-        && type->accessProfile == nullptr;
+    return type != nullptr && type->kind == TypeKind::Access
+        && ((type->target != nullptr && type->accessProfile == nullptr) || type->accessProtected);
 }
 
 bool hasLimitedControlledParts(const Type* type)
@@ -842,4 +850,31 @@ bool hasRuntimeLayout(const Type* type)
         }
     }
     return false;
+}
+
+bool hasAccessDiscriminants(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->kind == TypeKind::Array) { return hasAccessDiscriminants(type->element); }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if ((field.isDiscriminant && field.type->accessDiscriminant)
+                || hasAccessDiscriminants(field.type)) { return true; }
+        }
+    }
+    return false;
+}
+
+Type* controllingParameterType(Type* type)
+{
+    if (type != nullptr && type->kind == TypeKind::Access && type->anonymousAccess
+        && type->accessParameter && type->target != nullptr && type->target->tagged) {
+        return rootType(type->target);
+    }
+    return rootType(type);
+}
+
+Type* designatedViewType(Type* type)
+{
+    return type != nullptr && type->kind == TypeKind::Access ? type->target : type;
 }

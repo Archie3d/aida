@@ -180,6 +180,21 @@ bool conformingExpressions(const Expr* left, const Expr* right)
 // Subtype constraints are part of the contract for array indexes/components.
 bool staticallyMatches(Type* actual, Type* formal)
 {
+    if (actual != nullptr && formal != nullptr && actual->anonymousAccess && formal->anonymousAccess) {
+        if (actual->accessConstant != formal->accessConstant || actual->accessProtected != formal->accessProtected) { return false; }
+        if (actual->accessProfile != nullptr || formal->accessProfile != nullptr) {
+            Symbol* a = actual->accessProfile;
+            Symbol* b = formal->accessProfile;
+            if (a == nullptr || b == nullptr || a->parameters.size() != b->parameters.size()
+                || (a->returnType != b->returnType && !staticallyMatches(a->returnType, b->returnType))) { return a == b; }
+            for (std::size_t i = 0; i < a->parameters.size(); ++i) {
+                if (a->parameters[i]->mode != b->parameters[i]->mode
+                    || !staticallyMatches(a->parameters[i]->type, b->parameters[i]->type)) { return false; }
+            }
+            return true;
+        }
+        return staticallyMatches(actual->target, formal->target);
+    }
     if (actual == nullptr || formal == nullptr || baseType(actual) != baseType(formal)) {
         return false;
     }

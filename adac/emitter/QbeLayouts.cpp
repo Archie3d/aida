@@ -70,6 +70,7 @@ Value QbeEmitter::fieldStorage(const Value& object, Type* type, const FieldInfo&
 Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo& field)
 {
     Value address = fieldStorage(object, type, field);
+    address.accessLevel = object.accessLevel;
     if (field.inlineDependent) {
         Value view = dependentFieldBounds(object, type, field);
         view.name = address.name;
@@ -222,12 +223,14 @@ void QbeEmitter::emitRecordLayout(Type* type)
 Value QbeEmitter::allocatedArrayView(Value pointer, Type* type)
 {
     if (type->constrained || type->boundsSymbol != nullptr) { return withBounds(pointer, type, nullptr); }
-    std::string descriptor = newTemp();
-    emitCallInstruction(descriptor + " =l call $__ada_access_array_bounds(l " + pointer.name
-        + ", w " + std::to_string(type->arrayRank) + ", l " + stringData(rootType(type)->accessIdentity) + ")", CallEffects::CheckException);
+    std::string descriptor = allocScratch(adaArrayLocalSize(type->arrayRank));
+    emitCallInstruction("call $__ada_access_array_copy_bounds(l " + pointer.name
+        + ", w " + std::to_string(type->arrayRank) + ", l " + stringData(rootType(type)->accessIdentity)
+        + ", l " + descriptor + ")", CallEffects::CheckException);
     Value view = loadArrayView(descriptor, type->arrayRank, false);
     view.name = pointer.name;
     view.type = 'l';
+    view.accessLevel = pointer.accessLevel;
     return view;
 }
 
@@ -259,7 +262,7 @@ Value QbeEmitter::discriminantConstraint(Type* type, int index)
             line(address.name + " =l add " + frame.name + ", " + std::to_string(symbol->frameOffset));
         }
         std::string slot = newTemp();
-        line(slot + " =l add " + address.name + ", " + std::to_string(index * 8));
+        line(slot + " =l add " + address.name + ", " + std::to_string(index * 32));
         return loadFrom(Value {slot, 'l'}, baseType(type)->fields[index].type);
     }
     return Value {};
@@ -269,11 +272,11 @@ void QbeEmitter::emitDiscriminantConstraint(Type* type)
 {
     Symbol* symbol = type->discriminantSymbol;
     if (!symbol->isGlobal && !type->discriminantPerEvaluation) {
-        symbol->frameOffset = reserveFrame(type->discriminantCount * 8);
+        symbol->frameOffset = reserveFrame(type->discriminantCount * 32);
     }
     Value address {symbol->qbeName, 'l'};
     if (type->discriminantPerEvaluation) {
-        address.name = allocScratch(type->discriminantCount * 8);
+        address.name = allocScratch(type->discriminantCount * 32);
         m_context->discriminantBounds[type] = address;
     } else if (!symbol->isGlobal) {
         address.name = newTemp();
@@ -286,7 +289,7 @@ void QbeEmitter::emitDiscriminantConstraint(Type* type)
         Value value = emitExpr(expression);
         emitRangeCheck(value, fieldType, expression->location);
         std::string slot = newTemp();
-        line(slot + " =l add " + address.name + ", " + std::to_string(i * 8));
+        line(slot + " =l add " + address.name + ", " + std::to_string(i * 32));
         storeInto(Value {slot, 'l'}, value, fieldType);
     }
 }
@@ -301,4 +304,85 @@ void QbeEmitter::initializeDependentStorage(const Value& object, Type* type)
         line(slot + " =l add " + part.name + ", 8");
         line("storel " + (partType->layoutSymbol ? layoutAddress(partType).name : "0") + ", " + slot);
     }, false);
+}
+
+void QbeEmitter::preserveAccessView(const Value& value, Type* target, Type* source)
+{
+    if (target == source || target->accessProfile != nullptr || source->accessProfile != nullptr) { return; }
+    bool array = target->target->kind == TypeKind::Array && !target->target->constrained;
+    bool record = target->target->kind == TypeKind::Record && hasDefaultDiscriminants(target->target)
+        && !target->accessConstant;
+    if (!array && !record) { return; }
+    std::string nonNull = newTemp(), borrow = newLabel("accessborrow"), done = newLabel("accessborrowdone");
+    line(nonNull + " =w cnel " + value.name + ", 0");
+    branch(Value {nonNull, 'w'}, borrow, done);
+    label(borrow);
+    Value collection = collectionFor(target);
+    std::string identity = stringData(rootType(target->target)->accessIdentity);
+    if (array) {
+        Value view = allocatedArrayView(value, source->target);
+        std::string descriptor = allocScratch(adaArrayLocalSize(target->target->arrayRank));
+        line("storel " + value.name + ", " + descriptor);
+        storeArrayView(descriptor, view, source->target, false);
+        emitCallInstruction("call $__ada_array_borrow(l " + collection.name + ", l " + value.name
+            + ", l " + descriptor + ", w " + std::to_string(target->target->arrayRank)
+            + ", l " + identity + ")", CallEffects::CheckException);
+    } else {
+        std::string constrained = newTemp();
+        emitCallInstruction(constrained + " =w call $__ada_access_constrained(l " + value.name
+            + ", l " + identity + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_object_borrow(l " + collection.name + ", l " + value.name
+            + ", l " + identity + ", w " + constrained + ")", CallEffects::CheckException);
+    }
+    jump(done);
+    label(done);
+}
+
+void QbeEmitter::checkAccessDiscriminants(const Value& value, Type* type, const std::string& level, const std::string& owner)
+{
+    if (!hasAccessDiscriminants(type)) { return; }
+    if (type->kind == TypeKind::Array) {
+        Value array = withBounds(value, type, nullptr);
+        Value count = lengthOf(array, type);
+        std::string stride = arrayElementSize(array, type);
+        std::string cursor = allocScratch(8), head = newLabel("accessparts"), body = newLabel("accesspart"), done = newLabel("accesspartsdone");
+        line("storel 0, " + cursor);
+        label(head);
+        std::string index = newTemp(), more = newTemp();
+        line(index + " =l loadl " + cursor);
+        line(more + " =w cultl " + index + ", " + count.name);
+        branch(Value {more, 'w'}, body, done);
+        label(body);
+        Value cell = arrayRow(array, type);
+        std::string offset = newTemp();
+        cell.name = newTemp();
+        line(offset + " =l mul " + index + ", " + stride);
+        line(cell.name + " =l add " + value.name + ", " + offset);
+        checkAccessDiscriminants(cell, type->element, level, owner);
+        std::string next = newTemp();
+        line(next + " =l add " + index + ", 1");
+        line("storel " + next + ", " + cursor);
+        jump(head);
+        label(done);
+    } else if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : baseType(type)->fields) {
+            if (!field.type->accessDiscriminant && !hasAccessDiscriminants(field.type)) { continue; }
+            std::string done;
+            if (field.variant >= 0) {
+                std::string active = newLabel("accessvariant");
+                done = newLabel("accessvariantdone");
+                branch(variantCondition(value, baseType(type), field.variant), active, done);
+                label(active);
+            }
+            Value part = fieldAddress(value, baseType(type), field);
+            if (field.isDiscriminant && field.type->accessDiscriminant) {
+                Value access = loadFrom(part, field.type);
+                emitCallInstruction("call $__ada_access_return_check(w " + access.accessLevel
+                    + ", w " + level + ", l " + access.accessOwner + ", l " + owner + ")", CallEffects::CheckException);
+            } else {
+                checkAccessDiscriminants(part, field.type, level, owner);
+            }
+            if (!done.empty()) { jump(done); label(done); }
+        }
+    }
 }

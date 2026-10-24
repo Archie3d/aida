@@ -1357,7 +1357,7 @@ target_link_libraries(scalar_bounds_test PRIVATE adart)
 add_test(NAME runtime.scalar_bounds COMMAND scalar_bounds_test)
 set_tests_properties(runtime.scalar_bounds PROPERTIES TIMEOUT 30)
 add_ada_error_test(scalardynamicerrors SOURCES scalardynamicerrors.adb)
-foreach(dynamic_case generalaccess generalaccessarrays generalaccesschecks generalaccesstasking recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
+foreach(dynamic_case anonymousaccess anonymousaccessrecords anonymousaccessarrays anonymouscoextensions anonymousprotected anonymousdispatch anonymousaccesstasking generalaccess generalaccessarrays generalaccesschecks generalaccesstasking recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
@@ -1429,3 +1429,11 @@ endforeach()
 add_ada_error_test(recordrepresentationerrors SOURCES recordrepresentationerrors.adb)
 
 add_ada_error_test(generalaccesssyntaxerrors SOURCES generalaccesssyntaxerrors.adb)
+
+add_executable(access_levels_test AccessLevelsTest.c)
+target_link_libraries(access_levels_test PRIVATE adart)
+add_test(NAME runtime.access_levels COMMAND access_levels_test)
+set_tests_properties(runtime.access_levels PROPERTIES TIMEOUT 30)
+
+add_ada_error_test(anonymousaccesserrors SOURCES anonymousaccesserrors.adb)
+add_ada_error_test(anonymousaccessmodeerrors SOURCES anonymousaccessmodeerrors.adb)

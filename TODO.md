@@ -482,13 +482,23 @@ construction, cleanup and dispatch mechanisms.
   array descriptors and mutable record constrainedness preserve object identity
   and lifetime (`generalaccess*`, unit/whole/separate/determinism and four-task
   checks; runtime sanitizers). Unchanged ACATS C3A0013 is a compile XFAIL pending
-  anonymous access discriminants/private extensions/package renaming; no new
-  upstream execution pass is claimed. Conservative dependent-component checks,
+  private extensions/package renaming (its access discriminants were added
+  in the following item); no upstream execution pass is claimed for C3A0013.
+  Conservative dependent-component checks,
   limited current instances and broader generic/private cases remain documented
   with their roadmap owners. [Contract](docs/general-access.md).
-- [ ] Anonymous access types in all Ada 2005 contexts, including access-to-constant
-  and access discriminants (C3A0013), and anonymous access-to-subprogram parameters with nested callbacks. Enforce
-  accessibility on calls, conversions, assignments and returned access values.
+- [x] Anonymous access definitions in supported object/component/array,
+  discriminant, parameter, result, extended-return and renaming contexts,
+  including access-to-constant, nested/protected callbacks and controlling
+  access dispatch. Enforce actual master ancestry on calls, conversions,
+  assignment and returned values (including callback results); own access-
+  parameter allocators and coextensions across cleanup/failure paths.
+  `anonymousaccess*`, `anonymouscoextensions`, `anonymousprotected`,
+  `anonymousdispatch`; unit/whole/separate/determinism/four-task and runtime
+  sanitizer checks. Unchanged C460001/C460002/C3A2002 PASS; C3A0013 now reaches
+  private-extension/package-renaming/range-attribute blockers. Broader limited/
+  tagged definitions, generic formals and task/protected discriminants remain
+  6f/6g/9. [Contract and ABI](docs/anonymous-access.md).
 - [ ] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic matching and required runtime checks.
 - [ ] `'Access` of imported subprograms and of inherited tagged operations.
@@ -620,7 +630,8 @@ Ada 2005 additions and track annex packages separately.
   definitions, including `array (Commuters'Range) of Natural` in C3A0013.
   Preserve the index type and evaluate bounds once at type elaboration; cover
   explicit dimensions and runtime bounds. Existing `'Range` support in loops
-  and other contexts does not cover this declaration syntax.
+  and other contexts does not cover this declaration syntax. Also support
+  range-attribute choices in array aggregates (C3A2003).
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime
@@ -659,8 +670,9 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
   timed and conditional entry calls; asynchronous `select`.
 - [ ] `requeue` and `abort`, on the Phase 6 abort-deferral design (protected
   actions, finalization).
-- [ ] Task and protected discriminants, access-to-protected-subprogram types,
-  and synchronized, task and protected interfaces.
+- [ ] Task and protected discriminants, named access-to-protected-subprogram
+  types (anonymous protected callbacks landed in 6d), and synchronized, task
+  and protected interfaces.
 - [ ] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
   `Ada.Synchronous_Task_Control`.
 - [ ] Selected Systems Programming Annex support: Ada 2005 task termination

@@ -1434,6 +1434,7 @@ typedef struct AdaAllocation
 struct AdaCollection
 {
     AdaMaster master;
+    int accessLevel;
     AdaTaskContext* context;
     AdaAllocation* allocations;
     int closing;
@@ -1554,6 +1555,8 @@ void* __ada_collection_create(AdaFinalization** owner, void** arena)
     }
     memset(collection, 0, sizeof *collection);
     collection->context = context;
+    collection->accessLevel = owner == &__ada_main_context.libraryFinalizations ? 0 : __ada_current_access_level();
+    if (context->exception != NULL) { return NULL; }
     __ada_finalization_reserve(owner, arena, collection, finalizeCollection);
     if (context->exception != NULL) {
         return NULL;
@@ -2058,4 +2061,52 @@ int __ada_width_enum(int low, int high, const char** names, int count)
         if ((int)length > width) { width = (int)length; }
     }
     return width;
+}
+
+void __ada_access_return_check(int sourceLevel, int targetLevel, void* owner, void* resultOwner)
+{
+    if (owner == NULL || owner != resultOwner) { __ada_accessibility_check(sourceLevel, targetLevel); }
+}
+
+void __ada_collection_finish_sized(void* pending, void* object, long size)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    ((AdaAllocation*)pending)->size = size;
+    ((AdaAllocation*)pending)->object = object;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+}
+
+int __ada_collection_access_level(void* owner)
+{
+    return ((AdaCollection*)owner)->accessLevel;
+}
+
+void __ada_access_array_copy_bounds(void* object, int rank, const char* identity, void* descriptor)
+{
+    int found = 0;
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
+         allocation = allocation->registeredNext) {
+        if (allocation->object == object && allocation->arrayBounds != NULL && allocation->arrayRank == rank
+            && allocation->viewIdentity != NULL && strcmp(allocation->viewIdentity, identity) == 0) {
+            memcpy(descriptor, allocation->arrayBounds, (size_t)adaArrayLocalSize(rank));
+            found = 1;
+            break;
+        }
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (!found) { __ada_raise(ADA_PROGRAM_ERROR); }
+}
+
+void __ada_access_parameter_adopt(AdaFinalization** owner, void** arena, void* object)
+{
+    __ada_finalization_reserve(owner, arena, object, __ada_deallocate);
+    if (__ada_exception == NULL) { __ada_controlled_activate(object, __ada_deallocate); }
+}
+
+void __ada_collection_set_access_level(void* owner, int level)
+{
+    AdaCollection* collection = owner;
+    __ada_access_collection_parent(&collection->master, level);
+    if (__ada_exception == NULL) { collection->accessLevel = level; }
 }

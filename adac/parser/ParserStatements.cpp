@@ -327,7 +327,7 @@ StmtPtr Parser::parseReturnStatement()
         advance();
         expect(TokenKind::Colon, "in extended return");
         object->isConstant = match(TokenKind::KwConstant);
-        object->subtype = parseSubtypeIndication();
+        object->subtype = parseSubtypeIndication(true);
         if (match(TokenKind::Assign)) {
             object->initializer = parseExpression();
         }

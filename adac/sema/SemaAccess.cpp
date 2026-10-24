@@ -1,6 +1,9 @@
 #include "Sema.h"
 #include "SemaSupport.h"
 
+#include <cctype>
+#include <filesystem>
+
 namespace
 {
 
@@ -10,6 +13,8 @@ struct ObjectAccessView
     int level = 0;
     bool constrained = false;
     bool unstable = false;
+    Symbol* object = nullptr;
+    bool dynamic = false;
 };
 
 ObjectAccessView accessView(Expr* expression)
@@ -18,12 +23,20 @@ ObjectAccessView accessView(Expr* expression)
     Symbol* symbol = expression->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(expression)->symbol
         : expression->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expression)->symbol : nullptr;
     if (symbol != nullptr) {
-        if (symbol->sharedAlias != nullptr) { return accessView(symbol->sharedAlias); }
+        if (symbol->sharedAlias != nullptr) {
+            ObjectAccessView view = accessView(symbol->sharedAlias);
+            if (view.object != nullptr && !view.object->isGlobal && view.object->owner != nullptr) {
+                view.object->needsAccessibility = true;
+                view.object->owner->needsFrame = true;
+            }
+            view.object = symbol;
+            return view;
+        }
         bool taggedFormal = symbol->type != nullptr && symbol->type->tagged
             && (symbol->kind == SymbolKind::Parameter || symbol->genericObject);
         return {symbol->aliased || taggedFormal, symbol->accessibilityLevel,
             symbol->isConstant || !hasDefaultDiscriminants(symbol->type)
-                || hasDiscriminantConstraint(symbol->type), false};
+                || hasDiscriminantConstraint(symbol->type), false, symbol};
     }
     if (expression->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expression);
@@ -31,6 +44,7 @@ ObjectAccessView accessView(Expr* expression)
         bool dereference = prefix != nullptr && prefix->kind == TypeKind::Access;
         ObjectAccessView view = dereference ? ObjectAccessView {true, prefix->accessLevel, prefix->accessConstant || !prefix->generalAccess || !hasDefaultDiscriminants(prefix->target) || hasDiscriminantConstraint(prefix->target), false}
             : accessView(selected->prefix.get());
+        if (dereference) { view.dynamic = prefix->accessParameter || prefix->accessDiscriminant; }
         if (selected->isDereference) { return view; }
         Type* record = dereference ? baseType(prefix->target) : prefix;
         if (selected->fieldIndex >= 0 && record != nullptr) {
@@ -52,7 +66,7 @@ ObjectAccessView accessView(Expr* expression)
             bool dereference = array != nullptr && array->kind == TypeKind::Access;
             ObjectAccessView view = dereference ? ObjectAccessView {true, array->accessLevel, true, false}
                 : accessView(call->callee.get());
-            if (dereference) { array = baseType(array->target); }
+            if (dereference) { view.dynamic = array->accessParameter || array->accessDiscriminant; array = baseType(array->target); }
             view.aliased = array->aliasedElements;
             view.constrained = !hasDefaultDiscriminants(expression->type) || hasDiscriminantConstraint(expression->type);
             return view;
@@ -107,7 +121,8 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         m_diagnostics.error(expr->location, "'Access cannot designate a discriminant-dependent component of an unconstrained variable");
         return nullptr;
     }
-    if (!matchingDesignated(expected->target, source)) {
+    if (!matchingDesignated(expected->target, source)
+        && !(expected->anonymousAccess && source->classRoot == rootType(expected->target))) {
         m_diagnostics.error(expr->location, "object view does not match the designated subtype");
         return nullptr;
     }
@@ -115,9 +130,14 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         m_diagnostics.error(expr->location, "object 'Access requires matching designated storage representation");
         return nullptr;
     }
-    if (view.level > expected->accessLevel && m_replayContract == nullptr) {
+    if (view.level > expected->accessLevel && !view.dynamic && !expected->accessParameter && !expected->accessDiscriminant && m_replayContract == nullptr) {
         m_diagnostics.error(expr->location, "object is deeper than the access type");
         return nullptr;
+    }
+    expr->accessObject = view.object;
+    if (view.object != nullptr && !view.object->isGlobal && view.object->owner != nullptr) {
+        view.object->needsAccessibility = true;
+        view.object->owner->needsFrame = true;
     }
     expr->objectAccess = true;
     expr->objectAccessLevel = view.level;
@@ -150,8 +170,107 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
         m_diagnostics.error(expr->location, "this type conversion is not allowed");
     } else if (!matchingStorage(target->target, source->target)) {
         m_diagnostics.error(expr->location, "object access conversion requires matching designated storage representation");
-    } else if (source->accessLevel > target->accessLevel && m_replayContract == nullptr) {
+    } else if (source->accessLevel > target->accessLevel && !source->accessParameter && !source->accessDiscriminant && m_replayContract == nullptr) {
         m_diagnostics.error(expr->location, "source access type is deeper than the target access type");
     }
     return true;
+}
+
+Type* Sema::resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope)
+{
+    if (indication->resolved != nullptr) { return indication->resolved; }
+    TypeDefinition* definition = indication->accessDefinition.get();
+    Type* type = m_types.create(TypeKind::Access, anonymousTypeName());
+    indication->resolved = type;
+    type->anonymousAccess = true;
+    type->accessParameter = indication->accessParameter;
+    type->accessDiscriminant = indication->accessDiscriminant;
+    type->generalAccess = true;
+    type->accessConstant = definition->accessConstant;
+    type->accessProtected = definition->accessProtected;
+    type->accessScope = scope;
+    type->declarationScope = scope;
+    type->accessLevel = m_accessibilityLevel;
+    if (definition->accessProfile != nullptr) {
+        SubprogramSpec& spec = *definition->accessProfile;
+        Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "", type->name);
+        profile->returnType = spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+        for (ParameterDecl& declaration : spec.parameters) {
+            Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, declaration.lower, declaration.name);
+            parameter->type = resolveSubtypeIndication(declaration.subtype.get(), scope);
+            parameter->mode = declaration.mode;
+            parameter->isConstant = declaration.mode == ParameterMode::In;
+            parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameter->type);
+            if (declaration.defaultValue != nullptr) {
+                m_diagnostics.error(declaration.location, "access-to-subprogram parameters cannot have defaults");
+            }
+            if (spec.isFunction && declaration.mode != ParameterMode::In) {
+                m_diagnostics.error(declaration.location, "access-to-function parameters must have mode in");
+            }
+            profile->parameters.push_back(parameter);
+        }
+        profile->protectedAccessProfile = type->accessProtected;
+        type->accessProfile = profile;
+    }
+    if (definition->accessProfile == nullptr || type->accessProtected) {
+        if (definition->parent != nullptr) { type->target = resolveSubtypeIndication(definition->parent.get(), scope, true, true); }
+        type->collectionOwner = m_currentSubprogram;
+        std::string identity = std::filesystem::path(m_diagnostics.fileName(indication->location.file)).filename().string();
+        for (char& character : identity) {
+            if (!std::isalnum(static_cast<unsigned char>(character))) { character = '_'; }
+        }
+        std::string name = "$" + mangle("anonymous_access_" + identity + "_"
+            + std::to_string(indication->location.line) + "_" + std::to_string(indication->location.column));
+        std::size_t ordinal = ++m_tagNames[name];
+        type->collectionName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        if (m_currentSubprogram != nullptr) {
+            m_currentSubprogram->needsFrame = true;
+            m_currentSubprogram->usesFinalization = true;
+        }
+        if (m_scalarConstraintDeclaration != nullptr) {
+            m_scalarConstraintDeclaration->anonymousAccessTypes.push_back(type);
+        }
+    }
+    return type;
+}
+
+bool Sema::compatibleAnonymousAccess(Type* target, Type* source) const
+{
+    if (target == nullptr || source == nullptr || !target->anonymousAccess
+        || source->kind != TypeKind::Access) { return false; }
+    if (target->accessProfile != nullptr || source->accessProfile != nullptr) {
+        return target->accessProfile != nullptr && source->accessProfile != nullptr
+            && target->accessProtected == source->accessProtected && matchesAccessProfile(source->accessProfile, target);
+    }
+    bool designated = matchingDesignated(target->target, source->target);
+    if (target->target->tagged && source->target->classRoot != nullptr) {
+        designated = source->target->classRoot == rootType(target->target);
+    }
+    return (target->accessConstant || !source->accessConstant)
+        && designated
+        && matchingStorage(target->target, source->target);
+}
+
+void Sema::checkAnonymousAccess(Expr* expr, Type* expected, Type* actual)
+{
+    if (expr == nullptr || expected == nullptr || !expected->anonymousAccess
+        || !compatibleAnonymousAccess(expected, actual) || expr->kind == ExprKind::Null) { return; }
+    expr->accessTarget = expected;
+    if (expected->accessParameter) { return; }
+    if (actual->accessProfile != nullptr && actual->accessParameter) {
+        m_diagnostics.error(expr->location, "an anonymous access-to-subprogram parameter cannot escape its call");
+        return;
+    }
+    int level = actual->accessLevel;
+    bool dynamic = actual->accessParameter || actual->accessDiscriminant;
+    if (expr->kind == ExprKind::Attribute && static_cast<AttributeExpr*>(expr)->objectAccess) {
+        level = static_cast<AttributeExpr*>(expr)->objectAccessLevel;
+        dynamic = true; // A dereference may carry a run-time access-parameter level.
+    }
+    int targetLevel = expected->accessDiscriminant ? m_accessibilityLevel : expected->accessLevel;
+    if (!dynamic && level > targetLevel && m_replayContract == nullptr) {
+        m_diagnostics.error(expr->location, "source access value is deeper than the anonymous access type");
+    } else {
+        expr->accessCheckLevel = targetLevel;
+    }
 }

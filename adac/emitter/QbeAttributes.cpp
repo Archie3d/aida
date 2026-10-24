@@ -86,11 +86,14 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "access") {
         if (expr->objectAccess) {
             Value object = emitAddress(expr->prefix.get());
-            if (expr->objectAccessLevel > expr->type->accessLevel) {
-                emitCallInstruction("call $__ada_access_check(w " + std::to_string(expr->objectAccessLevel)
-                    + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
+            if (expr->accessObject != nullptr) { object.accessLevel = accessLevelFor(expr->accessObject); }
+            else if (object.accessLevel.empty()) { object.accessLevel = currentAccessLevel(); }
+            if (!expr->type->accessParameter && !expr->type->accessDiscriminant
+                && (expr->objectAccessLevel > expr->type->accessLevel || object.accessLevel[0] == '%')) {
+                emitCallInstruction("call $__ada_accessibility_check(w " + object.accessLevel
+                    + ", w " + accessLevelFor(expr->type) + ")", CallEffects::CheckException);
             }
-            if (expr->prefixType->tagged) {
+            if (expr->prefixType->tagged && !expr->type->accessParameter && !expr->type->accessDiscriminant) {
                 emitCallInstruction("call $__ada_tag_check_accessibility(l " + object.name + ", w "
                     + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
             }
@@ -109,9 +112,34 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 emitCallInstruction("call $__ada_object_borrow(l " + collection.name + ", l " + object.name
                     + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ", w " + constrained.name + ")", CallEffects::CheckException);
             }
-            return Value {object.name, 'l'};
+            return object;
         }
         Symbol* subprogram = expr->accessSubprogram;
+        if (expr->type->accessProtected) {
+            Value object;
+            if (expr->protectedObject != nullptr) {
+                object = expr->protectedObject->type->kind == TypeKind::Access
+                    ? emitExpr(expr->protectedObject) : emitAddress(expr->protectedObject);
+                checkNotNull(object);
+            } else { object = addressOf(expr->protectedReceiver); }
+            std::string level = newTemp();
+            emitCallInstruction(level + " =w call $__ada_protected_access_level(l " + object.name + ")", CallEffects::CheckException);
+            if (!expr->type->accessParameter) {
+                emitCallInstruction("call $__ada_accessibility_check(w " + level + ", w " + accessLevelFor(expr->type) + ")", CallEffects::CheckException);
+            }
+            Value collection = collectionFor(expr->type);
+            Value descriptor {newTemp(), 'l'};
+            descriptor.accessLevel = level;
+            emitCallInstruction(descriptor.name + " =l call $__ada_collection_allocate(l " + collection.name + ", l 24)", CallEffects::CheckException);
+            line("storel " + subprogram->qbeName + ", " + descriptor.name);
+            std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
+            std::string linkSlot = newTemp(), objectSlot = newTemp();
+            line(linkSlot + " =l add " + descriptor.name + ", 8");
+            line("storel " + link + ", " + linkSlot);
+            line(objectSlot + " =l add " + descriptor.name + ", 16");
+            line("storel " + object.name + ", " + objectSlot);
+            return descriptor;
+        }
         if (subprogram->renamedAccess != nullptr) {
             Symbol* binding = subprogram->renamedAccess;
             return loadFrom(addressOf(binding), binding->type);

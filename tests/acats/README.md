@@ -210,14 +210,28 @@ C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mir
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights
 and disclaimer. It covers general access to allocated/aliased objects and
 implicitly aliased tagged formals/limited current instances. It is a pinned
-compile XFAIL for anonymous access discriminants (P6d), private extensions
-(P6f) and package renaming (P6e), not an upstream execution pass. The case
+compile XFAIL for private extensions (P6f) and package renaming (P6e), not an
+upstream execution pass. Anonymous access discriminants now parse. The case
 also needs limited current-instance Access (P6f) and `array (Object'Range)`
 index-range syntax (P8); these now have explicit roadmap entries.
 Git blob: `b23d4ee11514f0cf96d3a20ca7de30cd0c5efcc6`.
 SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
 C3A0014 tests the superseded Ada 95 aliased-constrained rule and is inapplicable
-here. C3A0015 needs storage pools; C3A2002/C3A2003/C460001/C460002 need anonymous
-access parameters; C3A2A01/C460A01/C460A02 need formal access types. These cases
+here. C3A0015 needs storage pools; C3A2002/C460001/C460002 now pass with anonymous
+access parameters; C3A2003 still needs range-attribute aggregate choices (P8).
+C3A2A01/C460A01/C460A02 need formal access types (P6g). These cases
 are deferred unchanged; [local evidence and limits](../../docs/general-access.md)
 cover the implemented named-access subset.
+
+C460001, C460002 and C3A2002 come from GCC releases/gcc-15, retrieved 2026-10-24,
+retained unchanged as `.ada` files with their rights/disclaimers. They execute
+as PASS: parameter-to-named-access conversions, forwarding through another
+access parameter, and Access of parameter dereferences/renamings, including
+allocators and deeper lexical callers. These are inherited Ada requirements
+applicable to Ada 2005. They use the existing REPORT adapter without extra support.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [c4/c460001.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c460001.a) | `907b8564f6d3a596b22cef9955e92fa0c81ee1f6` | `d41446b18267f995cea1b19474dded33f884e474a11282597c24ef99a024fc05` |
+| [c4/c460002.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c4/c460002.a) | `945dd567720121eff8e8016748a74e49e2e69773` | `941d65ef9b5ba6098347041e44a13828f87016227cd05af63791c0641ce54ab5` |
+| [c3/c3a2002.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a2002.a) | `63ea7008b66b2c996ff20c054560e36ce56fd831` | `49e2e6018c247aecd161390e7951f90b9677032a87c31bd4216ec324c823f624` |

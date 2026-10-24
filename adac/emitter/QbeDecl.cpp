@@ -119,6 +119,13 @@ void QbeEmitter::emitTypeTag(Type* type)
 void QbeEmitter::collectGlobals(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        for (Type* access : decl->anonymousAccessTypes) {
+            if (access->collectionOwner == nullptr && !access->accessParameter && !access->accessDiscriminant
+                && !m_emittedCollections.contains(access)) {
+                m_emittedCollections[access] = true;
+                m_data << "export data " << access->collectionName << " = align 8 { l 0 }\n";
+            }
+        }
         for (Type* constraint : decl->arrayConstraints) {
             Symbol* bounds = constraint->boundsSymbol;
             if (bounds->isGlobal) {
@@ -130,7 +137,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             Symbol* bounds = constraint->discriminantSymbol;
             if (bounds->isGlobal) {
                 m_data << "export data " << bounds->qbeName << " = align 8 { z "
-                       << constraint->discriminantCount * 8 << " }\n";
+                       << constraint->discriminantCount * 32 << " }\n";
             }
         }
         for (Type* constraint : decl->scalarConstraints) {
@@ -230,6 +237,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
+        for (Type* access : decl->anonymousAccessTypes) { initializeCollection(access); }
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
             else if (constraint->kind == TypeKind::Record) {
@@ -279,6 +287,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (symbol->type->discriminantObjectConstraint) { emitDiscriminantConstraint(symbol->type); }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 Value address { symbol->qbeName, 'l' };
+                address.accessLevel = "0";
                 address.shared = sharedSymbolKind(symbol) != 0;
                 if (hasRuntimeLayout(symbol->type) && symbol->type->kind == TypeKind::Array && !symbol->objectReference) {
                     emitDynamicArray(object, symbol);
@@ -420,6 +429,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
     }
     for (const DeclPtr& decl : declarations) {
         m_context->sourceLocation = decl->location;
+        for (Type* access : decl->anonymousAccessTypes) { initializeCollection(access); }
         for (Type* constraint : decl->constraintOrder) {
             if (constraint->kind == TypeKind::Array) { emitTypeBounds(constraint, decl->location); }
             else if (constraint->kind == TypeKind::Record) {
@@ -432,6 +442,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
             subprogram = static_cast<SubprogramDecl*>(decl.get())->symbol;
         }
+        if (subprogram != nullptr) { captureAccessLevel(subprogram); }
         if (subprogram != nullptr && subprogram->addressTaken && subprogram->renamedAccess == nullptr
             && subprogram->level > 0
             && subprogram->descriptorOffset < 0) {
@@ -485,6 +496,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 if (symbol->isGlobal) {
                     continue;
                 }
+                captureAccessLevel(symbol);
                 if (symbol->type->discriminantObjectConstraint) { emitDiscriminantConstraint(symbol->type); }
                 if (symbol->type->scalarObjectConstraint) { emitScalarSubtype(symbol->type, decl->location); }
                 if (symbol->classWideObject) {
@@ -756,6 +768,23 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
 void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
 {
     Value actual = emitAddress(object->initializer.get());
+    if (symbol->needsAccessibility && symbol->owner != nullptr && !symbol->isGlobal) {
+        if (actual.accessLevel.empty()) {
+            Expr* source = object->initializer.get();
+            while (source->kind == ExprKind::Selected && static_cast<SelectedExpr*>(source)->symbol == nullptr) {
+                source = static_cast<SelectedExpr*>(source)->prefix.get();
+            }
+            while (source->kind == ExprKind::Call && static_cast<CallExpr*>(source)->form == CallForm::Indexing) {
+                source = static_cast<CallExpr*>(source)->callee.get();
+            }
+            Symbol* binding = source->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(source)->symbol
+                : source->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(source)->symbol : nullptr;
+            actual.accessLevel = binding != nullptr ? accessLevelFor(binding) : currentAccessLevel();
+        }
+        std::string levelSlot = newTemp();
+        line(levelSlot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->accessibilityOffset));
+        line("storew " + actual.accessLevel + ", " + levelSlot);
+    }
     bool dynamic = isUnconstrainedArray(symbol->type);
     long long size = dynamic ? adaArrayLocalSize(symbol->type->arrayRank) : 8;
     std::string slot;

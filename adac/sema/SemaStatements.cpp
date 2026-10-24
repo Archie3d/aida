@@ -408,10 +408,21 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (returnStatement->object != nullptr) {
             auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
             Scope* inner = m_symbolTable.createScope(scope);
+            bool anonymousResult = expected != nullptr && expected->anonymousAccess
+                && object->subtype->accessDefinition != nullptr;
+            if (anonymousResult) {
+                std::size_t count = m_scalarConstraintDeclaration->anonymousAccessTypes.size();
+                Type* actual = resolveSubtypeIndication(object->subtype.get(), inner);
+                if (!SemaSupport::staticallyMatches(actual, expected)) {
+                    m_diagnostics.error(object->location, "extended return access definition must statically match the result subtype");
+                }
+                m_scalarConstraintDeclaration->anonymousAccessTypes.resize(count);
+                object->subtype->resolved = expected;
+            }
             analyzeDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
             if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
-                || !needsFinalization(expected) || actual->classRoot != nullptr) {
+                || (!needsFinalization(expected) && !anonymousResult) || actual->classRoot != nullptr) {
                 m_diagnostics.error(returnStatement->location,
                     "extended return requires the specific controlled result subtype");
             }
@@ -421,7 +432,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 && !SemaSupport::staticallyMatches(actual, expected)) {
                 m_diagnostics.error(returnStatement->location, "extended return subtype must statically match the result subtype");
             }
-            if (!object->symbols.empty()) {
+            if (!object->symbols.empty() && !anonymousResult) {
                 object->symbols.front()->objectReference = true;
             }
             m_extendedReturns.push_back(m_currentSubprogram);

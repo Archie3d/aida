@@ -40,6 +40,9 @@ struct Value
         return dimension == 0 ? last : innerBounds[dimension - 1].second;
     }
 
+    std::string accessLevel;
+    std::string accessOwner;
+
     bool shared = false; // This value denotes shared scalar storage.
 
     bool hasBounds() const { return !first.empty() && !last.empty(); }
@@ -101,6 +104,10 @@ private:
         std::string resultProvided;
         std::string resultTargetOwner;
         std::string resultTargetArena;
+        AllocatorExpr* pendingExpression = nullptr;
+        std::string pendingAllocation;
+        std::string pendingCollection;
+        std::string coextensionLevel;
         std::string constructionOwner;
         std::string constructionArena;
         std::string taskCollection = "0";
@@ -288,6 +295,13 @@ private:
     Value emitExprValue(Expr* expr);
     Value emitAddress(Expr* expr);
     Value emitAllocator(AllocatorExpr* expr);
+    Value emitAllocatorValue(AllocatorExpr* expr);
+    std::string currentAccessLevel();
+    std::string accessLevelFor(Type* type);
+    std::string accessLevelFor(Symbol* symbol);
+    void captureAccessLevel(Symbol* symbol);
+    void preserveAccessView(const Value& value, Type* target, Type* source);
+    void checkAccessDiscriminants(const Value& value, Type* type, const std::string& level, const std::string& owner);
     bool hasComponentDefaults(Type* type);
     void emitDefaultInit(const Value& address, Type* type);
 

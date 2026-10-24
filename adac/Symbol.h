@@ -137,6 +137,9 @@ struct Symbol
     // owner's frame block instead of a plain stack slot.
     int level = 0;
     int accessibilityLevel = 0;
+    bool protectedAccessProfile = false;
+    bool needsAccessibility = false;
+    long long accessibilityOffset = -1;
     Symbol* owner = nullptr;
     bool isUplevel = false;
     long long frameOffset = -1;

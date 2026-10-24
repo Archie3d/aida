@@ -218,8 +218,12 @@ struct Type
     // Access types.
     Type* target = nullptr;
     std::string accessIdentity;
+    bool anonymousAccess = false;
+    bool accessParameter = false;
+    bool accessDiscriminant = false;
     bool generalAccess = false;
     bool accessConstant = false;
+    bool accessProtected = false;
     bool aliasedElements = false;
     // Subprogram access uses a signature instead of an object target.
     Symbol* accessProfile = nullptr;
@@ -246,6 +250,9 @@ bool hasRuntimeLayout(const Type* type);
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
 bool needsCollection(const Type* type);
+bool hasAccessDiscriminants(const Type* type);
+Type* controllingParameterType(Type* type);
+Type* designatedViewType(Type* type);
 bool hasTasks(const Type* type);
 bool hasProtected(const Type* type);
 bool hasIncompleteParts(const Type* type);

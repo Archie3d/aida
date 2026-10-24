@@ -32,14 +32,16 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     int errors = m_diagnostics.errorCount();
     ++m_expressionDepth;
     Type* result = analyzeExprValue(expr, scope, expected);
+    if (expr != nullptr && expr->accessCreationLevel < 0) { expr->accessCreationLevel = m_accessibilityLevel; }
     if (result != nullptr && errors == m_diagnostics.errorCount()) {
+        checkAnonymousAccess(expr, expected, result);
         noteStaticValue(expr);
     }
     --m_expressionDepth;
     if (m_expressionDepth == 0 && errors == m_diagnostics.errorCount()) {
         validateStatic(expr, false, expected);
     }
-    if (needsFinalization(result) || needsCollection(result) || (result != nullptr && result->tagged)) {
+    if (needsFinalization(result) || needsCollection(result) || hasAccessDiscriminants(result) || (result != nullptr && result->tagged)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->usesFinalization = true;
         } else {
@@ -158,6 +160,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         expr->type = expected != nullptr && expected->kind == TypeKind::Access ? expected : nullptr;
         return expr->type;
     case ExprKind::Allocator:
+        expr->accessCreationLevel = m_accessibilityLevel;
         return analyzeAllocator(static_cast<AllocatorExpr*>(expr), scope, expected);
     case ExprKind::Identifier:
         return analyzeIdentifier(static_cast<IdentifierExpr*>(expr), scope, expected);

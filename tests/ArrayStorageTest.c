@@ -531,12 +531,48 @@ int main(void)
     outerMark = finalizations;
     innerCollection = __ada_collection_create(&finalizations, &owner);
     __ada_array_borrow(innerCollection, &borrowedObject, borrowedBounds, 1, "array");
+    int64_t savedBounds[5];
+    __ada_access_array_copy_bounds(&borrowedObject, 1, "array", savedBounds);
     __ada_finalize_to(&finalizations, outerMark);
+    CHECK(memcmp(savedBounds, borrowedBounds, sizeof borrowedBounds) == 0);
     CHECK(memcmp(__ada_access_array_bounds(&borrowedObject, 1, "array"), borrowedBounds, sizeof borrowedBounds) == 0);
     __ada_finalize_to(&finalizations, NULL);
     __ada_array_release(&owner);
     CHECK(borrowedObject == 19 && liveAllocations == 0);
 
+    for (int failure = 0; failure < 4; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        void* object = __ada_collection_allocate(collection, 4);
+        failAfter = failure;
+        __ada_access_parameter_adopt(&finalizations, &owner, object);
+        failAfter = -1;
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL);
+        __ada_exception = NULL;
+    }
+    for (int failure = 0; failure < 12; ++failure) {
+        void* collection = __ada_collection_create(&finalizations, &owner);
+        void* pending = __ada_collection_begin(collection);
+        failAfter = failure;
+        void** childArena = __ada_collection_result_arena(pending);
+        AdaFinalization** childOwner = __ada_collection_result_owner(pending);
+        void* childCollection = __ada_collection_create(childOwner, childArena);
+        if (childCollection != NULL) {
+            void* child = __ada_collection_allocate(childCollection, 4);
+            if (child != NULL) {
+                void* object = __ada_array_local(childArena, 1, 1, 8);
+                if (object != NULL) { __ada_collection_finish_sized(pending, object, 8); }
+            }
+        }
+        failAfter = -1;
+        __ada_collection_abort(pending);
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL);
+        CHECK(__ada_exception == NULL || __ada_exception == ADA_STORAGE_ERROR);
+        __ada_exception = NULL;
+    }
     /* A context owns its pending message, including failure paths and disposal
        after detaching. The original context must remain untouched. */
     AdaTaskContext task = { 0 };

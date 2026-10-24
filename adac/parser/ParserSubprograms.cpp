@@ -35,7 +35,7 @@ SubprogramSpec Parser::parseSubprogramSpec(bool allowInstantiation)
     }
     if (spec.isFunction && !(allowInstantiation && check(TokenKind::KwIs) && peek(1).kind == TokenKind::KwNew)) {
         expect(TokenKind::KwReturn, "in function specification");
-        spec.returnType = parseSubtypeIndication();
+        spec.returnType = parseSubtypeIndication(true);
     }
     return spec;
 }
@@ -49,6 +49,7 @@ void Parser::parseParameterList(SubprogramSpec& spec)
         std::vector<std::string> names = parseIdentifierList(lowered);
         expect(TokenKind::Colon, "in parameter specification");
 
+        bool explicitMode = check(TokenKind::KwIn) || check(TokenKind::KwOut);
         ParameterMode mode = ParameterMode::In;
         if (match(TokenKind::KwIn)) {
             mode = match(TokenKind::KwOut) ? ParameterMode::InOut : ParameterMode::In;
@@ -66,7 +67,11 @@ void Parser::parseParameterList(SubprogramSpec& spec)
             parameter.lower = lowered[i];
             parameter.mode = mode;
             parameter.location = location;
-            parameter.subtype = parseSubtypeIndication();
+            parameter.subtype = parseSubtypeIndication(true);
+            parameter.subtype->accessParameter = true;
+            if (parameter.subtype->accessDefinition != nullptr && explicitMode) {
+                fail("an access parameter cannot have an explicit parameter mode");
+            }
             if (match(TokenKind::Assign)) {
                 std::size_t defaultStart = m_position;
                 parameter.defaultValue = parseExpression();

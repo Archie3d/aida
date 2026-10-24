@@ -10,6 +10,7 @@
 
 struct Type;
 struct Symbol;
+struct TypeDefinition;
 
 struct Node
 {
@@ -92,6 +93,9 @@ struct Expr : Node
     }
 
     ExprKind kind;
+    int accessCheckLevel = -1;
+    int accessCreationLevel = -1;
+    Type* accessTarget = nullptr;
     Expr* protectedObject = nullptr; // Borrowed target of an external protected call.
     Symbol* protectedReceiver = nullptr; // Current instance for fields/internal calls.
     bool tagIndeterminate = false;
@@ -271,6 +275,7 @@ struct AttributeExpr : Expr
     AttributeExpr* rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* accessSubprogram = nullptr;
+    Symbol* accessObject = nullptr;
     bool objectAccess = false;
     int objectAccessLevel = 0;
     Symbol* countEntry = nullptr;
@@ -340,6 +345,11 @@ struct MembershipExpr : Expr
 
 struct SubtypeIndication : Node
 {
+    SubtypeIndication();
+    ~SubtypeIndication() override;
+    std::unique_ptr<TypeDefinition> accessDefinition;
+    bool accessParameter = false;
+    bool accessDiscriminant = false;
     std::string name;
     std::string lower;
     ExprPtr digits;
@@ -503,10 +513,14 @@ struct TypeDefinition : Node
     std::unique_ptr<SubprogramSpec> accessProfile;
     bool generalAccess = false;
     bool accessConstant = false;
+    bool accessProtected = false;
 
     // Private
     bool isLimited = false;
 };
+
+inline SubtypeIndication::SubtypeIndication() = default;
+inline SubtypeIndication::~SubtypeIndication() = default;
 
 using TypeDefinitionPtr = std::unique_ptr<TypeDefinition>;
 
@@ -751,6 +765,7 @@ struct Decl : Node
     }
 
     DeclKind kind;
+    std::vector<Type*> anonymousAccessTypes;
     std::vector<Type*> constraintOrder;
     std::vector<Type*> arrayConstraints;
     std::vector<Type*> scalarConstraints; // Elaborated once with this declaration.

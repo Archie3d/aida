@@ -1,5 +1,5 @@
-recordrecoveryerrors.adb:4:16: error: expected 'identifier' in name, found 'access'
-recordrecoveryerrors.adb:6:17: error: expected 'identifier' in name, found 'access'
-recordrecoveryerrors.adb:11:24: error: expected 'identifier' in name, found 'access'
+recordrecoveryerrors.adb:4:16: error: anonymous access definitions cannot specify 'all'
+recordrecoveryerrors.adb:6:17: error: anonymous access definitions cannot specify 'all'
+recordrecoveryerrors.adb:11:24: error: anonymous access definitions cannot specify 'all'
 recordrecoveryerrors.adb:18:5: error: expected 'identifier' in name, found 'end'
 recordrecoveryerrors.adb:22:5: error: goto statements are not yet supported

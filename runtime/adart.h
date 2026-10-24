@@ -128,6 +128,7 @@ typedef struct AdaTaskContext
     int libraryFinalizing;
     AdaMaster libraryMaster;
     AdaMaster* currentMaster;
+    int accessibilityParentLevel;
     struct AdaMasterState* taskMasters;
     struct AdaTaskState* taskSelf;
     AdaProtectedAction* protectedActions;
@@ -141,6 +142,8 @@ typedef struct AdaTaskContext
     AdaMutex sharedMasterMutex;
     AdaCondition sharedMasterChanged;
     struct AdaMasterState* sharedMasters;
+    struct AdaAccessLevel* sharedAccessLevels;
+    unsigned int nextAccessLevel;
 } AdaTaskContext;
 
 /* Internal balanced regions. These never deliver abort or replace a pending
@@ -352,6 +355,15 @@ int64_t __ada_layout_append(int64_t offset, int64_t size, int64_t alignment);
 void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank, const char* identity);
 void* __ada_allocation_array_bounds(void* object, int rank);
 void __ada_access_check(int sourceLevel, int targetLevel);
+int __ada_current_access_level(void);
+void __ada_accessibility_check(int sourceLevel, int targetLevel);
+int __ada_collection_access_level(void* collection);
+void __ada_collection_set_access_level(void* collection, int level);
+void __ada_access_collection_parent(AdaMaster* master, int level);
+void __ada_access_parameter_adopt(AdaFinalization** owner, void** arena, void* object);
+void __ada_access_array_copy_bounds(void* object, int rank, const char* identity, void* descriptor);
+void __ada_access_return_check(int sourceLevel, int targetLevel, void* owner, void* resultOwner);
+void __ada_collection_finish_sized(void* pending, void* object, long size);
 void __ada_object_borrow(void* collection, void* object, const char* identity, int constrained);
 int __ada_access_constrained(void* object, const char* identity);
 void __ada_array_borrow(void* collection, void* object, const void* descriptor, int rank, const char* identity);

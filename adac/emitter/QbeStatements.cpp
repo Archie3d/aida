@@ -198,8 +198,48 @@ void QbeEmitter::emitStatement(Stmt* statement)
             jump(m_context->extendedReturnLabel);
             break;
         }
-        if (returnStatement->object != nullptr) {
+        std::string savedOwner = m_context->constructionOwner, savedArena = m_context->constructionArena;
+        std::string savedLevel = m_context->coextensionLevel;
+        if (hasAccessDiscriminants(resultType)) {
+            m_context->constructionOwner = "%.resultOwner";
+            m_context->constructionArena = "%.resultArena";
+            m_context->coextensionLevel = "%.resultAccessLevel";
+        }
+        auto checkResultAccess = [&]() {
+            if (!hasAccessDiscriminants(resultType)) { return; }
+            Value result {"%.result", 'l'};
+            if (isUnconstrainedArray(resultType)) { result = loadArrayView("%.result", resultType->arrayRank, true); }
+            checkAccessDiscriminants(result, resultType, accessLevelFor(m_context->symbol), "%.resultOwner");
+        };
+        if (returnStatement->object != nullptr && resultType->anonymousAccess) {
+            DeclList declarations;
+            declarations.push_back(std::move(returnStatement->object));
+            emitLocalDeclarations(declarations);
+            returnStatement->object = std::move(declarations.front());
+            auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
+            std::string savedReturn = m_context->extendedReturnLabel;
+            std::string bodyDone = newLabel("accessreturnbodydone");
+            m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
+            m_context->extendedReturnLabel = bodyDone;
+            if (returnStatement->handlers.empty()) { emitStatements(returnStatement->body); }
+            else {
+                std::string dispatch = newLabel("accessreturnhandler"), handled = newLabel("accessreturnhandled");
+                m_context->handlerStorage[dispatch] = storageCheckpoint();
+                pushHandler(dispatch);
+                emitStatements(returnStatement->body);
+                m_context->handlerLabels.pop_back();
+                jump(handled);
+                emitHandlers(returnStatement->handlers, handled, dispatch);
+                label(handled);
+            }
+            label(bodyDone);
+            m_context->extendedReturnLabel = savedReturn;
+            Value result = loadFrom(addressOf(object->symbols.front()), resultType);
+            line("storew " + accessLevelFor(resultType) + ", %.accessResultLevel");
+            emitReturn(result.name);
+        } else if (returnStatement->object != nullptr) {
             emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->object.get()), returnStatement);
+            checkResultAccess();
             emitReturn();
         } else if (returnStatement->value && isComposite(resultType)) {
             if (needsFinalization(resultType) || resultType->tagged) {
@@ -221,16 +261,24 @@ void QbeEmitter::emitStatement(Stmt* statement)
             } else {
                 assignInto(Value { "%.result", 'l' }, resultType, returnStatement->value.get(), true);
             }
+            checkResultAccess();
             emitReturn();
         } else if (returnStatement->value) {
             Value value = emitExpr(returnStatement->value.get());
             if (m_context->symbol != nullptr) {
                 emitRangeCheck(value, m_context->symbol->returnType, returnStatement->location);
             }
+            if (resultType->anonymousAccess) {
+                line("storew " + accessLevelFor(resultType) + ", %.accessResultLevel");
+            }
             emitReturn(value.name);
         } else {
+            checkResultAccess();
             emitReturn();
         }
+        m_context->constructionOwner = savedOwner;
+        m_context->constructionArena = savedArena;
+        m_context->coextensionLevel = savedLevel;
         m_context->terminated = true;
         break;
     }

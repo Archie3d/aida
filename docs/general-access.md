@@ -39,8 +39,9 @@ change on assignment. The analysis conservatively rejects such component Access
 through an unconstrained general mutable access view or unconstrained formal,
 even if a particular actual object is constrained.
 
-Anonymous access, access discriminants, null exclusions and broader generic
-formal access types remain separate roadmap items. Current limited instances
+[Anonymous access and access discriminants](anonymous-access.md) landed in the
+following Phase 6d item. Null exclusions and broader generic formal access types
+remain separate roadmap items. Current limited instances
 need the broader limited-type work in Phase 6f. Constraints on access subtypes,
 custom storage pools, and general representation freezing remain Phase 8 work;
 unsupported syntax receives diagnostics. Applications must synchronize concurrent
@@ -54,11 +55,13 @@ in whole/separate modes and determinism checks. The four-worker case shares
 borrowed array views across collections. Runtime ASan/UBSan and TSan checks
 instrument C runtime operations; generated Ada loads/stores are not instrumented.
 
-Unchanged ACATS C3A0013 is a pinned compile XFAIL for anonymous access
-discriminants, private extensions and package renaming; it also requires
+Unchanged ACATS C3A0013 is a pinned compile XFAIL for private extensions and
+package renaming (anonymous access discriminants now parse); it also requires
 limited current-instance Access (P6f) and a range attribute as an array type
-index range (P8). It is not an executable pass. C3A0014 in the selected GCC mirror tests the superseded Ada 95 rule that
+index range (P8). It is not an executable pass. C3A0014 in the selected GCC
+mirror tests the superseded Ada 95 rule that
 aliased default-discriminated objects are constrained, so it is inapplicable to
-this Ada 2005 behavior. C3A0015 requires custom storage pools; C3A2002/C3A2003
-and C460001/C460002 require anonymous access parameters; C3A2A01/C460A01/C460A02
-require broader generic formal access types. These cases are deferred intact.
+this Ada 2005 behavior. C3A0015 requires custom storage pools.
+C3A2002/C460001/C460002 now pass with
+anonymous parameters; C3A2003 still needs range-attribute aggregate choices.
+C3A2A01/C460A01/C460A02 require broader generic formal access types (6g).

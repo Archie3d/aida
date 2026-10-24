@@ -84,6 +84,7 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
     if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
         return false;
     }
+    if (access->accessProtected && candidate->protectedType == nullptr && !candidate->protectedAccessProfile) { return false; }
     Symbol* profile = access->accessProfile;
     bool sameResult = candidate->returnType == profile->returnType
         || SemaSupport::staticallyMatches(candidate->returnType, profile->returnType);
@@ -158,8 +159,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         if (chosen->protectedType != nullptr) {
-            m_diagnostics.error(expr->location, "access to protected subprograms is not yet supported");
-            return nullptr;
+            if (!expected->accessProtected || chosen->entry) {
+                m_diagnostics.error(expr->location, "access to protected subprograms requires an anonymous protected subprogram access type");
+                return nullptr;
+            }
+            Expr* object = expr->prefix->kind == ExprKind::Selected
+                ? static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get() : nullptr;
+            bindProtectedCall(expr, chosen, object, scope);
         }
         // A renaming is another view of the same callable entity.
         while (chosen->renamedSubprogram != nullptr) {
@@ -186,7 +192,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             accessible = accessible || enclosing == declarationScope;
         }
         // Library subprograms have no captured activation.
-        if (!accessible && chosen->level > 0) {
+        if (!accessible && chosen->level > 0 && !expected->accessProtected
+            && !(expected->anonymousAccess && expected->accessParameter)) {
             m_diagnostics.error(expr->location, "subprogram is deeper than the access type");
             return nullptr;
         }

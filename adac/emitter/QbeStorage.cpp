@@ -204,12 +204,35 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
         line(narrow + " =w copy " + temp);
         temp = narrow;
     }
-    return enumPosition(Value { temp, resultType }, type);
+    Value result = enumPosition(Value { temp, resultType }, type);
+    if (type->kind == TypeKind::Access && (type->accessParameter || type->accessDiscriminant)) {
+        std::string slot = newTemp();
+        result.accessLevel = newTemp();
+        line(slot + " =l add " + address.name + ", 8");
+        line(result.accessLevel + " =w loadsw " + slot);
+        if (type->accessDiscriminant) {
+            std::string ownerSlot = newTemp();
+            result.accessOwner = newTemp();
+            line(ownerSlot + " =l add " + address.name + ", 16");
+            line(result.accessOwner + " =l loadl " + ownerSlot);
+        }
+    }
+    return result;
 }
 
 void QbeEmitter::storeInto(const Value& address, const Value& position, Type* type)
 {
     Value value = enumCode(position, type);
+    if (type->kind == TypeKind::Access && (type->accessParameter || type->accessDiscriminant)) {
+        std::string slot = newTemp();
+        line(slot + " =l add " + address.name + ", 8");
+        line("storew " + (position.accessLevel.empty() ? (position.name == "0" ? "0" : accessLevelFor(type)) : position.accessLevel) + ", " + slot);
+        if (type->accessDiscriminant) {
+            std::string ownerSlot = newTemp();
+            line(ownerSlot + " =l add " + address.name + ", 16");
+            line("storel " + (position.accessOwner.empty() ? "0" : position.accessOwner) + ", " + ownerSlot);
+        }
+    }
     if (value.type == 'w' && typeSize(type) == 8) {
         std::string wide = newTemp();
         line(wide + " =l " + (scalarStorageSigned(type) ? "extsw " : "extuw ") + value.name);
@@ -707,4 +730,41 @@ void QbeEmitter::emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies
         if (copy.type->kind == TypeKind::Record) { emitRecordConstraintCheck(copy.temporary, copy.type); }
         copyInto(copy.actual, copy.temporary, copy.type);
     }
+}
+
+std::string QbeEmitter::currentAccessLevel()
+{
+    std::string level = newTemp();
+    emitCallInstruction(level + " =w call $__ada_current_access_level()", CallEffects::CheckException);
+    return level;
+}
+
+std::string QbeEmitter::accessLevelFor(Type* type)
+{
+    type = rootType(type);
+    while (type->parentType != nullptr) { type = type->parentType; }
+    if ((type->accessProfile != nullptr && !type->accessProtected) || type->collectionOwner == nullptr) { return "0"; }
+    Value collection = collectionFor(type);
+    std::string level = newTemp();
+    emitCallInstruction(level + " =w call $__ada_collection_access_level(l " + collection.name + ")", CallEffects::DeferredCheck);
+    return level;
+}
+
+std::string QbeEmitter::accessLevelFor(Symbol* symbol)
+{
+    if (symbol == nullptr || symbol->owner == nullptr || symbol->isGlobal) { return "0"; }
+    Value frame = symbol->owner == m_context->symbol ? Value {m_context->frameTemp, 'l'} : staticLinkFor(symbol->owner->level);
+    std::string slot = newTemp(), level = newTemp();
+    line(slot + " =l add " + frame.name + ", " + std::to_string(symbol->accessibilityOffset));
+    line(level + " =w loadsw " + slot);
+    return level;
+}
+
+void QbeEmitter::captureAccessLevel(Symbol* symbol)
+{
+    if (!symbol->needsAccessibility || symbol->owner == nullptr || symbol->isGlobal) { return; }
+    if (symbol->accessibilityOffset < 0) { symbol->accessibilityOffset = reserveFrame(4, 4); }
+    std::string slot = newTemp();
+    line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->accessibilityOffset));
+    line("storew " + currentAccessLevel() + ", " + slot);
 }

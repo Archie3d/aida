@@ -221,7 +221,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "an object renaming requires an object name");
             return;
         }
-        if (type == nullptr || targetType == nullptr || rootType(type) != rootType(targetType)) {
+        if (type == nullptr || targetType == nullptr || (rootType(type) != rootType(targetType)
+            && !(type->anonymousAccess && SemaSupport::staticallyMatches(type, targetType)))) {
             m_diagnostics.error(decl->location, "renamed object is not compatible with the declared subtype");
             return;
         }
@@ -408,7 +409,7 @@ static bool isPrimitive(Symbol* symbol)
         return true;
     }
     for (Symbol* parameter : symbol->parameters) {
-        if (belongsTo(parameter->type)) {
+        if (belongsTo(controllingParameterType(parameter->type))) {
             return true;
         }
     }
@@ -469,7 +470,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         bool matches = true;
         for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
-            matches = matches && rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i]);
+            matches = matches && (rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i])
+                    || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]));
         }
         if (matches && (candidate->inheritedFrom != nullptr || (isBody && candidate->overrides))) {
             overrides = true;
@@ -544,9 +546,12 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         bool matches = candidate->kind == SymbolKind::Subprogram
             && candidate->parameters.size() == parameterTypes.size()
-            && rootType(candidate->returnType) == rootType(returnType);
+            && (rootType(candidate->returnType) == rootType(returnType)
+                || SemaSupport::staticallyMatches(candidate->returnType, returnType));
         for (std::size_t i = 0; matches && i < parameterTypes.size(); ++i) {
-            matches = rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i]);
+            matches = (rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i])
+                    || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]))
+                || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]);
         }
         bool literalHomograph = candidate->kind == SymbolKind::EnumerationLiteral && parameterTypes.empty()
             && rootType(candidate->type) == rootType(returnType);
@@ -606,6 +611,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
     symbol->accessibilityLevel = m_accessibilityLevel;
+    symbol->needsAccessibility = hasAccessDiscriminants(returnType);
     if (symbol->owner != nullptr) {
         // Every intervening lexical level needs a link, even when it has no
         // captured variables of its own. Defaults can read through that level.

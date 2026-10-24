@@ -71,6 +71,25 @@ int main()
     Type* aliasedArray = types.makeSubtype("Aliased_Array", array, 0, 0);
     CHECK(aliasedArray->aliasedElements);
 
+    // Anonymous parameter/discriminant slots retain dynamic accessibility in
+    // addition to the pointer, while ordinary access values keep their ABI.
+    Type* parameterAccess = types.create(TypeKind::Access, "Parameter_Access");
+    parameterAccess->anonymousAccess = true;
+    parameterAccess->accessParameter = true;
+    parameterAccess->target = types.integerType();
+    CHECK(typeSize(parameterAccess) == 16 && typeAlignment(parameterAccess) == 8);
+    CHECK(std::strcmp(qbeLoadInstruction(parameterAccess), "loadl") == 0);
+    CHECK(std::strcmp(qbeStoreInstruction(parameterAccess), "storel") == 0);
+    Type* discriminantAccess = types.makeSubtype("Discriminant_Access", parameterAccess, 0, 0);
+    discriminantAccess->accessParameter = false;
+    discriminantAccess->accessDiscriminant = true;
+    CHECK(discriminantAccess->anonymousAccess && typeSize(discriminantAccess) == 24);
+    Type* tagged = types.create(TypeKind::Record, "Tagged");
+    tagged->tagged = true;
+    parameterAccess->target = tagged;
+    CHECK(controllingParameterType(parameterAccess) == tagged);
+    CHECK(controllingParameterType(general) == general);
+
     // The hidden actual-constraint argument depends on the nominal subtype
     // and mode; a constrained view must not inherit a mutable formal's ABI.
     Type* discriminated = types.create(TypeKind::Record, "Discriminated");

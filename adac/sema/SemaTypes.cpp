@@ -943,13 +943,17 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         }
         place(discriminant, -1, true);
         Type* discriminantType = type->fields.back().type;
+        if (discriminantType != nullptr && discriminantType->accessDiscriminant
+            && discriminant.defaultValue != nullptr && !definition->isLimited) {
+            m_diagnostics.error(discriminant.location, "an access discriminant default requires a limited type");
+        }
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, discriminant.lower, discriminant.name);
         symbol->type = discriminantType;
         symbol->isConstant = true;
         symbol->discriminantRecord = type;
         symbol->discriminantIndex = type->fields.back().index;
         componentScope->add(symbol);
-        if (!isDiscrete(discriminantType)) {
+        if (!isDiscrete(discriminantType) && !(discriminantType != nullptr && discriminantType->kind == TypeKind::Access)) {
             m_diagnostics.error(discriminant.location, "a discriminant has to be discrete, and '"
                                                            + (discriminantType != nullptr ? discriminantType->name
                                                                                           : std::string("it"))
@@ -1368,6 +1372,7 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (indication == nullptr) {
         return nullptr;
     }
+    if (indication->accessDefinition != nullptr) { return resolveAnonymousAccess(indication, scope); }
     Type* base = resolveTypeName(indication->lower, scope, indication->location);
     if (base == nullptr) {
         return nullptr;
@@ -1705,7 +1710,8 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         }
 
         long long fixed = 0;
-        if (!foldStatic(value, fixed) || (discriminantType != nullptr && discriminantType->scalarBoundsSymbol != nullptr)) {
+        if ((discriminantType != nullptr && discriminantType->kind == TypeKind::Access)
+            || !foldStatic(value, fixed) || (discriminantType != nullptr && discriminantType->scalarBoundsSymbol != nullptr)) {
             subtype->discriminantsKnown = false;
         } else if (discriminantType != nullptr && (fixed < discriminantType->low || fixed > discriminantType->high)) {
             m_diagnostics.error(value->location, describeValue(discriminantType, fixed) + " is not a value '"
@@ -1758,6 +1764,7 @@ bool Sema::typesCompatible(Type* target, Type* source) const
     if (target == nullptr || source == nullptr) {
         return true;
     }
+    if (target->anonymousAccess && compatibleAnonymousAccess(target, source)) { return true; }
     Type* left = rootType(target);
     Type* right = rootType(source);
     if (left->classRoot != nullptr) {
@@ -1832,7 +1839,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
     };
     consider(symbol->returnType);
     for (Symbol* parameter : symbol->parameters) {
-        consider(parameter->type);
+        consider(controllingParameterType(parameter->type));
     }
     if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
         symbol->privatePrimitiveTo = m_packages.back();
@@ -1870,7 +1877,8 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             }
             bool matches = true;
             for (std::size_t i = 0; i < symbol->parameters.size(); ++i) {
-                matches = matches && rootType(primitive->parameters[i]->type) == rootType(symbol->parameters[i]->type);
+                matches = matches && (rootType(primitive->parameters[i]->type) == rootType(symbol->parameters[i]->type)
+                    || SemaSupport::staticallyMatches(primitive->parameters[i]->type, symbol->parameters[i]->type));
             }
             if (matches) {
                 scope->remove(primitive);
@@ -1905,6 +1913,13 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
     // Constraints in the parent's profile survive derivation. In particular,
     // deriving from a constrained subtype does not narrow every inherited formal.
     auto corresponding = [&](Type* original) -> Type* {
+        if (original != nullptr && original->kind == TypeKind::Access && original->anonymousAccess
+            && original->accessParameter && rootType(original->target) == rootType(parent)) {
+            Type* access = m_types.create(TypeKind::Access, anonymousTypeName());
+            *access = *original;
+            access->target = type;
+            return access;
+        }
         if (original == nullptr || rootType(original) != rootType(parent)) {
             return original;
         }
@@ -1967,7 +1982,8 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             }
             bool matches = true;
             for (std::size_t i = 0; i < declared->parameters.size(); ++i) {
-                matches = matches && rootType(declared->parameters[i]->type) == rootType(inherited->parameters[i]->type);
+                matches = matches && (rootType(declared->parameters[i]->type) == rootType(inherited->parameters[i]->type)
+                    || SemaSupport::staticallyMatches(declared->parameters[i]->type, inherited->parameters[i]->type));
             }
             if (matches) {
                 bool subtypeConformant = declared->returnType == inherited->returnType

@@ -19,6 +19,8 @@ int __ada_protected_count(void** object, AdaProtectedBarrier barrier);
 void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* action);
 
 void __ada_protected_init(void** object);
+void __ada_protected_init_access(void** object, int accessLevel);
+int __ada_protected_access_level(void** object);
 void __ada_protected_destroy(void** object);
 void __ada_protected_enter(AdaTaskContext* context, void** object, AdaProtectedAction* action);
 void __ada_protected_leave(AdaTaskContext* context, AdaProtectedAction* action);

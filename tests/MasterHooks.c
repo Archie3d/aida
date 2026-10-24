@@ -15,6 +15,7 @@ typedef struct MasterState
     struct MasterState* previous;
     struct MasterState* next;
     int kind;
+    int accessId;
     int activated;
     int awaited;
 } MasterState;
@@ -25,6 +26,7 @@ static _Thread_local MasterState* owners[32];
 static _Thread_local int completed[32];
 static _Thread_local int skippedActivation;
 static _Thread_local int blocks;
+static _Thread_local int nextAccessId;
 
 void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 {
@@ -34,7 +36,7 @@ void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
     }
     MasterState* state = calloc(1, sizeof *state);
     CHECK(state != NULL);
-    *state = (MasterState) { master, context, top, records, kind, 0, 0 };
+    *state = (MasterState) { master, context, top, records, kind, ++nextAccessId, 0, 0 };
     master->state = state;
     records = state;
     if (kind != ADA_MASTER_COLLECTION) {
@@ -159,4 +161,28 @@ void __ada_environment_task_state(int completed, int terminated)
     CHECK(__ada_task_context() == &__ada_main_context);
     CHECK((completed == 0 || completed == 1) && (terminated == 0 || terminated == 1));
     CHECK(!terminated || completed);
+}
+
+/* These fixtures replace the complete master service, including its new
+   accessibility entry points. Keep the same ancestor rule as the runtime. */
+int __ada_current_access_level(void)
+{
+    return top == NULL || top->kind == ADA_MASTER_LIBRARY ? 0 : top->accessId;
+}
+
+void __ada_accessibility_check(int sourceLevel, int targetLevel)
+{
+    if (sourceLevel == 0) { return; }
+    MasterState* target = records;
+    while (target != NULL && target->accessId != targetLevel) { target = target->next; }
+    while (target != NULL && target->accessId != sourceLevel) { target = target->previous; }
+    if (target == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
+}
+
+void __ada_access_collection_parent(AdaMaster* master, int level)
+{
+    MasterState* state = master->state;
+    MasterState* parent = records;
+    while (parent != NULL && (level == 0 ? parent->kind != ADA_MASTER_LIBRARY : parent->accessId != level)) { parent = parent->next; }
+    state->previous = parent;
 }

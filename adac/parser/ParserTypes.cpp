@@ -43,7 +43,7 @@ DeclPtr Parser::parseSubtypeDecl()
     return decl;
 }
 
-TypeDefinitionPtr Parser::parseTypeDefinition()
+TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
 {
     SourceLocation location = current().location;
 
@@ -197,7 +197,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         expect(TokenKind::RightParen, "after array index list");
         expect(TokenKind::KwOf, "in array type definition");
         definition->aliasedElements = match(TokenKind::KwAliased);
-        definition->elementType = parseSubtypeIndication();
+        definition->elementType = parseSubtypeIndication(true);
         return definition;
     }
 
@@ -241,7 +241,9 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
         definition->location = location;
         advance();
         if (check(TokenKind::KwProtected)) {
-            fail("access-to-protected-subprogram types are not yet supported");
+            if (!allowProtectedAccess) { fail("access-to-protected-subprogram types are not yet supported"); }
+            advance();
+            definition->accessProtected = true;
         }
         definition->generalAccess = match(TokenKind::KwAll);
         if (definition->generalAccess && check(TokenKind::KwConstant)) {
@@ -264,7 +266,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
             }
             if (profile.isFunction) {
                 expect(TokenKind::KwReturn, "in access-to-function type");
-                profile.returnType = parseSubtypeIndication();
+                profile.returnType = parseSubtypeIndication(true);
             }
         } else {
             definition->parent = parseSubtypeIndication();
@@ -293,7 +295,8 @@ void Parser::parseDiscriminantPart(std::vector<RecordField>& discriminants)
             field.lower = lowered[i];
             field.location = location;
             m_position = subtypeStart;
-            field.subtype = parseSubtypeIndication();
+            field.subtype = parseSubtypeIndication(true);
+            field.subtype->accessDiscriminant = true;
             if (match(TokenKind::Assign)) {
                 field.defaultValue = parseExpression();
             }
@@ -333,7 +336,7 @@ void Parser::parseRecordComponents(std::vector<RecordField>& fields)
                 field.location = fieldLocation;
                 m_position = subtypeStart;
                 field.aliased = match(TokenKind::KwAliased);
-                field.subtype = parseSubtypeIndication();
+                field.subtype = parseSubtypeIndication(true);
                 if (match(TokenKind::Assign)) {
                     field.defaultValue = parseExpression();
                 }
@@ -399,13 +402,24 @@ VariantPartPtr Parser::parseVariantPart()
     return part;
 }
 
-SubtypeIndicationPtr Parser::parseSubtypeIndication()
+SubtypeIndicationPtr Parser::parseSubtypeIndication(bool allowAccess)
 {
     if (check(TokenKind::KwAliased)) {
         fail("aliased declarations are not yet supported");
     }
     auto indication = std::make_unique<SubtypeIndication>();
     indication->location = current().location;
+    if (check(TokenKind::KwAccess)) {
+        if (!allowAccess) { fail("an anonymous access definition is not allowed in this context"); }
+        if (peek(1).kind == TokenKind::KwAll) { fail("anonymous access definitions cannot specify 'all'"); }
+        indication->accessDefinition = parseTypeDefinition(true);
+        const auto& parent = indication->accessDefinition->parent;
+        if (parent != nullptr && (parent->rangeLow != nullptr || !parent->indexLows.empty()
+            || parent->digits != nullptr || parent->delta != nullptr)) {
+            fail("an anonymous access definition requires a subtype mark without a constraint");
+        }
+        return indication;
+    }
     indication->name = parseSubtypeMark(indication->lower);
 
     if (match(TokenKind::KwDigits)) {

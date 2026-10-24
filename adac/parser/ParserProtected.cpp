@@ -62,7 +62,7 @@ DeclPtr Parser::parseProtected()
                     field.location = fieldLocation;
                     field.name = names[i];
                     field.lower = lowered[i];
-                    field.subtype = parseSubtypeIndication();
+                    field.subtype = parseSubtypeIndication(true);
                     if (match(TokenKind::Assign)) {
                         field.defaultValue = parseExpression();
                     }

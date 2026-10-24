@@ -15,6 +15,27 @@ Value QbeEmitter::emitExpr(Expr* expr)
         m_context->sourceLocation = expr->location;
     }
     Value result = emitExprValue(expr);
+    if (expr != nullptr && expr->type != nullptr && expr->type->kind == TypeKind::Access) {
+        if (result.accessLevel.empty()) {
+            result.accessLevel = expr->kind == ExprKind::Null ? "0"
+                : expr->kind == ExprKind::Allocator && (expr->type->accessParameter || expr->type->accessDiscriminant)
+                    ? currentAccessLevel() : accessLevelFor(expr->type);
+        }
+        if (expr->kind == ExprKind::Allocator && expr->type->accessDiscriminant) {
+            result.accessOwner = m_context->constructionOwner.empty() ? m_context->finalizationChain : m_context->constructionOwner;
+            if (!m_context->coextensionLevel.empty()) { result.accessLevel = m_context->coextensionLevel; }
+        }
+        if (!(expr->kind == ExprKind::Allocator && expr->type->accessDiscriminant && !m_context->constructionOwner.empty())
+            && expr->accessCheckLevel >= 0 && result.accessLevel != "0") {
+            std::string targetLevel = expr->accessTarget->accessDiscriminant ? currentAccessLevel() : accessLevelFor(expr->accessTarget);
+            emitCallInstruction("call $__ada_accessibility_check(w " + result.accessLevel
+                + ", w " + targetLevel + ")", CallEffects::CheckException);
+        }
+        if (expr->accessTarget != nullptr && expr->accessTarget != expr->type
+            && !expr->accessTarget->accessParameter && !expr->accessTarget->accessDiscriminant) {
+            preserveAccessView(result, expr->accessTarget, expr->type);
+        }
+    }
     m_context->sourceLocation = saved;
     return result;
 }
@@ -170,9 +191,10 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             Value value = emitExpr(operand);
             if (expr->type->kind == TypeKind::Access && operand->type->kind == TypeKind::Access
                 && expr->type->accessProfile == nullptr && operand->type->accessProfile == nullptr) {
-                if (operand->type->accessLevel > expr->type->accessLevel) {
-                    emitCallInstruction("call $__ada_access_check(w " + std::to_string(operand->type->accessLevel)
-                        + ", w " + std::to_string(expr->type->accessLevel) + ")", CallEffects::CheckException);
+                if (operand->type->anonymousAccess
+                    || operand->type->accessLevel > expr->type->accessLevel) {
+                    emitCallInstruction("call $__ada_accessibility_check(w " + value.accessLevel
+                        + ", w " + accessLevelFor(expr->type) + ")", CallEffects::CheckException);
                 }
                 Type* target = expr->type->target;
                 Type* source = operand->type->target;
@@ -199,6 +221,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     jump(ready);
                     label(ready);
                 }
+                preserveAccessView(value, expr->type, operand->type);
+                value.accessLevel = accessLevelFor(expr->type);
+                value.accessOwner.clear();
                 return value;
             }
             if (expr->type->kind == TypeKind::Array) {
@@ -511,7 +536,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
     return Value { "0", 'l' };
 }
 
-Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
+Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
 {
     Type* designated = expr->designated;
     if (designated->discriminantPerEvaluation) { emitDiscriminantConstraint(designated); }
@@ -645,10 +670,18 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         return object;
     }
     {
-        Value collection = collectionFor(expr->type);
+        bool pendingObject = m_context->pendingExpression == expr;
+        Value collection = pendingObject ? Value {m_context->pendingCollection, 'l'} : collectionFor(expr->type);
         Value object { newTemp(), 'l' };
-        emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
-             + ", l " + size + ")", CallEffects::CheckException);
+        if (pendingObject) {
+            emitCallInstruction(object.name + " =l call $__ada_array_local(l " + m_context->constructionArena
+                + ", l 1, l 1, l " + size + ")", CallEffects::CheckException);
+            emitCallInstruction("call $__ada_collection_finish_sized(l " + m_context->pendingAllocation
+                + ", l " + object.name + ", l " + size + ")", CallEffects::CheckException);
+        } else {
+            emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
+                 + ", l " + size + ")", CallEffects::CheckException);
+        }
         if (array) { bounds.name = object.name; bounds.type = 'l'; object = bounds; }
         std::string failed = newLabel("allocationfailed");
         std::string ready = newLabel("allocationready");
@@ -661,6 +694,8 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
                 + ", w " + std::to_string(designated->arrayRank)
                 + ", l " + stringData(rootType(expr->type->target)->accessIdentity) + ")", CallEffects::CheckException);
         }
+        object.accessLevel = expr->type->accessDiscriminant && !m_context->coextensionLevel.empty() ? m_context->coextensionLevel
+            : expr->type->accessParameter || expr->type->accessDiscriminant ? currentAccessLevel() : accessLevelFor(expr->type);
         initializeDependentStorage(object, designated);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
             if (partType->dependentStorage) { line("storel 0, " + part.name); }
@@ -702,6 +737,9 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         m_context->constructionOwner = savedOwner;
         m_context->constructionArena = savedArena;
         if (designated->kind == TypeKind::Record) { emitRecordConstraintCheck(object, expr->type->target); }
+        checkAccessDiscriminants(object, designated,
+            expr->type->accessParameter || expr->type->accessDiscriminant ? currentAccessLevel() : accessLevelFor(expr->type),
+            savedOwner.empty() ? "0" : savedOwner);
         if (hasTasks(designated)) {
             emitCallInstruction("call $__ada_task_activate_group(l %.taskContext, l " + collection.name + ", l " + object.name + ")", CallEffects::DeferredCheck);
         } else {
@@ -716,7 +754,7 @@ Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
         m_context->handlerLabels.pop_back();
         jump(ready);
         label(failed);
-        emitCallInstruction("call $__ada_deallocate(l " + object.name + ")", CallEffects::DeferredCheck);
+        if (!pendingObject) { emitCallInstruction("call $__ada_deallocate(l " + object.name + ")", CallEffects::DeferredCheck); }
         if (!m_context->handlerLabels.empty()) {
             jump(m_context->handlerLabels.back());
         } else {
@@ -836,7 +874,8 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
     }
     m_context->discriminantObjects = std::move(savedObjects);
     if (base->protectedScope != nullptr) {
-        emitCallInstruction("call $__ada_protected_init(l " + address.name + ")", CallEffects::CheckException);
+        emitCallInstruction("call $__ada_protected_init_access(l " + address.name + ", w "
+            + (address.accessLevel.empty() ? currentAccessLevel() : address.accessLevel) + ")", CallEffects::CheckException);
         activateControlledObject(address, type);
     }
     if (base->controlled) {
@@ -844,4 +883,43 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         emitExceptionCheck();
         activateControlledObject(address, type);
     }
+}
+
+Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
+{
+    if (!hasAccessDiscriminants(expr->designated)) { return emitAllocatorValue(expr); }
+    Value collection = collectionFor(expr->type);
+    std::string pending = newTemp();
+    emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
+    std::string failed = newLabel("coextensionfailed"), done = newLabel("coextensiondone");
+    pushHandler(failed);
+    AllocatorExpr* savedExpression = m_context->pendingExpression;
+    std::string savedPending = m_context->pendingAllocation;
+    std::string savedCollection = m_context->pendingCollection;
+    std::string savedOwner = m_context->constructionOwner, savedArena = m_context->constructionArena;
+    std::string savedLevel = m_context->coextensionLevel;
+    m_context->pendingExpression = expr;
+    m_context->pendingAllocation = pending;
+    m_context->pendingCollection = collection.name;
+    m_context->constructionOwner = newTemp();
+    m_context->constructionArena = newTemp();
+    m_context->coextensionLevel = expr->type->accessDiscriminant && !savedLevel.empty() ? savedLevel
+        : expr->type->accessParameter || expr->type->accessDiscriminant ? currentAccessLevel() : accessLevelFor(expr->type);
+    emitCallInstruction(m_context->constructionOwner + " =l call $__ada_collection_result_owner(l " + pending + ")", CallEffects::DeferredCheck);
+    emitCallInstruction(m_context->constructionArena + " =l call $__ada_collection_result_arena(l " + pending + ")", CallEffects::DeferredCheck);
+    Value result = emitAllocatorValue(expr);
+    m_context->pendingExpression = savedExpression;
+    m_context->pendingAllocation = savedPending;
+    m_context->pendingCollection = savedCollection;
+    m_context->constructionOwner = savedOwner;
+    m_context->constructionArena = savedArena;
+    m_context->coextensionLevel = savedLevel;
+    m_context->handlerLabels.pop_back();
+    jump(done);
+    label(failed);
+    emitCallInstruction("call $__ada_collection_abort(l " + pending + ")", CallEffects::DeferredCheck);
+    if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
+    else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
+    label(done);
+    return result;
 }

@@ -101,9 +101,9 @@ bool Sema::matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,
         if (!matchesExpression(expr->arguments[i].value.get(), scope, candidate->parameters[positions[i]]->type)) {
             Type* controlling = candidate->controllingType;
             bool dispatch = false;
-            if (controlling != nullptr && rootType(candidate->parameters[positions[i]]->type) == controlling) {
+            if (controlling != nullptr && controllingParameterType(candidate->parameters[positions[i]]->type) == controlling) {
                 for (Type* actual : expressionTypes(expr->arguments[i].value.get(), scope)) {
-                    dispatch = dispatch || actual->classRoot == controlling;
+                    dispatch = dispatch || designatedViewType(actual)->classRoot == controlling;
                 }
             }
             if (!dispatch) {
@@ -284,9 +284,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     Type* resultType = symbol->returnType;
                     if (symbol->controllingType != nullptr && rootType(resultType) == symbol->controllingType) {
                         for (std::size_t i = 0; i < positions.size(); ++i) {
-                            if (rootType(symbol->parameters[positions[i]]->type) == symbol->controllingType) {
+                            if (controllingParameterType(symbol->parameters[positions[i]]->type) == symbol->controllingType) {
                                 for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
-                                    if (actual->classRoot == symbol->controllingType) {
+                                    if (designatedViewType(actual)->classRoot == symbol->controllingType) {
                                         resultType = classWideType(symbol->controllingType);
                                     }
                                 }

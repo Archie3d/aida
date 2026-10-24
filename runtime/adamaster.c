@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#include <limits.h>
 
 _Static_assert(sizeof(AdaMaster) == 8, "master record QBE ABI");
 
@@ -130,6 +131,69 @@ static AdaMasterState* registerMaster(AdaTaskContext* context, AdaMaster* master
     return state;
 }
 
+typedef struct AdaAccessLevel
+{
+    struct AdaAccessLevel* next;
+    AdaMaster* master;
+    int id;
+    int parent;
+} AdaAccessLevel;
+
+/* Called with the shared master mutex held. IDs are never reused, and records
+   are removed when their master leaves. No generated stack address escapes. */
+static int accessLevelForMaster(AdaMaster* master)
+{
+    if (master == NULL || master == &__ada_main_context.libraryMaster) { return 0; }
+    for (AdaAccessLevel* entry = __ada_main_context.sharedAccessLevels; entry != NULL; entry = entry->next) {
+        if (entry->master == master) { return entry->id; }
+    }
+    int parent = master->state != NULL ? accessLevelForMaster(master->state)
+        : __ada_task_context()->accessibilityParentLevel;
+    if (__ada_exception != NULL) { return 0; }
+    if (__ada_main_context.nextAccessLevel == INT_MAX) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+    AdaAccessLevel* entry = malloc(sizeof *entry);
+    if (entry == NULL) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+    *entry = (AdaAccessLevel) {__ada_main_context.sharedAccessLevels, master,
+        (int)++__ada_main_context.nextAccessLevel, parent};
+    __ada_main_context.sharedAccessLevels = entry;
+    return entry->id;
+}
+
+int __ada_current_access_level(void)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    int level = accessLevelForMaster(__ada_task_context()->currentMaster);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    return level;
+}
+
+void __ada_accessibility_check(int sourceLevel, int targetLevel)
+{
+    if (sourceLevel == 0) { return; }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    int level = targetLevel;
+    while (level != 0 && level != sourceLevel) {
+        AdaAccessLevel* entry = __ada_main_context.sharedAccessLevels;
+        while (entry != NULL && entry->id != level) { entry = entry->next; }
+        level = entry == NULL ? 0 : entry->parent;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (level != sourceLevel) { __ada_raise(ADA_PROGRAM_ERROR); }
+}
+
+static void forgetAccessMaster(AdaMaster* master)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaAccessLevel** link = &__ada_main_context.sharedAccessLevels;
+    while (*link != NULL && (*link)->master != master) { link = &(*link)->next; }
+    if (*link != NULL) {
+        AdaAccessLevel* entry = *link;
+        *link = entry->next;
+        free(entry);
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
 void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 {
     master->state = context->currentMaster;
@@ -226,6 +290,9 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
     task->link = link;
     task->group = group;
     task->elaborated = elaborated;
+    task->context.accessibilityParentLevel = collection != NULL
+        ? __ada_collection_access_level(collection) : __ada_current_access_level();
+    if (context->exception != NULL) { __ada_condition_destroy(&task->condition); __ada_mutex_destroy(&task->mutex); free(task); return; }
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     AdaMasterState* state = findMaster(master);
     if (state == NULL) {
@@ -459,5 +526,19 @@ void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
     if (context->currentMaster == master) {
         context->currentMaster = master->state;
     }
+    forgetAccessMaster(master);
     master->state = NULL;
+}
+
+void __ada_access_collection_parent(AdaMaster* master, int level)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaMaster* parent = level == 0 ? &__ada_main_context.libraryMaster : NULL;
+    for (AdaAccessLevel* entry = __ada_main_context.sharedAccessLevels; parent == NULL && entry != NULL; entry = entry->next) {
+        if (entry->id == level) { parent = entry->master; }
+    }
+    AdaMasterState* state = findMaster(master);
+    if (state != NULL && parent != NULL) { state->parent = parent; master->state = parent; }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (parent == NULL || state == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
 }

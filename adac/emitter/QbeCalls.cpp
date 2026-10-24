@@ -142,6 +142,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         line(callee + " =l loadl " + descriptor.name);
         line(linkSlot + " =l add " + descriptor.name + ", 8");
         line(indirectLink + " =l loadl " + linkSlot);
+        if (subprogram->protectedAccessProfile) {
+            std::string objectSlot = newTemp();
+            protectedObject = Value {newTemp(), 'l'};
+            line(objectSlot + " =l add " + descriptor.name + ", 16");
+            line(protectedObject.name + " =l loadl " + objectSlot);
+        }
     }
 
     struct ScalarCopyBack
@@ -155,13 +161,25 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     std::vector<StorageCopyBack> storageCopies;
     std::vector<ArrayCopyBack> arrayCopies;
     std::vector<std::string> arguments;
+    bool accessReturn = subprogram->returnType != nullptr && subprogram->returnType->anonymousAccess;
+    std::string accessResultLevel;
+    if (accessReturn) {
+        accessResultLevel = allocScratch(4, 4);
+        line("storew 0, " + accessResultLevel);
+        arguments.push_back("l " + accessResultLevel);
+    }
     bool compositeResult = isComposite(subprogram->returnType);
-    bool controlledResult = needsFinalization(subprogram->returnType)
+    bool accessResult = hasAccessDiscriminants(subprogram->returnType);
+    bool controlledResult = accessResult || needsFinalization(subprogram->returnType)
         || (subprogram->returnType != nullptr && subprogram->returnType->tagged);
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
     bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->tagged;
     std::string resultStorage;
     bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
+    if (accessResult) {
+        if (resultOwner.empty()) { resultOwner = construction.savedOwner.empty() ? m_context->finalizationChain : construction.savedOwner; }
+        if (resultArena.empty()) { resultArena = construction.savedArena.empty() ? storageArena(false, true) : construction.savedArena; }
+    }
     if (compositeResult) {
         resultStorage = taggedResult || dynamicResult
             ? allocScratch(taggedResult ? 8 : adaArrayResultSize(subprogram->returnType->arrayRank), 8)
@@ -188,12 +206,15 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             }
         }
     }
+    if (accessResult) {
+        arguments.push_back("w " + (m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel));
+    }
     if (subprogram->level > 0 && !expr->dispatching) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
     }
 
-    if (subprogram->protectedType != nullptr) {
+    if (subprogram->protectedType != nullptr || subprogram->protectedAccessProfile) {
         arguments.push_back("l " + protectedObject.name);
     }
 
@@ -211,10 +232,11 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     if (expr->dispatching) {
         for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
             Expr* argument = expr->resolvedArguments[i];
-            if (rootType(subprogram->parameters[i]->type) == subprogram->controllingType
+            if (controllingParameterType(subprogram->parameters[i]->type) == subprogram->controllingType
                 && !argument->tagIndeterminate) {
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
+                if (subprogram->parameters[i]->type->kind == TypeKind::Access) { checkNotNull(value); }
                 if (m_context->controllingTag == tagContext.saved) {
                     std::string tag = newTemp();
                     line(tag + " =l loadl " + value.name);
@@ -304,9 +326,14 @@ Value QbeEmitter::emitCall(CallExpr* expr)
                 }
             }
         } else {
-            Value value = emitExpr(argument);
+            Value value = expr->dispatching && controllingParameterType(parameter->type) == subprogram->controllingType
+                ? controllingValues[i] : Value {};
+            if (value.name.empty()) { value = emitExpr(argument); }
+            if (parameter->type->accessParameter && subprogram->controllingType != nullptr
+                && controllingParameterType(parameter->type) == subprogram->controllingType) { checkNotNull(value); }
             emitRangeCheck(value, parameter->type, argument->location);
             arguments.push_back(std::string(1, qbeClass(parameter->type)) + " " + value.name);
+            if (parameter->type->accessParameter) { arguments.push_back("w " + (argument->kind == ExprKind::Allocator ? "-1" : value.accessLevel)); }
         }
     }
 
@@ -344,7 +371,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
 
     std::string protectedAction;
-    if (expr->protectedObject != nullptr && subprogram->protectedType != nullptr) {
+    if ((expr->protectedObject != nullptr && subprogram->protectedType != nullptr) || subprogram->protectedAccessProfile) {
         protectedAction = allocScratch(16);
         if (subprogram->entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
@@ -379,7 +406,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         branch(Value { hasLink, 'w' }, nested, library);
         label(nested);
         std::vector<std::string> linked = arguments;
-        linked.insert(linked.begin() + (controlledResult ? ((taggedResult || limitedResult) ? 4 : 3) : compositeResult ? 1 : 0), "l " + indirectLink);
+        linked.insert(linked.begin() + ((controlledResult ? ((taggedResult || limitedResult) ? 4 : 3) : compositeResult ? 1 : 0) + (accessResult ? 1 : 0) + (accessReturn ? 1 : 0)), "l " + indirectLink);
         std::string linkedArguments;
         for (const std::string& argument : linked) {
             linkedArguments += (linkedArguments.empty() ? "" : ", ") + argument;
@@ -407,6 +434,10 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         }
     }
     emitExceptionCheck();
+    if (accessReturn) {
+        result.accessLevel = newTemp();
+        line(result.accessLevel + " =w loadsw " + accessResultLevel);
+    }
     if (dispatchEquality && subprogram->name == "/=") {
         std::string negated = newTemp();
         line(negated + " =w ceqw " + result.name + ", 0");

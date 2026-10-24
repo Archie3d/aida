@@ -47,11 +47,11 @@ private:
     // Types and ranges (ParserTypes.cpp).
     DeclPtr parseTypeDecl();
     DeclPtr parseSubtypeDecl();
-    TypeDefinitionPtr parseTypeDefinition();
+    TypeDefinitionPtr parseTypeDefinition(bool allowProtectedAccess = false);
     void parseDiscriminantPart(std::vector<RecordField>& discriminants);
     void parseRecordComponents(std::vector<RecordField>& fields);
     VariantPartPtr parseVariantPart();
-    SubtypeIndicationPtr parseSubtypeIndication();
+    SubtypeIndicationPtr parseSubtypeIndication(bool allowAccess = false);
     void parseDiscreteRange(std::string& typeName, std::string& typeLower, ExprPtr& low, ExprPtr& high);
 
     // Subprograms (ParserSubprograms.cpp).

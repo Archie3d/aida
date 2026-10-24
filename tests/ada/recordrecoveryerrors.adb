@@ -1,14 +1,14 @@
 procedure RecordRecoveryErrors is
     type Node;
     type Node is record
-        Next : access Node;
+        Next : access all Node;
         Value : Integer;
-        Other : access Node;
+        Other : access all Node;
     end record;
     type Variant (Flag : Boolean) is record
         case Flag is
             when True =>
-                Next : access Node;
+                Next : access all Node;
             when False =>
                 Value : Integer;
         end case;

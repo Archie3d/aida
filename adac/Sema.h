@@ -211,6 +211,9 @@ private:
 
     // SemaAttributes.cpp
     Type* analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected = nullptr);
+    Type* resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope);
+    bool compatibleAnonymousAccess(Type* target, Type* source) const;
+    void checkAnonymousAccess(Expr* expr, Type* expected, Type* actual);
     Type* analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expected);
     bool checkObjectAccessConversion(CallExpr* expr, Type* target, Type* source);
     bool matchesAccessProfile(Symbol* candidate, Type* access) const;

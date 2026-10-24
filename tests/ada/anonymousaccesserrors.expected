@@ -1,0 +1,8 @@
+anonymousaccesserrors.adb:8:10: error: a constant access view cannot be modified
+anonymousaccesserrors.adb:13:21: error: object is deeper than the access type
+anonymousaccesserrors.adb:16:38: error: an anonymous access-to-subprogram parameter cannot escape its call
+anonymousaccesserrors.adb:20:23: error: an access discriminant default requires a limited type
+anonymousaccesserrors.adb:28:5: error: the assigned value has an incompatible type
+anonymousaccesserrors.adb:29:11: error: no visible subprogram matches this call
+anonymousaccesserrors.adb:35:18: error: source access value is deeper than the anonymous access type
+anonymousaccesserrors.adb:36:23: error: source access value is deeper than the anonymous access type

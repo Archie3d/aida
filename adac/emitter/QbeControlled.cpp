@@ -3,7 +3,7 @@
 
 void QbeEmitter::initializeCollection(Type* type)
 {
-    if (!needsCollection(type) || type->parentType != nullptr || m_initializedCollections.contains(type)) {
+    if (!needsCollection(type) || type->accessParameter || type->accessDiscriminant || type->parentType != nullptr || m_initializedCollections.contains(type)) {
         return;
     }
     m_initializedCollections[type] = true;
@@ -25,6 +25,20 @@ void QbeEmitter::initializeCollection(Type* type)
 Value QbeEmitter::collectionFor(Type* type)
 {
     type = rootType(type);
+    if (type->anonymousAccess && (type->accessParameter || type->accessDiscriminant)) {
+        Value collection {newTemp(), 'l'};
+        std::string owner = type->accessParameter ? m_context->temporaryFinalizationChain
+            : !m_context->constructionOwner.empty() ? m_context->constructionOwner : m_context->finalizationChain;
+        std::string arena = type->accessParameter ? storageArena(true, true)
+            : !m_context->constructionArena.empty() ? m_context->constructionArena : storageArena(false, true);
+        emitCallInstruction(collection.name + " =l call $__ada_collection_create(l " + owner
+            + ", l " + arena + ")", CallEffects::CheckException);
+        if (type->accessDiscriminant && !m_context->coextensionLevel.empty()) {
+            emitCallInstruction("call $__ada_collection_set_access_level(l " + collection.name
+                + ", w " + m_context->coextensionLevel + ")", CallEffects::CheckException);
+        }
+        return collection;
+    }
     // Derived access types share the parent's pool and collection lifetime.
     while (type->parentType != nullptr) {
         type = type->parentType;

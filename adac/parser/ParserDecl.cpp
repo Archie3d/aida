@@ -114,7 +114,7 @@ DeclPtr Parser::parseObjectOrNumberDecl()
     decl->namesLower = std::move(lowered);
     decl->isConstant = isConstant;
     decl->aliased = aliased;
-    decl->subtype = parseSubtypeIndication();
+    decl->subtype = parseSubtypeIndication(true);
     if (match(TokenKind::KwRenames)) {
         if (decl->names.size() != 1 || isConstant || aliased) {
             fail("an object renaming requires one name and no constant keyword");

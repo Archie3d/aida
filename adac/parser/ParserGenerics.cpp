@@ -135,7 +135,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 m_diagnostics.error(formal.location, "a generic formal object mode must be in or in out");
             }
             start = m_position;
-            formal.subtype = parseSubtypeIndication();
+            formal.subtype = parseSubtypeIndication(true);
             if (match(TokenKind::Assign)) {
                 formal.defaultValue = parseExpression();
                 if (formal.mode != ParameterMode::In) {
