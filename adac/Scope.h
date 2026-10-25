@@ -11,10 +11,7 @@
 class Scope
 {
 public:
-    explicit Scope(Scope* parent = nullptr)
-        : m_parent(parent)
-    {
-    }
+    explicit Scope(Scope* parent = nullptr);
 
     void add(Symbol* symbol);
     void addUseScope(Scope* scope, Symbol* privateTo = nullptr);

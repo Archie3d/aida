@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+Scope::Scope(Scope* parent)
+    : m_parent(parent)
+{
+}
+
 void Scope::add(Symbol* symbol)
 {
     m_symbols[symbol->name].push_back(symbol);
