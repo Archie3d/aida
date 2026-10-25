@@ -283,7 +283,7 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
             })) { m_abstractDefaultCalls.push_back(expr); }
         expr->type = chosen->returnType;
         expr->tagIndeterminate = chosen->controllingType != nullptr
-            && rootType(chosen->returnType) == chosen->controllingType
+            && controllingResultType(chosen->returnType) == chosen->controllingType
             && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
                 return controllingParameterType(parameter->type) == chosen->controllingType
                     && (!parameter->hasDefault || !parameter->defaultExpr->tagIndeterminate);
@@ -336,7 +336,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
                 })) { m_abstractDefaultCalls.push_back(expr); }
             expr->type = chosen->returnType;
             expr->tagIndeterminate = chosen->controllingType != nullptr
-                && rootType(chosen->returnType) == chosen->controllingType
+                && controllingResultType(chosen->returnType) == chosen->controllingType
                 && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
                     return controllingParameterType(parameter->type) == chosen->controllingType
                         && (!parameter->hasDefault || !parameter->defaultExpr->tagIndeterminate);
@@ -391,6 +391,12 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         }
     }
     Type* prefixType = analyzeExpr(expr->prefix.get(), scope, ambiguousPrefix ? nullptr : prefixContext);
+    // This context selects an overload; merely selecting/dereferencing its
+    // result does not store an access value in that result type's declaration.
+    if (prefixContext != nullptr) {
+        expr->prefix->accessCheckLevel = -1;
+        expr->prefix->accessTarget = nullptr;
+    }
 
     if (expr->isDereference) {
         Type* access = baseType(prefixType);
@@ -399,6 +405,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         expr->type = completeView(access->target, scope);
+        expr->tagIndeterminate = expr->prefix->tagIndeterminate;
         return expr->type;
     }
 
@@ -505,6 +512,21 @@ Type* Sema::classWideType(Type* specific)
     return specific->classWide;
 }
 
+Type* Sema::dispatchingResultType(Symbol* operation)
+{
+    Type* result = operation->returnType;
+    if (result == nullptr || operation->controllingType == nullptr
+        || controllingResultType(result) != operation->controllingType) { return result; }
+    if (!result->anonymousAccess) { return classWideType(operation->controllingType); }
+    auto found = m_dispatchingResultTypes.find(result);
+    if (found != m_dispatchingResultTypes.end()) { return found->second; }
+    Type* view = m_types.create(TypeKind::Access, anonymousTypeName());
+    *view = *result;
+    view->target = classWideType(operation->controllingType);
+    m_dispatchingResultTypes[result] = view;
+    return view;
+}
+
 // Resolution has already selected the specific operation. A surrounding
 // dispatch or class-wide assignment supplies the tag without re-resolving names.
 void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
@@ -520,6 +542,8 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
         dispatchIndeterminate(static_cast<BinaryExpr*>(expr)->operatorCall.get(), controlling);
     } else if (expr->kind == ExprKind::Unary) {
         dispatchIndeterminate(static_cast<UnaryExpr*>(expr)->operatorCall.get(), controlling);
+    } else if (expr->kind == ExprKind::Selected && static_cast<SelectedExpr*>(expr)->isDereference) {
+        dispatchIndeterminate(static_cast<SelectedExpr*>(expr)->prefix.get(), controlling);
     } else if (expr->kind == ExprKind::Call) {
         auto* call = static_cast<CallExpr*>(expr);
         if (call->operatorExpression != nullptr) {
@@ -528,13 +552,20 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
         if (call->subprogram != nullptr && call->subprogram->controllingType == controlling) {
             call->dispatching = true;
             for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
-                if (rootType(call->subprogram->parameters[i]->type) == controlling) {
+                if (controllingParameterType(call->subprogram->parameters[i]->type) == controlling) {
                     dispatchIndeterminate(call->resolvedArguments[i], controlling);
                 }
             }
         }
     }
-    if (rootType(expr->type) == controlling) {
-        expr->type = classWideType(controlling);
+    if (controllingResultType(expr->type) == controlling) {
+        if (expr->type->anonymousAccess) {
+            Symbol operation;
+            operation.returnType = expr->type;
+            operation.controllingType = controlling;
+            expr->type = dispatchingResultType(&operation);
+        } else {
+            expr->type = classWideType(controlling);
+        }
     }
 }

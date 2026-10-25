@@ -104,6 +104,8 @@ Supported:
   ([limits](docs/null-exclusions.md))
 - Primitive inheritance, overriding checks, operator visibility and dispatch through private overrides ([operators](docs/operator-visibility.md))
 - Abstract subprograms, required overrides and dispatching calls ([limits](docs/abstract-subprograms.md))
+- Overriding indicators, null procedures and controlling access results
+  ([contract](docs/overriding-null-procedures.md))
 - Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
 - Entry-free tasks, grouped activation, master-based waiting and task identity/status
 - Protected types and single objects with procedures, functions and guarded entries
@@ -122,7 +124,7 @@ Not supported yet:
   protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Interfaces, controlling access results, task/protected subunits and formal packages
+- Interfaces, task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals

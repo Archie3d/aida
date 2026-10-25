@@ -270,6 +270,7 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
     for (std::size_t i = symbols.size(); i > m_instanceFirstSymbol; --i) {
         Symbol* candidate = symbols[i - 1].get();
         if (candidate->kind == symbol->kind && candidate->inheritedFrom == origin
+            && (candidate->negatedEquality == nullptr) == (symbol->negatedEquality == nullptr)
             && (candidate->name == symbol->name || (symbol->name == m_replayContract->unitName
                 && (symbol->kind == SymbolKind::Subprogram || symbol->kind == SymbolKind::Package)))
             && contractKey(candidate->location) == contractKey(symbol->location)) {
@@ -1134,6 +1135,51 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         Symbol* symbol = declaredSymbol(unit.get());
         if (symbol != nullptr && symbol->name == instanceName) {
             decl->symbol = symbol;
+            if (symbol->kind == SymbolKind::Subprogram) {
+                symbol->declarationScope = home;
+                for (Symbol* inherited : home->lookupDeclaration(symbol->name)) {
+                    bool matches = inherited->kind == SymbolKind::Subprogram
+                        && inherited->parameters.size() == symbol->parameters.size()
+                        && SemaSupport::profileTypeMatches(inherited->returnType, symbol->returnType);
+                    for (std::size_t i = 0; matches && i < symbol->parameters.size(); ++i) {
+                        matches = SemaSupport::profileTypeMatches(inherited->parameters[i]->type, symbol->parameters[i]->type);
+                    }
+                    if (inherited->kind != SymbolKind::Subprogram || (matches && inherited->inheritedFrom == nullptr)) {
+                        m_diagnostics.error(decl->location, "'" + decl->name + "' has already been declared in this scope");
+                    }
+                    if (matches && inherited->inheritedFrom != nullptr) {
+                        symbol->overrides = true;
+                        bool conforms = inherited->returnType == symbol->returnType
+                            || SemaSupport::staticallyMatches(inherited->returnType, symbol->returnType);
+                        for (std::size_t i = 0; i < symbol->parameters.size(); ++i) {
+                            conforms = conforms && inherited->parameters[i]->mode == symbol->parameters[i]->mode
+                                && SemaSupport::staticallyMatches(inherited->parameters[i]->type, symbol->parameters[i]->type);
+                        }
+                        if (inherited->dispatchSlot >= 0 && !conforms) {
+                            m_diagnostics.error(decl->location, "overriding dispatching profile must be subtype conformant with the inherited operation");
+                        }
+                    }
+                }
+                for (Symbol* parameter : symbol->parameters) {
+                    Type* type = parameter->type;
+                    if (type->anonymousAccess && type->accessParameter && type->target != nullptr
+                        && rootType(type->target)->declarationScope == home && rootType(type->target)->tagged
+                        && !type->excludesNull) {
+                        m_diagnostics.error(decl->location, "a controlling access parameter of a generic instance must exclude null");
+                    }
+                }
+                registerPrimitive(symbol, home);
+                checkOverridingIndicator(symbol, decl->overriding, decl->location);
+                if (symbol->name == "=" && m_types.isBoolean(symbol->returnType)) {
+                    for (Symbol* complement : bindings->lookupLocal("/=")) {
+                        if (complement->negatedEquality != symbol) { continue; }
+                        complement->declarationScope = home;
+                        complement->overrides = symbol->overrides;
+                        registerPrimitive(complement, home);
+                        home->add(complement);
+                    }
+                }
+            }
             home->add(symbol);
             break;
         }
@@ -1242,7 +1288,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     // A result's dispatching tag can come from its enclosing call or assignment.
     auto dispatchingCall = [](Expr* call) {
         return call->kind == ExprKind::Call ? static_cast<CallExpr*>(call)->dispatching
-            : call->tagIndeterminate && call->type != nullptr && call->type->classRoot != nullptr;
+            : call->tagIndeterminate && call->type != nullptr && designatedViewType(call->type)->classRoot != nullptr;
     };
     std::unordered_set<Expr*> abstractCalls;
     for (Expr* call : m_abstractCalls) {

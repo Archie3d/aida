@@ -1,12 +1,13 @@
 abstractdeclarationerrors.adb:4:9: error: an abstract primitive requires an abstract tagged type
 abstractdeclarationerrors.adb:8:9: error: a function returning an abstract type must be abstract
-abstractdeclarationerrors.adb:9:9: error: dispatching functions with controlling access results are not yet supported
 abstractdeclarationerrors.adb:15:13: error: a record component cannot have an abstract type
 abstractdeclarationerrors.adb:17:9: error: an array component cannot have an abstract type
 abstractdeclarationerrors.adb:21:9: error: a nonabstract private view cannot have an abstract full view
 abstractdeclarationerrors.adb:22:9: error: a private abstract primitive must override a visible inherited abstract operation
 abstractdeclarationerrors.adb:10:9: error: inherited operation 'Act' must be overridden with a nonabstract subprogram
+abstractdeclarationerrors.adb:10:9: error: inherited operation 'Access_Result' must be overridden with a nonabstract subprogram
 abstractdeclarationerrors.adb:13:9: error: inherited operation 'Act' must be overridden with a nonabstract subprogram
+abstractdeclarationerrors.adb:13:9: error: inherited operation 'Access_Result' must be overridden with a nonabstract subprogram
 abstractdeclarationerrors.adb:19:9: error: 'Hidden_Concrete' is never described
 abstractdeclarationerrors.adb:25:9: error: an abstract subprogram cannot have a body
 abstractdeclarationerrors.adb:26:9: error: a renaming-as-body cannot rename an abstract subprogram

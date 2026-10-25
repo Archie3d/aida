@@ -426,7 +426,7 @@ static bool isPrimitive(Symbol* symbol)
         return type != nullptr
             && std::find(type->primitives.begin(), type->primitives.end(), symbol) != type->primitives.end();
     };
-    if (belongsTo(symbol->returnType)) {
+    if (belongsTo(controllingResultType(symbol->returnType))) {
         return true;
     }
     for (Symbol* parameter : symbol->parameters) {
@@ -435,6 +435,43 @@ static bool isPrimitive(Symbol* symbol)
         }
     }
     return false;
+}
+
+void Sema::checkOverridingIndicator(Symbol* symbol, int indicator, const SourceLocation& location)
+{
+    if (!symbol->overrides && isPrimitive(symbol) && !operatorSymbol(symbol->name).empty()) {
+        Scope* probes = m_symbolTable.createScope(symbol->declarationScope);
+        std::vector<ExprPtr> expressions;
+        std::vector<Expr*> operands;
+        for (std::size_t i = 0; i < symbol->parameters.size(); ++i) {
+            std::string name = "$instance_operand_" + std::to_string(i);
+            Symbol* probe = m_symbolTable.createSymbol(SymbolKind::Object, name, name);
+            probe->type = symbol->parameters[i]->type;
+            probes->add(probe);
+            auto operand = std::make_unique<IdentifierExpr>();
+            operand->name = operand->lower = name;
+            operands.push_back(operand.get());
+            expressions.push_back(std::move(operand));
+        }
+        for (const OperatorCandidate& candidate : operatorCandidates(symbol->name, operands, probes, symbol->returnType)) {
+            bool matches = candidate.symbol == nullptr && rootType(candidate.result) == rootType(symbol->returnType)
+                && candidate.parameters.size() == symbol->parameters.size();
+            for (std::size_t i = 0; matches && i < candidate.parameters.size(); ++i) {
+                matches = rootType(candidate.parameters[i]) == rootType(symbol->parameters[i]->type)
+                    && symbol->parameters[i]->mode == ParameterMode::In;
+            }
+            symbol->overrides = symbol->overrides || matches;
+        }
+    }
+    if (indicator != 0 && !isPrimitive(symbol)) {
+        m_diagnostics.error(location, "an overriding indicator requires a primitive operation");
+    }
+    if (indicator == 1 && !symbol->overrides) {
+        m_diagnostics.error(location, "subprogram marked overriding does not override an inherited operation");
+    } else if (indicator == -1 && symbol->overrides) {
+        m_diagnostics.error(location, "subprogram marked not overriding overrides an inherited operation");
+    }
+    if (indicator == -1 && !symbol->overrides) { symbol->pendingOverride = -1; }
 }
 
 Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal, Scope* profileScope)
@@ -458,7 +495,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             && (scope == m_packageSpecScope || spec.overriding == 1)) {
             parameterType->excludesNull = true;
         }
-        if (parameterType != nullptr && (!parameterType->tagged || isBody)) {
+        if (parameterType != nullptr && (!parameterType->tagged || (isBody && !spec.nullProcedure))) {
             checkCompleteView(parameterType, parameter.location, "this subprogram parameter");
         }
         parameterTypes.push_back(parameterType);
@@ -498,7 +535,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     bool overrides = false;
     for (Symbol* candidate : scope->lookupDeclaration(spec.lower)) {
         if (candidate->kind != SymbolKind::Subprogram || candidate->parameters.size() != parameterTypes.size()
-            || rootType(candidate->returnType) != rootType(returnType)) {
+            || !SemaSupport::profileTypeMatches(candidate->returnType, returnType)) {
             continue;
         }
         bool matches = true;
@@ -567,7 +604,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     for (Type* parameter : parameterTypes) {
         pendingOverride = pendingOverride || incompletePrivate(parameter);
     }
-    if (!pendingOverride && spec.overriding == 1 && !overrides) {
+    if (spec.overriding == 1 && !overrides) {
         m_diagnostics.error(spec.location, "subprogram marked overriding does not override an inherited operation");
     } else if (!pendingOverride && spec.overriding == -1 && overrides) {
         m_diagnostics.error(spec.location, "subprogram marked not overriding overrides an inherited operation");
@@ -599,10 +636,12 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (!matches) {
             continue;
         }
-        if (spec.overriding == -1 && !isPrimitive(candidate)) {
+        if (spec.overriding != 0 && !isPrimitive(candidate) && (candidate->protectedType == nullptr || isBody)) {
             m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
         }
-        if (!isBody || candidate->hasBody) {
+        if (candidate->nullProcedure) {
+            m_diagnostics.error(spec.location, "a null procedure cannot have a completion");
+        } else if (!isBody || candidate->hasBody) {
             m_diagnostics.error(spec.location, "'" + spec.name + "' has already been declared in this scope");
         } else {
             bool conforms = (returnType == nullptr && candidate->returnType == nullptr)
@@ -623,7 +662,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
                     if (candidate->controllingType != nullptr
-                        && rootType(parameter->type) == candidate->controllingType) {
+                        && controllingParameterType(parameter->type) == candidate->controllingType) {
                         dispatchIndeterminate(spec.parameters[i].defaultValue.get(), candidate->controllingType);
                     }
                 }
@@ -638,7 +677,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (isBody && candidate->abstract) {
             m_diagnostics.error(spec.location, "an abstract subprogram cannot have a body");
         }
+        if (spec.overriding == -1 && !candidate->overrides) { candidate->pendingOverride = -1; }
         candidate->hasBody = candidate->hasBody || isBody;
+        candidate->nullProcedure = candidate->nullProcedure || spec.nullProcedure;
         for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
             spec.parameters[i].symbol = candidate->parameters[i];
         }
@@ -654,10 +695,11 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
     symbol->abstract = spec.abstract;
+    symbol->nullProcedure = spec.nullProcedure;
     symbol->entry = spec.entry;
     symbol->requiresBody = !spec.abstract && !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->overrides = overrides;
-    symbol->pendingOverride = pendingOverride ? spec.overriding : 0;
+    symbol->pendingOverride = spec.overriding == -1 && !overrides ? -1 : 0;
     symbol->declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
@@ -719,7 +761,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     if (symbol->abstract && symbol->controllingType != nullptr && !symbol->controllingType->abstract) {
         m_diagnostics.error(spec.location, "an abstract primitive requires an abstract tagged type");
     }
-    if (spec.overriding == -1 && !isPrimitive(symbol)) {
+    if (spec.overriding != 0 && !isPrimitive(symbol)) {
         m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
     }
     if (spec.lower == "=" && m_types.isBoolean(returnType)) {
@@ -766,6 +808,10 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
         && !named->generic->isPackage) {
         if (named->hasBody) {
             m_diagnostics.error(body->location, "generic '" + named->displayName + "' already has a body");
+            return;
+        }
+        if (body->isNull) {
+            m_diagnostics.error(body->location, "a null procedure cannot complete a generic subprogram");
             return;
         }
         body->genericBody = named;

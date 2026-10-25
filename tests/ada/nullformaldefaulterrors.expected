@@ -1,0 +1,1 @@
+nullformaldefaulterrors.adb:2:30: error: null defaults for generic formal subprograms are not yet supported

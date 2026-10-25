@@ -1,5 +1,5 @@
 duplicateprofileerrors.adb:3:5: error: 'Action' has already been declared in this scope
-duplicateprofileerrors.adb:5:5: error: 'Action' has already been declared in this scope
+duplicateprofileerrors.adb:5:5: error: a null procedure cannot have a completion
 duplicateprofileerrors.adb:6:40: error: duplicate parameter 'x'
 duplicateprofileerrors.adb:8:5: error: 'Value' has already been declared in this scope
 duplicateprofileerrors.adb:10:5: error: 'Red' has already been declared in this scope

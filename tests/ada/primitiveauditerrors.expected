@@ -1,6 +1,8 @@
 primitiveauditerrors.adb:2:5: error: an overriding indicator requires a primitive operation
 primitiveauditerrors.adb:6:5: error: subprogram marked overriding does not override an inherited operation
+primitiveauditerrors.adb:6:5: error: an overriding indicator requires a primitive operation
 primitiveauditerrors.adb:13:30: error: a controlling parameter default must be tag indeterminate
 primitiveauditerrors.adb:16:9: error: overriding dispatching profile must be subtype conformant with the inherited operation
+primitiveauditerrors.adb:18:9: error: subprogram marked overriding does not override an inherited operation
 primitiveauditerrors.adb:18:9: error: overriding dispatching profile must be subtype conformant with the inherited operation
 primitiveauditerrors.adb:21:9: error: a private primitive with a controlling result must override a visible operation

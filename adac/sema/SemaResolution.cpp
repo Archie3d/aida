@@ -311,8 +311,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     Type* resultType = symbol->returnType;
                     Type* prefix = designatedViewType(prefixedPrefixType(static_cast<SelectedExpr*>(expr), symbol, scope));
                     if (symbol->controllingType != nullptr && prefix->classRoot == symbol->controllingType
-                        && rootType(resultType) == symbol->controllingType) {
-                        resultType = classWideType(symbol->controllingType);
+                        && controllingResultType(resultType) == symbol->controllingType) {
+                        resultType = dispatchingResultType(symbol);
                     }
                     add(resultType);
                 }
@@ -394,18 +394,18 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 if (symbol->returnType != nullptr && matchesResult(symbol, expected)
                     && matchCallArguments(call, symbol, scope, positions)) {
                     Type* resultType = symbol->returnType;
-                    if (symbol->controllingType != nullptr && rootType(resultType) == symbol->controllingType) {
+                    if (symbol->controllingType != nullptr && controllingResultType(resultType) == symbol->controllingType) {
                         if (call->prefixedSubprogram == nullptr && call->callee->kind == ExprKind::Selected) {
                             Type* prefix = prefixedPrefixType(static_cast<SelectedExpr*>(call->callee.get()), symbol, scope);
                             if (prefix != nullptr && designatedViewType(prefix)->classRoot == symbol->controllingType) {
-                                resultType = classWideType(symbol->controllingType);
+                                resultType = dispatchingResultType(symbol);
                             }
                         }
                         for (std::size_t i = 0; i < positions.size(); ++i) {
                             if (controllingParameterType(symbol->parameters[positions[i]]->type) == symbol->controllingType) {
                                 for (Type* actual : expressionTypes(call->arguments[i].value.get(), scope)) {
                                     if (designatedViewType(actual)->classRoot == symbol->controllingType) {
-                                        resultType = classWideType(symbol->controllingType);
+                                        resultType = dispatchingResultType(symbol);
                                     }
                                 }
                             }

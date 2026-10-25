@@ -52,17 +52,17 @@ procedure PrimitiveVisibility is
     end R_Base;
     package R is
         type T is private;
-        overriding function Make (N : Integer) return T;
-        overriding function Read (X : T) return Integer;
+        function Make (N : Integer) return T;
+        function Read (X : T) return Integer;
     private
         type T is new R_Base.T;
     end R;
     package body R is
-        function Make (N : Integer) return T is
+        overriding function Make (N : Integer) return T is
         begin
             return (Value => N);
         end Make;
-        function Read (X : T) return Integer is
+        overriding function Read (X : T) return Integer is
         begin
             return X.Value + 20;
         end Read;

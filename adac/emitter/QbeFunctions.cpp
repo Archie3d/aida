@@ -375,7 +375,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // Check at the shared entry so callbacks, dispatch and generated
     // finalization calls obey the same rule as direct source-level calls.
     // This precedes declarations and the subprogram's own handlers.
-    if (symbol->inheritedFrom == nullptr) { emitElaborationCheck(symbol); }
+    if (symbol->inheritedFrom == nullptr && !symbol->nullProcedure) { emitElaborationCheck(symbol); }
 
     for (Symbol* parameter : symbol->parameters) {
         captureAccessLevel(parameter);

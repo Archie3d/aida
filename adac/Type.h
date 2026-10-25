@@ -264,6 +264,7 @@ bool needsFinalization(const Type* type);
 bool needsCollection(const Type* type);
 bool hasAccessDiscriminants(const Type* type);
 Type* controllingParameterType(Type* type);
+Type* controllingResultType(Type* type);
 Type* designatedViewType(Type* type);
 bool hasTasks(const Type* type);
 bool hasProtected(const Type* type);

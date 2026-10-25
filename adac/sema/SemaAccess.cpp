@@ -270,7 +270,7 @@ bool Sema::compatibleAnonymousAccess(Type* target, Type* source) const
             && target->accessConventionC == source->accessConventionC && matchesAccessProfile(source->accessProfile, target);
     }
     bool designated = matchingDesignated(target->target, source->target);
-    if (target->target->tagged && source->target->classRoot != nullptr) {
+    if (target->target->tagged && target->target->classRoot == nullptr && source->target->classRoot != nullptr) {
         designated = source->target->classRoot == rootType(target->target);
     }
     return (target->accessConstant || !source->accessConstant)
@@ -282,6 +282,12 @@ void Sema::checkAnonymousAccess(Expr* expr, Type* expected, Type* actual)
 {
     if (expr == nullptr || expected == nullptr || !expected->anonymousAccess
         || !compatibleAnonymousAccess(expected, actual) || expr->kind == ExprKind::Null) { return; }
+    if (expected->accessProfile == nullptr && expected->target->tagged
+        && expected->target->classRoot == nullptr && actual->target->classRoot != nullptr) {
+        m_diagnostics.error(expr->location,
+            "a dynamically tagged access value requires a class-wide access context or a controlling operand");
+        return;
+    }
     expr->accessTarget = expected;
     if (expected->accessParameter) { return; }
     if (actual->accessProfile != nullptr && actual->accessParameter) {

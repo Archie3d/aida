@@ -103,3 +103,7 @@ package renaming, also exposing array type `Object'Range` syntax. Limited curren
 instances remain 6f. C3A2003 additionally needs range-attribute aggregate choices
 (P8); formal access-type cases C3A2A01/C460A01/C460A02 remain 6g. No edits to
 upstream test bodies weaken these requirements.
+
+Controlling anonymous access results use the existing hidden accessibility
+result word and dispatch ABI; see the
+[overriding/access-result contract](overriding-null-procedures.md).

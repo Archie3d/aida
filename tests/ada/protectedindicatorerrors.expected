@@ -1,0 +1,2 @@
+protectedindicatorerrors.adb:7:9: error: an overriding indicator is not allowed on a protected operation body
+protectedindicatorerrors.adb:11:9: error: an overriding indicator is not allowed on a protected operation body

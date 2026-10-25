@@ -262,6 +262,22 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
     }
     std::string controllingTag;
     std::vector<Value> controllingValues(subprogram->parameters.size());
+    auto checkControllingTag = [&](const Value& value) {
+        std::string tag = newTemp();
+        line(tag + " =l loadl " + value.name);
+        if (controllingTag.empty()) {
+            controllingTag = tag;
+        } else {
+            std::string same = newTemp();
+            std::string valid = newLabel("sametag");
+            std::string invalid = newLabel("tagmismatch");
+            line(same + " =w ceql " + controllingTag + ", " + tag);
+            branch(Value { same, 'w' }, valid, invalid);
+            label(invalid);
+            raiseConstraintError();
+            label(valid);
+        }
+    };
     if (expr->dispatching) {
         for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
             Expr* argument = expr->resolvedArguments[i];
@@ -270,11 +286,8 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
                 Value value = emitExpr(argument);
                 controllingValues[i] = value;
                 if (subprogram->parameters[i]->type->kind == TypeKind::Access) { checkNotNull(value); }
-                if (m_context->controllingTag == tagContext.saved) {
-                    std::string tag = newTemp();
-                    line(tag + " =l loadl " + value.name);
-                    m_context->controllingTag = tag;
-                }
+                checkControllingTag(value);
+                m_context->controllingTag = controllingTag;
             }
         }
     }
@@ -325,21 +338,9 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
                 value.last = target.last;
                 value.innerBounds = target.innerBounds;
             }
-            if (expr->dispatching && rootType(parameter->type) == subprogram->controllingType) {
-                std::string tag = newTemp();
-                line(tag + " =l loadl " + value.name);
-                if (controllingTag.empty()) {
-                    controllingTag = tag;
-                } else {
-                    std::string same = newTemp();
-                    std::string valid = newLabel("sametag");
-                    std::string invalid = newLabel("tagmismatch");
-                    line(same + " =w ceql " + controllingTag + ", " + tag);
-                    branch(Value { same, 'w' }, valid, invalid);
-                    label(invalid);
-                    raiseConstraintError();
-                    label(valid);
-                }
+            if (expr->dispatching && rootType(parameter->type) == subprogram->controllingType
+                && argument->tagIndeterminate) {
+                checkControllingTag(value);
             }
             value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies);
             arguments.push_back("l " + value.name);
@@ -364,6 +365,10 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
             if (value.name.empty()) { value = emitExpr(argument); }
             if (parameter->type->accessParameter && subprogram->controllingType != nullptr
                 && controllingParameterType(parameter->type) == subprogram->controllingType) { checkNotNull(value); }
+            if (expr->dispatching && controllingParameterType(parameter->type) == subprogram->controllingType
+                && argument->tagIndeterminate) {
+                checkControllingTag(value);
+            }
             emitRangeCheck(value, parameter->type, argument->location);
             arguments.push_back(std::string(1, qbeClass(parameter->type)) + " " + value.name);
             if (parameter->type->accessParameter) { arguments.push_back("w " + (argument->kind == ExprKind::Allocator ? "-1" : value.accessLevel)); }

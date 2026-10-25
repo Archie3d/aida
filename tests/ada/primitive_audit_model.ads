@@ -5,9 +5,10 @@ package Primitive_Audit_Model is
     function Make return Root;
     not overriding function Read (X : Root) return Integer;
     function Combine (X : Root; Y : Root := Make) return Integer;
+    -- The ancestry is hidden here; overriding is checked after completion.
     type Child is tagged private;
-    overriding function Make return Child;
-    overriding function Read (X : Child) return Integer;
+    function Make return Child;
+    function Read (X : Child) return Integer;
     function Make_Wide return Root'Class;
 private
     type Child is new Root with null record;

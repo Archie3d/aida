@@ -474,6 +474,7 @@ struct SubprogramSpec
     // 0: omitted, 1: overriding, -1: not overriding.
     int overriding = 0;
     bool abstract = false;
+    bool nullProcedure = false;
     bool isFunction = false;
     bool entry = false;
     bool entryBarrier = false;
@@ -1072,6 +1073,7 @@ struct GenericInstantiationDecl : Decl
     std::string genericName;
     std::string genericLower;
     Symbol* generic = nullptr;
+    int overriding = 0;
     bool isPackage = true;
     bool isFunction = false;
     std::vector<Association> arguments;

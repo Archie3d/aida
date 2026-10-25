@@ -1,0 +1,1 @@
+nullgenericerrors.adb:3:1: error: a generic subprogram cannot be declared as a null procedure

@@ -37,7 +37,7 @@ procedure ClasswideDispatch is
     package Hidden is
         type T is tagged private;
         function Extra (Item : T) return Integer;
-        overriding function Read (Item : T) return Integer;
+        function Read (Item : T) return Integer;
         procedure Inspect (Item : T'Class);
     private
         type T is new Shapes.Root with record
@@ -49,7 +49,7 @@ procedure ClasswideDispatch is
         begin
             return Item.Y;
         end Extra;
-        function Read (Item : T) return Integer is
+        overriding function Read (Item : T) return Integer is
         begin
             return Item.X + Item.Y;
         end Read;

@@ -6,7 +6,8 @@ package Opaque_Controlled_Model is
     type Link is access Hidden;
     function Make (Value : Integer) return Hidden;
     function Value (Object : Hidden) return Integer;
-    overriding procedure Finalize (Object : in out Hidden);
+    -- Hidden ancestry is unavailable until the private completion.
+    procedure Finalize (Object : in out Hidden);
     type Box is private;
     subtype Box_Alias is Box;
     function Build return Box;

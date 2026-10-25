@@ -524,9 +524,16 @@ full-tasking restrictions retain their later roadmap owners.
   workers). ACATS C460006 PASS unchanged; B840001 remains ungraded.
   Compiler ASan/UBSan and full suite 1,050/1,050 pass.
   [Contract and boundaries](docs/abstract-subprograms.md).
-- [ ] Complete Ada 2005 overriding-indicator and null-procedure legality beyond
-  the existing subset. Add dispatching controlling access results and their
-  inherited required-overriding rules (currently diagnosed explicitly).
+- [x] Ada 2005 overriding indicators and null procedures for supported profiles:
+  immediate/deferred checks, bodies, renamings, instances and protected
+  declarations; null completion/conformance, incomplete views and early calls.
+  Controlling access results dispatch through operands, factories and dereferenced
+  class-wide assignments, with nullable results, accessibility and required
+  overrides even for null extensions (`overridingnull`, `controllingaccessresults`,
+  legality controls; whole/per-unit/determinism and four workers). Compiler
+  ASan/UBSan checks and full suite 1,067/1,067 pass; all 106 baseline observations
+  remain unchanged (56 executable PASS).
+  [Contract and remaining boundaries](docs/overriding-null-procedures.md).
 - [ ] Discriminated tagged types, private extensions, extensions of private
   views, unknown-discriminant private views,
   and tagged size clauses. Include

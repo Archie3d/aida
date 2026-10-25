@@ -1,0 +1,2 @@
+protectednullerrors.adb:7:5: error: a null procedure declaration is not allowed in a protected unit
+protectednullerrors.adb:10:5: error: a protected operation cannot be abstract

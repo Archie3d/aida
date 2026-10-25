@@ -177,9 +177,9 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             continue;
         }
         bool sameTypes = existing->kind == SymbolKind::Subprogram
-            && baseType(existing->returnType) == baseType(result) && existing->parameters.size() == types.size();
+            && SemaSupport::profileTypeMatches(existing->returnType, result) && existing->parameters.size() == types.size();
         for (std::size_t i = 0; sameTypes && i < types.size(); ++i) {
-            sameTypes = baseType(existing->parameters[i]->type) == baseType(types[i]);
+            sameTypes = SemaSupport::profileTypeMatches(existing->parameters[i]->type, types[i]);
         }
         if (existing->kind != SymbolKind::Subprogram || sameTypes) {
             if (existing->kind != SymbolKind::Subprogram || existing->hasBody) {
@@ -194,7 +194,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             || (completion->returnType == nullptr && result == nullptr);
         for (std::size_t i = 0; i < types.size(); ++i) {
             Symbol* parameter = completion->parameters[i];
-            conforms = conforms && parameter->name == spec.parameters[i].lower
+            if (completion->controllingType != nullptr && types[i]->anonymousAccess
+                && controllingParameterType(types[i]) == completion->controllingType) {
+                types[i]->excludesNull = true;
+            }
+            conforms = conforms && parameter->explicitNullExclusion == spec.parameters[i].subtype->nullExclusion
+                && parameter->name == spec.parameters[i].lower
                 && parameter->mode == spec.parameters[i].mode
                 && SemaSupport::staticallyMatches(parameter->type, types[i]);
             if (spec.parameters[i].defaultValue != nullptr) {
@@ -216,6 +221,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
+    if (completion != nullptr) { checkOverridingIndicator(completion, spec.overriding, spec.location); }
     spec.abstract = chosen != nullptr && chosen->abstract;
     if (completion != nullptr && spec.abstract) {
         m_diagnostics.error(decl->location, "a renaming-as-body cannot rename an abstract subprogram");
@@ -234,6 +240,15 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "an abstract subprogram cannot have a completion");
     }
     alias->abstract = chosen != nullptr && chosen->abstract;
+    if (chosen != nullptr && alias->controllingType != nullptr) {
+        for (std::size_t i = 0; i < alias->parameters.size(); ++i) {
+            Type* parameter = alias->parameters[i]->type;
+            if (parameter->accessParameter && controllingParameterType(parameter) == alias->controllingType
+                && !chosen->parameters[i]->type->excludesNull) {
+                m_diagnostics.error(decl->location, "a renamed controlling access parameter must exclude null");
+            }
+        }
+    }
     alias->hasBody = !alias->abstract;
     alias->requiresBody = false;
     if (m_diagnostics.errorCount() != errors) {

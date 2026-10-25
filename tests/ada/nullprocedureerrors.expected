@@ -1,0 +1,4 @@
+nullprocedureerrors.adb:3:5: error: a null procedure cannot have a completion
+nullprocedureerrors.adb:8:5: error: subprogram body does not conform to the previous declaration
+nullprocedureerrors.adb:10:5: error: subprogram body does not conform to the previous declaration
+nullprocedureerrors.adb:12:5: error: subprogram body does not conform to the previous declaration

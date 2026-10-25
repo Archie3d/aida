@@ -122,6 +122,9 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             if (match(TokenKind::KwIs)) {
                 formal.boxDefault = match(TokenKind::Box);
                 if (!formal.boxDefault) {
+                    if (check(TokenKind::KwNull)) {
+                        fail("null defaults for generic formal subprograms are not yet supported");
+                    }
                     formal.defaultValue = parseExpression();
                 }
             }
@@ -189,6 +192,9 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         decl->lower = static_cast<SubprogramDecl*>(unit.get())->spec.lower;
         break;
     case DeclKind::SubprogramBody:
+        if (static_cast<SubprogramBody*>(unit.get())->isNull) {
+            m_diagnostics.error(unit->location, "a generic subprogram cannot be declared as a null procedure");
+        }
         decl->isFunction = static_cast<SubprogramBody*>(unit.get())->spec.isFunction;
         decl->hasBody = true;
         decl->name = static_cast<SubprogramBody*>(unit.get())->spec.name;
@@ -212,7 +218,10 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         if (packageBody) {
             parsePackage();
         } else {
-            parseSubprogramDeclOrBody();
+            DeclPtr body = parseSubprogramDeclOrBody();
+            if (body->kind == DeclKind::SubprogramBody && static_cast<SubprogramBody*>(body.get())->isNull) {
+                m_diagnostics.error(body->location, "a null procedure cannot complete a generic subprogram");
+            }
         }
     }
 

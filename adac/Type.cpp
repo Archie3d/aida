@@ -895,6 +895,15 @@ Type* controllingParameterType(Type* type)
     return rootType(type);
 }
 
+Type* controllingResultType(Type* type)
+{
+    if (type != nullptr && type->kind == TypeKind::Access && type->anonymousAccess
+        && type->target != nullptr && type->target->tagged) {
+        return rootType(type->target);
+    }
+    return rootType(type);
+}
+
 Type* designatedViewType(Type* type)
 {
     return type != nullptr && type->kind == TypeKind::Access ? type->target : type;

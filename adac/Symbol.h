@@ -83,6 +83,7 @@ struct Symbol
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
     bool abstract = false;
+    bool nullProcedure = false;
     bool taskBody = false;
     Symbol* taskIdentity = nullptr;
     Type* protectedType = nullptr;

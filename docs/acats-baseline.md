@@ -24,6 +24,13 @@ B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
 
+The next 6f overriding/null/access-result milestone retains all 106 exact
+observations: 56 executable passes, 23 legal-source rejections, seven support
+blockers and 20 ungraded B observations. No additional case is promoted by this
+change; the snapshot's compiler fingerprint is refreshed. Focused execution and
+legality scenarios are documented in the
+[overriding/null-procedure contract](overriding-null-procedures.md).
+
 C460006 now passes unchanged after the first 6f item. Abstract operations use
 inherited dispatch slots, concrete types must override abstract obligations,
 and supported record extensions accept ordinary record aggregates. The case's

@@ -1182,8 +1182,9 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
                     m_diagnostics.error(decl->location, "a nonabstract full view cannot have an abstract primitive '"
                         + primitive->displayName + "'");
                 } else if (primitive->inheritedFrom != nullptr && (primitive->abstract
-                    || (rootType(primitive->returnType) == type
-                        && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount)))) {
+                    || (controllingResultType(primitive->returnType) == type
+                        && ((primitive->returnType != nullptr && primitive->returnType->anonymousAccess)
+                            || type->fields.size() > static_cast<std::size_t>(type->parentFieldCount))))) {
                     m_diagnostics.error(decl->location, "inherited operation '" + primitive->displayName
                         + "' must be overridden with a nonabstract subprogram");
                 }
@@ -1964,14 +1965,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             types.push_back(type);
         }
     };
-    Type* result = symbol->returnType;
-    if (result != nullptr && result->anonymousAccess && result->target != nullptr
-        && rootType(result->target)->tagged && rootType(result->target)->classRoot == nullptr
-        && rootType(result->target)->declarationScope == scope && scope == m_packageSpecScope) {
-        m_diagnostics.error(symbol->location,
-            "dispatching functions with controlling access results are not yet supported");
-    }
-    consider(symbol->returnType);
+    consider(controllingResultType(symbol->returnType));
     for (Symbol* parameter : symbol->parameters) {
         consider(controllingParameterType(parameter->type));
     }
@@ -1982,7 +1976,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         if (type->tagged && type->classRoot == nullptr
             && (scope == m_packageSpecScope || symbol->overrides)) {
             if (scope == m_packageSpecScope && !m_inVisiblePart
-                && rootType(symbol->returnType) == type && !symbol->overrides) {
+                && controllingResultType(symbol->returnType) == type && !symbol->overrides) {
                 for (const auto& declaration : m_symbolTable.symbols()) {
                     if (declaration->kind == SymbolKind::TypeName && declaration->type == type
                         && declaration->privatePrimitiveTo == nullptr) {
@@ -2003,7 +1997,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     bool matches = primitive->inheritedFrom != nullptr && primitive->abstract
                         && primitive->privatePrimitiveTo == nullptr && primitive->name == symbol->name
                         && primitive->parameters.size() == symbol->parameters.size()
-                        && rootType(primitive->returnType) == rootType(symbol->returnType);
+                        && SemaSupport::profileTypeMatches(primitive->returnType, symbol->returnType);
                     for (std::size_t i = 0; matches && i < symbol->parameters.size(); ++i) {
                         matches = rootType(primitive->parameters[i]->type) == rootType(symbol->parameters[i]->type);
                     }
@@ -2018,10 +2012,10 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                 m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
             }
             for (Symbol* parameter : symbol->parameters) {
-                if (rootType(parameter->type) == type && parameter->hasDefault
+                if (controllingParameterType(parameter->type) == type && parameter->hasDefault
                     && !parameter->defaultExpr->tagIndeterminate) {
                     m_diagnostics.error(parameter->location, "a controlling parameter default must be tag indeterminate");
-                } else if (rootType(parameter->type) == type && parameter->hasDefault) {
+                } else if (controllingParameterType(parameter->type) == type && parameter->hasDefault) {
                     dispatchIndeterminate(parameter->defaultExpr, type);
                 }
             }
@@ -2030,7 +2024,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         for (Symbol*& primitive : type->primitives) {
             if (primitive->name != symbol->name || primitive->inheritedFrom == nullptr
                 || primitive->parameters.size() != symbol->parameters.size()
-                || rootType(primitive->returnType) != rootType(symbol->returnType)) {
+                || !SemaSupport::profileTypeMatches(primitive->returnType, symbol->returnType)) {
                 continue;
             }
             bool matches = true;
@@ -2072,7 +2066,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
     // deriving from a constrained subtype does not narrow every inherited formal.
     auto corresponding = [&](Type* original) -> Type* {
         if (original != nullptr && original->kind == TypeKind::Access && original->anonymousAccess
-            && original->accessParameter && rootType(original->target) == rootType(parent)) {
+            && rootType(original->target) == rootType(parent)) {
             Type* access = m_types.create(TypeKind::Access, anonymousTypeName());
             *access = *original;
             access->target = type;
@@ -2111,9 +2105,11 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);
         inherited->location = location;
         inherited->inheritedFrom = primitive;
+        bool accessResult = primitive->returnType != nullptr && primitive->returnType->anonymousAccess
+            && controllingResultType(primitive->returnType) == rootType(parent);
         inherited->abstract = primitive->abstract || (type->abstract
-            && rootType(primitive->returnType) == rootType(parent)
-            && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount));
+            && (accessResult || (rootType(primitive->returnType) == rootType(parent)
+                && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount))));
         inherited->dispatchSlot = primitive->dispatchSlot;
         inherited->controllingType = type;
         if (inherited->dispatchSlot >= 0) {
@@ -2151,7 +2147,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         bool overridden = false;
         for (Symbol* declared : type->primitives) {
             if (declared->kind != SymbolKind::Subprogram || declared->name != inherited->name
-                || rootType(declared->returnType) != rootType(inherited->returnType)
+                || !SemaSupport::profileTypeMatches(declared->returnType, inherited->returnType)
                 || declared->parameters.size() != inherited->parameters.size()) {
                 continue;
             }

@@ -131,6 +131,11 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             Symbol* operation = nullptr;
             if (item->kind == DeclKind::SubprogramDeclaration) {
                 operation = static_cast<SubprogramDecl*>(item.get())->symbol;
+            } else if (item->kind == DeclKind::SubprogramBody) {
+                operation = static_cast<SubprogramBody*>(item.get())->symbol;
+            } else if (item->kind == DeclKind::GenericInstantiation) {
+                Symbol* instance = static_cast<GenericInstantiationDecl*>(item.get())->symbol;
+                operation = instance != nullptr && instance->kind == SymbolKind::Subprogram ? instance : nullptr;
             } else if (item->kind == DeclKind::Type) {
                 Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
                 operation = type != nullptr ? type->accessProfile : nullptr;
@@ -151,10 +156,8 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
                 }
                 operation->pendingControlledResult = false;
             }
-            if (operation->pendingOverride == 1 && !operation->overrides) {
-                m_diagnostics.error(operation->location, "subprogram marked overriding does not override an inherited operation");
-            } else if (operation->pendingOverride == -1 && operation->overrides) {
-                m_diagnostics.error(operation->location, "subprogram marked not overriding overrides an inherited operation");
+            if (operation->pendingOverride == -1 && operation->overrides) {
+                m_diagnostics.error(item->location, "subprogram marked not overriding overrides an inherited operation");
             }
             operation->pendingOverride = 0;
         }

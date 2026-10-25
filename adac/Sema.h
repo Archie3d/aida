@@ -59,6 +59,7 @@ private:
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);
+    void checkOverridingIndicator(Symbol* symbol, int indicator, const SourceLocation& location);
     void inheritPrimitives(Type* type, Type* parent, Scope* scope, const SourceLocation& location);
     Scope* subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false, Scope* profileScope = nullptr);
@@ -186,6 +187,8 @@ private:
     std::vector<Symbol*> expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from) const;
     Type* classWideType(Type* specific);
     void dispatchIndeterminate(Expr* expr, Type* controlling);
+    Type* dispatchingResultType(Symbol* operation);
+    std::unordered_map<Type*, Type*> m_dispatchingResultTypes;
     Type* resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location);
     void noteReference(Symbol* symbol);
     bool matchesResult(Symbol* subprogram, Type* expected) const;

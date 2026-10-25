@@ -1,0 +1,11 @@
+overridinglegalityerrors.adb:2:5: error: subprogram marked overriding does not override an inherited operation
+overridinglegalityerrors.adb:2:5: error: an overriding indicator requires a primitive operation
+overridinglegalityerrors.adb:3:5: error: an overriding indicator requires a primitive operation
+overridinglegalityerrors.adb:10:9: error: subprogram marked overriding does not override an inherited operation
+overridinglegalityerrors.adb:12:9: error: subprogram marked not overriding overrides an inherited operation
+overridinglegalityerrors.adb:14:9: error: subprogram marked not overriding overrides an inherited operation
+overridinglegalityerrors.adb:21:9: error: subprogram marked not overriding overrides an inherited operation
+overridinglegalityerrors.adb:32:5: error: an overriding indicator requires a primitive operation
+overridinglegalityerrors.adb:37:9: error: subprogram marked not overriding overrides an inherited operation
+overridinglegalityerrors.adb:38:9: error: subprogram marked overriding does not override an inherited operation
+overridinglegalityerrors.adb:39:9: error: 'Act' has already been declared in this scope

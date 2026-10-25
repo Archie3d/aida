@@ -1,0 +1,3 @@
+accessparameterlegalityerrors.adb:14:9: error: a renamed controlling access parameter must exclude null
+accessparameterlegalityerrors.adb:16:9: error: a controlling access parameter of a generic instance must exclude null
+accessparameterlegalityerrors.adb:19:9: error: a renamed controlling access parameter must exclude null

@@ -1,0 +1,1 @@
+accessresultcontexterrors.adb:4:77: error: a dynamically tagged access value requires a class-wide access context or a controlling operand

@@ -1369,7 +1369,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1687,3 +1687,16 @@ add_ada_error_test(abstractdeclarationerrors SOURCES abstractdeclarationerrors.a
 add_ada_error_test(abstractcallerrors SOURCES abstractcallerrors.adb)
 add_ada_error_test(abstractuseerrors SOURCES abstractuseerrors.adb)
 add_ada_error_test(abstractoverrideerrors SOURCES abstractoverrideerrors.adb)
+
+# Ada 2005 overriding, null-procedure and controlling access-result legality.
+add_ada_error_test(overridinglegalityerrors SOURCES overridinglegalityerrors.adb)
+add_ada_error_test(nullprocedureerrors SOURCES nullprocedureerrors.adb)
+add_ada_error_test(nullgenericerrors SOURCES nullgenericerrors.adb)
+add_ada_error_test(protectedindicatorerrors SOURCES protectedindicatorerrors.adb)
+add_ada_error_test(protectednullerrors SOURCES protectednullerrors.adb)
+add_ada_error_test(accessresultlegalityerrors SOURCES accessresultlegalityerrors.adb)
+add_ada_error_test(accessresultcontexterrors SOURCES access_result_base.ads access_result_base.adb accessresultcontexterrors.adb)
+add_ada_error_test(protectedoverridingerrors SOURCES protectedoverridingerrors.adb)
+add_ada_error_test(nullgenericcompletionerrors SOURCES nullgenericcompletionerrors.adb)
+add_ada_error_test(nullformaldefaulterrors SOURCES nullformaldefaulterrors.adb)
+add_ada_error_test(accessparameterlegalityerrors SOURCES accessparameterlegalityerrors.adb)

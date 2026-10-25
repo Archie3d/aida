@@ -125,6 +125,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     if (match(TokenKind::KwNew)) {
         DeclPtr instance = parseGenericInstantiation(location, spec.name, spec.lower, false);
         static_cast<GenericInstantiationDecl*>(instance.get())->isFunction = spec.isFunction;
+        static_cast<GenericInstantiationDecl*>(instance.get())->overriding = spec.overriding;
         return instance;
     }
     if (match(TokenKind::KwSeparate)) {
@@ -146,6 +147,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     body->spec = std::move(spec);
     if (match(TokenKind::KwNull)) {
         body->isNull = true;
+        body->spec.nullProcedure = true;
         if (body->spec.isFunction) {
             fail("only a procedure can have a null body");
         }

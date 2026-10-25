@@ -38,10 +38,10 @@ subtype marks in concrete extension aggregates.
 ## Boundaries and validation
 
 Interfaces, private extensions and discriminated tagged types retain their
-later 6f owners. Dispatching functions with controlling anonymous access
-results now receive an explicit diagnostic; their dispatch and inherited
-required-overriding rules remain in the next 6f legality item. Generic abstract
-formal types/subprograms remain 6g. These restrictions are not silent acceptance.
+later 6f owners. Controlling anonymous access results and their inherited
+required-overriding rules are now implemented by the
+[overriding/null-procedure milestone](overriding-null-procedures.md).
+Generic abstract formal types/subprograms remain 6g.
 
 `abstractsubprograms` and `abstractinheritance` cover whole/per-unit/deterministic
 compilation and four workers, including defaults, factories, operators,
@@ -52,6 +52,6 @@ and dispatch checks and joins the strict baseline selection. B840001 remains
 an ungraded observation after three legal record-extension aggregates become
 accepted.
 
-Validation: full CTest suite 1,050/1,050; focused compiler ASan/UBSan checks
+Original milestone validation: full CTest suite 1,050/1,050; focused compiler ASan/UBSan checks
 and unchanged C460006/B840001 sanitizer probes pass. The complete 106-case
 observational baseline matches its updated snapshot.
