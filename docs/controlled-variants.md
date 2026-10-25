@@ -8,8 +8,10 @@ limited-copy restrictions apply to the whole type, even when the current arm
 has no limited component.
 
 Unconstrained assignment checks the target constraint before finalization,
-constructs an adjusted snapshot, finalizes the old active components, copies
-and adjusts the new components. Self-assignment preserves the object.
+finalizes the old active components, copies and adjusts the new components.
+Disjoint assignment omits the anonymous copy; overlapping views retain an
+owned adjusted snapshot ([assignment and failure rules](controlled-assignment.md)).
+Self-assignment preserves the object.
 Constrained targets reject a discriminant change with Constraint_Error.
 Overlaid components can have different controlled types and finalizers.
 

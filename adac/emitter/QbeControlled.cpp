@@ -531,6 +531,26 @@ void QbeEmitter::copyControlledObject(const Value& target, const Value& source, 
     line(same + " =w ceql " + target.name + ", " + source.name);
     branch(Value { same, 'w' }, done, assign);
     label(assign);
+    // RM 7.6(21): disjoint objects can be assigned without an anonymous
+    // adjusted copy. In particular, a failed Adjust then completes the
+    // remaining adjustments on the actual target (RM 7.6.1(16)). Compare
+    // unsigned distances so neither address-end calculation can overflow.
+    std::string forward = newTemp(), backward = newTemp();
+    std::string insideForward = newTemp(), insideBackward = newTemp();
+    Value overlap { newTemp(), 'w' };
+    line(forward + " =l sub " + target.name + ", " + source.name);
+    line(backward + " =l sub " + source.name + ", " + target.name);
+    line(insideForward + " =w cultl " + forward + ", " + size);
+    line(insideBackward + " =w cultl " + backward + ", " + size);
+    line(overlap.name + " =w or " + insideForward + ", " + insideBackward);
+    std::string snapshotCopy = newLabel("overlappingassign");
+    std::string directCopy = newLabel("disjointassign");
+    branch(overlap, snapshotCopy, directCopy);
+    label(directCopy);
+    finalizeControlledObject(target, type, viewTag);
+    copy(target, source);
+    jump(done);
+    label(snapshotCopy);
     // Use the RM's anonymous adjusted copy. It protects aliases, overlapping
     // slices, and an RHS whose resources are shared with the old target.
     Value snapshot = withBounds(target, type, nullptr);

@@ -13,11 +13,11 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 19 |
 | Legal C-test rejected | 37 |
 | Support/harness blocked | 7 |
-| Executable PASS | 40 |
-| Executable failure | 2 |
+| Executable PASS | 41 |
+| Executable failure | 1 |
 
-No crashes or timeouts were observed. **39 executable C-cases fail** (37 compile
-rejections and two execution failures); seven further C-cases are blocked by
+No crashes or timeouts were observed. **38 executable C-cases fail** (37 compile
+rejections and one execution failure); seven further C-cases are blocked by
 support adapters. The 19 rejected B-probes are ungraded, not 19 legality passes.
 The accepted B36002A probe warrants investigation of mixed constrained/
 unconstrained array-index legality.
@@ -26,7 +26,6 @@ unconstrained array-index legality.
 
 | Case | Observation | Area |
 | --- | --- | --- |
-| C761006 | REPORT: other adjustment not performed. Audit adjustment exception handling and required remaining adjustments. | P3/P6a/P6c/P6e |
 | C84009A | REPORT: BINARY "-" ALREADY VISIBLE FOR TYPE INT. Audit primitive operator/use visibility. | P3/P6e |
 
 C34001A/C34001D/C34002A now pass unchanged after the 6f-prelude repair:
@@ -36,7 +35,14 @@ base-range operations, inherited constraints, conversions, receiving-context
 checks and four tasks in whole/per-unit/deterministic modes. The snapshot and
 strict ACATS selection include these three reviewed promotions.
 
-The remaining executable failures above still need localization. Legal-source
+C761006 also passes unchanged after disjoint controlled assignment began
+adjusting the actual target directly (RM 7.6(21), 7.6.1(16)). Overlapping
+assignments retain owned snapshots. `controlledadjustment` checks component and
+parent failures, cleanup/recovery, overlapping slices, initialization and
+deallocation, including class-wide assignment and four tasks. Runtime ownership
+checks and the Ada regression pass with ASan/UBSan on the C runtime.
+
+The remaining executable failure above still needs localization. Legal-source
 rejections also need review: some hit explicit later roadmap features, while
 others expose missing behavior in completed areas.
 
@@ -55,7 +61,7 @@ be blocked before reaching the feature named in their objective.
 | conversions static | 5 | 2 | 0 | 0 | 0 |
 | control flow | 0 | 3 | 0 | 1 | 0 |
 | calls returns | 3 | 4 | 0 | 1 | 0 |
-| private finalization | 3 | 7 | 1 | 1 | 0 |
+| private finalization | 4 | 7 | 0 | 1 | 0 |
 | visibility renaming | 4 | 6 | 1 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 0 | 0 | 0 | 2 | 0 |
@@ -63,7 +69,7 @@ be blocked before reaching the feature named in their objective.
 
 ## Follow-up order
 
-1. Localize the five executable failures and the accepted B36002A probe; turn
+1. Resolve the remaining executable failure and the accepted B36002A probe; turn
    confirmed defects into focused compiler regressions before fixing them.
 2. Implement B-test grading against upstream error markers, permitted error
    groups and legal controls. Include recovery/diagnostic coverage; a nonzero
@@ -77,7 +83,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 40 observed
+crash/timeout handling and source/snapshot integrity. Only the 41 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -158,7 +164,7 @@ The table below gives the observed status and initial triage for every case.
 | [C760013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760013.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Legal C-test rejected | cross feature language gap; P9 |
 | [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Support/harness blocked | support adapter gap; P8 ACATS harness: TCTouch.Flush, TCTouch.Validate third argument |
-| [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable failure | execution failure; P3/P6a/P6c/P6e/P8 |
+| [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
 | [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6f |
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |

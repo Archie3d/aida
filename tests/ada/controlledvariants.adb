@@ -186,8 +186,8 @@ begin
         Source : Item (3, True);
         Target : Item;
     begin
-        -- The snapshot adjusts twice; fail the first target adjustment.
-        Fail_Adjust := Adjusts + 3;
+        -- Disjoint assignment adjusts the target directly.
+        Fail_Adjust := Adjusts + 1;
         begin
             Target := Source;
             raise Constraint_Error;

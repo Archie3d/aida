@@ -97,9 +97,10 @@ begin
     declare
         Source, Target : Guards;
     begin
-        Fail_Adjust := Adjusts + 5;
+        Fail_Adjust := Adjusts + 2;
         begin
             Target := Source;
+            raise Constraint_Error;
         exception
             when Program_Error => Check (Live = 5 and Adjusts = Fail_Adjust + 1);
         end;

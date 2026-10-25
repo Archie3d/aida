@@ -9,10 +9,8 @@ initialize 7
 initialize 8
 globals ready 9
 initialize 9
-adjust 1
 finalize 1
 adjust 1
-finalize 1
 main done
 finalize 9
 finalize 8

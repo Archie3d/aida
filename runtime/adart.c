@@ -1917,9 +1917,17 @@ void __ada_tagged_assign(void* target, const void* source, AdaFinalization** own
     if (target == source) {
         return;
     }
-    void* snapshot = __ada_tagged_owned_copy(owner, arena, source);
-    if (snapshot == NULL) {
-        return;
+    /* RM 7.6(21) permits omitting the adjusted snapshot for disjoint
+       objects. Keep it for overlapping views, which need source ownership
+       preserved while the old target is finalized. */
+    const void* assigned = source;
+    uintptr_t targetAddress = (uintptr_t)target, sourceAddress = (uintptr_t)source;
+    if (targetAddress - sourceAddress < (uint64_t)tag->size
+        || sourceAddress - targetAddress < (uint64_t)tag->size) {
+        assigned = __ada_tagged_owned_copy(owner, arena, source);
+        if (assigned == NULL) {
+            return;
+        }
     }
     TaggedCopyContext copy = { owner, arena, 0 };
     if (tag->parts != NULL) {
@@ -1929,7 +1937,7 @@ void __ada_tagged_assign(void* target, const void* source, AdaFinalization** own
             return;
         }
     }
-    copyTaggedObject(target, snapshot, &copy, 0);
+    copyTaggedObject(target, assigned, &copy, 0);
 }
 
 void* __ada_construction_owner(void* allocation)

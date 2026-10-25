@@ -19,7 +19,8 @@ procedure ControlledCopyLibrary is
             Run (Depth - 1);
         end if;
         B := A;
-        if B.Value /= 42 + 2 * Depth then
+        -- Disjoint assignment can omit the anonymous adjusted copy.
+        if B.Value /= 42 + Depth and B.Value /= 42 + 2 * Depth then
             raise Program_Error;
         end if;
     end Run;

@@ -450,10 +450,13 @@ full-tasking restrictions retain their later roadmap owners.
   types (RM 3.5(53)). `derivedscalaroperations` covers enumeration, Boolean and
   integer operations, inherited constraints, conversions and receiving-context
   checks in whole/per-unit/deterministic modes and four tasks.
-- [ ] **Controlled adjustment failure.** Resolve C761006's missing remaining
-  adjustment after an `Adjust` exception. Audit required adjustment/finalization
-  work and `Program_Error` propagation, retaining ownership and cleanup on
-  partial failure.
+- [x] **Controlled adjustment failure.** C761006 now PASS unchanged: disjoint
+  assignment adjusts the actual target and completes remaining adjustments
+  before `Program_Error`; overlapping views retain owned snapshots.
+  `controlledadjustment` covers records/arrays/class-wide objects, parent and
+  component failures, partial cleanup/recovery and deallocation in whole/per-unit/
+  deterministic modes and four tasks; runtime ASan/UBSan and allocation balance
+  checks pass. [Contract](docs/controlled-assignment.md).
 - [ ] **Primitive operator visibility.** Resolve C84009A's operator hiding/use
   failure and the implicit equality/operator lookup rejections in C840001 and
   C84008A. Cover predefined and user operators, homographs, `use type`, expanded

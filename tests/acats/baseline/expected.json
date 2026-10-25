@@ -5,14 +5,14 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "8833858575e47df81bfadede277a2460d633593c363c4a32ad8c4887d2066b87",
+  "compiler_sha256": "05d3cd2e5437a188be4f73c386a186e3b274bd9e24bb7752747447df89ef9779",
   "counts": {
     "B_ACCEPTED_UNGRADED": 1,
     "B_REJECTED_UNGRADED": 19,
     "COMPILE_REJECTED": 37,
     "HARNESS_BLOCKED": 7,
-    "PASS": 40,
-    "RUN_FAILED": 2
+    "PASS": 41,
+    "RUN_FAILED": 1
   },
   "cases": {
     "c34001a": {
@@ -526,10 +526,10 @@
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C761006\nFAILED other adjustment not performed\n",
-      "run_stderr": "\nraised PROGRAM_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C761006\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c761010": {
       "compile_exit": 1,

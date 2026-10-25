@@ -100,7 +100,7 @@ Supported:
 - Null exclusions with checked initialization, calls and conversions
   ([limits](docs/null-exclusions.md))
 - Primitive inheritance, overriding checks and dispatch through private overrides
-- Controlled types and finalization with protected/finalizer abort-deferral regions ([design](docs/abort-deferral.md))
+- Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
 - Entry-free tasks, grouped activation, master-based waiting and task identity/status
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`

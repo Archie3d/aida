@@ -41,7 +41,7 @@ begin
             A := B;
             raise Constraint_Error;
         exception
-            when Program_Error => Check (Objects = 3 and Resources = 3);
+            when Program_Error => Check (Objects = 3 and Resources = 2);
         end;
         Fail_Adjust := 0;
         A := B;

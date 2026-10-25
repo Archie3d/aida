@@ -56,14 +56,20 @@ static void testFree(void* pointer)
 #define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "line %d\n", __LINE__); return 1; } } while (0)
 static int managedLive;
 static int managedFail;
+static int managedAttempts;
+static int managedFinalizeFail;
 static void managedFinalize(void* object)
 {
     (void)object;
     --managedLive;
+    if (managedFinalizeFail > 0 && --managedFinalizeFail == 0) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+    }
 }
 static void managedAdjust(void* object)
 {
     (void)object;
+    ++managedAttempts;
     if (managedFail > 0 && --managedFail == 0) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
         return;
@@ -487,6 +493,32 @@ int main(void)
     CHECK(__ada_exception == ADA_PROGRAM_ERROR && managedLive == 0 && liveAllocations == 3);
     CHECK(finalizations == NULL && owner == NULL && __ada_task_context()->registeredFinalizations == NULL);
     __ada_exception = NULL;
+    /* A disjoint class-wide assignment adjusts the actual target even when
+       its first or last Adjust fails. Successful parts remain registered;
+       failed parts are not finalized, and no snapshot allocation is needed. */
+    for (int failure = 1; failure <= 3; ++failure) {
+        struct TaggedObject target = object;
+        __ada_finalization_reserve(&finalizations, &owner, &target.fields[0], managedFinalize);
+        __ada_finalization_reserve(&finalizations, &owner, &target.fields[1], managedFinalize);
+        __ada_controlled_activate(&target.fields[0], managedFinalize);
+        __ada_controlled_activate(&target.fields[1], managedFinalize);
+        managedLive = 2;
+        managedAttempts = 0;
+        managedFail = failure <= 2 ? failure : 0;
+        managedFinalizeFail = failure == 3 ? 1 : 0;
+        failNext = 1;
+        __ada_tagged_assign(&target, &object, &finalizations, &owner);
+        CHECK(failNext == 1 && liveAllocations == 7);
+        failNext = 0;
+        CHECK(__ada_exception == ADA_PROGRAM_ERROR);
+        CHECK(managedAttempts == (failure <= 2 ? 2 : 0));
+        CHECK(managedLive == (failure <= 2 ? 1 : 0));
+        __ada_exception = NULL;
+        __ada_finalize_to(&finalizations, NULL);
+        __ada_array_release(&owner);
+        CHECK(managedLive == 0 && liveAllocations == 3 && __ada_exception == NULL);
+        CHECK(__ada_task_context()->registeredFinalizations == NULL);
+    }
     releaseTags();
     CHECK(liveAllocations == 0);
     /* General access borrows metadata, never the stack object's storage.

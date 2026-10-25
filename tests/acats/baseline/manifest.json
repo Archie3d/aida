@@ -1762,9 +1762,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "execution_failure",
-        "owner": "P3/P6a/P6c/P6e/P8",
-        "note": "REPORT: other adjustment not performed. Audit adjustment exception handling and required remaining adjustments."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after using direct controlled assignment for disjoint objects (RM 7.6(21)), completing target adjustments before Program_Error (7.6.1(16)); overlapping copies retain owned snapshots."
       }
     },
     {
