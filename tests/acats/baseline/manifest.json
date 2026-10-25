@@ -541,8 +541,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c3/c35003a.ada:188:50: error: expected '..' in range constraint, found ';'"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Subtype range constraints written with an array range attribute (SUBINT RANGE A1'RANGE), lines 188/211; explicit bounds already work."
       }
     },
     {
@@ -600,8 +600,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+        "owner": "P8 REPORT adapter",
+        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
       }
     },
     {
@@ -638,8 +638,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c3/c36104a.ada:102:48: error: expected ')' after index constraint, found 'RANGE'"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Subtype-mark discrete ranges in index constraints and aggregate choices (e.g. I_5 RANGE 0 .. 6 and MID_WEEK RANGE MON .. WED); review range checks once these syntactic forms parse."
       }
     },
     {
@@ -657,8 +657,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c3/c36104b.ada:144:26: error: expected ')' after aggregate, found 'RANGE'"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Subtype-mark discrete ranges in index constraints and aggregate choices (e.g. I_5 RANGE 0 .. 6 and MID_WEEK RANGE MON .. WED); review range checks once these syntactic forms parse."
       }
     },
     {
@@ -676,8 +676,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c3/c36180a.ada:55:18: error: expected ')' after array index list, found '''"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Array index declarations using A'RANGE/K'RANGE/D'RANGE, lines 55/57/61; declaration syntax remains separate from supported loop ranges."
       }
     },
     {
@@ -695,8 +695,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c3/c37002a.ada:58:29: error: expected ')' after index constraint, found 'RANGE'"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Typed index constraints (U(V RANGE 1 .. X), STRING(POSITIVE RANGE X .. 10)) and array-range-attribute constraints in record components."
       }
     },
     {
@@ -714,8 +714,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 access-subtype audit",
-        "note": "<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported"
+        "owner": "P8 access-subtype constraints",
+        "note": "Discriminant constraints on the designated record of an access subtype, line 171; the existing access-subtype restriction is explicit."
       }
     },
     {
@@ -771,8 +771,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 access-subtype audit",
-        "note": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported"
+        "owner": "P8 access-subtype constraints",
+        "note": "Designated-record discriminant constraints on an access subtype at line 155 remain unsupported. Visible partial-view discriminant selections at lines 205/243 are repaired; no executable pass is claimed."
       }
     },
     {
@@ -927,8 +927,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c3/c3a0007.a:95:4: error: extension of a private or incomplete tagged view is not yet supported"
+        "owner": "P6f private tagged views",
+        "note": "Record extension of a private tagged ancestor at line 95; requires private-view extension/inherited primitive support, not an ordinary access-type repair."
       }
     },
     {
@@ -964,9 +964,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6b/P8",
-        "note": "Enclosing-name diagnostics removed; overloaded array/function call rejections at lines 160-174 remain for P6f-prelude supported-area review."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS unchanged after resolving parameterless array/access-array function prefixes alongside calls; slice indexing preserves the nominal lower bound and existing null/index checks."
       }
     },
     {
@@ -986,8 +986,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+        "owner": "P8 REPORT adapter",
+        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
       }
     },
     {
@@ -1004,9 +1004,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6b/P8",
-        "note": "<upstream>/tests/c4/c41105a.ada:89:17: error: no visible subprogram matches this call"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS unchanged after resolving parameterless array/access-array function prefixes alongside calls; slice indexing preserves the nominal lower bound and existing null/index checks."
       }
     },
     {
@@ -1100,8 +1100,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c4/c41207a.ada:50:17: error: unsupported attribute 'RANGE'"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Range-attribute choices in array aggregates (e.g. A'RANGE => ...); supported explicit aggregate choices do not cover this syntax."
       }
     },
     {
@@ -1119,8 +1119,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c4/c432001.a:140:37: error: only record extensions are supported after with"
+        "owner": "P6f private extensions",
+        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
       }
     },
     {
@@ -1138,8 +1138,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c4/c432004.a:124:66: error: only record extensions are supported after with"
+        "owner": "P6f private extensions",
+        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
       }
     },
     {
@@ -1157,8 +1157,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "cross_feature_language_gap",
-        "owner": "P9",
-        "note": "<upstream>/tests/c4/c432005.a:63:21: error: task entries, interfaces and task definition items are not yet supported"
+        "owner": "P9 full tasking",
+        "note": "Task entries/accept bodies and protected/task-containing aggregate behavior; the entry-free task and protected-object subsets do not cover this compound case."
       }
     },
     {
@@ -1176,8 +1176,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P8 range/subtype syntax audit",
-        "note": "<upstream>/tests/c4/c43204a.ada:36:35: error: expected ')' after array index list, found '('"
+        "owner": "P8 discrete-range syntax audit",
+        "note": "Array index bounds beginning with function calls or qualified expressions, e.g. IDENT_INT(1)..IDENT_INT(0) and INTEGER'(-1)..1; not a null-array runtime failure."
       }
     },
     {
@@ -1233,8 +1233,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c4/c460006.a:104:51: error: abstract subprogram declarations are not yet supported"
+        "owner": "P6f abstract subprograms",
+        "note": "Abstract primitive subprogram declarations at lines 104/105; conversion checks must be reviewed after abstract-subprogram support."
       }
     },
     {
@@ -1308,9 +1308,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P5/P6d/P8",
-        "note": "<upstream>/tests/c4/c49022c.ada:49:32: error: the operands of an arithmetic operator must have the same type"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS unchanged after mixed root real/integer multiplying profiles and universal named-number typing were repaired; exact folding and static checks retained."
       }
     },
     {
@@ -1328,8 +1328,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6g",
-        "note": "<upstream>/tests/c5/c540001.a:144:29: error: generic formal type definition 'new' is not yet supported"
+        "owner": "P6g formal derived types",
+        "note": "Generic formal derived integer/real types and their primitive operators; separate from the completed case-selector repair in C540002."
       }
     },
     {
@@ -1366,8 +1366,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "predefined_library_gap",
-        "owner": "P7 predefined library",
-        "note": "<upstream>/tests/c5/c54a03a.ada:41:41: error: 'ASCII' is not declared"
+        "owner": "P7 predefined ASCII",
+        "note": "Predefined ASCII.NUL; user-defined enumeration/character case statements are already supported."
       }
     },
     {
@@ -1387,8 +1387,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "Enclosing block qualification repaired; REPORT.Ident_Char remains a P8 harness blocker."
+        "owner": "P8 REPORT adapter",
+        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
       }
     },
     {
@@ -1406,8 +1406,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6g",
-        "note": "<upstream>/tests/c6/c640001.a:207:16: error: generic formal type definition 'tagged' is not yet supported"
+        "owner": "P6g tagged generic formals",
+        "note": "Generic formal tagged types; call/finalization semantics need review after this formal category is implemented."
       }
     },
     {
@@ -1503,8 +1503,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "Enclosing subprogram qualifications repaired; REPORT.Ident_Char remains a P8 harness blocker and predefined ASCII is a P7/P8 library requirement."
+        "owner": "P8 REPORT adapter; P7 predefined ASCII",
+        "note": "REPORT.Ident_Char plus predefined ASCII are independent prerequisites; enclosing subprogram qualification already works."
       }
     },
     {
@@ -1559,9 +1559,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6a/P6c/P6e/P8",
-        "note": "Private-child visibility repaired; still rejects concatenation of slices of a limited-private type with a nonlimited array full view at line 119. Review full-view limitedness in P6f-prelude remaining supported-area rejections."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS unchanged after concatenation uses the visible full view of limited-private array types; genuinely limited components remain rejected."
       }
     },
     {
@@ -1578,9 +1578,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6a/P6c/P6e/P8",
-        "note": "<upstream>/tests/c7/c73002a.ada:66:21: error: 'AA' is not declared"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS unchanged after nested package bodies retain specification declarations while looking up enclosing declarations at the body position; specification clients cannot see body locals."
       }
     },
     {
@@ -1640,8 +1640,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c7/c760009.a:137:63: error: only record extensions are supported after with"
+        "owner": "P6f private extensions",
+        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
       }
     },
     {
@@ -1659,8 +1659,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6g",
-        "note": "<upstream>/tests/c7/c760010.a:105:25: error: generic formal type definition 'tagged' is not yet supported"
+        "owner": "P6g tagged generic formals",
+        "note": "Generic formal tagged types; call/finalization semantics need review after this formal category is implemented."
       }
     },
     {
@@ -1681,9 +1681,9 @@
         "REPORT.ident_char"
       ],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6e/P8",
-        "note": "Parser rejects a class-wide subtype in a use type clause. REPORT.Ident_Char is a separate prerequisite not reached by this run."
+        "kind": "documented_language_gap",
+        "owner": "P6f discriminated tagged types; P8 REPORT adapter",
+        "note": "Class-wide use-type parsing is repaired. New discriminants on a derived controlled tagged type at line 78 remain P6f; REPORT.Ident_Char at lines 193/208 independently needs the P8 adapter. Cascaded missing-type diagnostics are not new defects."
       }
     },
     {
@@ -1720,8 +1720,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "cross_feature_language_gap",
-        "owner": "P9",
-        "note": "<upstream>/tests/c7/c761001.a:57:21: error: task entries, interfaces and task definition items are not yet supported"
+        "owner": "P9 task entries",
+        "note": "Task entry declarations/rendezvous in a finalization test; entry-free task master/finalization support does not cover this compound case."
       }
     },
     {
@@ -1744,8 +1744,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "TCTouch.Flush; TCTouch.Validate third argument; additional language blockers may remain after support is supplied."
+        "owner": "P8 TCTouch adapter",
+        "note": "TCTouch.Flush and the three-argument Validate overload at lines 111/113; preserve actual trace semantics when extending the adapter."
       }
     },
     {
@@ -1782,8 +1782,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f",
-        "note": "<upstream>/tests/c7/c761010.a:107:28: error: unknown discriminants on full or private type declarations are not yet supported"
+        "owner": "P6f unknown-discriminant private views",
+        "note": "Unknown discriminants on a private type declaration at line 107; controlled lifetimes alone do not supply this type category."
       }
     },
     {
@@ -1953,8 +1953,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "cross_feature_language_gap",
-        "owner": "P9",
-        "note": "<upstream>/tests/c8/c85005a.ada:68:22: error: task entries, interfaces and task definition items are not yet supported"
+        "owner": "P9 full tasking",
+        "note": "Task entry renamings plus accept/select rendezvous and task definitions; existing subprogram/protected operation renamings are a smaller subset."
       }
     },
     {
@@ -1972,8 +1972,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "cross_feature_language_gap",
-        "owner": "P9",
-        "note": "<upstream>/tests/c8/c85005b.ada:67:22: error: task entries, interfaces and task definition items are not yet supported"
+        "owner": "P9 full tasking",
+        "note": "Task entry renamings plus accept/select rendezvous and task definitions; existing subprogram/protected operation renamings are a smaller subset."
       }
     },
     {
@@ -2069,8 +2069,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "ImpDef requires target-specific support configuration; additional language blockers may remain after support is supplied."
+        "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
+        "note": "Target-configured ImpDef support is missing. These compound sources also exercise task allocation and full protected entry/body behavior (queuing/internal calls/exception propagation); removing ImpDef alone is not evidence of a language pass."
       }
     },
     {
@@ -2090,8 +2090,8 @@
       ],
       "triage": {
         "kind": "support_adapter_gap",
-        "owner": "P8 ACATS harness",
-        "note": "ImpDef requires target-specific support configuration; additional language blockers may remain after support is supplied."
+        "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
+        "note": "Target-configured ImpDef support is missing. These compound sources also exercise task allocation and full protected entry/body behavior (queuing/internal calls/exception propagation); removing ImpDef alone is not evidence of a language pass."
       }
     },
     {

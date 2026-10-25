@@ -501,7 +501,9 @@ Value QbeEmitter::emitAddress(Expr* expr)
         }
         if (call->form == CallForm::Indexing) {
             Value base = emitExpr(call->callee.get());
-            Type* array = baseType(call->callee->type);
+            // A slice's nominal bounds describe this view's first element.
+            // Stripping its subtype would pair its address with parent bounds.
+            Type* array = call->callee->type;
             if (array != nullptr && array->kind == TypeKind::Access) {
                 // The access value is already the address of the array.
                 checkNotNull(base);

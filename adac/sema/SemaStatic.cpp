@@ -554,11 +554,13 @@ void Sema::noteStaticValue(Expr* expr)
             if (!binary->operatorCall && binary->left->isStatic && binary->right->isStatic) {
                 expr->isStatic = true;
                 ExactReal exponent;
+                ExactReal divisor;
                 bool zeroPower = binary->op == BinaryOp::Power && binary->left->staticReal == 0.0
                     && exactValue(binary->right.get(), exponent) && exponent.numerator < 0;
                 expr->staticFailure = binary->left->staticFailure != StaticFailure::None
                     || binary->right->staticFailure != StaticFailure::None ? StaticFailure::Dependent
-                    : zeroPower || (binary->op == BinaryOp::Divide && binary->right->staticReal == 0.0)
+                    : zeroPower || (binary->op == BinaryOp::Divide
+                        && exactValue(binary->right.get(), divisor) && divisor.numerator == 0)
                         ? StaticFailure::ZeroDivisor : StaticFailure::Capacity;
             }
         } else if (staticOperands) {

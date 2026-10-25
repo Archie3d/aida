@@ -377,7 +377,7 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
             && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
             auto universal = expressionTypes(expr, scope);
             if (universal.size() == 1 && universal.front()->kind == TypeKind::UniversalReal) {
-                analyzeBinaryOperation(expr, scope, nullptr, nullptr);
+                analyzeBinary(expr, scope, nullptr);
                 adaptUniversal(expr, expected);
                 if (expr->fixedInvalid) {
                     m_diagnostics.error(expr->location, "fixed-point expression exceeds exact evaluation or storage limits");
@@ -407,6 +407,15 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
                 expr->type = chosen.result;
                 expr->tagIndeterminate = expr->operatorCall->tagIndeterminate;
                 expr->isStatic = false;
+                return expr->type;
+            }
+            if (chosen.result->kind == TypeKind::UniversalReal
+                && chosen.parameters[0] != chosen.parameters[1]) {
+                analyzeExpr(expr->left.get(), scope, chosen.parameters[0]);
+                analyzeExpr(expr->right.get(), scope, chosen.parameters[1]);
+                expr->type = chosen.result;
+                noteStaticValue(expr);
+                checkPrivateOperands(expr);
                 return expr->type;
             }
             if ((expr->op == BinaryOp::Multiply || expr->op == BinaryOp::Divide)
@@ -527,7 +536,7 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
 
     case BinaryOp::Concatenate: {
         Type* context = expected != nullptr && expected->kind == TypeKind::Array ? baseType(expected) : nullptr;
-        if (context == nullptr || context->arrayRank != 1 || context->isLimited || context->element->isLimited
+        if (context == nullptr || context->arrayRank != 1 || limitedView(context)
             || hasLimitedParts(context) || hasTasks(context) || hasProtected(context)
             || operandContext == nullptr || rightContext == nullptr) {
             analyzeExpr(expr->left.get(), scope);

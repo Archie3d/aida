@@ -27,6 +27,7 @@ public:
 
     void setParent(Scope* scope) { m_parent = scope; }
     Scope* parent() const { return m_parent; }
+    bool isRegion(const Scope* scope) const { return scope != nullptr && (this == scope || m_origin == scope); }
     void addLibraryVisibility(const std::string& name, bool privateWith = false);
     void addLimitedLibraryVisibility(const std::string& name, Symbol* view, bool privateWith);
     Symbol* limitedLibraryView(const std::string& name) const;
@@ -44,7 +45,9 @@ public:
     bool m_publicChildPart = false;
 
 private:
+    friend class SymbolTable;
     Scope* m_parent = nullptr;
+    const Scope* m_origin = nullptr;
     Scope* m_completionScope = nullptr;
     std::unordered_set<std::string> m_visibleLibraries;
     std::unordered_set<std::string> m_privateLibraries;
@@ -63,6 +66,7 @@ class SymbolTable
 public:
     Symbol* createSymbol(SymbolKind kind, const std::string& lowerName, const std::string& displayName);
     Scope* createScope(Scope* parent);
+    Scope* createScope(Scope* parent, const Scope* declarations);
     const std::vector<std::unique_ptr<Symbol>>& symbols() const { return m_symbols; }
 
 private:

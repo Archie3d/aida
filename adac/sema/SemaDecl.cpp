@@ -378,13 +378,21 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
 {
     Type* type = analyzeExpr(decl->value.get(), scope, nullptr);
+    if (!isNumeric(type)) {
+        m_diagnostics.error(decl->value->location, "the value of a named number must be numeric");
+        return;
+    }
     // Named numbers retain their universal type and exact value. Storage
     // width is chosen only when a use supplies a specific type.
     long long value = 0;
     double realValue = 0.0;
-    bool real = isReal(type);
+    bool real = isReal(type) || type->kind == TypeKind::Fixed;
     ExactReal exact;
-    bool isStatic = real ? foldStaticReal(decl->value.get(), realValue) : exactValue(decl->value.get(), exact);
+    bool isStatic = type->kind == TypeKind::Fixed ? exactValue(decl->value.get(), exact)
+        : real ? foldStaticReal(decl->value.get(), realValue) : exactValue(decl->value.get(), exact);
+    if (type->kind == TypeKind::Fixed && isStatic) {
+        realValue = exact.real();
+    }
     if (!real && isStatic) {
         exact.integer(value);
     }
@@ -399,7 +407,7 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
         }
 
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Number, decl->namesLower[i], decl->names[i]);
-        symbol->type = type;
+        symbol->type = real ? m_types.universalReal() : m_types.universalInteger();
         exactValue(decl->value.get(), symbol->exactReal);
         symbol->isConstant = true;
         symbol->hasStaticValue = isStatic;

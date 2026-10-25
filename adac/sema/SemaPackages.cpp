@@ -234,7 +234,14 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         && std::any_of(m_currentUnit->units.begin(), m_currentUnit->units.end(), [&](const DeclPtr& unit) {
             return unit.get() == decl;
         });
-    Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(subunitScope(decl->subunit, symbol->scope));
+    // A nested body's specification supplies its own declarations, while
+    // enclosing declarations are visible at the body's textual position.
+    // Keep the specification's original lexical chain intact for clients.
+    Scope* bodyParent = symbol->scope;
+    if (!libraryBody && !decl->subunit) {
+        bodyParent = m_symbolTable.createScope(scope, symbol->scope);
+    }
+    Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(subunitScope(decl->subunit, bodyParent));
     symbol->constructScope = bodyScope;
     bodyScope->setCompletionScope(symbol->scope);
     bodyScope->m_privateRegion = true;
@@ -315,6 +322,22 @@ bool Sema::representationVisible(Type* type) const
 {
     Type* base = baseType(type);
     return base == nullptr || base->privateTo == nullptr || withinPackage(base->privateTo);
+}
+
+bool Sema::limitedView(Type* type) const
+{
+    if (type == nullptr) { return false; }
+    if (type->isLimited && (type->privateTo == nullptr || type->tagged || !representationVisible(type))) {
+        return true;
+    }
+    if (type->limitedRecord || hasTasks(type) || hasProtected(type)) { return true; }
+    if (type->kind == TypeKind::Array) { return limitedView(type->element); }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (limitedView(field.type)) { return true; }
+        }
+    }
+    return false;
 }
 
 bool Sema::taggedViewVisible(Type* type) const

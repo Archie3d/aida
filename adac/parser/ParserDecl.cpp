@@ -196,7 +196,7 @@ DeclPtr Parser::parseUseClause()
     }
     while (true) {
         std::string lowered;
-        std::string name = parseCompoundName(lowered);
+        std::string name = decl->typeOnly ? parseSubtypeMark(lowered) : parseCompoundName(lowered);
         decl->names.push_back(name);
         decl->namesLower.push_back(lowered);
         if (!match(TokenKind::Comma)) {

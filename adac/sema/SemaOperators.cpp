@@ -208,6 +208,16 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             }
         }
     } else if (operands.size() == 2) {
+        // RM 4.5.5(17): mixed root real/integer multiplying operators
+        // apply only where a root real result is permitted. Do not adapt
+        // these profiles to a specific floating or fixed-point context.
+        if ((name == "*" || name == "/")
+            && (expected == nullptr || expected->kind == TypeKind::UniversalReal)) {
+            predefined({ m_types.universalReal(), m_types.universalInteger() }, m_types.universalReal());
+            if (name == "*") {
+                predefined({ m_types.universalInteger(), m_types.universalReal() }, m_types.universalReal());
+            }
+        }
         bool equality = name == "=" || name == "/=";
         bool ordering = name == "<" || name == "<=" || name == ">" || name == ">=";
         if (name == "and" || name == "or" || name == "xor") {
@@ -220,8 +230,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         } else if (name == "&") {
             addType(m_types.stringType());
             for (Type* type : types) {
-                if (type->kind == TypeKind::Array && type->arrayRank == 1 && !type->isLimited
-                    && !type->element->isLimited && !hasLimitedParts(type)
+                if (type->kind == TypeKind::Array && type->arrayRank == 1 && !limitedView(type)
                     && !hasTasks(type) && !hasProtected(type) && representationVisible(type)) {
                     Type* component = type->element;
                     predefined({ type, type }, type);
@@ -235,7 +244,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                 if (equality || ordering) {
                     bool allowed = isNumeric(type) || isDiscrete(type) || type->kind == TypeKind::Array
                         || (equality && (type->kind == TypeKind::Record || type->kind == TypeKind::Access));
-                    if (type->isLimited || (!equality && !representationVisible(type))) {
+                    if (limitedView(type) || (!equality && !representationVisible(type))) {
                         allowed = false;
                     }
                     if (ordering && type->kind == TypeKind::Array && !isDiscrete(type->element)) {

@@ -19,9 +19,11 @@ void Scope::remove(Symbol* symbol)
 
 void Scope::addUseType(Type* type, bool all, Symbol* privateTo)
 {
-    m_useTypes.push_back({ rootType(type), all });
-    if (!m_privateUseTypes.contains(rootType(type)) || privateTo == nullptr) {
-        m_privateUseTypes[rootType(type)] = privateTo;
+    type = rootType(type);
+    if (type->classRoot != nullptr) { type = type->classRoot; }
+    m_useTypes.push_back({ type, all });
+    if (!m_privateUseTypes.contains(type) || privateTo == nullptr) {
+        m_privateUseTypes[type] = privateTo;
     }
 }
 
@@ -42,7 +44,7 @@ int Scope::immediateDepth(const Scope* declaration) const
 {
     int depth = 0;
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent, ++depth) {
-        if (scope == declaration) { return depth; }
+        if (scope->isRegion(declaration)) { return depth; }
     }
     return -1;
 }
@@ -160,7 +162,7 @@ bool Scope::privateVisible(Symbol* package) const
         return true;
     }
     for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
-        if (enclosing == package->scope) {
+        if (enclosing->isRegion(package->scope)) {
             return true;
         }
         if (enclosing->m_publicChildPart) {
@@ -188,7 +190,7 @@ std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Sc
         if (original != nullptr && original->limitedView) {
             bool immediate = false;
             for (const Scope* scope = from; scope != nullptr; scope = scope->m_parent) {
-                immediate = immediate || scope == symbol->declarationScope;
+                immediate = immediate || scope->isRegion(symbol->declarationScope);
             }
             const std::string& library = original->scope->m_libraryPackage;
             if (!immediate && !from->libraryVisible(library)) { symbol = nullptr; continue; }
@@ -332,4 +334,13 @@ Scope* SymbolTable::createScope(Scope* parent)
 {
     m_scopes.push_back(std::make_unique<Scope>(parent));
     return m_scopes.back().get();
+}
+
+Scope* SymbolTable::createScope(Scope* parent, const Scope* declarations)
+{
+    Scope* scope = createScope(parent);
+    *scope = *declarations;
+    scope->setParent(parent);
+    scope->m_origin = declarations;
+    return scope;
 }

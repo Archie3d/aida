@@ -5,6 +5,36 @@
 
 using SemaSupport::isUniversal;
 
+std::vector<Type*> Sema::indexedPrefixTypes(CallExpr* expr, Scope* scope, Type* expected)
+{
+    auto names = expressionNames(expr->callee.get(), scope);
+    if (std::any_of(names.begin(), names.end(), [](Symbol* symbol) {
+            return symbol->kind == SymbolKind::TypeName;
+        })) { return {}; }
+    std::vector<Type*> result;
+    for (Type* prefix : expressionTypes(expr->callee.get(), scope)) {
+        Type* array = baseType(completeView(prefix, scope));
+        if (array != nullptr && array->kind == TypeKind::Access) { array = baseType(completeView(array->target, scope)); }
+        if (array == nullptr || array->kind != TypeKind::Array || !representationVisible(array)
+            || expr->arguments.size() != static_cast<std::size_t>(array->arrayRank)) { continue; }
+        bool slice = expr->arguments.size() == 1 && expr->arguments.front().high != nullptr;
+        bool matches = true;
+        for (const Association& argument : expr->arguments) {
+            matches = matches && argument.nameLower.empty()
+                && matchesExpression(argument.value.get(), scope, array->index)
+                && (!argument.high || matchesExpression(argument.high.get(), scope, array->index));
+            array = array->element;
+        }
+        if (slice) {
+            array = baseType(prefix)->kind == TypeKind::Access ? baseType(prefix)->target : prefix;
+        }
+        if (matches && (expected == nullptr || typesCompatible(expected, array))) {
+            result.push_back(prefix);
+        }
+    }
+    return result;
+}
+
 // RM 4.1.3: selected operations belong to the type's declaration region,
 // including class-wide operations in an ancestor's region. A visible component
 // with the same name takes precedence, even when it is itself callable.
@@ -315,7 +345,8 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 }
                 if (record != nullptr && record->kind == TypeKind::Record && !selected->isDereference) {
                     for (const FieldInfo& field : record->fields) {
-                        if (field.name == selected->selectorLower) {
+                        if (field.name == selected->selectorLower && (representationVisible(record)
+                            || (field.isDiscriminant && field.index < record->privateDiscriminantCount))) {
                             add(field.type);
                         }
                     }
@@ -390,6 +421,14 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 }
             }
         }
+        for (Type* prefix : indexedPrefixTypes(call, scope, expected)) {
+            Type* array = baseType(prefix);
+            if (array->kind == TypeKind::Access) { array = baseType(array->target); }
+            if (!(call->arguments.size() == 1 && call->arguments.front().high != nullptr)) {
+                for (std::size_t i = 0; i < call->arguments.size(); ++i) { array = array->element; }
+            }
+            add(array);
+        }
         if (!callable) {
             Expr* callee = call->callee.get();
             if (callee->kind == ExprKind::Selected) {
@@ -410,28 +449,6 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                         add(prefix->accessProfile->returnType);
                     }
                     continue;
-                }
-                Type* array = prefix;
-                if (baseType(array)->kind == TypeKind::Access) {
-                    array = baseType(array)->target;
-                }
-                if (array == nullptr || array->kind != TypeKind::Array) {
-                    continue;
-                }
-                if (call->arguments.size() == 1 && call->arguments.front().high != nullptr) {
-                    add(array);
-                    continue;
-                }
-                if (call->arguments.size() != static_cast<std::size_t>(array->arrayRank)) {
-                    continue;
-                }
-                bool matches = true;
-                for (const Association& argument : call->arguments) {
-                    matches = matches && matchesExpression(argument.value.get(), scope, array->index);
-                    array = array->element;
-                }
-                if (matches) {
-                    add(array);
                 }
             }
         }

@@ -483,22 +483,37 @@ full-tasking restrictions retain their later roadmap owners.
   generic calls, subtype preservation, single evaluation and genuine ambiguity
   in whole/per-unit/deterministic modes and four tasks; compiler ASan/UBSan pass.
   [Contract](docs/case-selectors.md).
-- [ ] **Real named-number arithmetic.** Resolve C49022C's rejection of legal
-  static arithmetic in real named-number declarations. Reuse the checked exact
-  folding rules and test mixed numeric contexts, conversions and invalid cases.
-- [ ] **Remaining supported-area rejections.** Review the baseline's other
-  front-end rejections to investigate, including C41103A/C41105A, C730004 and
-  C73002A (C64004G/C64005A/C64005B pass after the enclosing-name repair above).
-  Add confirmed in-scope defects to this prelude; identify independent
-  unsupported rules and their owners explicitly
-  when a compound case also needs a later feature.
-- [ ] **Validation and promotion.** For each repair, add a focused regression
-  and run the unchanged upstream case; use whole/per-unit/determinism checks
-  and task/sanitizer checks where relevant. Promote newly passing C-cases into
-  the strict ACATS suite. Update the observation snapshot, coverage matrix and
-  documented restrictions only after reviewing the changed result. Close this
-  prelude once its supported-area defects are resolved and every remaining
-  blocked case has a specific later-phase requirement and owner.
+- [x] **Real named-number arithmetic.** C49022C PASS unchanged: resolve the
+  mixed root real/integer multiplying profiles through the checked exact
+  evaluator; converted named numbers retain universal numeric types.
+  `realnumbers`/`realnumbererrors` cover mixed/nested arithmetic, conversions,
+  rounding, fixed contexts, invalid operands, static checks and capacity limits
+  in whole/per-unit/deterministic modes and four tasks; compiler ASan/UBSan pass.
+  [Contract](docs/static-arithmetic.md).
+- [x] **Remaining supported-area rejections.** Reviewed every remaining legal
+  C rejection/support blocker; [audit and owners](docs/supported-rejections.md).
+  C41103A/C41105A/C730004/C73002A PASS unchanged after these repairs:
+  - [x] Resolve parameterless array/access-array function prefixes alongside
+    ordinary calls, using index/component contexts and preserving ambiguity.
+  - [x] Preserve slice nominal bounds when lowering nested indexing.
+  - [x] Give nested package bodies the enclosing body's lexical declarations
+    without exposing body locals to specification clients.
+  - [x] Use nonlimited full views for concatenation/equality while preserving
+    limited partial views and genuinely limited components.
+  - [x] Parse class-wide/base subtype marks in use-type clauses (C760011 still
+    needs P6f tagged discriminants and a P8 REPORT adapter).
+  - [x] Select discriminants declared in visible private partial views
+    (C37006A still needs P8 access-subtype discriminant constraints).
+  `supportedrejections`/`supportedrejectionerrors` cover these repairs with
+  whole/per-unit/determinism, four tasks and compiler ASan/UBSan checks.
+- [x] **Validation and promotion.** All repairs have focused legal/rejection
+  regressions and unchanged upstream checks; whole/per-unit/determinism,
+  four-task execution and compiler ASan/UBSan pass. Final suite: 1,039/1,039.
+  The reviewed 106-case snapshot has 55 executable PASS cases in the strict
+  suite, 24 legal-source rejections, seven support blockers and 20 ungraded
+  B observations. Coverage, exact observations, restrictions and concrete
+  later-phase owners are updated in the [audit](docs/supported-rejections.md).
+  The supported-area review is complete; this prelude is closed.
 
 ### 6f. Object orientation
 
@@ -611,10 +626,16 @@ Ada 2005 additions and track annex packages separately.
     delimiters (`recordrecovery*`, with timeouts).
 - [ ] Complete discrete-range syntax using range attributes in array type
   definitions, including `array (Commuters'Range) of Natural` in C3A0013.
+  Include subtype range-attribute constraints (C35003A), subtype-mark discrete
+  ranges in index constraints/aggregate choices (C36104A/B, C37002A), and
+  function-call/qualified-expression array bounds (C43204A).
   Preserve the index type and evaluate bounds once at type elaboration; cover
   explicit dimensions and runtime bounds. Existing `'Range` support in loops
   and other contexts does not cover this declaration syntax. Also support
   range-attribute choices in array aggregates (C3A2003).
+- [ ] Complete access-subtype designated-record discriminant constraints
+  (C37003A/C37006A); keep the explicit diagnostic until constraint capture,
+  null/conversion checks and library/per-unit behavior are implemented.
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime

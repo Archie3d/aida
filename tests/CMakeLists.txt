@@ -1313,6 +1313,8 @@ add_ada_error_test(operatorchildvisibilityerrors SOURCES operatorchildvisibility
 add_ada_error_test(arrayindexerrors SOURCES arrayindexerrors.adb)
 add_ada_error_test(enclosingnameerrors SOURCES enclosingnameerrors.adb)
 add_ada_error_test(caseselectorerrors SOURCES caseselectorerrors.adb)
+add_ada_error_test(realnumbererrors SOURCES realnumbererrors.adb)
+add_ada_error_test(supportedrejectionerrors SOURCES supportedrejectionerrors.adb)
 set_tests_properties(error.namedoperatorerrors PROPERTIES TIMEOUT 60)
 
 add_executable(abort_deferral_test AbortDeferralTest.c)
@@ -1367,7 +1369,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes

@@ -123,6 +123,7 @@ struct Type
     // inside the package that declared it.  A limited one lends not even
     // assignment or equality to the outside.
     Symbol* privateTo = nullptr;
+    int privateDiscriminantCount = 0;
     bool isLimited = false;
     // Explicit limitedness of the full view, inherited by subtypes/derivations.
     bool limitedRecord = false;

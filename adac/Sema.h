@@ -75,6 +75,7 @@ private:
     void analyzeUseClause(UseDecl& decl, Scope* scope);
     bool withinPackage(Symbol* package) const;
     bool representationVisible(Type* type) const;
+    bool limitedView(Type* type) const;
     bool taggedViewVisible(Type* type) const;
     bool buildsLimitedResult(Expr* expression) const;
     bool checkNotPrivate(Type* type, const SourceLocation& location, const char* what);
@@ -226,6 +227,7 @@ private:
     Type* prefixedPrefixType(SelectedExpr* expr, Symbol* operation, Scope* scope, bool* ambiguous = nullptr);
     std::vector<Symbol*> expressionNames(Expr* expr, Scope* scope);
     std::vector<Type*> expressionTypes(Expr* expr, Scope* scope, Type* expected = nullptr);
+    std::vector<Type*> indexedPrefixTypes(CallExpr* expr, Scope* scope, Type* expected);
     std::vector<Type*> discoverExpressionTypes(Expr* expr, Scope* scope, Type* expected);
     bool matchesExpression(Expr* expr, Scope* scope, Type* expected);
     bool matchCallArguments(CallExpr* expr, Symbol* candidate, Scope* scope,

@@ -1,0 +1,15 @@
+realnumbererrors.adb:2:36: error: division by zero in static expression
+realnumbererrors.adb:3:41: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+realnumbererrors.adb:4:56: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+realnumbererrors.adb:5:33: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:6:36: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:7:38: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:8:32: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:8:32: error: 'mod' and 'rem' require integer operands
+realnumbererrors.adb:9:40: error: the exponent of '**' must be an integer
+realnumbererrors.adb:10:24: error: the value of a named number must be numeric
+realnumbererrors.adb:12:37: error: the value of a named number must be static
+realnumbererrors.adb:15:45: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:16:46: error: the operands of an arithmetic operator must have the same type
+realnumbererrors.adb:18:40: error: constraint check fails in static expression
+realnumbererrors.adb:19:42: error: constraint check fails in static expression

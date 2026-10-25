@@ -5,12 +5,12 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "59ea73a7921a73af58b81db8db6473cb50f3483c841704272d9e5767e833f906",
+  "compiler_sha256": "e6c9fb2a1e01283cbf291dfad576a9cb2a671c059131793353d99a5a740eeb62",
   "counts": {
     "B_REJECTED_UNGRADED": 20,
-    "COMPILE_REJECTED": 29,
+    "COMPILE_REJECTED": 24,
     "HARNESS_BLOCKED": 7,
-    "PASS": 50
+    "PASS": 55
   },
   "cases": {
     "c34001a": {
@@ -148,7 +148,7 @@
     "c37006a": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/c3/c37006a.ada:205:25: error: '.' reaches inside a value of 'PRIV', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:205:43: error: '.' reaches inside a value of 'PRIV', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:243:25: error: '.' reaches inside a value of 'LIM', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:243:43: error: '.' reaches inside a value of 'LIM', whose representation 'PACK' keeps to itself\n",
+      "compile_stderr": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported\n",
       "outcome": "COMPILE_REJECTED"
     },
     "c37008a": {
@@ -230,10 +230,13 @@
       "outcome": "PASS"
     },
     "c41103a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c4/c41103a.ada:160:16: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:163:17: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:166:16: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:169:13: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:17: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:24: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:31: error: no visible subprogram matches this call\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41103A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c41104a": {
       "compile_exit": 1,
@@ -242,10 +245,13 @@
       "outcome": "HARNESS_BLOCKED"
     },
     "c41105a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c4/c41105a.ada:89:17: error: no visible subprogram matches this call\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41105A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c41107a": {
       "compile_exit": 0,
@@ -365,10 +371,13 @@
       "outcome": "PASS"
     },
     "c49022c": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c4/c49022c.ada:49:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:50:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:51:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:52:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:53:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:54:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:55:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:56:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:61:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:62:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:63:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:64:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:115:14: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:115:29: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:116:14: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:116:30: error: the operands of a comparison must have the same type\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C49022C\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c540001": {
       "compile_exit": 1,
@@ -464,16 +473,22 @@
       "outcome": "PASS"
     },
     "c730004": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c730004.a:119:38: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C730004\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c73002a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c73002a.ada:66:21: error: 'AA' is not declared\n<upstream>/tests/c7/c73002a.ada:66:29: error: 'AA' is not declared\n<upstream>/tests/c7/c73002a.ada:66:28: error: arithmetic operators require numeric operands\n<upstream>/tests/c7/c73002a.ada:69:25: error: 'AA' is not declared\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C73002A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c760001": {
       "compile_exit": 0,
@@ -508,7 +523,7 @@
     "c760011": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c760011.a:159:37: error: expected ';' after use clause, found '''\n",
+      "compile_stderr": "<upstream>/tests/c7/c760011.a:78:3: error: new discriminant parts on derived types are not yet supported\n<upstream>/tests/c7/c760011.a:82:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:83:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:84:47: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:87:28: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:102:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:102:3: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c7/c760011.a:104:7: error: 'TC_Component' is not a component of a record\n<upstream>/tests/c7/c760011.a:104:24: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:104:37: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:105:10: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:106:21: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:109:47: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:109:43: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c760011.a:113:34: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:113:3: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c7/c760011.a:116:49: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:116:45: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c760011.a:118:10: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:119:19: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:123:47: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:125:27: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:125:28: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:125:5: error: a procedure cannot return a value\n<upstream>/tests/c7/c760011.a:142:69: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:158:3: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:159:3: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:178:19: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:179:45: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:179:46: error: an aggregate needs a known array or record type\n",
       "outcome": "COMPILE_REJECTED"
     },
     "c760013": {

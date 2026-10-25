@@ -29,7 +29,17 @@ Static real arithmetic retains reduced rational values until a machine result
 is needed. Final conversion generates binary significand bits from the fraction
 and rounds once, nearest with ties to even, for the supported 24-bit Float and
 53-bit Long_Float representations. It does not first approximate the fraction
-as a double and then round it again to Float. Explicit real conversions and
+as a double and then round it again to Float. The mixed root numeric profiles
+from [RM 4.5.5(17)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-5-5.html)
+accept universal real × integer, integer × real and real ÷ integer when a root
+real result is permitted. Each operand keeps its own numeric category, so a
+nested integer division still truncates before entering real arithmetic.
+Mixed addition/subtraction, integer ÷ real and mixed specific integer/float
+operands require appropriate explicit conversions. Named-number declarations
+require static numeric values and expose universal_integer or universal_real,
+including values from explicit integer, floating or fixed-point conversions
+([RM 3.3.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-3-2.html)).
+Explicit real conversions and
 references to typed floating constants respect the machine value at that
 boundary; universal real named numbers keep their exact fraction. Fixed-point
 rounding remains nearest with ties away from zero through the existing scaled
@@ -92,7 +102,15 @@ integer/real/fixed evaluation limits. `integerliteralerrors` and `baseerrors`
 cover lexical capacity/exponent failures. Existing runtime check regressions
 use variable operands where a static failure is now a compile-time error.
 
-The unchanged upstream ACATS C49022A case covers integer named-number
-arithmetic and comparisons. It runs through the
+`realnumbers` and its library model cover mixed root arithmetic, exact fractions,
+large factors/cancellation, nested integer division, single rounding, converted
+named numbers across units, overload selection and fixed-point receiving
+contexts, including Duration and four tasks. Whole/per-unit/determinism and
+compiler ASan/UBSan checks pass. `realnumbererrors` covers forbidden mixed
+profiles, nonnumeric/nonstatic declarations, conversion/qualification checks,
+zero divisors and numerator/denominator capacity failures.
+
+The unchanged upstream ACATS C49022A/C49022C cases cover integer/real
+named-number arithmetic and comparisons. They run through the
 [selected CTest harness](../tests/acats/README.md); see the
 [coverage matrix](ada2005-coverage.md) for restrictions and roadmap ownership.

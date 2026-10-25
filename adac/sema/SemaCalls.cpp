@@ -107,9 +107,18 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         candidates = contractNames(expr->callee.get(), std::move(candidates));
     }
 
+    // A parameterless function can supply the array prefix of an indexed
+    // component. Resolve its result using the index and component contexts.
+    auto indexedPrefixes = indexedPrefixTypes(expr, scope, expected);
+    if (indexedPrefixes.size() > 1) {
+        m_diagnostics.error(expr->location, "ambiguous array prefix");
+        return nullptr;
+    }
+    Type* indexedContext = indexedPrefixes.empty() ? nullptr : indexedPrefixes.front();
+
     // A range as the only argument selects a slice of an array.
     if (expr->arguments.size() == 1 && expr->arguments.front().high) {
-        Type* prefixType = analyzeExpr(expr->callee.get(), scope, nullptr);
+        Type* prefixType = analyzeExpr(expr->callee.get(), scope, indexedContext);
         if (prefixType != nullptr && prefixType->kind == TypeKind::Access) { prefixType = prefixType->target; }
         if (prefixType == nullptr || prefixType->kind != TypeKind::Array) {
             m_diagnostics.error(expr->location, "only an array can be sliced");
@@ -179,7 +188,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             return candidate->kind == SymbolKind::Subprogram
                 && !matchesResult(candidate, expected);
         });
-        if (candidates.empty() && (expr->callee->kind == ExprKind::Identifier
+        if (indexedContext == nullptr && candidates.empty() && (expr->callee->kind == ExprKind::Identifier
                                   || expr->callee->kind == ExprKind::Selected)) {
             m_diagnostics.error(expr->location, "no visible subprogram matches this call");
             return nullptr;
@@ -370,6 +379,17 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     }
 
+    if (indexedContext != nullptr && !subprograms.empty()) {
+        for (Symbol* candidate : subprograms) {
+            std::vector<std::size_t> positions;
+            if (matchCallArguments(expr, candidate, scope, positions)) {
+                m_diagnostics.error(expr->location, "ambiguous call or indexed component");
+                return nullptr;
+            }
+        }
+        subprograms.clear();
+    }
+
     if (!subprograms.empty()) {
         Symbol* chosen = nullptr;
         for (Symbol* candidate : subprograms) {
@@ -552,7 +572,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     }
 
     // Otherwise this is an indexed component.
-    Type* prefixType = analyzeExpr(expr->callee.get(), scope, nullptr);
+    Type* prefixType = analyzeExpr(expr->callee.get(), scope, indexedContext);
     Type* array = prefixType;
     // Indexing an access value reads the array it designates, without '.all'.
     if (array != nullptr && baseType(array)->kind == TypeKind::Access) {
@@ -570,6 +590,9 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     int rank = array->arrayRank;
     for (int dimension = 0; dimension < rank; ++dimension) {
         Expr* index = expr->arguments[dimension].value.get();
+        if (!expr->arguments[dimension].nameLower.empty()) {
+            m_diagnostics.error(index->location, "array indexing does not allow named associations");
+        }
         Type* indexType = analyzeExpr(index, scope, array->index);
         if (!typesCompatible(array->index, indexType)) {
             m_diagnostics.error(index->location, "index value has an incompatible type");

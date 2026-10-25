@@ -1,0 +1,14 @@
+supportedrejectionerrors.adb:30:55: error: array indexing does not allow named associations
+supportedrejectionerrors.adb:31:30: error: ambiguous call or indexed component
+supportedrejectionerrors.adb:32:40: error: ambiguous array prefix
+supportedrejectionerrors.adb:33:35: error: no visible subprogram matches this call
+supportedrejectionerrors.adb:34:34: error: no visible subprogram matches this call
+supportedrejectionerrors.adb:35:35: error: no visible subprogram matches this call
+supportedrejectionerrors.adb:46:36: error: 'Body_Local' is not declared in 'Outer_Package'
+supportedrejectionerrors.adb:48:35: error: '.' reaches inside a value of 'Item', whose representation 'Rejection_Model' keeps to itself
+supportedrejectionerrors.adb:50:44: error: '.' reaches inside a value of 'Secret', whose representation 'Rejection_Model' keeps to itself
+supportedrejectionerrors.adb:52:51: error: concatenation requires a nonlimited one-dimensional array type and matching operands
+supportedrejectionerrors.adb:57:32: error: concatenation requires a nonlimited one-dimensional array type and matching operands
+supportedrejectionerrors.adb:57:9: error: limited objects cannot be copied
+supportedrejectionerrors.adb:60:13: error: the target of an assignment must be a variable
+supportedrejectionerrors.adb:61:9: error: 'Length' is a discriminant and cannot be assigned individually

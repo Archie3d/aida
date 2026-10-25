@@ -193,6 +193,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         std::string name = completing->name;
         Symbol* privateTo = completing->privateTo;
+        int privateDiscriminantCount = completing->privateDiscriminantCount;
         bool isLimited = completing->isLimited;
         bool tagged = completing->tagged;
         bool privateViewTagged = completing->privateViewTagged;
@@ -206,6 +207,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->dispatchSlots = std::move(slots);
         completing->classWide = classWide;
         completing->privateTo = privateTo;
+        completing->privateDiscriminantCount = privateDiscriminantCount;
         completing->isLimited = isLimited;
         completing->tagged = tagged;
         completing->privateViewTagged = privateViewTagged;
@@ -643,12 +645,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         auto primitives = std::move(type->primitives);
         Type* classWide = type->classWide;
         Symbol* privateTo = type->privateTo;
+        int privateDiscriminantCount = type->privateDiscriminantCount;
         bool isLimited = type->isLimited;
         bool privateViewTagged = type->privateViewTagged;
         *type = *built;
         type->recordRepresentationSpecified = false;
         if (completing != nullptr) {
             type->privateTo = privateTo;
+            type->privateDiscriminantCount = privateDiscriminantCount;
             type->privateViewTagged = privateViewTagged;
             type->isLimited = isLimited;
         }
@@ -754,6 +758,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->tagged = definition->tagged;
         type->privateViewTagged = definition->tagged;
         type->privateTo = m_packages.back();
+        type->privateDiscriminantCount = static_cast<int>(decl->discriminants.size());
         type->isLimited = definition->isLimited;
         break;
     }

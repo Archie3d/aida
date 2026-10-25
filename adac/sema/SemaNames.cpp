@@ -366,7 +366,9 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         bool matches = expr->isDereference && typesCompatible(expected, designated);
         if (!expr->isDereference && designated != nullptr && designated->kind == TypeKind::Record) {
             for (const FieldInfo& field : designated->fields) {
-                matches = matches || (field.name == expr->selectorLower && typesCompatible(expected, field.type));
+                bool visible = representationVisible(designated)
+                    || (field.isDiscriminant && field.index < designated->privateDiscriminantCount);
+                matches = matches || (visible && field.name == expr->selectorLower && typesCompatible(expected, field.type));
             }
         }
         if (matches) {
@@ -424,7 +426,11 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         bindProtectedCall(expr, operation, expr->prefix.get(), scope);
         return expr->type;
     }
-    if (!checkNotPrivate(record, expr->location, "'.' reaches inside a value")) {
+    bool publicDiscriminant = std::any_of(record->fields.begin(), record->fields.end(), [&](const FieldInfo& field) {
+        return field.name == expr->selectorLower && field.isDiscriminant
+            && field.index < record->privateDiscriminantCount;
+    });
+    if (!publicDiscriminant && !checkNotPrivate(record, expr->location, "'.' reaches inside a value")) {
         return nullptr;
     }
     expr->recordType = record;
