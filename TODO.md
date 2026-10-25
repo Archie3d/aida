@@ -477,9 +477,12 @@ full-tasking restrictions retain their later roadmap owners.
   defaults, overloads, type/exception names and statement-prefix/value legality
   in whole/per-unit/deterministic modes and four tasks; compiler ASan/UBSan pass.
   [Contract](docs/enclosing-names.md).
-- [ ] **Case-selector overload resolution.** Resolve C540002's ambiguous calls
-  when the case-statement context identifies the discrete result. Cover direct
-  and generic calls and retain diagnostics for genuinely ambiguous selectors.
+- [x] **Case-selector overload resolution.** C540002 PASS unchanged: discover
+  visible discrete interpretations before binding; choices cannot disambiguate
+  selectors. `caseselector`/`caseselectorerrors` cover direct/qualified/operator/
+  generic calls, subtype preservation, single evaluation and genuine ambiguity
+  in whole/per-unit/deterministic modes and four tasks; compiler ASan/UBSan pass.
+  [Contract](docs/case-selectors.md).
 - [ ] **Real named-number arithmetic.** Resolve C49022C's rejection of legal
   static arithmetic in real named-number declarations. Reuse the checked exact
   folding rules and test mixed numeric contexts, conversions and invalid cases.

@@ -5,12 +5,12 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "1a08ed4aa413536feae06770101266173b5875e23a06e135f705a8d48a927463",
+  "compiler_sha256": "59ea73a7921a73af58b81db8db6473cb50f3483c841704272d9e5767e833f906",
   "counts": {
     "B_REJECTED_UNGRADED": 20,
-    "COMPILE_REJECTED": 30,
+    "COMPILE_REJECTED": 29,
     "HARNESS_BLOCKED": 7,
-    "PASS": 49
+    "PASS": 50
   },
   "cases": {
     "c34001a": {
@@ -377,10 +377,13 @@
       "outcome": "COMPILE_REJECTED"
     },
     "c540002": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c5/c540002.a:93:12: error: ambiguous name 'Zero'\n<upstream>/tests/c5/c540002.a:129:22: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:150:18: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:170:21: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:192:7: error: 'GenI_Test' is not declared\n<upstream>/tests/c5/c540002.a:210:23: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:231:7: error: 'GenM_Test' is not declared\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C540002\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c54a03a": {
       "compile_exit": 1,

@@ -1,0 +1,9 @@
+caseselectorerrors.adb:63:14: error: ambiguous case selector: multiple discrete types match
+caseselectorerrors.adb:72:14: error: a case selector has to be discrete, and 'Scalar' is not
+caseselectorerrors.adb:77:10: error: ambiguous case selector: multiple discrete types match
+caseselectorerrors.adb:82:10: error: ambiguous case selector: multiple discrete types match
+caseselectorerrors.adb:87:22: error: ambiguous subprogram call
+caseselectorerrors.adb:90:10: error: ambiguous name 'Not_Discrete'
+caseselectorerrors.adb:93:10: error: a case selector has to be discrete, and 'Float' is not
+caseselectorerrors.adb:96:16: error: a case selector has to be discrete, and 'Number' is not
+caseselectorerrors.adb:99:10: error: a case selector has to be discrete, and 'universal_real' is not

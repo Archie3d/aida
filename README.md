@@ -76,6 +76,7 @@ Supported:
 - Extended returns, limited records and build-in-place results ([limits](docs/returns.md))
 - Package elaboration blocks with local storage, captures and scoped cleanup
 - Control flow, exceptions and names qualified by enclosing declarations ([contract](docs/enclosing-names.md))
+- Case selectors resolve overloaded calls using the discrete result type ([rules](docs/case-selectors.md))
 - Integer, floating-point, fixed-point, modular, array and record types
 - Ordinary fixed point with wider binary scales, Small clauses and dynamic local bounds ([limits](docs/fixed-point.md))
 - Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))

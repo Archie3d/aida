@@ -685,8 +685,20 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 // with no run time check behind it and nothing to fall through to.
 void Sema::analyzeCaseStatement(CaseStmt* statement, Scope* scope)
 {
-    Type* selectorType = analyzeExpr(statement->selector.get(), scope, nullptr);
-    if (isUniversal(selectorType)) {
+    // RM 5.4(4): the selector expects any discrete type. Discover its
+    // interpretations before binding; choices get the resolved type later
+    // and must not be used to choose between discrete interpretations.
+    Type* selectorContext = nullptr;
+    for (Type* candidate : expressionTypes(statement->selector.get(), scope)) {
+        if (!isDiscrete(candidate) || !representationVisible(candidate)) { continue; }
+        if (selectorContext != nullptr && rootType(selectorContext) != rootType(candidate)) {
+            m_diagnostics.error(statement->selector->location, "ambiguous case selector: multiple discrete types match");
+            return;
+        }
+        if (selectorContext == nullptr) { selectorContext = candidate; }
+    }
+    Type* selectorType = analyzeExpr(statement->selector.get(), scope, selectorContext);
+    if (selectorType != nullptr && selectorType->kind == TypeKind::UniversalInteger) {
         selectorType = m_types.integerType();
         adaptUniversal(statement->selector.get(), selectorType);
         validateStatic(statement->selector.get());
@@ -695,7 +707,7 @@ void Sema::analyzeCaseStatement(CaseStmt* statement, Scope* scope)
     if (selectorType != nullptr && selectorType->scalarBoundsSymbol != nullptr) {
         selectorType = m_types.scalarBaseType(selectorType);
     }
-    bool discrete = selectorType != nullptr && isDiscrete(selectorType);
+    bool discrete = selectorType != nullptr && isDiscrete(selectorType) && representationVisible(selectorType);
     if (selectorType != nullptr && !discrete) {
         m_diagnostics.error(statement->selector->location,
                             "a case selector has to be discrete, and '" + selectorType->name + "' is not");

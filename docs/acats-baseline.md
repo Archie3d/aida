@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 20 |
-| Legal C-test rejected | 30 |
+| Legal C-test rejected | 29 |
 | Support/harness blocked | 7 |
-| Executable PASS | 49 |
+| Executable PASS | 50 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **30 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **29 executable C-cases fail**, all compile
 rejections; seven further C-cases are blocked by support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
@@ -79,6 +79,13 @@ enclosing-name diagnostics are removed. C54A07A and C64005C retain REPORT
 Ident_Char blockers; C64005C also needs the predefined ASCII package (P7/P8).
 Their changed diagnostics are recorded without claiming executable passes.
 
+C540002 now passes unchanged after selector resolution began applying its
+any-discrete-type context before binding (RM 5.4(4)). `caseselector` and
+`caseselectorerrors` cover direct/generic calls, discrete scalar categories,
+subtype preservation, single evaluation, private views and genuine ambiguity;
+choices do not supply selector context. Whole/per-unit/deterministic execution,
+four tasks and compiler ASan/UBSan checks pass.
+
 ## Coverage by area
 
 Counts are observations, not percentages of RM coverage. Compound cases may
@@ -92,7 +99,7 @@ be blocked before reaching the feature named in their objective.
 | indexing slices | 4 | 3 | 0 | 1 | 0 |
 | aggregates | 0 | 4 | 0 | 0 | 0 |
 | conversions static | 5 | 2 | 0 | 0 | 0 |
-| control flow | 0 | 3 | 0 | 1 | 0 |
+| control flow | 1 | 2 | 0 | 1 | 0 |
 | calls returns | 6 | 1 | 0 | 1 | 0 |
 | private finalization | 4 | 7 | 0 | 1 | 0 |
 | visibility renaming | 9 | 2 | 0 | 0 | 0 |
@@ -116,7 +123,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 49 observed
+crash/timeout handling and source/snapshot integrity. Only the 50 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -176,7 +183,7 @@ The table below gives the observed status and initial triage for every case.
 | [C49022B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022b.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022c.ada) | 4.6/4.9 | Legal C-test rejected | frontend rejection to investigate; P3/P5/P6d/P8 |
 | [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Legal C-test rejected | documented language gap; P6g |
-| [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
+| [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Executable PASS | discrete-context selector resolution repaired; P6f-prelude |
 | [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | Legal C-test rejected | predefined library gap; P7 predefined library |
 | [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Support/harness blocked | support adapter gap; P8 ACATS harness: REPORT.ident_char |
 | [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Legal C-test rejected | documented language gap; P6g |

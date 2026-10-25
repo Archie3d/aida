@@ -1346,9 +1346,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6e/P8",
-        "note": "<upstream>/tests/c5/c540002.a:93:12: error: ambiguous name 'Zero'"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after applying the any-discrete-type context before binding case selectors (RM 5.4(4)); direct and generic overloaded calls execute unchanged."
       }
     },
     {
