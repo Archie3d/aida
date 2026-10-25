@@ -190,6 +190,14 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
 {
     // Attach a separate generic body and check its contract before any instance.
     Symbol* named = lookupName(decl->lower, scope);
+    if (decl->subunit) {
+        auto declarations = scope->lookupDeclaration(decl->lower);
+        if (named != nullptr && std::find(declarations.begin(), declarations.end(), named) == declarations.end()) {
+            m_diagnostics.error(decl->location,
+                "package body stub must complete a declaration in the same declarative region");
+            return;
+        }
+    }
     if (named != nullptr && named->kind == SymbolKind::Generic && named->generic != nullptr) {
         if (named->hasBody) {
             m_diagnostics.error(decl->location, "generic '" + named->displayName + "' already has a body");
@@ -226,7 +234,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
         && std::any_of(m_currentUnit->units.begin(), m_currentUnit->units.end(), [&](const DeclPtr& unit) {
             return unit.get() == decl;
         });
-    Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(symbol->scope);
+    Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(subunitScope(decl->subunit, symbol->scope));
     bodyScope->setCompletionScope(symbol->scope);
     bodyScope->m_privateRegion = true;
 

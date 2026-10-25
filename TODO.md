@@ -85,8 +85,8 @@ phases replace each rejection as they implement it.
   the other supported clauses.
 - [x] **Imports.** C and Ada conventions, three positional arguments, nonempty
   external name (`importconvention*`).
-- [x] **Stubs.** `is separate` gets one diagnostic without cascades
-  (`subprogramstuberrors`).
+- [x] **Stubs.** Initially diagnosed with recovery; subprogram/package
+  subunits implemented in 6e (`subprogramstuberrors` retains illegal placements).
 - [x] **Reserved words.** `aliased`, `protected`, `requeue`, `until`,
   `interface`, `synchronized` reserved; unsupported uses rejected (`reserved*`).
 - [x] **Generic formal types.** Unsupported categories and trailing tokens
@@ -404,9 +404,9 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   limited graph/manifest edges preserve mutual dependencies without imposing
   elaboration order (`limitedwith`, `privatewith`, `taggedincomplete`,
   `semantics.context_views`, `loading.context_dependencies`; whole/separate/
-  determinism, four tasks). ACATS CA20003/CA110232 PASS; CA120012/CA12002 exact
-  XFAILs for limited records and subunits. Existing full-type
-  restrictions remain; [contract](docs/context-views.md).
+  determinism, four tasks). ACATS CA20003/CA110232 PASS; CA120012 remains an
+  exact limited-record compile XFAIL; CA12002 now PASS with subunits below.
+  Existing full-type restrictions remain; [contract](docs/context-views.md).
 - [x] Object `Unchecked_Access` (pulled forward from the Phase 8 access audit):
   library-level accessibility, including anonymous access parameters and local
   tags; ordinary aliasing, subtype, constness and storage rules retained.
@@ -419,8 +419,13 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   accessibility legality retained. `callbackdereference*` covers whole/separate/
   determinism and four tasks; unchanged ACATS C3A2004 PASS.
   [Contract](docs/subprogram-access.md#dereferenced-callbacks).
-- [ ] Separate subunits for subprogram and package bodies: loading, and
-  analysis in the parent's scope. Replaces the Phase 1 diagnostic.
+- [x] Separate subunits for subprogram and package bodies: recursive loading,
+  stub-scope visibility, local contexts, profile conformance and generic replay;
+  parent object dependencies include transitive subunit sources (`subunits`,
+  whole/per-unit/determinism and four tasks; `semantics.subunits`,
+  `subprogramstuberrors`). ACATS CA1006A/CA2009D/CA12002 PASS; CA2009A remains
+  a constrained-array generic-actual XFAIL (P6g/P8). Task/protected subunits
+  remain diagnosed. [Contract](docs/subunits.md).
 - [ ] Extended return statements for results that are not controlled types,
   general limited aggregates and build-in-place results. Extend the existing
   limited controlled-result support to all required Ada 2005 cases, preserving
@@ -449,7 +454,8 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 
 - [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
   Phase 1 rejections with derived, access and interface formals (modular/decimal added in Phase 5)
-  as those types become available.
+  as those types become available. Support constrained-array actuals for formal
+  private types (ACATS CA2009A).
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
 - [ ] Formal packages and matching of their generic contracts, including Ada

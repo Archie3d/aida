@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "Lexer.h"
 
 #include <utility>
 
@@ -76,11 +77,18 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
 
     while (!check(TokenKind::EndOfFile)) {
         try {
+            std::size_t start = m_position;
             auto unit = std::make_unique<CompilationUnit>();
             parseContextClause(*unit);
             if (check(TokenKind::EndOfFile)) {
                 break;
             }
+            if (match(TokenKind::KwSeparate)) {
+                expect(TokenKind::LeftParen, "after separate");
+                parseCompoundName(unit->subunitParent);
+                expect(TokenKind::RightParen, "after subunit parent");
+            }
+            m_libraryItem = true;
             bool privateUnit = match(TokenKind::KwPrivate);
             DeclPtr decl = parseLibraryUnit();
             if (decl != nullptr) { decl->privateUnit = privateUnit; }
@@ -107,6 +115,13 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
                     }
                     parseElaborateBody(*decl, name);
                 }
+                if (!unit->subunitParent.empty() && (privateUnit || decl->separateStub
+                    || (decl->kind != DeclKind::SubprogramBody && decl->kind != DeclKind::PackageBody)
+                    || (decl->kind == DeclKind::SubprogramBody && static_cast<SubprogramBody*>(decl.get())->isNull))) {
+                    fail("a subunit requires a proper subprogram or package body");
+                }
+                unit->tokens.assign(m_tokens.begin() + start, m_tokens.begin() + m_position);
+                unit->tokens.push_back(m_tokens.back());
                 unit->units.push_back(std::move(decl));
                 units.push_back(std::move(unit));
             }
@@ -236,4 +251,38 @@ DeclPtr Parser::parseLibraryUnit()
         return parsePackage(true);
     }
     fail("expected a procedure, function or package declaration");
+}
+
+bool Parser::expandStub(std::size_t start, const std::string& name, DeclKind kind)
+{
+    if (m_stubParent.empty()) {
+        m_diagnostics.error(m_tokens[start].location,
+            "a body stub must appear immediately within a compilation unit body");
+        return false;
+    }
+    if (name.find('.') != std::string::npos || !operatorSymbol(name).empty()) {
+        m_diagnostics.error(m_tokens[start].location, "a body stub requires a simple identifier");
+        return false;
+    }
+    if (!m_stubNames.insert(toLower(name)).second) {
+        m_diagnostics.error(m_tokens[start].location, "body stub names must be distinct");
+        return false;
+    }
+    if (!m_subunitResolver) {
+        return false;
+    }
+    auto tokens = m_subunitResolver(m_stubParent, name, kind, m_tokens[start].location);
+    if (tokens.empty()) {
+        return false;
+    }
+    auto info = tokens.front().subunit;
+    if (kind == DeclKind::SubprogramBody) {
+        info->stubTokens.assign(m_tokens.begin() + start, m_tokens.begin() + m_position - 3);
+        info->stubTokens.push_back(m_tokens[m_position - 1]); // Replace 'is separate' by ';'.
+        info->stubTokens.push_back(m_tokens.back());
+    }
+    m_tokens.erase(m_tokens.begin() + start, m_tokens.begin() + m_position);
+    m_tokens.insert(m_tokens.begin() + start, tokens.begin(), tokens.end());
+    m_position = start;
+    return true;
 }

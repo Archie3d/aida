@@ -108,7 +108,12 @@ add_acats_test(c413004)
 add_acats_test(ca200031 TEST_NAME CA20003 SOURCES ca200030.ada ca200031.ada)
 add_acats_test(ca110232 SOURCES ca110230.ada ca110231.ada ca110232.ada)
 add_acats_test(ca120012 REJECTION "limited record definitions outside Ada.Finalization are not yet supported" SOURCES ca120010.ada ca120011.ada ca120012.ada)
-add_acats_test(ca12002 REJECTION "subprogram stubs ('is separate') are not yet supported")
+add_acats_test(ca12002)
 
 # Contextual Access/Unchecked_Access overload resolution and controlling access.
 add_acats_test(c3a2004)
+
+# Separate subprogram and package bodies, including generic subunits.
+add_acats_test(ca1006a)
+add_acats_test(ca2009a REJECTION "'PKG1' expects a type of a fixed size, and 'STR15' is not one")
+add_acats_test(ca2009d)

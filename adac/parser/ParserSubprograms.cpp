@@ -91,6 +91,8 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
 {
     SourceLocation location = current().location;
     std::size_t start = m_position;
+    bool libraryItem = std::exchange(m_libraryItem, false);
+    auto subunit = m_tokens[start].subunit;
     SubprogramSpec spec = parseSubprogramSpec(true);
 
     if (match(TokenKind::KwRenames)) {
@@ -120,12 +122,22 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
         static_cast<GenericInstantiationDecl*>(instance.get())->isFunction = spec.isFunction;
         return instance;
     }
-    if (check(TokenKind::KwSeparate)) {
-        fail("subprogram stubs ('is separate') are not yet supported");
+    if (match(TokenKind::KwSeparate)) {
+        expect(TokenKind::Semicolon, "after body stub");
+        if (expandStub(start, spec.name, DeclKind::SubprogramBody)) {
+            return parseSubprogramDeclOrBody();
+        }
+        auto stub = std::make_unique<SubprogramBody>();
+        stub->location = location;
+        stub->spec = std::move(spec);
+        stub->separateStub = true;
+        stub->tokens.assign(m_tokens.begin() + start, m_tokens.begin() + m_position);
+        return stub;
     }
 
     auto body = std::make_unique<SubprogramBody>();
     body->location = location;
+    body->subunit = subunit;
     body->spec = std::move(spec);
     if (match(TokenKind::KwNull)) {
         body->isNull = true;
@@ -137,7 +149,7 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
                             m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
         return body;
     }
-    body->declarations = parseDeclarativePart();
+    body->declarations = parseDeclarativePart(false, subunit ? subunit->fullName : libraryItem ? body->spec.lower : "");
     expect(TokenKind::KwBegin, "in subprogram body");
     body->body = parseSequenceOfStatements();
     if (check(TokenKind::KwException)) {

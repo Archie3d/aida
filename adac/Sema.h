@@ -60,7 +60,8 @@ private:
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);
     void inheritPrimitives(Type* type, Type* parent, Scope* scope, const SourceLocation& location);
-    Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false);
+    Scope* subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent);
+    Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false, Scope* profileScope = nullptr);
     void analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope);
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);

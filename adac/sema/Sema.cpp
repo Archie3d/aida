@@ -221,6 +221,7 @@ void Sema::analyze(CompilationUnit& unit)
         context->add(existing);
     }
     for (const WithClause& clause : unit.withClauses) {
+        if (clause.subunitOnly) { continue; }
         for (std::size_t i = 0; i < clause.names.size(); ++i) {
             Symbol* symbol = clause.limited && m_limitedPackages.contains(clause.namesLower[i])
                 ? m_limitedPackages.at(clause.namesLower[i]) : lookupName(clause.namesLower[i], m_globalScope);
@@ -352,4 +353,38 @@ std::string Sema::mangle(const std::string& name) const
 std::string Sema::anonymousTypeName()
 {
     return "anon." + std::to_string(m_anonymousCounter++);
+}
+
+Scope* Sema::subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent)
+{
+    if (!info) { return parent; }
+    Scope* context = m_symbolTable.createScope(parent);
+    context->m_privateRegion = true;
+    for (const WithClause& clause : info->withClauses) {
+        for (const std::string& name : clause.namesLower) {
+            for (std::size_t end = name.find('.');; end = name.find('.', end + 1)) {
+                std::string prefix = name.substr(0, end);
+                context->addLibraryVisibility(prefix);
+                if (end == name.find('.')) {
+                    // A context clause makes a library declaration visible at
+                    // its environment level; it cannot hide a parent local.
+                    bool hidden = false;
+                    for (Scope* enclosing = parent; enclosing != nullptr && enclosing != m_standardScope;
+                        enclosing = enclosing->parent()) {
+                        for (Symbol* symbol : enclosing->lookupDeclaration(prefix)) {
+                            hidden = hidden || symbol->libraryName.empty();
+                        }
+                    }
+                    if (!hidden) {
+                        for (Symbol* symbol : m_globalScope->lookupLocal(prefix)) { context->add(symbol); }
+                    }
+                }
+                if (end == std::string::npos) { break; }
+            }
+        }
+    }
+    context->m_contextClause = true;
+    for (UseDecl use : info->useClauses) { analyzeUseClause(use, context); }
+    context->m_contextClause = false;
+    return context;
 }

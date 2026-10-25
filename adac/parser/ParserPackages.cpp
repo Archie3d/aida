@@ -1,7 +1,12 @@
 #include "Parser.h"
 
+#include <utility>
+
 DeclPtr Parser::parsePackage(bool library)
 {
+    bool libraryItem = std::exchange(m_libraryItem, false);
+    std::size_t itemStart = m_position;
+    auto subunit = m_tokens[itemStart].subunit;
     SourceLocation location = current().location;
     expect(TokenKind::KwPackage, "in package declaration");
 
@@ -13,10 +18,17 @@ DeclPtr Parser::parsePackage(bool library)
         std::size_t start = m_position - 2;
         body->name = parseCompoundName(body->lower);
         expect(TokenKind::KwIs, "in package body");
-        if (check(TokenKind::KwSeparate)) {
-            fail("package body stubs ('is separate') are not yet supported");
+        if (match(TokenKind::KwSeparate)) {
+            expect(TokenKind::Semicolon, "after package body stub");
+            if (expandStub(start, body->name, DeclKind::PackageBody)) {
+                return parsePackage();
+            }
+            body->separateStub = true;
+            body->tokens.assign(m_tokens.begin() + start, m_tokens.begin() + m_position);
+            return body;
         }
-        body->declarations = parseDeclarativePart();
+        body->subunit = subunit;
+        body->declarations = parseDeclarativePart(false, subunit ? subunit->fullName : libraryItem ? body->lower : "");
         if (match(TokenKind::KwBegin)) {
             body->body = parseSequenceOfStatements();
             if (check(TokenKind::KwException)) {

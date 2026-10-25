@@ -228,8 +228,12 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
         unit->unitKey = key;
         const Decl& decl = *unit->units.front();
         std::string nameKey = fileKey(declarationName(decl));
-        m_items[nameKey].push_back(unit.get());
-        registerParts(nameKey);
+        if (unit->subunitParent.empty()) {
+            m_items[nameKey].push_back(unit.get());
+            registerParts(nameKey);
+        } else {
+            m_subunits[fileKey(unit->subunitParent + "." + declarationName(decl))].push_back(unit.get());
+        }
         source.push_back(unit.get());
         m_units.push_back(std::move(unit));
     }
@@ -259,6 +263,7 @@ bool UnitLoader::validateParts()
 {
     std::unordered_map<std::string, CompilationUnit*> seen;
     for (const auto& unit : m_units) {
+        if (!unit->subunitParent.empty()) { continue; }
         auto [entry, inserted] = seen.emplace(unit->partKey, unit.get());
         if (!inserted) {
             m_diagnostics.error(unit->units.front()->location, "duplicate library unit part '" + unit->partKey
@@ -322,6 +327,11 @@ bool UnitLoader::loadSource(const std::string& path)
     // Copy pointers: recursive discovery can grow the source table.
     auto source = m_sources.at(identity);
     for (CompilationUnit* unit : source) {
+        if (!unit->subunitParent.empty()) {
+            loadSubunitParent(*unit);
+            continue;
+        }
+        expandSubunits(*unit);
         const Decl& decl = *unit->units.front();
         std::string name = declarationName(decl);
         std::string key = fileKey(name);
@@ -352,7 +362,9 @@ bool UnitLoader::loadSource(const std::string& path)
             }
         }
     }
-    m_discoveredUnits.insert(m_discoveredUnits.end(), source.begin(), source.end());
+    for (CompilationUnit* unit : source) {
+        if (unit->subunitParent.empty()) { m_discoveredUnits.push_back(unit); }
+    }
     return true;
 }
 
@@ -434,6 +446,14 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
 
 bool UnitLoader::orderUnits()
 {
+    for (const auto& unit : m_units) {
+        if (!unit->subunitParent.empty() && m_loadedSources.contains(sourceIdentity(unit->fileName))
+            && !m_usedSubunits.contains(unit.get())) {
+            m_diagnostics.error(unit->units.front()->location,
+                "subunit has no corresponding body stub in its parent");
+        }
+    }
+    if (m_diagnostics.hasErrors()) { return false; }
     if (!validateParts()) {
         return false;
     }
@@ -754,4 +774,93 @@ std::vector<LibraryUnit> UnitLoader::libraryUnits() const
 std::vector<CompilationUnit*> UnitLoader::units() const
 {
     return m_orderedUnits;
+}
+
+void UnitLoader::expandSubunits(CompilationUnit& unit)
+{
+    if (m_diagnostics.hasErrors() || !m_expandedUnits.insert(&unit).second) { return; }
+    if (std::none_of(unit.tokens.begin(), unit.tokens.end(), [](const Token& token) {
+        return token.kind == TokenKind::KwSeparate;
+    })) { return; }
+    Parser parser(unit.tokens, m_diagnostics);
+    parser.setSubunitResolver([&](const std::string& parent, const std::string& name,
+        DeclKind kind, const SourceLocation& location) {
+        return resolveSubunit(unit, parent, name, kind, location);
+    });
+    auto expanded = parser.parseCompilation();
+    if (expanded.size() == 1) {
+        unit.units = std::move(expanded.front()->units);
+    }
+}
+
+std::vector<Token> UnitLoader::resolveSubunit(CompilationUnit& owner, const std::string& parent,
+    const std::string& name, DeclKind kind, const SourceLocation& location)
+{
+    std::string fullName = toLower(parent + "." + name);
+    std::string key = fileKey(fullName);
+    if (!m_subunits.contains(key)) {
+        std::string path = findUnit(key, ".adb");
+        if (!path.empty() && !m_sources.contains(sourceIdentity(path))) {
+            addSource(path);
+        }
+    }
+    auto found = m_subunits.find(key);
+    if (found == m_subunits.end()) {
+        m_diagnostics.error(location, "cannot find subunit '" + fullName + "'");
+        return {};
+    }
+    if (found->second.size() != 1) {
+        m_diagnostics.error(location, "duplicate subunit '" + fullName + "'");
+        return {};
+    }
+    CompilationUnit* unit = found->second.front();
+    const Decl& body = *unit->units.front();
+    if (body.kind != kind) {
+        m_diagnostics.error(location, "subunit kind does not match its body stub");
+        return {};
+    }
+    if (!m_usedSubunits.insert(unit).second) {
+        m_diagnostics.error(location, "subunit already completes a body stub");
+        return {};
+    }
+    unit->unitKey = owner.unitKey;
+    if (std::find(owner.subunitSources.begin(), owner.subunitSources.end(), unit->fileName) == owner.subunitSources.end()) {
+        owner.subunitSources.push_back(unit->fileName);
+    }
+    auto info = std::make_shared<SubunitInfo>();
+    info->fullName = fullName;
+    info->withClauses = unit->withClauses;
+    info->useClauses = unit->useClauses;
+    for (WithClause clause : unit->withClauses) {
+        clause.subunitOnly = true;
+        owner.withClauses.push_back(std::move(clause));
+    }
+    owner.elaborationPragmas.insert(owner.elaborationPragmas.end(),
+        unit->elaborationPragmas.begin(), unit->elaborationPragmas.end());
+    auto tokens = unit->tokens;
+    auto separate = std::find_if(tokens.begin(), tokens.end(), [](const Token& token) {
+        return token.kind == TokenKind::KwSeparate;
+    });
+    auto bodyStart = std::find_if(separate, tokens.end(), [](const Token& token) {
+        return token.kind == TokenKind::RightParen;
+    });
+    tokens.erase(tokens.begin(), bodyStart + 1);
+    tokens.pop_back(); // The parent parser supplies the EOF.
+    tokens.front().subunit = std::move(info);
+    return tokens;
+}
+
+bool UnitLoader::loadSubunitParent(CompilationUnit& unit)
+{
+    for (std::string parent = unit.subunitParent; !parent.empty(); parent = parentOf(parent)) {
+        std::string key = fileKey(parent);
+        auto found = m_parts.find(key + ".body");
+        std::string path = found == m_parts.end() ? findUnit(key, ".adb") : found->second->fileName;
+        if (!path.empty()) {
+            if (m_targetKey == unit.unitKey) { m_targetKey = key; }
+            return loadSource(path);
+        }
+    }
+    m_diagnostics.error(unit.units.front()->location, "cannot find parent body for subunit '" + unit.subunitParent + "'");
+    return false;
 }

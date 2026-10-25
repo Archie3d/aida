@@ -1622,3 +1622,28 @@ add_test(NAME runtime.callbackdereference_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.callbackdereference runtime.callbackdereference_modes PROPERTIES TIMEOUT 60)
 add_ada_error_test(callbackdereferenceerrors SOURCES callbackdereferenceerrors.adb)
+
+# Phase 6e: subprogram/package subunits, lexical scope and parent object inputs.
+add_ada_test(subunits SOURCES subunits.adb)
+add_determinism_test(subunits SOURCE subunits.adb)
+add_test(NAME runtime.subunits_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/subunits.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/subunits.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/subunits-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.subunits runtime.subunits_modes PROPERTIES TIMEOUT 90)
+
+add_test(NAME semantics.subunits
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DADA=$<TARGET_FILE:ada>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSubunits.cmake)
+set_tests_properties(semantics.subunits PROPERTIES TIMEOUT 90)

@@ -15,6 +15,8 @@
 // A unit is stored under the name GNAT gives it: lower cased, with each dot of
 // the name written as a dash, so Ada.Text_IO.Integer_IO lives in
 // ada-text_io-integer_io.ads with its body beside it in the .adb file.
+// Subunits use the same naming rule for Parent.Name and join the parent's
+// object group after expansion at their stubs.
 class UnitLoader
 {
 public:
@@ -58,6 +60,10 @@ public:
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
+    void expandSubunits(CompilationUnit& unit);
+    std::vector<Token> resolveSubunit(CompilationUnit& owner, const std::string& parent,
+        const std::string& name, DeclKind kind, const SourceLocation& location);
+    bool loadSubunitParent(CompilationUnit& unit);
     void registerParts(const std::string& key);
     bool validateParts();
     bool readFile(const std::string& path, std::string& contents) const;
@@ -75,6 +81,9 @@ private:
     std::unordered_set<std::string> m_loadedSources;
     std::unordered_map<std::string, CompilationUnit*> m_parts;
     std::unordered_map<std::string, std::vector<CompilationUnit*>> m_items;
+    std::unordered_map<std::string, std::vector<CompilationUnit*>> m_subunits;
+    std::unordered_set<CompilationUnit*> m_usedSubunits;
+    std::unordered_set<CompilationUnit*> m_expandedUnits;
     bool m_specificationsOnly = false;
     std::string m_targetKey;
 };

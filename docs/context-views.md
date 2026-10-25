@@ -76,9 +76,10 @@ invalidation. Compiler AddressSanitizer checks cover the new paths as well.
 
 The existing full-type restrictions still apply: general limited records,
 private extensions and tagged discriminants await Phase 6f. Unknown discriminants
-on full/private declarations are explicitly diagnosed. Subunits are the next
-Phase 6e item. [Object `Unchecked_Access`](unchecked-access.md) subsequently
+on full/private declarations are explicitly diagnosed. Subprogram/package
+[subunits](subunits.md) are now implemented.
+[Object `Unchecked_Access`](unchecked-access.md) subsequently
 landed as an explicit follow-up. Unchanged ACATS CA20003 passes partition
-inclusion and CA110232 passes mutual references. CA120012 and CA12002 remain
-exact compile XFAILs for general limited records and subunits, respectively;
-these two cases are not upstream execution passes.
+inclusion and CA110232 passes mutual references. CA12002 also passes with
+separate subunits. CA120012 remains an exact compile
+XFAIL for general limited records; it is not an upstream execution pass.

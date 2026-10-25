@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "Parser.h"
 #include "SemaSupport.h"
 
 #include <algorithm>
@@ -428,8 +429,9 @@ static bool isPrimitive(Symbol* symbol)
     return false;
 }
 
-Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal)
+Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal, Scope* profileScope)
 {
+    if (profileScope == nullptr) { profileScope = scope; }
     std::vector<Type*> parameterTypes;
     for (ParameterDecl& parameter : spec.parameters) {
         for (const ParameterDecl& preceding : spec.parameters) {
@@ -441,7 +443,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 break;
             }
         }
-        Type* parameterType = resolveSubtypeIndication(parameter.subtype.get(), scope);
+        Type* parameterType = resolveSubtypeIndication(parameter.subtype.get(), profileScope);
         if (parameterType != nullptr && parameterType->anonymousAccess && parameterType->target != nullptr
             && parameterType->target->tagged && parameterType->target->classRoot == nullptr
             && rootType(parameterType->target)->declarationScope == scope
@@ -456,7 +458,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     // The synthetic barrier profile always uses Standard.Boolean, independent
     // of source declarations hiding Boolean (or Standard) at this point.
     Type* returnType = spec.entryBarrier ? m_types.booleanType()
-        : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), scope) : nullptr;
+        : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), profileScope) : nullptr;
     checkCompleteView(returnType, spec.location, "a function result");
     if (hasIncompleteParts(returnType)) {
         m_deferredProtectedUses.push_back({returnType, spec.location});
@@ -602,7 +604,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     && parameter->mode == spec.parameters[i].mode
                     && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
                 if (spec.parameters[i].defaultValue != nullptr) {
-                    analyzeExpr(spec.parameters[i].defaultValue.get(), scope, parameterTypes[i]);
+                    analyzeExpr(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i]);
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
                 }
@@ -672,7 +674,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             }
             Symbol* savedSubprogram = m_currentSubprogram;
             m_currentSubprogram = symbol;
-            Type* defaultType = analyzeExpr(declaration.defaultValue.get(), scope, parameterTypes[i]);
+            Type* defaultType = analyzeExpr(declaration.defaultValue.get(), profileScope, parameterTypes[i]);
             m_currentSubprogram = savedSubprogram;
             if (!typesCompatible(parameterTypes[i], defaultType)) {
                 m_diagnostics.error(declaration.defaultValue->location, "the default expression has an incompatible type");
@@ -746,7 +748,27 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
         return;
     }
 
-    Symbol* symbol = declareSubprogram(body->spec, scope, true);
+    Scope* context = subunitScope(body->subunit, scope);
+    Symbol* stubSymbol = nullptr;
+    if (body->subunit && !body->subunit->stubTokens.empty()) {
+        Parser parser(body->subunit->stubTokens, m_diagnostics);
+        auto declarations = parser.parseDeclarations();
+        if (declarations.size() == 1 && declarations.front()->kind == DeclKind::SubprogramDeclaration) {
+            // Keep the stub AST alive: symbols borrow defaults and subtype expressions.
+            auto* stub = static_cast<SubprogramDecl*>(declarations.front().get());
+            // Generic expansion renames the outer unit while retaining locations.
+            stub->spec.name = body->spec.name;
+            stub->spec.lower = body->spec.lower;
+            stubSymbol = declareSubprogram(stub->spec, scope, true);
+            stubSymbol->hasBody = false;
+            body->stubDeclaration = std::move(declarations.front());
+        }
+    }
+    Symbol* symbol = declareSubprogram(body->spec, scope, true, false, context);
+    if (stubSymbol != nullptr && symbol != stubSymbol) {
+        m_diagnostics.error(body->location, "subunit profile does not conform to its body stub");
+        return;
+    }
     if (scope == m_protectedBodyScope && m_currentProtectedType != nullptr) {
         declareProtectedOperation(symbol, m_currentProtectedType);
     }
@@ -763,7 +785,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
         symbol->taskIdentity = identity;
     }
 
-    Scope* inner = m_symbolTable.createScope(scope);
+    Scope* inner = m_symbolTable.createScope(context);
     inner->m_privateRegion = true;
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {
         Symbol* parameter = symbol->parameters[i];

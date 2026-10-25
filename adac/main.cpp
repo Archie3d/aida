@@ -114,6 +114,11 @@ UnitRecord describe(const LibraryUnit& unit)
 
     std::string text;
     for (CompilationUnit* part : unit.parts) {
+        for (const std::string& source : part->subunitSources) {
+            if (std::find(record.sources.begin(), record.sources.end(), source) == record.sources.end()) {
+                record.sources.push_back(source);
+            }
+        }
         if (std::find(record.sources.begin(), record.sources.end(), part->fileName) == record.sources.end()) {
             record.sources.push_back(part->fileName);
         }

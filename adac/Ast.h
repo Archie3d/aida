@@ -787,6 +787,8 @@ enum class DeclKind
 struct Decl : Node
 {
     bool privateUnit = false;
+    bool separateStub = false;
+    std::shared_ptr<SubunitInfo> subunit;
     explicit Decl(DeclKind declKind)
         : kind(declKind)
     {
@@ -897,6 +899,7 @@ struct SubprogramBody : Decl
 
     SubprogramSpec spec;
     bool isNull = false;
+    DeclPtr stubDeclaration;
     SubprogramBody* barrierBody = nullptr; // Owned by the protected body declaration list.
     bool taskBody = false;
     std::string taskName;
@@ -1131,6 +1134,7 @@ struct RepresentationDecl : Decl
 
 struct WithClause
 {
+    bool subunitOnly = false;
     bool limited = false;
     bool privateWith = false;
     std::vector<std::string> names;
@@ -1152,6 +1156,9 @@ struct CompilationUnit
     std::vector<UseDecl> useClauses;
     DeclList units;
     std::string fileName;
+    std::string subunitParent;
+    std::vector<Token> tokens;
+    std::vector<std::string> subunitSources;
 
     // File-based object group, retained for explicit custom names and bundles.
     std::string unitKey;
@@ -1162,6 +1169,16 @@ struct CompilationUnit
     // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;
     std::vector<std::string> limitedDependencies;
+};
+
+// Shared with retained generic tokens so each instance reparses the same body
+// and checks its stub profile in the instance's formal environment.
+struct SubunitInfo
+{
+    std::string fullName;
+    std::vector<Token> stubTokens;
+    std::vector<WithClause> withClauses;
+    std::vector<UseDecl> useClauses;
 };
 
 using CompilationUnitPtr = std::unique_ptr<CompilationUnit>;

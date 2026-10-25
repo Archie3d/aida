@@ -5,12 +5,16 @@
 #include "Token.h"
 
 #include <vector>
+#include <functional>
+#include <unordered_set>
 
 class Parser
 {
 public:
     Parser(std::vector<Token> tokens, Diagnostics& diagnostics);
 
+    using SubunitResolver = std::function<std::vector<Token>(const std::string&, const std::string&, DeclKind, const SourceLocation&)>;
+    void setSubunitResolver(SubunitResolver resolver) { m_subunitResolver = std::move(resolver); }
     std::vector<CompilationUnitPtr> parseCompilation();
 
     // Parses a run of declarations, which is how a generic unit is expanded
@@ -31,11 +35,12 @@ private:
     const Token& expect(TokenKind kind, const char* context);
     [[noreturn]] void fail(const std::string& message);
     void skipToSemicolon();
+    bool expandStub(std::size_t start, const std::string& name, DeclKind kind);
     void parseContextClause(CompilationUnit& unit);
     DeclPtr parseLibraryUnit();
 
     // Declarations (ParserDecl.cpp).
-    DeclList parseDeclarativePart(bool stopAtPrivate = false);
+    DeclList parseDeclarativePart(bool stopAtPrivate = false, const std::string& stubParent = {});
     DeclPtr parseDeclarativeItem();
     DeclPtr parseTask();
     DeclPtr parseProtected();
@@ -101,4 +106,8 @@ private:
     std::vector<Token> m_tokens;
     Diagnostics& m_diagnostics;
     std::size_t m_position = 0;
+    bool m_libraryItem = false;
+    std::string m_stubParent;
+    std::unordered_set<std::string> m_stubNames;
+    SubunitResolver m_subunitResolver;
 };

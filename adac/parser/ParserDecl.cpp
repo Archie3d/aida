@@ -4,8 +4,11 @@
 
 #include <utility>
 
-DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
+DeclList Parser::parseDeclarativePart(bool stopAtPrivate, const std::string& stubParent)
 {
+    std::string savedParent = std::exchange(m_stubParent, stubParent);
+    auto savedNames = std::move(m_stubNames);
+    m_stubNames.clear();
     DeclList declarations;
 
     while (true) {
@@ -35,6 +38,8 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate)
         }
     }
 
+    m_stubParent = std::move(savedParent);
+    m_stubNames = std::move(savedNames);
     return declarations;
 }
 

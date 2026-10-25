@@ -2,7 +2,10 @@
 
 #include "Diagnostics.h"
 
+#include <memory>
 #include <string>
+
+struct SubunitInfo;
 
 enum class TokenKind
 {
@@ -127,6 +130,8 @@ struct Token
     std::string lower;  // Lower-cased spelling, used for identifier lookup.
     long long intValue = 0;
     double realValue = 0.0;
+    // On the first token of an expanded body; survives generic token replay.
+    std::shared_ptr<SubunitInfo> subunit;
 };
 
 const char* tokenKindName(TokenKind kind);

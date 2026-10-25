@@ -327,9 +327,9 @@ compilation/execution and exact XFAIL grading still apply.
 | CA20003: CA200030, CA200031 | PASS: a package reached only by limited with still belongs to the executable partition and elaborates | Further partition/host audit: P8 |
 | CA110232: CA110230–CA110232 | PASS: unchanged mutual-reference case, including Unchecked_Access | Broader accessibility audit: P8 |
 | CA120012: CA120010–CA120012 | Compile XFAIL: general limited records | P6f/P8 |
-| CA12002 | Compile XFAIL: separate subprogram stubs and subunit syntax | Next P6e item |
+| CA12002 | PASS: private context visibility inherited by a separate function body | Broader subunit audit: P8 |
 
-The two XFAILs are not execution passes. Local `limitedwith`, `privatewith`
+The remaining CA120012 XFAIL is not an execution pass. Local `limitedwith`, `privatewith`
 and `taggedincomplete` exercise the implemented views with whole/per-unit/
 deterministic compilation, private children, runtime array aliases, four tasks,
 allocation and deallocation. `semantics.context_views` covers illegal uses,
@@ -372,3 +372,26 @@ See the [callback contract](../../docs/subprogram-access.md#dereferenced-callbac
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |
 | [tests/c3/c3a2004.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a2004.a) | `333ededda715908c7d5da59a4f3ab191a68031c0` | `b5f50611a12ff72c129c42effac7c3a4d6c35cfc56717c928c065c2065c3d48c` |
+
+## Separate subunits (Phase 6e)
+
+CA1006A, CA2009A and CA2009D come unchanged from the same
+[pinned ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+selected on 2026-10-25 with all rights/disclaimers retained. CA1006A passes
+bundled function, procedure and package subunits, including package elaboration.
+CA2009D passes generic procedure/function subunits and instantiation.
+The already imported CA12002 now passes private-with visibility inherited by a
+subunit. Its former stub-rejection expectation has been removed.
+
+CA2009A checks generic package subunits with scalar and constrained-string
+actuals. It remains an exact compile XFAIL for the existing formal-private
+constrained-array actual restriction (P6g/P8); no body is modified and no
+executable pass is claimed. Local `subunits` covers generic package subunits,
+nested subunits, captured frames and four tasks; `semantics.subunits` checks
+legality, context isolation and incremental rebuilds.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/ca/ca1006a.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1006a.ada) | `7b3527f58e97945978f9913452b7cabc5a92d88d` | `fff62aec5169dc3453548e8b00470d47881bfc9cd004792b475ce38d43d3459d` |
+| [tests/ca/ca2009a.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca2009a.ada) | `4953045dcf6aa2bb4a8314bfdfa84fb49ee318b9` | `f5b6af9a6d6f5766832f00f975ba4153b9568fc8fbd75deac566dc806ce5df65` |
+| [tests/ca/ca2009d.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca2009d.ada) | `65b5d811318eefe6ee04e4539727e0a925cae9da` | `9309f5bc3a16c7acc2966ef79a10d792a55a6adceaa118d4c767d61d69f505af` |
