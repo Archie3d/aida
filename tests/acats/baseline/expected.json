@@ -5,10 +5,9 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "0ab86f8ef04812a9c83fe8e89e9f8b5d8545a46ea4fe7e9895f00868fd2ddc35",
+  "compiler_sha256": "afc96d9fcc8f525a379221e15bf0a6e88f346881f6057f7841dfbbd96d384c4f",
   "counts": {
-    "B_ACCEPTED_UNGRADED": 1,
-    "B_REJECTED_UNGRADED": 19,
+    "B_REJECTED_UNGRADED": 20,
     "COMPILE_REJECTED": 35,
     "HARNESS_BLOCKED": 7,
     "PASS": 44
@@ -699,10 +698,10 @@
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b36002a": {
-      "compile_exit": 0,
+      "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "",
-      "outcome": "B_ACCEPTED_UNGRADED"
+      "compile_stderr": "<upstream>/tests/b3/b36002a.ada:33:22: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:37:23: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:40:22: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:43:23: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:47:24: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:51:26: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:55:23: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:59:27: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:63:24: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:66:22: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:70:23: error: array indices must be either all constrained or all unconstrained\n<upstream>/tests/b3/b36002a.ada:74:23: error: array indices must be either all constrained or all unconstrained\n",
+      "outcome": "B_REJECTED_UNGRADED"
     },
     "b37004a": {
       "compile_exit": 1,

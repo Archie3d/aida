@@ -27,9 +27,11 @@ may expose additional compiler limitations.
 B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
 cannot establish correctness: the next harness stage must validate expected
-error locations, permitted error groups and legal controls. B36002A was
-accepted despite its marked illegal mixed array-index declarations; this is a
-candidate legality defect, not a graded B-test result.
+error locations, permitted error groups and legal controls. B36002A now
+rejects its mixed constrained/boxed array-index declarations with 12 targeted
+diagnostics after the 6f-prelude repair. Its observation remains ungraded;
+local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
+coverage and executable legal controls.
 
 Crashes and timeouts are critical outcomes and make a probe command fail even
 if previously recorded. Normal runtime failures remain RUN_FAILED; they are

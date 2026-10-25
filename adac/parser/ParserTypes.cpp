@@ -174,14 +174,18 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
         definition->location = location;
         advance();
         expect(TokenKind::LeftParen, "in array type definition");
+        bool firstUnconstrained = false;
+        bool mixedIndexesReported = false;
         while (true) {
             auto index = std::make_unique<SubtypeIndication>();
             index->location = current().location;
+            bool unconstrained = false;
             std::size_t saved = m_position;
             if (check(TokenKind::Identifier)) {
                 index->name = parseSubtypeMark(index->lower);
                 if (match(TokenKind::KwRange)) {
                     if (match(TokenKind::Box)) {
+                        unconstrained = true;
                         definition->unconstrainedIndexes = true;
                     } else {
                         index->rangeLow = parseSimpleExpression();
@@ -200,6 +204,14 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
                 index->rangeLow = parseSimpleExpression();
                 expect(TokenKind::DoubleDot, "in index range");
                 index->rangeHigh = parseSimpleExpression();
+            }
+            // RM 3.6: an array definition uses index_subtype_definitions
+            // (all boxed) or discrete_subtype_definitions (none boxed).
+            if (definition->indexTypes.empty()) {
+                firstUnconstrained = unconstrained;
+            } else if (unconstrained != firstUnconstrained && !mixedIndexesReported) {
+                m_diagnostics.error(index->location, "array indices must be either all constrained or all unconstrained");
+                mixedIndexesReported = true;
             }
             definition->indexTypes.push_back(std::move(index));
             if (!match(TokenKind::Comma)) {

@@ -8,6 +8,21 @@ are removed. Index subtypes still impose their own language constraints.
 defines dimensions; [RM 4.1.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-1-2.html)
 defines slice bounds and checks.
 
+## Index definition syntax
+
+The shared parser requires either constrained indices in every dimension or
+`subtype_mark range <>` in every dimension
+([Ada 2005 RM 3.6(2–6)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-6.html)).
+Mixing the forms produces one diagnostic at the first mismatching index,
+while parsing continues through the remaining declaration. Named types,
+anonymous array objects and generic formal arrays use the same check.
+All-constrained definitions may combine subtype marks and explicit ranges;
+boxed indices may themselves name constrained discrete subtypes.
+`arrayindexerrors` and `arrayindexlegality` cover rejection/recovery and legal
+static/runtime/null/generic controls in whole/per-unit/deterministic modes.
+Unchanged ACATS B36002A now gets 12 diagnostics but remains ungraded pending
+the Phase 8 B-test grader. Compiler ASan/UBSan checks pass for all three inputs.
+
 ## Shared contract
 
 `common/Array.h` owns the compiler/runtime layout. Each dimension is four

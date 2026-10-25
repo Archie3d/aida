@@ -61,15 +61,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             };
             if (check(TokenKind::KwArray)) {
                 formal.typeClass = FormalTypeClass::ArrayType;
-                std::size_t start = m_position;
                 formal.arrayDefinition = parseTypeDefinition();
-                std::size_t boxes = 0;
-                for (std::size_t i = start; i < m_position; ++i) {
-                    boxes += m_tokens[i].kind == TokenKind::Box ? 1 : 0;
-                }
-                if (boxes != 0 && boxes != formal.arrayDefinition->indexTypes.size()) {
-                    fail("formal array indexes must be all constrained or all unconstrained");
-                }
                 for (const auto& index : formal.arrayDefinition->indexTypes) {
                     if (index->name.empty() || index->rangeLow || index->rangeHigh) {
                         fail("a constrained formal array index must be a subtype mark");

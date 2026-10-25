@@ -463,11 +463,13 @@ full-tasking restrictions retain their later roadmap owners.
   cover homographs, subtypes, named/expanded calls, private/body/child contexts
   and rejection controls; whole/per-unit/determinism, four tasks and compiler
   ASan/UBSan pass. B840001 stays ungraded. [Contract](docs/operator-visibility.md).
-- [ ] **Array declaration legality.** Reject the mixed constrained/unconstrained
-  multidimensional index definitions accepted by B36002A. Add diagnostic tests
-  for the intended rule and legal controls with consistently constrained or
-  unconstrained indices. Keep the upstream B observation ungraded until the
-  Phase 8 B-test grader validates its error markers and legal controls.
+- [x] **Array declaration legality.** Shared array parsing rejects mixed
+  constrained/boxed indices for named types, anonymous arrays and generic
+  formals (RM 3.6(2–6)). `arrayindexerrors` covers both orders and recovery;
+  `arrayindexlegality` supplies constrained/boxed, runtime, null and generic
+  legal controls in whole/per-unit/deterministic modes; compiler ASan/UBSan
+  pass. Unchanged B36002A now gets 12 targeted diagnostics and remains
+  `B_REJECTED_UNGRADED` until Phase 8 validates error markers and legal controls.
 - [ ] **Expanded names of enclosing declarations.** Resolve C83022A/C83024A's
   rejection of declarations qualified by a named block. Cover hiding, enclosing
   subprogram/generic scopes and the distinction between a statement identifier

@@ -2224,7 +2224,7 @@
       "triage": {
         "kind": "ungraded_legality_probe",
         "owner": "P8 B-test harness",
-        "note": "Accepted all marked mixed constrained/unconstrained array index declarations; candidate legality defect. Expected-error grading remains required."
+        "note": "Mixed constrained/boxed indices now produce 12 targeted diagnostics (P6f-prelude, RM 3.6(2-6)); remains B_REJECTED_UNGRADED pending the Phase 8 error-marker/legal-control grader."
       }
     },
     {

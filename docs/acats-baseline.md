@@ -9,8 +9,8 @@ This is a baseline of the current subset, not a conformance claim.
 
 | Observation | Cases |
 | --- | ---: |
-| B accepted, ungraded | 1 |
-| B rejected, ungraded | 19 |
+| B accepted, ungraded | 0 |
+| B rejected, ungraded | 20 |
 | Legal C-test rejected | 35 |
 | Support/harness blocked | 7 |
 | Executable PASS | 44 |
@@ -18,9 +18,9 @@ This is a baseline of the current subset, not a conformance claim.
 
 No crashes or timeouts were observed. **35 executable C-cases fail**, all compile
 rejections; seven further C-cases are blocked by support adapters.
-The 19 rejected B-probes are ungraded, not 19 legality passes.
-The accepted B36002A probe warrants investigation of mixed constrained/
-unconstrained array-index legality.
+All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
+rejects its mixed constrained/unconstrained array definitions; the Phase 8
+B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
 
@@ -57,6 +57,16 @@ at line 119, for the remaining supported-area review in this prelude.
 Legal-source rejections still need review: some hit explicit later roadmap
 features, while others expose missing behavior in completed areas.
 
+B36002A now produces 12 diagnostics for its mixed constrained/boxed index
+definitions, at the first mismatching index of each declaration (RM 3.6(2–6)).
+The shared parser check also covers anonymous arrays and generic formals.
+`arrayindexerrors` covers both orders, subtype marks, raw ranges, enumeration/
+Boolean indices, three dimensions and recovery; `arrayindexlegality` checks
+legal constrained/boxed definitions, runtime bounds, null arrays and generic
+instantiations in whole/per-unit/deterministic modes. Compiler ASan/UBSan
+checks pass. The B observation remains ungraded; no strict ACATS C-case is
+promoted by this legality repair.
+
 ## Coverage by area
 
 Counts are observations, not percentages of RM coverage. Compound cases may
@@ -80,7 +90,7 @@ be blocked before reaching the feature named in their objective.
 
 ## Follow-up order
 
-1. Investigate the accepted B36002A probe and remaining legal C rejections; turn
+1. Investigate the remaining legal C rejections; turn
    confirmed defects into focused compiler regressions before fixing them.
 2. Implement B-test grading against upstream error markers, permitted error
    groups and legal controls. Include recovery/diagnostic coverage; a nonzero
@@ -199,7 +209,7 @@ The table below gives the observed status and initial triage for every case.
 | [B34001B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34001b.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B34002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34002b.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B36001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36001a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B36002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36002a.ada) | 3/4/6/8 | B accepted, ungraded | ungraded legality probe; P8 B-test harness |
+| [B36002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36002a.ada) | 3/4/6/8 | B rejected, ungraded | mixed-index diagnostics repaired in P6f-prelude; grading: P8 B-test harness |
 | [B37004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b37004a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B3A0001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B3A0002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0002.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |

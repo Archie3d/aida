@@ -1,0 +1,14 @@
+arrayindexerrors.adb:4:48: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:5:51: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:6:48: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:7:36: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:8:38: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:9:47: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:10:46: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:11:41: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:12:60: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:13:37: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:17:34: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:18:21: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:20:36: error: array indices must be either all constrained or all unconstrained
+arrayindexerrors.adb:24:45: error: array indices must be either all constrained or all unconstrained
