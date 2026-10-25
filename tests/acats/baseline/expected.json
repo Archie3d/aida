@@ -10,7 +10,8 @@
     "B_REJECTED_UNGRADED": 20,
     "COMPILE_REJECTED": 18,
     "HARNESS_BLOCKED": 8,
-    "PASS": 60
+    "PASS": 75,
+    "RUN_FAILED": 1
   },
   "cases": {
     "c34001a": {
@@ -166,6 +167,150 @@
       "compile_stderr": "",
       "run_exit": 0,
       "run_stdout": "TEST C37008B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c390010": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C390010\nFAILED Case 2\nFAILED Case 4\nFAILED Case 5\nFAILED Case 6\n",
+      "run_stderr": "\nraised PROGRAM_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c390011": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C390011\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c391001": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C391001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c391003": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C391003\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c392004": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C392004\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c392010": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C392010\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c392011": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C392011\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c392d01": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C392D01\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c392d02": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C392D02\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c393001": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C393001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c393012": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C393012\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c393a02": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C393A02\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c393a03": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C393A03\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c393a06": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C393A06\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c394002": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C394002\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c394003": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C394003\nPASSED\n",
       "run_stderr": "",
       "outcome": "PASS"
     },

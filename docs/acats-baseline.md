@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — 2026-10-25
 
-This backfill adds **106 unchanged upstream cases**: 86 C-tests and 20 B-test
+This backfill adds **122 unchanged upstream cases**: 102 C-tests and 20 B-test
 probes, alongside the existing 55-case selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -13,18 +13,31 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 20 |
 | Legal C-test rejected | 18 |
 | Support/harness blocked | 8 |
-| Executable PASS | 60 |
-| Executable failure | 0 |
+| Executable PASS | 75 |
+| Executable failure | 1 |
 
-No crashes or timeouts were observed. **18 executable C-cases fail**, all compile
-rejections; eight further C-cases are blocked by support adapters.
+No crashes or timeouts were observed. **19 executable C-cases fail**: 18 compile
+rejections and one runtime failure; eight further C-cases are blocked by
+support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
 
-The final Phase 6f interface milestone retains all 106 observations exactly:
+The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
+all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
+Fifteen pass unchanged and join the normal suite: C394002/C394003 (limited and
+nonlimited interfaces), C393001/C393012/C393A02/C393A03/C393A06 (abstract
+operations and dispatch), C392004/C392010/C392011/C392D01/C392D02 (conversions,
+controlling parameters/results and private primitives), C391001/C391003
+(discriminated/local extensions) and C390011 (generic-instance tags).
+C390010 compiles and runs but fails cases 2, 4, 5 and 6; investigate constrained
+class-wide access conversions and inherited discriminant/component handling.
+It is recorded as RUN_FAILED, outside the passing CTest selection. All original
+106 observations remain unchanged; the expanded cohort has 75 executable passes.
+
+Before this backfill, the final Phase 6f interface milestone retained all 106 observations:
 60 executable passes, 18 legal-source rejections, eight support blockers and
 20 ungraded B observations. Its local interface scenarios are documented in the
 [interface contract](interfaces.md); no new upstream pass is inferred from them.
@@ -146,6 +159,7 @@ be blocked before reaching the feature named in their objective.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | derived scalars | 8 | 1 | 0 | 1 | 0 |
 | arrays discriminants | 4 | 6 | 0 | 0 | 0 |
+| object orientation | 15 | 0 | 1 | 0 | 0 |
 | access callbacks | 6 | 1 | 0 | 0 | 0 |
 | indexing slices | 6 | 1 | 0 | 1 | 0 |
 | aggregates | 0 | 4 | 0 | 0 | 0 |
@@ -160,7 +174,7 @@ be blocked before reaching the feature named in their objective.
 
 ## Follow-up order
 
-1. Investigate the remaining legal C rejections; turn
+1. Investigate C390010's runtime failures and the remaining legal C rejections; turn
    confirmed defects into focused compiler regressions before fixing them.
 2. Implement B-test grading against upstream error markers, permitted error
    groups and legal controls. Include recovery/diagnostic coverage; a nonzero
@@ -174,7 +188,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 55 observed
+crash/timeout handling and source/snapshot integrity. Only the 75 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -207,6 +221,22 @@ The table below gives the observed status and initial triage for every case.
 | [C37006A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37006a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 access-subtype constraints |
 | [C37008A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37008a.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
 | [C37008B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37008b.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
+| [C390010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c390010.a) | 3.4/3.9/3.10 | Executable failure | runtime failure to investigate; P6f constrained class-wide discriminants |
+| [C390011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c390011.a) | 3.4/3.9/3.10 | Executable PASS | covered probe; P6f object orientation |
+| [C391001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c391001.a) | 3.7/3.9.1 | Executable PASS | covered probe; P6f object orientation |
+| [C391003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c391003.a) | 3.7/3.9.1 | Executable PASS | covered probe; P6f object orientation |
+| [C392004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392004.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
+| [C392010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392010.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
+| [C392011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392011.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
+| [C392D01](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392d01.a); [f392d00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f392d00.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
+| [C392D02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392d02.a); [f392d00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f392d00.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393001.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393012](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393012.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a02.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a03.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393A06](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a06.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C394002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c394002.a) | 3.9.4 | Executable PASS | covered probe; P6f object orientation |
+| [C394003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c394003.a) | 3.9.4 | Executable PASS | covered probe; P6f object orientation |
 | [C3A0001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0001.a) | 3.10 | Executable PASS | covered probe; P6d |
 | [C3A0002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0002.a) | 3.10 | Executable PASS | covered probe; P6d |
 | [C3A0003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0003.a) | 3.10 | Executable PASS | covered probe; P6d |

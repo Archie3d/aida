@@ -566,6 +566,16 @@ full-tasking restrictions retain their later roadmap owners.
   slot-map metadata and explicit diagnostics until implemented.
   [Contract and boundaries](docs/interfaces.md).
 
+- [x] Phase 6f ACATS backfill: 16 unchanged C-tests and their original shared
+  foundations. Fifteen new executable passes cover interfaces, abstract/private
+  dispatch, discriminated/local extensions and generic-instance tags. C390010
+  is recorded as RUN_FAILED (cases 2, 4, 5 and 6); constrained class-wide access
+  conversions and inherited discriminant/component handling need investigation.
+  All original 106 observations remain unchanged. Expanded baseline: 122 cases,
+  75 PASS, 18 compile rejections, eight harness blockers, one runtime failure
+  and 20 ungraded B observations. All 133 ACATS/baseline CTest checks and the
+  full snapshot-stability target pass. [Inventory and triage](docs/acats-baseline.md).
+
 ### 6g. Generics
 
 Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,

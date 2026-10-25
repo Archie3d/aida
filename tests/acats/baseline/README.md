@@ -1,19 +1,22 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 106 cases to the existing 55-case strict selection:
-86 executable C-tests and 20 ungraded B-test probes. The selection targets
+implement. It adds 122 cases to the existing 55-case strict selection:
+102 executable C-tests and 20 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 106 source files retain their original bytes and rights/disclaimers.
+All 124 source files (including two shared foundations) retain their original
+bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
 PAX comment pins revision `2785c30c1f8577d97ac7b3043882f6818781e9c5` of
 [simonjwright/ACATS](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5).
 That mixed-version mirror needs per-case language review. C433002/C433005
 were excluded because their sources use Ada 2012 aspects/expression functions;
-their hashes and exclusion reasons remain in the manifest.
+their hashes and exclusion reasons remain in the manifest. The Phase 6f
+expansion uses Ada 95/2005 sources, including the original F392D00/F393A00
+foundations for the private/abstract dispatch cases.
 
 ## Recorded observations
 
@@ -39,15 +42,18 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 60 C passes, 18 legal-source rejections, eight support blockers and 20
-ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
+has 75 C passes, one executable failure, 18 legal-source rejections, eight support
+blockers and 20 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
-The final Phase 6f interface milestone retains these 106 observations. Its local
-interface tests add implementation/legality coverage without claiming additional
-upstream passes; the recorded compiler fingerprint is refreshed.
+The Phase 6f backfill adds 16 C-tests: 15 unchanged executable passes covering
+interfaces, abstract operations, dispatch, private/discriminated extensions and
+generic-instance tags, plus C390010 as RUN_FAILED. C390010 compiles and runs but
+reports failures in cases 2, 4, 5 and 6 involving constrained class-wide access
+values and discriminants. It remains in the observational cohort, outside the
+passing CTest selection. The original 106 observations remain unchanged.
 
 ## Reproduce
 

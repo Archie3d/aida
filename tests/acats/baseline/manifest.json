@@ -5,6 +5,14 @@
   "archive_note": "GitHub archive PAX comment records the revision; all imported bytes were read directly from that archive.",
   "language_target": "Ada 2005, including inherited Ada 83/95 objectives. Reviewed exclusions identify later-language sources. B compilation observations are ungraded.",
   "files": {
+    "support/f392d00.a": {
+      "sha256": "53c4eab95810ed4d9f2af9b19ab70f03d4d204f58b23a5fde19f4eb269636f56",
+      "git_blob": "24f742739c8ae8c43cdabd712829652bec9d50b0"
+    },
+    "support/f393a00.a": {
+      "sha256": "89f4a94a558e59b5aa61f90b9c2b1b2a13258379ba1472f3689e5a8c6a250d8e",
+      "git_blob": "e85c3f49cd09c74860d95b790e942c3605383533"
+    },
     "tests/b3/b330001.a": {
       "sha256": "8f9bdf304520a59f04d3e22b1eb973c296f4483e7cdea93e63451eca76a64db0",
       "git_blob": "cfb9f47f05dd18532d3869fdfed904893f5a4ee8"
@@ -164,6 +172,70 @@
     "tests/c3/c37008b.ada": {
       "sha256": "4b62dcf0f248ebb656b27a124645e4a5a9f42db1fa928be413f516c9b3c3808f",
       "git_blob": "369f08cf5fcd7ae2370065ce3c93cae9e4eed613"
+    },
+    "tests/c3/c390010.a": {
+      "sha256": "2553cfcb098dbe402189fedec0137dbbf3146b45c60d67bd553459059f9a7d33",
+      "git_blob": "1590e5027ab09f7e430fdb0f64ccfea26069e4b0"
+    },
+    "tests/c3/c390011.a": {
+      "sha256": "aaab79108442be65f0d6826b1e3c2f725f5fafb40591693e96d702a491e172f0",
+      "git_blob": "74cf0eb0468507f8771f41a41f997b800466a68f"
+    },
+    "tests/c3/c391001.a": {
+      "sha256": "4d5fad7d353107f0af076cc9f2dbb27c80cd4f8ed3a3463a7f49fae138d592f3",
+      "git_blob": "bca7525765fa1202403479d8c6bb48d2102e933d"
+    },
+    "tests/c3/c391003.a": {
+      "sha256": "0bfbada3feb7b5925df337efccde997b863ed52a5760104cb38f4fe9bc58e741",
+      "git_blob": "3f7a422efd2d45b85559d7d613153ecfd04997e6"
+    },
+    "tests/c3/c392004.a": {
+      "sha256": "9998cf0db7842189bae18b1398ae89954073807b4a3fb6315a19c0ef2eb10428",
+      "git_blob": "0851db1d287089c286a1664ac233ae2a10eebdd6"
+    },
+    "tests/c3/c392010.a": {
+      "sha256": "18f03585dc26b6e1a7787e88de2d448328b9dc8d54a8e2ce0241f1fdf9d22a82",
+      "git_blob": "85357d2ac84fc75043482d6e1f93b91a72985dd4"
+    },
+    "tests/c3/c392011.a": {
+      "sha256": "ab0cf9ae88e657c58efac8e402c8266c941f00a5eeb3cc5add6c9c0d9300ff59",
+      "git_blob": "c32ec77c0d0bc051457675b1debb760ea201e6f6"
+    },
+    "tests/c3/c392d01.a": {
+      "sha256": "b775faabbcb3832c98799fa958e41066203e2c2e29731ccadbe6de70c13def7f",
+      "git_blob": "bb6e192028c1e4cfbe452293a57777471ab77e00"
+    },
+    "tests/c3/c392d02.a": {
+      "sha256": "0c87dabf9dc55c01b51a93c3d8ac0d32197bc2337fc75b76a0a656776ce17545",
+      "git_blob": "d8e012cbe2d2457fb5258417aaa035d3ecf7402a"
+    },
+    "tests/c3/c393001.a": {
+      "sha256": "81dfa3ee224ddca0a9d3df54b4bacede5464020e3325a7ffd3445204864ad701",
+      "git_blob": "9d6f85c6392e9b95c41f0e8f99a90062e4c78d41"
+    },
+    "tests/c3/c393012.a": {
+      "sha256": "b2d5685279ed705d18243ffb3d3c08472a20f2440c91da0d7f15e67405a01ae3",
+      "git_blob": "16bf6ddccf854a0855031502622caa670a900938"
+    },
+    "tests/c3/c393a02.a": {
+      "sha256": "45858d3b7d06e2e640f468fdc52fa0c7bd5b075163f61d995d8bc19894d48bde",
+      "git_blob": "177bd34b87e1cd761216bf93b5e58dbefaada0ed"
+    },
+    "tests/c3/c393a03.a": {
+      "sha256": "c02e71c0620e718b83f7779321ca33686490a95ad32e559d93b573b18d1a56ea",
+      "git_blob": "90106f4bf444bb04937f91323e974a0914d885a4"
+    },
+    "tests/c3/c393a06.a": {
+      "sha256": "7553b7771c8fba1bf5f4b7663694863da1457a29cd23b2396aa349243d8ed126",
+      "git_blob": "c257d5fa0a042583d3c191dfcfaeeb9b88e759c4"
+    },
+    "tests/c3/c394002.a": {
+      "sha256": "7fd42f1462589dfdb03713481780afd9f3fbf2e057a6a3b2a2829942390f99bb",
+      "git_blob": "6b1febf288855a6ccf175db5daf08a4303fe54ce"
+    },
+    "tests/c3/c394003.a": {
+      "sha256": "683a51a53de5bc209ea62915b0811ae8508ac6d448e54a76b075fa5a7b74f354",
+      "git_blob": "8f3dbca8322b5a2c303486641a9339b6e045d6a5"
     },
     "tests/c3/c3a0001.a": {
       "sha256": "df4dbcd8475b529ba5b0a0d4cca76ffd88413ea4beb378ded25c56ada8f5ce62",
@@ -811,6 +883,325 @@
         "kind": "covered_probe",
         "owner": "P3/P6b/P6c",
         "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c390010",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.4/3.9/3.10",
+      "objective": "Check that if S is a subtype of a tagged type T, and if S is constrained, then the allowable values of S'Class are only those that, when converted to T, belong to S.",
+      "sources": [
+        "tests/c3/c390010.a"
+      ],
+      "report_name": "C390010",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "runtime_failure_to_investigate",
+        "owner": "P6f constrained class-wide discriminants",
+        "note": "Compiles and runs, but REPORT records failures in cases 2, 4, 5 and 6. Investigate constrained class-wide access conversions and inherited discriminant/component handling; retain RUN_FAILED, not PASS or compile XFAIL."
+      }
+    },
+    {
+      "id": "c390011",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.4/3.9/3.10",
+      "objective": "Check that tagged types declared within generic package declarations generate distinct tags for each instance of the generic.",
+      "sources": [
+        "tests/c3/c390011.a"
+      ],
+      "report_name": "C390011",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c391001",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.7/3.9.1",
+      "objective": "Check that structures nesting discriminated records as components in record extension are correctly supported.  Check for this using limited private structures. Check that record extensions inherit all the visible components of their ancestor types. Check that discriminants are correctly inherited.",
+      "sources": [
+        "tests/c3/c391001.a"
+      ],
+      "report_name": "C391001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c391003",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.7/3.9.1",
+      "objective": "Check that a type can be extended at a different level than the parent type. Check that subprograms overridden for such an extension can be dispatched to, and that the overridden routine can access local variables of the subprogram.",
+      "sources": [
+        "tests/c3/c391003.a"
+      ],
+      "report_name": "C391003",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c392004",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.2/7.3",
+      "objective": "Check that subprograms inherited from tagged derivations, which are subsequently redefined for the derived type, are available to the package defining the new class via view conversion.  Check that operations performed on objects using view conversion do not affect the extended fields.  Check that visible operations not masked by the deriving package remain available to the client, and do not affect the extended fields.",
+      "sources": [
+        "tests/c3/c392004.a"
+      ],
+      "report_name": "C392004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c392010",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.2/7.3",
+      "objective": "Check that a subprogram dispatches correctly with a controlling access parameter. Check that a subprogram dispatches correctly when it has access parameters that are not controlling. Check with and without default expressions.",
+      "sources": [
+        "tests/c3/c392010.a"
+      ],
+      "report_name": "C392010",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c392011",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.2/7.3",
+      "objective": "Check that if a function call with a controlling result is itself a controlling operand of an enclosing call on a dispatching operation, then its controlling tag value is determined by the controlling tag value of the enclosing call.",
+      "sources": [
+        "tests/c3/c392011.a"
+      ],
+      "report_name": "C392011",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c392d01",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.2/7.3",
+      "objective": "Check that, for an implicitly declared dispatching operation that is overridden, the body executed is the body for the overriding subprogram, even if the overriding occurs in a private part. Check that, for an implicitly declared dispatching operation that is NOT overridden, the body executed is the body of the corresponding subprogram of the parent type.",
+      "sources": [
+        "support/f392d00.a",
+        "tests/c3/c392d01.a"
+      ],
+      "report_name": "C392D01",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c392d02",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.2/7.3",
+      "objective": "Check that a primitive procedure declared in a private part is not overridden by a procedure explicitly declared at a place where the primitive procedure in question is not visible.",
+      "sources": [
+        "support/f392d00.a",
+        "tests/c3/c392d02.a"
+      ],
+      "report_name": "C392D02",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393001",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.3",
+      "objective": "Check that an abstract type can be declared, and in turn concrete types can be derived from it.  Check that the definition of actual subprograms associated with the derived types dispatch correctly.",
+      "sources": [
+        "tests/c3/c393001.a"
+      ],
+      "report_name": "C393001",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393012",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.3",
+      "objective": "Check that a non-abstract subprogram of an abstract type can be called with a controlling operand that is a type conversion to the abstract type.",
+      "sources": [
+        "tests/c3/c393012.a"
+      ],
+      "report_name": "C393012",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393a02",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.3",
+      "objective": "Check that a dispatching call to an abstract subprogram invokes the correct subprogram body of a descendant type according to the controlling tag. Check that a subprogram can be declared with formal parameters and result that are of an abstract type's associated class-wide type and that such subprograms can be called. 3.4.1(4)",
+      "sources": [
+        "support/f393a00.a",
+        "tests/c3/c393a02.a"
+      ],
+      "report_name": "C393A02",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393a03",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.3",
+      "objective": "Check that a non-abstract primitive subprogram of an abstract type can be called as a dispatching operation and that the body of this subprogram can make a dispatching call to an abstract operation of the corresponding abstract type.",
+      "sources": [
+        "support/f393a00.a",
+        "tests/c3/c393a03.a"
+      ],
+      "report_name": "C393A03",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393a06",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.3",
+      "objective": "Check that a type that inherits abstract operations but overrides each of these operations is not required to be abstract, and that objects of the type and its class-wide type may be declared and passed in calls to the overriding subprograms.",
+      "sources": [
+        "support/f393a00.a",
+        "tests/c3/c393a06.a"
+      ],
+      "report_name": "C393A06",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c394002",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.4",
+      "objective": "Check that an interface inherits primitive subprograms from each progenitor. Case 1A: Limited interfaces, simple primitive subprograms.",
+      "sources": [
+        "tests/c3/c394002.a"
+      ],
+      "report_name": "C394002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c394003",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f",
+      "rm": "3.9.4",
+      "objective": "Check that an interface inherits primitive subprograms from each progenitor. Case 2A: Non-limited interfaces, simple primitive subprograms.",
+      "sources": [
+        "tests/c3/c394003.a"
+      ],
+      "report_name": "C394003",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6f object orientation",
+        "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
       }
     },
     {
