@@ -470,10 +470,13 @@ full-tasking restrictions retain their later roadmap owners.
   legal controls in whole/per-unit/deterministic modes; compiler ASan/UBSan
   pass. Unchanged B36002A now gets 12 targeted diagnostics and remains
   `B_REJECTED_UNGRADED` until Phase 8 validates error markers and legal controls.
-- [ ] **Expanded names of enclosing declarations.** Resolve C83022A/C83024A's
-  rejection of declarations qualified by a named block. Cover hiding, enclosing
-  subprogram/generic scopes and the distinction between a statement identifier
-  used as a qualifying prefix and one used as a value.
+- [x] **Expanded names of enclosing declarations.** C83022A/C83024A and related
+  C64004G/C64005A/C64005B PASS unchanged. Enclosing blocks/loops/subprograms
+  qualify their immediate declarations; generic current-instance and captured
+  identities survive replay. `enclosingnames`/`enclosingnameerrors` cover hiding,
+  defaults, overloads, type/exception names and statement-prefix/value legality
+  in whole/per-unit/deterministic modes and four tasks; compiler ASan/UBSan pass.
+  [Contract](docs/enclosing-names.md).
 - [ ] **Case-selector overload resolution.** Resolve C540002's ambiguous calls
   when the case-statement context identifies the discrete result. Cover direct
   and generic calls and retain diagnostics for genuinely ambiguous selectors.
@@ -481,9 +484,10 @@ full-tasking restrictions retain their later roadmap owners.
   static arithmetic in real named-number declarations. Reuse the checked exact
   folding rules and test mixed numeric contexts, conversions and invalid cases.
 - [ ] **Remaining supported-area rejections.** Review the baseline's other
-  front-end rejections to investigate, including C41103A/C41105A, C64004G/
-  C64005A/C64005B, C730004 and C73002A. Add confirmed in-scope defects to this
-  prelude; identify independent unsupported rules and their owners explicitly
+  front-end rejections to investigate, including C41103A/C41105A, C730004 and
+  C73002A (C64004G/C64005A/C64005B pass after the enclosing-name repair above).
+  Add confirmed in-scope defects to this prelude; identify independent
+  unsupported rules and their owners explicitly
   when a compound case also needs a later feature.
 - [ ] **Validation and promotion.** For each repair, add a focused regression
   and run the unchanged upstream case; use whole/per-unit/determinism checks

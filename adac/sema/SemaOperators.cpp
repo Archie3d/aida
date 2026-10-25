@@ -12,6 +12,11 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
 {
     std::vector<OperatorCandidate> candidates;
     auto symbols = selectedScope == nullptr ? scope->lookup(name) : selectedScope->lookupVisibleLocal(name, scope);
+    if (selectedScope != nullptr && selectedScope->completionScope() != nullptr) {
+        for (Symbol* symbol : selectedScope->completionScope()->lookupVisibleLocal(name, scope)) {
+            if (std::find(symbols.begin(), symbols.end(), symbol) == symbols.end()) { symbols.push_back(symbol); }
+        }
+    }
     auto matchesNames = [&](const std::vector<std::string>& formals) {
         for (std::size_t i = 0; i < argumentNames.size(); ++i) {
             if (!argumentNames[i].empty() && argumentNames[i] != formals[i]) {
@@ -132,7 +137,8 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         bool universalFixed = predefinedOnly && (name == "*" || name == "/")
             && std::any_of(candidate.parameters.begin(), candidate.parameters.end(),
                 [](Type* type) { return type->kind == TypeKind::Fixed; });
-        if (selectedScope != nullptr && owner != selectedScope && !universalFixed) { return; }
+        if (selectedScope != nullptr && owner != selectedScope
+            && owner != selectedScope->completionScope() && !universalFixed) { return; }
         if (selectedScope == nullptr && !predefinedOnly && !fixed && owner != m_standardScope
             && depth < 0 && !scope->usesType(primitiveType)) {
             return;
@@ -177,6 +183,9 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
     addType(expected);
     if (selectedScope != nullptr) {
         for (Type* type : selectedScope->operatorTypes(scope)) { addType(type); }
+        if (selectedScope->completionScope() != nullptr) {
+            for (Type* type : selectedScope->completionScope()->operatorTypes(scope)) { addType(type); }
+        }
     }
     for (Expr* operand : operands) {
         for (Type* type : expressionTypes(operand, scope)) {
@@ -337,9 +346,9 @@ std::string Sema::explicitOperatorName(CallExpr* call, Scope* scope, bool& stand
         name = static_cast<IdentifierExpr*>(call->callee.get())->lower;
     } else if (call->callee->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(call->callee.get());
-        auto prefixes = expressionNames(selected->prefix.get(), scope);
-        standard = prefixes.size() == 1 && prefixes.front()->scope == m_standardScope;
-        if (prefixes.size() == 1 && prefixes.front()->kind == SymbolKind::Package) {
+        Symbol* prefix = expandedPrefix(selected->prefix.get(), scope);
+        standard = prefix != nullptr && expandedScope(prefix, scope) == m_standardScope;
+        if (prefix != nullptr) {
             name = selected->selectorLower;
         }
     }
@@ -358,8 +367,8 @@ std::vector<Sema::OperatorCandidate> Sema::explicitOperatorCandidates(CallExpr* 
     Scope* selectedScope = nullptr;
     if (call->callee->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(call->callee.get());
-        auto prefixes = expressionNames(selected->prefix.get(), scope);
-        if (prefixes.size() == 1) { selectedScope = prefixes.front()->scope; }
+        Symbol* prefix = expandedPrefix(selected->prefix.get(), scope);
+        if (prefix != nullptr) { selectedScope = expandedScope(prefix, scope); }
     }
     // At most two operands: try each formal order without mutating the AST.
     // A positional actual is fixed to its source position; named actuals are

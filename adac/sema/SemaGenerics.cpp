@@ -309,6 +309,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
         owned = std::make_unique<GenericContract>();
         owned->environment = scope;
         owned->bindings = m_symbolTable.createScope(scope);
+        owned->bindings->m_genericBindings = true;
         owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
         owned->valid = true;
     }
@@ -1027,6 +1028,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     GenericContract* contract = foundContract->second.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     Scope* bindings = m_symbolTable.createScope(contract->environment);
+    bindings->m_genericBindings = true;
     if (!bindGenericFormals(decl, generic, bindings, scope)) {
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();

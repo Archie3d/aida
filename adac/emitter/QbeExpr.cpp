@@ -458,7 +458,8 @@ Value QbeEmitter::emitAddress(Expr* expr)
     case ExprKind::Selected: {
         auto* selected = static_cast<SelectedExpr*>(expr);
         if (selected->symbol != nullptr
-            && (selected->symbol->kind == SymbolKind::Object || selected->symbol->kind == SymbolKind::Parameter)) {
+            && (selected->symbol->kind == SymbolKind::Object || selected->symbol->kind == SymbolKind::Parameter
+                || selected->symbol->kind == SymbolKind::LoopParameter)) {
             if (selected->symbol->protectedField >= 0 && expr->protectedReceiver != nullptr) {
                 Value object = addressOf(expr->protectedReceiver);
                 const auto& field = selected->symbol->protectedType->fields[selected->symbol->protectedField];

@@ -6,7 +6,7 @@ set of inherited Ada requirements applicable to Ada 2005, not a full ACATS run
 or a claim of conformity assessment. Ada 2005-specific additions still need tests.
 
 A completed-feature [backfill baseline](baseline/README.md) adds 106 pinned,
-unchanged cases. Its 44 observed executable passes join the normal ACATS label;
+unchanged cases. Its 49 observed executable passes join the normal ACATS label;
 failures, support blockers and ungraded B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.

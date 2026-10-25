@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 20 |
-| Legal C-test rejected | 35 |
+| Legal C-test rejected | 30 |
 | Support/harness blocked | 7 |
-| Executable PASS | 44 |
+| Executable PASS | 49 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **35 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **30 executable C-cases fail**, all compile
 rejections; seven further C-cases are blocked by support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
@@ -67,6 +67,18 @@ instantiations in whole/per-unit/deterministic modes. Compiler ASan/UBSan
 checks pass. The B observation remains ungraded; no strict ACATS C-case is
 promoted by this legality repair.
 
+C83022A/C83024A and related C64004G/C64005A/C64005B now pass unchanged
+after enclosing-name lookup was repaired (RM 4.1.3(10–13)). `enclosingnames`
+and `enclosingnameerrors` cover hidden objects, parameters, defaults, nested
+blocks/loops, generic current instances, callable-prefix ambiguity and
+non-enclosing/value-use rejections, including captured frames and four tasks
+in whole/per-unit/deterministic modes. Compiler ASan/UBSan checks pass for
+these fixtures and all five unchanged upstream cases.
+C41103A still rejects overloaded array/function calls at lines 160–174; its
+enclosing-name diagnostics are removed. C54A07A and C64005C retain REPORT
+Ident_Char blockers; C64005C also needs the predefined ASCII package (P7/P8).
+Their changed diagnostics are recorded without claiming executable passes.
+
 ## Coverage by area
 
 Counts are observations, not percentages of RM coverage. Compound cases may
@@ -81,9 +93,9 @@ be blocked before reaching the feature named in their objective.
 | aggregates | 0 | 4 | 0 | 0 | 0 |
 | conversions static | 5 | 2 | 0 | 0 | 0 |
 | control flow | 0 | 3 | 0 | 1 | 0 |
-| calls returns | 3 | 4 | 0 | 1 | 0 |
+| calls returns | 6 | 1 | 0 | 1 | 0 |
 | private finalization | 4 | 7 | 0 | 1 | 0 |
-| visibility renaming | 7 | 4 | 0 | 0 | 0 |
+| visibility renaming | 9 | 2 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 0 | 0 | 0 | 2 | 0 |
 | legality sample | 0 | 0 | 0 | 0 | 20 |
@@ -104,7 +116,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 44 observed
+crash/timeout handling and source/snapshot integrity. Only the 49 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -144,7 +156,7 @@ The table below gives the observed status and initial triage for every case.
 | [C3A0005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0005.a) | 3.10 | Executable PASS | covered probe; P6d |
 | [C3A0007](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0007.a) | 3.10 | Legal C-test rejected | documented language gap; P6f |
 | [C3A0008](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0008.a) | 3.10 | Executable PASS | covered probe; P6d |
-| [C41103A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41103a.ada) | 4.1.1–4.1.2 | Legal C-test rejected | frontend rejection to investigate; P3/P6b/P8 |
+| [C41103A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41103a.ada) | 4.1.1–4.1.2 | Legal C-test rejected | enclosing names repaired; overloaded array/function calls remain; P6f-prelude/P8 |
 | [C41104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41104a.ada) | 4.1.1–4.1.2 | Support/harness blocked | support adapter gap; P8 ACATS harness: REPORT.ident_char |
 | [C41105A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41105a.ada) | 4.1.1–4.1.2 | Legal C-test rejected | frontend rejection to investigate; P3/P6b/P8 |
 | [C41107A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41107a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P3/P6b |
@@ -169,9 +181,9 @@ The table below gives the observed status and initial triage for every case.
 | [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Support/harness blocked | support adapter gap; P8 ACATS harness: REPORT.ident_char |
 | [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Legal C-test rejected | documented language gap; P6g |
 | [C64002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64002b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
-| [C64004G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64004g.ada) | 6.4–6.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
-| [C64005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005a.ada) | 6.4–6.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
-| [C64005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005b.ada) | 6.4–6.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
+| [C64004G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64004g.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
+| [C64005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005a.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
+| [C64005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005b.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | Support/harness blocked | support adapter gap; P8 ACATS harness: REPORT.ident_char |
 | [C65003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003a.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C65003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
@@ -188,8 +200,8 @@ The table below gives the observed status and initial triage for every case.
 | [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
 | [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6f |
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
-| [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
-| [C83024A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83024a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
+| [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
+| [C83024A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83024a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c840001.a) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
 | [C84002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84002a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C84005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84005a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |

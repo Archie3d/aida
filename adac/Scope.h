@@ -33,11 +33,13 @@ public:
     bool privateVisible(Symbol* package) const;
     bool libraryVisible(const std::string& name) const;
     void setCompletionScope(Scope* scope) { m_completionScope = scope; }
+    Scope* completionScope() const { return m_completionScope; }
     std::vector<Symbol*> lookupDeclaration(const std::string& name) const;
     bool m_privateRegion = false;
     std::string m_packageName;
     std::string m_libraryPackage;
     bool m_contextClause = false;
+    bool m_genericBindings = false;
     bool m_isLibraryRegistry = false;
     bool m_publicChildPart = false;
 

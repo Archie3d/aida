@@ -5,11 +5,71 @@
 
 using SemaSupport::splitDottedName;
 
+Scope* Sema::expandedScope(Symbol* prefix, Scope* from) const
+{
+    if (prefix->constructScope != nullptr && from->immediateDepth(prefix->constructScope) >= 0
+        && prefix->renamedSubprogram == nullptr && prefix->renamedUnit == nullptr
+        && prefix->inheritedFrom == nullptr) {
+        return prefix->constructScope;
+    }
+    return prefix->kind == SymbolKind::Package ? prefix->scope : nullptr;
+}
+
+Symbol* Sema::expandedPrefix(Expr* prefix, Scope* scope, bool* ambiguous)
+{
+    if (prefix->kind != ExprKind::Identifier && prefix->kind != ExprKind::Selected) { return nullptr; }
+    Symbol* result = nullptr;
+    for (Symbol* candidate : expressionNames(prefix, scope)) {
+        if (expandedScope(candidate, scope) == nullptr) { continue; }
+        if (result != nullptr && result != candidate) {
+            if (ambiguous != nullptr) { *ambiguous = true; }
+            return nullptr;
+        }
+        result = candidate;
+    }
+    return result;
+}
+
+std::vector<Symbol*> Sema::expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from) const
+{
+    Scope* region = expandedScope(prefix, from);
+    if (region == nullptr) { return {}; }
+    auto result = region->lookupVisibleLocal(name, from);
+    if (prefix->kind == SymbolKind::Package && region != prefix->scope) {
+        auto declared = result;
+        auto specification = prefix->scope->lookupVisibleLocal(name, from);
+        declared.insert(declared.end(), specification.begin(), specification.end());
+        result = region->lookup(name);
+        std::erase_if(result, [&](Symbol* symbol) {
+            return std::find(declared.begin(), declared.end(), symbol) == declared.end();
+        });
+    }
+    // Generic formals share the generic's region, but are not exported as
+    // declarations of an instance. Only its current instance can select them.
+    Scope* bindings = prefix->kind == SymbolKind::Package ? prefix->scope->parent() : prefix->declarationScope;
+    if (result.empty() && from->immediateDepth(region) >= 0
+        && bindings != nullptr && bindings->m_genericBindings) {
+        result = bindings->lookupVisibleLocal(name, from);
+        std::erase_if(result, [&](Symbol* symbol) { return expandedScope(symbol, from) == region; });
+    }
+    return result;
+}
+
 Symbol* Sema::lookupName(const std::string& lower, Scope* scope)
 {
     std::vector<std::string> names = splitDottedName(lower);
 
     std::vector<Symbol*> candidates = scope->lookup(names.front());
+    if (m_replayContract != nullptr && names.front() == m_replayContract->unitName
+        && std::any_of(candidates.begin(), candidates.end(), [](Symbol* symbol) { return symbol->kind == SymbolKind::Generic; })) {
+        for (Symbol* original : m_replayContract->bindings->lookupLocal(names.front())) {
+            Symbol* instance = instanceSymbol(original);
+            if (instance != nullptr && expandedScope(instance, scope) != nullptr) {
+                candidates = { instance };
+                break;
+            }
+        }
+    }
     if (candidates.empty()) {
         return nullptr;
     }
@@ -18,25 +78,20 @@ Symbol* Sema::lookupName(const std::string& lower, Scope* scope)
         })) {
         return nullptr;
     }
-    Symbol* symbol = candidates.front();
-    for (Symbol* candidate : candidates) {
-        if (names.size() > 1 && candidate->kind == SymbolKind::Package) {
-            symbol = candidate;
-            break;
-        }
-    }
-
     for (std::size_t i = 1; i < names.size(); ++i) {
-        if (symbol->scope == nullptr) {
-            return nullptr;
+        Symbol* prefix = nullptr;
+        for (Symbol* candidate : candidates) {
+            Scope* selected = expandedScope(candidate, scope);
+            if (selected != nullptr) {
+                if (prefix != nullptr) { return nullptr; }
+                prefix = candidate;
+            }
         }
-        std::vector<Symbol*> nested = symbol->scope->lookupVisibleLocal(names[i], scope);
-        if (nested.empty()) {
-            return nullptr;
-        }
-        symbol = nested.front();
+        if (prefix == nullptr) { return nullptr; }
+        candidates = expandedDeclarations(prefix, names[i], scope);
+        if (candidates.empty()) { return nullptr; }
     }
-    return symbol;
+    return candidates.front();
 }
 
 std::vector<Symbol*> Sema::lookupAll(const std::string& lower, Scope* scope)
@@ -241,35 +296,20 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
 {
     // A selected name is either a qualified entity (Package.Entity) or a record
     // component selection.
-    Symbol* prefixSymbol = nullptr;
-    if (expr->prefix->kind == ExprKind::Identifier) {
-        auto* identifier = static_cast<IdentifierExpr*>(expr->prefix.get());
-        std::vector<Symbol*> candidates = scope->lookup(identifier->lower);
-        if (candidates.size() > 1 && std::any_of(candidates.begin(), candidates.end(), [](Symbol* symbol) {
-                return symbol->kind == SymbolKind::Package;
-            })) {
-            m_diagnostics.error(expr->location, "ambiguous name '" + identifier->name + "'");
-            return nullptr;
-        }
-        for (Symbol* candidate : candidates) {
-            if (candidate->kind == SymbolKind::Package) {
-                prefixSymbol = candidate;
-                identifier->symbol = candidate;
-                break;
-            }
-        }
-    } else if (expr->prefix->kind == ExprKind::Selected) {
-        auto* selected = static_cast<SelectedExpr*>(expr->prefix.get());
-        for (Symbol* candidate : expressionNames(selected, scope)) {
-            if (candidate->kind == SymbolKind::Package) {
-                prefixSymbol = candidate;
-                selected->symbol = candidate;
-            }
-        }
+    bool ambiguous = false;
+    Symbol* prefixSymbol = expandedPrefix(expr->prefix.get(), scope, &ambiguous);
+    if (ambiguous) {
+        m_diagnostics.error(expr->location, "ambiguous expanded-name prefix");
+        return nullptr;
     }
-
-    if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
-        std::vector<Symbol*> candidates = contractNames(expr, prefixSymbol->scope->lookupVisibleLocal(expr->selectorLower, scope));
+    if (prefixSymbol != nullptr) {
+        recordContractName(expr->prefix.get(), prefixSymbol);
+        if (expr->prefix->kind == ExprKind::Identifier) {
+            static_cast<IdentifierExpr*>(expr->prefix.get())->symbol = prefixSymbol;
+        } else {
+            static_cast<SelectedExpr*>(expr->prefix.get())->symbol = prefixSymbol;
+        }
+        std::vector<Symbol*> candidates = contractNames(expr, expandedDeclarations(prefixSymbol, expr->selectorLower, scope));
         if (candidates.empty()) {
             m_diagnostics.error(expr->location, "'" + expr->selector + "' is not declared in '"
                                                     + prefixSymbol->displayName + "'");
@@ -302,6 +342,14 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             }
         }
         return expr->type;
+    }
+
+    for (Symbol* candidate : expressionNames(expr->prefix.get(), scope)) {
+        if (candidate->kind == SymbolKind::Statement) {
+            m_diagnostics.error(expr->location, "statement identifier '" + candidate->displayName
+                + "' does not denote an enclosing named construct");
+            return nullptr;
+        }
     }
 
     // A component's expected type can also distinguish overloaded prefixes.

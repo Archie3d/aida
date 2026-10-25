@@ -12,7 +12,7 @@ std::vector<Symbol*> Sema::prefixedOperations(SelectedExpr* expr, Scope* scope)
 {
     if (expr->isDereference || expr->prefix == nullptr) { return {}; }
     for (Symbol* name : expressionNames(expr->prefix.get(), scope)) {
-        if (name->kind == SymbolKind::Package || name->kind == SymbolKind::TypeName) { return {}; }
+        if (expandedScope(name, scope) != nullptr || name->kind == SymbolKind::TypeName) { return {}; }
     }
     std::vector<Symbol*> result;
     for (Type* prefix : expressionTypes(expr->prefix.get(), scope)) {
@@ -88,16 +88,11 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
     }
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
-        auto prefixes = expressionNames(selected->prefix.get(), scope);
-        if (prefixes.size() != 1 && std::any_of(prefixes.begin(), prefixes.end(), [](Symbol* prefix) {
-                return prefix->kind == SymbolKind::Package;
-            })) {
-            return {};
-        }
-        for (Symbol* prefix : prefixes) {
-            if (prefix->kind == SymbolKind::Package && prefix->scope != nullptr) {
-                return contractNames(expr, prefix->scope->lookupVisibleLocal(selected->selectorLower, scope));
-            }
+        bool ambiguous = false;
+        Symbol* prefix = expandedPrefix(selected->prefix.get(), scope, &ambiguous);
+        if (ambiguous) { return {}; }
+        if (prefix != nullptr) {
+            return contractNames(expr, expandedDeclarations(prefix, selected->selectorLower, scope));
         }
         std::vector<Symbol*> operations = prefixedOperations(selected, scope);
         for (Type* prefix : expressionTypes(selected->prefix.get(), scope)) {

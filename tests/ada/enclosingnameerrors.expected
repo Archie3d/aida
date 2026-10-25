@@ -1,0 +1,16 @@
+enclosingnameerrors.adb:14:33: error: ambiguous expanded-name prefix
+enclosingnameerrors.adb:29:19: error: statement identifier 'Region' cannot be used as a value
+enclosingnameerrors.adb:30:38: error: statement identifier 'Region' cannot be used as a value
+enclosingnameerrors.adb:31:25: error: 'Missing' is not declared in 'region'
+enclosingnameerrors.adb:32:25: error: 'Result' is not declared in 'region'
+enclosingnameerrors.adb:34:22: error: 'Index' cannot be assigned to
+enclosingnameerrors.adb:37:21: error: statement identifier 'region' does not denote an enclosing named construct
+enclosingnameerrors.adb:38:15: error: no visible interpretation of 'Finished' matches this context
+enclosingnameerrors.adb:38:23: error: 'Local' is not a component of a record
+enclosingnameerrors.adb:39:15: error: no visible interpretation of 'Alias' matches this context
+enclosingnameerrors.adb:39:20: error: 'Parameter' is not a component of a record
+enclosingnameerrors.adb:40:23: error: 'Number' is not declared in 'Instance'
+enclosingnameerrors.adb:41:30: error: 'Body_Value' is not declared in 'Enclosing_Model'
+enclosingnameerrors.adb:43:15: error: statement identifier 'Plain_Label' cannot be used as a value
+enclosingnameerrors.adb:44:26: error: statement identifier 'Plain_Label' does not denote an enclosing named construct
+enclosingnameerrors.adb:48:25: error: 'Local' is not a component of a record

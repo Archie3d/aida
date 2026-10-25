@@ -179,6 +179,9 @@ private:
     // SemaNames.cpp
     Symbol* lookupName(const std::string& lower, Scope* scope);
     std::vector<Symbol*> lookupAll(const std::string& lower, Scope* scope);
+    Scope* expandedScope(Symbol* prefix, Scope* from) const;
+    Symbol* expandedPrefix(Expr* prefix, Scope* scope, bool* ambiguous = nullptr);
+    std::vector<Symbol*> expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from) const;
     Type* classWideType(Type* specific);
     void dispatchIndeterminate(Expr* expr, Type* controlling);
     Type* resolveTypeName(const std::string& lower, Scope* scope, const SourceLocation& location);

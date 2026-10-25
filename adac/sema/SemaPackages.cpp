@@ -235,6 +235,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
             return unit.get() == decl;
         });
     Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(subunitScope(decl->subunit, symbol->scope));
+    symbol->constructScope = bodyScope;
     bodyScope->setCompletionScope(symbol->scope);
     bodyScope->m_privateRegion = true;
 

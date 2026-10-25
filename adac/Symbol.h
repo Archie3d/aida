@@ -105,6 +105,8 @@ struct Symbol
     Symbol* renamedAccess = nullptr;
     bool intrinsicRenaming = false;
     Scope* declarationScope = nullptr;
+    // A named body's region is selectable only from within that region.
+    Scope* constructScope = nullptr;
     bool addressTaken = false;
     // Code pointer and static link, stored once in the enclosing frame.
     long long descriptorOffset = -1;

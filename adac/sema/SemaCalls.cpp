@@ -51,27 +51,20 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     } else if (expr->callee->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr->callee.get());
-        Symbol* prefixSymbol = nullptr;
-        if (selected->prefix->kind == ExprKind::Identifier) {
-            auto* identifier = static_cast<IdentifierExpr*>(selected->prefix.get());
-            for (Symbol* candidate : scope->lookup(identifier->lower)) {
-                if (candidate->kind == SymbolKind::Package) {
-                    prefixSymbol = candidate;
-                    identifier->symbol = candidate;
-                    break;
-                }
-            }
-        } else if (selected->prefix->kind == ExprKind::Selected) {
-            auto* nested = static_cast<SelectedExpr*>(selected->prefix.get());
-            for (Symbol* candidate : expressionNames(nested, scope)) {
-                if (candidate->kind == SymbolKind::Package) {
-                    prefixSymbol = candidate;
-                    nested->symbol = candidate;
-                }
-            }
+        bool ambiguous = false;
+        Symbol* prefixSymbol = expandedPrefix(selected->prefix.get(), scope, &ambiguous);
+        if (ambiguous) {
+            m_diagnostics.error(expr->location, "ambiguous expanded-name prefix");
+            return nullptr;
         }
-        if (prefixSymbol != nullptr && prefixSymbol->scope != nullptr) {
-            candidates = prefixSymbol->scope->lookupVisibleLocal(selected->selectorLower, scope);
+        if (prefixSymbol != nullptr) {
+            recordContractName(selected->prefix.get(), prefixSymbol);
+            if (selected->prefix->kind == ExprKind::Identifier) {
+                static_cast<IdentifierExpr*>(selected->prefix.get())->symbol = prefixSymbol;
+            } else {
+                static_cast<SelectedExpr*>(selected->prefix.get())->symbol = prefixSymbol;
+            }
+            candidates = expandedDeclarations(prefixSymbol, selected->selectorLower, scope);
             if (candidates.empty()) {
                 m_diagnostics.error(expr->callee->location, "'" + selected->selector + "' is not declared in '"
                                                                 + prefixSymbol->displayName + "'");

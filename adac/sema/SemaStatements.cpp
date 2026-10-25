@@ -6,6 +6,22 @@
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
 
+namespace {
+
+Symbol* statementIdentifier(Scope* scope, const std::string& name)
+{
+    // Statement identifiers are declared in the enclosing body/block, even
+    // when the construct is nested inside loops or conditional statements.
+    for (; scope != nullptr; scope = scope->parent()) {
+        for (Symbol* symbol : scope->lookupLocal(name)) {
+            if (symbol->kind == SymbolKind::Statement) { return symbol; }
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
 void Sema::analyzeStatements(StmtList& statements, Scope* scope)
 {
     m_statementSequences.push_back(&statements);
@@ -452,6 +468,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     case StmtKind::Loop: {
         auto* loop = static_cast<LoopStmt*>(statement);
         Scope* inner = m_symbolTable.createScope(scope);
+        Symbol* identifier = statementIdentifier(scope, loop->labelLower);
+        if (identifier != nullptr) { identifier->constructScope = inner; }
 
         if (loop->loopKind == LoopKind::While) {
             Type* conditionType = analyzeCondition(loop->condition.get(), scope);
@@ -621,10 +639,10 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* block = static_cast<BlockStmt*>(statement);
         ++m_accessibilityLevel;
         Scope* inner = m_symbolTable.createScope(scope);
+        Symbol* identifier = statementIdentifier(scope, block->label);
+        if (identifier != nullptr) { identifier->constructScope = inner; }
         analyzeDeclarativePart(block->declarations, inner);
         reportMissingBodies(block->declarations);
-        auto identifiers = scope->lookupLocal(block->label);
-        Symbol* identifier = identifiers.size() == 1 ? identifiers.front() : nullptr;
         m_statementRegions.push_back({ block->label, inner, identifier });
         declareStatementNames(block->body, inner);
         for (auto& handler : block->handlers) {

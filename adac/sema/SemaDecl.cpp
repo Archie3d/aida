@@ -787,6 +787,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     }
 
     Scope* inner = m_symbolTable.createScope(context);
+    symbol->constructScope = inner;
     inner->m_privateRegion = true;
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {
         Symbol* parameter = symbol->parameters[i];
