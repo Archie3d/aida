@@ -383,6 +383,9 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             bindings->add(symbol);
         } else {
             Type* type = resolveSubtypeIndication(formal.subtype.get(), bindings);
+            if (formal.mode == ParameterMode::In && abstractView(type)) {
+                m_diagnostics.error(formal.location, "a generic formal in object cannot have an abstract type");
+            }
             Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
             symbol->type = type;
             symbol->location = formal.location;
@@ -428,6 +431,11 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
                              const SourceLocation& location)
 {
     Type* base = baseType(actual);
+    // Abstract formal type declarations remain explicitly unsupported (6g).
+    if (abstractView(actual)) {
+        m_diagnostics.error(location, "an abstract actual type requires an abstract generic formal type");
+        return false;
+    }
     const char* wanted = nullptr;
 
     switch (formal.typeClass) {
@@ -674,6 +682,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         return false;
     }
 
+    if (!intrinsic && candidates.front()->abstract) {
+        m_diagnostics.error(actual->location, "an abstract subprogram cannot be an actual for a nonabstract formal subprogram");
+        return false;
+    }
     // An instance's formal subprogram is a view of its actual. Preserve the
     // actual's null contract even when the formal used a named subtype.
     if (!intrinsic) {
@@ -1227,6 +1239,23 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     finishLimitedViews();
     if (m_diagnostics.hasErrors()) { return; }
+    // A result's dispatching tag can come from its enclosing call or assignment.
+    auto dispatchingCall = [](Expr* call) {
+        return call->kind == ExprKind::Call ? static_cast<CallExpr*>(call)->dispatching
+            : call->tagIndeterminate && call->type != nullptr && call->type->classRoot != nullptr;
+    };
+    std::unordered_set<Expr*> abstractCalls;
+    for (Expr* call : m_abstractCalls) {
+        bool dispatching = dispatchingCall(call);
+        if (!dispatching && abstractCalls.insert(call).second) {
+            m_diagnostics.error(call->location, "a call to an abstract subprogram must be dispatching");
+        }
+    }
+    for (Expr* call : m_abstractDefaultCalls) {
+        if (!dispatchingCall(call) && abstractCalls.insert(call).second) {
+            m_diagnostics.error(call->location, "a defaulted abstract controlling operand requires a dispatching call");
+        }
+    }
     // Private completions can reveal noncopying parts after an earlier use was
     // analyzed. Reject unsupported delayed layouts and value operations before
     // emitting code, rather than treating a partial view as an empty record.

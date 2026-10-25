@@ -37,6 +37,12 @@ Crashes and timeouts are critical outcomes and make a probe command fail even
 if previously recorded. Normal runtime failures remain RUN_FAILED; they are
 not converted to the existing harness's compile XFAILs.
 
+C460006 now passes unchanged after P6f abstract operations and record-extension
+aggregate support; it joins the strict executable selection. The current cohort
+has 56 C passes, 23 legal-source rejections, seven support blockers and 20
+ungraded B observations. B840001's three legal extension aggregates are now
+accepted; its remaining rejection diagnostics are still ungraded.
+
 ## Reproduce
 
 Python 3.9+ and the built compiler/toolchain are required. From the repo root:

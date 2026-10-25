@@ -75,7 +75,8 @@ std::string declarationName(const Decl& decl)
 bool isOptionalCompletion(const Decl& decl)
 {
     return (decl.kind == DeclKind::SubprogramDeclaration
-            && static_cast<const SubprogramDecl&>(decl).renamedName != nullptr)
+            && (static_cast<const SubprogramDecl&>(decl).renamedName != nullptr
+                || static_cast<const SubprogramDecl&>(decl).spec.abstract))
         || (decl.kind == DeclKind::SubprogramBody
             && static_cast<const SubprogramBody&>(decl).isNull);
 }

@@ -67,7 +67,7 @@ void QbeEmitter::emitTypeTag(Type* type)
     m_data << "export data " << type->tagName << " = align 8 { l "
            << (type->parentType == nullptr ? "0" : type->parentType->tagName)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
-           << ", l " << type->tagName << ".slots, l " << type->tagName << ".equal, l 0, l "
+           << ", l " << type->tagName << ".slots, l " << (type->abstract ? "0" : type->tagName + ".equal") << ", l 0, l "
            << expanded << ", l " << type->accessLevel
            << ", l 0, l " << type->dispatchSlots.size() << ", l " << type->abstract << ", l " << needsFinalization(type) << ", l "
            << (needsFinalization(type) ? type->tagName + ".parts" : "0")
@@ -75,6 +75,7 @@ void QbeEmitter::emitTypeTag(Type* type)
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
+        bool abstract = slot->abstract;
         while (slot->inheritedFrom != nullptr) {
             slot = slot->inheritedFrom;
         }
@@ -85,29 +86,31 @@ void QbeEmitter::emitTypeTag(Type* type)
             m_data << ", ";
         }
         first = false;
-        m_data << "l " << (slot->qbeName.empty() ? "0" : slot->qbeName) << ", l 0";
+        m_data << "l " << (abstract || slot->qbeName.empty() ? "0" : slot->qbeName) << ", l 0";
     }
     if (first) {
         m_data << "l 0";
     }
     m_data << " }\n";
 
-    // Every type owns a uniform equality entry, including predefined equality.
-    FunctionContext equality;
-    Symbol function;
-    function.level = type->tagOwner == nullptr ? 1 : type->tagOwner->level + 1;
-    function.owner = type->tagOwner;
-    function.returnType = m_sema.typeTable().booleanType();
-    equality.symbol = &function;
-    equality.traceName = name + " equality";
-    equality.propagateLabel = newLabel("equalitypropagate");
-    FunctionContext* saved = m_context;
-    m_context = &equality;
-    Value result = comparePrimitiveRecord(Value { "%left", 'l' }, Value { "%right", 'l' }, type);
-    emitReturn(result.name);
-    equality.terminated = true;
-    finishFunction("export function w " + type->tagName + ".equal(l %.link, l %left, l %right)");
-    m_context = saved;
+    // Only concrete tags can identify an object used by class-wide equality.
+    if (!type->abstract) {
+        FunctionContext equality;
+        Symbol function;
+        function.level = type->tagOwner == nullptr ? 1 : type->tagOwner->level + 1;
+        function.owner = type->tagOwner;
+        function.returnType = m_sema.typeTable().booleanType();
+        equality.symbol = &function;
+        equality.traceName = name + " equality";
+        equality.propagateLabel = newLabel("equalitypropagate");
+        FunctionContext* saved = m_context;
+        m_context = &equality;
+        Value result = comparePrimitiveRecord(Value { "%left", 'l' }, Value { "%right", 'l' }, type);
+        emitReturn(result.name);
+        equality.terminated = true;
+        finishFunction("export function w " + type->tagName + ".equal(l %.link, l %left, l %right)");
+        m_context = saved;
+    }
     if (type->controlled) {
         emitFinalizer(type);
     }
@@ -468,7 +471,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             initializeTypeTag(typeDecl->declaredType);
             if (typeDecl->declaredType != nullptr) {
                 for (Symbol* primitive : typeDecl->declaredType->primitives) {
-                    if (primitive->inheritedFrom != nullptr) { initializeAccessDescriptor(primitive); }
+                    if (!primitive->abstract && primitive->inheritedFrom != nullptr) { initializeAccessDescriptor(primitive); }
                 }
                 emitInheritedAccessEntries(typeDecl->declaredType);
             }
@@ -853,11 +856,12 @@ void QbeEmitter::initializeTypeTag(Type* type)
     line(table + " =l loadl " + tableSlot);
     for (std::size_t i = 0; i < type->dispatchSlots.size(); ++i) {
         Symbol* implementation = type->dispatchSlots[i];
+        if (implementation->abstract) { continue; }
         while (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr) {
             implementation = implementation->inheritedFrom != nullptr
                 ? implementation->inheritedFrom : implementation->renamedSubprogram;
         }
-        if (implementation->level > 0) {
+        if (!implementation->abstract && implementation->level > 0) {
             std::string linkSlot = newTemp();
             Value link = staticLinkFor(implementation->level - 1);
             line(linkSlot + " =l add " + table + ", " + std::to_string(i * 16 + 8));

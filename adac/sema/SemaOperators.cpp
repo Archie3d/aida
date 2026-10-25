@@ -344,6 +344,7 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
             }
         }
     }
+    if (symbol->abstract) { m_abstractCalls.push_back(call.get()); }
     return call;
 }
 

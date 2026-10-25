@@ -1,4 +1,3 @@
-unsupportedrecoveryerrors.adb:3:50: error: abstract subprogram declarations are not yet supported
 unsupportedrecoveryerrors.adb:4:22: error: task discriminants are not yet supported
 unsupportedrecoveryerrors.adb:7:24: error: task entries, interfaces and task definition items are not yet supported
 unsupportedrecoveryerrors.adb:15:5: error: select statements are not yet supported

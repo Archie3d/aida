@@ -1369,7 +1369,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1681,3 +1681,9 @@ add_test(NAME semantics.returns
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckReturnSemantics.cmake)
 set_tests_properties(semantics.returns PROPERTIES TIMEOUT 60)
+
+# Ada 2005 abstract operations: declaration, use and overriding legality.
+add_ada_error_test(abstractdeclarationerrors SOURCES abstractdeclarationerrors.adb)
+add_ada_error_test(abstractcallerrors SOURCES abstractcallerrors.adb)
+add_ada_error_test(abstractuseerrors SOURCES abstractuseerrors.adb)
+add_ada_error_test(abstractoverrideerrors SOURCES abstractoverrideerrors.adb)

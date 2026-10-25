@@ -11,18 +11,26 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 20 |
-| Legal C-test rejected | 24 |
+| Legal C-test rejected | 23 |
 | Support/harness blocked | 7 |
-| Executable PASS | 55 |
+| Executable PASS | 56 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **24 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **23 executable C-cases fail**, all compile
 rejections; seven further C-cases are blocked by support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
+
+C460006 now passes unchanged after the first 6f item. Abstract operations use
+inherited dispatch slots, concrete types must override abstract obligations,
+and supported record extensions accept ordinary record aggregates. The case's
+view-conversion, object-renaming and assignment checks pass. `abstractsubprograms`,
+`abstractinheritance` and `abstract*errors` provide focused execution and legality
+controls. B840001 remains ungraded; three legal record-extension aggregates
+no longer produce unsupported-aggregate diagnostics.
 
 All five original executable failures now pass unchanged.
 
@@ -103,7 +111,7 @@ controls in whole/per-unit/deterministic modes, with four tasks and compiler
 ASan/UBSan. All four new passes join the strict selection.
 
 The [remaining-rejections audit](supported-rejections.md) maps every one of the
-24 legal-source rejections and seven support blockers to concrete prerequisites
+23 legal-source rejections and seven support blockers to concrete prerequisites
 in P6f, P6g, P7, P8 or P9. No unclassified front-end rejection remains in this
 bounded baseline; removing a prerequisite still requires rerunning the
 unchanged compound case before any promotion.
@@ -199,7 +207,7 @@ The table below gives the observed status and initial triage for every case.
 | [C43204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c43204a.ada) | 4.3 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
 | [C460004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460004.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C460005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460005.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
-| [C460006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460006.a) | 4.6/4.9 | Legal C-test rejected | documented language gap; P6f abstract subprograms |
+| [C460006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460006.a) | 4.6/4.9 | Executable PASS | abstract operations and tagged view conversions; P6f |
 | [C49020A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49020a.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49021A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49021a.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022b.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |

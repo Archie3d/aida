@@ -114,8 +114,13 @@ DeclPtr Parser::parseSubprogramDeclOrBody()
     }
 
     expect(TokenKind::KwIs, "in subprogram body");
-    if (check(TokenKind::KwAbstract)) {
-        fail("abstract subprogram declarations are not yet supported");
+    if (match(TokenKind::KwAbstract)) {
+        spec.abstract = true;
+        expect(TokenKind::Semicolon, "after abstract subprogram declaration");
+        auto decl = std::make_unique<SubprogramDecl>();
+        decl->location = location;
+        decl->spec = std::move(spec);
+        return decl;
     }
     if (match(TokenKind::KwNew)) {
         DeclPtr instance = parseGenericInstantiation(location, spec.name, spec.lower, false);

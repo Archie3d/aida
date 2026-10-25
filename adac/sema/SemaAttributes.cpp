@@ -102,6 +102,16 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 
 Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 {
+    if (expr->lower == "access" || expr->lower == "unchecked_access" || expr->lower == "address") {
+        auto names = expressionNames(expr->prefix.get(), scope);
+        if (!names.empty() && std::all_of(names.begin(), names.end(), [](Symbol* symbol) {
+                return symbol->kind == SymbolKind::Subprogram && symbol->abstract;
+            })) {
+            m_diagnostics.error(expr->location, "an abstract subprogram cannot be an attribute prefix for '" + expr->name);
+            return nullptr;
+        }
+    }
+
     if (expr->lower == "caller") {
         auto names = expressionNames(expr->prefix.get(), scope);
         Symbol* entry = names.size() == 1 ? names.front() : nullptr;
@@ -234,6 +244,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         // A renaming is another view of the same callable entity.
         while (chosen->renamedSubprogram != nullptr) {
             chosen = chosen->renamedSubprogram;
+        }
+        if (chosen->abstract) {
+            m_diagnostics.error(expr->location, "an abstract subprogram cannot be the prefix of 'Access");
+            return nullptr;
         }
         if (chosen->intrinsicRenaming || (chosen->inheritedFrom != nullptr && chosen->controllingType != nullptr
             && !chosen->controllingType->tagged)) {

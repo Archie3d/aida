@@ -6,7 +6,7 @@
 
 using QbeSupport::isUnconstrainedArray;
 
-Value QbeEmitter::emitCall(CallExpr* expr)
+Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
 {
     // Constructor arguments own their temporaries independently of the
     // destination being constructed by this call.
@@ -51,7 +51,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         call.subprogram = &imported;
         call.type = expr->type;
         call.resolvedArguments = expr->resolvedArguments;
-        return emitCall(&call);
+        return emitCall(&call, inheritedControllingType);
     }
     if (!expr->dispatching && subprogram->inheritedFrom != nullptr) {
         CallExpr inherited;
@@ -60,7 +60,8 @@ Value QbeEmitter::emitCall(CallExpr* expr)
         inherited.subprogram = subprogram->inheritedFrom;
         inherited.type = expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
-        Value result = emitCall(&inherited);
+        Value result = emitCall(&inherited, inheritedControllingType != nullptr
+            ? inheritedControllingType : subprogram->controllingType);
         if (isComposite(expr->type) && !expr->type->tagged
             && (expr->type->kind != TypeKind::Array || expr->type->constrained)
             && typeSize(expr->type) != typeSize(inherited.subprogram->returnType)
@@ -117,7 +118,7 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             renamed.indirect = true;
             renamed.subprogram = binding->type->accessProfile;
         }
-        return emitCall(&renamed);
+        return emitCall(&renamed, inheritedControllingType);
     }
     if (subprogram->builtin == BuiltinKind::Runtime) {
         Value result = emitRuntimeCall(expr, subprogram);
@@ -253,6 +254,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
             current = saved;
         }
     } tagContext { m_context->controllingTag, m_context->controllingTag };
+    // Statically bound inherited calls still supply the descendant's tag to
+    // tag-indeterminate operands/defaults, even while invoking a parent body.
+    if (!expr->dispatching && subprogram->controllingType != nullptr && subprogram->controllingType->tagged) {
+        m_context->controllingTag = typeTag(inheritedControllingType != nullptr
+            ? inheritedControllingType : subprogram->controllingType).name;
+    }
     std::string controllingTag;
     std::vector<Value> controllingValues(subprogram->parameters.size());
     if (expr->dispatching) {

@@ -90,6 +90,7 @@ struct Type
     bool tagged = false;
     // The partial view can hide tagging while the full layout remains tagged.
     bool privateViewTagged = false;
+    bool privateViewAbstract = false;
     bool abstract = false;
     bool controlled = false;
     // Class-wide identity is distinct from subtype identity and derivation.

@@ -324,6 +324,13 @@ bool Sema::representationVisible(Type* type) const
     return base == nullptr || base->privateTo == nullptr || withinPackage(base->privateTo);
 }
 
+bool Sema::abstractView(Type* type) const
+{
+    type = rootType(type);
+    return type != nullptr && type->classRoot == nullptr
+        && (representationVisible(type) ? type->abstract : type->privateViewAbstract);
+}
+
 bool Sema::limitedView(Type* type) const
 {
     if (type == nullptr) { return false; }

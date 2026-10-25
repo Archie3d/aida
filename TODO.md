@@ -517,9 +517,16 @@ full-tasking restrictions retain their later roadmap owners.
 
 ### 6f. Object orientation
 
-- [ ] Abstract subprograms and their full legality rules.
+- [x] Abstract subprograms and legality for supported profiles: inheritance,
+  required overrides, dispatch-only calls, defaults, private abstract views,
+  equality, completions and forbidden uses (`abstractsubprograms`,
+  `abstractinheritance`, `abstract*errors`; whole/per-unit/determinism and four
+  workers). ACATS C460006 PASS unchanged; B840001 remains ungraded.
+  Compiler ASan/UBSan and full suite 1,050/1,050 pass.
+  [Contract and boundaries](docs/abstract-subprograms.md).
 - [ ] Complete Ada 2005 overriding-indicator and null-procedure legality beyond
-  the existing subset.
+  the existing subset. Add dispatching controlling access results and their
+  inherited required-overriding rules (currently diagnosed explicitly).
 - [ ] Discriminated tagged types, private extensions, extensions of private
   views, unknown-discriminant private views,
   and tagged size clauses. Include

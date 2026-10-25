@@ -276,11 +276,17 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
         expr->staticValue = chosen->enumerationValue;
         return expr->type;
     case SymbolKind::Subprogram:
+        if (chosen->abstract) { m_abstractCalls.push_back(expr); }
+        if (chosen->controllingType != nullptr && chosen->controllingType->abstract
+            && std::any_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
+                return parameter->hasDefault && controllingParameterType(parameter->type) == chosen->controllingType;
+            })) { m_abstractDefaultCalls.push_back(expr); }
         expr->type = chosen->returnType;
         expr->tagIndeterminate = chosen->controllingType != nullptr
             && rootType(chosen->returnType) == chosen->controllingType
             && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
-                return rootType(parameter->type) == chosen->controllingType;
+                return controllingParameterType(parameter->type) == chosen->controllingType
+                    && (!parameter->hasDefault || !parameter->defaultExpr->tagIndeterminate);
             });
         return expr->type;
     case SymbolKind::TypeName:
@@ -323,11 +329,17 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         recordContractName(expr, chosen);
         noteReference(chosen);
         if (chosen->kind == SymbolKind::Subprogram) {
+            if (chosen->abstract) { m_abstractCalls.push_back(expr); }
+            if (chosen->controllingType != nullptr && chosen->controllingType->abstract
+                && std::any_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
+                    return parameter->hasDefault && controllingParameterType(parameter->type) == chosen->controllingType;
+                })) { m_abstractDefaultCalls.push_back(expr); }
             expr->type = chosen->returnType;
             expr->tagIndeterminate = chosen->controllingType != nullptr
                 && rootType(chosen->returnType) == chosen->controllingType
                 && std::none_of(chosen->parameters.begin(), chosen->parameters.end(), [&](Symbol* parameter) {
-                    return rootType(parameter->type) == chosen->controllingType;
+                    return controllingParameterType(parameter->type) == chosen->controllingType
+                        && (!parameter->hasDefault || !parameter->defaultExpr->tagIndeterminate);
                 });
         } else {
             expr->type = chosen->type;
@@ -485,6 +497,7 @@ Type* Sema::classWideType(Type* specific)
         wide->base = nullptr;
         wide->name = specific->name + "'Class";
         wide->classRoot = specific;
+        wide->abstract = false;
         wide->primitives.clear();
         wide->declarationScope = nullptr;
         specific->classWide = wide;

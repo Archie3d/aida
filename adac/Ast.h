@@ -473,6 +473,7 @@ struct SubprogramSpec
 {
     // 0: omitted, 1: overriding, -1: not overriding.
     int overriding = 0;
+    bool abstract = false;
     bool isFunction = false;
     bool entry = false;
     bool entryBarrier = false;

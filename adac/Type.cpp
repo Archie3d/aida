@@ -393,6 +393,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->isSubtype = true;
     subtype->tagged = parent->tagged;
     subtype->privateViewTagged = parent->privateViewTagged;
+    subtype->privateViewAbstract = parent->privateViewAbstract;
     subtype->abstract = parent->abstract;
     subtype->controlled = parent->controlled;
     subtype->tagName = parent->tagName;
@@ -463,6 +464,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         }
         subtype->tagged = completed->tagged;
         subtype->privateViewTagged = completed->privateViewTagged;
+        subtype->privateViewAbstract = completed->privateViewAbstract;
         subtype->controlled = completed->controlled;
         subtype->dependentStorage = completed->dependentStorage;
         subtype->tagName = completed->tagName;

@@ -76,6 +76,7 @@ private:
     bool withinPackage(Symbol* package) const;
     bool representationVisible(Type* type) const;
     bool limitedView(Type* type) const;
+    bool abstractView(Type* type) const;
     bool taggedViewVisible(Type* type) const;
     bool buildsLimitedResult(Expr* expression) const;
     bool checkNotPrivate(Type* type, const SourceLocation& location, const char* what);
@@ -316,6 +317,8 @@ private:
     Decl* m_scalarConstraintDeclaration = nullptr;
     bool m_allocatorDiscriminantConstraint = false;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;
+    std::vector<Expr*> m_abstractCalls;
+    std::vector<Expr*> m_abstractDefaultCalls;
     Type* m_currentProtectedType = nullptr;
     Scope* m_protectedBodyScope = nullptr;
     int m_accessibilityLevel = 0;

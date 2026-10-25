@@ -216,6 +216,10 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
+    spec.abstract = chosen != nullptr && chosen->abstract;
+    if (completion != nullptr && spec.abstract) {
+        m_diagnostics.error(decl->location, "a renaming-as-body cannot rename an abstract subprogram");
+    }
     Symbol* alias = completion != nullptr ? completion : declareSubprogram(spec, scope, false);
     if (completion != nullptr) {
         for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
@@ -226,7 +230,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     decl->symbol = alias;
-    alias->hasBody = true;
+    if (completion != nullptr && completion->abstract) {
+        m_diagnostics.error(decl->location, "an abstract subprogram cannot have a completion");
+    }
+    alias->abstract = chosen != nullptr && chosen->abstract;
+    alias->hasBody = !alias->abstract;
+    alias->requiresBody = false;
     if (m_diagnostics.errorCount() != errors) {
         return;
     }
@@ -290,7 +299,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     if (completion == nullptr && !intrinsic && !enumeration && attributeType == nullptr) {
         alias->renamedSubprogram = access == nullptr ? chosen : nullptr;
         alias->renamedAccess = binding;
-        if (scope != m_unitScope) {
+        if (scope != m_unitScope || alias->abstract) {
             return;
         }
     }

@@ -32,8 +32,8 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         m_diagnostics.error(expr->location, "aggregates containing tasks are not yet supported");
         return nullptr;
     }
-    if (target->abstract) {
-        m_diagnostics.error(expr->location, "abstract aggregates are not supported");
+    if (abstractView(target)) {
+        m_diagnostics.error(expr->location, "an aggregate cannot have an abstract type");
         return nullptr;
     }
     if (!checkNotPrivate(target, expr->location, "an aggregate spells out the components")) {
@@ -77,9 +77,6 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             }
         }
         firstField = expr->ancestorType->fields.size();
-    } else if (target->tagged && rootType(target)->parentType != nullptr) {
-        m_diagnostics.error(expr->location, "a record extension requires an extension aggregate");
-        return nullptr;
     }
     if (target->kind != TypeKind::Record && expr->nullRecord) {
         m_diagnostics.error(expr->location, "null record requires a record aggregate");

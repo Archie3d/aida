@@ -1232,9 +1232,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
+        "kind": "covered_probe",
         "owner": "P6f abstract subprograms",
-        "note": "Abstract primitive subprogram declarations at lines 104/105; conversion checks must be reviewed after abstract-subprogram support."
+        "note": "PASS unchanged after abstract operations and record-extension aggregates: tagged view conversions, object renamings, assignments and dispatch preserve tags and matching components."
       }
     },
     {

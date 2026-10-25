@@ -82,6 +82,7 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    bool abstract = false;
     bool taskBody = false;
     Symbol* taskIdentity = nullptr;
     Type* protectedType = nullptr;

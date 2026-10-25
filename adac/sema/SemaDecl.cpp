@@ -103,7 +103,7 @@ void Sema::reportMissingBodies(const DeclList& declarations)
             continue;
         }
         Symbol* symbol = static_cast<SubprogramDecl*>(decl.get())->symbol;
-        if (symbol != nullptr && !symbol->hasBody && !symbol->missingBodyReported) {
+        if (symbol != nullptr && !symbol->abstract && !symbol->hasBody && !symbol->missingBodyReported) {
             symbol->missingBodyReported = true;
             m_diagnostics.error(decl->location,
                 "subprogram '" + symbol->displayName + "' has no body");
@@ -215,7 +215,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (type != nullptr && !decl->isRenaming) {
-        if (type->abstract && type->classRoot == nullptr) {
+        if (abstractView(type)) {
             m_diagnostics.error(decl->location, "an abstract type cannot be used to create an object");
         }
     }
@@ -503,6 +503,13 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         bool matches = true;
         for (std::size_t i = 0; i < parameterTypes.size(); ++i) {
+            // Controlling access parameters exclude null implicitly, including
+            // the profile of a completing body before checking its indicator.
+            if (candidate->controllingType != nullptr && parameterTypes[i] != nullptr
+                && parameterTypes[i]->anonymousAccess
+                && controllingParameterType(parameterTypes[i]) == candidate->controllingType) {
+                parameterTypes[i]->excludesNull = true;
+            }
             matches = matches && (rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i])
                     || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]));
         }
@@ -615,6 +622,10 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     analyzeExpr(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i]);
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
+                    if (candidate->controllingType != nullptr
+                        && rootType(parameter->type) == candidate->controllingType) {
+                        dispatchIndeterminate(spec.parameters[i].defaultValue.get(), candidate->controllingType);
+                    }
                 }
             }
             if (!conforms) {
@@ -623,6 +634,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
         if (candidate->entry != spec.entry) {
             m_diagnostics.error(spec.location, "entry and procedure declarations cannot complete one another");
+        }
+        if (isBody && candidate->abstract) {
+            m_diagnostics.error(spec.location, "an abstract subprogram cannot have a body");
         }
         candidate->hasBody = candidate->hasBody || isBody;
         for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
@@ -639,8 +653,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->returnType = returnType;
     symbol->pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
     symbol->hasBody = isBody;
+    symbol->abstract = spec.abstract;
     symbol->entry = spec.entry;
-    symbol->requiresBody = !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
+    symbol->requiresBody = !spec.abstract && !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->overrides = overrides;
     symbol->pendingOverride = pendingOverride ? spec.overriding : 0;
     symbol->declarationScope = scope;
@@ -698,6 +713,12 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
 
     scope->add(symbol);
     registerPrimitive(symbol, scope);
+    if (abstractView(returnType) && !symbol->abstract) {
+        m_diagnostics.error(spec.location, "a function returning an abstract type must be abstract");
+    }
+    if (symbol->abstract && symbol->controllingType != nullptr && !symbol->controllingType->abstract) {
+        m_diagnostics.error(spec.location, "an abstract primitive requires an abstract tagged type");
+    }
     if (spec.overriding == -1 && !isPrimitive(symbol)) {
         m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
     }
@@ -706,6 +727,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         complement->parameters = symbol->parameters;
         complement->returnType = returnType;
         complement->negatedEquality = symbol;
+        complement->abstract = symbol->abstract;
         complement->overrides = symbol->overrides;
         complement->hasBody = true;
         complement->location = symbol->location;

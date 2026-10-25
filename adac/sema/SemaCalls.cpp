@@ -536,6 +536,10 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         for (std::size_t p = 0; p < chosen->parameters.size(); ++p) {
             if (expr->resolvedArguments[p] == nullptr) {
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
+                if (chosen->controllingType != nullptr && chosen->controllingType->abstract
+                    && controllingParameterType(chosen->parameters[p]->type) == chosen->controllingType) {
+                    m_abstractDefaultCalls.push_back(expr);
+                }
             }
         }
         expr->tagIndeterminate = chosen->controllingType != nullptr
@@ -563,6 +567,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 }
             }
         }
+        if (chosen->abstract) { m_abstractCalls.push_back(expr); }
         expr->type = chosen->returnType;
         if (expr->dispatching && chosen->returnType != nullptr
             && rootType(chosen->returnType) == chosen->controllingType) {

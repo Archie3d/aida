@@ -18,7 +18,7 @@ procedure TaggedErrors is
     A : Root := (X => 1);
     B : Child := (Root with Y => 2);
     C : constant Child := (Root with Y => 3);
-    Bad : Child := (X => 1, Y => 2);
+    Legal_Record_Aggregate : Child := (X => 1, Y => 2);
     Bad_Ancestor : Child := (Plain with Y => 1);
     Repeated : Child := (A with X => 2, Y => 3);
     Too_Few : Child := (A with null record);

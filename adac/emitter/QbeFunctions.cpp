@@ -559,7 +559,7 @@ void QbeEmitter::emitInheritedAccessEntries(Type* type)
 {
     if (type == nullptr || !type->tagged) { return; }
     for (Symbol* primitive : type->primitives) {
-        if (primitive->inheritedFrom == nullptr || !m_emittedAccessEntries.insert(primitive).second) { continue; }
+        if (primitive->abstract || primitive->inheritedFrom == nullptr || !m_emittedAccessEntries.insert(primitive).second) { continue; }
         // Give the inherited view its own entry and descriptor. Its ordinary
         // call path already adapts ancestor arguments and retags results.
         Symbol entry = *primitive;

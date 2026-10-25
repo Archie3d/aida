@@ -382,6 +382,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         auto* assign = static_cast<AssignStmt*>(statement);
         Type* targetType = analyzeExpr(assign->target.get(), scope, nullptr);
         checkAssignable(assign->target.get(), scope);
+        if (abstractView(targetType)) {
+            m_diagnostics.error(assign->location, "an assignment target cannot have an abstract type");
+        }
         if (hasIncompleteParts(targetType)) {
             m_deferredProtectedUses.push_back({targetType, assign->location});
         }

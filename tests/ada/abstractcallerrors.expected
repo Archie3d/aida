@@ -1,0 +1,9 @@
+abstractcallerrors.adb:16:40: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:17:41: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:19:19: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:20:15: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:22:25: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:22:19: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:23:20: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:23:19: error: a call to an abstract subprogram must be dispatching
+abstractcallerrors.adb:21:14: error: a defaulted abstract controlling operand requires a dispatching call

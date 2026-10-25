@@ -1,0 +1,12 @@
+abstractuseerrors.adb:11:5: error: an abstract type cannot be used to create an object
+abstractuseerrors.adb:13:36: error: an abstract subprogram cannot be an attribute prefix for 'Access
+abstractuseerrors.adb:14:40: error: an abstract subprogram cannot be an attribute prefix for 'Unchecked_Access
+abstractuseerrors.adb:15:43: error: an abstract subprogram cannot be an attribute prefix for 'Address
+abstractuseerrors.adb:16:5: error: an abstract type cannot be used to create an object
+abstractuseerrors.adb:18:25: error: an allocator cannot create an object of an abstract type
+abstractuseerrors.adb:19:5: error: an abstract type cannot be used to create an object
+abstractuseerrors.adb:19:31: error: an aggregate cannot have an abstract type
+abstractuseerrors.adb:22:9: error: an assignment target cannot have an abstract type
+abstractuseerrors.adb:28:52: error: an abstract actual type requires an abstract generic formal type
+abstractuseerrors.adb:30:9: error: a generic formal in object cannot have an abstract type
+abstractuseerrors.adb:40:44: error: an abstract subprogram cannot be an actual for a nonabstract formal subprogram

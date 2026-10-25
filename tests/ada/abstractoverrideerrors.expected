@@ -1,0 +1,5 @@
+abstractoverrideerrors.adb:6:9: error: subprogram marked not overriding overrides an inherited operation
+abstractoverrideerrors.adb:7:9: error: subprogram marked overriding does not override an inherited operation
+abstractoverrideerrors.adb:9:9: error: an abstract primitive requires an abstract tagged type
+abstractoverrideerrors.adb:12:9: error: inherited operation '=' must be overridden with a nonabstract subprogram
+abstractoverrideerrors.adb:12:9: error: inherited operation '/=' must be overridden with a nonabstract subprogram

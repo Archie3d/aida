@@ -330,7 +330,7 @@ private:
     void emitDefaultInit(const Value& address, Type* type);
 
     // Calls (QbeCalls.cpp).
-    Value emitCall(CallExpr* expr);
+    Value emitCall(CallExpr* expr, Type* inheritedControllingType = nullptr);
     Value consumeArrayResult(const std::string& resultStorage, int rank, bool adopt);
     Value emitRuntimeCall(CallExpr* expr, Symbol* subprogram);
 

@@ -1,4 +1,3 @@
-unsupportedconstructerrors.adb:4:46: error: abstract subprogram declarations are not yet supported
 unsupportedconstructerrors.adb:6:17: error: task entries, interfaces and task definition items are not yet supported
 unsupportedconstructerrors.adb:9:27: error: task discriminants are not yet supported
 unsupportedconstructerrors.adb:14:5: error: select statements are not yet supported

@@ -197,6 +197,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool isLimited = completing->isLimited;
         bool tagged = completing->tagged;
         bool privateViewTagged = completing->privateViewTagged;
+        bool privateViewAbstract = completing->privateViewAbstract;
         bool controlled = completing->controlled;
         std::string tagName = completing->tagName;
         auto slots = std::move(completing->dispatchSlots);
@@ -211,6 +212,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->isLimited = isLimited;
         completing->tagged = tagged;
         completing->privateViewTagged = privateViewTagged;
+        completing->privateViewAbstract = privateViewAbstract;
         completing->controlled = controlled;
         completing->tagName = tagName;
         return completing;
@@ -230,8 +232,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         return;
     }
     if (completing != nullptr && completing->privateTo != nullptr
-        && completing->abstract != definition->abstract) {
-        m_diagnostics.error(decl->location, "a private type and its completion must agree on abstractness");
+        && !completing->abstract && definition->abstract) {
+        m_diagnostics.error(decl->location, "a nonabstract private view cannot have an abstract full view");
         return;
     }
     bool nonlimitedPrivateCompletion = completing != nullptr && completing->privateTo != nullptr
@@ -496,8 +498,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "an array component requires a definite discriminated subtype");
         }
         type->incompleteLayout = hasIncompleteParts(cell);
-        if (cell != nullptr && cell->abstract) {
-            m_diagnostics.error(decl->location, "abstract array components are not supported");
+        if (abstractView(cell)) {
+            m_diagnostics.error(decl->location, "an array component cannot have an abstract type");
             return;
         }
         if (cell != nullptr && cell->classRoot != nullptr) {
@@ -648,12 +650,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         int privateDiscriminantCount = type->privateDiscriminantCount;
         bool isLimited = type->isLimited;
         bool privateViewTagged = type->privateViewTagged;
+        bool privateViewAbstract = type->privateViewAbstract;
         *type = *built;
         type->recordRepresentationSpecified = false;
         if (completing != nullptr) {
             type->privateTo = privateTo;
             type->privateDiscriminantCount = privateDiscriminantCount;
             type->privateViewTagged = privateViewTagged;
+            type->privateViewAbstract = privateViewAbstract;
             type->isLimited = isLimited;
         }
         if (completing == nullptr && parent->controlled) {
@@ -676,6 +680,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             type->parentFieldCount = static_cast<int>(parent->fields.size());
             layoutRecord(decl, definition, type, scope);
         }
+        type->abstract = definition->abstract;
         inheritPrimitives(type, parent, scope, decl->location);
         if (type->tagged) {
             // A private view can declare operations before its parent is known.
@@ -757,6 +762,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->isIncomplete = true;
         type->tagged = definition->tagged;
         type->privateViewTagged = definition->tagged;
+        type->privateViewAbstract = definition->abstract;
         type->privateTo = m_packages.back();
         type->privateDiscriminantCount = static_cast<int>(decl->discriminants.size());
         type->isLimited = definition->isLimited;
@@ -841,6 +847,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         wide->base = nullptr;
         wide->name = type->name + "'Class";
         wide->classRoot = type;
+        wide->abstract = false;
         wide->primitives.clear();
         wide->declarationScope = nullptr;
         m_types.refreshRecordSubtypes(wide);
@@ -979,8 +986,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             m_diagnostics.error(field.location, "a discriminant cannot constrain a scalar component");
         }
         type->incompleteLayout = type->incompleteLayout || hasIncompleteParts(info.type);
-        if (info.type != nullptr && info.type->abstract) {
-            m_diagnostics.error(field.location, "abstract record components are not supported");
+        if (abstractView(info.type)) {
+            m_diagnostics.error(field.location, "a record component cannot have an abstract type");
             return;
         }
         if (info.type != nullptr && info.type->classRoot != nullptr) {
@@ -1168,12 +1175,17 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
         }
         auto* typeDecl = static_cast<TypeDecl*>(decl.get());
         Type* type = typeDecl->declaredType;
-        if (type != nullptr && type->tagged && type->parentType != nullptr
-            && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount)) {
+        if (type != nullptr && type->tagged && !type->abstract) {
             for (Symbol* primitive : type->primitives) {
-                if (primitive->inheritedFrom != nullptr && rootType(primitive->returnType) == type) {
-                    m_diagnostics.error(decl->location, "inherited function '" + primitive->displayName
-                        + "' returning the extended type must be overridden");
+                if (primitive->abstract && primitive->inheritedFrom == nullptr
+                    && type->privateViewAbstract) {
+                    m_diagnostics.error(decl->location, "a nonabstract full view cannot have an abstract primitive '"
+                        + primitive->displayName + "'");
+                } else if (primitive->inheritedFrom != nullptr && (primitive->abstract
+                    || (rootType(primitive->returnType) == type
+                        && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount)))) {
+                    m_diagnostics.error(decl->location, "inherited operation '" + primitive->displayName
+                        + "' must be overridden with a nonabstract subprogram");
                 }
             }
         }
@@ -1952,6 +1964,13 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
             types.push_back(type);
         }
     };
+    Type* result = symbol->returnType;
+    if (result != nullptr && result->anonymousAccess && result->target != nullptr
+        && rootType(result->target)->tagged && rootType(result->target)->classRoot == nullptr
+        && rootType(result->target)->declarationScope == scope && scope == m_packageSpecScope) {
+        m_diagnostics.error(symbol->location,
+            "dispatching functions with controlling access results are not yet supported");
+    }
     consider(symbol->returnType);
     for (Symbol* parameter : symbol->parameters) {
         consider(controllingParameterType(parameter->type));
@@ -1973,6 +1992,28 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     }
                 }
             }
+            if (symbol->abstract && scope == m_packageSpecScope && !m_inVisiblePart) {
+                bool visibleType = false;
+                bool overridesAbstract = false;
+                for (const auto& declaration : m_symbolTable.symbols()) {
+                    if (declaration->kind == SymbolKind::TypeName && declaration->type == type
+                        && declaration->privatePrimitiveTo == nullptr) { visibleType = true; }
+                }
+                for (Symbol* primitive : type->primitives) {
+                    bool matches = primitive->inheritedFrom != nullptr && primitive->abstract
+                        && primitive->privatePrimitiveTo == nullptr && primitive->name == symbol->name
+                        && primitive->parameters.size() == symbol->parameters.size()
+                        && rootType(primitive->returnType) == rootType(symbol->returnType);
+                    for (std::size_t i = 0; matches && i < symbol->parameters.size(); ++i) {
+                        matches = rootType(primitive->parameters[i]->type) == rootType(symbol->parameters[i]->type);
+                    }
+                    overridesAbstract = overridesAbstract || matches;
+                }
+                if (visibleType && !overridesAbstract) {
+                    m_diagnostics.error(symbol->location,
+                        "a private abstract primitive must override a visible inherited abstract operation");
+                }
+            }
             if (symbol->controllingType != nullptr && symbol->controllingType != type) {
                 m_diagnostics.error(symbol->location, "a dispatching operation cannot control multiple tagged types");
             }
@@ -1980,6 +2021,8 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                 if (rootType(parameter->type) == type && parameter->hasDefault
                     && !parameter->defaultExpr->tagIndeterminate) {
                     m_diagnostics.error(parameter->location, "a controlling parameter default must be tag indeterminate");
+                } else if (rootType(parameter->type) == type && parameter->hasDefault) {
+                    dispatchIndeterminate(parameter->defaultExpr, type);
                 }
             }
         }
@@ -2059,7 +2102,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             || (primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo))) {
             continue;
         }
-        if (type->tagged && (primitive->name == "=" || primitive->name == "/=")
+        if (type->tagged && !primitive->abstract && (primitive->name == "=" || primitive->name == "/=")
             && m_types.isBoolean(primitive->returnType) && primitive->parameters.size() == 2
             && rootType(primitive->parameters[0]->type) == rootType(parent)
             && rootType(primitive->parameters[1]->type) == rootType(parent)) {
@@ -2068,6 +2111,9 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         Symbol* inherited = m_symbolTable.createSymbol(SymbolKind::Subprogram, primitive->name, primitive->displayName);
         inherited->location = location;
         inherited->inheritedFrom = primitive;
+        inherited->abstract = primitive->abstract || (type->abstract
+            && rootType(primitive->returnType) == rootType(parent)
+            && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount));
         inherited->dispatchSlot = primitive->dispatchSlot;
         inherited->controllingType = type;
         if (inherited->dispatchSlot >= 0) {
@@ -2080,7 +2126,14 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         inherited->level = type->tagged && m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : primitive->level;
         inherited->owner = type->tagged ? m_currentSubprogram : primitive->owner;
         if (type->tagged) {
-            std::string name = "$" + mangle(type->name + "__" + primitive->name + "__inherited");
+            std::string operation = primitive->name;
+            if (!operatorSymbol(operation).empty()) {
+                operation = "operator";
+                for (unsigned char character : primitive->name) {
+                    operation += "_" + std::to_string(character);
+                }
+            }
+            std::string name = "$" + mangle(type->name + "__" + operation + "__inherited");
             std::size_t ordinal = ++m_subprogramNames[name];
             inherited->qbeName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
             if (inherited->owner != nullptr) { inherited->owner->needsFrame = true; }
