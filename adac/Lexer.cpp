@@ -201,32 +201,43 @@ Token Lexer::lexIdentifierOrKeyword()
     return makeToken(kind, location, std::move(text));
 }
 
+std::string Lexer::lexDigits(bool extended, bool& badSeparator)
+{
+    std::string digits;
+    bool afterDigit = false;
+    while (!atEnd()) {
+        char c = peek();
+        if (c == '_') {
+            advance();
+            if (!afterDigit || !(extended ? isExtendedDigit(peek()) : isDigit(peek()))) {
+                badSeparator = true;
+            }
+            afterDigit = false;
+        } else if (extended ? isExtendedDigit(c) : isDigit(c)) {
+            digits.push_back(advance());
+            afterDigit = true;
+        } else {
+            break;
+        }
+    }
+    return digits;
+}
+
+void Lexer::reportSeparator(const SourceLocation& location, bool badSeparator)
+{
+    if (badSeparator) {
+        m_diagnostics.error(location, "an underscore in a numeric literal must separate two digits");
+    }
+}
+
 Token Lexer::lexNumericLiteral()
 {
     SourceLocation location = here();
-    std::string text;
-
-    auto readDigits = [&](bool extended) {
-        while (!atEnd()) {
-            char c = peek();
-            if (c == '_') {
-                advance();
-                continue;
-            }
-            if (extended ? isExtendedDigit(c) : isDigit(c)) {
-                text.push_back(advance());
-                continue;
-            }
-            break;
-        }
-    };
-
-    std::string integerPart;
-    readDigits(false);
-    integerPart = text;
+    bool badSeparator = false;
+    std::string text = lexDigits(false, badSeparator);
 
     if (peek() == '#') {
-        return lexBasedLiteral(location, integerPart);
+        return lexBasedLiteral(location, text, badSeparator);
     }
 
     auto integerToken = [&](const std::string& digits) {
@@ -250,8 +261,9 @@ Token Lexer::lexNumericLiteral()
     if (peek() == '.' && isDigit(peek(1))) {
         isReal = true;
         text.push_back(advance());
-        readDigits(false);
+        text += lexDigits(false, badSeparator);
     }
+    std::string exponentDigits = "0";
     if (peek() == 'e' || peek() == 'E') {
         char sign = peek(1);
         if (isDigit(sign) || ((sign == '+' || sign == '-') && isDigit(peek(2)))) {
@@ -259,22 +271,14 @@ Token Lexer::lexNumericLiteral()
             if (peek() == '+' || peek() == '-') {
                 text.push_back(advance());
             }
-            std::string digits;
-            while (!atEnd() && (isDigit(peek()) || peek() == '_')) {
-                char c = advance();
-                if (c != '_') {
-                    digits.push_back(c);
-                }
-            }
-            text += digits;
+            exponentDigits = lexDigits(false, badSeparator);
+            text += exponentDigits;
             if (!isReal && sign == '-') {
                 m_diagnostics.error(location, "integer literal cannot have a negative exponent");
             }
-            if (!isReal) {
-                return integerToken(digits);
-            }
         }
     }
+    reportSeparator(location, badSeparator);
 
     if (isReal) {
         Token token = makeToken(TokenKind::RealLiteral, location, text);
@@ -282,13 +286,13 @@ Token Lexer::lexNumericLiteral()
         return token;
     }
 
-    return integerToken("0");
+    return integerToken(exponentDigits);
 }
 
 // A based literal spells its value in a base from 2 to 16.  It may carry a
 // fraction, in which case it denotes a real, and an exponent that scales it by
 // a power of that base rather than of ten.
-Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& baseText)
+Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& baseText, bool badSeparator)
 {
     long long base = std::strtoll(baseText.c_str(), nullptr, 10);
     bool baseIsValid = base >= 2 && base <= 16;
@@ -301,21 +305,6 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
     std::string spelling = baseText;
     spelling.push_back(advance());   // The opening '#'.
 
-    auto readDigits = [&](std::string& digits) {
-        while (!atEnd()) {
-            char c = peek();
-            if (c == '_') {
-                advance();
-                continue;
-            }
-            if (!isExtendedDigit(c)) {
-                break;
-            }
-            digits.push_back(advance());
-        }
-        spelling += digits;
-    };
-
     bool reportedDigit = false;
     auto valueOf = [&](char c) {
         int digit = digitValue(c);
@@ -326,8 +315,8 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
         return digit < base ? digit : 0;
     };
 
-    std::string wholeDigits;
-    readDigits(wholeDigits);
+    std::string wholeDigits = lexDigits(true, badSeparator);
+    spelling += wholeDigits;
     if (wholeDigits.empty()) {
         m_diagnostics.error(location, "based literal has no digits");
     }
@@ -354,8 +343,8 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
         isReal = true;
         spelling.push_back(advance());
 
-        std::string fractionDigits;
-        readDigits(fractionDigits);
+        std::string fractionDigits = lexDigits(true, badSeparator);
+        spelling += fractionDigits;
         if (fractionDigits.empty()) {
             m_diagnostics.error(location, "based literal has no digits after the point");
         }
@@ -382,14 +371,8 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
                 negativePower = peek() == '-';
                 spelling.push_back(advance());
             }
-            std::string digits;
-            while (!atEnd() && (isDigit(peek()) || peek() == '_')) {
-                char c = advance();
-                if (c != '_') {
-                    digits.push_back(c);
-                    spelling.push_back(c);
-                }
-            }
+            std::string digits = lexDigits(false, badSeparator);
+            spelling += digits;
             errno = 0;
             power = std::strtoll(digits.c_str(), nullptr, 10);
             if (errno == ERANGE) {
@@ -402,6 +385,7 @@ Token Lexer::lexBasedLiteral(const SourceLocation& location, const std::string& 
             }
         }
     }
+    reportSeparator(location, badSeparator);
 
     if (isReal) {
         Token token = makeToken(TokenKind::RealLiteral, location, spelling);

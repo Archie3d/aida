@@ -21,8 +21,10 @@ private:
 
     Token makeToken(TokenKind kind, const SourceLocation& location, std::string text) const;
     Token lexIdentifierOrKeyword();
+    std::string lexDigits(bool extended, bool& badSeparator);
+    void reportSeparator(const SourceLocation& location, bool badSeparator);
     Token lexNumericLiteral();
-    Token lexBasedLiteral(const SourceLocation& location, const std::string& baseText);
+    Token lexBasedLiteral(const SourceLocation& location, const std::string& baseText, bool badSeparator);
     Token lexStringLiteral();
     Token lexCharacterLiteral();
     bool tickStartsCharacterLiteral(const Token* previous) const;

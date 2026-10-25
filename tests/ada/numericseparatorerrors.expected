@@ -1,0 +1,9 @@
+numericseparatorerrors.adb:4:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:5:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:6:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:7:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:8:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:9:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:10:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:11:42: error: an underscore in a numeric literal must separate two digits
+numericseparatorerrors.adb:12:42: error: an underscore in a numeric literal must separate two digits
