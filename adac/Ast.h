@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics.h"
+#include "Interface.h"
 #include "Token.h"
 #include "ExactReal.h"
 
@@ -518,6 +519,8 @@ struct TypeDefinition : Node
     bool abstract = false;
     bool extension = false;
     bool privateExtension = false;
+    InterfaceKind interfaceKind = InterfaceKind::None;
+    std::vector<SubtypeIndicationPtr> progenitors;
     std::vector<RecordField> fields;
     VariantPartPtr variant;
 

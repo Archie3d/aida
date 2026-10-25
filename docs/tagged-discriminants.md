@@ -84,8 +84,8 @@ Dependent arrays with controlled, task or protected elements, access-subtype
 discriminant constraints and new discriminants on untagged derivations remain
 diagnosed. Aggregates needing static selection of a parent variant through
 new discriminant correspondences remain restricted. Indefinite generic formals
-belong to Phase 6g; task/protected discriminants, interfaces and broader freezing
-retain their roadmap owners. These selected passes are not a full Ada conformance
+belong to Phase 6g; task/protected discriminants and broader freezing retain
+their roadmap owners. Interfaces now follow the [interface contract](interfaces.md). These selected passes are not a full Ada conformance
 claim. Sanitizers instrument the compiler or C runtime; QBE-generated loads and
 stores are not instrumented.
 

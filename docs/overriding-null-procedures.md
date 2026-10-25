@@ -78,8 +78,8 @@ and `accessresult*errors`
 fixtures check the corresponding illegal controls.
 
 Private extensions and tagged discriminants now follow the
-[tagged/private-view contract](tagged-discriminants.md). Interfaces retain their
-remaining 6f owner. Generic abstract formals and null formal-procedure defaults remain
+[tagged/private-view contract](tagged-discriminants.md). Interfaces now follow the [interface contract](interfaces.md), with concurrent
+implementations retained for Phase 9. Generic abstract formals and null formal-procedure defaults remain
 6g; null defaults receive an explicit unsupported diagnostic. General freezing
 beyond the existing object/body/derivation checks remains in the Phase 8 audit.
 

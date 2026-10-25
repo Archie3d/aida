@@ -65,11 +65,30 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
     if (check(TokenKind::KwInterface) || check(TokenKind::KwSynchronized)
         || ((check(TokenKind::KwLimited) || check(TokenKind::KwTask)
              || check(TokenKind::KwProtected)) && peek(1).kind == TokenKind::KwInterface)) {
-        fail("interface types are not yet supported");
+        auto definition = std::make_unique<TypeDefinition>(TypeDefKind::Record);
+        definition->location = location;
+        definition->tagged = definition->abstract = true;
+        definition->interfaceKind = InterfaceKind::Ordinary;
+        if (!check(TokenKind::KwInterface)) {
+            definition->interfaceKind = check(TokenKind::KwLimited) ? InterfaceKind::Limited
+                : check(TokenKind::KwSynchronized) ? InterfaceKind::Synchronized
+                : check(TokenKind::KwTask) ? InterfaceKind::Task : InterfaceKind::Protected;
+            definition->isLimited = true;
+            advance();
+        }
+        expect(TokenKind::KwInterface, "in interface type definition");
+        while (match(TokenKind::KwAnd)) {
+            auto progenitor = std::make_unique<SubtypeIndication>();
+            progenitor->location = current().location;
+            progenitor->name = parseSubtypeMark(progenitor->lower);
+            definition->progenitors.push_back(std::move(progenitor));
+        }
+        return definition;
     }
 
     if (match(TokenKind::KwAbstract)) {
         auto definition = parseTypeDefinition();
+        if (definition->interfaceKind != InterfaceKind::None) { fail("an interface is implicitly abstract; omit abstract"); }
         definition->abstract = true;
         definition->location = location;
         return definition;
@@ -251,6 +270,12 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
         definition->location = location;
         advance();
         definition->parent = parseSubtypeIndication();
+        while (match(TokenKind::KwAnd)) {
+            auto progenitor = std::make_unique<SubtypeIndication>();
+            progenitor->location = current().location;
+            progenitor->name = parseSubtypeMark(progenitor->lower);
+            definition->progenitors.push_back(std::move(progenitor));
+        }
         if (match(TokenKind::KwWith)) {
             if (match(TokenKind::KwPrivate)) {
                 definition->extension = true;

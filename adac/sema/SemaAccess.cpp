@@ -140,8 +140,10 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         m_diagnostics.error(expr->location, attribute + " cannot designate a discriminant-dependent component of an unconstrained variable");
         return nullptr;
     }
-    if (!matchingDesignated(expected->target, source)
-        && !(expected->anonymousAccess && source->classRoot == rootType(expected->target))) {
+    if ((expected->target->classRoot != nullptr
+            && expected->target->classRoot->interfaceKind != InterfaceKind::None && !taggedViewVisible(source))
+        || (!matchingDesignated(expected->target, source)
+            && !(expected->anonymousAccess && source->classRoot == rootType(expected->target)))) {
         m_diagnostics.error(expr->location, "object view does not match the designated subtype");
         return nullptr;
     }
@@ -182,7 +184,12 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
     if (target->target->tagged && source->target->tagged) {
         Type* a = target->target->classRoot != nullptr ? target->target->classRoot : target->target;
         Type* b = source->target->classRoot != nullptr ? source->target->classRoot : source->target;
-        designated = isTaggedAncestor(a, b) || (source->target->classRoot != nullptr && isTaggedAncestor(b, a));
+        bool interfaceConversion = rootType(a)->interfaceKind != InterfaceKind::None
+            || rootType(b)->interfaceKind != InterfaceKind::None;
+        designated = (!interfaceConversion || (taggedViewVisible(source->target) && taggedViewVisible(target->target)))
+            && (isTaggedAncestor(a, b) || (source->target->classRoot != nullptr
+                && (isTaggedAncestor(b, a) || (target->target->classRoot != nullptr
+                    && (rootType(a)->interfaceKind != InterfaceKind::None || rootType(b)->interfaceKind != InterfaceKind::None)))));
     }
     if (((!representationVisible(target) || !representationVisible(source)) && rootType(target) != rootType(source))
         || (!target->generalAccess && !related) || !designated || (!target->accessConstant && source->accessConstant)) {

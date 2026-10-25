@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Interface.h"
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -89,6 +91,8 @@ struct Type
     bool parentVisible = true;
     // Tagged records reserve the leading pointer and retain a parent prefix.
     bool tagged = false;
+    InterfaceKind interfaceKind = InterfaceKind::None;
+    std::vector<Type*> interfaces; // Transitive, unique interface ancestors.
     // The partial view can hide tagging while the full layout remains tagged.
     bool privateViewTagged = false;
     bool privateViewAbstract = false;

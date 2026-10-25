@@ -7,7 +7,7 @@
 
 /* The first three words are the published object layout descriptor prefix.
    Entries pair code with its enclosing activation, independently of callers. */
-_Static_assert(sizeof(AdaTag) == 120, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 144, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");
@@ -32,6 +32,7 @@ static void releaseTags(void)
         registrations = registration->next;
         if (registration->owned) {
             free(registration->tag->slots);
+            free(registration->tag->interfaces);
             free(registration->tag);
         }
         free(registration);
@@ -97,6 +98,13 @@ void __ada_tag_set_layout(void* value, int64_t size, const int64_t* layout)
 void* __ada_tag_create_layout(const void* templateTag, void* parent, void* master, int64_t size, const int64_t* layout)
 {
     const AdaTag* source = templateTag;
+    return __ada_tag_create_full(templateTag, parent, master, size, layout, source->interfaceCount, source->interfaces);
+}
+
+void* __ada_tag_create_full(const void* templateTag, void* parent, void* master, int64_t size,
+    const int64_t* layout, int64_t interfaceCount, const AdaInterfaceBinding* interfaces)
+{
+    const AdaTag* source = templateTag;
     AdaTag* tag = malloc(sizeof *tag);
     if (tag == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
@@ -114,9 +122,22 @@ void* __ada_tag_create_layout(const void* templateTag, void* parent, void* maste
     if (source->slotCount != 0) {
         memcpy(tag->slots, source->slots, source->slotCount * sizeof *tag->slots);
     }
+    tag->interfaces = NULL;
+    tag->interfaceCount = interfaceCount;
+    if (interfaceCount != 0) {
+        tag->interfaces = malloc((size_t)interfaceCount * sizeof *tag->interfaces);
+        if (tag->interfaces == NULL) {
+            free(tag->slots);
+            free(tag);
+            __ada_raise(ADA_STORAGE_ERROR);
+            return NULL;
+        }
+        memcpy(tag->interfaces, interfaces, (size_t)interfaceCount * sizeof *tag->interfaces);
+    }
     tag->parent = parent;
     tag->master = tag->equalityLink = master;
     if (!registerTag(tag, 1)) {
+        free(tag->interfaces);
         free(tag->slots);
         free(tag);
         return NULL;
@@ -183,12 +204,59 @@ int __ada_tag_is_descendant(void* value, void* ancestorValue)
         || tag->master != ancestor->master) {
         return 0;
     }
+    return __ada_tag_has_ancestor(tag, ancestor);
+}
+
+/* All views retain the complete object's address. Interface maps translate a
+   view's operation number to its concrete slot, with no record-layout offset. */
+int __ada_tag_has_ancestor(const void* value, const void* ancestorValue)
+{
+    const AdaTag* tag = value;
+    const AdaTag* ancestor = ancestorValue;
     for (; tag != NULL; tag = tag->parent) {
-        if (tag == ancestor) {
-            return 1;
+        if (tag == ancestor) { return 1; }
+        for (int64_t i = 0; i < tag->interfaceCount; ++i) {
+            if (tag->interfaces[i].tag == ancestor) { return 1; }
         }
     }
     return 0;
+}
+
+void* __ada_tag_dispatch(void* value, void* interfaceValue, int slot)
+{
+    AdaTag* tag = value;
+    AdaTag* interfaceTag = interfaceValue;
+    if (tag == NULL || interfaceTag == NULL || slot < 0 || slot >= interfaceTag->slotCount) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    int64_t concreteSlot = -1;
+    if (tag == interfaceTag) { concreteSlot = slot; }
+    for (int64_t i = 0; concreteSlot < 0 && i < tag->interfaceCount; ++i) {
+        if (tag->interfaces[i].tag == interfaceTag) { concreteSlot = tag->interfaces[i].slots[slot]; }
+    }
+    if (concreteSlot < 0 || concreteSlot >= tag->slotCount || tag->slots[concreteSlot].code == NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    return &tag->slots[concreteSlot];
+}
+
+int __ada_tag_interface_count(void* value)
+{
+    AdaTag* tag = value;
+    return requireTag(tag) ? (int)tag->interfaceCount : 0;
+}
+
+void* __ada_tag_interface_at(void* value, int position)
+{
+    AdaTag* tag = value;
+    if (!requireTag(tag)) { return NULL; }
+    if (position < 1 || position > tag->interfaceCount) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return NULL;
+    }
+    return tag->interfaces[position - 1].tag;
 }
 
 static void* tagInternal(const char* name, int length)

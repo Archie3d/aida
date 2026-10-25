@@ -45,6 +45,10 @@ after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Ch
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
+The final Phase 6f interface milestone retains these 106 observations. Its local
+interface tests add implementation/legality coverage without claiming additional
+upstream passes; the recorded compiler fingerprint is refreshed.
+
 ## Reproduce
 
 Python 3.9+ and the built compiler/toolchain are required. From the repo root:

@@ -101,6 +101,7 @@ struct Symbol
     bool overrides = false;
     Type* controllingType = nullptr;
     int dispatchSlot = -1;
+    std::vector<Symbol*> interfaceOrigins; // Operations implemented by this slot.
     int pendingOverride = 0;
     bool pendingControlledResult = false;
     Symbol* renamedUnit = nullptr; // Canonical package/generic behind a renamed view.

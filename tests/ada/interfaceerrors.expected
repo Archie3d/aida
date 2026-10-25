@@ -1,0 +1,10 @@
+interfaceerrors.adb:5:9: error: an interface primitive must be abstract or a null procedure
+interfaceerrors.adb:6:9: error: an interface cannot have discriminants
+interfaceerrors.adb:8:50: error: a progenitor must name a specific interface type
+interfaceerrors.adb:9:47: error: a progenitor must name a specific interface type
+interfaceerrors.adb:10:50: error: duplicate interface progenitor
+interfaceerrors.adb:11:9: error: interface progenitors require a tagged parent type
+interfaceerrors.adb:20:9: error: a full view must implement every interface of its tagged partial view
+interfaceerrors.adb:12:9: error: inherited operation 'Value' must be overridden with a nonabstract subprogram
+interfaceerrors.adb:36:5: error: an abstract type cannot be used to create an object
+interfaceerrors.adb:39:5: error: limited objects cannot be assigned

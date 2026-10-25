@@ -30,7 +30,7 @@ bool isTaggedAncestor(Type* ancestor, Type* type)
         return false;
     }
     for (; type != nullptr; type = type->parentType) {
-        if (type == ancestor) {
+        if (type == ancestor || std::find(type->interfaces.begin(), type->interfaces.end(), ancestor) != type->interfaces.end()) {
             return true;
         }
     }
@@ -393,6 +393,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->tagged = parent->tagged;
+    subtype->interfaceKind = parent->interfaceKind;
+    subtype->interfaces = parent->interfaces;
     subtype->privateViewTagged = parent->privateViewTagged;
     subtype->privateViewAbstract = parent->privateViewAbstract;
     subtype->abstract = parent->abstract;
@@ -467,6 +469,8 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
             continue;
         }
         subtype->tagged = completed->tagged;
+        subtype->interfaceKind = completed->interfaceKind;
+        subtype->interfaces = completed->interfaces;
         subtype->privateViewTagged = completed->privateViewTagged;
         subtype->privateViewAbstract = completed->privateViewAbstract;
         subtype->controlled = completed->controlled;

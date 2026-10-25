@@ -550,10 +550,21 @@ full-tasking restrictions retain their later roadmap owners.
   checks, seven whole/per-unit scenarios with the ASan/UBSan C runtime, and
   runtime ownership/layout checks pass.
   [Contract and boundaries](docs/tagged-discriminants.md).
-- [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
-  operations, overriding, interface conversions and class-wide dispatch. Extend
-  the single-parent tag/dispatch model with a representation that also supports
-  synchronized, task and protected interfaces (Phase 9).
+- [x] Interfaces: multiple progenitors, transitive/diamond inheritance, shared
+  operation slots, inherited concrete/null implementations and overriding;
+  checked class-wide/access conversions, dispatch and Ada.Tags queries.
+  Tags retain canonical object addresses and own interface maps/lexical links,
+  including private contract entries, generic instances and controlled layouts.
+  Ordinary/limited implementations and synchronized/task/protected contract
+  categories have execution/legality coverage (`interfaces`, `interfacediamonds`,
+  `interfaceownership`, `interfacecategories`, `interfaceprofiles`,
+  `interfacegenerics`, `interface*errors`, runtime maps/failure injection).
+  Whole/per-unit/determinism and four workers pass; full suite 1,115/1,115,
+  16 compiler ASan/UBSan checks and six scenarios with the instrumented C
+  runtime pass. All 106 ACATS baseline observations remain unchanged (60 PASS).
+  Concurrent task/protected implementations retain Phase 9, with compatible
+  slot-map metadata and explicit diagnostics until implemented.
+  [Contract and boundaries](docs/interfaces.md).
 
 ### 6g. Generics
 

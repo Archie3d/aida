@@ -1,0 +1,8 @@
+interfacecategoryerrors.adb:5:9: error: a descendant of a nonlimited interface must be nonlimited
+interfacecategoryerrors.adb:9:9: error: incompatible synchronized interface categories
+interfacecategoryerrors.adb:10:9: error: incompatible synchronized interface categories
+interfacecategoryerrors.adb:11:9: error: incompatible synchronized interface categories
+interfacecategoryerrors.adb:12:9: error: implementing synchronized, task or protected interfaces requires Phase 9 concurrent types
+interfacecategoryerrors.adb:13:9: error: implementing synchronized, task or protected interfaces requires Phase 9 concurrent types
+interfacecategoryerrors.adb:14:9: error: implementing synchronized, task or protected interfaces requires Phase 9 concurrent types
+interfacecategoryerrors.adb:16:9: error: a descendant of a nonlimited interface must be nonlimited

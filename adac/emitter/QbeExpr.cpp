@@ -199,7 +199,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 }
                 Type* target = expr->type->target;
                 Type* source = operand->type->target;
-                if (target->tagged && source->classRoot != nullptr && target->classRoot == nullptr) {
+                if (target->tagged && source->classRoot != nullptr) {
                     std::string nonNull = newTemp(), check = newLabel("accessconvert"), ready = newLabel("accessconverted");
                     line(nonNull + " =w cnel " + value.name + ", 0");
                     branch(Value {nonNull, 'w'}, check, ready);

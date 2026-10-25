@@ -550,46 +550,17 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
     storeInto(address, result, type);
 }
 
-// Walk the descriptor's immutable parent links; zero terminates the ancestry.
+// Membership includes the physical parent chain and transitive interface views.
 Value QbeEmitter::taggedMembership(const Value& object, Type* target)
 {
     target = rootType(target);
     if (target->classRoot != nullptr) {
         target = target->classRoot;
     }
-    std::string cursor = allocScratch(8);
-    std::string result = allocScratch(4);
-    std::string tag = newTemp();
+    std::string tag = newTemp(), answer = newTemp();
     line(tag + " =l loadl " + object.name);
-    line("storel " + tag + ", " + cursor);
-    line("storew 0, " + result);
-    std::string loop = newLabel("ancestry");
-    std::string compare = newLabel("comparetag");
-    std::string parent = newLabel("parenttag");
-    std::string found = newLabel("tagfound");
-    std::string done = newLabel("ancestrydone");
-    jump(loop);
-    label(loop);
-    std::string current = newTemp();
-    std::string nonzero = newTemp();
-    line(current + " =l loadl " + cursor);
-    line(nonzero + " =w cnel " + current + ", 0");
-    branch(Value { nonzero, 'w' }, compare, done);
-    label(compare);
-    std::string same = newTemp();
-    line(same + " =w ceql " + current + ", " + typeTag(target).name);
-    branch(Value { same, 'w' }, found, parent);
-    label(parent);
-    std::string next = newTemp();
-    line(next + " =l loadl " + current);
-    line("storel " + next + ", " + cursor);
-    jump(loop);
-    label(found);
-    line("storew 1, " + result);
-    jump(done);
-    label(done);
-    std::string answer = newTemp();
-    line(answer + " =w loadw " + result);
+    emitCallInstruction(answer + " =w call $__ada_tag_has_ancestor(l " + tag + ", l "
+        + typeTag(target).name + ")", CallEffects::DeferredCheck);
     return Value { answer, 'w' };
 }
 

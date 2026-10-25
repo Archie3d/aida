@@ -391,6 +391,10 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
         indirectLink = newTemp();
         if (dispatchEquality) {
             line(slot + " =l add " + controllingTag + ", 32");
+        } else if (subprogram->controllingType->interfaceKind != InterfaceKind::None) {
+            emitCallInstruction(slot + " =l call $__ada_tag_dispatch(l " + controllingTag + ", l "
+                + typeTag(subprogram->controllingType).name + ", w " + std::to_string(subprogram->dispatchSlot)
+                + ")", CallEffects::CheckException);
         } else {
             line(tableSlot + " =l add " + controllingTag + ", 24");
             line(table + " =l loadl " + tableSlot);

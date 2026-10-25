@@ -1,0 +1,5 @@
+interfaceconversionerrors.adb:19:45: error: this type conversion is not allowed
+interfaceconversionerrors.adb:20:5: error: an abstract type cannot be used to create an object
+interfaceconversionerrors.adb:20:48: error: this type conversion is not allowed
+interfaceconversionerrors.adb:24:35: error: this type conversion is not allowed
+interfaceconversionerrors.adb:26:13: error: tagged membership requires convertible types

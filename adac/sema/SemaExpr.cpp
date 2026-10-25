@@ -752,7 +752,9 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
         Type* target = mark->classRoot != nullptr ? mark->classRoot : mark;
         Type* source = operand->classRoot != nullptr ? operand->classRoot : operand;
         if (!isTaggedAncestor(target, source)
-            && !(operand->classRoot != nullptr && isTaggedAncestor(source, target))) {
+            && !(operand->classRoot != nullptr && (isTaggedAncestor(source, target)
+                || (mark->classRoot != nullptr && (rootType(source)->interfaceKind != InterfaceKind::None
+                    || rootType(target)->interfaceKind != InterfaceKind::None))))) {
             m_diagnostics.error(expr->location, "tagged membership requires convertible types");
         }
         expr->testedTaggedType = mark;

@@ -527,6 +527,10 @@ add_ada_test(taggedequality SOURCES taggedequality.adb)
 add_ada_error_test(taggederrors SOURCES taggederrors.adb)
 add_ada_error_test(taggedviewerrors SOURCES taggedviewerrors.adb)
 add_ada_error_test(privatecompletionerrors SOURCES privatecompletionerrors.adb)
+add_ada_error_test(interfaceerrors SOURCES interfaceerrors.adb)
+add_ada_error_test(interfacecategoryerrors SOURCES interfacecategoryerrors.adb)
+add_ada_error_test(interfaceprivacyerrors SOURCES interfaceprivacyerrors.adb)
+add_ada_error_test(interfaceconversionerrors SOURCES interfaceconversionerrors.adb)
 add_test(NAME ada.taggedlayout
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada>
@@ -1371,7 +1375,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled interfaces interfacediamonds interfaceownership interfacecategories interfaceprofiles interfacegenerics)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1703,3 +1707,8 @@ add_ada_error_test(protectedoverridingerrors SOURCES protectedoverridingerrors.a
 add_ada_error_test(nullgenericcompletionerrors SOURCES nullgenericcompletionerrors.adb)
 add_ada_error_test(nullformaldefaulterrors SOURCES nullformaldefaulterrors.adb)
 add_ada_error_test(accessparameterlegalityerrors SOURCES accessparameterlegalityerrors.adb)
+
+add_executable(interface_runtime_test InterfaceRuntimeTest.c)
+target_link_libraries(interface_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.interface_maps COMMAND interface_runtime_test)
+set_tests_properties(runtime.interface_maps PROPERTIES TIMEOUT 30)

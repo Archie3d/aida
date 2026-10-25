@@ -19,6 +19,13 @@ typedef struct AdaDispatchEntry
     void* link;
 } AdaDispatchEntry;
 
+struct AdaTag;
+typedef struct AdaInterfaceBinding
+{
+    struct AdaTag* tag;
+    const int64_t* slots;
+} AdaInterfaceBinding;
+
 typedef struct AdaTag
 {
     struct AdaTag* parent;
@@ -37,6 +44,9 @@ typedef struct AdaTag
     void (*parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
     int64_t hasLimitedParts;
     const int64_t* layout;
+    int64_t interfaceCount;
+    AdaInterfaceBinding* interfaces;
+    int64_t interfaceKind;
 } AdaTag;
 
 
@@ -233,6 +243,12 @@ void __ada_array_result_cleanup(AdaTaskContext* context, void* descriptor);
 void __ada_tag_register(void* tag);
 void* __ada_tag_create(const void* templateTag, void* parent, void* master);
 void* __ada_tag_create_layout(const void* templateTag, void* parent, void* master, int64_t size, const int64_t* layout);
+void* __ada_tag_create_full(const void* templateTag, void* parent, void* master, int64_t size,
+    const int64_t* layout, int64_t interfaceCount, const AdaInterfaceBinding* interfaces);
+int __ada_tag_has_ancestor(const void* tag, const void* ancestor);
+void* __ada_tag_dispatch(void* tag, void* interfaceTag, int slot);
+int __ada_tag_interface_count(void* value);
+void* __ada_tag_interface_at(void* value, int position);
 void __ada_tag_set_layout(void* value, int64_t size, const int64_t* layout);
 void __ada_tag_check_level(const void* object, int level);
 void __ada_tag_check_accessibility(const void* object, int level);

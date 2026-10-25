@@ -24,6 +24,11 @@ B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
 
+The final Phase 6f interface milestone retains all 106 observations exactly:
+60 executable passes, 18 legal-source rejections, eight support blockers and
+20 ungraded B observations. Its local interface scenarios are documented in the
+[interface contract](interfaces.md); no new upstream pass is inferred from them.
+
 The tagged/private-view milestone promotes unchanged C3A0007, C432001, C432004
 and C760009 to PASS. C760011 now reaches REPORT.Ident_Char (P8); C761010 gets
 past unknown-discriminant views and exposes access-subtype and dependent

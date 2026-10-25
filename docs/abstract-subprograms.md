@@ -37,7 +37,8 @@ subtype marks in concrete extension aggregates.
 
 ## Boundaries and validation
 
-Interfaces retain their later 6f owner. Private extensions and tagged
+Interfaces now follow the [interface contract](interfaces.md); concurrent
+implementations remain Phase 9. Private extensions and tagged
 discriminants now follow the [tagged/private-view contract](tagged-discriminants.md). Controlling anonymous access results and their inherited
 required-overriding rules are now implemented by the
 [overriding/null-procedure milestone](overriding-null-procedures.md).

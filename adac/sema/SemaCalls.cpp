@@ -307,9 +307,16 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             relatedUntagged = targetAncestor == sourceAncestor;
         }
         bool classConversion = sourceRoot != nullptr
-            && (isTaggedAncestor(sourceRoot, targetRoot) || isTaggedAncestor(targetRoot, sourceRoot));
+            && (isTaggedAncestor(sourceRoot, targetRoot) || isTaggedAncestor(targetRoot, sourceRoot)
+                || (expr->type->classRoot != nullptr
+                    && (sourceRoot->interfaceKind != InterfaceKind::None || rootType(targetRoot)->interfaceKind != InterfaceKind::None)));
+        if (classConversion && (sourceRoot->interfaceKind != InterfaceKind::None
+            || rootType(targetRoot)->interfaceKind != InterfaceKind::None)) {
+            classConversion = taggedViewVisible(expr->type) && taggedViewVisible(operand->type);
+        }
         bool ancestorView = isTaggedAncestor(expr->type, operand->type)
-            && (rootType(expr->type) == rootType(operand->type) || representationVisible(operand->type));
+            && (rootType(expr->type) == rootType(operand->type) || representationVisible(operand->type)
+                || (rootType(targetRoot)->interfaceKind != InterfaceKind::None && taggedViewVisible(operand->type)));
         if (!numeric && !arrayConversion && !relatedUntagged && !classConversion && !ancestorView && !typesCompatible(expr->type, operand->type)) {
             m_diagnostics.error(expr->location, "this type conversion is not allowed");
         }

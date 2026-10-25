@@ -1,6 +1,7 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cfloat>
 
@@ -71,6 +72,32 @@ void QbeEmitter::emitTypeTag(Type* type)
         character = static_cast<char>(std::toupper(static_cast<unsigned char>(character)));
     }
     std::string expanded = stringData(name);
+    for (std::size_t i = 0; i < type->interfaces.size(); ++i) {
+        Type* interfaceType = type->interfaces[i];
+        m_data << "export data " << type->tagName << ".imap." << i << " = align 8 { ";
+        for (std::size_t slot = 0; slot < interfaceType->dispatchSlots.size(); ++slot) {
+            Symbol* origin = interfaceType->dispatchSlots[slot];
+            long long concrete = -1;
+            for (std::size_t index = 0; index < type->dispatchSlots.size(); ++index) {
+                const auto& origins = type->dispatchSlots[index]->interfaceOrigins;
+                if (std::find(origins.begin(), origins.end(), origin) != origins.end()) {
+                    concrete = static_cast<long long>(index);
+                    break;
+                }
+            }
+            m_data << (slot == 0 ? "l " : ", l ") << concrete;
+        }
+        if (interfaceType->dispatchSlots.empty()) { m_data << "l 0"; }
+        m_data << " }\n";
+    }
+    if (!type->interfaces.empty()) {
+        m_data << "export data " << type->tagName << ".interfaces = align 8 { ";
+        for (std::size_t i = 0; i < type->interfaces.size(); ++i) {
+            m_data << (i == 0 ? "l " : ", l ") << type->interfaces[i]->tagName
+                   << ", l " << type->tagName << ".imap." << i;
+        }
+        m_data << " }\n";
+    }
     m_data << "export data " << type->tagName << " = align 8 { l "
            << (type->parentType == nullptr ? "0" : type->parentType->tagName)
            << ", l " << typeSize(type) << ", l " << typeAlignment(type)
@@ -78,7 +105,9 @@ void QbeEmitter::emitTypeTag(Type* type)
            << expanded << ", l " << type->accessLevel
            << ", l 0, l " << type->dispatchSlots.size() << ", l " << type->abstract << ", l " << needsFinalization(type) << ", l "
            << (needsFinalization(type) ? type->tagName + ".parts" : "0")
-           << ", l " << hasLimitedParts(type) << ", l 0 }\n";
+           << ", l " << hasLimitedParts(type) << ", l 0, l " << type->interfaces.size()
+           << ", l " << (type->interfaces.empty() ? "0" : type->tagName + ".interfaces")
+           << ", l " << static_cast<int>(type->interfaceKind) << " }\n";
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
@@ -869,7 +898,20 @@ void QbeEmitter::initializeTypeTag(Type* type)
     std::string tag = newTemp();
     std::string parent = type->parentType == nullptr ? "0" : typeTag(type->parentType).name;
     line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->tagOffset));
-    if (hasRuntimeLayout(type)) {
+    if (!type->interfaces.empty()) {
+        std::string bindings = allocScratch(type->interfaces.size() * 16);
+        for (std::size_t i = 0; i < type->interfaces.size(); ++i) {
+            std::string entry = newTemp(), map = newTemp();
+            line(entry + " =l add " + bindings + ", " + std::to_string(i * 16));
+            line(map + " =l add " + entry + ", 8");
+            line("storel " + typeTag(type->interfaces[i]).name + ", " + entry);
+            line("storel " + type->tagName + ".imap." + std::to_string(i) + ", " + map);
+        }
+        emitCallInstruction(tag + " =l call $__ada_tag_create_full(l " + type->tagName + ", l " + parent
+            + ", l " + m_context->frameTemp + ", l " + runtimeSize(type)
+            + ", l " + (hasRuntimeLayout(type) ? layoutAddress(type).name : "0")
+            + ", l " + std::to_string(type->interfaces.size()) + ", l " + bindings + ")", CallEffects::CheckException);
+    } else if (hasRuntimeLayout(type)) {
         emitCallInstruction(tag + " =l call $__ada_tag_create_layout(l " + type->tagName + ", l " + parent
             + ", l " + m_context->frameTemp + ", l " + runtimeSize(type) + ", l " + layoutAddress(type).name + ")", CallEffects::CheckException);
     } else {

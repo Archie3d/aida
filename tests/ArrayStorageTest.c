@@ -434,6 +434,16 @@ int main(void)
     CHECK(__ada_tag_create(&template, NULL, &owner) == NULL);
     CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
     __ada_exception = NULL;
+    /* Every failed stage of interface metadata construction is transactional. */
+    AdaTag interfaceTag = { .name = "TEST.INTERFACE", .slotCount = 1, .interfaceKind = 1 };
+    const int64_t kInterfaceMap[] = { 0 };
+    AdaInterfaceBinding binding = { &interfaceTag, kInterfaceMap };
+    for (int stage = 0; stage < 4; ++stage) {
+        failAfter = stage;
+        CHECK(__ada_tag_create_full(&template, NULL, &owner, 32, NULL, 1, &binding) == NULL);
+        CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
+        __ada_exception = NULL;
+    }
     int64_t layout[] = { 32, 8, 16, 24 };
     __ada_tag_set_layout(&template, 16, NULL);
     AdaTag* tag = __ada_tag_create_layout(&template, NULL, &owner, 32, layout);

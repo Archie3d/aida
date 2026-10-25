@@ -114,6 +114,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             predeclared = true;
         }
     }
+    std::vector<Type*> partialInterfaces = completing != nullptr ? completing->interfaces : std::vector<Type*> {};
     TypeDecl* partialDeclaration = completing != nullptr ? completing->incompleteDeclaration : nullptr;
     Type* declaredAncestorSubtype = completing != nullptr && completing->privateExtension ? completing->parentSubtype : nullptr;
     if (decl->definition == nullptr) {
@@ -611,7 +612,19 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Record: {
         type = makeType(TypeKind::Record);
         type->tagged = definition->tagged;
+        type->interfaceKind = definition->interfaceKind;
+        type->isLimited = type->isLimited || definition->isLimited;
+        if (definition->interfaceKind != InterfaceKind::None && !decl->discriminants.empty()) {
+            m_diagnostics.error(decl->location, "an interface cannot have discriminants");
+        }
         layoutRecord(decl, definition, type, scope);
+        if (completing != nullptr && type->interfaceKind != InterfaceKind::None) {
+            for (Symbol* primitive : type->primitives) {
+                if (!primitive->abstract && !primitive->nullProcedure) {
+                    m_diagnostics.error(primitive->location, "an interface primitive must be abstract or a null procedure");
+                }
+            }
+        }
         break;
     }
     case TypeDefKind::Derived: {
@@ -655,6 +668,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
         if (!decl->discriminants.empty() && !parent->tagged) {
             m_diagnostics.error(decl->location, "new discriminants on an untagged derived type are not yet supported");
+            return;
+        }
+        if (!definition->progenitors.empty() && !parent->tagged) {
+            m_diagnostics.error(decl->location, "interface progenitors require a tagged parent type");
             return;
         }
         if (hasProtected(parent)) {
@@ -732,6 +749,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* privateAncestor = type->privateAncestor;
         int publicParentFieldCount = type->publicParentFieldCount;
         *type = *built;
+        type->interfaceKind = InterfaceKind::None;
+        if (parent->interfaceKind != InterfaceKind::None) {
+            type->isLimited = definition->isLimited;
+            type->limitedRecord = definition->isLimited && !definition->privateExtension;
+        }
         type->layoutSymbol = nullptr;
         type->discriminantRecord = nullptr;
         type->recordRepresentationSpecified = false;
@@ -768,7 +790,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->unknownDiscriminantAncestor = unknownDiscriminantView(parent);
         type->parentVisible = completing == nullptr || privateTo == nullptr;
         type->classWide = completing != nullptr ? classWide : nullptr;
-        type->dispatchSlots = rootType(parent)->dispatchSlots;
+        type->dispatchSlots = rootType(parent)->interfaceKind != InterfaceKind::None
+            ? std::vector<Symbol*> {} : rootType(parent)->dispatchSlots;
         for (Symbol* primitive : type->primitives) {
             primitive->dispatchSlot = -1;
         }
@@ -919,6 +942,58 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (type == nullptr) {
         return;
     }
+    // Store the transitive ancestry once; dispatch maps refer to canonical
+    // object addresses, independently of the future synchronized object kind.
+    auto addInterface = [&](Type* ancestor) {
+        if (std::find(type->interfaces.begin(), type->interfaces.end(), ancestor) == type->interfaces.end()) {
+            type->interfaces.push_back(ancestor);
+        }
+    };
+    if (type->parentType != nullptr && type->parentType->interfaceKind != InterfaceKind::None) {
+        addInterface(type->parentType);
+    }
+    std::vector<Type*> directInterfaces;
+    for (const auto& indication : definition->progenitors) {
+        Type* progenitor = rootType(resolveTypeName(indication->lower, scope, indication->location));
+        if (progenitor == nullptr) { continue; }
+        if (progenitor->interfaceKind == InterfaceKind::None || progenitor->classRoot != nullptr
+            || !representationVisible(progenitor)) {
+            m_diagnostics.error(indication->location, "a progenitor must name a specific interface type");
+            continue;
+        }
+        if (std::find(directInterfaces.begin(), directInterfaces.end(), progenitor) != directInterfaces.end()) {
+            m_diagnostics.error(indication->location, "duplicate interface progenitor");
+            continue;
+        }
+        directInterfaces.push_back(progenitor);
+        addInterface(progenitor);
+        for (Type* ancestor : progenitor->interfaces) { addInterface(ancestor); }
+        inheritPrimitives(type, progenitor, scope, indication->location);
+        progenitor->dispatchFrozen = true;
+    }
+    for (Type* ancestor : type->interfaces) {
+        InterfaceKind kind = ancestor->interfaceKind;
+        bool incompatible = (kind == InterfaceKind::Task && type->interfaceKind != InterfaceKind::Task)
+            || (kind == InterfaceKind::Protected && type->interfaceKind != InterfaceKind::Protected)
+            || (kind == InterfaceKind::Synchronized && type->interfaceKind < InterfaceKind::Synchronized);
+        if (incompatible) {
+            m_diagnostics.error(decl->location, type->interfaceKind == InterfaceKind::None
+                ? "implementing synchronized, task or protected interfaces requires Phase 9 concurrent types"
+                : "incompatible synchronized interface categories");
+        }
+    }
+    if (completing != nullptr && type->privateViewTagged) {
+        for (Type* ancestor : partialInterfaces) {
+            if (std::find(type->interfaces.begin(), type->interfaces.end(), ancestor) == type->interfaces.end()) {
+                m_diagnostics.error(decl->location, "a full view must implement every interface of its tagged partial view");
+            }
+        }
+        for (Type* ancestor : type->interfaces) {
+            if (std::find(partialInterfaces.begin(), partialInterfaces.end(), ancestor) == partialInterfaces.end()) {
+                m_diagnostics.error(decl->location, "a tagged full view cannot add an interface hidden by its partial view");
+            }
+        }
+    }
     if (hasProtected(type) && (nonlimitedPrivateCompletion || type->tagged || type->variantOn >= 0)) {
         m_diagnostics.error(decl->location, "protected components require an ordinary limited full view without variants");
     }
@@ -943,6 +1018,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedParts(type) || hasTasks(type) || hasProtected(type);
+    if (type->isLimited && std::any_of(type->interfaces.begin(), type->interfaces.end(),
+            [](Type* ancestor) { return ancestor->interfaceKind == InterfaceKind::Ordinary; })) {
+        m_diagnostics.error(decl->location, "a descendant of a nonlimited interface must be nonlimited");
+    }
     if (type->abstract && !type->tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
     }
@@ -954,7 +1033,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && !definition->isLimited && hasLimitedParts(type)) {
         m_diagnostics.error(decl->location, "a tagged record with limited components must be explicitly limited");
     }
-    if (definition->kind == TypeDefKind::Record && definition->isLimited) {
+    if (definition->kind == TypeDefKind::Record && definition->isLimited && definition->interfaceKind == InterfaceKind::None) {
         type->limitedRecord = true;
     }
     if (nonlimitedPrivateCompletion && hasLimitedParts(type) && !hasLanguageFinalization(type) && !hasTasks(type)) {
@@ -2108,6 +2187,7 @@ bool Sema::typesCompatible(Type* target, Type* source) const
     Type* left = rootType(target);
     Type* right = rootType(source);
     if (left->classRoot != nullptr) {
+        if (left->classRoot->interfaceKind != InterfaceKind::None && !taggedViewVisible(right)) { return false; }
         return isTaggedAncestor(left->classRoot, right->classRoot != nullptr ? right->classRoot : right);
     }
     if (left == right) {
@@ -2185,6 +2265,9 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         symbol->privatePrimitiveTo = m_packages.back();
     }
     for (Type* type : types) {
+        if (type->interfaceKind != InterfaceKind::None && !symbol->abstract && !symbol->nullProcedure) {
+            m_diagnostics.error(symbol->location, "an interface primitive must be abstract or a null procedure");
+        }
         if (type->tagged && type->classRoot == nullptr
             && (scope == m_packageSpecScope || symbol->overrides)) {
             if (scope == m_packageSpecScope && !m_inVisiblePart
@@ -2234,6 +2317,7 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
         }
         bool replaced = false;
         for (Symbol*& primitive : type->primitives) {
+            if (primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo)) { continue; }
             if (primitive->name != symbol->name || primitive->inheritedFrom == nullptr
                 || primitive->parameters.size() != symbol->parameters.size()
                 || !SemaSupport::profileTypeMatches(primitive->returnType, symbol->returnType)) {
@@ -2253,6 +2337,11 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     symbol->dispatchSlot = primitive->dispatchSlot;
                     symbol->controllingType = type;
                     type->dispatchSlots[symbol->dispatchSlot] = symbol;
+                }
+                for (Symbol* origin : primitive->interfaceOrigins) {
+                    if (std::find(symbol->interfaceOrigins.begin(), symbol->interfaceOrigins.end(), origin) == symbol->interfaceOrigins.end()) {
+                        symbol->interfaceOrigins.push_back(origin);
+                    }
                 }
                 primitive = symbol;
                 replaced = true;
@@ -2304,10 +2393,21 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         return subtype;
     };
     for (Symbol* primitive : rootType(parent)->primitives) {
-        if (primitive->kind != SymbolKind::Subprogram
-            || (primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo))) {
-            continue;
+        if (primitive->kind != SymbolKind::Subprogram) { continue; }
+        bool fromInterface = parent->interfaceKind != InterfaceKind::None;
+        bool hidden = primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo);
+        // An override of a visible ancestor contract remains callable through
+        // that contract. A private-only entry still needs a map, but no name
+        // in the descendant's visible scope.
+        if (hidden && fromInterface) {
+            for (Symbol* origin : primitive->interfaceOrigins) {
+                if (origin->privatePrimitiveTo == nullptr || withinPackage(origin->privatePrimitiveTo)) {
+                    hidden = false;
+                    break;
+                }
+            }
         }
+        if (hidden && !fromInterface) { continue; }
         if (type->tagged && !primitive->abstract && (primitive->name == "=" || primitive->name == "/=")
             && m_types.isBoolean(primitive->returnType) && primitive->parameters.size() == 2
             && rootType(primitive->parameters[0]->type) == rootType(parent)
@@ -2322,7 +2422,10 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         inherited->abstract = primitive->abstract || (type->abstract
             && (accessResult || (rootType(primitive->returnType) == rootType(parent)
                 && type->fields.size() > static_cast<std::size_t>(type->parentFieldCount))));
-        inherited->dispatchSlot = primitive->dispatchSlot;
+        inherited->interfaceOrigins = primitive->interfaceOrigins;
+        if (fromInterface) { inherited->interfaceOrigins.push_back(primitive); }
+        inherited->nullProcedure = primitive->nullProcedure;
+        inherited->dispatchSlot = fromInterface ? -1 : primitive->dispatchSlot;
         inherited->controllingType = type;
         if (inherited->dispatchSlot >= 0) {
             type->dispatchSlots[inherited->dispatchSlot] = inherited;
@@ -2356,8 +2459,10 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             copy->owner = inherited;
             inherited->parameters.push_back(copy);
         }
+        if (hidden) { inherited->privatePrimitiveTo = primitive->privatePrimitiveTo; }
         bool overridden = false;
         for (Symbol* declared : type->primitives) {
+            if (hidden || (declared->privatePrimitiveTo != nullptr && !withinPackage(declared->privatePrimitiveTo))) { continue; }
             if (declared->kind != SymbolKind::Subprogram || declared->name != inherited->name
                 || !SemaSupport::profileTypeMatches(declared->returnType, inherited->returnType)
                 || declared->parameters.size() != inherited->parameters.size()) {
@@ -2381,6 +2486,28 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                 if (type->tagged && !subtypeConformant) {
                     m_diagnostics.error(declared->location, "overriding dispatching profile must be subtype conformant with the inherited operation");
                 }
+                for (Symbol* origin : inherited->interfaceOrigins) {
+                    if (std::find(declared->interfaceOrigins.begin(), declared->interfaceOrigins.end(), origin) == declared->interfaceOrigins.end()) {
+                        declared->interfaceOrigins.push_back(origin);
+                    }
+                }
+                if (fromInterface) {
+                    inherited->dispatchSlot = declared->dispatchSlot;
+                    if (inherited->dispatchSlot < 0) {
+                        inherited->dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                        type->dispatchSlots.push_back(declared);
+                    }
+                    if (declared->abstract && inherited->nullProcedure && declared->inheritedFrom != nullptr) {
+                        inherited->interfaceOrigins = declared->interfaceOrigins;
+                        scope->remove(declared);
+                        auto at = std::find(type->primitives.begin(), type->primitives.end(), declared);
+                        *at = inherited;
+                        scope->add(inherited);
+                        type->dispatchSlots[inherited->dispatchSlot] = inherited;
+                        overridden = true;
+                        break;
+                    }
+                }
                 declared->overrides = true;
                 if (type->tagged && inherited->dispatchSlot >= 0) {
                     declared->controllingType = type;
@@ -2391,8 +2518,12 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             }
         }
         if (!overridden) {
+            if (fromInterface) {
+                inherited->dispatchSlot = static_cast<int>(type->dispatchSlots.size());
+                type->dispatchSlots.push_back(inherited);
+            }
             type->primitives.push_back(inherited);
-            scope->add(inherited);
+            if (!hidden) { scope->add(inherited); }
         }
     }
 }
