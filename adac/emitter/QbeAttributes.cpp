@@ -442,7 +442,8 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "value") {
         Value text = emitExpr(expr->arguments.front().get());
         Value length = narrowArrayLength(lengthOf(text, expr->arguments.front()->type));
-        Value bounds = scalarBounds(prefixType);
+        // RM 3.5: Value returns S'Base, even when S has runtime bounds.
+        Value bounds = scalarBounds(expr->type);
         Type* base = baseType(prefixType);
         std::string temp = newTemp();
         if (base != nullptr && base->kind == TypeKind::Float) {
@@ -474,9 +475,6 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + bounds.first + ", w " + bounds.last + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
-        if (base->modulus == 0 && base->kind != TypeKind::Float && prefixType->scalarBoundsSymbol != nullptr) {
-            emitRangeCheck(Value { temp, qbeClass(prefixType) }, prefixType, expr->location);
-        }
         return Value { temp, qbeClass(prefixType) };
     }
     if (name == "first" || name == "last" || name == "length") {

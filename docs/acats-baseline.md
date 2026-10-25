@@ -13,11 +13,11 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 19 |
 | Legal C-test rejected | 37 |
 | Support/harness blocked | 7 |
-| Executable PASS | 37 |
-| Executable failure | 5 |
+| Executable PASS | 40 |
+| Executable failure | 2 |
 
-No crashes or timeouts were observed. **42 executable C-cases fail** (37 compile
-rejections and five execution failures); seven further C-cases are blocked by
+No crashes or timeouts were observed. **39 executable C-cases fail** (37 compile
+rejections and two execution failures); seven further C-cases are blocked by
 support adapters. The 19 rejected B-probes are ungraded, not 19 legality passes.
 The accepted B36002A probe warrants investigation of mixed constrained/
 unconstrained array-index legality.
@@ -26,16 +26,19 @@ unconstrained array-index legality.
 
 | Case | Observation | Area |
 | --- | --- | --- |
-| C34001A | Unhandled Constraint_Error in derived enumeration operations; localize before changing implementation. | P3/P5 |
-| C34001D | Unhandled Constraint_Error in derived Boolean operations; localize before changing implementation. | P3/P5 |
-| C34002A | Unhandled Constraint_Error in derived integer operations; localize before changing implementation. | P3/P5 |
 | C761006 | REPORT: other adjustment not performed. Audit adjustment exception handling and required remaining adjustments. | P3/P6a/P6c/P6e |
 | C84009A | REPORT: BINARY "-" ALREADY VISIBLE FOR TYPE INT. Audit primitive operator/use visibility. | P3/P6e |
 
-These results establish reproduction cases. They do not yet establish the
-precise root cause, and no compiler behavior was changed during this baseline
-capture. Legal-source rejections also need review: some hit explicit later
-roadmap features, while others expose missing behavior in completed areas.
+C34001A/C34001D/C34002A now pass unchanged after the 6f-prelude repair:
+scalar `'Value` returns and checks `S'Base` (RM 3.5(53)), rather than the
+first subtype's static or captured bounds. `derivedscalaroperations` covers
+base-range operations, inherited constraints, conversions, receiving-context
+checks and four tasks in whole/per-unit/deterministic modes. The snapshot and
+strict ACATS selection include these three reviewed promotions.
+
+The remaining executable failures above still need localization. Legal-source
+rejections also need review: some hit explicit later roadmap features, while
+others expose missing behavior in completed areas.
 
 ## Coverage by area
 
@@ -44,7 +47,7 @@ be blocked before reaching the feature named in their objective.
 
 | Area | C PASS | C rejected | C runtime failure | Harness blocked | B ungraded |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| derived scalars | 5 | 1 | 3 | 1 | 0 |
+| derived scalars | 8 | 1 | 0 | 1 | 0 |
 | arrays discriminants | 4 | 6 | 0 | 0 | 0 |
 | access callbacks | 6 | 1 | 0 | 0 | 0 |
 | indexing slices | 4 | 3 | 0 | 1 | 0 |
@@ -74,7 +77,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 37 observed
+crash/timeout handling and source/snapshot integrity. Only the 40 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -87,10 +90,10 @@ The table below gives the observed status and initial triage for every case.
 
 | Case / upstream source | RM area | Observation | Initial triage / next owner |
 | --- | --- | --- | --- |
-| [C34001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001a.ada) | 3.4–3.5 | Executable failure | execution failure; P3/P5/P8 |
+| [C34001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001a.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
 | [C34001C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001c.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
-| [C34001D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001d.ada) | 3.4–3.5 | Executable failure | execution failure; P3/P5/P8 |
-| [C34002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34002a.ada) | 3.4–3.5 | Executable failure | execution failure; P3/P5/P8 |
+| [C34001D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001d.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
+| [C34002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34002a.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
 | [C34002C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34002c.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
 | [C35003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003a.ada) | 3.4–3.5 | Legal C-test rejected | documented language gap; P8 range/subtype syntax audit |
 | [C35003D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003d.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |

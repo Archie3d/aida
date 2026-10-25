@@ -1043,8 +1043,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, base->kind == TypeKind::Fixed
                 ? "fixed-point 'Value requires a subtype prefix" : "floating-point 'Value requires a subtype prefix");
         }
-        expr->type = base != nullptr && (base->modulus != 0 || base->kind == TypeKind::Fixed || base->kind == TypeKind::Float)
-            ? m_types.scalarBaseType(prefixType) : prefixType;
+        expr->type = m_types.scalarBaseType(prefixType);
         return expr->type;
     }
 

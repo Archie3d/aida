@@ -5,24 +5,24 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "47c966345f494157a807e6f8d567f0cc196314e705e04e22720688b6387a2447",
+  "compiler_sha256": "8833858575e47df81bfadede277a2460d633593c363c4a32ad8c4887d2066b87",
   "counts": {
     "B_ACCEPTED_UNGRADED": 1,
     "B_REJECTED_UNGRADED": 19,
     "COMPILE_REJECTED": 37,
     "HARNESS_BLOCKED": 7,
-    "PASS": 37,
-    "RUN_FAILED": 5
+    "PASS": 40,
+    "RUN_FAILED": 2
   },
   "cases": {
     "c34001a": {
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C34001A\n",
-      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C34001A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c34001c": {
       "compile_exit": 0,
@@ -37,19 +37,19 @@
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C34001D\n",
-      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C34001D\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c34002a": {
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C34002A\n",
-      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C34002A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c34002c": {
       "compile_exit": 0,

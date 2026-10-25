@@ -53,6 +53,12 @@ the access type's designated subtype and use that subtype's storage size.
 An explicit scalar allocator constraint is illegal, rather than a new anonymous
 constraint context (RM 4.8(4)); it receives a diagnostic.
 
+Scalar `'Value` returns `S'Base` (RM 3.5(53)), independently of the prefix's
+static or captured subtype bounds, including null and derived subtypes.
+Parsing checks the base range; assignment, conversion, parameter and return
+contexts still check their own subtype constraints. `derivedscalaroperations`
+and unchanged ACATS C34001A/C34001D/C34002A cover this distinction.
+
 ## Width and streams
 
 Runtime discrete Width is zero for a null subtype. Signed/modular widths use the

@@ -445,10 +445,11 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
-- [ ] **Derived scalar operations.** Resolve the unexpected `Constraint_Error`
-  in C34001A, C34001D and C34002A. Cover derived enumeration, Boolean and integer
-  predefined operations, inherited constraints and conversions with focused
-  regressions for the localized causes.
+- [x] **Derived scalar operations.** C34001A/C34001D/C34002A now PASS unchanged:
+  scalar `'Value` returns/checks `S'Base`, including runtime-constrained derived
+  types (RM 3.5(53)). `derivedscalaroperations` covers enumeration, Boolean and
+  integer operations, inherited constraints, conversions and receiving-context
+  checks in whole/per-unit/deterministic modes and four tasks.
 - [ ] **Controlled adjustment failure.** Resolve C761006's missing remaining
   adjustment after an `Adjust` exception. Audit required adjustment/finalization
   work and `Program_Error` propagation, retaining ownership and cleanup on

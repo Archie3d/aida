@@ -445,9 +445,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "execution_failure",
-        "owner": "P3/P5/P8",
-        "note": "Unhandled Constraint_Error in derived enumeration operations; localize before changing implementation."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after correcting scalar 'Value to return and check S'Base (RM 3.5(53)); receiving contexts retain subtype checks."
       }
     },
     {
@@ -483,9 +483,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "execution_failure",
-        "owner": "P3/P5/P8",
-        "note": "Unhandled Constraint_Error in derived Boolean operations; localize before changing implementation."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after correcting scalar 'Value to return and check S'Base (RM 3.5(53)); receiving contexts retain subtype checks."
       }
     },
     {
@@ -502,9 +502,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "execution_failure",
-        "owner": "P3/P5/P8",
-        "note": "Unhandled Constraint_Error in derived integer operations; localize before changing implementation."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after correcting scalar 'Value to return and check S'Base (RM 3.5(53)); receiving contexts retain subtype checks."
       }
     },
     {

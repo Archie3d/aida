@@ -89,6 +89,7 @@ Supported:
 - Nested variants, default and runtime discriminants and per-object array components ([limits](docs/runtime-discriminants.md))
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
+- Scalar `'Value` uses the base range; receiving contexts check subtype constraints
 - Derived Boolean operations and byte-character literals and strings
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics and tagged types with dispatching and prefixed calls ([limits](docs/prefixed-calls.md))
