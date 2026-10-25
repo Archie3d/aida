@@ -120,3 +120,44 @@ add_acats_test(ca2009d)
 
 # Ada 2005 extended returns, including limited generic results and transfers.
 add_acats_test(c650003)
+
+# The backfill snapshot records failures without calling them conformance
+# passes. Only its independently selected, observed PASS cases join this label.
+find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    set(baseline_root "${CMAKE_CURRENT_SOURCE_DIR}/baseline")
+    add_test(NAME baseline.acats_metadata
+        COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --validate)
+    add_test(NAME baseline.acats_runner
+        COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/test_runner.py")
+    set_tests_properties(baseline.acats_metadata baseline.acats_runner
+        PROPERTIES TIMEOUT 30 LABELS "baseline")
+
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${baseline_root}/manifest.json" "${baseline_root}/expected.json")
+    file(READ "${baseline_root}/manifest.json" baseline_selection)
+    file(READ "${baseline_root}/expected.json" baseline_expected)
+    string(JSON baseline_count LENGTH "${baseline_selection}" cases)
+    math(EXPR baseline_last "${baseline_count} - 1")
+    foreach(index RANGE ${baseline_last})
+        string(JSON case_id GET "${baseline_selection}" cases ${index} id)
+        string(JSON outcome GET "${baseline_expected}" cases ${case_id} outcome)
+        if(outcome STREQUAL "PASS")
+            add_test(NAME acats.backfill_${case_id}
+                COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
+                    --case ${case_id} --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+                    --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-passes")
+            set_tests_properties(acats.backfill_${case_id}
+                PROPERTIES TIMEOUT 60 LABELS "acats;backfill")
+        endif()
+    endforeach()
+    add_custom_target(acats_baseline
+        COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
+            --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-observations"
+        DEPENDS ada adac
+        COMMENT "Checking raw ACATS baseline stability; recorded failures are not passes"
+        USES_TERMINAL)
+else()
+    message(STATUS "Python 3.9+ unavailable: ACATS backfill probes are not registered")
+endif()

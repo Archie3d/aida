@@ -5,6 +5,12 @@ The selection is offline and enabled in the normal CTest suite. This is a small
 set of inherited Ada requirements applicable to Ada 2005, not a full ACATS run
 or a claim of conformity assessment. Ada 2005-specific additions still need tests.
 
+A completed-feature [backfill baseline](baseline/README.md) adds 106 pinned,
+unchanged cases. Its 37 observed executable passes join the normal ACATS label;
+failures, support blockers and ungraded B-probes are recorded separately in
+[the triage report](../../docs/acats-baseline.md). Matching a recorded failure
+is not an ACATS pass.
+
 `upstream/` contains unmodified sources from the
 [GCC ACATS mirror](https://github.com/gcc-mirror/gcc/tree/releases/gcc-14/gcc/testsuite/ada/acats/tests),
 retrieved 2026-10-21 (C49022A, C45523A and C45347A in `c4/`, the other

@@ -557,6 +557,19 @@ Ada 2005 additions and track annex packages separately.
   cases. Record unsupported cases and implementation-defined behavior; extend
   coverage as the subset grows without treating a passing selection as full
   conformance. GNAT comparisons are not a project requirement.
+  - [x] Completed-feature backfill baseline: 106 unchanged cases with pinned
+    provenance, exact observations and triage (`baseline.acats_*`); 37 C PASS,
+    37 legal-source rejections, five execution failures, seven support blockers;
+    20 B observations remain ungraded, including accepted B36002A.
+    Only observed C passes join the regular ACATS label.
+    [Baseline and follow-up order](docs/acats-baseline.md).
+- [ ] Before 6f, localize the ACATS backfill execution failures
+  (C34001A/C34001D/C34002A, C761006, C84009A) and accepted B36002A; add focused
+  regressions for confirmed defects, then fix them.
+- [ ] Add B-test grading for expected error locations, allowed diagnostic
+  groups, recovery and legal controls. Rejection for an unrelated unsupported
+  construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol
+  gaps, then applicable target-specific ImpDef support; re-probe blocked cases.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces. Includes validation left open
   by completed items: running the suite on MSYS2 (Phase 2 threading), and

@@ -1,0 +1,2494 @@
+{
+  "schema": 1,
+  "source_repository": "https://github.com/simonjwright/ACATS",
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "archive_note": "GitHub archive PAX comment records the revision; all imported bytes were read directly from that archive.",
+  "language_target": "Ada 2005, including inherited Ada 83/95 objectives. Reviewed exclusions identify later-language sources. B compilation observations are ungraded.",
+  "files": {
+    "tests/b3/b330001.a": {
+      "sha256": "8f9bdf304520a59f04d3e22b1eb973c296f4483e7cdea93e63451eca76a64db0",
+      "git_blob": "cfb9f47f05dd18532d3869fdfed904893f5a4ee8"
+    },
+    "tests/b3/b33101a.ada": {
+      "sha256": "62238aef6e666e108e4c48dfecd1dfc779e83164d7982556b966c7e66ae89372",
+      "git_blob": "56102f92144085b2c4a041a3298331392f135e77"
+    },
+    "tests/b3/b33102a.ada": {
+      "sha256": "03fe377d6ca60a68a72b1264a7f4e5d9515af9287fd1590c69626b1caf3d1965",
+      "git_blob": "3817d9bf651291aec1075a15c8d0c752ecad8233"
+    },
+    "tests/b3/b34001b.ada": {
+      "sha256": "8133f01197bb30cd771f91c862750a502f77c4c8da6a014f8b86834e4baa2e71",
+      "git_blob": "5e35cadc5548e813b1759c2dc6db02e2732806c4"
+    },
+    "tests/b3/b34002b.ada": {
+      "sha256": "52132ee628eceda059127a27782c9092d6a2c69984da0550230436aff1e34f8e",
+      "git_blob": "f9d458ac50b6ba58eedd5403018b00ba718dedc8"
+    },
+    "tests/b3/b36001a.ada": {
+      "sha256": "e6eb648a77bf40ab6f2388879d18ade7314ac19fdac597db1d14de31b0f40ea5",
+      "git_blob": "3d0c255655332e176f28a207b82e169bf60461a0"
+    },
+    "tests/b3/b36002a.ada": {
+      "sha256": "1c1285d72b27117935fc0f4c50c4ce66d2e374df29a1168d362f4c428152b4a4",
+      "git_blob": "85a0ee1aaa22f9619b49b0da14d24fcba14faaf8"
+    },
+    "tests/b3/b37004a.ada": {
+      "sha256": "734ff2942ea01f45e1801490cae34431dfa37d811f856958c904904fb03d8a16",
+      "git_blob": "94ecf924dba4101af01502a8c9cdc468e2fdb293"
+    },
+    "tests/b3/b3a0001.a": {
+      "sha256": "492913ed541a701e2f961940c3cf1ab66209ed27c8b0395d7cbc7d06c27818dc",
+      "git_blob": "9c859b2a6dbfcb5646bf3127b115caa6cc1e8209"
+    },
+    "tests/b3/b3a0002.a": {
+      "sha256": "37931906433acee2da4ef4e26cd079fb99822d5e10c7f8ef1dfb52934dec2524",
+      "git_blob": "b5ca623b2cb80cfbcef1abf5b0aabfd8a4f0d0e3"
+    },
+    "tests/b4/b43002d.ada": {
+      "sha256": "d73b542f4446c1cc190777a9d578b289c68f6714d5b6e49b1ab803914602df2d",
+      "git_blob": "08ddb117ad9789c46a00ede099416bd93ad47b57"
+    },
+    "tests/b4/b43002e.ada": {
+      "sha256": "60d9f65273a1c57153d7348d433242dea0d7a24bda0d7711ffa9ff0fa0726bd6",
+      "git_blob": "14ec8e8abd70a0b9a983d75bead4e190e3c0ffb6"
+    },
+    "tests/b4/b43002f.ada": {
+      "sha256": "22fc3f05cc030a1a77239a7f1993a3233b759626605952a184e04d3f0a1e4fbc",
+      "git_blob": "5d4f0eaf470aceb7e984983a500c22522b3c286d"
+    },
+    "tests/b4/b460001.a": {
+      "sha256": "c1a4ebde4d88199d5e8e4445c2bb49bac82739a9c1dc62bb31533db242ef19d4",
+      "git_blob": "f4ac2116a4416c309e91a025cfc53f7b1dfd2c0b"
+    },
+    "tests/b6/b64002a.ada": {
+      "sha256": "1c1f3e4ef82f1cb97bb7047b6d94cffd4ee2076f4a886cbc27af0fb7d714d93c",
+      "git_blob": "59c9492bda28d88a56dc1f0a082c550090fbebdc"
+    },
+    "tests/b6/b64002c.ada": {
+      "sha256": "bcd990b5a03f3b45f683d9699d4aea42401b8fc4c349c03350db073c55eb1fed",
+      "git_blob": "de4a9fe6883bd945508213d5d9e7d1388df02133"
+    },
+    "tests/b6/b64003a.ada": {
+      "sha256": "7579f0d0d1e86664537b1fef027f34c8d87fc5db744497f5e8ba90337bd5f6f6",
+      "git_blob": "6796a7aca00969f3000f4d8a57a94d1e31676627"
+    },
+    "tests/b6/b650002.a": {
+      "sha256": "546eeba3bc3f65219b177dba3495525dbbd24ef7f98e24b26a0890c4587a9750",
+      "git_blob": "676faaa56eba4d3dc0620d628d61929e1816eda8"
+    },
+    "tests/b6/b650004.a": {
+      "sha256": "e36655e68195d0beef8114d2e214ee093d17a8a497642b4a23e386666bd93f28",
+      "git_blob": "fc15548435d1d6a9b7c699283652d5b2453f701e"
+    },
+    "tests/b8/b840001.a": {
+      "sha256": "2fff0719a37044502034fe3f4bdae70f6776cc3d90bb5141297a25eac2bfa559",
+      "git_blob": "f9a9fc7cc279e67d6259d300e07686e89e200467"
+    },
+    "tests/c3/c34001a.ada": {
+      "sha256": "11cb5b697402b98aa2c2cc3d02cdab60400e96da04c93d8073082fd22785c7dc",
+      "git_blob": "c66d7ddbc9cd6d74a002fd17a6a3c76c48c3d9a6"
+    },
+    "tests/c3/c34001c.ada": {
+      "sha256": "e15248acb543a433d852a53e16b8dafffc9a431054b8ee34c876d5a62e6386c3",
+      "git_blob": "a4509db4abbc0abb6833ba9900add0c7a33771cb"
+    },
+    "tests/c3/c34001d.ada": {
+      "sha256": "0d8fe228c3c37b6e0f490742fee6449ecf71350f483c46e8cc0a1b19aa4da283",
+      "git_blob": "7b9832898320330db4968e51adf95c8679bf257f"
+    },
+    "tests/c3/c34002a.ada": {
+      "sha256": "148495f182a23dbe3cce05bcf897c242446fe0cb35d536536ae301150303e2f5",
+      "git_blob": "8b5690e20e55715a1d69c8a3f4bcb2446c5ae738"
+    },
+    "tests/c3/c34002c.ada": {
+      "sha256": "732044248ae3c2b6c5ebf7c3c425b91e2f6873923a5f634307268d459f68f16d",
+      "git_blob": "a14459d3339992ed54027176aad680d37ecb8a59"
+    },
+    "tests/c3/c35003a.ada": {
+      "sha256": "e3aa07c53ede65dff462135e397f6f1993c55c7155f5c7f59aed3c6b1a8b5508",
+      "git_blob": "c384683fd02c6053459bf45713f4c2d59beb82e7"
+    },
+    "tests/c3/c35003d.ada": {
+      "sha256": "07aaed9fb27729b8432cf865af89db12fe2dd7ececf23248f6354eb075997d15",
+      "git_blob": "c5241ee80ad2e03adda0f9c115bd9bc353da8ce3"
+    },
+    "tests/c3/c35502a.ada": {
+      "sha256": "7e69e714f35695e2b44ca99016be48c7512d6f1bbdf8d16bd0a364671a760d7d",
+      "git_blob": "ffb81904657d46fe3c4c9fdeaf51a43fec59ff7b"
+    },
+    "tests/c3/c35502c.ada": {
+      "sha256": "398bf42fd1d0e32e62866bf2182604bea01fc33b49122cbba44062dbda44e2f1",
+      "git_blob": "a635e68fb142280cf60dbfb12dc2dd58196b01df"
+    },
+    "tests/c3/c35502g.ada": {
+      "sha256": "ea0e24a786521b41e18ccb06741dc681d28883ac9dfdaf80c77a91837d889ad5",
+      "git_blob": "aff9fb399551677178bca1bf64144d773e00707b"
+    },
+    "tests/c3/c36104a.ada": {
+      "sha256": "2940ddaf6060405ea3ec889d13db44aefb32af4931c40734628d06098d69b4c9",
+      "git_blob": "4cdaccd0b32c1b4409771bb4acc8f526676cc64e"
+    },
+    "tests/c3/c36104b.ada": {
+      "sha256": "45fad0965a9546625a57988b1173f63c94a17a26dc6031ee09f4f831e6db2133",
+      "git_blob": "9c896b9df4a956327eb42750b69e3ef352f718fa"
+    },
+    "tests/c3/c36180a.ada": {
+      "sha256": "fd13b1e8f6306610360f538ffd6fa6e069c83c9f3cab3a0088492b3a3f9c266d",
+      "git_blob": "553809605ab46262e70369af60a8716c04936cba"
+    },
+    "tests/c3/c37002a.ada": {
+      "sha256": "4e3ba05de4f17e8f56f5d05bb6c5782a05ea6769276b8dc91333b394180f8052",
+      "git_blob": "fbb61cf39b1a213eaec6c467425ba07e3638e7d6"
+    },
+    "tests/c3/c37003a.ada": {
+      "sha256": "c12371839826270d01c34e66c62043dbd915372eeae706cb6b6d820317ee11fa",
+      "git_blob": "5378f4ddd74e13e1219713b8689abb6f316e7a59"
+    },
+    "tests/c3/c37003b.ada": {
+      "sha256": "1baa5e7917c33da215366d2ca96c316c49c59e820895c94fedbbaa0e232aa9af",
+      "git_blob": "49ebdc0ed0da8a13e60d914bd0719bbec4b8dd3a"
+    },
+    "tests/c3/c37005a.ada": {
+      "sha256": "c5c5aafae94374593e3f9ec96e06738b2ff694feff6d7fd1e1f9e8153bf63a33",
+      "git_blob": "0983fe00e96fa0075ffe6afbe55766514cb3e26f"
+    },
+    "tests/c3/c37006a.ada": {
+      "sha256": "6f3fdd76938997a48b3dcbcf7caf057af509341d7cc883b320b26c14fadead69",
+      "git_blob": "ac926d1f4d4cdf32b97c2c50d4abf04f3e866e10"
+    },
+    "tests/c3/c37008a.ada": {
+      "sha256": "5075b8b7757fdcd54d6a6be0379e8b5f5e4098750ba192d101dae1a473512e4d",
+      "git_blob": "5546ae0ffc85639098829b0d17e9a1a8dd98712a"
+    },
+    "tests/c3/c37008b.ada": {
+      "sha256": "4b62dcf0f248ebb656b27a124645e4a5a9f42db1fa928be413f516c9b3c3808f",
+      "git_blob": "369f08cf5fcd7ae2370065ce3c93cae9e4eed613"
+    },
+    "tests/c3/c3a0001.a": {
+      "sha256": "df4dbcd8475b529ba5b0a0d4cca76ffd88413ea4beb378ded25c56ada8f5ce62",
+      "git_blob": "f8a0681e78f868bb58a8321f6655fe8e12482f37"
+    },
+    "tests/c3/c3a0002.a": {
+      "sha256": "425d256e6ddb83772e0775edbd384b97485fd364705402f340e9c63dad553a69",
+      "git_blob": "5c05d43fb6aa9e938e7892d28a57f98a9e881c12"
+    },
+    "tests/c3/c3a0003.a": {
+      "sha256": "4aa63ccafe58ccdf97086b293e8d7354356476d27f0296d2cc6bbe7805c37225",
+      "git_blob": "4f9fdbe29f88a014e95effcf8bfaf6fe84ed3f47"
+    },
+    "tests/c3/c3a0004.a": {
+      "sha256": "3d0f76b0b775b28d30d7222c8fa180c3c0ac7a723377535b2ef5806a6932f010",
+      "git_blob": "2557546c2e4b9ae417341b03f7f61999dbdeedeb"
+    },
+    "tests/c3/c3a0005.a": {
+      "sha256": "06c6167e31fedcf0e27ce124622d42df8bf82c7468ffde6cbe5a9f1b5b509f10",
+      "git_blob": "1f23689579f726e0de55b912dd04704997341683"
+    },
+    "tests/c3/c3a0007.a": {
+      "sha256": "22e0d4b7bb2506bb8daecea7ed13d03e86abe3b9b33319b2293dccb7ee6aee47",
+      "git_blob": "ff18d2f9e1d62d4d334c5253f6299a762e04a2a7"
+    },
+    "tests/c3/c3a0008.a": {
+      "sha256": "4192253aafa6feb0c8da73cfb7bd47119b62d658fd6bc814ae23f65313cd9260",
+      "git_blob": "6cd9ce3ddf0c1a6a6f2e93e25a93b3226ab788b8"
+    },
+    "tests/c4/c41103a.ada": {
+      "sha256": "6e13bc8b86cb0def76ad4a4624e32ea676dae6fcc3201e8a59128337739e8c3f",
+      "git_blob": "21feafb36f693cb5836aac321efbde96683224e8"
+    },
+    "tests/c4/c41104a.ada": {
+      "sha256": "8a3b85937b8d27edbdd7c0f68a24afd70b46b9601cd4f264e22277068fc2f4b5",
+      "git_blob": "5407028696e9803996ff3189f96bf5bcea581a7b"
+    },
+    "tests/c4/c41105a.ada": {
+      "sha256": "9bd5bd15e7b916eff1c4aa8918abcfe6e7658b9052fe8de2ec22d454502ca31a",
+      "git_blob": "1b5ad40f61130240abc4dd4b292e7cfccac4de97"
+    },
+    "tests/c4/c41107a.ada": {
+      "sha256": "286edc98349bab118c495a8a0824943412fae89f58bc6af9d0fc07c6b21e1108",
+      "git_blob": "13781fbf409ed2f8116b953ad45985a12de74e9a"
+    },
+    "tests/c4/c41204a.ada": {
+      "sha256": "604f56d0d4d5d81b3404b3c52ef4d6f74a2b86b4afa20d4581a1137f3e805d15",
+      "git_blob": "0ad8439b386ddb1cf94693a94c2634c5601cf812"
+    },
+    "tests/c4/c41205a.ada": {
+      "sha256": "dcbfc28adebfe1c1f81662fd6531c38993d18d87d5bbce23561cab82ad0c2563",
+      "git_blob": "220ae33cc0a93d07a0b9db8511cfa6c411675286"
+    },
+    "tests/c4/c41206a.ada": {
+      "sha256": "5fd0a2abb90e915a4da144f2097fa619ddf5bae10081e421d64b143cc4ec4e55",
+      "git_blob": "b12e43d197dac0d83f8e6f495c36aff7181f1b1c"
+    },
+    "tests/c4/c41207a.ada": {
+      "sha256": "2c567c26d1e0e069f73df50623d9cc2a4d5c273ce9b21b86ef1b49299efb0e92",
+      "git_blob": "6f1807f4a8ef0e0bdc5305cbb3148d5b6a8f7fc3"
+    },
+    "tests/c4/c432001.a": {
+      "sha256": "440c392581e5008312dafb2a4c8e771420fd0a1a1dae49b4de2635f1a50e0b80",
+      "git_blob": "dab75b388f58b96caad0f38f7981cad7a331e230"
+    },
+    "tests/c4/c432004.a": {
+      "sha256": "2e1ad057bc2a663a1ca669d36f4561a34e35fc2f1beb7c0e19801750bee0d532",
+      "git_blob": "3a148621115ee333513296a17a4a7ef0f3f69bbb"
+    },
+    "tests/c4/c432005.a": {
+      "sha256": "64a0d4e1a7a817f9ad4281cb5b79017b6becdba8917ad26b9442c9887c2bf515",
+      "git_blob": "4623ddfade582524e8473898f0cc66edf86cc837"
+    },
+    "tests/c4/c43204a.ada": {
+      "sha256": "b5e34a7b7305844833d9d31b8277e2973f1137d73f3205307f75d232d52f6d62",
+      "git_blob": "33450dba0ded2b8a0626b1906ad979f55559e18d"
+    },
+    "tests/c4/c460004.a": {
+      "sha256": "48714ebf10ac75b0276c937e9e494c65da6962f3d60147080a915d7b129b7f70",
+      "git_blob": "b00428121b80b13a6e2c5d1174e29b9fbc00c9b0"
+    },
+    "tests/c4/c460005.a": {
+      "sha256": "11846556055c6a1a5532802f4b93737dcac6317b9196ae2f8cfecc4387f8ab73",
+      "git_blob": "95b14a9a20af737a981a2675084d03103612bd71"
+    },
+    "tests/c4/c460006.a": {
+      "sha256": "10928d2f07281c6aa4ca97a56bee1f1fc09d6cafe6db9622c2e318c71d124c9b",
+      "git_blob": "99968847b9bdbb49fb6ac028e1d838cbba6a9de5"
+    },
+    "tests/c4/c49020a.ada": {
+      "sha256": "683e39297a3d0333f80ab83d19dc33ce9c993e69d20db8b50777dddfbbb4fc80",
+      "git_blob": "ebd2fde9a6477221a56685e64d552d32994148d1"
+    },
+    "tests/c4/c49021a.ada": {
+      "sha256": "0e44b8d2975c0dc83d12451a8de53154f22389601751c849a832d0df108a2897",
+      "git_blob": "b58fcd468d536965c6610a2a640d11e6a470ac29"
+    },
+    "tests/c4/c49022b.ada": {
+      "sha256": "3cefc0e12b79ea394f4d17efc3181c437af76636cf32dda583bafe4f21ebc83f",
+      "git_blob": "a7fe57e3cb133dd93ca98716f8509fcab5d7a2ea"
+    },
+    "tests/c4/c49022c.ada": {
+      "sha256": "59ee9f967f4ff89426a191871906573a0c0194f99a30813e69513b6bdaa514d9",
+      "git_blob": "69822c83af98fee539a614be5073f88216b74ac6"
+    },
+    "tests/c5/c540001.a": {
+      "sha256": "a65aa8dafd46af6de347fe2ff9b2eb106d3ccea9e75219db0fe09885c6d9c105",
+      "git_blob": "b7dbdd6e97ff4c6b001a5ba43fe719c28e154ff6"
+    },
+    "tests/c5/c540002.a": {
+      "sha256": "672efa33972d5dcc39399b19247d600de81917e11f953f9a4f0f023cb01baf22",
+      "git_blob": "7ae97c27419a9cad78b4e9675b0f980bee3d203a"
+    },
+    "tests/c5/c54a03a.ada": {
+      "sha256": "a14f6d15702221f5da39b8d9bfb6e9c86796f07275b0bcd4afc388fc77919197",
+      "git_blob": "cc46df8c6b1df5c375035e66aca9848a11f4c951"
+    },
+    "tests/c5/c54a07a.ada": {
+      "sha256": "3da7721514706607e1baa1327834b21cf60edab99a160acf808a792be4ed9582",
+      "git_blob": "0729b802fa17d3f01cb7310dddee5716f1c1b588"
+    },
+    "tests/c6/c640001.a": {
+      "sha256": "ac2080a167900f91fc771bc0ece665223c0b849a94ad99e893bf1eca56956bd4",
+      "git_blob": "8e259162e1718002c33d27d34c5e7a291f9e4ccb"
+    },
+    "tests/c6/c64002b.ada": {
+      "sha256": "26d35fc075914f805d2360a6bb2fa4af52da028a2a2ebda915cd1b1218ae2cf9",
+      "git_blob": "2f71f32d0d4c835b22c0fe1b55e43e1027e3ee51"
+    },
+    "tests/c6/c64004g.ada": {
+      "sha256": "07a5f60c5ee12c641b037a5ffe33211d8998d3065d579bdae882f69864cf7b06",
+      "git_blob": "005a3a7422e9f4b1e6374863043341ca45c53377"
+    },
+    "tests/c6/c64005a.ada": {
+      "sha256": "d18a42093e5b9ab06e8fc9d4b939ee589b3821721535ebceb9149b3d0ba73cfc",
+      "git_blob": "af5584e9dd9f69dd5175b121b55d26468c66569d"
+    },
+    "tests/c6/c64005b.ada": {
+      "sha256": "c543847b5fcbee4ce666ae2edac069b1b3f82e3b49ad922332a2195585d8906e",
+      "git_blob": "5e3f4c5075339b6421e0f1846f05dee28935b456"
+    },
+    "tests/c6/c64005c.ada": {
+      "sha256": "b66a968ac45220213f770a7a8f9251774f49134138eff80f14a9826e8a05fe01",
+      "git_blob": "ccb0a2a0e77ebb60fc73fc73e85f46ccf2bf1c8a"
+    },
+    "tests/c6/c65003a.ada": {
+      "sha256": "c1099e51a40870a87ca6b26c4c6d15bc853f2ae49d4eec630931c84f5eff5b7b",
+      "git_blob": "49cd2b55ef593875c49de65147b246a5caccd3d3"
+    },
+    "tests/c6/c65003b.ada": {
+      "sha256": "9cd83bc7178fb1fa37e4f17dc2d390154a409a7374621ae88e8fb2858a00e1da",
+      "git_blob": "d93d1b4809783f6a0a14ccef1f6e56816e1fb8c1"
+    },
+    "tests/c7/c730004.a": {
+      "sha256": "29581ac7d5ea4744f598a55604c373672629eb668ecb994a1eb427df13defa04",
+      "git_blob": "c2a23230ad2e29afd7948c380dae5ca054c1545f"
+    },
+    "tests/c7/c73002a.ada": {
+      "sha256": "c6988b5977b33c3cbc866ff67c9030f7a497179e5f1dfcbfcddfe0f820735f9a",
+      "git_blob": "8bbc4afb038c7b2bda1662b62fbd7751e1be1d9a"
+    },
+    "tests/c7/c760001.a": {
+      "sha256": "ef890a36df98911d8c825b97ff21f99b8814bba6717181a0908ba55b63c03eea",
+      "git_blob": "be9ff81946ca2b898cc6fba63b893a8e74d60e7d"
+    },
+    "tests/c7/c760002.a": {
+      "sha256": "23fe0098e306836d6610e335ee87ffa1952bf0ff7d1b3be6c7b76b684023d3b7",
+      "git_blob": "4601873be04fa45e2a71cd677f830780039af15f"
+    },
+    "tests/c7/c760009.a": {
+      "sha256": "2d347fa766358221b86a378185a23e19c82da9fe7063ebabeb4b2686f0d710b1",
+      "git_blob": "8c3b80b3625e706206200fff79c9cbbbee81dc96"
+    },
+    "tests/c7/c760010.a": {
+      "sha256": "92e47d76b16b22ce93139d92709c87e8ce93c3f5ab8eeff7dcf716b065d79823",
+      "git_blob": "08fe62b9fa48567e393e8951f9603db4178b0356"
+    },
+    "tests/c7/c760011.a": {
+      "sha256": "960341c427398d3afcfd00b780a123c773b08c62d2579b03462e33e41911fc65",
+      "git_blob": "8df37fa3c8b329ae3d120d9b57f5aa5e03cb3131"
+    },
+    "tests/c7/c760013.a": {
+      "sha256": "c21d4bd7bbe0891d6848de04ca133c98b735a25611b150d14bb63d9e37c5f15b",
+      "git_blob": "6921bf02764899986db51592750be75231f0fdcc"
+    },
+    "tests/c7/c761001.a": {
+      "sha256": "a7e282eb592d0d1b2c9a052d1f10b4e765a2cab2714ec113d04cfe55345edd6c",
+      "git_blob": "7be1ee07a938ec360b917f4c5088654f68651ce2"
+    },
+    "tests/c7/c761004.a": {
+      "sha256": "809c1e9489560f7cba8ab194f770e23975cabb77148c1fa928ff797315608114",
+      "git_blob": "9b88382b44f2fc8f2dd24dee8f33f641298b4b1c"
+    },
+    "tests/c7/c761006.a": {
+      "sha256": "1262c98e7f1abaa0ed88aa1e3cb8904a5e1912b4cfc238408d36abc8797acd67",
+      "git_blob": "5cf4d8995368c096052de5f886a76fcb13ad3262"
+    },
+    "tests/c7/c761010.a": {
+      "sha256": "8ce07823b5b54dbed3accdafd4eeee22f05b317a0ba590970a6e87e32283fbba",
+      "git_blob": "7784c6da517b8ce28a41554bae3fbec75bc8902f"
+    },
+    "tests/c8/c83007a.ada": {
+      "sha256": "7d845de372abaa2e341a3cd23f27faaa4da4bd03d8b57f60d0ad68642ec6c450",
+      "git_blob": "f33d907af7b1b22800e61cd918bf4d10537337bc"
+    },
+    "tests/c8/c83022a.ada": {
+      "sha256": "f41966605b322b830c1cc704154c700d57a7f5e53fab1a3c4ddc9893fcf46bb9",
+      "git_blob": "391c9dda5eb301b189970a877ad924d1d4a56d47"
+    },
+    "tests/c8/c83024a.ada": {
+      "sha256": "0e2b7a6d170c8077ed2a84cb35558872f3c3351f658b58a2e23ef999901b09c2",
+      "git_blob": "0ad06b3a1cd2363990a8c138dd4d110901f6ebe1"
+    },
+    "tests/c8/c840001.a": {
+      "sha256": "2f1b7824e9d0e0c22f9d57addf59b744f17f8b175589a69aefc62d1ddfe67858",
+      "git_blob": "2a1df16409aca6d0fd3b1804e9243618613a1481"
+    },
+    "tests/c8/c84002a.ada": {
+      "sha256": "6904fc16c34f53f5e174ddd50361c78e4161c4e36c75a8f420787ebf312ee499",
+      "git_blob": "ed421e9bcd4c9007d100a96d30a02148f37bfa3a"
+    },
+    "tests/c8/c84005a.ada": {
+      "sha256": "8b17338f29bb39acbc7cb74ea8becb3a84c6fd51900f33ef1e9288417f47ec4c",
+      "git_blob": "53bd64a3d79e1c0d4a2f2c7ba40b5bf735897645"
+    },
+    "tests/c8/c84008a.ada": {
+      "sha256": "bbd6b99317afe4b194d69e886dca7c7d41bd1d66d380ff60319c34b840d73140",
+      "git_blob": "fb760eddc8b598d1538f0b0a45612887ff81aec4"
+    },
+    "tests/c8/c84009a.ada": {
+      "sha256": "23f123c23dab79326db9e1f9218faa282bc7e477c76e40e6a69ae76d7050c2c3",
+      "git_blob": "afc5fe0daf3496b1fad77ef075458bd820da4210"
+    },
+    "tests/c8/c85005a.ada": {
+      "sha256": "bb074391a754b85bf6454f8cf91c29a754e76777928db2b7d2e1517219eea574",
+      "git_blob": "05dc328bd538f2e3e1549f6f97d2bce100997b3e"
+    },
+    "tests/c8/c85005b.ada": {
+      "sha256": "10fa5920e9b999877b213c284573cf6cfbedd8ffa27fbb2900f148f78f4a0eba",
+      "git_blob": "9c4f6fe963bae00ba28f8d0b3db2bb7bf4d78100"
+    },
+    "tests/c8/c85005f.ada": {
+      "sha256": "241ba0fc8796ebb825b80dac254f22bfb5383634dbd39990d8fb61fcfbb681b5",
+      "git_blob": "adc87f996c9195ebc735ab3f180640f4e05dd777"
+    },
+    "tests/c9/c940005.a": {
+      "sha256": "b486e2bf7e347e1ed687d79e31e87047fa8a53d281e1fca2d4f5f049f8bbf67a",
+      "git_blob": "adb58b18ca4b4b266fd610556b34972d33de0b06"
+    },
+    "tests/c9/c940010.a": {
+      "sha256": "8c372a08a88e4f8ace2da55e94367e6c4de220544f2390e5b63ea617b52b114d",
+      "git_blob": "c4a670552d4ec09e0754fb7c6030717ddbe52e09"
+    },
+    "tests/ca/ca1003a.ada": {
+      "sha256": "c2996e4267c4208d85c81add4fcfefe01fa0ed99545d3111128de217d42d6498",
+      "git_blob": "b3476b42fb9c1ddf5e05f0b4d5a6dcafef1069f4"
+    },
+    "tests/ca/ca1004a.ada": {
+      "sha256": "1f8eaa493c00ddbbbb62a29ec758f56089c69c0b450739853461191416bbc7ee",
+      "git_blob": "def868edf0af963901a95ea9fed0bba0d794f730"
+    },
+    "tests/ca/ca1005a.ada": {
+      "sha256": "0c2ab7d38a0afa56d3eb8a69bd9869ae39dc91dbe11ac15488e51ad69b35553a",
+      "git_blob": "9f9e2a283554864b1be8636b2a0fa2c228332c1e"
+    }
+  },
+  "cases": [
+    {
+      "id": "c34001a",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED ENUMERATION TYPES, EXCLUDING BOOLEAN TYPES. JRK 8/20/86",
+      "sources": [
+        "tests/c3/c34001a.ada"
+      ],
+      "report_name": "C34001A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "execution_failure",
+        "owner": "P3/P5/P8",
+        "note": "Unhandled Constraint_Error in derived enumeration operations; localize before changing implementation."
+      }
+    },
+    {
+      "id": "c34001c",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "ALL VALUES OF THE PARENT (BASE) TYPE ARE PRESENT FOR THE DERIVED (BASE) TYPE WHEN THE DERIVED TYPE DEFINITION IS CONSTRAINED. CHECK THAT ANY CONSTRAINT IMPOSED ON THE PARENT SUBTYPE IS ALSO IMPOSED ON THE DERIVED SUBTYPE. JRK 8/20/86",
+      "sources": [
+        "tests/c3/c34001c.ada"
+      ],
+      "report_name": "C34001C",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c34001d",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED BOOLEAN TYPES. JRK 8/20/86",
+      "sources": [
+        "tests/c3/c34001d.ada"
+      ],
+      "report_name": "C34001D",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "execution_failure",
+        "owner": "P3/P5/P8",
+        "note": "Unhandled Constraint_Error in derived Boolean operations; localize before changing implementation."
+      }
+    },
+    {
+      "id": "c34002a",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED INTEGER TYPES. JRK 8/21/86",
+      "sources": [
+        "tests/c3/c34002a.ada"
+      ],
+      "report_name": "C34002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "execution_failure",
+        "owner": "P3/P5/P8",
+        "note": "Unhandled Constraint_Error in derived integer operations; localize before changing implementation."
+      }
+    },
+    {
+      "id": "c34002c",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "ALL VALUES OF THE PARENT (BASE) TYPE ARE PRESENT FOR THE DERIVED (BASE) TYPE WHEN THE DERIVED TYPE DEFINITION IS CONSTRAINED. CHECK THAT ANY CONSTRAINT IMPOSED ON THE PARENT SUBTYPE IS ALSO IMPOSED ON THE DERIVED SUBTYPE. JRK 8/21/86",
+      "sources": [
+        "tests/c3/c34002c.ada"
+      ],
+      "report_name": "C34002C",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c35003a",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "CHECK THAT CONSTRAINT_ERROR IS RAISED FOR AN INTEGER OR ENUMERATION SUBTYPE INDICATION WHEN THE LOWER OR UPPER BOUND OF A NON-NULL RANGE LIES OUTSIDE THE RANGE OF THE TYPE MARK.",
+      "sources": [
+        "tests/c3/c35003a.ada"
+      ],
+      "report_name": "C35003A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c3/c35003a.ada:188:50: error: expected '..' in range constraint, found ';'"
+      }
+    },
+    {
+      "id": "c35003d",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "CHECK THAT CONSTRAINT_ERROR IS RAISED FOR A FLOATING-POINT SUBTYPE INDICATION WHEN THE LOWER OR UPPER BOUND OF A NON-NULL RANGE LIES OUTSIDE THE RANGE OF THE TYPE MARK.",
+      "sources": [
+        "tests/c3/c35003d.ada"
+      ],
+      "report_name": "C35003D",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c35502a",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "THE ATTRIBUTE 'WIDTH' YIELDS THE CORRECT RESULTS WHEN THE PREFIX IS AN ENUMERATION TYPE OTHER THAN A BOOLEAN OR A CHARACTER TYPE. RJW 5/05/86",
+      "sources": [
+        "tests/c3/c35502a.ada"
+      ],
+      "report_name": "C35502A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c35502c",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "THE ATTRIBUTES 'IMAGE' AND 'VALUE' YIELD THE CORRECT RESULTS WHEN THE PREFIX IS AN ENUMERATION TYPE OTHER THAN A BOOLEAN OR A CHARACTER TYPE. SUBTESTS ARE: PART (A). TESTS FOR IMAGE. PART (B). TESTS FOR VALUE. RJW 5/07/86",
+      "sources": [
+        "tests/c3/c35502c.ada"
+      ],
+      "report_name": "C35502C",
+      "support": [],
+      "harness_gaps": [
+        "REPORT.ident_char"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c35502g",
+      "class": "C",
+      "area": "derived_scalars",
+      "owner": "P3/P5",
+      "rm": "3.4\u20133.5",
+      "objective": "'PRED' AND 'SUCC' YIELD THE CORRECT RESULTS WHEN THE PREFIX IS AN ENUMERATION TYPE OTHER THAN A BOOLEAN OR A CHARACTER TYPE. RJW 5/27/86",
+      "sources": [
+        "tests/c3/c35502g.ada"
+      ],
+      "report_name": "C35502G",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c36104a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "CONSTRAINT_ERROR IS RAISED OR NOT, AS APPROPRIATE, DURING DISCRETE_RANGE ELABORATIONS/EVALUATIONS IN LOOPS, ARRAY_TYPE_DEFINITIONS, ARRAY AGGREGATES, SLICES, AND INDEX CONSTRAINTS IN OBJECT AND TYPE DECLARATIONS, WHERE AN EXPLICIT (SUB)TYPE IS INCLUDED IN EACH DISCRETE_RANGE. MEMBERSHIP OPERATORS ARE CHECKED HERE, ALSO, TO ENSURE THAT EXCEPTIONS ARE NOT RAISED FOR NULL RANGES. ONLY STATIC CASES ARE CHECKED HERE. DAT 2/3/81 JRK 2/25/81 VKG 1/21/83 L.BROWN 7/15/86 1) ADDED ACCESS TYPES. 2) DELETED \"NULL INDEX RANGES, CONSTRAINT_ERROR RAISED\" SECT",
+      "sources": [
+        "tests/c3/c36104a.ada"
+      ],
+      "report_name": "C36104A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c3/c36104a.ada:102:48: error: expected ')' after index constraint, found 'RANGE'"
+      }
+    },
+    {
+      "id": "c36104b",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "CONSTRAINT_ERROR IS RAISED OR NOT, AS APPROPRIATE, DURING DISCRETE_RANGE ELABORATIONS/EVALUATIONS IN LOOPS, ARRAY_TYPE_DEFINITIONS, ARRAY AGGREGATES, SLICES, AND INDEX CONSTRAINTS IN OBJECT AND TYPE DECLARATIONS, WHERE AN EXPLICIT (SUB)TYPE IS INCLUDED IN EACH DISCRETE_RANGE. MEMBERSHIP OPERATORS ARE CHECKED HERE, ALSO, TO ENSURE THAT EXCEPTIONS ARE NOT RAISED FOR NULL RANGES. ONLY DYNAMIC CASES ARE CHECKED HERE. DAT 2/3/81 JRK 2/25/81 L.BROWN 7/15/86 1) ADDED ACCESS TYPES. 2) DELETED \"NULL INDEX RANGE, CONSTRAINT_ERROR RAISED\" SECTION. 3) MADE",
+      "sources": [
+        "tests/c3/c36104b.ada"
+      ],
+      "report_name": "C36104B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c3/c36104b.ada:144:26: error: expected ')' after aggregate, found 'RANGE'"
+      }
+    },
+    {
+      "id": "c36180a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "CHECK THAT AN INDEX CONSTRAINT CAN HAVE THE FORM A'RANGE, WHERE A IS A PREVIOUSLY DECLARED ARRAY OBJECT OR CONSTRAINED ARRAY SUBTYPE.",
+      "sources": [
+        "tests/c3/c36180a.ada"
+      ],
+      "report_name": "C36180A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c3/c36180a.ada:55:18: error: expected ')' after array index list, found '''"
+      }
+    },
+    {
+      "id": "c37002a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "INDEX CONSTRAINTS WITH NON-STATIC EXPRESSIONS CAN BE USED TO CONSTRAIN RECORD COMPONENTS HAVING AN ARRAY TYPE. RJW 2/28/86",
+      "sources": [
+        "tests/c3/c37002a.ada"
+      ],
+      "report_name": "C37002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c3/c37002a.ada:58:29: error: expected ')' after index constraint, found 'RANGE'"
+      }
+    },
+    {
+      "id": "c37003a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "MULTIPLE COMPONENT DECLARATIONS ARE TREATED AS A SERIES OF SINGLE COMNENT DECLARATIONS, I.E., THE COMPONENTS ALL HAVE THE SAME TYPE AND ANY EXPRESSION USED IN CONSTRAINTS OR INITIALIZATIONS IS EVALUATED ONCE FOR EACH COMPONENT. DAT 3/30/81 SPS 10/26/82 JWC 10/23/85 RENAMED FROM C37013A-AB.ADA. ADDED TEST TO ENSURE THAT ANY EXPRESSION USED IN A CONSTRAINT IS EVALUATED ONCE FOR EACH COMPONENT. JRK 11/15/85 ADDED INITIALIZATION EVALUATION CHECKS.",
+      "sources": [
+        "tests/c3/c37003a.ada"
+      ],
+      "report_name": "C37003A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 access-subtype audit",
+        "note": "<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported"
+      }
+    },
+    {
+      "id": "c37003b",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "CHECK THAT FOR A RECORD WITH MULTIPLE DISCRIMINANTS WHICH HAVE DEFAULT EXPRESSIONS, THE EXPRESSIONS ARE EVALUATED ONCE FOR EACH DISCRIMINANT IN THE ASSOCIATION.",
+      "sources": [
+        "tests/c3/c37003b.ada"
+      ],
+      "report_name": "C37003B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b/P6c",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c37005a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "SCALAR RECORD COMPONENTS MAY HAVE NON-STATIC RANGE CONSTRAINTS OR DEFAULT INITIAL VALUES. DAT 3/6/81 JWC 6/28/85 RENAMED TO -AB EDS 7/16/98 AVOID OPTIMIZATION",
+      "sources": [
+        "tests/c3/c37005a.ada"
+      ],
+      "report_name": "C37005A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b/P6c",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c37006a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "A NON-STATIC EXPRESSION CAN BE USED IN A DISCRIMINANT CONSTRAINT OR (EXCEPTING LIMITED PRIVATE COMPONENTS) IN SPECIFYING A DEFAULT INITIAL VALUE. R.WILLIAMS 8/28/86",
+      "sources": [
+        "tests/c3/c37006a.ada"
+      ],
+      "report_name": "C37006A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 access-subtype audit",
+        "note": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported"
+      }
+    },
+    {
+      "id": "c37008a",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "SPECIFYING AN INVALID DEFAULT INITIALIZATION RAISES CONSTRAINT_ERROR WHEN AN OBJECT IS DECLARED. DAT 3/6/81 SPS 10/26/82 RJW 1/9/86 - REVISED COMMENTS. ADDED 'IDENT_INT'. EDS 7/22/98 AVOID OPTIMIZATION",
+      "sources": [
+        "tests/c3/c37008a.ada"
+      ],
+      "report_name": "C37008A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b/P6c",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c37008b",
+      "class": "C",
+      "area": "arrays_discriminants",
+      "owner": "P3/P6b/P6c",
+      "rm": "3.6\u20133.8",
+      "objective": "NO CONSTRAINT ERROR IS RAISED FOR AN UNUSED TYPE DECLARATION WITH AN INVALID DEFAULT VALUE JBG 9/11/81 SPS 10/25/82",
+      "sources": [
+        "tests/c3/c37008b.ada"
+      ],
+      "report_name": "C37008B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b/P6c",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0001",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that access to subprogram type can be used to select and invoke functions with appropriate arguments dynamically.",
+      "sources": [
+        "tests/c3/c3a0001.a"
+      ],
+      "report_name": "C3A0001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0002",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that access to subprogram type can be used to select and invoke procedures with appropriate arguments dynamically.",
+      "sources": [
+        "tests/c3/c3a0002.a"
+      ],
+      "report_name": "C3A0002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0003",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that a function in a generic instance can be called using an access-to-subprogram value.",
+      "sources": [
+        "tests/c3/c3a0003.a"
+      ],
+      "report_name": "C3A0003",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0004",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that access to subprogram may be stored within array objects, and that the access to subprogram can subsequently be called.",
+      "sources": [
+        "tests/c3/c3a0004.a"
+      ],
+      "report_name": "C3A0004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0005",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that access to subprogram may be stored within record objects, and that the access to subprogram can subsequently be called.",
+      "sources": [
+        "tests/c3/c3a0005.a"
+      ],
+      "report_name": "C3A0005",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c3a0007",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that a call to a subprogram via an access-to-subprogram value stored in a data structure will correctly dispatch according to the tag of the class-wide parameter passed via that call.",
+      "sources": [
+        "tests/c3/c3a0007.a"
+      ],
+      "report_name": "C3A0007",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c3/c3a0007.a:95:4: error: extension of a private or incomplete tagged view is not yet supported"
+      }
+    },
+    {
+      "id": "c3a0008",
+      "class": "C",
+      "area": "access_callbacks",
+      "owner": "P6d",
+      "rm": "3.10",
+      "objective": "Check that subprogram references may be passed as parameters using access-to-subprogram types. Check that the passed subprograms may be invoked from within the called subprogram.",
+      "sources": [
+        "tests/c3/c3a0008.a"
+      ],
+      "report_name": "C3A0008",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c41103a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "THE NAME IN AN INDEXED_COMPONENT MAY BE: AN IDENTIFIER DENOTING AN ARRAY OBJECT - N1; AN IDENTIFIER DENOTING AN ACCESS OBJECT WHOSE VALUE DESIGNATES AN ARRAY OBJECT - N2; A FUNCTION CALL DELIVERING AN ARRAY OBJECT USING A PREDEFINED FUNCTION - &, A USER-DEFINED FUNCTION - F1; A FUNCTION CALL DELIVERING AN ACCESS VALUE THAT DESIGNATES AN ARRAY - F2; A SLICE (CHECKING UPPER AND LOWER BOUND COMPONENTS) - N3; AN INDEXED COMPONENT DENOTING AN ARRAY OBJECT (ARRAY OF ARRAYS) - N4; AN IDENTIFIER PREFIXED BY THE NAME OF THE INNERMOST UNIT ENCLOSING ITS ",
+      "sources": [
+        "tests/c4/c41103a.ada"
+      ],
+      "report_name": "C41103A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6b/P8",
+        "note": "<upstream>/tests/c4/c41103a.ada:160:16: error: no visible subprogram matches this call"
+      }
+    },
+    {
+      "id": "c41104a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "CONSTRAINT_ERROR IS RAISED IF AN EXPRESSION GIVES AN INDEX VALUE OUTSIDE THE RANGE SPECIFIED FOR THE INDEX FOR ARRAYS AND ACCESS TYPES. TBN 9/12/86 EDS 8/03/98 AVOID OPTIMIZATION",
+      "sources": [
+        "tests/c4/c41104a.ada"
+      ],
+      "report_name": "C41104A",
+      "support": [],
+      "harness_gaps": [
+        "REPORT.ident_char"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c41105a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "CHECK THAT CONSTRAINT_ERROR IS RAISED IF THE NAME PART OF AN INDEXED COMPONENT DENOTES AN ACCESS OBJECT WHOSE VALUE IS NULL, AND ALSO IF THE NAME IS A FUNCTION CALL DELIVERING NULL.",
+      "sources": [
+        "tests/c4/c41105a.ada"
+      ],
+      "report_name": "C41105A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6b/P8",
+        "note": "<upstream>/tests/c4/c41105a.ada:89:17: error: no visible subprogram matches this call"
+      }
+    },
+    {
+      "id": "c41107a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "FOR AN ARRAY HAVING BOTH POSITIVE AND NEGATIVE INDEX VALUES, THE PROPER COMPONENT IS SELECTED - A. CHECK THAT FOR AN ARRAY INDEXED WITH AN ENUMERATION TYPE, APPROPRIATE COMPONENTS CAN BE SELECTED - B. CHECK THAT SUBSCRIPT EXPRESSIONS CAN BE OF COMPLEXITY GREATER THAN VARIABLE + - CONSTANT - C. CHECK THAT MULTIPLY DIMENSIONED ARRAYS ARE PROPERLY INDEXED - D. WKB 7/29/81 JBG 8/21/83",
+      "sources": [
+        "tests/c4/c41107a.ada"
+      ],
+      "report_name": "C41107A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c41204a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "CONSTRAINT_ERROR IS RAISED IF A SLICE'S DISCRETE RANGE IS NOT NULL, AND ITS LOWER OR UPPER BOUND IS NOT A POSSIBLE INDEX FOR THE NAMED ARRAY. WKB 8/4/81 EDS 7/14/98 AVOID OPTIMIZATION",
+      "sources": [
+        "tests/c4/c41204a.ada"
+      ],
+      "report_name": "C41204A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c41205a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "CONSTRAINT_ERROR IS RAISED IF THE NAME PART OF A SLICE DENOTES AN ACCESS OBJECT WHOSE VALUE IS NULL, AND ALSO IF THE NAME IS A FUNCTION CALL DELIVERING NULL. WKB 8/6/81 SPS 10/26/82 EDS 07/14/98 AVOID OPTIMIZATION",
+      "sources": [
+        "tests/c4/c41205a.ada"
+      ],
+      "report_name": "C41205A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c41206a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "A RANGE L..R, WHERE L=SUCC(R) CAN BE USED TO FORM A NULL SLICE FROM AN ARRAY WHEN: BOTH L AND R SATISFY THE INDEX CONSTRAINT; L SATISFIES THE INDEX CONSTRAINT, R DOES NOT (BUT IT BELONGS TO THE BASE TYPE OF THE INDEX); L SATISFIES THE CONSTRAINT IMPOSED BY THE TYPE MARK OF THE INDEX, BUT NOT THE CONSTRAINT ASSOCIATED WITH THE INDEX; THE ARRAY IS NULL, AND L IS IN THE RANGE OF THE INDEX SUBTYPE. WKB 8/10/81",
+      "sources": [
+        "tests/c4/c41206a.ada"
+      ],
+      "report_name": "C41206A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6b",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c41207a",
+      "class": "C",
+      "area": "indexing_slices",
+      "owner": "P3/P6b",
+      "rm": "4.1.1\u20134.1.2",
+      "objective": "CHECK THAT THE DISCRETE RANGE IN A SLICE CAN HAVE THE FORM A'RANGE, WHERE A IS A CONSTRAINED ARRAY SUBTYPE OR AN ARRAY OBJECT.",
+      "sources": [
+        "tests/c4/c41207a.ada"
+      ],
+      "report_name": "C41207A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c4/c41207a.ada:50:17: error: unsupported attribute 'RANGE'"
+      }
+    },
+    {
+      "id": "c432001",
+      "class": "C",
+      "area": "aggregates",
+      "owner": "P3/P6b/P6e",
+      "rm": "4.3",
+      "objective": "Check that extension aggregates may be used to specify values for types that are record extensions. Check that the type of the ancestor expression may be any nonlimited type that is a record extension, including private types and private extensions. Check that the type for the aggregate is derived from the type of the ancestor expression.",
+      "sources": [
+        "tests/c4/c432001.a"
+      ],
+      "report_name": "C432001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c4/c432001.a:140:37: error: only record extensions are supported after with"
+      }
+    },
+    {
+      "id": "c432004",
+      "class": "C",
+      "area": "aggregates",
+      "owner": "P3/P6b/P6e",
+      "rm": "4.3",
+      "objective": "Check that the type of an extension aggregate may be derived from the type of the ancestor part through multiple record extensions. Check for ancestor parts that are subtype marks. Check that the type of the ancestor part may be abstract.",
+      "sources": [
+        "tests/c4/c432004.a"
+      ],
+      "report_name": "C432004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c4/c432004.a:124:66: error: only record extensions are supported after with"
+      }
+    },
+    {
+      "id": "c432005",
+      "class": "C",
+      "area": "aggregates",
+      "owner": "P3/P6b/P6e",
+      "rm": "4.3",
+      "objective": "Check that the ancestor expression type in an extension aggregate can be limited. Check that the ancestor subtype mark in an extension aggregate can be limited.",
+      "sources": [
+        "tests/c4/c432005.a"
+      ],
+      "report_name": "C432005",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "cross_feature_language_gap",
+        "owner": "P9",
+        "note": "<upstream>/tests/c4/c432005.a:63:21: error: task entries, interfaces and task definition items are not yet supported"
+      }
+    },
+    {
+      "id": "c43204a",
+      "class": "C",
+      "area": "aggregates",
+      "owner": "P3/P6b/P6e",
+      "rm": "4.3",
+      "objective": "CHECK THAT AN ARRAY AGGREGATE WITH AN OTHERS CHOICE CAN APPEAR (AND BOUNDS ARE DETERMINED CORRECTLY) AS AN ACTUAL PARAMETER OF A SUBPROGRAM CALL WHEN THE FORMAL PARAMETER IS CONSTRAINED.",
+      "sources": [
+        "tests/c4/c43204a.ada"
+      ],
+      "report_name": "C43204A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 range/subtype syntax audit",
+        "note": "<upstream>/tests/c4/c43204a.ada:36:35: error: expected ')' after array index list, found '('"
+      }
+    },
+    {
+      "id": "c460004",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "Check that if the operand type of a type conversion is class-wide, Constraint_Error is raised if the tag of the operand does not identify a specific type that is covered by or descended from the target type.",
+      "sources": [
+        "tests/c4/c460004.a"
+      ],
+      "report_name": "C460004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5/P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c460005",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "Check that, for a view conversion of a tagged type that is the left side of an assignment statement, the assignment assigns to the corresponding part of the object denoted by the operand.",
+      "sources": [
+        "tests/c4/c460005.a"
+      ],
+      "report_name": "C460005",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5/P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c460006",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "Check that a view conversion to a tagged type is permitted in the prefix of a selected component, an object renaming declaration, and (if the operand is a variable) on the left side of an assignment statement. Check that such a renaming or assignment does not change the tag of the operand. Check that, for a view conversion of a tagged type, each nondiscriminant component of the new view denotes the matching component of the operand object. Check that reading the value of the view yields the result of converting the value of the operand object t",
+      "sources": [
+        "tests/c4/c460006.a"
+      ],
+      "report_name": "C460006",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c4/c460006.a:104:51: error: abstract subprogram declarations are not yet supported"
+      }
+    },
+    {
+      "id": "c49020a",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "ENUMERATION LITERALS (INCLUDING CHARACTER LITERALS) CAN BE USED IN STATIC EXPRESSIONS TOGETHER WITH RELATIONAL AND EQUALITY OPERATORS. L.BROWN 09/30/86",
+      "sources": [
+        "tests/c4/c49020a.ada"
+      ],
+      "report_name": "C49020A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5/P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c49021a",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "BOOLEAN LITERALS CAN BE USED IN STATIC EXPRESSIONS TOGETHER WITH THE LOGICAL OPERATORS, THE NOT OPERATOR, AND THE RELATIONAL AND EQUALITY OPERATORS. L.BROWN 09/25/86",
+      "sources": [
+        "tests/c4/c49021a.ada"
+      ],
+      "report_name": "C49021A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5/P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c49022b",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "IN NUMBER DECLARATIONS, IDENTIFIERS CORRECTLY REPRESENT VALUES OF OTHER LITERALS. BAW 29 SEPT 80 TBN 10/22/85 RENAMED FROM C4A003A.ADA AND ADDED RELATIONAL OPERATORS USING NAMED NUMBERS.",
+      "sources": [
+        "tests/c4/c49022b.ada"
+      ],
+      "report_name": "C49022B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P5/P6d",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c49022c",
+      "class": "C",
+      "area": "conversions_static",
+      "owner": "P3/P5/P6d",
+      "rm": "4.6/4.9",
+      "objective": "NAMED NUMBER DECLARATIONS (REAL) MAY USE EXPRESSIONS WITH REALS. BAW 29 SEPT 80 TBN 10/24/85 RENAMED FROM C4A011A.ADA. ADDED RELATIONAL OPERATORS AND NAMED NUMBERS.",
+      "sources": [
+        "tests/c4/c49022c.ada"
+      ],
+      "report_name": "C49022C",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P5/P6d/P8",
+        "note": "<upstream>/tests/c4/c49022c.ada:49:32: error: the operands of an arithmetic operator must have the same type"
+      }
+    },
+    {
+      "id": "c540001",
+      "class": "C",
+      "area": "control_flow",
+      "owner": "P3/P6e",
+      "rm": "5.4",
+      "objective": "Check that an expression in a case statement may be of a generic formal type. Check that a function call may be used as a case statement expression. Check that a call to a generic formal function may be used as a case statement expression. Check that a call to an inherited function may be used as a case statement expression even if its result type does not correspond to any nameable subtype.",
+      "sources": [
+        "tests/c5/c540001.a"
+      ],
+      "report_name": "C540001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6g",
+        "note": "<upstream>/tests/c5/c540001.a:144:29: error: generic formal type definition 'new' is not yet supported"
+      }
+    },
+    {
+      "id": "c540002",
+      "class": "C",
+      "area": "control_flow",
+      "owner": "P3/P6e",
+      "rm": "5.4",
+      "objective": "Check that the selecting_expression of a case statement can be resolved if it is an overloaded function call, of which exactly one has a discrete type.",
+      "sources": [
+        "tests/c5/c540002.a"
+      ],
+      "report_name": "C540002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c5/c540002.a:93:12: error: ambiguous name 'Zero'"
+      }
+    },
+    {
+      "id": "c54a03a",
+      "class": "C",
+      "area": "control_flow",
+      "owner": "P3/P6e",
+      "rm": "5.4",
+      "objective": "BOOLEAN, CHARACTER, USER-DEFINED ENUMERATED, INTEGER, AND DERIVED TYPES MAY BE USED IN A CASE EXPRESSION. DAT 1/22/81 PWB 4/22/86 RENAME TO -AB; REMOVE EXTRANEOUS <CR> FROM BEGINNING OF LINE 45.",
+      "sources": [
+        "tests/c5/c54a03a.ada"
+      ],
+      "report_name": "C54A03A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "predefined_library_gap",
+        "owner": "P7 predefined library",
+        "note": "<upstream>/tests/c5/c54a03a.ada:41:41: error: 'ASCII' is not declared"
+      }
+    },
+    {
+      "id": "c54a07a",
+      "class": "C",
+      "area": "control_flow",
+      "owner": "P3/P6e",
+      "rm": "5.4",
+      "objective": "A VARIABLE USED AS A CASE EXPRESSION IS NOT CONSIDERED LOCAL TO THE CASE STATEMENT. IN PARTICULAR, CHECK THAT THE VARIABLE CAN BE ASSIGNED A NEW VALUE, AND THE ASSIGNMENT TAKES EFFECT IMMEDIATELY (I.E. THE CASE STATEMENT DOES NOT USE A COPY OF THE CASE EXPRESSION). RM 01/21/80",
+      "sources": [
+        "tests/c5/c54a07a.ada"
+      ],
+      "report_name": "C54A07A",
+      "support": [],
+      "harness_gaps": [
+        "REPORT.ident_char"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c640001",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "Check that the prefix of a subprogram call with an actual parameter part may be an implicit dereference of an access-to-subprogram value. Check that, for an access-to-subprogram type whose designated profile contains parameters of a tagged generic formal type, an access-to- subprogram value may designate dispatching and non-dispatching operations, and that dereferences of such a value call the appropriate subprogram.",
+      "sources": [
+        "tests/c6/c640001.a"
+      ],
+      "report_name": "C640001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6g",
+        "note": "<upstream>/tests/c6/c640001.a:207:16: error: generic formal type definition 'tagged' is not yet supported"
+      }
+    },
+    {
+      "id": "c64002b",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "PARAMETERLESS SUBPROGRAMS CAN BE CALLED WITH APPROPRIATE NOTATION. DAS 1/27/81 SPS 10/26/82",
+      "sources": [
+        "tests/c6/c64002b.ada"
+      ],
+      "report_name": "C64002B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c64004g",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "FOR CALLS TO SUBPROGRAMS HAVING AT LEAST ONE DEFAULT PARAMETER, THE CORRECT ASSOCIATION IS MADE BETWEEN ACTUAL AND FORMAL PARAMETERS. DAS 1/27/81",
+      "sources": [
+        "tests/c6/c64004g.ada"
+      ],
+      "report_name": "C64004G",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c6/c64004g.ada:50:18: error: 'O1' is not a component of a record"
+      }
+    },
+    {
+      "id": "c64005a",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "A SUBPROGRAM CAN BE CALLED RECURSIVELY AND THAT NON-LOCAL VARIABLES AND CONSTANTS ARE PROPERLY ACCESSED FROM WITHIN RECURSIVE INVOCATIONS. CVP 5/1/81",
+      "sources": [
+        "tests/c6/c64005a.ada"
+      ],
+      "report_name": "C64005A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c6/c64005a.ada:46:34: error: 'C1' is not a component of a record"
+      }
+    },
+    {
+      "id": "c64005b",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "A SUBPROGRAM CAN BE CALLED RECURSIVELY AND THAT NON-LOCAL VARIABLES AND CONSTANTS ARE PROPERLY ACCESSED FROM WITHIN RECURSIVE INVOCATIONS. CPP 7/2/84",
+      "sources": [
+        "tests/c6/c64005b.ada"
+      ],
+      "report_name": "C64005B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c6/c64005b.ada:53:39: error: 'C1' is not a component of a record"
+      }
+    },
+    {
+      "id": "c64005c",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "NESTED SUBPROGRAMS CAN BE CALLED RECURSIVELY AND THAT NON-LOCAL VARIABLES AND FORMAL PARAMETERS ARE PROPERLY ACCESSED FROM WITHIN RECURSIVE INVOCATIONS. THIS TEST CHECKS THAT EVERY DISPLAY OR STATIC CHAIN LEVEL CAN BE ACCESSED. THIS TEST USES 3 LEVELS OF NESTED RECURSIVE PROCEDURES. JRK 7/26/84",
+      "sources": [
+        "tests/c6/c64005c.ada"
+      ],
+      "report_name": "C64005C",
+      "support": [],
+      "harness_gaps": [
+        "REPORT.ident_char"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "REPORT.ident_char; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c65003a",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "IF NO RETURN STATEMENT IS EXECUTED, A FUNCTION RAISES PROGRAM_ERROR. DETERMINE WHERE THE EXCEPTION IS RAISED. THIS LACK OF AN EXECUTABLE RETURN IS DETECTABLE AT COMPILE TIME IN THIS TEST. JBG 10/14/83 SPS 2/22/84",
+      "sources": [
+        "tests/c6/c65003a.ada"
+      ],
+      "report_name": "C65003A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c65003b",
+      "class": "C",
+      "area": "calls_returns",
+      "owner": "P3/P6e",
+      "rm": "6.4\u20136.5",
+      "objective": "IF NO RETURN STATEMENT IS EXECUTED, A FUNCTION RAISES PROGRAM_ERROR. DETERMINE WHERE THE EXCEPTION IS RAISED. THIS LACK OF AN EXECUTABLE RETURN IS NOT DETECTABLE AT COMPILE TIME. JBG 10/14/83 SPS 2/22/84",
+      "sources": [
+        "tests/c6/c65003b.ada"
+      ],
+      "report_name": "C65003B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c730004",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that for a type declared in a package, descendants of the package use the full view of type. Specifically check that full view of the limited type is visible only in private descendants (children) and in the private parts and bodies of public descendants (children). Check that a limited type may be used as an out parameter outside the package that defines the type.",
+      "sources": [
+        "tests/c7/c730004.a"
+      ],
+      "report_name": "C730004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6a/P6c/P6e/P8",
+        "note": "<upstream>/tests/c7/c730004.a:119:24: error: 'String1' is not declared"
+      }
+    },
+    {
+      "id": "c73002a",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "THE STATEMENTS IN A PACKAGE BODY ARE EXECUTED AFTER THE ELABORATION OF THE DECLARATIONS (IN SPEC AND IN BODY). RM 05/15/81 JBG 9/21/83",
+      "sources": [
+        "tests/c7/c73002a.ada"
+      ],
+      "report_name": "C73002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6a/P6c/P6e/P8",
+        "note": "<upstream>/tests/c7/c73002a.ada:66:21: error: 'AA' is not declared"
+      }
+    },
+    {
+      "id": "c760001",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that Initialize is called for objects and components of a controlled type when the objects and components are not assigned explicit initial values. Check this for \"simple\" controlled objects, controlled record components and arrays with controlled components. Check that if an explicit initial value is assigned to an object or component of a controlled type then Initialize is not called.",
+      "sources": [
+        "tests/c7/c760001.a"
+      ],
+      "report_name": "C760001",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6a/P6c/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c760002",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that assignment to an object of a (non-limited) controlled type causes the Adjust operation of the type to be called. Check that Adjust is called after copying the value of the source expression to the target object. Check that Adjust is called for all controlled components when the containing object is assigned. (Test this for the cases where the type of the containing object is controlled and noncontrolled; test this for initialization as well as assignment statements.) Check that for an object of a controlled type with controlled compo",
+      "sources": [
+        "tests/c7/c760002.a"
+      ],
+      "report_name": "C760002",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6a/P6c/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c760009",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that for an extension_aggregate whose ancestor_part is a subtype_mark (i.e. Typemark'( Subtype with Field => x, etc.) ) Initialize is called on all controlled subcomponents of the ancestor part; if the type of the ancestor part is itself controlled, the Initialize procedure of the ancestor type is called, unless that Initialize procedure is abstract. Check that the utilization of a controlled type for a generic actual parameter supports the correct behavior in the instantiated package.",
+      "sources": [
+        "tests/c7/c760009.a"
+      ],
+      "report_name": "C760009",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c7/c760009.a:137:63: error: only record extensions are supported after with"
+      }
+    },
+    {
+      "id": "c760010",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that explicit calls to Initialize, Adjust and Finalize procedures that raise exceptions propagate the exception raised, not Program_Error. Check this for both a user defined exception and a language defined exception. Check that implicit calls to initialize procedures that raise an exception propagate the exception raised, not Program_Error; Check that the utilization of a controlled type as the actual for a generic formal tagged private parameter supports the correct behavior in the instantiated software.",
+      "sources": [
+        "tests/c7/c760010.a"
+      ],
+      "report_name": "C760010",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6g",
+        "note": "<upstream>/tests/c7/c760010.a:105:25: error: generic formal type definition 'tagged' is not yet supported"
+      }
+    },
+    {
+      "id": "c760011",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that the anonymous objects of a controlled type associated with function results and aggregates are finalized no later than the end of the innermost enclosing declarative_item or statement. Also check this for function calls and aggregates of a noncontrolled type with controlled components.",
+      "sources": [
+        "tests/c7/c760011.a"
+      ],
+      "report_name": "C760011",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [
+        "REPORT.ident_char"
+      ],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "Parser rejects a class-wide subtype in a use type clause. REPORT.Ident_Char is a separate prerequisite not reached by this run."
+      }
+    },
+    {
+      "id": "c760013",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that Initialize is not called for default-initialized subcomponents of the ancestor type of an extension aggregate. (Defect Report 8652/0021, Technical Corrigendum 7.6(11/1)).",
+      "sources": [
+        "tests/c7/c760013.a"
+      ],
+      "report_name": "C760013",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6a/P6c/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c761001",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that controlled objects declared immediately within a library package are finalized following the completion of the environment task (and prior to termination of the program).",
+      "sources": [
+        "tests/c7/c761001.a"
+      ],
+      "report_name": "C761001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "cross_feature_language_gap",
+        "owner": "P9",
+        "note": "<upstream>/tests/c7/c761001.a:57:21: error: task entries, interfaces and task definition items are not yet supported"
+      }
+    },
+    {
+      "id": "c761004",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that an object of a controlled type is finalized with the enclosing master is complete. Check that finalization occurs in the case where the master is left by a transfer of control. Specifically check for types where the derived types do not have discriminants. Check that finalization of controlled objects is performed in the correct order. In particular, check that if multiple objects of controlled types are declared immediately within the same declarative part then they are finalized in the reverse order of their creation.",
+      "sources": [
+        "tests/c7/c761004.a"
+      ],
+      "report_name": "C761004",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [
+        "TCTouch.Flush",
+        "TCTouch.Validate third argument"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "TCTouch.Flush; TCTouch.Validate third argument; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c761006",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check that Program_Error is raised when: * an exception is raised if Finalize invoked as part of an assignment operation; or * an exception is raised if Adjust invoked as part of an assignment operation, after any other adjustment due to be performed are performed; or * an exception is raised if Finalize invoked as part of a call on Unchecked_Deallocation, after any other finalizations to be performed are performed.",
+      "sources": [
+        "tests/c7/c761006.a"
+      ],
+      "report_name": "C761006",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "execution_failure",
+        "owner": "P3/P6a/P6c/P6e/P8",
+        "note": "REPORT: other adjustment not performed. Audit adjustment exception handling and required remaining adjustments."
+      }
+    },
+    {
+      "id": "c761010",
+      "class": "C",
+      "area": "private_finalization",
+      "owner": "P3/P6a/P6c/P6e",
+      "rm": "7.3/7.6",
+      "objective": "Check the requirements of the new 7.6(17.1/1) from Technical Corrigendum 1 (originally discussed as AI95-00083). This new paragraph requires that the initialization of an object with an aggregate does not involve calls to Adjust.",
+      "sources": [
+        "tests/c7/c761010.a"
+      ],
+      "report_name": "C761010_1",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6f",
+        "note": "<upstream>/tests/c7/c761010.a:107:28: error: unknown discriminants on full or private type declarations are not yet supported"
+      }
+    },
+    {
+      "id": "c83007a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A FORMAL PARAMETER OF A SUBPROGRAM DECLARED BY A RENAMING DECLARATION CAN HAVE THE SAME IDENTIFIER AS A DECLARATION IN THE BODY OF THE RENAMED SUBPROGRAM.",
+      "sources": [
+        "tests/c8/c83007a.ada"
+      ],
+      "report_name": "C83007A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c83022a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A DECLARATION IN A SUBPROGRAM FORMAL PART OR BODY HIDES AN OUTER DECLARATION OF A HOMOGRAPH. ALSO CHECK THAT THE OUTER DECLARATION IS DIRECTLY VISIBLE IN BOTH DECLARATIVE REGIONS BEFORE THE DECLARATION OF THE INNER HOMOGRAPH AND THE OUTER DECLARATION IS VISIBLE BY SELECTION AFTER THE INNER HOMOGRAH DECLARATION.",
+      "sources": [
+        "tests/c8/c83022a.ada"
+      ],
+      "report_name": "C83022A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c8/c83022a.ada:66:19: error: statement identifier 'ONE' cannot be used as a value"
+      }
+    },
+    {
+      "id": "c83024a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A DECLARATION IN A DECLARATIVE REGION FOR A GENERIC PACKAGE HIDES AN OUTER DECLARATION OF A HOMOGRAPH. ALSO CHECK THAT THE OUTER DECLARATION IS DIRECTLY VISIBLE IN BOTH DECLARATIVE REGIONS BEFORE THE DECLARATION OF THE INNER HOMOGRAPH AND THE OUTER DECLARATION IS VISIBLE BY SELECTION AFTER THE INNER HOMOGRAH DECLARATION.",
+      "sources": [
+        "tests/c8/c83024a.ada"
+      ],
+      "report_name": "C83024A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c8/c83024a.ada:74:19: error: statement identifier 'ONE' cannot be used as a value"
+      }
+    },
+    {
+      "id": "c840001",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "Check that, for the type determined by the subtype mark of a use type clause, the declaration of each primitive operator is use-visible within the scope of the clause, even if explicit operators with the same names as the type's operators are declared for the subtype. Check that a call to such an operator executes the body of the type's operation.",
+      "sources": [
+        "tests/c8/c840001.a"
+      ],
+      "report_name": "C840001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c8/c840001.a:208:19: error: '/=' is not declared in 'C840001_0'"
+      }
+    },
+    {
+      "id": "c84002a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "A) IF A USE CLAUSE NAMES AN ENCLOSING PACKAGE, THE USE CLAUSE HAS NO EFFECT. B) IF A DECLARATION IS DIRECTLY VISIBLE PRIOR TO THE OCCURRENCE OF A USE CLAUSE, AND IS NOT IN THE SET OF POTENTIALLY VISIBLE DECLARATIONS, IT REMAINS DIRECTLY VISIBLE AFTER THE USE CLAUSE. C) IF A HOMOGRAPH FOR A POTENTIALLY VISIBLE SUBPROGRAM OR OBJECT IS DECLARED AFTER A USE CLAUSE, THE POTENTIALLY VISIBLE ENTITY IS NO LONGER VISIBLE. EG 02/16/84",
+      "sources": [
+        "tests/c8/c84002a.ada"
+      ],
+      "report_name": "C84002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c84005a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT TWO POTENTIALLY VISIBLE HOMOGRAPHS OF A SUBPROGRAM IDENTIFIER CAN BE MADE DIRECTLY VISIBLE BY A USE CLAUSE, AND THAT WHEN DIFFERENT FORMAL PARAMETER NAMES ARE USED THE SUBPROGRAMS ARE REFERENCED CORRECTLY.",
+      "sources": [
+        "tests/c8/c84005a.ada"
+      ],
+      "report_name": "C84005A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c84008a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT THE NAMES MADE VISIBLE BY A USE CLAUSE IN THE VISIBLE PART OF A PACKAGE ARE VISIBLE IN THE PRIVATE PART AND BODY OF THE PACKAGE.",
+      "sources": [
+        "tests/c8/c84008a.ada"
+      ],
+      "report_name": "C84008A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "frontend_rejection_to_investigate",
+        "owner": "P3/P6e/P8",
+        "note": "<upstream>/tests/c8/c84008a.ada:74:14: error: '/=' is not declared in 'PACK1'"
+      }
+    },
+    {
+      "id": "c84009a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A USE CLAUSE MAKES AN IMPLICITLY OR EXPLICITLY DECLARED OPERATOR DIRECTLY VISIBLE IF NO HOMOGRAPH OF THE OPERATOR IS ALREADY DIRECTLY VISIBLE.",
+      "sources": [
+        "tests/c8/c84009a.ada"
+      ],
+      "report_name": "C84009A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "execution_failure",
+        "owner": "P3/P6e/P8",
+        "note": "REPORT: BINARY \"-\" ALREADY VISIBLE FOR TYPE INT. Audit primitive operator/use visibility."
+      }
+    },
+    {
+      "id": "c85005a",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A VARIABLE CREATED BY AN OBJECT DECLARATION CAN BE RENAMED AND HAS THE CORRECT VALUE, AND THAT THE NEW NAME CAN BE USED IN AN ASSIGNMENT STATEMENT AND PASSED ON AS AN ACTUAL SUBPROGRAM OR ENTRY 'IN OUT' OR 'OUT' PARAMETER, AND AS AN ACTUAL GENERIC 'IN OUT' PARAMETER, AND THAT WHEN THE VALUE OF THE RENAMED VARIABLE IS CHANGED, THE NEW VALUE IS REFLECTED BY THE VALUE OF THE NEW NAME.",
+      "sources": [
+        "tests/c8/c85005a.ada"
+      ],
+      "report_name": "C85005A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "cross_feature_language_gap",
+        "owner": "P9",
+        "note": "<upstream>/tests/c8/c85005a.ada:68:22: error: task entries, interfaces and task definition items are not yet supported"
+      }
+    },
+    {
+      "id": "c85005b",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT A VARIABLE CREATED BY A SUBPROGRAM 'IN OUT' FORMAL PARAMETER CAN BE RENAMED AND HAS THE CORRECT VALUE, AND THAT THE NEW NAME CAN BE USED IN AN ASSIGNMENT STATEMENT AND PASSED ON AS AN ACTUAL SUBPROGRAM OR ENTRY 'IN OUT' OR 'OUT' PARAMETER, AND AS AN ACTUAL GENERIC 'IN OUT' PARAMETER, AND THAT WHEN THE VALUE OF THE RENAMED VARIABLE IS CHANGED, THE NEW VALUE IS REFLECTED BY THE VALUE OF THE NEW NAME.",
+      "sources": [
+        "tests/c8/c85005b.ada"
+      ],
+      "report_name": "C85005B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "cross_feature_language_gap",
+        "owner": "P9",
+        "note": "<upstream>/tests/c8/c85005b.ada:67:22: error: task entries, interfaces and task definition items are not yet supported"
+      }
+    },
+    {
+      "id": "c85005f",
+      "class": "C",
+      "area": "visibility_renaming",
+      "owner": "P3/P6e",
+      "rm": "8.3\u20138.5",
+      "objective": "CHECK THAT, FOR A RENAMED VARIABLE DESIGNATED BY AN ACCESS VALUE, A CHANGE IN THE ACCESS VALUE DOES NOT AFFECT WHICH VARIABLE IS DENOTED BY THE NEW NAME.",
+      "sources": [
+        "tests/c8/c85005f.ada"
+      ],
+      "report_name": "C85005F",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "ca1003a",
+      "class": "C",
+      "area": "loading_subunits",
+      "owner": "P3/P6e",
+      "rm": "10.1",
+      "objective": "MORE THAN ONE COMPLETELY INDEPENDENT COMPILATION UNIT CAN BE SUBMITTED IN A SINGLE FILE. JRK 5/13/81 JBG 8/25/83",
+      "sources": [
+        "tests/ca/ca1003a.ada"
+      ],
+      "report_name": "CA1003A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "ca1004a",
+      "class": "C",
+      "area": "loading_subunits",
+      "owner": "P3/P6e",
+      "rm": "10.1",
+      "objective": "A PACKAGE DECLARATION AND BODY CAN BE SUBMITTED TOGETHER FOR COMPILATION. JRK 5/12/81",
+      "sources": [
+        "tests/ca/ca1004a.ada"
+      ],
+      "report_name": "CA1004A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "ca1005a",
+      "class": "C",
+      "area": "loading_subunits",
+      "owner": "P3/P6e",
+      "rm": "10.1",
+      "objective": "A SUBPROGRAM DECLARATION AND BODY CAN BE SUBMITTED TOGETHER FOR COMPILATION. JRK 5/14/81 FUNCTION CA1005A_F (I : INTEGER) RETURN INTEGER; FUNCTION CA1005A_F (I : INTEGER) RETURN INTEGER IS BEGIN RETURN I + 1; END CA1005A_F;",
+      "sources": [
+        "tests/ca/ca1005a.ada"
+      ],
+      "report_name": "CA1005A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P3/P6e",
+        "note": "Strict REPORT identity and completion protocol passed on the recorded host."
+      }
+    },
+    {
+      "id": "c940005",
+      "class": "C",
+      "area": "protected_objects",
+      "owner": "P4",
+      "rm": "9.4\u20139.5",
+      "objective": "Check that the body of a protected function can have internal calls to other protected functions and that the body of a protected procedure can have internal calls to protected procedures and to protected functions.",
+      "sources": [
+        "tests/c9/c940005.a"
+      ],
+      "report_name": "C940005",
+      "support": [],
+      "harness_gaps": [
+        "ImpDef requires target-specific support configuration"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "ImpDef requires target-specific support configuration; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "c940010",
+      "class": "C",
+      "area": "protected_objects",
+      "owner": "P4",
+      "rm": "9.4\u20139.5",
+      "objective": "Check that if an exception is raised during the execution of an entry body it is propagated back to the caller",
+      "sources": [
+        "tests/c9/c940010.a"
+      ],
+      "report_name": "C940010",
+      "support": [],
+      "harness_gaps": [
+        "ImpDef requires target-specific support configuration"
+      ],
+      "triage": {
+        "kind": "support_adapter_gap",
+        "owner": "P8 ACATS harness",
+        "note": "ImpDef requires target-specific support configuration; additional language blockers may remain after support is supplied."
+      }
+    },
+    {
+      "id": "b330001",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that if a subtype indication of a variable object defines an indefinite subtype, then there is an initialization. Check that if the array type definition of a variable object defines an unconstrained array subtype, then there is an initialization. Check that indefinite subtypes may not be used as the subtype indication of a component definition (in either an array or a record definition).",
+      "sources": [
+        "tests/b3/b330001.a"
+      ],
+      "report_name": "B330001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b33101a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "ENUMERATION, INTEGER, REAL, ARRAY, ACCESS, AND DERIVED TYPE_DECLARATIONS CANNOT HAVE DISCRIMINANT PARTS. JRK 4/1/81 JWC 10/4/85 RENAMED FROM B33002A.ADA; ADDED TESTS FOR ACCESS AND DERIVED TYPES. RLB 11/19/19 Added error location indicators.",
+      "sources": [
+        "tests/b3/b33101a.ada"
+      ],
+      "report_name": "B33101A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b33102a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "A TYPE DECLARATION, INCOMPLETE TYPE DECLARATION, PRIVATE TYPE DECLARATION OR SUBTYPE DECLARATION CANNOT INTRODUCE AN IDENTIFIER THAT WAS INTRODUCED PREVIOUSLY IN THE SAME DECLARATIVE PART. CASE A: A SINGLE PACKAGE SPECIFICATION. JRK 4/1/81 JWC 10/2/85 JRK 11/15/85",
+      "sources": [
+        "tests/b3/b33102a.ada"
+      ],
+      "report_name": "B33102A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b34001b",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "ONLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED ENUMERATION TYPES, EXCLUDING BOOLEAN TYPES. JRK 8/20/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X.",
+      "sources": [
+        "tests/b3/b34001b.ada"
+      ],
+      "report_name": "B34001B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b34002b",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "ONLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED INTEGER TYPES. JRK 8/21/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X.",
+      "sources": [
+        "tests/b3/b34002b.ada"
+      ],
+      "report_name": "B34002B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b36001a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "CHECK THAT AN ARRAY TYPE CANNOT BE DECLARED WITH A NON-DISCRETE INDEX TYPE.",
+      "sources": [
+        "tests/b3/b36001a.ada"
+      ],
+      "report_name": "B36001A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b36002a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "THE INDICES OF MULTIDIMENSIONAL ARRAY TYPES MUST BE EITHER ALL CONSTRAINED OR ALL UNCONSTRAINED. L.BROWN 7/2/86",
+      "sources": [
+        "tests/b3/b36002a.ada"
+      ],
+      "report_name": "B36002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Accepted all marked mixed constrained/unconstrained array index declarations; candidate legality defect. Expected-error grading remains required."
+      }
+    },
+    {
+      "id": "b37004a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "RECORD COMPONENTS CANNOT BE UNCONSTRAINED ARRAYS, EVEN IF INITIALIZED TO A STATIC VALUE. (B) CHECK THAT COMPONENTS CANNOT BE USED IN ANOTHER RECORD COMPONENT'S CONSTRAINT OR INITIAL VALUE, OR IN ITS OWN CONSTRAINT OR INITIAL VALUES. (C) CHECK THAT THE BASE TYPES OF A COMPONENT AND ITS INITIAL VALUE MUST MATCH. (F) CHECK THAT THE NAME OF A RECORD TYPE CANNOT BE USED INSIDE ITS RECORD DEFINITION. DAT 5/18/81 SPS 11/3/82 VKG 1/13/83 RJW 1/9/86 - ADDED 'C20', DELETED 'C21' TO 'C30' AND CASE (G). PWN 10/24/95 REMOVED CHECKS NO LONGER SUPPORTED IN AD",
+      "sources": [
+        "tests/b3/b37004a.ada"
+      ],
+      "report_name": "B37004A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b3a0001",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that objects defined to be of a general access type may not designate an object or component which is not defined to be aliased. Check that a renaming of an aliased view is also defined to be aliased. Check that an array slice may not be aliased. Check that the general access modifiers \"all\" and \"constant\" are allowed. Check that an object designated by an access-to-constant type object cannot be updated through a value of that type. Check that an object designated by a value of an access-to-variable type can be both read and updated.",
+      "sources": [
+        "tests/b3/b3a0001.a"
+      ],
+      "report_name": "B3A0001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b3a0002",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that subtype conformance is required for actual values of access to subprogram types. Check that the mode, number and subtype of parameters must statically match. Check that the calling convention of the value must not be Intrinsic. Check that corresponding subtypes of the profiles must statically match. Check that a generic formal subprogram may not be the actual value of an access to subprogram type because it cannot subtype-conform with anything.",
+      "sources": [
+        "tests/b3/b3a0002.a"
+      ],
+      "report_name": "B3A0002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b43002d",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN A SINGLE POSITIONAL ASSOCIATION.",
+      "sources": [
+        "tests/b4/b43002d.ada"
+      ],
+      "report_name": "B43002D",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b43002e",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "CHECK THAT AN ARRAY AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS.",
+      "sources": [
+        "tests/b4/b43002e.ada"
+      ],
+      "report_name": "B43002E",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b43002f",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS.",
+      "sources": [
+        "tests/b4/b43002f.ada"
+      ],
+      "report_name": "B43002F",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b460001",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that if the target type of a type conversion is a general access type, the accessibility level of the operand type must not be statically deeper than that of the target type. Check for cases where the operand is: (a) a stand-alone access object. (b) a formal parameter. (c) an access discriminant.",
+      "sources": [
+        "tests/b4/b460001.a"
+      ],
+      "report_name": "B460001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b64002a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "THE NUMBER OF ACTUAL PARAMETERS AND NAMED PARAMETERS MUST EQUAL THE NUMBER OF FORMAL PARAMETERS. DAS 1/27/81 CPP 6/28/84",
+      "sources": [
+        "tests/b6/b64002a.ada"
+      ],
+      "report_name": "B64002A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b64002c",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "THE BASE TYPES OF A FORMAL AND ACTUAL PARAMETER CANNOT BE DIFFERENT. DAS 2/9/81 SPS 12/10/82 CPP 6/28/84 JRK 11/28/84",
+      "sources": [
+        "tests/b6/b64002c.ada"
+      ],
+      "report_name": "B64002C",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b64003a",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "FOR A MIXTURE OF NAMED AND POSITIONAL NOTATION, NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. SUBTESTS ARE: (A) NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. (B) A NAMED PARAMETER AND A LATER POSITIONAL PARAMETER CANNOT BE SPECIFIED FOR THE SAME FORMAL PARAMETER. (C) TWO OR MORE NAMED PARAMETERS CANNOT SPECIFY THE SAME FORMAL PARAMETER. (D) THE NAME USED IN A NAMED PARAMETER MUST ONLY BE A NAME OF A FORMAL PARAMETER. (E) A NAMED PARAMETER CANNOT BE PROVIDED FOR A FORMAL PARAMETER",
+      "sources": [
+        "tests/b6/b64003a.ada"
+      ],
+      "report_name": "B64003A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b650002",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that an extended return statement cannot be used to return from a procedure body, entry body, or accept statement. Check that an extended return statement cannot be used to return from an outer extended return statement. Check that a simple return statement that applies to a procedure body, entry body, accept statement, or extended return statement cannot have an expression. Check that a simple return statement that applies to a function body must have an expression.",
+      "sources": [
+        "tests/b6/b650002.a"
+      ],
+      "report_name": "B650002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b650004",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that a return statement is illegal if it is not within a callable construct. Check that a return statement is illegal if it is within a body that is within the construct to which it applies.",
+      "sources": [
+        "tests/b6/b650004.a"
+      ],
+      "report_name": "B650004",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    },
+    {
+      "id": "b840001",
+      "class": "B",
+      "area": "legality_sample",
+      "owner": "P1/P3/P6",
+      "rm": "3/4/6/8",
+      "objective": "Check that the name in a use type clause must denote a subtype. Check that only the primitive operators of the type determined by the subtype mark in a use type clause are use-visible (in particular, that the primitive operators of no other type declared in the same package are use-visible). Check that the scope of a use type clause in the private part of a library unit does not include the visible part of any public descendant of that library unit.",
+      "sources": [
+        "tests/b8/b840001.a"
+      ],
+      "report_name": "B840001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test harness",
+        "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
+      }
+    }
+  ],
+  "excluded_candidates": [
+    {
+      "id": "c433002",
+      "source": "tests/c4/c433002.a",
+      "reason": "Uses Ada 2012 Default_Value aspect and expression functions despite testing an older array rule.",
+      "sha256": "75eb416b4c2163b247299fa47e1d65c8bce39c2ad143cb92f010b4185019ed49",
+      "git_blob": "5621b4a973a612b9eab26d13ef1bb3df733d9e5b"
+    },
+    {
+      "id": "c433005",
+      "source": "tests/c4/c433005.a",
+      "reason": "Uses Ada 2012 Default_Value aspect and expression functions; outside the Ada 2005 target.",
+      "sha256": "6a0e86bda9ec8caece0e0c9530f81cc9729a4a0792011743dfeae9adfd9f8179",
+      "git_blob": "7c979cff99e0aebd30b7a7caf3b182b01635f73d"
+    }
+  ]
+}

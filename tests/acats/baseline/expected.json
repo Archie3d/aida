@@ -1,0 +1,781 @@
+{
+  "schema": 1,
+  "source_revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "host": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "compiler_sha256": "47c966345f494157a807e6f8d567f0cc196314e705e04e22720688b6387a2447",
+  "counts": {
+    "B_ACCEPTED_UNGRADED": 1,
+    "B_REJECTED_UNGRADED": 19,
+    "COMPILE_REJECTED": 37,
+    "HARNESS_BLOCKED": 7,
+    "PASS": 37,
+    "RUN_FAILED": 5
+  },
+  "cases": {
+    "c34001a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C34001A\n",
+      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c34001c": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C34001C\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c34001d": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C34001D\n",
+      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c34002a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C34002A\n",
+      "run_stderr": "\nraised CONSTRAINT_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c34002c": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C34002C\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c35003a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c35003a.ada:188:50: error: expected '..' in range constraint, found ';'\n<upstream>/tests/c3/c35003a.ada:211:50: error: expected '..' in range constraint, found ';'\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c35003d": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C35003D\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c35502a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C35502A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c35502c": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c35502c.ada:228:26: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c3/c35502c.ada:228:47: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c3/c35502c.ada:241:36: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c3/c35502c.ada:241:33: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c35502g": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C35502G\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c36104a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c36104a.ada:102:48: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:127:26: error: expected ')' after aggregate, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:141:41: error: expected ')' after argument list, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:152:41: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:169:51: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:189:50: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:270:25: error: expected ')' after aggregate, found 'RANGE'\n<upstream>/tests/c3/c36104a.ada:272:15: error: expected ';' after block statement, found 'IF'\n<upstream>/tests/c3/c36104a.ada:277:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:279:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:281:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:282:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:284:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:286:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:289:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:292:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:293:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:294:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:296:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:298:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:301:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:302:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:305:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:306:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:307:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:309:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:311:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:314:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:315:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:318:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:319:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:320:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:322:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:326:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:335:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:337:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:346:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:348:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:351:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:352:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:353:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:355:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:358:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104a.ada:359:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c36104b": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c36104b.ada:144:26: error: expected ')' after aggregate, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:162:41: error: expected ')' after argument list, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:177:41: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:192:51: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:214:50: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:329:25: error: expected ')' after aggregate, found 'RANGE'\n<upstream>/tests/c3/c36104b.ada:331:15: error: expected ';' after block statement, found 'IF'\n<upstream>/tests/c3/c36104b.ada:336:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:338:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:340:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:341:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:343:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:345:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:348:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:352:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:354:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:355:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:357:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:359:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:362:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:366:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:368:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:369:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:371:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:373:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:376:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:380:16: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:382:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:383:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:385:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:389:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:398:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:400:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:409:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:411:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:414:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:415:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:416:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:418:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:420:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c3/c36104b.ada:421:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c36180a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c36180a.ada:55:18: error: expected ')' after array index list, found '''\n<upstream>/tests/c3/c36180a.ada:57:18: error: expected ')' after array index list, found '''\n<upstream>/tests/c3/c36180a.ada:61:18: error: expected ')' after array index list, found '''\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c37002a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c37002a.ada:58:29: error: expected ')' after index constraint, found 'RANGE'\n<upstream>/tests/c3/c37002a.ada:59:42: error: expected ')' after index constraint, found 'RANGE'\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c37003a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c37003b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37003B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c37005a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37005A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c37006a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/c3/c37006a.ada:205:25: error: '.' reaches inside a value of 'PRIV', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:205:43: error: '.' reaches inside a value of 'PRIV', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:243:25: error: '.' reaches inside a value of 'LIM', whose representation 'PACK' keeps to itself\n<upstream>/tests/c3/c37006a.ada:243:43: error: '.' reaches inside a value of 'LIM', whose representation 'PACK' keeps to itself\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c37008a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37008A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c37008b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37008B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0001": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0002": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0002\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0003": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0003\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0004": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0004\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0005": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0005\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0007": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c3a0007.a:95:4: error: extension of a private or incomplete tagged view is not yet supported\n<upstream>/tests/c3/c3a0007.a:104:35: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:107:39: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:158:39: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:158:4: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c3/c3a0007.a:161:8: error: 'Priority' is not a component of a record\n<upstream>/tests/c3/c3a0007.a:164:35: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:164:4: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c3/c3a0007.a:191:19: error: 'c3a0007_1.priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:204:13: error: 'Push' is not declared in 'C3A0007_1'\n<upstream>/tests/c3/c3a0007.a:215:13: error: 'Set_Response' is not declared in 'C3A0007_1'\n<upstream>/tests/c3/c3a0007.a:216:13: error: 'Push' is not declared in 'C3A0007_1'\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c3a0008": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0008\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c41103a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c41103a.ada:160:16: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:163:17: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:166:16: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:169:13: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:17: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:24: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:174:31: error: no visible subprogram matches this call\n<upstream>/tests/c4/c41103a.ada:209:21: error: 'N1' is not a component of a record\n<upstream>/tests/c4/c41103a.ada:209:24: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/c4/c41103a.ada:212:18: error: 'N1' is not a component of a record\n<upstream>/tests/c4/c41103a.ada:212:21: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/c4/c41103a.ada:217:22: error: 'N1' is not a component of a record\n<upstream>/tests/c4/c41103a.ada:217:25: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/c4/c41103a.ada:217:37: error: 'N1' is not a component of a record\n<upstream>/tests/c4/c41103a.ada:217:40: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/c4/c41103a.ada:217:52: error: 'N1' is not a component of a record\n<upstream>/tests/c4/c41103a.ada:217:55: error: only arrays and subprograms can be applied to arguments\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c41104a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c41104a.ada:114:17: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c4/c41104a.ada:220:23: error: 'IDENT_CHAR' is not declared\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c41105a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c41105a.ada:89:17: error: no visible subprogram matches this call\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c41107a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41107A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c41204a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41204A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c41205a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41205A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c41206a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C41206A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c41207a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c41207a.ada:50:17: error: unsupported attribute 'RANGE'\n<upstream>/tests/c4/c41207a.ada:50:28: error: an aggregate needs a known array or record type\n<upstream>/tests/c4/c41207a.ada:59:17: error: unsupported attribute 'RANGE'\n<upstream>/tests/c4/c41207a.ada:59:28: error: an aggregate needs a known array or record type\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c432001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c432001.a:140:37: error: only record extensions are supported after with\n<upstream>/tests/c4/c432001.a:151:37: error: only record extensions are supported after with\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c432004": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c432004.a:124:66: error: only record extensions are supported after with\n<upstream>/tests/c4/c432004.a:136:57: error: only record extensions are supported after with\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c432005": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c432005.a:63:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/c4/c432005.a:88:7: error: expected an expression\n<upstream>/tests/c4/c432005.a:90:11: error: closing name 'Set' does not match 't_task'\n<upstream>/tests/c4/c432005.a:91:7: error: expected a declaration\n<upstream>/tests/c4/c432005.a:93:11: error: closing name 'Get' does not match 'c432005_0'\n<upstream>/tests/c4/c432005.a:94:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c4/c432005.a:96:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c43204a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c43204a.ada:36:35: error: expected ')' after array index list, found '('\n<upstream>/tests/c4/c43204a.ada:38:35: error: expected ')' after array index list, found '('\n<upstream>/tests/c4/c43204a.ada:40:35: error: expected ')' after array index list, found '('\n<upstream>/tests/c4/c43204a.ada:44:35: error: expected ')' after array index list, found '('\n<upstream>/tests/c4/c43204a.ada:46:33: error: expected ')' after array index list, found '''\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c460004": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C460004\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c460005": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C460005\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c460006": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c460006.a:104:51: error: abstract subprogram declarations are not yet supported\n<upstream>/tests/c4/c460006.a:105:51: error: abstract subprogram declarations are not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c49020a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C49020A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c49021a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C49021A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c49022b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C49022B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c49022c": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c4/c49022c.ada:49:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:50:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:51:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:52:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:53:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:54:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:55:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:56:32: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:61:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:62:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:63:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:64:33: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/c4/c49022c.ada:115:14: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:115:29: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:116:14: error: the operands of a comparison must have the same type\n<upstream>/tests/c4/c49022c.ada:116:30: error: the operands of a comparison must have the same type\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c540001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c5/c540001.a:144:29: error: generic formal type definition 'new' is not yet supported\n<upstream>/tests/c5/c540001.a:146:9: error: expected 'identifier' in name, found 'function'\n<upstream>/tests/c5/c540001.a:164:28: error: generic formal type definition 'new' is not yet supported\n<upstream>/tests/c5/c540001.a:166:9: error: expected 'identifier' in name, found 'function'\n<upstream>/tests/c5/c540001.a:181:39: error: expected ';' after assignment, found '.'\n<upstream>/tests/c5/c540001.a:182:39: error: expected ';' after assignment, found '.'\n<upstream>/tests/c5/c540001.a:339:27: error: expected 'then' in if statement, found '.'\n<upstream>/tests/c5/c540001.a:342:11: error: expected ';' after block statement, found 'if'\n<upstream>/tests/c5/c540001.a:344:8: error: closing name 'Function_Call_Subtest' does not match 'c540001'\n<upstream>/tests/c5/c540001.a:346:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:351:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:352:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:353:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:356:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:358:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:360:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:363:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:365:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:367:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:381:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:383:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:385:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:388:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:390:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:392:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:396:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:399:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:401:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:404:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:406:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:408:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:410:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c540002": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c5/c540002.a:93:12: error: ambiguous name 'Zero'\n<upstream>/tests/c5/c540002.a:129:22: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:150:18: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:170:21: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:192:7: error: 'GenI_Test' is not declared\n<upstream>/tests/c5/c540002.a:210:23: error: ambiguous subprogram call\n<upstream>/tests/c5/c540002.a:231:7: error: 'GenM_Test' is not declared\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c54a03a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c5/c54a03a.ada:41:41: error: 'ASCII' is not declared\n<upstream>/tests/c5/c54a03a.ada:41:46: error: 'NUL' is not a component of a record\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c54a07a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c5/c54a07a.ada:61:44: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c5/c54a07a.ada:62:44: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c5/c54a07a.ada:78:26: error: statement identifier 'B1' cannot be used as a value\n<upstream>/tests/c5/c54a07a.ada:78:28: error: 'V' is not a component of a record\n<upstream>/tests/c5/c54a07a.ada:78:36: error: an aggregate needs a known array or record type\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c640001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c6/c640001.a:207:16: error: generic formal type definition 'tagged' is not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c64002b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C64002B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c64004g": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c6/c64004g.ada:50:18: error: 'O1' is not a component of a record\n<upstream>/tests/c6/c64004g.ada:51:18: error: 'O2' is not a component of a record\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c64005a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c6/c64005a.ada:46:34: error: 'C1' is not a component of a record\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c64005b": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c6/c64005b.ada:53:39: error: 'C1' is not a component of a record\n<upstream>/tests/c6/c64005b.ada:57:32: error: no visible interpretation of 'R' matches this context\n<upstream>/tests/c6/c64005b.ada:57:33: error: 'C1' is not a component of a record\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c64005c": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c6/c64005c.ada:53:23: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:54:23: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:85:30: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:89:52: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:89:57: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:89:65: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:89:55: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:90:45: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:90:53: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:89:68: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:90:58: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:90:66: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:90:56: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:96:41: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:97:41: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:100:44: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:104:46: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:108:43: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:108:55: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:108:46: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:109:35: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:109:43: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:108:58: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:109:48: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:109:56: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:109:46: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:109:61: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:109:69: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:109:59: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:110:35: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:110:43: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:109:72: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:110:48: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:110:56: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:110:46: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:110:61: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:110:69: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:110:59: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:111:35: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:111:43: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:110:72: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:111:48: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:111:56: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:111:46: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:111:61: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:111:69: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:111:59: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:115:45: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:115:53: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:115:58: error: no visible interpretation of 'C64005CC' matches this context\n<upstream>/tests/c6/c64005c.ada:115:66: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:115:56: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:116:45: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:116:53: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:115:69: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:116:58: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:116:66: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:116:56: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:117:45: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:117:53: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:116:69: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:117:58: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:117:66: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:117:56: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:118:52: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:117:69: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:125:25: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:129:47: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:129:52: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:129:60: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:129:50: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:130:40: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:130:48: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:129:63: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:136:51: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:139:39: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:142:51: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:146:40: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:146:48: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:146:53: error: no visible interpretation of 'C64005CB' matches this context\n<upstream>/tests/c6/c64005c.ada:146:61: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:146:51: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:147:40: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:147:48: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:146:64: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:147:53: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:147:61: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:147:51: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:148:47: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:147:64: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:155:20: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:159:42: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:159:47: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:159:55: error: 'V' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:159:45: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:165:46: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:168:34: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:171:46: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:175:35: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:175:43: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:175:48: error: no visible interpretation of 'C64005CA' matches this context\n<upstream>/tests/c6/c64005c.ada:175:56: error: 'C' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:175:46: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:175:68: error: 'L' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:175:59: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c6/c64005c.ada:189:16: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:189:41: error: 'IDENT_CHAR' is not declared\n<upstream>/tests/c6/c64005c.ada:202:47: error: 'ASCII' is not declared\n<upstream>/tests/c6/c64005c.ada:202:52: error: 'LC_A' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:203:45: error: 'ASCII' is not declared\n<upstream>/tests/c6/c64005c.ada:203:50: error: 'LC_A' is not a component of a record\n<upstream>/tests/c6/c64005c.ada:203:50: error: 'POS requires an argument of the prefix type\n<upstream>/tests/c6/c64005c.ada:203:57: error: arithmetic operators require numeric operands\n<upstream>/tests/c6/c64005c.ada:203:67: error: arithmetic operators require numeric operands\n<upstream>/tests/c6/c64005c.ada:203:67: error: 'VAL requires an integer argument\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c65003a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C65003A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c65003b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C65003B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c730004": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c730004.a:119:24: error: 'String1' is not declared\n<upstream>/tests/c7/c730004.a:119:40: error: 'String2' is not declared\n<upstream>/tests/c7/c730004.a:119:38: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c730004.a:126:41: error: an aggregate spells out the components of 'File_Type', whose representation 'C730004_0' keeps to itself\n<upstream>/tests/c7/c730004.a:136:24: error: an aggregate spells out the components of 'File_Type', whose representation 'C730004_0' keeps to itself\n<upstream>/tests/c7/c730004.a:145:4: error: subprogram body does not conform to the previous declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c73002a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c73002a.ada:66:21: error: 'AA' is not declared\n<upstream>/tests/c7/c73002a.ada:66:29: error: 'AA' is not declared\n<upstream>/tests/c7/c73002a.ada:66:28: error: arithmetic operators require numeric operands\n<upstream>/tests/c7/c73002a.ada:69:25: error: 'AA' is not declared\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c760001": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C760001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c760002": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C760002\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c760009": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c760009.a:137:63: error: only record extensions are supported after with\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c760010": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c760010.a:105:25: error: generic formal type definition 'tagged' is not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c760011": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c760011.a:159:37: error: expected ';' after use clause, found '''\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c760013": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C760013\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c761001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c761001.a:57:21: error: task entries, interfaces and task definition items are not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c761004": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c761004.a:111:14: error: 'Flush' is not declared in 'TCTouch'\n<upstream>/tests/c7/c761004.a:113:23: error: no visible subprogram matches this call\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c761006": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C761006\nFAILED other adjustment not performed\n",
+      "run_stderr": "\nraised PROGRAM_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c761010": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c7/c761010.a:107:28: error: unknown discriminants on full or private type declarations are not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c83007a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C83007A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c83022a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c83022a.ada:66:19: error: statement identifier 'ONE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:66:22: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:69:19: error: statement identifier 'ONE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:69:22: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:81:26: error: statement identifier 'ONE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:81:29: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:105:19: error: statement identifier 'TWO' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:105:22: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:108:19: error: statement identifier 'TWO' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:108:22: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:146:19: error: statement identifier 'THREE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:146:24: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:149:19: error: statement identifier 'THREE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:149:24: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:194:19: error: statement identifier 'FOUR' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:194:23: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:230:19: error: statement identifier 'FIVE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:230:23: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:233:19: error: statement identifier 'FIVE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:233:23: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:245:26: error: statement identifier 'FIVE' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:245:30: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:276:46: error: statement identifier 'SIX' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:276:49: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:276:11: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c8/c83022a.ada:283:19: error: statement identifier 'SIX' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:283:22: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:286:19: error: statement identifier 'SIX' cannot be used as a value\n<upstream>/tests/c8/c83022a.ada:286:22: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83022a.ada:305:11: error: 'SUBPR' is not declared\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c83024a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c83024a.ada:74:19: error: statement identifier 'ONE' cannot be used as a value\n<upstream>/tests/c8/c83024a.ada:74:22: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83024a.ada:78:19: error: statement identifier 'ONE' cannot be used as a value\n<upstream>/tests/c8/c83024a.ada:78:22: error: 'B' is not a component of a record\n<upstream>/tests/c8/c83024a.ada:118:31: error: statement identifier 'TWO' cannot be used as a value\n<upstream>/tests/c8/c83024a.ada:118:34: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83024a.ada:124:19: error: statement identifier 'TWO' cannot be used as a value\n<upstream>/tests/c8/c83024a.ada:124:22: error: 'A' is not a component of a record\n<upstream>/tests/c8/c83024a.ada:128:19: error: statement identifier 'TWO' cannot be used as a value\n<upstream>/tests/c8/c83024a.ada:128:22: error: 'B' is not a component of a record\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c840001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c840001.a:208:19: error: '/=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:208:24: error: condition must be of type Boolean\n<upstream>/tests/c8/c840001.a:215:24: error: '=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:215:10: error: 'not' requires a Boolean operand\n<upstream>/tests/c8/c840001.a:239:19: error: '/=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:239:24: error: condition must be of type Boolean\n<upstream>/tests/c8/c840001.a:246:23: error: '=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:246:10: error: 'not' requires a Boolean operand\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c84002a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C84002A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c84005a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C84005A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c84008a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c84008a.ada:74:14: error: '/=' is not declared in 'PACK1'\n<upstream>/tests/c8/c84008a.ada:74:20: error: condition must be of type Boolean\n<upstream>/tests/c8/c84008a.ada:78:14: error: '/=' is not declared in 'PACK1'\n<upstream>/tests/c8/c84008a.ada:78:20: error: condition must be of type Boolean\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c84009a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 1,
+      "run_stdout": "TEST C84009A\nFAILED BINARY \"-\" ALREADY VISIBLE FOR TYPE INT\n",
+      "run_stderr": "\nraised PROGRAM_ERROR\n",
+      "outcome": "RUN_FAILED"
+    },
+    "c85005a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c85005a.ada:68:22: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/c8/c85005a.ada:75:22: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/c8/c85005a.ada:167:16: error: select statements are not yet supported\n<upstream>/tests/c8/c85005a.ada:189:11: error: expected an expression\n<upstream>/tests/c8/c85005a.ada:189:49: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:190:30: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:190:49: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:191:30: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:191:56: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:192:30: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005a.ada:201:15: error: closing name 'ENTRY1' does not match 'task2'\n<upstream>/tests/c8/c85005a.ada:202:6: error: expected 'begin' in subprogram body, found 'END'\n<upstream>/tests/c8/c85005a.ada:204:1: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:216:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:219:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:221:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:223:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:225:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:227:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:229:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:231:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:233:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:235:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:237:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:239:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:241:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:243:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:244:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:246:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:248:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:250:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:252:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:254:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:256:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:258:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:260:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:262:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:264:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:266:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:268:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:270:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:272:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:274:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:275:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:277:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:279:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:281:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:283:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:285:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:287:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:289:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:291:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:293:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:295:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:297:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:299:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:301:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:303:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:305:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:306:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:308:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:310:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:312:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:314:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:315:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:316:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:317:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:318:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:319:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:320:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:322:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:324:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:326:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:328:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:330:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:332:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:334:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:336:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:338:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:340:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:342:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:343:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:345:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:347:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:349:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:351:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:352:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:353:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:354:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:355:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:356:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:357:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:359:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:361:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:363:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:365:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:367:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:369:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:371:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:373:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:375:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:377:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:379:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:380:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:382:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:384:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:386:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:388:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:390:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005a.ada:391:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c85005b": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c8/c85005b.ada:67:22: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/c8/c85005b.ada:133:16: error: select statements are not yet supported\n<upstream>/tests/c8/c85005b.ada:163:27: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/c8/c85005b.ada:187:16: error: expected an expression\n<upstream>/tests/c8/c85005b.ada:187:54: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005b.ada:188:35: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005b.ada:188:54: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005b.ada:189:35: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005b.ada:190:35: error: expected ';' after procedure call, found ':'\n<upstream>/tests/c8/c85005b.ada:198:20: error: closing name 'ENTRY1' does not match 'task2'\n<upstream>/tests/c8/c85005b.ada:199:11: error: expected 'begin' in subprogram body, found 'END'\n<upstream>/tests/c8/c85005b.ada:347:10: error: closing name 'PROC' does not match 'c85005b'\n<upstream>/tests/c8/c85005b.ada:349:1: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005b.ada:361:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005b.ada:363:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005b.ada:365:6: error: expected a procedure, function or package declaration\n<upstream>/tests/c8/c85005b.ada:366:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "c85005f": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C85005F\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "ca1003a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CA1003A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "ca1004a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CA1004A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "ca1005a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CA1005A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c940005": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c9/c940005.a:52:1: error: cannot find the unit 'ImpDef'\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "c940010": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c9/c940010.a:46:1: error: cannot find the unit 'ImpDef'\n",
+      "outcome": "HARNESS_BLOCKED"
+    },
+    "b330001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b330001.a:82:34: error: protected discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:88:24: error: task discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:94:38: error: unknown discriminants on full or private type declarations are not yet supported\n<upstream>/tests/b3/b330001.a:99:36: error: unknown discriminants on full or private type declarations are not yet supported\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b33101a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b33101a.ada:44:6: error: new discriminant parts on derived types are not yet supported\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b33102a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b33102a.ada:57:11: error: 'A' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:58:11: error: 'B' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:59:11: error: 'C' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:60:11: error: 'D' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:61:11: error: 'E' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:62:11: error: 'F' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:63:11: error: 'G' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:64:11: error: 'H' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:65:11: error: 'I' has already been declared in this scope\n<upstream>/tests/b3/b33102a.ada:66:11: error: 'J' has already been declared in this scope\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b34001b": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b34001b.ada:76:11: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:77:19: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:78:11: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:79:17: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:80:11: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:81:20: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:82:11: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:83:18: error: this type conversion is not allowed\n<upstream>/tests/b3/b34001b.ada:84:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:85:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:86:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:87:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:90:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:91:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:92:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:93:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34001b.ada:94:12: error: 'C' is not a component of a record\n<upstream>/tests/b3/b34001b.ada:95:12: error: only an access value designates an object with '.all'\n<upstream>/tests/b3/b34001b.ada:96:13: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/b3/b34001b.ada:97:11: error: only an array can be sliced\n<upstream>/tests/b3/b34001b.ada:98:9: error: 'not' requires a Boolean operand\n<upstream>/tests/b3/b34001b.ada:99:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34001b.ada:100:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34001b.ada:101:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34001b.ada:102:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34001b.ada:103:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34001b.ada:112:9: error: unary operators require a numeric operand\n<upstream>/tests/b3/b34001b.ada:113:9: error: unary operators require a numeric operand\n<upstream>/tests/b3/b34001b.ada:114:9: error: unary operators require a numeric operand\n<upstream>/tests/b3/b34001b.ada:115:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:116:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:117:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:118:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34001b.ada:118:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:119:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34001b.ada:120:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:121:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34001b.ada:121:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:122:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:123:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:124:11: error: arithmetic operators require numeric operands\n<upstream>/tests/b3/b34001b.ada:125:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34001b.ada:126:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34001b.ada:127:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34001b.ada:128:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34001b.ada:130:12: error: unsupported attribute 'AFT'\n<upstream>/tests/b3/b34001b.ada:132:12: error: task attribute requires a task object\n<upstream>/tests/b3/b34001b.ada:133:12: error: 'Constrained requires a discriminated object and no arguments\n<upstream>/tests/b3/b34001b.ada:134:12: error: 'Constrained requires a discriminated object and no arguments\n<upstream>/tests/b3/b34001b.ada:135:12: error: entry 'Count requires an entry of the current protected instance\n<upstream>/tests/b3/b34001b.ada:136:12: error: unsupported attribute 'DELTA'\n<upstream>/tests/b3/b34001b.ada:137:12: error: 'Digits requires a floating point prefix\n<upstream>/tests/b3/b34001b.ada:138:12: error: unsupported attribute 'EMAX'\n<upstream>/tests/b3/b34001b.ada:139:12: error: unsupported attribute 'EPSILON'\n<upstream>/tests/b3/b34001b.ada:141:12: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:142:12: error: 'FIRST takes no arguments\n<upstream>/tests/b3/b34001b.ada:143:12: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:144:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34001b.ada:145:12: error: unsupported attribute 'FORE'\n<upstream>/tests/b3/b34001b.ada:147:12: error: unsupported attribute 'LARGE'\n<upstream>/tests/b3/b34001b.ada:149:12: error: 'LAST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:150:12: error: 'LAST takes no arguments\n<upstream>/tests/b3/b34001b.ada:151:12: error: 'LAST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:152:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34001b.ada:153:12: error: 'Length requires an array prefix\n<upstream>/tests/b3/b34001b.ada:154:12: error: 'LENGTH requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:155:12: error: 'Length requires an array prefix\n<upstream>/tests/b3/b34001b.ada:156:12: error: 'LENGTH requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:157:12: error: unsupported attribute 'MACHINE_EMAX'\n<upstream>/tests/b3/b34001b.ada:158:12: error: unsupported attribute 'MACHINE_EMIN'\n<upstream>/tests/b3/b34001b.ada:159:12: error: unsupported attribute 'MACHINE_MANTISSA'\n<upstream>/tests/b3/b34001b.ada:160:12: error: 'MACHINE_OVERFLOWS requires a floating or fixed point subtype mark and no arguments\n<upstream>/tests/b3/b34001b.ada:161:12: error: unsupported attribute 'MACHINE_RADIX'\n<upstream>/tests/b3/b34001b.ada:162:12: error: 'MACHINE_ROUNDS requires a floating or fixed point subtype mark and no arguments\n<upstream>/tests/b3/b34001b.ada:163:12: error: unsupported attribute 'MANTISSA'\n<upstream>/tests/b3/b34001b.ada:165:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34001b.ada:167:16: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:167:16: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:170:16: error: 'first takes no arguments\n<upstream>/tests/b3/b34001b.ada:170:16: error: 'last takes no arguments\n<upstream>/tests/b3/b34001b.ada:173:16: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:173:16: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34001b.ada:176:12: error: unsupported attribute 'SAFE_EMAX'\n<upstream>/tests/b3/b34001b.ada:177:12: error: unsupported attribute 'SAFE_LARGE'\n<upstream>/tests/b3/b34001b.ada:178:12: error: unsupported attribute 'SAFE_SMALL'\n<upstream>/tests/b3/b34001b.ada:181:12: error: unsupported attribute 'SMALL'\n<upstream>/tests/b3/b34001b.ada:182:12: error: unsupported attribute 'STORAGE_SIZE'\n<upstream>/tests/b3/b34001b.ada:183:12: error: unsupported attribute 'STORAGE_SIZE'\n<upstream>/tests/b3/b34001b.ada:185:12: error: task attribute requires a task object\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b34002b": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b34002b.ada:82:11: error: this type conversion is not allowed\n<upstream>/tests/b3/b34002b.ada:83:18: error: this type conversion is not allowed\n<upstream>/tests/b3/b34002b.ada:85:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:87:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:88:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:89:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:90:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:91:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:92:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:93:8: error: no visible subprogram matches this call\n<upstream>/tests/b3/b34002b.ada:94:12: error: 'C' is not a component of a record\n<upstream>/tests/b3/b34002b.ada:95:12: error: only an access value designates an object with '.all'\n<upstream>/tests/b3/b34002b.ada:96:13: error: only arrays and subprograms can be applied to arguments\n<upstream>/tests/b3/b34002b.ada:97:11: error: only an array can be sliced\n<upstream>/tests/b3/b34002b.ada:98:9: error: 'not' requires a Boolean operand\n<upstream>/tests/b3/b34002b.ada:99:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34002b.ada:100:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34002b.ada:101:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34002b.ada:102:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34002b.ada:103:11: error: logical operators require Boolean operands\n<upstream>/tests/b3/b34002b.ada:118:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34002b.ada:119:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34002b.ada:121:11: error: the operands of an arithmetic operator must have the same type\n<upstream>/tests/b3/b34002b.ada:125:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34002b.ada:126:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34002b.ada:127:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34002b.ada:128:11: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/b3/b34002b.ada:130:12: error: unsupported attribute 'AFT'\n<upstream>/tests/b3/b34002b.ada:132:12: error: task attribute requires a task object\n<upstream>/tests/b3/b34002b.ada:133:12: error: 'Constrained requires a discriminated object and no arguments\n<upstream>/tests/b3/b34002b.ada:134:12: error: 'Constrained requires a discriminated object and no arguments\n<upstream>/tests/b3/b34002b.ada:135:12: error: entry 'Count requires an entry of the current protected instance\n<upstream>/tests/b3/b34002b.ada:136:12: error: unsupported attribute 'DELTA'\n<upstream>/tests/b3/b34002b.ada:137:12: error: 'Digits requires a floating point prefix\n<upstream>/tests/b3/b34002b.ada:138:12: error: unsupported attribute 'EMAX'\n<upstream>/tests/b3/b34002b.ada:139:12: error: unsupported attribute 'EPSILON'\n<upstream>/tests/b3/b34002b.ada:141:12: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:142:12: error: 'FIRST takes no arguments\n<upstream>/tests/b3/b34002b.ada:143:12: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:144:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34002b.ada:145:12: error: unsupported attribute 'FORE'\n<upstream>/tests/b3/b34002b.ada:147:12: error: unsupported attribute 'LARGE'\n<upstream>/tests/b3/b34002b.ada:149:12: error: 'LAST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:150:12: error: 'LAST takes no arguments\n<upstream>/tests/b3/b34002b.ada:151:12: error: 'LAST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:152:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34002b.ada:153:12: error: 'Length requires an array prefix\n<upstream>/tests/b3/b34002b.ada:154:12: error: 'LENGTH requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:155:12: error: 'Length requires an array prefix\n<upstream>/tests/b3/b34002b.ada:156:12: error: 'LENGTH requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:157:12: error: unsupported attribute 'MACHINE_EMAX'\n<upstream>/tests/b3/b34002b.ada:158:12: error: unsupported attribute 'MACHINE_EMIN'\n<upstream>/tests/b3/b34002b.ada:159:12: error: unsupported attribute 'MACHINE_MANTISSA'\n<upstream>/tests/b3/b34002b.ada:160:12: error: 'MACHINE_OVERFLOWS requires a floating or fixed point subtype mark and no arguments\n<upstream>/tests/b3/b34002b.ada:161:12: error: unsupported attribute 'MACHINE_RADIX'\n<upstream>/tests/b3/b34002b.ada:162:12: error: 'MACHINE_ROUNDS requires a floating or fixed point subtype mark and no arguments\n<upstream>/tests/b3/b34002b.ada:163:12: error: unsupported attribute 'MANTISSA'\n<upstream>/tests/b3/b34002b.ada:165:12: error: a storage-place attribute requires a visible record component and no arguments\n<upstream>/tests/b3/b34002b.ada:167:16: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:167:16: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:170:16: error: 'first takes no arguments\n<upstream>/tests/b3/b34002b.ada:170:16: error: 'last takes no arguments\n<upstream>/tests/b3/b34002b.ada:173:16: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:173:16: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b34002b.ada:176:12: error: unsupported attribute 'SAFE_EMAX'\n<upstream>/tests/b3/b34002b.ada:177:12: error: unsupported attribute 'SAFE_LARGE'\n<upstream>/tests/b3/b34002b.ada:178:12: error: unsupported attribute 'SAFE_SMALL'\n<upstream>/tests/b3/b34002b.ada:181:12: error: unsupported attribute 'SMALL'\n<upstream>/tests/b3/b34002b.ada:182:12: error: unsupported attribute 'STORAGE_SIZE'\n<upstream>/tests/b3/b34002b.ada:183:12: error: unsupported attribute 'STORAGE_SIZE'\n<upstream>/tests/b3/b34002b.ada:185:12: error: task attribute requires a task object\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b36001a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b36001a.ada:37:18: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:40:18: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:44:18: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:46:28: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:48:29: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:50:30: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:60:28: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:62:29: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:64:29: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:67:27: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:71:21: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:73:21: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:75:22: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:78:21: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:80:21: error: array indices require a discrete type\n<upstream>/tests/b3/b36001a.ada:82:22: error: array indices require a discrete type\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b36002a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "outcome": "B_ACCEPTED_UNGRADED"
+    },
+    "b37004a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b37004a.ada:51:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:52:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:55:29: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:55:16: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:56:16: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/b3/b37004a.ada:58:44: error: 'C7' is not declared\n<upstream>/tests/b3/b37004a.ada:59:35: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:60:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:63:17: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/b3/b37004a.ada:64:30: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:64:33: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:64:17: error: an accuracy constraint must be static\n<upstream>/tests/b3/b37004a.ada:65:26: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:65:29: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:66:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:66:36: error: unsupported attribute 'RANGE'\n<upstream>/tests/b3/b37004a.ada:66:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:67:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:67:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:67:36: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:67:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:68:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:68:30: error: 'Size requires a type or an object\n<upstream>/tests/b3/b37004a.ada:69:28: error: 'C19' is not declared\n<upstream>/tests/b3/b37004a.ada:69:31: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:70:33: error: 'C20' is not declared\n<upstream>/tests/b3/b37004a.ada:70:36: error: unsupported attribute 'RANGE'\n<upstream>/tests/b3/b37004a.ada:70:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:72:25: error: 'C32' is not declared\n<upstream>/tests/b3/b37004a.ada:72:28: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:72:17: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:73:26: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:74:28: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:75:23: error: an allocator for 'AR' has to make a 'R'\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b3a0001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b3a0001.a:85:27: error: 'implicitly_limited_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:86:12: error: 'Implicitly_Limited_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:92:27: error: 'limited_record_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:93:15: error: 'Limited_Record_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:98:27: error: 'limited_extension_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:99:12: error: 'Limited_Extension_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:107:44: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:113:46: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:133:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:141:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:230:40: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:233:37: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:244:45: error: access-to-variable cannot designate a constant view\n<upstream>/tests/b3/b3a0001.a:249:18: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:254:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:259:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:261:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:263:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:265:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:272:35: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:274:23: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:276:37: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:279:24: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:282:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:285:53: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:321:34: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:323:42: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:325:43: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:327:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:334:33: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:340:44: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:345:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:348:48: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:355:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:366:27: error: a constant access view cannot be modified\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b3a0002": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b3/b3a0002.a:59:15: error: access-to-protected-subprogram types are not yet supported\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b43002d": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b4/b43002d.ada:48:6: error: the assigned value has an incompatible type\n<upstream>/tests/b4/b43002d.ada:50:6: error: the assigned value has an incompatible type\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b43002e": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b4/b43002e.ada:40:42: error: others must appear once, as the final aggregate association\n<upstream>/tests/b4/b43002e.ada:40:55: error: others must appear once, as the final aggregate association\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b43002f": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b4/b43002f.ada:45:45: error: others must appear once, as the final aggregate association\n<upstream>/tests/b4/b43002f.ada:45:58: error: others must appear once, as the final aggregate association\n<upstream>/tests/b4/b43002f.ada:45:58: error: record association has no components\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b460001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b4/b460001.a:204:32: error: source access type is deeper than the target access type\n<upstream>/tests/b4/b460001.a:211:32: error: source access type is deeper than the target access type\n<upstream>/tests/b4/b460001.a:218:32: error: source access type is deeper than the target access type\n<upstream>/tests/b4/b460001.a:229:46: error: source access type is deeper than the target access type\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b64002a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b6/b64002a.ada:53:6: error: no visible interpretation of 'P1' matches this context\n<upstream>/tests/b6/b64002a.ada:55:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:57:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:59:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:61:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:63:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:65:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:67:9: error: no visible subprogram matches this call\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b64002c": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b6/b64002c.ada:115:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:117:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:119:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:121:15: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:123:15: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:125:15: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:127:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:129:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:131:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:133:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:135:12: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:137:12: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:139:15: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:141:15: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:143:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:145:16: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002c.ada:147:12: error: no visible subprogram matches this call\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b64003a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b6/b64003a.ada:62:27: error: a positional argument cannot follow a named argument\n<upstream>/tests/b6/b64003a.ada:64:21: error: a positional argument cannot follow a named argument\n<upstream>/tests/b6/b64003a.ada:66:23: error: a positional argument cannot follow a named argument\n<upstream>/tests/b6/b64003a.ada:70:18: error: a positional argument cannot follow a named argument\n<upstream>/tests/b6/b64003a.ada:72:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64003a.ada:76:33: error: a parameter cannot be supplied more than once\n<upstream>/tests/b6/b64003a.ada:78:38: error: a parameter cannot be supplied more than once\n<upstream>/tests/b6/b64003a.ada:82:8: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64003a.ada:84:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64003a.ada:88:8: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64003a.ada:90:13: error: no visible subprogram matches this call\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b650002": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b6/b650002.a:190:23: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b6/b650002.a:196:13: error: expected an expression\n<upstream>/tests/b6/b650002.a:200:21: error: expected 'end' after task body, found 'when'\n<upstream>/tests/b6/b650002.a:203:25: error: expected 'begin' in subprogram body, found 'end'\n<upstream>/tests/b6/b650002.a:204:21: error: expected a declaration\n<upstream>/tests/b6/b650002.a:206:21: error: expected a declaration\n<upstream>/tests/b6/b650002.a:208:21: error: expected a declaration\n<upstream>/tests/b6/b650002.a:222:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:223:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:224:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:226:5: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:229:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:231:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:234:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:236:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:238:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:240:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:241:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:242:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:245:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:248:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:250:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:253:25: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:255:25: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:257:25: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:259:25: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:260:21: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:261:17: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:262:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:263:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:264:5: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:266:1: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:269:5: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:272:9: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:273:5: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:275:5: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650002.a:276:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b650004": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b6/b650004.a:68:18: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b6/b650004.a:238:7: error: expected an expression\n<upstream>/tests/b6/b650004.a:242:17: error: closing name 'Pack6' does not match 'tsk'\n<upstream>/tests/b6/b650004.a:262:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:263:7: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:265:7: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:266:4: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:268:4: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:272:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:283:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:285:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:288:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:290:7: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:294:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:305:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:307:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:310:13: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:311:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:313:10: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:314:7: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:315:4: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:317:1: error: expected a procedure, function or package declaration\n<upstream>/tests/b6/b650004.a:319:1: error: expected a procedure, function or package declaration\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b840001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/b8/b840001.a:115:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:116:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:205:24: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:236:4: error: 'B840001_0' is not a type\n<upstream>/tests/b8/b840001.a:239:4: error: 'B840001_4' is not a type\n<upstream>/tests/b8/b840001.a:244:24: error: 'Tag_Op' is not declared\n<upstream>/tests/b8/b840001.a:249:15: error: 'another_integer' is not declared\n<upstream>/tests/b8/b840001.a:253:54: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:259:15: error: 'my_integer' is not declared\n<upstream>/tests/b8/b840001.a:263:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:276:39: error: 'Int_Op' is not declared\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    }
+  }
+}

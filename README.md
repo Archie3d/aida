@@ -64,6 +64,8 @@ The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly ->
 The [lowering decision](docs/lowering-decision.md) retains direct QBE emission
 and records the representation and cleanup refactors required by later phases.
 
+The [ACATS backfill baseline](docs/acats-baseline.md) records independent passes, failures and harness gaps for completed features.
+
 ## Features and limits
 
 AIDA targets Ada 2005 and currently implements a substantial subset. Full
