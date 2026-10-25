@@ -375,8 +375,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (hasTasks(targetType)) {
             m_diagnostics.error(assign->location, "objects containing tasks cannot be assigned");
         }
-        if (!hasProtected(targetType) && hasLimitedControlledParts(targetType)) {
-            m_diagnostics.error(assign->location, "limited controlled objects cannot be assigned");
+        if (!hasProtected(targetType) && hasLimitedParts(targetType)) {
+            m_diagnostics.error(assign->location, (hasLimitedControlledParts(targetType) ? "limited controlled objects cannot be assigned" : "limited objects cannot be assigned"));
         }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);
         if (targetType != nullptr && targetType->classRoot != nullptr
@@ -550,6 +550,11 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (returnStatement->object != nullptr) {
             auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
             Scope* inner = m_symbolTable.createScope(scope);
+            if (expected != nullptr && expected->anonymousAccess
+                != (object->subtype->accessDefinition != nullptr)) {
+                m_diagnostics.error(object->location,
+                    "extended return must use the same kind of subtype indication as the result");
+            }
             bool anonymousResult = expected != nullptr && expected->anonymousAccess
                 && object->subtype->accessDefinition != nullptr;
             if (anonymousResult) {
@@ -563,19 +568,19 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             }
             analyzeDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
-            if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)
-                || (!needsFinalization(expected) && expected->kind != TypeKind::Access) || actual->classRoot != nullptr) {
+            if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)) {
                 m_diagnostics.error(returnStatement->location,
-                    "extended return requires the specific controlled result subtype");
+                    "extended return requires a compatible specific result subtype");
             }
             if (expected != nullptr && actual != nullptr
-                && ((expected->kind == TypeKind::Array && expected->constrained)
+                && (isScalar(expected) || (expected->kind == TypeKind::Array && (expected->constrained || expected->boundsSymbol != nullptr))
                     || expected->kind == TypeKind::Access
                     || (expected->kind == TypeKind::Record && hasKnownDiscriminants(expected)))
                 && !SemaSupport::staticallyMatches(actual, expected)) {
                 m_diagnostics.error(returnStatement->location, "extended return subtype must statically match the result subtype");
             }
-            if (!object->symbols.empty() && (expected == nullptr || expected->kind != TypeKind::Access)) {
+            if (!object->symbols.empty() && expected != nullptr && isComposite(expected)
+                && (needsFinalization(expected) || hasLimitedParts(expected) || expected->tagged || hasAccessDiscriminants(expected))) {
                 object->symbols.front()->objectReference = true;
             }
             m_extendedReturns.push_back(m_currentSubprogram);
@@ -589,7 +594,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 m_diagnostics.error(returnStatement->location, "exception occurrence results are not yet supported");
             }
             Type* valueType = analyzeExpr(returnStatement->value.get(), scope, expected);
-            if ((hasLimitedControlledParts(expected) || hasLimitedControlledParts(valueType))
+            if ((hasLimitedParts(expected) || hasLimitedParts(valueType))
                 && !buildsLimitedResult(returnStatement->value.get())) {
                 m_diagnostics.error(returnStatement->location, "a limited result must be built in place");
             }

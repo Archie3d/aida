@@ -306,7 +306,7 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
 
 Value QbeEmitter::recordConstrained(Expr* object, const Value* evaluated)
 {
-    if (object == nullptr || !hasDefaultDiscriminants(object->type)
+    if (object == nullptr || hasLimitedParts(object->type) || !hasDefaultDiscriminants(object->type)
         || hasDiscriminantConstraint(object->type)) {
         return Value { "1", 'w' };
     }
@@ -414,7 +414,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
              + ", l " + m_context->temporaryFinalizationChain + ", l " + storageArena(true, true) + ")", CallEffects::CheckException);
         return;
     }
-    if (needsFinalization(type)) {
+    if (needsFinalization(type) || hasLimitedParts(type)) {
         Expr* operand = value;
         while (operand->kind == ExprKind::Qualified) {
             if (type->kind == TypeKind::Array && operand->type != nullptr
@@ -428,7 +428,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             emitAggregateInto(static_cast<AggregateExpr*>(operand), address, type);
             return;
         }
-        if (hasLimitedControlledParts(type)) {
+        if (hasLimitedParts(type)) {
             bool temporary = m_context->initializingTemporary;
             m_context->resultTarget = address.name;
             m_context->resultTargetShape = type->kind == TypeKind::Array ? withBounds(address, type, nullptr) : address;
@@ -437,7 +437,8 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
                 : m_context->constructionOwner;
             m_context->resultTargetArena = m_context->constructionArena.empty()
                 ? storageArena(temporary, true) : m_context->constructionArena;
-            emitExpr(value);
+            Value result = emitExpr(value);
+            if (type->kind == TypeKind::Record) { checkRecordAssignment(address, result, type, true, constrained); }
             return;
         }
         Value source = emitExpr(value);

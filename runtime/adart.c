@@ -988,6 +988,20 @@ void __ada_array_result(void* descriptor, const void* source, int64_t first, int
     memcpy((char*)descriptor + adaArrayResultFirst(0) + 24, &elementSize, sizeof elementSize);
 }
 
+/* A return transfer is not adopted by the caller if a local finalizer or
+   dependent task fails while the callee is leaving. Preserve that exception
+   and discard only the untransferred buffer. The descriptor starts at null. */
+void __ada_array_result_cleanup(AdaTaskContext* context, void* descriptor)
+{
+    if (context->exception != NULL) {
+        void* buffer;
+        memcpy(&buffer, descriptor, sizeof buffer);
+        free(buffer);
+        buffer = NULL;
+        memcpy(descriptor, &buffer, sizeof buffer);
+    }
+}
+
 /* Each activation has separate local-object and temporary allocation lists.
    Checkpoints release a suffix on scope/statement exit; returns release all. */
 typedef struct AdaArrayAllocation

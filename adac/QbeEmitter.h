@@ -98,6 +98,7 @@ private:
         std::string temporaryFinalizationChain;
         bool initializingTemporary = false;
         std::string extendedReturnLabel;
+        bool cleansArrayResult = false;
         struct ReturnCleanup
         {
             std::string ownerMark;
@@ -143,6 +144,7 @@ private:
         std::unordered_map<const Stmt*, GotoTarget> gotoTargets;
         std::unordered_map<const LoopStmt*, StorageCheckpoint> loopStorage;
         std::unordered_map<const LoopStmt*, std::size_t> loopHandlerDepth;
+        std::unordered_map<const LoopStmt*, std::size_t> loopReturnDepth;
         std::vector<std::string> activeExceptions;
         std::unordered_map<const LoopStmt*, std::string> loopExits;
         std::string propagateLabel;
@@ -240,6 +242,7 @@ private:
     void initializeFinalization();
     void initializeCollection(Type* type);
     Value collectionFor(Type* type);
+    void emitExtendedReturnBody(ReturnStmt* statement);
     void emitControlledResult(Expr* expression, ObjectDecl* object = nullptr, ReturnStmt* extended = nullptr);
     void prepareControlledObject(const Value& object, Type* type, bool library = false);
     void activateControlledObject(const Value& object, Type* type);

@@ -203,14 +203,14 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
         aggregateExpr = static_cast<QualifiedExpr*>(aggregateExpr)->operand.get();
     }
     bool aggregate = isAggregateExpression(object->initializer.get())
-        && (explicitBounds || needsFinalization(type));
+        && (explicitBounds || needsFinalization(type) || hasLimitedParts(type));
     ArrayAggregatePlan aggregatePlan;
     bool preparedAggregate = aggregate && !explicitBounds;
     if (preparedAggregate) {
         Value context = withBounds(Value {}, object->initializer->type, nullptr);
         bounds = prepareArrayAggregate(aggregateExpr, context, type, aggregatePlan);
     }
-    bool constructedResult = object->initializer && !aggregate && hasLimitedControlledParts(type);
+    bool constructedResult = object->initializer && !aggregate && hasLimitedParts(type);
     if (object->initializer && !aggregate) {
         if (constructedResult) {
             m_context->resultTargetOwner = owner;

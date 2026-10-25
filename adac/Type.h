@@ -124,6 +124,8 @@ struct Type
     // assignment or equality to the outside.
     Symbol* privateTo = nullptr;
     bool isLimited = false;
+    // Explicit limitedness of the full view, inherited by subtypes/derivations.
+    bool limitedRecord = false;
     Scope* protectedScope = nullptr;
     std::string protectedName;
     Symbol* protectedObject = nullptr;
@@ -265,6 +267,7 @@ bool hasTasks(const Type* type);
 bool hasProtected(const Type* type);
 bool hasIncompleteParts(const Type* type);
 bool hasLimitedControlledParts(const Type* type);
+bool hasLimitedParts(const Type* type);
 long long fieldStorageSize(const FieldInfo& field);
 bool variantsExclusive(const Type* type, int left, int right);
 

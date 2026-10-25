@@ -336,7 +336,10 @@ StmtPtr Parser::parseReturnStatement()
         object->namesLower.push_back(current().lower);
         advance();
         expect(TokenKind::Colon, "in extended return");
-        object->isConstant = match(TokenKind::KwConstant);
+        object->aliased = match(TokenKind::KwAliased);
+        if (check(TokenKind::KwConstant)) {
+            fail("a return object cannot be declared constant in Ada 2005");
+        }
         object->subtype = parseSubtypeIndication(true);
         if (match(TokenKind::Assign)) {
             object->initializer = parseExpression();

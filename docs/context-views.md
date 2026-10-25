@@ -74,12 +74,12 @@ incomplete aliases and renamed views. `loading.context_dependencies` verifies
 metadata, binder membership, mixed/ordinary cycles and incremental spec/body
 invalidation. Compiler AddressSanitizer checks cover the new paths as well.
 
-The existing full-type restrictions still apply: general limited records,
-private extensions and tagged discriminants await Phase 6f. Unknown discriminants
+The existing full-type restrictions still apply: private extensions and tagged
+discriminants await Phase 6f; general limited records landed with 6e returns. Unknown discriminants
 on full/private declarations are explicitly diagnosed. Subprogram/package
 [subunits](subunits.md) are now implemented.
 [Object `Unchecked_Access`](unchecked-access.md) subsequently
 landed as an explicit follow-up. Unchanged ACATS CA20003 passes partition
 inclusion and CA110232 passes mutual references. CA12002 also passes with
-separate subunits. CA120012 remains an exact compile
-XFAIL for general limited records; it is not an upstream execution pass.
+separate subunits. CA120012 now also passes unchanged after general
+limited-record definitions were pulled forward into 6e.

@@ -252,7 +252,8 @@ example and independent grouped type/bound/initializer semantics are covered by
 Imported unchanged from [simonjwright/ACATS](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
 revision `2785c30c1f8577d97ac7b3043882f6818781e9c5` (the GCC snapshot above predates these Ada 2005 tests).
 C3A0030 executes as PASS. C3A0020 is a compile XFAIL for generic access
-objects (6g); C3A0025 additionally requires general limited records (6f).
+objects (6g); C3A0025 remains blocked by the same formal-object category.
+Its limited-record prerequisite landed in 6e.
 Their exact diagnostics are pinned; no upstream bodies are changed.
 
 | Source | Git blob | SHA-256 |
@@ -326,10 +327,10 @@ compilation/execution and exact XFAIL grading still apply.
 | --- | --- | --- |
 | CA20003: CA200030, CA200031 | PASS: a package reached only by limited with still belongs to the executable partition and elaborates | Further partition/host audit: P8 |
 | CA110232: CA110230–CA110232 | PASS: unchanged mutual-reference case, including Unchecked_Access | Broader accessibility audit: P8 |
-| CA120012: CA120010–CA120012 | Compile XFAIL: general limited records | P6f/P8 |
+| CA120012: CA120010–CA120012 | PASS: limited-record full definitions and private contexts | Broader limited/type audit: P6f/P8 |
 | CA12002 | PASS: private context visibility inherited by a separate function body | Broader subunit audit: P8 |
 
-The remaining CA120012 XFAIL is not an execution pass. Local `limitedwith`, `privatewith`
+All four context cases above now execute as PASS. Local `limitedwith`, `privatewith`
 and `taggedincomplete` exercise the implemented views with whole/per-unit/
 deterministic compilation, private children, runtime array aliases, four tasks,
 allocation and deallocation. `semantics.context_views` covers illegal uses,
@@ -354,7 +355,7 @@ CA110232 above now passes unchanged. C3A2004 adds contextual overload and
 controlling-access coverage from the same pinned Ada 2005 snapshot, unchanged
 except for its `.ada` filename. C3A2004 now compiles and executes successfully,
 including `Func.all'Access` where `Func` returns access-to-subprogram. CA120012
-remains blocked only by general limited records (Phase 6f).
+now passes after limited-record definitions landed with 6e returns.
 
 Local `uncheckedaccess` covers nested and generic scopes, anonymous parameters,
 access discriminants/components, overload selection, borrowed array bounds,
@@ -395,3 +396,24 @@ legality, context isolation and incremental rebuilds.
 | [tests/ca/ca1006a.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1006a.ada) | `7b3527f58e97945978f9913452b7cabc5a92d88d` | `fff62aec5169dc3453548e8b00470d47881bfc9cd004792b475ce38d43d3459d` |
 | [tests/ca/ca2009a.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca2009a.ada) | `4953045dcf6aa2bb4a8314bfdfa84fb49ee318b9` | `f5b6af9a6d6f5766832f00f975ba4153b9568fc8fbd75deac566dc806ce5df65` |
 | [tests/ca/ca2009d.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca2009d.ada) | `65b5d811318eefe6ee04e4539727e0a925cae9da` | `9309f5bc3a16c7acc2966ef79a10d792a55a6adceaa118d4c767d61d69f505af` |
+
+## Extended returns and limited construction (Phase 6e)
+
+Unchanged [C650003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c650003.a)
+was selected on 2026-10-25 from the same pinned ACATS snapshot and stored as
+`c650003.ada`, retaining all rights/disclaimers. It executes as PASS, checking
+limited-record constructors, generic constructors, normal/early extended
+returns and abandoning returns by exit, goto and exception (RM 6.5, 7.5).
+CA120012 also executes as PASS unchanged. C3A0025 remains an exact compile
+XFAIL for generic access objects; its old limited-record diagnostic is removed.
+
+C650A02/C650B01–C650B03 were assessed and excluded: their sources identify
+Ada 2012-specific extended-return coverage; they are not Ada 2005 pass evidence.
+C650002 needs task rendezvous/select (P9) and is deferred unchanged.
+Local `extendedreturns`, `limitedresults` and `returncleanup` add ordinary
+scalar/array/tagged/class-wide results, identity-sensitive construction,
+allocators, bounds, four tasks and failing initialization/finalization.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/c6/c650003.a | `2f364c642750d710a352af07bdf9cd9813e57700` | `fbfdf6356f171d3054d1cca4bd355d9b55d34a81d3f1e91358b23ee82950f33e` |

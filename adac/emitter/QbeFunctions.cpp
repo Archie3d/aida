@@ -224,9 +224,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     }
     if (isComposite(symbol->returnType)) {
         signature += "l %.result";
-        if (needsFinalization(symbol->returnType) || symbol->returnType->tagged || hasAccessDiscriminants(symbol->returnType)) {
+        if (needsFinalization(symbol->returnType) || hasLimitedParts(symbol->returnType) || symbol->returnType->tagged || hasAccessDiscriminants(symbol->returnType)) {
             signature += ", l %.resultOwner, l %.resultArena";
-            if (symbol->returnType->tagged || hasLimitedControlledParts(symbol->returnType)) {
+            if (symbol->returnType->tagged || hasLimitedParts(symbol->returnType)) {
                 signature += ", w %.resultProvided";
             }
         }
@@ -547,6 +547,9 @@ std::string QbeEmitter::functionExitActions(const FunctionContext& context)
     }
     if (context.hasMaster) {
         actions += "    call $__ada_master_leave(l %.taskContext, l %.master)\n";
+    }
+    if (context.cleansArrayResult) {
+        actions += "    call $__ada_array_result_cleanup(l %.taskContext, l %.result)\n";
     }
     actions += "    call $__ada_trace_leave_context(l %.taskContext, l %.trace)\n";
     return actions;

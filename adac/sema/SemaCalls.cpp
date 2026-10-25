@@ -259,7 +259,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         if (hasTasks(expr->type)) {
             m_diagnostics.error(expr->location, "conversions of types containing tasks are not yet supported");
         }
-        if (expr->type->kind == TypeKind::Array && hasLimitedControlledParts(expr->type)) {
+        if (expr->type->kind == TypeKind::Array && hasLimitedParts(expr->type)) {
             m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
         }
         if (expr->type->kind == TypeKind::Access && checkObjectAccessConversion(expr, expr->type, operand->type)) {

@@ -47,8 +47,8 @@ failed copy-back. Executable cases run whole/separate compilation and
 determinism checks; four workers exercise concurrent failures.
 
 Unchanged ACATS C3A0030 passes (nullable and excluded access discriminants).
-C3A0020 is a pinned compile XFAIL for generic access objects (6g); C3A0025
-also needs general limited records (6f). These XFAILs do not claim execution
+C3A0020 and C3A0025 are pinned compile XFAILs for generic access objects
+(6g); C3A0025's limited-record prerequisite landed in 6e. These XFAILs do not claim execution
 of their runtime scenarios. B-test protocol remains a Phase 8 harness gap.
 
 Normative references: [RM 3.10](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-10.html),

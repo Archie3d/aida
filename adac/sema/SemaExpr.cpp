@@ -41,7 +41,7 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     if (m_expressionDepth == 0 && errors == m_diagnostics.errorCount()) {
         validateStatic(expr, false, expected);
     }
-    if (needsFinalization(result) || needsCollection(result) || hasAccessDiscriminants(result) || (result != nullptr && result->tagged)) {
+    if (needsFinalization(result) || hasLimitedParts(result) || needsCollection(result) || hasAccessDiscriminants(result) || (result != nullptr && result->tagged)) {
         if (m_currentSubprogram != nullptr) {
             m_currentSubprogram->usesFinalization = true;
         } else {
@@ -299,14 +299,14 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
-        if (!hasProtected(designated) && hasLimitedControlledParts(designated) && !buildsLimitedResult(expr->value.get())) {
+        if (!hasProtected(designated) && hasLimitedParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
         }
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");
         }
         adaptUniversal(expr->value.get(), designated);
-        if (designated->classRoot != nullptr && hasLimitedControlledParts(value)
+        if (designated->classRoot != nullptr && hasLimitedParts(value)
             && value->classRoot == nullptr && buildsLimitedResult(expr->value.get())) {
             expr->designated = value;
         }
@@ -338,8 +338,8 @@ void Sema::checkPrivateOperands(BinaryExpr* expr)
             m_diagnostics.error(expr->location, "types containing tasks have no predefined equality");
             return;
         }
-        if (hasLimitedControlledParts(type) && comparison) {
-            m_diagnostics.error(expr->location, "a limited controlled type has no predefined equality");
+        if (hasLimitedParts(type) && comparison) {
+            m_diagnostics.error(expr->location, (hasLimitedControlledParts(type) ? "a limited controlled type has no predefined equality" : "a limited type has no predefined equality"));
             return;
         }
         if (type == nullptr || type->privateTo == nullptr || withinPackage(type->privateTo)) {
@@ -521,7 +521,7 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
     case BinaryOp::Concatenate: {
         Type* context = expected != nullptr && expected->kind == TypeKind::Array ? baseType(expected) : nullptr;
         if (context == nullptr || context->arrayRank != 1 || context->isLimited || context->element->isLimited
-            || hasLimitedControlledParts(context) || hasTasks(context) || hasProtected(context)
+            || hasLimitedParts(context) || hasTasks(context) || hasProtected(context)
             || operandContext == nullptr || rightContext == nullptr) {
             analyzeExpr(expr->left.get(), scope);
             analyzeExpr(expr->right.get(), scope);
@@ -767,6 +767,14 @@ bool Sema::buildsLimitedResult(Expr* expression) const
     }
     if (expression->kind == ExprKind::Aggregate) {
         return true;
+    }
+    if (expression->kind == ExprKind::Binary) {
+        auto* binary = static_cast<BinaryExpr*>(expression);
+        return binary->operatorCall != nullptr && buildsLimitedResult(binary->operatorCall.get());
+    }
+    if (expression->kind == ExprKind::Unary) {
+        auto* unary = static_cast<UnaryExpr*>(expression);
+        return unary->operatorCall != nullptr && buildsLimitedResult(unary->operatorCall.get());
     }
     if (expression->kind == ExprKind::Identifier) {
         Symbol* symbol = static_cast<IdentifierExpr*>(expression)->symbol;

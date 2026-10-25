@@ -185,7 +185,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             addType(m_types.stringType());
             for (Type* type : types) {
                 if (type->kind == TypeKind::Array && type->arrayRank == 1 && !type->isLimited
-                    && !type->element->isLimited && !hasLimitedControlledParts(type)
+                    && !type->element->isLimited && !hasLimitedParts(type)
                     && !hasTasks(type) && !hasProtected(type) && representationVisible(type)) {
                     Type* component = type->element;
                     predefined({ type, type }, type);

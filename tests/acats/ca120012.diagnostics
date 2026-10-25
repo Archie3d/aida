@@ -1,1 +1,0 @@
-ca120010.ada:157:5: error: limited record definitions outside Ada.Finalization are not yet supported

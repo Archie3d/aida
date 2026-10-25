@@ -295,7 +295,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     Value resultShape = inferred && plan != nullptr ? plan->shapes.at(expr) : address;
     std::string elementSize = arrayElementSize(resultShape, type);
     std::string buffer = address.name;
-    if (buffer.empty() || !needsFinalization(type)) {
+    if (buffer.empty() || (!needsFinalization(type) && !hasLimitedParts(type))) {
         buffer = newTemp();
         emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
              + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")", CallEffects::CheckException);
@@ -363,7 +363,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     label(done);
     std::string size = newTemp();
     line(size + " =l mul " + wideLength + ", " + elementSize);
-    if (!address.name.empty() && !needsFinalization(type)) {
+    if (!address.name.empty() && !needsFinalization(type) && !hasLimitedParts(type)) {
         emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck);
     }
     Value result { buffer, 'l', resultFirst, resultLast };
@@ -388,7 +388,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
             if (expr->ancestorIsType) {
                 emitDefaultInit(address, expr->ancestorType);
             } else {
-                if (needsFinalization(expr->ancestorType)) {
+                if (needsFinalization(expr->ancestorType) || hasLimitedParts(expr->ancestorType)) {
                     assignInto(address, expr->ancestorType, expr->ancestor.get(), true);
                 } else {
                     Value ancestor = emitExpr(expr->ancestor.get());

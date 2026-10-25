@@ -71,6 +71,7 @@ conformance and Specialized Needs Annex support are not claimed.
 
 Supported:
 - Library and nested packages, procedures, functions
+- Extended returns, limited records and build-in-place results ([limits](docs/returns.md))
 - Package elaboration blocks with local storage, captures and scoped cleanup
 - Control flow and exceptions
 - Integer, floating-point, fixed-point, modular, array and record types

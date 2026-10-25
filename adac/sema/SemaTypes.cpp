@@ -778,7 +778,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
     }
     type->abstract = definition->abstract;
-    type->isLimited = type->isLimited || definition->isLimited || hasLimitedControlledParts(type) || hasTasks(type) || hasProtected(type);
+    type->isLimited = type->isLimited || definition->isLimited || hasLimitedParts(type) || hasTasks(type) || hasProtected(type);
     if (type->abstract && !type->tagged) {
         m_diagnostics.error(decl->location, "an abstract type must be tagged");
     }
@@ -786,8 +786,15 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && (decl->lower == "controlled" || decl->lower == "limited_controlled")) {
         type->controlled = true;
     }
-    if (definition->kind == TypeDefKind::Record && definition->isLimited && !hasLanguageFinalization(type) && !hasTasks(type)) {
-        m_diagnostics.error(decl->location, "limited record definitions outside Ada.Finalization are not yet supported");
+    if (definition->kind == TypeDefKind::Record && definition->tagged
+        && !definition->isLimited && hasLimitedParts(type)) {
+        m_diagnostics.error(decl->location, "a tagged record with limited components must be explicitly limited");
+    }
+    if (definition->kind == TypeDefKind::Record && definition->isLimited) {
+        type->limitedRecord = true;
+    }
+    if (nonlimitedPrivateCompletion && hasLimitedParts(type) && !hasLanguageFinalization(type) && !hasTasks(type)) {
+        m_diagnostics.error(decl->location, "a limited full view requires a limited private view");
     }
     if (type->dependentStorage && type->parentType != nullptr && !type->tagged) { type->tagName.clear(); }
     if ((type->tagged || type->dependentStorage) && type->tagName.empty()) {
@@ -995,7 +1002,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
                 m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");
             }
             Type* valueType = analyzeExpr(field.defaultValue.get(), isDiscriminant ? scope : componentScope, info.type);
-            if (hasLimitedControlledParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
+            if (hasLimitedParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");
             }
             if (!typesCompatible(info.type, valueType)) {

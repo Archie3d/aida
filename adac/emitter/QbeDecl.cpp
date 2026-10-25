@@ -71,7 +71,7 @@ void QbeEmitter::emitTypeTag(Type* type)
            << expanded << ", l " << type->accessLevel
            << ", l 0, l " << type->dispatchSlots.size() << ", l " << type->abstract << ", l " << needsFinalization(type) << ", l "
            << (needsFinalization(type) ? type->tagName + ".parts" : "0")
-           << ", l " << hasLimitedControlledParts(type) << " }\n";
+           << ", l " << hasLimitedParts(type) << " }\n";
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
@@ -305,7 +305,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                     emitCallInstruction(pointer + " =l call $__ada_array_local(l " + arena + ", l 1, l 1, l " + size + ")", CallEffects::CheckException);
                     line("storel " + pointer + ", " + symbol->qbeName);
                     address.name = pointer;
-                    if (hasLimitedControlledParts(symbol->type)) {
+                    if (hasLimitedParts(symbol->type)) {
                         m_context->constructionOwner = newTemp();
                         m_context->constructionArena = arena;
                         emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
@@ -746,7 +746,7 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
     Type* type = symbol->type;
     std::string savedOwner = m_context->constructionOwner;
     std::string savedArena = m_context->constructionArena;
-    if (symbol->isGlobal && hasLimitedControlledParts(type)) {
+    if (symbol->isGlobal && hasLimitedParts(type)) {
         m_context->constructionOwner = newTemp();
         m_context->constructionArena = newTemp();
         emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
@@ -868,7 +868,7 @@ void QbeEmitter::initializeTypeTag(Type* type)
 
 void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
 {
-    bool limited = hasLimitedControlledParts(symbol->type) || hasLimitedControlledParts(object->initializer->type);
+    bool limited = hasLimitedParts(symbol->type) || hasLimitedParts(object->initializer->type);
     std::string owner = symbol->isGlobal ? "0" : m_context->finalizationChain;
     std::string arena = symbol->isGlobal ? "0" : storageArena(false, true);
     if (limited) {

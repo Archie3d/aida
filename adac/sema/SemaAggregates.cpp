@@ -72,6 +72,9 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
         if (!expr->ancestorIsType) {
             analyzeExpr(expr->ancestor.get(), scope, expr->ancestorType);
+            if (hasLimitedParts(expr->ancestorType) && !buildsLimitedResult(expr->ancestor.get())) {
+                m_diagnostics.error(expr->ancestor->location, "a limited ancestor part must be built in place");
+            }
         }
         firstField = expr->ancestorType->fields.size();
     } else if (target->tagged && rootType(target)->parentType != nullptr) {
@@ -146,8 +149,9 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                 return;
             }
             Type* valueType = analyzeExpr(value, scope, fieldType);
-            if (hasLimitedControlledParts(fieldType) && !buildsLimitedResult(value)) {
-                m_diagnostics.error(value->location, "limited controlled components cannot be copied");
+            if (hasLimitedParts(fieldType) && !buildsLimitedResult(value)) {
+                m_diagnostics.error(value->location, hasLimitedControlledParts(fieldType)
+                    ? "limited controlled components cannot be copied" : "limited components cannot be copied");
             }
             if (!typesCompatible(fieldType, valueType)) {
                 m_diagnostics.error(value->location, "the record component has an incompatible type");
@@ -298,8 +302,9 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             }
         }
         Type* valueType = analyzeExpr(component.value.get(), scope, target->element);
-        if (hasLimitedControlledParts(target->element) && !buildsLimitedResult(component.value.get())) {
-            m_diagnostics.error(component.value->location, "limited controlled components cannot be copied");
+        if (hasLimitedParts(target->element) && !buildsLimitedResult(component.value.get())) {
+            m_diagnostics.error(component.value->location, hasLimitedControlledParts(target->element)
+                ? "limited controlled components cannot be copied" : "limited components cannot be copied");
         }
         if (!invalidRow && !typesCompatible(target->element, valueType)) {
             m_diagnostics.error(component.value->location, "aggregate component has an incompatible type");

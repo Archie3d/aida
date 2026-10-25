@@ -578,7 +578,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         if (aggregate != nullptr && aggregate->kind == ExprKind::Aggregate) {
             preparedAggregate = static_cast<AggregateExpr*>(aggregate);
             bounds = prepareArrayAggregate(aggregate, bounds, designated, aggregatePlan);
-        } else if (expr->value != nullptr && hasLimitedControlledParts(designated) && !explicitBounds) {
+        } else if (expr->value != nullptr && hasLimitedParts(designated) && !explicitBounds) {
             Value collection = collectionFor(expr->type);
             std::string pending = newTemp();
             emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
@@ -607,7 +607,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
             else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
             label(ready);
             return result;
-        } else if (expr->value != nullptr && !(hasLimitedControlledParts(designated) && explicitBounds)) {
+        } else if (expr->value != nullptr && !(hasLimitedParts(designated) && explicitBounds)) {
             source = emitExpr(expr->value.get());
             preparedSource = true;
             if (!explicitBounds) { bounds = source; }
@@ -623,7 +623,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
     }
     if (!array && designated->kind == TypeKind::Record && designated->discriminantCount > 0
         && !designated->tagged && designated->classRoot == nullptr && expr->value != nullptr
-        && !hasLimitedControlledParts(designated)) {
+        && !hasLimitedParts(designated)) {
         source = emitExpr(expr->value.get());
         emitRecordConstraintCheck(source, designated);
         emitRecordConstraintCheck(source, expr->type->target);
@@ -634,7 +634,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
     // full storage size, just like records and local array declarations.
     std::string size = array && hasRuntimeLayout(designated) ? objectBytes(bounds, designated)
         : runtimeSize(isScalar(designated) ? expr->type->target : designated);
-    if (designated->classRoot != nullptr && hasLimitedControlledParts(designated)) {
+    if (designated->classRoot != nullptr && hasLimitedParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
         emitCallInstruction(pending + " =l call $__ada_collection_begin(l " + collection.name + ")", CallEffects::CheckException);
@@ -709,7 +709,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         m_context->taskGroup = object.name;
         std::string savedOwner = m_context->constructionOwner;
         std::string savedArena = m_context->constructionArena;
-        if (hasLimitedControlledParts(designated)) {
+        if (hasLimitedParts(designated)) {
             m_context->constructionOwner = newTemp();
             m_context->constructionArena = newTemp();
             emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l " + object.name + ")", CallEffects::DeferredCheck);

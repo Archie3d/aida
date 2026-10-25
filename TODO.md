@@ -323,7 +323,7 @@ checks.
 - [x] Ada 2005 box defaults (`<>`) in record and array aggregates, with checked
   subtypes and partial cleanup (`boxaggregates`, `boxchecks`, `boxcleanup`,
   `boxtasking`, `aggregateboxerrors`, `boxpositionalerrors`). Task/protected
-  aggregates and general limited records keep their restrictions.
+  aggregates remain Phase 9; general limited records landed with 6e returns.
   [Limits](docs/aggregate-defaults.md).
 
 ### 6c. Discriminated records
@@ -368,7 +368,7 @@ formals, protected callback types and foreign ABI work retain their later owners
 - [x] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic subprogram matching and runtime checks
   (`nullexclusion*`, ACATS C3A0030 PASS; C3A0020/C3A0025 compile XFAIL for
-  6g access objects and 6f limited records). [Contract](docs/null-exclusions.md).
+  6g access objects; limited records landed in 6e). [Contract](docs/null-exclusions.md).
 - [x] `'Access` of imported Ada/C subprograms and inherited tagged operations,
   with calling-convention checks, native C callbacks, inherited entries and
   result tags (`importedcallback*`, `inheritedcallback*`, `callbackextension*`;
@@ -404,8 +404,8 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   limited graph/manifest edges preserve mutual dependencies without imposing
   elaboration order (`limitedwith`, `privatewith`, `taggedincomplete`,
   `semantics.context_views`, `loading.context_dependencies`; whole/separate/
-  determinism, four tasks). ACATS CA20003/CA110232 PASS; CA120012 remains an
-  exact limited-record compile XFAIL; CA12002 now PASS with subunits below.
+  determinism, four tasks). ACATS CA20003/CA110232 PASS; CA120012 now PASS
+  with limited records and CA12002 PASS with subunits below.
   Existing full-type restrictions remain; [contract](docs/context-views.md).
 - [x] Object `Unchecked_Access` (pulled forward from the Phase 8 access audit):
   library-level accessibility, including anonymous access parameters and local
@@ -426,10 +426,15 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   `subprogramstuberrors`). ACATS CA1006A/CA2009D/CA12002 PASS; CA2009A remains
   a constrained-array generic-actual XFAIL (P6g/P8). Task/protected subunits
   remain diagnosed. [Contract](docs/subunits.md).
-- [ ] Extended return statements for results that are not controlled types,
-  general limited aggregates and build-in-place results. Extend the existing
-  limited controlled-result support to all required Ada 2005 cases, preserving
-  object identity, accessibility, master lifetimes and failure cleanup.
+- [x] Noncontrolled extended returns, general limited aggregates and
+  build-in-place results for supported result types. Pulled forward explicitly
+  limited record full views from 6f; preserve intrinsic limitedness through
+  subtypes/completion/derivation, identity, constraints, accessibility and
+  master/cleanup paths (`extendedreturns`, `limitedresults`, `returncleanup`,
+  whole/per-unit/determinism and four workers; `semantics.returns`,
+  `runtime.array_storage`). ACATS C650003/CA120012 PASS; C3A0025 remains a
+  generic-access-object XFAIL. Task/protected aggregates/results remain
+  diagnosed for Phase 9. [Contract](docs/returns.md).
 
 ### 6f. Object orientation
 
@@ -437,11 +442,12 @@ cases (C59002A, C761002, part of C3A0013); take them next.
 - [ ] Complete Ada 2005 overriding-indicator and null-procedure legality beyond
   the existing subset.
 - [ ] Discriminated tagged types, private extensions, extensions of private
-  views, general limited record definitions, unknown-discriminant private views,
+  views, unknown-discriminant private views,
   and tagged size clauses. Include
   runtime-sized tagged records and delayed private-component layouts diagnosed
   by Phase 6b. Support implicitly aliased limited current instances and their
   `'Access` in component defaults/access-discriminant constraints (C3A0013).
+  General limited-record full definitions were pulled forward into 6e returns.
 - [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
   operations, overriding, interface conversions and class-wide dispatch. Extend
   the single-parent tag/dispatch model with a representation that also supports
@@ -574,6 +580,9 @@ Completes Ada 2005 core tasking on top of Phases 4 and 6. Core tasking is part
 of the language goal, not an optional annex. Track annex-specific priorities,
 scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
+- [ ] Task/protected aggregates and function results: extend 6e construction
+  with caller-master ownership, delayed task activation and failed-result
+  cleanup (`semantics.returns` retains explicit rejections).
 - [ ] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
 - [ ] Selective accept, with guards, `terminate` and `delay` alternatives;

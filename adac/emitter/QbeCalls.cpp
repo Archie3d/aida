@@ -196,12 +196,12 @@ Value QbeEmitter::emitCall(CallExpr* expr)
     }
     bool compositeResult = isComposite(subprogram->returnType);
     bool accessResult = hasAccessDiscriminants(subprogram->returnType);
-    bool controlledResult = accessResult || needsFinalization(subprogram->returnType)
+    bool controlledResult = accessResult || needsFinalization(subprogram->returnType) || hasLimitedParts(subprogram->returnType)
         || (subprogram->returnType != nullptr && subprogram->returnType->tagged);
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
     bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->tagged;
     std::string resultStorage;
-    bool limitedResult = hasLimitedControlledParts(subprogram->returnType);
+    bool limitedResult = hasLimitedParts(subprogram->returnType);
     if (accessResult) {
         if (resultOwner.empty()) { resultOwner = construction.savedOwner.empty() ? m_context->finalizationChain : construction.savedOwner; }
         if (resultArena.empty()) { resultArena = construction.savedArena.empty() ? storageArena(false, true) : construction.savedArena; }

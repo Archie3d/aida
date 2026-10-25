@@ -62,7 +62,8 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     Type* type = object != nullptr && (wideExtended || returnType->kind == TypeKind::Record)
         ? object->symbols.front()->type : returnType;
     if (type->classRoot != nullptr) {
-        bool limited = hasLimitedControlledParts(type) || hasLimitedControlledParts(expression->type);
+        if (object != nullptr) { expression = object->initializer.get(); }
+        bool limited = hasLimitedParts(type) || hasLimitedParts(expression->type);
         std::string mark = newTemp();
         std::string arenaMark = newTemp();
         line(mark + " =l loadl %.resultOwner");
@@ -70,11 +71,25 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         std::string failed = newLabel("wideresultfailed");
         std::string ready = newLabel("wideresultready");
         pushHandler(failed);
-        if (limited) {
-            m_context->resultTargetOwner = "%.resultOwner";
-            m_context->resultTargetArena = "%.resultArena";
+        Value source;
+        if (limited && isAggregateExpression(expression)) {
+            source = Value { newTemp(), 'l' };
+            emitCallInstruction(source.name + " =l call $__ada_array_local(l %.resultArena, l 1, l 1, l "
+                + std::to_string(typeSize(expression->type)) + ")", CallEffects::CheckException);
+            std::string savedOwner = m_context->constructionOwner, savedArena = m_context->constructionArena;
+            m_context->constructionOwner = "%.resultOwner";
+            m_context->constructionArena = "%.resultArena";
+            prepareControlledObject(source, expression->type);
+            assignInto(source, expression->type, expression, true);
+            m_context->constructionOwner = savedOwner;
+            m_context->constructionArena = savedArena;
+        } else {
+            if (limited) {
+                m_context->resultTargetOwner = "%.resultOwner";
+                m_context->resultTargetArena = "%.resultArena";
+            }
+            source = emitExpr(expression);
         }
-        Value source = emitExpr(expression);
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w "
              + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
         std::string result = source.name;
@@ -83,6 +98,23 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             emitCallInstruction(result + " =l call $__ada_tagged_owned_copy(l %.resultOwner, l %.resultArena, l " + source.name + ")", CallEffects::CheckException);
         }
         line("storel " + result + ", %.result");
+        if (object != nullptr) {
+            Symbol* symbol = object->symbols.front();
+            std::string slot;
+            if (symbol->isUplevel) {
+                symbol->frameOffset = reserveFrame(8);
+                slot = newTemp();
+                line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->frameOffset));
+            } else {
+                slot = allocScratch(8);
+                m_context->locals[symbol] = slot;
+            }
+            line("storel " + result + ", " + slot);
+            m_context->returnCleanups.push_back({ mark, arenaMark,
+                m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
+            emitExtendedReturnBody(extended);
+            m_context->returnCleanups.pop_back();
+        }
         m_context->handlerLabels.pop_back();
         jump(ready);
         label(failed);
@@ -97,7 +129,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         label(ready);
         return;
     }
-    if (hasLimitedControlledParts(type) && object == nullptr && !isAggregateExpression(expression)) {
+    if (hasLimitedParts(type) && object == nullptr && !isAggregateExpression(expression)) {
         m_context->resultDescriptor = "%.result";
         m_context->resultProvided = "%.resultProvided";
         m_context->resultTargetOwner = "%.resultOwner";
@@ -132,7 +164,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     while (aggregate != nullptr && aggregate->kind == ExprKind::Qualified) {
         aggregate = static_cast<QualifiedExpr*>(aggregate)->operand.get();
     }
-    bool limitedAggregate = dynamic && hasLimitedControlledParts(type)
+    bool limitedAggregate = dynamic && hasLimitedParts(type)
         && aggregate != nullptr && aggregate->kind == ExprKind::Aggregate;
     if (dynamic) {
         if (object != nullptr) {
@@ -142,7 +174,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             if (!destination.hasBounds() && object->subtype->indexLows.empty()) {
                 if (limitedAggregate) {
                     destination = prepareArrayAggregate(aggregate, withBounds(Value {}, type, nullptr), type, aggregatePlan);
-                } else if (hasLimitedControlledParts(type)) {
+                } else if (hasLimitedParts(type)) {
                     m_context->resultDescriptor = "%.result";
                     m_context->resultProvided = "%.resultProvided";
                     m_context->resultTargetOwner = "%.resultOwner";
@@ -197,11 +229,11 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         std::string provided;
         std::string allocate;
         std::string allocated;
-        if (hasLimitedControlledParts(type) && (type->tagged || dynamic)) {
+        if (hasLimitedParts(type) && (type->tagged || dynamic)) {
             provided = newLabel("resultprovided");
             allocate = newLabel("resultallocate");
             allocated = newLabel("resultallocated");
-            branch(Value { hasLimitedControlledParts(returnType) ? "%.resultProvided" : "0", 'w' }, provided, allocate);
+            branch(Value { hasLimitedParts(returnType) ? "%.resultProvided" : "0", 'w' }, provided, allocate);
             label(allocate);
         }
         destination.name = newTemp();
@@ -266,28 +298,10 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         }
         m_context->constructionOwner = savedOwner;
         m_context->constructionArena = savedArena;
-        std::string savedReturn = m_context->extendedReturnLabel;
-        std::string bodyDone = newLabel("returnbodydone");
-        m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
-        m_context->extendedReturnLabel = bodyDone;
         m_context->returnCleanups.push_back({ ownerMark, arenaMark,
             m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
-        if (extended->handlers.empty()) {
-            emitStatements(extended->body);
-        } else {
-            std::string dispatch = newLabel("returnhandler");
-            std::string handled = newLabel("returnhandled");
-            m_context->handlerStorage[dispatch] = storageCheckpoint();
-            pushHandler(dispatch);
-            emitStatements(extended->body);
-            m_context->handlerLabels.pop_back();
-            jump(handled);
-            emitHandlers(extended->handlers, handled, dispatch);
-            label(handled);
-        }
-        label(bodyDone);
+        emitExtendedReturnBody(extended);
         m_context->returnCleanups.pop_back();
-        m_context->extendedReturnLabel = savedReturn;
     } else if (limitedAggregate) {
         emitDynamicAggregateInto(static_cast<AggregateExpr*>(aggregate), destination, type, &aggregatePlan);
     } else if (dynamic) {

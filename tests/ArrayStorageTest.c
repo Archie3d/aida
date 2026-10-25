@@ -107,6 +107,24 @@ static void adjustValue(void* object)
 
 int main(void)
 {
+    AdaArrayResult result = { 0 };
+    __ada_array_result_cleanup(__ada_task_context(), &result);
+    CHECK(liveAllocations == 0);
+    __ada_array_result(&result, "abc", 1, 3, 1);
+    CHECK(liveAllocations == 1);
+    __ada_array_result_cleanup(__ada_task_context(), &result);
+    CHECK(liveAllocations == 1 && result.data != NULL);
+    __ada_raise(ADA_CONSTRAINT_ERROR);
+    __ada_array_result_cleanup(__ada_task_context(), &result);
+    CHECK(liveAllocations == 0 && result.data == NULL && __ada_exception == ADA_CONSTRAINT_ERROR);
+    __ada_array_result_cleanup(__ada_task_context(), &result);
+    CHECK(liveAllocations == 0);
+    __ada_exception = NULL;
+    AdaTaskContext failedContext = { 0 };
+    failedContext.exception = ADA_PROGRAM_ERROR;
+    __ada_array_result(&result, "abc", 1, 3, 1);
+    __ada_array_result_cleanup(&failedContext, &result);
+    CHECK(liveAllocations == 0 && result.data == NULL && __ada_exception == NULL);
     void* owner = NULL;
     char* outer = __ada_array_local(&owner, 1, 20, 1);
     CHECK(outer != NULL && liveAllocations == 2);

@@ -440,6 +440,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->accessScope = parent->accessScope;
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
+    subtype->limitedRecord = parent->limitedRecord;
     subtype->taskBody = parent->taskBody;
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
@@ -467,6 +468,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->tagName = completed->tagName;
         subtype->parentFieldCount = completed->parentFieldCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
+        subtype->limitedRecord = completed->limitedRecord;
         subtype->fields = completed->fields;
         subtype->recordRepresentationSpecified = completed->recordRepresentationSpecified;
         subtype->layoutSymbol = completed->layoutSymbol;
@@ -718,6 +720,21 @@ bool hasLimitedControlledParts(const Type* type)
             if (hasLimitedControlledParts(field.type)) {
                 return true;
             }
+        }
+    }
+    return false;
+}
+
+// An explicitly limited record and every composite containing one must keep
+// its identity even without controlled components or finalization nodes.
+bool hasLimitedParts(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->limitedRecord || (type->isLimited && needsFinalization(type))) { return true; }
+    if (type->kind == TypeKind::Array) { return hasLimitedParts(type->element); }
+    if (type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (hasLimitedParts(field.type)) { return true; }
         }
     }
     return false;

@@ -223,6 +223,7 @@ void __ada_array_rewind(void** owner, void* checkpoint);
 void __ada_array_adopt(void** owner, void* data);
 
 void __ada_array_result(void* descriptor, const void* source, int64_t first, int64_t last, int64_t elementSize);
+void __ada_array_result_cleanup(AdaTaskContext* context, void* descriptor);
 
 /* Tagged descriptors preserve their first three layout words. Local tag
    metadata survives its master for tag queries; object escape checks protect

@@ -272,9 +272,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
             m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
         }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
-        if (!hasProtected(type) && (hasLimitedControlledParts(type) || hasLimitedControlledParts(valueType))
+        if (!hasProtected(type) && (hasLimitedParts(type) || hasLimitedParts(valueType))
             && !buildsLimitedResult(decl->initializer.get())) {
-            m_diagnostics.error(decl->location, "limited controlled objects cannot be copied");
+            m_diagnostics.error(decl->location, (hasLimitedControlledParts(type) ? "limited controlled objects cannot be copied" : "limited objects cannot be copied"));
         }
         if (!typesCompatible(type, valueType)) {
             m_diagnostics.error(decl->initializer->location,

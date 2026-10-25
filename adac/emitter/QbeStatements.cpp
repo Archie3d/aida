@@ -118,6 +118,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
         m_context->loopExits[loop] = exit;
         m_context->loopStorage[loop] = storageCheckpoint();
         m_context->loopHandlerDepth[loop] = m_context->handlerLabels.size();
+        m_context->loopReturnDepth[loop] = m_context->returnCleanups.size();
         m_context->transferMasterDepth[exit] = m_context->blockMasters.size();
 
         if (loop->loopKind == LoopKind::For) {
@@ -219,6 +220,16 @@ void QbeEmitter::emitStatement(Stmt* statement)
             auto handlers = m_context->handlerLabels;
             auto masters = m_context->blockMasters;
             std::size_t depth = m_context->transferMasterDepth.at(it->second);
+            for (std::size_t i = m_context->returnCleanups.size();
+                i > m_context->loopReturnDepth.at(exitStatement->target); --i) {
+                const auto& result = m_context->returnCleanups[i - 1];
+                emitBlockExits(result.masterDepth);
+                m_context->blockMasters.resize(result.masterDepth);
+                m_context->handlerLabels.resize(result.handlerDepth);
+                emitCallInstruction("call $__ada_finalize_to(l %.resultOwner, l " + result.ownerMark + ")", CallEffects::DeferredCheck);
+                emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
+                emitExceptionCheck();
+            }
             emitBlockExits(depth);
             m_context->blockMasters.resize(depth);
             m_context->handlerLabels.resize(m_context->loopHandlerDepth.at(exitStatement->target));
@@ -254,39 +265,33 @@ void QbeEmitter::emitStatement(Stmt* statement)
             if (isUnconstrainedArray(resultType)) { result = loadArrayView("%.result", resultType->arrayRank, true); }
             checkAccessDiscriminants(result, resultType, accessLevelFor(m_context->symbol), "%.resultOwner");
         };
-        if (returnStatement->object != nullptr && resultType->kind == TypeKind::Access) {
+        if (returnStatement->object != nullptr && (!isComposite(resultType)
+            || (!needsFinalization(resultType) && !hasLimitedParts(resultType)
+                && !resultType->tagged && !hasAccessDiscriminants(resultType)))) {
+            if (isUnconstrainedArray(resultType) && !m_context->cleansArrayResult) {
+                m_context->cleansArrayResult = true;
+                m_context->prologue << "    storel 0, %.result\n";
+            }
             DeclList declarations;
             declarations.push_back(std::move(returnStatement->object));
             emitLocalDeclarations(declarations);
             returnStatement->object = std::move(declarations.front());
             auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
-            std::string savedReturn = m_context->extendedReturnLabel;
-            std::string bodyDone = newLabel("accessreturnbodydone");
-            m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
-            m_context->extendedReturnLabel = bodyDone;
-            if (returnStatement->handlers.empty()) { emitStatements(returnStatement->body); }
-            else {
-                std::string dispatch = newLabel("accessreturnhandler"), handled = newLabel("accessreturnhandled");
-                m_context->handlerStorage[dispatch] = storageCheckpoint();
-                pushHandler(dispatch);
-                emitStatements(returnStatement->body);
-                m_context->handlerLabels.pop_back();
-                jump(handled);
-                emitHandlers(returnStatement->handlers, handled, dispatch);
-                label(handled);
-            }
-            label(bodyDone);
-            m_context->extendedReturnLabel = savedReturn;
-            Value result = loadFrom(addressOf(object->symbols.front()), resultType);
-            emitRangeCheck(result, resultType, returnStatement->location);
-            if (resultType->anonymousAccess) { line("storew " + accessLevelFor(resultType) + ", %.accessResultLevel"); }
-            emitReturn(result.name);
+            emitExtendedReturnBody(returnStatement);
+            auto value = std::make_unique<IdentifierExpr>();
+            value->symbol = object->symbols.front();
+            value->type = value->symbol->type;
+            value->location = returnStatement->location;
+            ReturnStmt completion;
+            completion.location = returnStatement->location;
+            completion.value = std::move(value);
+            emitStatement(&completion);
         } else if (returnStatement->object != nullptr) {
             emitControlledResult(nullptr, static_cast<ObjectDecl*>(returnStatement->object.get()), returnStatement);
             checkResultAccess();
             emitReturn();
         } else if (returnStatement->value && isComposite(resultType)) {
-            if (needsFinalization(resultType) || resultType->tagged) {
+            if (needsFinalization(resultType) || hasLimitedParts(resultType) || resultType->tagged) {
                 emitControlledResult(returnStatement->value.get());
             } else if (isUnconstrainedArray(resultType)) {
                 Value value = emitExpr(returnStatement->value.get());
@@ -421,4 +426,27 @@ void QbeEmitter::emitStatement(Stmt* statement)
         break;
     }
     }
+}
+
+void QbeEmitter::emitExtendedReturnBody(ReturnStmt* statement)
+{
+    std::string savedReturn = m_context->extendedReturnLabel;
+    std::string bodyDone = newLabel("returnbodydone");
+    m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
+    m_context->extendedReturnLabel = bodyDone;
+    if (statement->handlers.empty()) {
+        emitStatements(statement->body);
+    } else {
+        std::string dispatch = newLabel("returnhandler");
+        std::string handled = newLabel("returnhandled");
+        m_context->handlerStorage[dispatch] = storageCheckpoint();
+        pushHandler(dispatch);
+        emitStatements(statement->body);
+        m_context->handlerLabels.pop_back();
+        jump(handled);
+        emitHandlers(statement->handlers, handled, dispatch);
+        label(handled);
+    }
+    label(bodyDone);
+    m_context->extendedReturnLabel = savedReturn;
 }

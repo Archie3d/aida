@@ -107,7 +107,7 @@ add_acats_test(c413004)
 # Limited dependencies still include their packages in the executable partition.
 add_acats_test(ca200031 TEST_NAME CA20003 SOURCES ca200030.ada ca200031.ada)
 add_acats_test(ca110232 SOURCES ca110230.ada ca110231.ada ca110232.ada)
-add_acats_test(ca120012 REJECTION "limited record definitions outside Ada.Finalization are not yet supported" SOURCES ca120010.ada ca120011.ada ca120012.ada)
+add_acats_test(ca120012 SOURCES ca120010.ada ca120011.ada ca120012.ada)
 add_acats_test(ca12002)
 
 # Contextual Access/Unchecked_Access overload resolution and controlling access.
@@ -117,3 +117,6 @@ add_acats_test(c3a2004)
 add_acats_test(ca1006a)
 add_acats_test(ca2009a REJECTION "'PKG1' expects a type of a fixed size, and 'STR15' is not one")
 add_acats_test(ca2009d)
+
+# Ada 2005 extended returns, including limited generic results and transfers.
+add_acats_test(c650003)
