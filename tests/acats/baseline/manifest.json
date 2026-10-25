@@ -1561,7 +1561,7 @@
       "triage": {
         "kind": "frontend_rejection_to_investigate",
         "owner": "P3/P6a/P6c/P6e/P8",
-        "note": "<upstream>/tests/c7/c730004.a:119:24: error: 'String1' is not declared"
+        "note": "Private-child visibility repaired; still rejects concatenation of slices of a limited-private type with a nonlimited array full view at line 119. Review full-view limitedness in P6f-prelude remaining supported-area rejections."
       }
     },
     {
@@ -1857,9 +1857,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6e/P8",
-        "note": "<upstream>/tests/c8/c840001.a:208:19: error: '/=' is not declared in 'C840001_0'"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after applying declaration-scope hiding to implicit operators and resolving package-qualified operators; use type follows type identity (RM 8.3-8.4)."
       }
     },
     {
@@ -1914,9 +1914,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "frontend_rejection_to_investigate",
-        "owner": "P3/P6e/P8",
-        "note": "<upstream>/tests/c8/c84008a.ada:74:14: error: '/=' is not declared in 'PACK1'"
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after applying declaration-scope hiding to implicit operators and resolving package-qualified operators; use type follows type identity (RM 8.3-8.4)."
       }
     },
     {
@@ -1933,9 +1933,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "execution_failure",
-        "owner": "P3/P6e/P8",
-        "note": "REPORT: BINARY \"-\" ALREADY VISIBLE FOR TYPE INT. Audit primitive operator/use visibility."
+        "kind": "covered_probe",
+        "owner": "P6f-prelude",
+        "note": "PASS after applying declaration-scope hiding to implicit operators and resolving package-qualified operators; use type follows type identity (RM 8.3-8.4)."
       }
     },
     {

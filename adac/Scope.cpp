@@ -38,6 +38,59 @@ void Scope::addUseScope(Scope* scope, Symbol* privateTo)
     m_useScopes.push_back(scope);
 }
 
+int Scope::immediateDepth(const Scope* declaration) const
+{
+    int depth = 0;
+    for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent, ++depth) {
+        if (scope == declaration) { return depth; }
+    }
+    return -1;
+}
+
+bool Scope::usesType(Type* type) const
+{
+    type = rootType(type);
+    if (type->classRoot != nullptr) { type = type->classRoot; }
+    for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
+        if (scope->m_contextClause) { return false; }
+    }
+    for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
+        for (Scope* used : scope->m_useScopes) {
+            auto privacy = scope->m_privateUseScopes.find(used);
+            if (used == type->declarationScope
+                && (privacy == scope->m_privateUseScopes.end() || privateVisible(privacy->second))) {
+                return true;
+            }
+        }
+        for (const auto& [used, all] : scope->m_useTypes) {
+            Type* specific = used->classRoot != nullptr ? used->classRoot : used;
+            auto privacy = scope->m_privateUseTypes.find(used);
+            if (specific == type
+                && (privacy == scope->m_privateUseTypes.end() || privateVisible(privacy->second))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::vector<Type*> Scope::operatorTypes(const Scope* from) const
+{
+    std::vector<std::string> names;
+    for (const auto& [name, symbols] : m_symbols) { names.push_back(name); }
+    std::sort(names.begin(), names.end());
+    std::vector<Type*> types;
+    for (const std::string& name : names) {
+        for (Symbol* symbol : lookupVisibleLocal(name, from)) {
+            if (symbol->kind == SymbolKind::TypeName && symbol->type->declarationScope == this
+                && !symbol->type->isSubtype) {
+                types.push_back(symbol->type);
+            }
+        }
+    }
+    return types;
+}
+
 std::vector<Symbol*> Scope::lookupLocal(const std::string& name) const
 {
     auto it = m_symbols.find(name);

@@ -444,7 +444,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     }
     case ExprKind::Unary: {
         auto* unary = static_cast<UnaryExpr*>(expr);
-        if (unary->operatorCall != nullptr) {
+        if (unary->predefinedResult != nullptr) {
+            add(unary->predefinedResult);
+        } else if (unary->operatorCall != nullptr) {
             add(expr->type);
         } else {
             for (const OperatorCandidate& candidate : operatorCandidates(operatorName(unary->op),
@@ -456,7 +458,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
     }
     case ExprKind::Binary: {
         auto* binary = static_cast<BinaryExpr*>(expr);
-        if (binary->operatorCall != nullptr) {
+        if (binary->predefinedResult != nullptr) {
+            add(binary->predefinedResult);
+        } else if (binary->operatorCall != nullptr) {
             add(expr->type);
         } else if (binary->op == BinaryOp::AndThen || binary->op == BinaryOp::OrElse) {
             for (Type* type : expressionTypes(binary->left.get(), scope, expected)) {

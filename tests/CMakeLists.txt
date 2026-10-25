@@ -1308,6 +1308,8 @@ add_test(NAME runtime.namedoperators_modes
 set_tests_properties(ada.namedoperators determinism.namedoperators
     runtime.namedoperators_modes PROPERTIES TIMEOUT 60)
 add_ada_error_test(namedoperatorerrors SOURCES namedoperatorerrors.adb)
+add_ada_error_test(operatorvisibilityerrors SOURCES operatorvisibilityerrors.adb)
+add_ada_error_test(operatorchildvisibilityerrors SOURCES operatorchildvisibilityerrors.adb)
 set_tests_properties(error.namedoperatorerrors PROPERTIES TIMEOUT 60)
 
 add_executable(abort_deferral_test AbortDeferralTest.c)
@@ -1362,7 +1364,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes

@@ -35,6 +35,7 @@ end Values;
 with Ada.Text_IO; use Ada.Text_IO;
 with Values;
 procedure Parameterless is
+    use type Values.Second_Kind;
     function Pick (Required : Integer) return Integer is
     begin
         return Required;

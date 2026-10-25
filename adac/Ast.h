@@ -201,6 +201,8 @@ struct BinaryExpr : Expr
 
     BinaryOp op = BinaryOp::Add;
     bool predefinedOnly = false;
+    std::vector<Type*> predefinedParameters;
+    Type* predefinedResult = nullptr;
     bool fixedResult = false;
     bool roundFixed = false;
     bool explicitFixedContext = false;
@@ -219,6 +221,8 @@ struct UnaryExpr : Expr
 
     UnaryOp op = UnaryOp::Plus;
     bool predefinedOnly = false;
+    std::vector<Type*> predefinedParameters;
+    Type* predefinedResult = nullptr;
     ExprPtr operand;
     ExprPtr operatorCall;
 };

@@ -1,0 +1,7 @@
+operatorvisibilityerrors.adb:34:12: error: no visible operator '+' matches these operands
+operatorvisibilityerrors.adb:35:25: error: no visible operator matches the argument names and types in this call
+operatorvisibilityerrors.adb:36:16: error: no visible operator matches the argument names and types in this call
+operatorvisibilityerrors.adb:37:18: error: no visible operator matches the argument names and types in this call
+operatorvisibilityerrors.adb:42:16: error: ambiguous operator '+'
+operatorvisibilityerrors.adb:51:18: error: no visible operator matches the argument names and types in this call
+operatorvisibilityerrors.adb:53:14: error: no visible operator matches the argument names and types in this call

@@ -8,10 +8,10 @@ using SemaSupport::isUniversal;
 
 std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string& name,
     const std::vector<Expr*>& operands, Scope* scope, Type* expected, bool predefinedOnly,
-    const std::vector<std::string>& argumentNames)
+    const std::vector<std::string>& argumentNames, Scope* selectedScope)
 {
     std::vector<OperatorCandidate> candidates;
-    auto symbols = scope->lookup(name);
+    auto symbols = selectedScope == nullptr ? scope->lookup(name) : selectedScope->lookupVisibleLocal(name, scope);
     auto matchesNames = [&](const std::vector<std::string>& formals) {
         for (std::size_t i = 0; i < argumentNames.size(); ++i) {
             if (!argumentNames[i].empty() && argumentNames[i] != formals[i]) {
@@ -35,7 +35,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             symbols = fixedSymbol == nullptr ? std::vector<Symbol*> {} : std::vector<Symbol*> { fixedSymbol };
         }
     }
-    if (predefinedOnly) { symbols.clear(); }
+    if (predefinedOnly || (fixed && fixedSymbol == nullptr)) { symbols.clear(); }
     for (Symbol* symbol : symbols) {
         if (symbol->kind != SymbolKind::Subprogram || symbol->parameters.size() != operands.size()
             || symbol->returnType == nullptr || !matchesResult(symbol, expected)) {
@@ -118,15 +118,39 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
             }
         }
         OperatorCandidate candidate { nullptr, std::move(parameters), result };
+        // Predefined declarations belong to the type's declarative region,
+        // even though their profiles are synthesized rather than stored as
+        // subprogram symbols. Apply the same immediate/use visibility rules.
+        Type* primitiveType = candidate.parameters.front();
+        if (name == "&" || (primitiveType->kind != TypeKind::Fixed && result->kind == TypeKind::Fixed)) {
+            primitiveType = result;
+        }
+        primitiveType = rootType(primitiveType);
+        if (primitiveType->classRoot != nullptr) { primitiveType = primitiveType->classRoot; }
+        Scope* owner = primitiveType->declarationScope != nullptr ? primitiveType->declarationScope : m_standardScope;
+        int depth = scope->immediateDepth(owner);
+        bool universalFixed = predefinedOnly && (name == "*" || name == "/")
+            && std::any_of(candidate.parameters.begin(), candidate.parameters.end(),
+                [](Type* type) { return type->kind == TypeKind::Fixed; });
+        if (selectedScope != nullptr && owner != selectedScope && !universalFixed) { return; }
+        if (selectedScope == nullptr && !predefinedOnly && !fixed && owner != m_standardScope
+            && depth < 0 && !scope->usesType(primitiveType)) {
+            return;
+        }
         for (const OperatorCandidate& existing : hiddenProfiles) {
-            // An explicit homograph replaces its predefined operation. A
-            // different profile remains a competing interpretation.
             if (sameProfile(existing, candidate)) {
-                return;
+                int explicitDepth = scope->immediateDepth(existing.symbol->declarationScope);
+                if (selectedScope == nullptr && depth >= 0
+                    && (explicitDepth < 0 || explicitDepth > depth)) {
+                    std::erase_if(candidates, [&](const OperatorCandidate& item) { return item.symbol == existing.symbol; });
+                } else if (selectedScope != nullptr || explicitDepth >= 0
+                           || existing.symbol->declarationScope == owner) {
+                    return;
+                }
             }
         }
         if (std::any_of(candidates.begin(), candidates.end(), [&](const OperatorCandidate& existing) {
-                return sameProfile(existing, candidate);
+                return existing.symbol == nullptr && sameProfile(existing, candidate);
             })) {
             return;
         }
@@ -151,6 +175,9 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         }
     };
     addType(expected);
+    if (selectedScope != nullptr) {
+        for (Type* type : selectedScope->operatorTypes(scope)) { addType(type); }
+    }
     for (Expr* operand : operands) {
         for (Type* type : expressionTypes(operand, scope)) {
             addType(type);
@@ -312,7 +339,7 @@ std::string Sema::explicitOperatorName(CallExpr* call, Scope* scope, bool& stand
         auto* selected = static_cast<SelectedExpr*>(call->callee.get());
         auto prefixes = expressionNames(selected->prefix.get(), scope);
         standard = prefixes.size() == 1 && prefixes.front()->scope == m_standardScope;
-        if (standard && (selected->selectorLower == "*" || selected->selectorLower == "/")) {
+        if (prefixes.size() == 1 && prefixes.front()->kind == SymbolKind::Package) {
             name = selected->selectorLower;
         }
     }
@@ -328,6 +355,12 @@ std::vector<Sema::OperatorCandidate> Sema::explicitOperatorCandidates(CallExpr* 
         return {};
     }
     std::vector<OperatorCandidate> result;
+    Scope* selectedScope = nullptr;
+    if (call->callee->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(call->callee.get());
+        auto prefixes = expressionNames(selected->prefix.get(), scope);
+        if (prefixes.size() == 1) { selectedScope = prefixes.front()->scope; }
+    }
     // At most two operands: try each formal order without mutating the AST.
     // A positional actual is fixed to its source position; named actuals are
     // checked against each user-defined or predefined candidate's own names.
@@ -354,7 +387,7 @@ std::vector<Sema::OperatorCandidate> Sema::explicitOperatorCandidates(CallExpr* 
         if (!valid) {
             continue;
         }
-        for (OperatorCandidate candidate : operatorCandidates(name, operands, scope, expected, standard, names)) {
+        for (OperatorCandidate candidate : operatorCandidates(name, operands, scope, expected, standard, names, selectedScope)) {
             candidate.argumentOrder = order;
             result.push_back(std::move(candidate));
         }
@@ -374,7 +407,9 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
     bool predefinedOnly = false;
     ExprPtr boundCall;
     Type* boundResult = nullptr;
-    if (named) {
+    std::vector<Type*> predefinedParameters;
+    if (named || (call->callee->kind == ExprKind::Selected
+                  && !(standard && (name == "*" || name == "/")))) {
         bool sawNamed = false;
         std::vector<std::string> names;
         for (const Association& argument : call->arguments) {
@@ -414,6 +449,8 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
             boundCall = bindOperator(chosen.symbol, std::move(operands), scope, call->location);
             boundResult = chosen.result;
         } else {
+            predefinedParameters = chosen.parameters;
+            boundResult = chosen.result;
             for (std::size_t i = 0; i < operands.size(); ++i) {
                 call->arguments[i].value = std::move(operands[i]);
             }
@@ -431,6 +468,8 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
                 unary->location = call->location;
                 unary->op = op;
                 unary->predefinedOnly = predefinedOnly || standard;
+                unary->predefinedParameters = predefinedParameters;
+                unary->predefinedResult = boundCall == nullptr ? boundResult : nullptr;
                 unary->operand = std::move(call->arguments[0].value);
                 if (boundCall != nullptr) {
                     unary->type = boundResult;
@@ -448,6 +487,8 @@ ExprPtr Sema::explicitOperator(CallExpr* call, Scope* scope, Type* expected)
                 binary->location = call->location;
                 binary->op = op;
                 binary->predefinedOnly = predefinedOnly;
+                binary->predefinedParameters = predefinedParameters;
+                binary->predefinedResult = boundCall == nullptr ? boundResult : nullptr;
                 binary->standardFixed = standard;
                 binary->explicitFixedContext = standard;
                 binary->left = std::move(call->arguments[0].value);

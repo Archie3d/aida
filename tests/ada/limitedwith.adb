@@ -3,6 +3,7 @@ with Ada.Unchecked_Deallocation;
 with Limited_A;
 with Limited_B;
 procedure LimitedWith is
+    use type Limited_B.Nested.Scalar;
     procedure Free_A is new Ada.Unchecked_Deallocation (Limited_A.Node, Limited_B.A_Access);
     procedure Free_B is new Ada.Unchecked_Deallocation (Limited_B.Node, Limited_A.B_Access);
     procedure Exercise is

@@ -11,22 +11,20 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 1 |
 | B rejected, ungraded | 19 |
-| Legal C-test rejected | 37 |
+| Legal C-test rejected | 35 |
 | Support/harness blocked | 7 |
-| Executable PASS | 41 |
-| Executable failure | 1 |
+| Executable PASS | 44 |
+| Executable failure | 0 |
 
-No crashes or timeouts were observed. **38 executable C-cases fail** (37 compile
-rejections and one execution failure); seven further C-cases are blocked by
-support adapters. The 19 rejected B-probes are ungraded, not 19 legality passes.
+No crashes or timeouts were observed. **35 executable C-cases fail**, all compile
+rejections; seven further C-cases are blocked by support adapters.
+The 19 rejected B-probes are ungraded, not 19 legality passes.
 The accepted B36002A probe warrants investigation of mixed constrained/
 unconstrained array-index legality.
 
-## Executable failures to investigate first
+## Reviewed repairs
 
-| Case | Observation | Area |
-| --- | --- | --- |
-| C84009A | REPORT: BINARY "-" ALREADY VISIBLE FOR TYPE INT. Audit primitive operator/use visibility. | P3/P6e |
+All five original executable failures now pass unchanged.
 
 C34001A/C34001D/C34002A now pass unchanged after the 6f-prelude repair:
 scalar `'Value` returns and checks `S'Base` (RM 3.5(53)), rather than the
@@ -42,9 +40,22 @@ parent failures, cleanup/recovery, overlapping slices, initialization and
 deallocation, including class-wide assignment and four tasks. Runtime ownership
 checks and the Ada regression pass with ASan/UBSan on the C runtime.
 
-The remaining executable failure above still needs localization. Legal-source
-rejections also need review: some hit explicit later roadmap features, while
-others expose missing behavior in completed areas.
+C840001/C84008A/C84009A now pass after the operator-visibility repair.
+Predefined operators participate in scope hiding; expanded calls resolve
+implicit operators, and use type follows the type's identity through subtypes.
+`operatorvisibility` and `operator*visibilityerrors` cover private/body/child
+contexts, qualified calls, homographs and diagnostics in whole/per-unit/
+deterministic modes, with four tasks and compiler ASan/UBSan checks.
+
+B840001 remains ungraded. Additional missing-use diagnostics at lines 266, 270
+and 290 correspond to upstream ERROR markers; private-child legal controls
+remain accepted. This is not a substitute for the Phase 8 B-test grader.
+C730004's private-child visibility diagnostics are removed; the case still
+rejects concatenation through a limited-private array's nonlimited full view
+at line 119, for the remaining supported-area review in this prelude.
+
+Legal-source rejections still need review: some hit explicit later roadmap
+features, while others expose missing behavior in completed areas.
 
 ## Coverage by area
 
@@ -62,14 +73,14 @@ be blocked before reaching the feature named in their objective.
 | control flow | 0 | 3 | 0 | 1 | 0 |
 | calls returns | 3 | 4 | 0 | 1 | 0 |
 | private finalization | 4 | 7 | 0 | 1 | 0 |
-| visibility renaming | 4 | 6 | 1 | 0 | 0 |
+| visibility renaming | 7 | 4 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 0 | 0 | 0 | 2 | 0 |
 | legality sample | 0 | 0 | 0 | 0 | 20 |
 
 ## Follow-up order
 
-1. Resolve the remaining executable failure and the accepted B36002A probe; turn
+1. Investigate the accepted B36002A probe and remaining legal C rejections; turn
    confirmed defects into focused compiler regressions before fixing them.
 2. Implement B-test grading against upstream error markers, permitted error
    groups and legal controls. Include recovery/diagnostic coverage; a nonzero
@@ -83,7 +94,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 41 observed
+crash/timeout handling and source/snapshot integrity. Only the 44 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -154,7 +165,7 @@ The table below gives the observed status and initial triage for every case.
 | [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | Support/harness blocked | support adapter gap; P8 ACATS harness: REPORT.ident_char |
 | [C65003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003a.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C65003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
-| [C730004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c730004.a) | 7.3/7.6 | Legal C-test rejected | frontend rejection to investigate; P3/P6a/P6c/P6e/P8 |
+| [C730004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c730004.a) | 7.3/7.6 | Legal C-test rejected | limited-private array full-view concatenation rejection remains; P6f-prelude/P8 |
 | [C73002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c73002a.ada) | 7.3/7.6 | Legal C-test rejected | frontend rejection to investigate; P3/P6a/P6c/P6e/P8 |
 | [C760001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760001.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C760002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760002.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
@@ -169,11 +180,11 @@ The table below gives the observed status and initial triage for every case.
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
 | [C83024A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83024a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
-| [C840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c840001.a) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
+| [C840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c840001.a) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
 | [C84002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84002a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C84005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84005a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
-| [C84008A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84008a.ada) | 8.3–8.5 | Legal C-test rejected | frontend rejection to investigate; P3/P6e/P8 |
-| [C84009A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84009a.ada) | 8.3–8.5 | Executable failure | execution failure; P3/P6e/P8 |
+| [C84008A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84008a.ada) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
+| [C84009A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84009a.ada) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
 | [C85005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005a.ada) | 8.3–8.5 | Legal C-test rejected | cross feature language gap; P9 |
 | [C85005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005b.ada) | 8.3–8.5 | Legal C-test rejected | cross feature language gap; P9 |
 | [C85005F](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005f.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |

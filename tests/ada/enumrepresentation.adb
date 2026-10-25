@@ -2,6 +2,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with System;
 with Enum_Storage;
 procedure EnumRepresentation is
+    use type Enum_Storage.Compact_Code;
     function Raw (Address : System.Address; Bytes, Signed : Integer) return Integer;
     pragma Import (C, Raw, "__test_enum_raw");
     Compact : Enum_Storage.Compact_Code := Enum_Storage.Last;

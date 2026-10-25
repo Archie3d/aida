@@ -99,7 +99,7 @@ Supported:
 - Imported Ada/C and inherited tagged callbacks ([limits](docs/subprogram-access.md))
 - Null exclusions with checked initialization, calls and conversions
   ([limits](docs/null-exclusions.md))
-- Primitive inheritance, overriding checks and dispatch through private overrides
+- Primitive inheritance, overriding checks, operator visibility and dispatch through private overrides ([operators](docs/operator-visibility.md))
 - Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
 - Entry-free tasks, grouped activation, master-based waiting and task identity/status
 - Protected types and single objects with procedures, functions and guarded entries

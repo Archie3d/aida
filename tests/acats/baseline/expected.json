@@ -5,14 +5,13 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "05d3cd2e5437a188be4f73c386a186e3b274bd9e24bb7752747447df89ef9779",
+  "compiler_sha256": "0ab86f8ef04812a9c83fe8e89e9f8b5d8545a46ea4fe7e9895f00868fd2ddc35",
   "counts": {
     "B_ACCEPTED_UNGRADED": 1,
     "B_REJECTED_UNGRADED": 19,
-    "COMPILE_REJECTED": 37,
+    "COMPILE_REJECTED": 35,
     "HARNESS_BLOCKED": 7,
-    "PASS": 41,
-    "RUN_FAILED": 1
+    "PASS": 44
   },
   "cases": {
     "c34001a": {
@@ -456,7 +455,7 @@
     "c730004": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c730004.a:119:24: error: 'String1' is not declared\n<upstream>/tests/c7/c730004.a:119:40: error: 'String2' is not declared\n<upstream>/tests/c7/c730004.a:119:38: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c730004.a:126:41: error: an aggregate spells out the components of 'File_Type', whose representation 'C730004_0' keeps to itself\n<upstream>/tests/c7/c730004.a:136:24: error: an aggregate spells out the components of 'File_Type', whose representation 'C730004_0' keeps to itself\n<upstream>/tests/c7/c730004.a:145:4: error: subprogram body does not conform to the previous declaration\n",
+      "compile_stderr": "<upstream>/tests/c7/c730004.a:119:38: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n",
       "outcome": "COMPILE_REJECTED"
     },
     "c73002a": {
@@ -559,10 +558,13 @@
       "outcome": "COMPILE_REJECTED"
     },
     "c840001": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c8/c840001.a:208:19: error: '/=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:208:24: error: condition must be of type Boolean\n<upstream>/tests/c8/c840001.a:215:24: error: '=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:215:10: error: 'not' requires a Boolean operand\n<upstream>/tests/c8/c840001.a:239:19: error: '/=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:239:24: error: condition must be of type Boolean\n<upstream>/tests/c8/c840001.a:246:23: error: '=' is not declared in 'C840001_0'\n<upstream>/tests/c8/c840001.a:246:10: error: 'not' requires a Boolean operand\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C840001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c84002a": {
       "compile_exit": 0,
@@ -583,19 +585,22 @@
       "outcome": "PASS"
     },
     "c84008a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c8/c84008a.ada:74:14: error: '/=' is not declared in 'PACK1'\n<upstream>/tests/c8/c84008a.ada:74:20: error: condition must be of type Boolean\n<upstream>/tests/c8/c84008a.ada:78:14: error: '/=' is not declared in 'PACK1'\n<upstream>/tests/c8/c84008a.ada:78:20: error: condition must be of type Boolean\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C84008A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c84009a": {
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C84009A\nFAILED BINARY \"-\" ALREADY VISIBLE FOR TYPE INT\n",
-      "run_stderr": "\nraised PROGRAM_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C84009A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c85005a": {
       "compile_exit": 1,
@@ -774,7 +779,7 @@
     "b840001": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b8/b840001.a:115:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:116:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:205:24: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:236:4: error: 'B840001_0' is not a type\n<upstream>/tests/b8/b840001.a:239:4: error: 'B840001_4' is not a type\n<upstream>/tests/b8/b840001.a:244:24: error: 'Tag_Op' is not declared\n<upstream>/tests/b8/b840001.a:249:15: error: 'another_integer' is not declared\n<upstream>/tests/b8/b840001.a:253:54: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:259:15: error: 'my_integer' is not declared\n<upstream>/tests/b8/b840001.a:263:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:276:39: error: 'Int_Op' is not declared\n",
+      "compile_stderr": "<upstream>/tests/b8/b840001.a:115:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:116:27: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:205:24: error: a record extension requires an extension aggregate\n<upstream>/tests/b8/b840001.a:236:4: error: 'B840001_0' is not a type\n<upstream>/tests/b8/b840001.a:239:4: error: 'B840001_4' is not a type\n<upstream>/tests/b8/b840001.a:244:24: error: 'Tag_Op' is not declared\n<upstream>/tests/b8/b840001.a:249:15: error: 'another_integer' is not declared\n<upstream>/tests/b8/b840001.a:253:54: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:259:15: error: 'my_integer' is not declared\n<upstream>/tests/b8/b840001.a:263:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:266:39: error: no visible operator '-' matches this operand\n<upstream>/tests/b8/b840001.a:270:34: error: no visible operator '>=' matches these operands\n<upstream>/tests/b8/b840001.a:276:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:290:34: error: no visible operator '-' matches these operands\n",
       "outcome": "B_REJECTED_UNGRADED"
     }
   }

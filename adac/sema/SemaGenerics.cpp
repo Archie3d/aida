@@ -706,6 +706,12 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         }
         implementation = explicitOperator(&call, operandsScope);
         if (implementation != nullptr) {
+            // Lookup at the instantiation site already selected this intrinsic.
+            if (implementation->kind == ExprKind::Unary) {
+                static_cast<UnaryExpr*>(implementation.get())->predefinedOnly = true;
+            } else if (implementation->kind == ExprKind::Binary) {
+                static_cast<BinaryExpr*>(implementation.get())->predefinedOnly = true;
+            }
             analyzeExpr(implementation.get(), operandsScope, wrapper->returnType);
         }
     } else {

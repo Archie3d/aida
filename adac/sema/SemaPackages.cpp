@@ -100,7 +100,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     bool savedVisiblePart = m_inVisiblePart;
     m_packageSpecScope = symbol->scope;
     m_inVisiblePart = true;
-    symbol->scope->m_publicChildPart = symbol->parentPackage != nullptr;
+    symbol->scope->m_publicChildPart = symbol->parentPackage != nullptr && !decl->privateUnit;
     analyzeDeclarativePart(decl->publicPart, symbol->scope, false);
     for (const DeclPtr& item : decl->publicPart) {
         if (item->kind != DeclKind::Type) { continue; }

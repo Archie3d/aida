@@ -702,6 +702,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         complement->hasBody = true;
         complement->location = symbol->location;
         complement->owner = symbol->owner;
+        complement->declarationScope = symbol->declarationScope;
         complement->level = symbol->level;
         scope->add(complement);
         registerPrimitive(complement, scope);

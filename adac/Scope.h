@@ -21,6 +21,9 @@ public:
     std::vector<Symbol*> lookup(const std::string& name) const;
     std::vector<Symbol*> lookupLocal(const std::string& name) const;
     std::vector<Symbol*> lookupVisibleLocal(const std::string& name, const Scope* from) const;
+    int immediateDepth(const Scope* declaration) const;
+    bool usesType(Type* type) const;
+    std::vector<Type*> operatorTypes(const Scope* from) const;
 
     void setParent(Scope* scope) { m_parent = scope; }
     Scope* parent() const { return m_parent; }

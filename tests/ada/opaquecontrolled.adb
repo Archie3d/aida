@@ -4,6 +4,7 @@ with Controlled_Result_Model; use Controlled_Result_Model;
 with Opaque_Controlled_Model;
 with Ada.Text_IO; use Ada.Text_IO;
 procedure OpaqueControlled is
+    use type Opaque_Controlled_Model.Link;
     procedure Free is new Ada.Unchecked_Deallocation (Opaque_Controlled_Model.Hidden, Opaque_Controlled_Model.Link);
     type Holder is record
         Item : Opaque_Controlled_Model.Alias;

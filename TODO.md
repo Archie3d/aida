@@ -457,10 +457,12 @@ full-tasking restrictions retain their later roadmap owners.
   component failures, partial cleanup/recovery and deallocation in whole/per-unit/
   deterministic modes and four tasks; runtime ASan/UBSan and allocation balance
   checks pass. [Contract](docs/controlled-assignment.md).
-- [ ] **Primitive operator visibility.** Resolve C84009A's operator hiding/use
-  failure and the implicit equality/operator lookup rejections in C840001 and
-  C84008A. Cover predefined and user operators, homographs, `use type`, expanded
-  names and visible/private/body contexts.
+- [x] **Primitive operator visibility.** C840001/C84008A/C84009A PASS unchanged:
+  implicit operators obey scope hiding and package-qualified lookup; `use type`
+  follows type identity. `operatorvisibility` and `operator*visibilityerrors`
+  cover homographs, subtypes, named/expanded calls, private/body/child contexts
+  and rejection controls; whole/per-unit/determinism, four tasks and compiler
+  ASan/UBSan pass. B840001 stays ungraded. [Contract](docs/operator-visibility.md).
 - [ ] **Array declaration legality.** Reject the mixed constrained/unconstrained
   multidimensional index definitions accepted by B36002A. Add diagnostic tests
   for the intended rule and legal controls with consistently constrained or

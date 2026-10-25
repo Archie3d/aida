@@ -341,6 +341,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
         implementation = explicitOperator(&call, operandsScope);
         if (implementation != nullptr) {
+            // The declaration's lookup already selected this intrinsic.
+            if (implementation->kind == ExprKind::Unary) {
+                static_cast<UnaryExpr*>(implementation.get())->predefinedOnly = true;
+            } else if (implementation->kind == ExprKind::Binary) {
+                static_cast<BinaryExpr*>(implementation.get())->predefinedOnly = true;
+            }
             analyzeExpr(implementation.get(), operandsScope, alias->returnType);
         }
     } else if (enumeration) {

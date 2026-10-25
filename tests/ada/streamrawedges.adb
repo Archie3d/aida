@@ -3,6 +3,8 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 procedure StreamRawEdges is
+    use type Ada.Streams.Stream_Element;
+    use type Ada.Streams.Stream_Element_Offset;
     procedure Check (Condition : Boolean) is
     begin
         if not Condition then

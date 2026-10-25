@@ -365,7 +365,14 @@ Type* Sema::analyzeBinary(BinaryExpr* expr, Scope* scope, Type* expected)
     Type* operandContext = nullptr;
     Type* rightContext = nullptr;
     if (!name.empty()) {
-        auto candidates = operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->standardFixed || expr->predefinedOnly);
+        auto candidates = expr->predefinedResult != nullptr
+            ? std::vector<OperatorCandidate> { { nullptr, expr->predefinedParameters, expr->predefinedResult } }
+            : operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, expr->standardFixed || expr->predefinedOnly);
+        if (candidates.empty() && !expr->standardFixed && !expr->predefinedOnly
+            && !operatorCandidates(name, { expr->left.get(), expr->right.get() }, scope, expected, true).empty()) {
+            m_diagnostics.error(expr->location, "no visible operator '" + name + "' matches these operands");
+            return nullptr;
+        }
         if (expected != nullptr && expected->kind == TypeKind::Fixed
             && (candidates.empty() || (candidates.size() == 1 && candidates.front().symbol == nullptr))) {
             auto universal = expressionTypes(expr, scope);
@@ -650,7 +657,14 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     std::string name = operatorName(expr->op);
-    auto candidates = operatorCandidates(name, { expr->operand.get() }, scope, expected, expr->predefinedOnly);
+    auto candidates = expr->predefinedResult != nullptr
+        ? std::vector<OperatorCandidate> { { nullptr, expr->predefinedParameters, expr->predefinedResult } }
+        : operatorCandidates(name, { expr->operand.get() }, scope, expected, expr->predefinedOnly);
+    if (candidates.empty() && !expr->predefinedOnly
+        && !operatorCandidates(name, { expr->operand.get() }, scope, expected, true).empty()) {
+        m_diagnostics.error(expr->location, "no visible operator '" + name + "' matches this operand");
+        return nullptr;
+    }
     if (candidates.size() > 1) {
         m_diagnostics.error(expr->location, "ambiguous operator '" + name + "'");
         return nullptr;

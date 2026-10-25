@@ -1,6 +1,7 @@
 with Ada.Text_IO;
 with Box_Library;
 procedure BoxTasking is
+    use type Box_Library.Link;
     protected Results is
         procedure Passed;
         function Count return Integer;

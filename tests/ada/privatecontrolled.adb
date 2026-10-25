@@ -4,6 +4,7 @@ with Controlled_Result_Model; use Controlled_Result_Model;
 with Private_Controlled_Model;
 with Ada.Text_IO; use Ada.Text_IO;
 procedure PrivateControlled is
+    use type Private_Controlled_Model.Link;
     procedure Free is new Ada.Unchecked_Deallocation (Private_Controlled_Model.Hidden, Private_Controlled_Model.Link);
     type Holder is record
         Item : Private_Controlled_Model.Alias;
