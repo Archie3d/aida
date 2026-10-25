@@ -76,6 +76,8 @@ private:
     void analyzeUseClause(UseDecl& decl, Scope* scope);
     bool withinPackage(Symbol* package) const;
     bool representationVisible(Type* type) const;
+    bool fieldVisible(Type* type, const FieldInfo& field) const;
+    bool unknownDiscriminantView(Type* type) const;
     bool limitedView(Type* type) const;
     bool abstractView(Type* type) const;
     bool taggedViewVisible(Type* type) const;
@@ -320,6 +322,7 @@ private:
     Decl* m_scalarConstraintDeclaration = nullptr;
     bool m_allocatorDiscriminantConstraint = false;
     std::vector<std::pair<Type*, SourceLocation>> m_deferredProtectedUses;
+    std::vector<Type*> m_pendingLayouts;
     std::vector<Expr*> m_abstractCalls;
     std::vector<Expr*> m_abstractDefaultCalls;
     Type* m_currentProtectedType = nullptr;

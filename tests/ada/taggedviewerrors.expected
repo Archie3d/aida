@@ -1,0 +1,13 @@
+taggedviewerrors.adb:2:21: error: a tagged type cannot have defaulted discriminants
+taggedviewerrors.adb:4:5: error: a derived type with new discriminants requires a constrained parent subtype
+taggedviewerrors.adb:6:5: error: composite Size must cover its components and be a multiple of its alignment
+taggedviewerrors.adb:33:5: error: an object of an unknown-discriminant view requires an initializer
+taggedviewerrors.adb:34:26: error: an unknown-discriminant view cannot have a discriminant constraint
+taggedviewerrors.adb:37:5: error: an object of an unknown-discriminant view requires an initializer
+taggedviewerrors.adb:38:5: error: an array component requires a definite subtype view
+taggedviewerrors.adb:39:31: error: an unknown-discriminant view cannot have a discriminant constraint
+taggedviewerrors.adb:41:23: error: an allocator of an unknown-discriminant view requires an initializer
+taggedviewerrors.adb:42:29: error: component 'Secret' is not visible through this type view
+taggedviewerrors.adb:43:38: error: component 'Length' is not visible through this type view
+taggedviewerrors.adb:47:35: error: object 'Access requires an aliased object view
+taggedviewerrors.adb:54:9: error: a private extension completion must descend from its declared ancestor

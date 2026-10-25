@@ -1,4 +1,4 @@
-package RuntimeComponentLateErrors is
+package RuntimeComponentLate is
     N : Integer := 3;
     type Hidden is private;
     type Outer is record
@@ -9,4 +9,4 @@ private
     type Hidden is record
         Data : String (1 .. N);
     end record;
-end RuntimeComponentLateErrors;
+end RuntimeComponentLate;

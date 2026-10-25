@@ -55,7 +55,15 @@ Value QbeEmitter::fieldStorage(const Value& object, Type* type, const FieldInfo&
     if (type->layoutSymbol == nullptr && field.offset == 0) { return Value {object.name, 'l'}; }
     Value address {newTemp(), 'l'};
     std::string offset;
-    if (type->dependentStorage && type->layoutSymbol != nullptr) {
+    if (type->tagged && type->layoutSymbol != nullptr && !object.declaredLayout) {
+        std::string tag = newTemp(), layoutSlot = newTemp(), layout = newTemp(), fieldSlot = newTemp();
+        offset = newTemp();
+        line(tag + " =l loadl " + object.name);
+        line(layoutSlot + " =l add " + tag + ", 112");
+        line(layout + " =l loadl " + layoutSlot);
+        line(fieldSlot + " =l add " + layout + ", " + std::to_string((field.index + 1) * 8));
+        line(offset + " =l loadl " + fieldSlot);
+    } else if (type->dependentStorage && type->layoutSymbol != nullptr) {
         std::string slot = newTemp(), layout = newTemp(), fieldSlot = newTemp();
         offset = newTemp();
         line(slot + " =l add " + object.name + ", 8");
@@ -71,6 +79,7 @@ Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo&
 {
     Value address = fieldStorage(object, type, field);
     address.accessLevel = object.accessLevel;
+    address.declaredLayout = object.declaredLayout;
     if (field.inlineDependent) {
         Value view = dependentFieldBounds(object, type, field);
         view.name = address.name;
@@ -135,8 +144,11 @@ void QbeEmitter::initializeDependentField(const Value& object, Type* type, const
         label(ready);
         return;
     }
+    if (field.storageType != nullptr) {
+        activateControlledObject(fieldStorage(object, type, field), field.storageType);
+    }
     view.name = newTemp();
-    emitCallInstruction(view.name + " =l call $__ada_array_local(l " + object.name + ", l " + view.first
+    emitCallInstruction(view.name + " =l call $__ada_array_local(l " + (field.storageType != nullptr ? dependentArena(fieldStorage(object, type, field), field.storageType) : object.name) + ", l " + view.first
         + ", l " + view.last + ", l " + view.strides.front() + ")", CallEffects::CheckException);
     Value descriptor = fieldStorage(object, type, field);
     line("storel " + view.name + ", " + descriptor.name);
@@ -172,9 +184,10 @@ void QbeEmitter::emitRecordLayout(Type* type)
     if (!symbol->isGlobal) { symbol->frameOffset = reserveFrame((type->fields.size() + 1) * 8); }
     Value layout = layoutAddress(type);
     std::map<int, std::string> cursors;
-    cursors[-1] = type->dependentStorage ? "16" : type->protectedScope != nullptr ? "8" : "0";
+    cursors[-1] = type->dependentStorage ? (type->tagged ? "24" : "16")
+        : type->tagged || type->protectedScope != nullptr ? "8" : "0";
     std::string maximum = allocScratch(8);
-    line("storel " + cursors[-1] + ", " + maximum);
+    line("storel " + (type->parentType != nullptr ? runtimeSize(type->parentType) : cursors[-1]) + ", " + maximum);
     auto append = [&](const std::string& offset, const std::string& size, long long alignment) {
         std::string result = newTemp();
         emitCallInstruction(result + " =l call $__ada_layout_append(l " + offset + ", l " + size
@@ -184,6 +197,9 @@ void QbeEmitter::emitRecordLayout(Type* type)
     // Alternatives start at their parent's cursor and share storage. Their
     // children retain that cursor independently; total size covers every arm.
     for (const FieldInfo& field : type->fields) {
+        if (type->parentType != nullptr && field.index == type->parentFieldCount) {
+            cursors[-1] = runtimeSize(type->parentType);
+        }
         if (!cursors.contains(field.variant)) {
             std::vector<int> missing;
             int variant = field.variant;
@@ -196,7 +212,7 @@ void QbeEmitter::emitRecordLayout(Type* type)
             }
         }
         long long alignment = field.dependentBounds ? 8 : typeAlignment(field.type);
-        std::string size = field.dependentBounds ? std::to_string(adaArrayLocalSize(field.type->arrayRank))
+        std::string size = field.dependentBounds ? std::to_string(fieldStorageSize(field))
             : runtimeSize(field.type);
         std::string offset = append(cursors[field.variant], "0", alignment);
         std::string end = append(offset, size, 1);
@@ -234,11 +250,21 @@ Value QbeEmitter::allocatedArrayView(Value pointer, Type* type)
     return view;
 }
 
+Value QbeEmitter::fieldDiscriminantConstraint(Type* type, int fieldIndex)
+{
+    Type* record = baseType(type);
+    if (fieldIndex >= record->discriminantStart
+        && fieldIndex < record->discriminantStart + record->discriminantCount) {
+        return discriminantConstraint(type, fieldIndex - record->discriminantStart);
+    }
+    return record->parentSubtype != nullptr ? fieldDiscriminantConstraint(record->parentSubtype, fieldIndex) : Value {};
+}
+
 Value QbeEmitter::discriminantConstraint(Type* type, int index)
 {
     long long value = 0;
     if (discriminantValueOf(type, index, value)) {
-        return QbeSupport::constantValue(value, qbeClass(baseType(type)->fields[index].type));
+        return QbeSupport::constantValue(value, qbeClass(discriminantField(baseType(type), index).type));
     }
     for (Type* walk = type; walk != nullptr; walk = walk->isSubtype ? walk->base : nullptr) {
         if (walk->discriminantConstraintSource != nullptr) {
@@ -263,7 +289,7 @@ Value QbeEmitter::discriminantConstraint(Type* type, int index)
         }
         std::string slot = newTemp();
         line(slot + " =l add " + address.name + ", " + std::to_string(index * 32));
-        return loadFrom(Value {slot, 'l'}, baseType(type)->fields[index].type);
+        return loadFrom(Value {slot, 'l'}, discriminantField(baseType(type), index).type);
     }
     return Value {};
 }
@@ -284,7 +310,7 @@ void QbeEmitter::emitDiscriminantConstraint(Type* type)
     }
     for (int i = 0; i < type->discriminantCount; ++i) {
         Expr* expression = type->discriminantExpressions[i];
-        Type* fieldType = baseType(type)->fields[i].type;
+        Type* fieldType = discriminantField(baseType(type), i).type;
         if (!type->discriminantPerObject.empty() && type->discriminantPerObject[i]) { continue; }
         Value value = emitExpr(expression);
         emitRangeCheck(value, fieldType, expression->location);
@@ -294,16 +320,28 @@ void QbeEmitter::emitDiscriminantConstraint(Type* type)
     }
 }
 
+std::string QbeEmitter::dependentArena(const Value& object, Type* type)
+{
+    if (!type->dependentArrayStorage) { return object.name; }
+    std::string arena = newTemp();
+    line(arena + " =l add " + object.name + ", " + std::to_string(adaArrayLocalSize(type->arrayRank)));
+    return arena;
+}
+
 void QbeEmitter::initializeDependentStorage(const Value& object, Type* type)
 {
-    if (!hasDependentStorage(type)) { return; }
+    if (!hasDependentStorage(type) && !hasRuntimeLayout(type)) { return; }
+    bool saved = m_context->initializingStorage;
+    m_context->initializingStorage = true;
     walkControlled(object, type, true, [&](const Value& part, Type* partType) {
         if (!partType->dependentStorage) { return; }
-        line("storel 0, " + part.name);
+        line("storel 0, " + dependentArena(part, partType));
+        if (partType->dependentArrayStorage) { return; }
         std::string slot = newTemp();
         line(slot + " =l add " + part.name + ", 8");
         line("storel " + (partType->layoutSymbol ? layoutAddress(partType).name : "0") + ", " + slot);
     }, false);
+    m_context->initializingStorage = saved;
 }
 
 void QbeEmitter::preserveAccessView(const Value& value, Type* target, Type* source)

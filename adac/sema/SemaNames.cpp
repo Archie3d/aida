@@ -139,6 +139,7 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         m_diagnostics.error(location, "'" + lower + "' is not declared");
         return nullptr;
     }
+    if (symbol->currentInstance != nullptr) { return symbol->type; }
     if (symbol->kind != SymbolKind::TypeName) {
         m_diagnostics.error(location, "'" + symbol->displayName + "' is not a type");
         return nullptr;
@@ -445,17 +446,14 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         bindProtectedCall(expr, operation, expr->prefix.get(), scope);
         return expr->type;
     }
-    bool publicDiscriminant = std::any_of(record->fields.begin(), record->fields.end(), [&](const FieldInfo& field) {
-        return field.name == expr->selectorLower && field.isDiscriminant
-            && field.index < record->privateDiscriminantCount;
-    });
-    if (!publicDiscriminant && !checkNotPrivate(record, expr->location, "'.' reaches inside a value")) {
-        return nullptr;
-    }
     expr->recordType = record;
     for (const FieldInfo& field : record->fields) {
         if (field.name != expr->selectorLower) {
             continue;
+        }
+        if (!fieldVisible(record, field)) {
+            m_diagnostics.error(expr->location, "component '" + field.displayName + "' is not visible through this type view");
+            return nullptr;
         }
         expr->fieldIndex = field.index;
         expr->type = field.type;

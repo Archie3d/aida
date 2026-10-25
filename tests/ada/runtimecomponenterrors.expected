@@ -1,6 +1,5 @@
 runtimecomponenterrors.adb:4:16: error: record components require a constrained array subtype
 runtimecomponenterrors.adb:6:45: error: array components require a constrained array subtype
-runtimecomponenterrors.adb:7:5: error: runtime-sized tagged records are not yet supported
 runtimecomponenterrors.adb:13:5: error: a composite Size clause requires a complete static layout
 runtimecomponenterrors.adb:15:26: error: an allocator for an array needs its bounds, as in 'new String (1 .. 10)'
 runtimecomponenterrors.adb:17:26: error: an index constraint requires an unconstrained array subtype

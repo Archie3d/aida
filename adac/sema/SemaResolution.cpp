@@ -345,8 +345,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                 }
                 if (record != nullptr && record->kind == TypeKind::Record && !selected->isDereference) {
                     for (const FieldInfo& field : record->fields) {
-                        if (field.name == selected->selectorLower && (representationVisible(record)
-                            || (field.isDiscriminant && field.index < record->privateDiscriminantCount))) {
+                        if (field.name == selected->selectorLower && fieldVisible(record, field)) {
                             add(field.type);
                         }
                     }

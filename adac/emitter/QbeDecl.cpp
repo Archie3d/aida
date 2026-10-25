@@ -8,6 +8,11 @@ using QbeSupport::isUnconstrainedArray;
 
 void QbeEmitter::emitTypeTag(Type* type)
 {
+    if (type != nullptr && type->kind == TypeKind::Record) {
+        for (const FieldInfo& field : type->fields) {
+            if (field.storageType != nullptr) { emitTypeTag(field.storageType); }
+        }
+    }
     if (type != nullptr && type->dependentStorage && !m_emittedTags.contains(rootType(type))) {
         type = rootType(type);
         m_emittedTags[type] = true;
@@ -16,20 +21,22 @@ void QbeEmitter::emitTypeTag(Type* type)
         context.propagateLabel = newLabel("storagepropagate");
         FunctionContext* saved = m_context;
         m_context = &context;
-        emitCallInstruction("call $__ada_array_release(l %object)", CallEffects::DeferredCheck);
+        emitCallInstruction("call $__ada_array_release(l " + dependentArena(Value {"%object", 'l'}, type) + ")", CallEffects::DeferredCheck);
         finishFunction("export function " + type->tagName + ".finalize(l %object)");
         FunctionContext adjustment;
         adjustment.traceName = type->name + " component copy";
         adjustment.propagateLabel = newLabel("storagecopypropagate");
         m_context = &adjustment;
-        line("storel 0, %object");
+        line("storel 0, " + dependentArena(Value {"%object", 'l'}, type));
         std::string failed = newLabel("storagecopyfailed"), done = newLabel("storagecopydone");
         pushHandler(failed);
-        cloneDependentStorage(Value {"%object", 'l'}, type);
+        if (type->dependentArrayStorage) {
+            emitCallInstruction("call $__ada_component_array_copy(l %object, w " + std::to_string(type->arrayRank) + ")", CallEffects::CheckException);
+        } else { cloneDependentStorage(Value {"%object", 'l'}, type); }
         m_context->handlerLabels.pop_back();
         jump(done);
         label(failed);
-        emitCallInstruction("call $__ada_array_release(l %object)", CallEffects::DeferredCheck);
+        emitCallInstruction("call $__ada_array_release(l " + dependentArena(Value {"%object", 'l'}, type) + ")", CallEffects::DeferredCheck);
         m_context->usesPropagate = true;
         jump(m_context->propagateLabel);
         label(done);
@@ -71,7 +78,7 @@ void QbeEmitter::emitTypeTag(Type* type)
            << expanded << ", l " << type->accessLevel
            << ", l 0, l " << type->dispatchSlots.size() << ", l " << type->abstract << ", l " << needsFinalization(type) << ", l "
            << (needsFinalization(type) ? type->tagName + ".parts" : "0")
-           << ", l " << hasLimitedParts(type) << " }\n";
+           << ", l " << hasLimitedParts(type) << ", l 0 }\n";
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
@@ -157,7 +164,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             Type* type = taskDecl->declaredType;
             if (taskDecl->definition == nullptr) { break; }
             emitTypeTag(type);
-            if (!taskDecl->protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private
+            if (!taskDecl->protectedBody && taskDecl->definition != nullptr && taskDecl->definition->kind != TypeDefKind::Private && !taskDecl->definition->privateExtension
                 && type->layoutSymbol != nullptr && type->layoutSymbol->type == type && type->layoutSymbol->isGlobal) {
                 m_data << "export data " << type->layoutSymbol->qbeName << " = align 8 { z "
                     << (type->fields.size() + 1) * 8 << " }\n";
@@ -274,11 +281,16 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             if (typeDecl->definition != nullptr && typeDecl->definition->kind == TypeDefKind::Array) {
                 emitTypeBounds(typeDecl->declaredType, decl->location);
             }
-            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
-                emitRecordLayout(typeDecl->declaredType);
+            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private && !typeDecl->definition->privateExtension) {
+                if (!typeDecl->declaredType->deferredLayout) { emitRecordLayout(typeDecl->declaredType); }
             }
-            initializeTypeTag(static_cast<TypeDecl*>(decl.get())->declaredType);
-            initializeCollection(static_cast<TypeDecl*>(decl.get())->declaredType);
+            if (typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private
+                && !typeDecl->definition->privateExtension) { if (!typeDecl->declaredType->deferredLayout) { initializeTypeTag(typeDecl->declaredType); } }
+            for (Type* layout : typeDecl->completedLayouts) {
+                emitRecordLayout(layout);
+                initializeTypeTag(layout);
+            }
+            initializeCollection(typeDecl->declaredType);
             emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->taskObjects);
             emitElaborationDeclarations(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
         } else if (decl->kind == DeclKind::Object) {
@@ -465,10 +477,16 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             auto* typeDecl = static_cast<TypeDecl*>(decl.get());
             if (typeDecl->definition == nullptr) { break; }
             emitTypeTag(typeDecl->declaredType);
-            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private) {
-                emitRecordLayout(typeDecl->declaredType);
+            if (!typeDecl->protectedBody && typeDecl->definition != nullptr && typeDecl->definition->kind != TypeDefKind::Private && !typeDecl->definition->privateExtension) {
+                if (!typeDecl->declaredType->deferredLayout) { emitRecordLayout(typeDecl->declaredType); }
             }
-            initializeTypeTag(typeDecl->declaredType);
+            if (typeDecl->definition->kind != TypeDefKind::Private && !typeDecl->definition->privateExtension) {
+                if (!typeDecl->declaredType->deferredLayout) { initializeTypeTag(typeDecl->declaredType); }
+            }
+            for (Type* layout : typeDecl->completedLayouts) {
+                emitRecordLayout(layout);
+                initializeTypeTag(layout);
+            }
             if (typeDecl->declaredType != nullptr) {
                 for (Symbol* primitive : typeDecl->declaredType->primitives) {
                     if (!primitive->abstract && primitive->inheritedFrom != nullptr) { initializeAccessDescriptor(primitive); }
@@ -836,6 +854,10 @@ void QbeEmitter::initializeTypeTag(Type* type)
         return;
     }
     if (type->tagOwner == nullptr) {
+        if (hasRuntimeLayout(type)) {
+            emitCallInstruction("call $__ada_tag_set_layout(l " + type->tagName + ", l " + runtimeSize(type)
+                + ", l " + layoutAddress(type).name + ")", CallEffects::DeferredCheck);
+        }
         emitCallInstruction("call $__ada_tag_register(l " + type->tagName + ")", CallEffects::CheckException);
         return;
     }
@@ -847,8 +869,13 @@ void QbeEmitter::initializeTypeTag(Type* type)
     std::string tag = newTemp();
     std::string parent = type->parentType == nullptr ? "0" : typeTag(type->parentType).name;
     line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(type->tagOffset));
-    emitCallInstruction(tag + " =l call $__ada_tag_create(l " + type->tagName + ", l " + parent
-         + ", l " + m_context->frameTemp + ")", CallEffects::CheckException);
+    if (hasRuntimeLayout(type)) {
+        emitCallInstruction(tag + " =l call $__ada_tag_create_layout(l " + type->tagName + ", l " + parent
+            + ", l " + m_context->frameTemp + ", l " + runtimeSize(type) + ", l " + layoutAddress(type).name + ")", CallEffects::CheckException);
+    } else {
+        emitCallInstruction(tag + " =l call $__ada_tag_create(l " + type->tagName + ", l " + parent
+            + ", l " + m_context->frameTemp + ")", CallEffects::CheckException);
+    }
     line("storel " + tag + ", " + slot);
     std::string tableSlot = newTemp();
     std::string table = newTemp();

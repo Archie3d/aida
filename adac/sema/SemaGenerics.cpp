@@ -432,6 +432,10 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
                              const SourceLocation& location)
 {
     Type* base = baseType(actual);
+    if (unknownDiscriminantView(actual)) {
+        m_diagnostics.error(location, "this generic formal requires a definite actual subtype view");
+        return false;
+    }
     // Abstract formal type declarations remain explicitly unsupported (6g).
     if (abstractView(actual)) {
         m_diagnostics.error(location, "an abstract actual type requires an abstract generic formal type");
@@ -1336,14 +1340,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             m_diagnostics.error(symbol->location, "composites containing atomic or volatile parts are not yet supported");
         }
         if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second) {
-            bool runtimeComponents = type->kind == TypeKind::Array ? hasRuntimeLayout(type->element)
-                : type->kind == TypeKind::Record && std::any_of(type->fields.begin(), type->fields.end(),
-                    [](const FieldInfo& field) { return hasRuntimeLayout(field.type); });
-            if (runtimeComponents && type->incompleteLayout) {
-                m_diagnostics.error(symbol->location,
-                    "runtime component layouts require complete component types at declaration");
-            }
-            if (hasProtected(type) && (type->incompleteLayout || type->tagged || type->variantOn >= 0)) {
+            if (hasProtected(type) && (type->deferredLayout || type->tagged || type->variantOn >= 0)) {
                 m_diagnostics.error(symbol->location,
                     "protected components require a complete ordinary record or array layout at declaration");
             }

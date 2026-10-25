@@ -81,9 +81,8 @@ rank-one bound format and internal array call/result descriptor ABI are unchange
 
 ## Limits and validation
 
-Runtime-sized tagged records and layouts requiring a private component's full
-view after the enclosing type declaration remain explicitly diagnosed. Their
-layout/tag completion work belongs to Phase 6f. Discriminant-dependent
+Runtime-sized tagged records and delayed private-component layouts now follow
+the Phase 6f [tagged/private-view contract](tagged-discriminants.md). Discriminant-dependent
 components now follow their [own contract](runtime-discriminants.md). Controlled
 variants, general limited records, custom storage pools and foreign
 unconstrained-array descriptors remain separately tracked. Fully defined private

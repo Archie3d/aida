@@ -525,6 +525,8 @@ add_ada_test(taggedrecords SOURCES taggedrecords.adb)
 add_determinism_test(taggedrecords SOURCE taggedrecords.adb)
 add_ada_test(taggedequality SOURCES taggedequality.adb)
 add_ada_error_test(taggederrors SOURCES taggederrors.adb)
+add_ada_error_test(taggedviewerrors SOURCES taggedviewerrors.adb)
+add_ada_error_test(privatecompletionerrors SOURCES privatecompletionerrors.adb)
 add_test(NAME ada.taggedlayout
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada>
@@ -1369,7 +1371,7 @@ foreach(dynamic_case importedcallbacks inheritedcallbacks inheritedcallbacklibra
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
     boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
-    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull)
+    runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
     add_test(NAME runtime.${dynamic_case}_modes
@@ -1406,7 +1408,8 @@ add_test(NAME runtime.dynamic_layout COMMAND runtime_layout_test)
 set_tests_properties(runtime.dynamic_layout PROPERTIES TIMEOUT 30)
 
 add_ada_error_test(runtimecomponenterrors SOURCES runtimecomponenterrors.adb)
-add_ada_error_test(runtimecomponentlateerrors SOURCES runtimecomponentlateerrors.ads)
+add_ada_test(runtimecomponentlate SOURCES runtimecomponentlate.ads runtimecomponentlate_main.adb)
+add_determinism_test(runtimecomponentlate SOURCE runtimecomponentlate_main.adb)
 
 add_ada_error_test(boxpositionalerrors SOURCES boxpositionalerrors.adb)
 

@@ -35,8 +35,11 @@ DeclPtr Parser::parseTypeDecl()
         decl->taggedIncomplete = true;
         return decl;
     }
-    if (decl->unknownDiscriminants) { fail("unknown discriminants on full or private type declarations are not yet supported"); }
     decl->definition = parseTypeDefinition();
+    if (decl->unknownDiscriminants && decl->definition->kind != TypeDefKind::Private
+        && !decl->definition->privateExtension) {
+        fail("unknown discriminants require a private or incomplete type declaration");
+    }
     expect(TokenKind::Semicolon, "after type declaration");
     return decl;
 }
@@ -85,8 +88,8 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
 
     if (check(TokenKind::KwLimited) && peek(1).kind != TokenKind::KwPrivate) {
         advance();
-        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull)) {
-            fail("expected record or null record after limited");
+        if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull) && !check(TokenKind::KwNew)) {
+            fail("expected record, null record or new after limited");
         }
         auto definition = parseTypeDefinition();
         definition->isLimited = true;
@@ -249,6 +252,11 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
         advance();
         definition->parent = parseSubtypeIndication();
         if (match(TokenKind::KwWith)) {
+            if (match(TokenKind::KwPrivate)) {
+                definition->extension = true;
+                definition->privateExtension = true;
+                return definition;
+            }
             if (!check(TokenKind::KwRecord) && !check(TokenKind::KwNull)) {
                 fail("only record extensions are supported after with");
             }

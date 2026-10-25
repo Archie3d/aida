@@ -36,7 +36,7 @@ ObjectAccessView accessView(Expr* expression)
             && (symbol->kind == SymbolKind::Parameter || symbol->genericObject);
         return {symbol->aliased || taggedFormal, symbol->accessibilityLevel,
             symbol->isConstant || !hasDefaultDiscriminants(symbol->type)
-                || hasDiscriminantConstraint(symbol->type), false, symbol};
+                || hasDiscriminantConstraint(symbol->type), false, symbol, symbol->currentInstance != nullptr};
     }
     if (expression->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expression);
@@ -153,7 +153,7 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         m_diagnostics.error(expr->location, "object is deeper than the access type");
         return nullptr;
     }
-    expr->accessObject = view.object;
+    expr->accessObject = view.object != nullptr && view.object->currentInstance != nullptr ? nullptr : view.object;
     if (view.object != nullptr && !view.object->isGlobal && view.object->owner != nullptr) {
         view.object->needsAccessibility = true;
         view.object->owner->needsFrame = true;

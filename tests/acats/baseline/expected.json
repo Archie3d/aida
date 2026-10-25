@@ -5,12 +5,12 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "f85fd5426fa9fc75597b6068f5366bb3dd23fe5c0a700ce45f3e5f6428458898",
+  "compiler_sha256": "d7d41acb4e26dd181b9c443f8fb08dadb41b069b7e4defd94c52405d3d1c71de",
   "counts": {
     "B_REJECTED_UNGRADED": 20,
-    "COMPILE_REJECTED": 23,
-    "HARNESS_BLOCKED": 7,
-    "PASS": 56
+    "COMPILE_REJECTED": 18,
+    "HARNESS_BLOCKED": 8,
+    "PASS": 60
   },
   "cases": {
     "c34001a": {
@@ -215,10 +215,13 @@
       "outcome": "PASS"
     },
     "c3a0007": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c3/c3a0007.a:95:4: error: extension of a private or incomplete tagged view is not yet supported\n<upstream>/tests/c3/c3a0007.a:104:35: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:107:39: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:158:39: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:158:4: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c3/c3a0007.a:161:8: error: 'Priority' is not a component of a record\n<upstream>/tests/c3/c3a0007.a:164:35: error: 'priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:164:4: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c3/c3a0007.a:191:19: error: 'c3a0007_1.priority_button' is not declared\n<upstream>/tests/c3/c3a0007.a:204:13: error: 'Push' is not declared in 'C3A0007_1'\n<upstream>/tests/c3/c3a0007.a:215:13: error: 'Set_Response' is not declared in 'C3A0007_1'\n<upstream>/tests/c3/c3a0007.a:216:13: error: 'Push' is not declared in 'C3A0007_1'\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0007\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c3a0008": {
       "compile_exit": 0,
@@ -296,16 +299,22 @@
       "outcome": "COMPILE_REJECTED"
     },
     "c432001": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c4/c432001.a:140:37: error: only record extensions are supported after with\n<upstream>/tests/c4/c432001.a:151:37: error: only record extensions are supported after with\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C432001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c432004": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c4/c432004.a:124:66: error: only record extensions are supported after with\n<upstream>/tests/c4/c432004.a:136:57: error: only record extensions are supported after with\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C432004\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c432005": {
       "compile_exit": 1,
@@ -512,10 +521,13 @@
       "outcome": "PASS"
     },
     "c760009": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c760009.a:137:63: error: only record extensions are supported after with\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C760009\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c760010": {
       "compile_exit": 1,
@@ -526,8 +538,8 @@
     "c760011": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c760011.a:78:3: error: new discriminant parts on derived types are not yet supported\n<upstream>/tests/c7/c760011.a:82:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:83:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:84:47: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:87:28: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:102:36: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:102:3: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c7/c760011.a:104:7: error: 'TC_Component' is not a component of a record\n<upstream>/tests/c7/c760011.a:104:24: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:104:37: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:105:10: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:106:21: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:109:47: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:109:43: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c760011.a:113:34: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:113:3: error: subprogram body does not conform to the previous declaration\n<upstream>/tests/c7/c760011.a:116:49: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:116:45: error: concatenation requires a nonlimited one-dimensional array type and matching operands\n<upstream>/tests/c7/c760011.a:118:10: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:119:19: error: 'Tag' is not a component of a record\n<upstream>/tests/c7/c760011.a:123:47: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:125:27: error: 'controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:125:28: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:125:5: error: a procedure cannot return a value\n<upstream>/tests/c7/c760011.a:142:69: error: an aggregate needs a known array or record type\n<upstream>/tests/c7/c760011.a:158:3: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:159:3: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:178:19: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:179:45: error: 'c760011_0.controlled_type' is not declared\n<upstream>/tests/c7/c760011.a:179:46: error: an aggregate needs a known array or record type\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "<upstream>/tests/c7/c760011.a:193:16: error: 'Ident_Char' is not declared in 'Report'\n<upstream>/tests/c7/c760011.a:208:16: error: 'Ident_Char' is not declared in 'Report'\n",
+      "outcome": "HARNESS_BLOCKED"
     },
     "c760013": {
       "compile_exit": 0,
@@ -562,7 +574,7 @@
     "c761010": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c7/c761010.a:107:28: error: unknown discriminants on full or private type declarations are not yet supported\n",
+      "compile_stderr": "<upstream>/tests/c7/c761010.a:126:21: error: index constraints require an array type\n<upstream>/tests/c7/c761010.a:156:5: error: an unconstrained array object needs an initializer or index constraint\n<upstream>/tests/c7/c761010.a:162:5: error: an object of 'Ptr_Rec' has to fix its discriminants, as in 'X : Ptr_Rec (...)'\n<upstream>/tests/c7/c761010.a:218:13: error: discriminant-dependent arrays with controlled, task or protected elements are not yet supported\n",
       "outcome": "COMPILE_REJECTED"
     },
     "c83007a": {
@@ -700,13 +712,13 @@
     "b330001": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b330001.a:82:34: error: protected discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:88:24: error: task discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:94:38: error: unknown discriminants on full or private type declarations are not yet supported\n<upstream>/tests/b3/b330001.a:99:36: error: unknown discriminants on full or private type declarations are not yet supported\n",
+      "compile_stderr": "<upstream>/tests/b3/b330001.a:82:34: error: protected discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:88:24: error: task discriminants are not yet supported\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b33101a": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b33101a.ada:44:6: error: new discriminant parts on derived types are not yet supported\n",
+      "compile_stderr": "<upstream>/tests/b3/b33101a.ada:44:6: error: new discriminants on an untagged derived type are not yet supported\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b33102a": {
@@ -748,7 +760,7 @@
     "b3a0001": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b3a0001.a:85:27: error: 'implicitly_limited_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:86:12: error: 'Implicitly_Limited_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:92:27: error: 'limited_record_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:93:15: error: 'Limited_Record_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:98:27: error: 'limited_extension_with_current_instance' is not declared\n<upstream>/tests/b3/b3a0001.a:99:12: error: 'Limited_Extension_With_Current_Instance' is not declared\n<upstream>/tests/b3/b3a0001.a:107:44: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:113:46: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:133:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:141:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:230:40: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:233:37: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:244:45: error: access-to-variable cannot designate a constant view\n<upstream>/tests/b3/b3a0001.a:249:18: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:254:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:259:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:261:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:263:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:265:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:272:35: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:274:23: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:276:37: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:279:24: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:282:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:285:53: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:321:34: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:323:42: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:325:43: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:327:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:334:33: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:340:44: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:345:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:348:48: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:355:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:366:27: error: a constant access view cannot be modified\n",
+      "compile_stderr": "<upstream>/tests/b3/b3a0001.a:86:52: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:107:44: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:113:46: error: object 'Unchecked_Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:133:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:141:20: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:230:40: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:233:37: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:244:45: error: access-to-variable cannot designate a constant view\n<upstream>/tests/b3/b3a0001.a:249:18: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:254:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:259:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:261:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:263:19: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:265:13: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:272:35: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:274:23: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:276:37: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:279:24: error: a constant access view cannot be modified\n<upstream>/tests/b3/b3a0001.a:282:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:285:53: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:321:34: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:323:42: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:325:43: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:327:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:334:33: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:340:44: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:345:47: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:348:48: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:355:32: error: object 'Access requires an aliased object view\n<upstream>/tests/b3/b3a0001.a:366:27: error: a constant access view cannot be modified\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b3a0002": {

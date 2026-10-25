@@ -10,7 +10,7 @@ iofileprivacyerrors.adb:21:15: error: 'File_Type' is limited private, so 'Text_I
 iofileprivacyerrors.adb:22:14: error: 'File_Type' is limited private, so 'Sequential' has to be the one to say what this operator means
 iofileprivacyerrors.adb:23:17: error: 'File_Type' is limited private, so 'Direct' has to be the one to say what this operator means
 iofileprivacyerrors.adb:24:17: error: 'File_Type' is limited private, so 'Stream_IO' has to be the one to say what this operator means
-iofileprivacyerrors.adb:25:11: error: '.' reaches inside a value of 'File_Type', whose representation 'Text_IO' keeps to itself
-iofileprivacyerrors.adb:26:10: error: '.' reaches inside a value of 'File_Type', whose representation 'Sequential' keeps to itself
-iofileprivacyerrors.adb:27:13: error: '.' reaches inside a value of 'File_Type', whose representation 'Direct' keeps to itself
-iofileprivacyerrors.adb:28:13: error: '.' reaches inside a value of 'File_Type', whose representation 'Stream_IO' keeps to itself
+iofileprivacyerrors.adb:25:11: error: component 'Handle' is not visible through this type view
+iofileprivacyerrors.adb:26:10: error: component 'Handle' is not visible through this type view
+iofileprivacyerrors.adb:27:13: error: component 'Handle' is not visible through this type view
+iofileprivacyerrors.adb:28:13: error: component 'Handle' is not visible through this type view

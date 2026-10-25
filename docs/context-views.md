@@ -74,9 +74,10 @@ incomplete aliases and renamed views. `loading.context_dependencies` verifies
 metadata, binder membership, mixed/ordinary cycles and incremental spec/body
 invalidation. Compiler AddressSanitizer checks cover the new paths as well.
 
-The existing full-type restrictions still apply: private extensions and tagged
-discriminants await Phase 6f; general limited records landed with 6e returns. Unknown discriminants
-on full/private declarations are explicitly diagnosed. Subprogram/package
+Private extensions, tagged discriminants and unknown-discriminant private views
+now follow the [Phase 6f contract](tagged-discriminants.md); general limited
+records landed with 6e returns. Unknown discriminants on full definitions remain
+illegal. Subprogram/package
 [subunits](subunits.md) are now implemented.
 [Object `Unchecked_Access`](unchecked-access.md) subsequently
 landed as an explicit follow-up. Unchanged ACATS CA20003 passes partition

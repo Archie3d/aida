@@ -702,7 +702,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
             : expr->type->accessParameter || expr->type->accessDiscriminant ? currentAccessLevel() : accessLevelFor(expr->type);
         initializeDependentStorage(object, designated);
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
-            if (partType->dependentStorage) { line("storel 0, " + part.name); }
+            if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         }, false);
@@ -805,8 +805,10 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
 // Apply declaration defaults and recursive subtype initialization. Access
 // values must be explicitly null even when constructing into reused storage;
 // scalar components without defaults retain their unspecified initial value.
-void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
+void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 {
+    Value address = destination;
+    address.declaredLayout = true;
     Type* base = baseType(type);
     if (base != nullptr && base->kind == TypeKind::Access) {
         if (type->excludesNull) { raiseConstraintError(); }
@@ -850,7 +852,17 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         m_context->discriminantObjects[baseType(walk)] = address;
     }
     if (base->dependentStorage) { activateControlledObject(address, type); }
+    std::vector<const FieldInfo*> initializationOrder;
+    for (int i = 0; i < base->discriminantCount; ++i) {
+        initializationOrder.push_back(&discriminantField(base, i));
+    }
     for (const FieldInfo& field : base->fields) {
+        if (field.index < base->discriminantStart || field.index >= base->discriminantStart + base->discriminantCount) {
+            initializationOrder.push_back(&field);
+        }
+    }
+    for (const FieldInfo* info : initializationOrder) {
+        const FieldInfo& field = *info;
         // Every enclosing alternative must be active before a default runs.
         int presence = variantPresence(type, field.variant);
         if (presence == 0) {
@@ -865,7 +877,7 @@ void QbeEmitter::emitDefaultInit(const Value& address, Type* type)
         }
         if (field.dependentBounds) { initializeDependentField(address, base, field); }
         Value slot = fieldAddress(address, base, field);
-        Value fixed = field.isDiscriminant ? discriminantConstraint(type, field.index) : Value {};
+        Value fixed = field.isDiscriminant ? fieldDiscriminantConstraint(type, field.index) : Value {};
         if (!fixed.name.empty()) {
             emitRangeCheck(fixed, field.type, m_context->sourceLocation);
             storeInto(slot, fixed, field.type);

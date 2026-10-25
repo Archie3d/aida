@@ -7,7 +7,7 @@
 
 /* The first three words are the published object layout descriptor prefix.
    Entries pair code with its enclosing activation, independently of callers. */
-_Static_assert(sizeof(AdaTag) == 112, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 120, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");
@@ -84,12 +84,27 @@ void __ada_tag_register(void* value)
 void* __ada_tag_create(const void* templateTag, void* parent, void* master)
 {
     const AdaTag* source = templateTag;
+    return __ada_tag_create_layout(templateTag, parent, master, source->size, source->layout);
+}
+
+void __ada_tag_set_layout(void* value, int64_t size, const int64_t* layout)
+{
+    AdaTag* tag = value;
+    tag->size = size;
+    tag->layout = layout;
+}
+
+void* __ada_tag_create_layout(const void* templateTag, void* parent, void* master, int64_t size, const int64_t* layout)
+{
+    const AdaTag* source = templateTag;
     AdaTag* tag = malloc(sizeof *tag);
     if (tag == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
     *tag = *source;
+    tag->size = size;
+    tag->layout = layout;
     tag->slots = malloc((source->slotCount == 0 ? 1 : source->slotCount) * sizeof *tag->slots);
     if (tag->slots == NULL) {
         free(tag);

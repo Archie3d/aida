@@ -42,8 +42,8 @@ even if a particular actual object is constrained.
 
 [Anonymous access and access discriminants](anonymous-access.md) landed in the
 following Phase 6d item. [Null exclusions](null-exclusions.md) are supported;
-broader generic formal access types remain separate roadmap items. Current limited instances
-need the broader limited-type work in Phase 6f. Constraints on access subtypes,
+broader generic formal access types remain separate roadmap items. Limited
+current instances now follow the [Phase 6f contract](tagged-discriminants.md). Constraints on access subtypes,
 custom storage pools, and general representation freezing remain Phase 8 work;
 unsupported syntax receives diagnostics. Applications must synchronize concurrent
 modification of designated data, as with ordinary shared object access.
@@ -56,10 +56,9 @@ in whole/separate modes and determinism checks. The four-worker case shares
 borrowed array views across collections. Runtime ASan/UBSan and TSan checks
 instrument C runtime operations; generated Ada loads/stores are not instrumented.
 
-Unchanged ACATS C3A0013 is a pinned compile XFAIL for private extensions and
-package renaming (anonymous access discriminants now parse); it also requires
-limited current-instance Access (P6f) and a range attribute as an array type
-index range (P8). It is not an executable pass. C3A0014 in the selected GCC
+Unchanged ACATS C3A0013 retains a pinned compile XFAIL for a range attribute as
+an array type index range (P8); private extensions and limited current-instance
+Access are supported in Phase 6f. It is not an executable pass. C3A0014 in the selected GCC
 mirror tests the superseded Ada 95 rule that
 aliased default-discriminated objects are constrained, so it is inapplicable to
 this Ada 2005 behavior. C3A0015 requires custom storage pools.

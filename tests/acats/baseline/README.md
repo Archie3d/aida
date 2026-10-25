@@ -39,8 +39,10 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 56 C passes, 23 legal-source rejections, seven support blockers and 20
-ungraded B observations. B840001's three legal extension aggregates are now
+has 60 C passes, 18 legal-source rejections, eight support blockers and 20
+ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
+after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
+adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
 ## Reproduce

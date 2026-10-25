@@ -80,6 +80,10 @@ streaming in this step.
 
 ## Size and storage
 
+Static tagged Size padding is supported by the
+[Phase 6f contract](tagged-discriminants.md), including parent-prefix preservation.
+The untagged representation rules below still apply to their original subset.
+
 Size clauses accept positive byte multiples. Discrete scalar storage uses 8,
 16, 32 or 64 bits (enumerations stop at 32); floating widths must still match
 digits, and fixed/access storage remains 64 bits. A requested width must hold
@@ -206,7 +210,8 @@ task/protected representations, declaration-sized runtime layouts, general
 freezing and clauses separated from their type declaration remain diagnosed.
 Dependent arrays of controlled/task/protected elements retain their existing
 restriction. Extending byte storage, derived layout conversion and freezing is
-tracked in Phase 8; tagged representations remain Phase 6f.
+tracked in Phase 8; tagged component placement and Alignment remain restricted
+(the Phase 6f tagged Size subset is linked above).
 
 ## Evidence
 

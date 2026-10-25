@@ -126,6 +126,13 @@ Value QbeEmitter::staticLinkFor(int targetLevel)
 
 Value QbeEmitter::addressOf(Symbol* symbol)
 {
+    if (symbol->currentInstance != nullptr) {
+        Value object = m_context->discriminantObjects.at(symbol->currentInstance);
+        if (object.accessLevel.empty()) {
+            object.accessLevel = m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel;
+        }
+        return object;
+    }
     if (symbol->discriminantRecord != nullptr) {
         Type* record = symbol->discriminantRecord;
         return fieldAddress(m_context->discriminantObjects.at(record), record, record->fields[symbol->discriminantIndex]);
@@ -281,7 +288,16 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         return;
     }
     if (hasRuntimeLayout(type)) {
-        emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + objectBytes(destination, type) + ")", CallEffects::DeferredCheck);
+        std::string size = objectBytes(destination, type);
+        if (type->tagged) {
+            std::string target = newTemp(), value = newTemp(), payload = newTemp();
+            line(target + " =l add " + destination.name + ", 8");
+            line(value + " =l add " + source.name + ", 8");
+            line(payload + " =l sub " + size + ", 8");
+            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + payload + ")", CallEffects::DeferredCheck);
+        } else {
+            emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
+        }
         return;
     }
     long long size = type->tagged ? typeSize(type) : typeLayoutSize(type);
@@ -368,7 +384,7 @@ void QbeEmitter::checkRecordAssignment(const Value& address, const Value& source
         if (!known && (initialize || constrained == "0")) {
             continue;
         }
-        const FieldInfo& field = record->fields[which];
+        const FieldInfo& field = discriminantField(record, which);
         if (!known) {
             std::string targetSlot = newTemp();
             line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));

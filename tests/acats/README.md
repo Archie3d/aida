@@ -187,9 +187,9 @@ and [C761012](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsui
 are stored with `.ada` extensions and retain their rights/disclaimers.
 C760007 passes controlled adjustment/copy requirements (RM 7.6).
 C761012 checks anonymous variant-object lifetime after failed selection
-(RM 7.6.1); it is an exact compile XFAIL for unsupported new discriminants on
-derived tagged types. Local `controlledvariants` and `controlledvariantlimited`
-cover controlled variant components; C761012 is not claimed as an upstream pass.
+(RM 7.6.1) and now passes unchanged after Phase 6f tagged discriminants. Local
+`controlledvariants` and `controlledvariantlimited` cover controlled variant
+components.
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
@@ -218,11 +218,10 @@ visible/private boundary; the current conservative adjacency rule rejects it.
 C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a0013.a),
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights
 and disclaimer. It covers general access to allocated/aliased objects and
-implicitly aliased tagged formals/limited current instances. It is a pinned
-compile XFAIL for private extensions (P6f), not an
-upstream execution pass. Anonymous access discriminants now parse. The case
-also needs limited current-instance Access (P6f) and `array (Object'Range)`
-index-range syntax (P8); these now have explicit roadmap entries.
+implicitly aliased tagged formals/limited current instances. Private extensions and limited current-instance Access are supported in Phase
+6f. Its remaining pinned compile XFAIL is `array (Object'Range)` index-range
+syntax (P8); it is not an upstream execution pass. Local `taggedinstances`
+covers self access, inherited defaults, dispatch and allocator accessibility.
 Git blob: `b23d4ee11514f0cf96d3a20ca7de30cd0c5efcc6`.
 SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
 C3A0014 tests the superseded Ada 95 aliased-constrained rule and is inapplicable
@@ -272,8 +271,7 @@ Their exact diagnostics are pinned; no upstream bodies are changed.
 
 The following unchanged sources use the same [ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5)
 as the null-exclusion cases. C3A0006 passes (library callback arrays and calls).
-C3A0009 remains a compile XFAIL for private extensions;
-its exact diagnostics are pinned. Local Ada/C ABI and inheritance regressions
+C3A0009 now executes unchanged as PASS after Phase 6f private extensions. Local Ada/C ABI and inheritance regressions
 cover the implemented contexts without editing upstream test bodies.
 
 | Source | Git blob | SHA-256 |

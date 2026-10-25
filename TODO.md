@@ -318,7 +318,7 @@ checks.
 - [x] Runtime-constrained array components and allocators, with Size and
   all-dimensional streams (`runtimecomponent*`, `runtimeallocators`,
   `runtime.dynamic_layout`, ACATS C48005B). Runtime-sized tagged records and
-  delayed private-component layouts remain 6f.
+  delayed private-component layouts are completed in 6f.
   [Limits](docs/runtime-composites.md).
 - [x] Ada 2005 box defaults (`<>`) in record and array aggregates, with checked
   subtypes and partial cleanup (`boxaggregates`, `boxchecks`, `boxcleanup`,
@@ -355,8 +355,8 @@ formals, protected callback types and foreign ABI work retain their later owners
 - [x] General access types: `aliased`, `access all`, `'Access`,
   access-to-constant, accessibility and checked named conversions
   (`generalaccess*`). Dependent-component checks are conservative; limited
-  current instances are 6f; ACATS C3A0013 remains a compile XFAIL (6f,
-  Phase 8). [Contract](docs/general-access.md).
+  current instances are completed in 6f; ACATS C3A0013 remains a compile
+  XFAIL for Phase 8 range-attribute array declarations. [Contract](docs/general-access.md).
 - [x] Anonymous access definitions in object, component, discriminant,
   parameter, result, extended-return and renaming contexts, with master-ancestry
   checks, coextensions, protected callbacks and controlling access dispatch
@@ -534,13 +534,22 @@ full-tasking restrictions retain their later roadmap owners.
   ASan/UBSan checks and full suite 1,067/1,067 pass; all 106 baseline observations
   remain unchanged (56 executable PASS).
   [Contract and remaining boundaries](docs/overriding-null-procedures.md).
-- [ ] Discriminated tagged types, private extensions, extensions of private
-  views, unknown-discriminant private views,
-  and tagged size clauses. Include
-  runtime-sized tagged records and delayed private-component layouts diagnosed
-  by Phase 6b. Support implicitly aliased limited current instances and their
-  `'Access` in component defaults/access-discriminant constraints (C3A0013).
-  General limited-record full definitions were pulled forward into 6e returns.
+- [x] Discriminated tagged types, private extensions, extensions of completed
+  private views, unknown-discriminant private views and static tagged Size
+  padding. Runtime tagged layouts and delayed private-component layouts from
+  6b now capture at elaboration. Dependent tagged arrays own separate component
+  storage, including controlled/class-wide copies and ancestor assignments.
+  Limited current instances support Access in defaults/access-discriminant
+  constraints with object accessibility (`taggedviews`, `taggedruntime`,
+  `taggeddependent`, `taggedcontrolled`, `taggedinstances`, `privatedelayed`,
+  legality controls and the promoted `runtimecomponentlate` execution test).
+  ACATS C3A0009/C761012 and baseline C3A0007/C432001/C432004/C760009 PASS
+  unchanged; C3A0013 now retains only its P8 range-declaration syntax XFAIL.
+  Baseline: 60 PASS, 18 compile rejections, eight harness blockers, 20 ungraded
+  B observations. Full suite 1,092/1,092; 17 focused compiler ASan/UBSan
+  checks, seven whole/per-unit scenarios with the ASan/UBSan C runtime, and
+  runtime ownership/layout checks pass.
+  [Contract and boundaries](docs/tagged-discriminants.md).
 - [ ] Interfaces, after abstract subprograms: multiple progenitors, inherited
   operations, overriding, interface conversions and class-wide dispatch. Extend
   the single-parent tag/dispatch model with a representation that also supports

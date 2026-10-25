@@ -67,15 +67,15 @@ add_acats_test(c37108b)
 
 # Controlled copy and anonymous variant object lifetime.
 add_acats_test(c760007)
-add_acats_test(c761012 REJECTION "new discriminant parts on derived types are not yet supported")
+add_acats_test(c761012)
 
 # Byte-addressable record placement and inherited storage attributes.
 add_acats_test(cd4051a)
 add_acats_test(cd1c03h)
 add_acats_test(cd4031a REJECTION "bit-packed record components are not yet supported")
 
-# Private extensions, package renaming and range-attribute declarations remain.
-add_acats_test(c3a0013 REJECTION "only record extensions are supported after with")
+# Limited current instances/private extensions are supported; range syntax remains Phase 8.
+add_acats_test(c3a0013 REJECTION "expected ')' after array index list")
 
 # Anonymous access parameter conversion, forwarding, dereference and renaming.
 add_acats_test(c460001)
@@ -87,9 +87,9 @@ add_acats_test(c3a0030)
 add_acats_test(c3a0020 REJECTION "access generic formal objects are not yet supported")
 add_acats_test(c3a0025 REJECTION "access generic formal objects are not yet supported")
 
-# Callback structures, and inherited operations pending private extensions/renaming.
+# Callback structures and inheritance through private extensions.
 add_acats_test(c3a0006)
-add_acats_test(c3a0009 REJECTION "only record extensions are supported after with")
+add_acats_test(c3a0009)
 
 # Implicit statement declarations and transfers out of nested compound statements.
 add_acats_test(c51004a)

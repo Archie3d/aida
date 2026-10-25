@@ -98,9 +98,9 @@ ASan/UBSan and TSan instrument C runtime operations; QBE-generated Ada memory
 accesses are not instrumented.
 
 Unchanged C460001, C460002 and C3A2002 execute as PASS. C3A0013 now parses its
-access discriminants; its pinned compile XFAIL is for private extensions and
-package renaming, also exposing array type `Object'Range` syntax. Limited current
-instances remain 6f. C3A2003 additionally needs range-attribute aggregate choices
+access discriminants; private extensions and limited current-instance Access
+are implemented in [Phase 6f](tagged-discriminants.md). Its remaining compile
+XFAIL is array type `Object'Range` syntax (P8). C3A2003 additionally needs range-attribute aggregate choices
 (P8); formal access-type cases C3A2A01/C460A01/C460A02 remain 6g. No edits to
 upstream test bodies weaken these requirements.
 

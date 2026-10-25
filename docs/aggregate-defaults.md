@@ -32,7 +32,7 @@ boxed defaults selecting variants must be static. Runtime explicit constraints
 use the [per-object component contract](runtime-discriminants.md). General
 limited-record definitions/aggregates landed in 6e; task/protected aggregates
 remain in Phase 9. Boxes do not circumvent these diagnostics. Runtime-sized tagged and
-delayed private-component layouts retain their phase 6f restriction.
+delayed private-component layouts follow the [Phase 6f contract](tagged-discriminants.md).
 
 `boxaggregates`, `boxchecks`, `boxcleanup` and `boxtasking` cover grouped,
 explicit and others associations, nested defaults, extensions, generics,

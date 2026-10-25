@@ -17,8 +17,10 @@ static Type* discriminantDependency(Expr* expression)
     if (expression == nullptr) { return nullptr; }
     switch (expression->kind) {
     case ExprKind::Identifier:
-        return static_cast<IdentifierExpr*>(expression)->symbol == nullptr ? nullptr
-            : static_cast<IdentifierExpr*>(expression)->symbol->discriminantRecord;
+        if (Symbol* symbol = static_cast<IdentifierExpr*>(expression)->symbol) {
+            return symbol->discriminantRecord != nullptr ? symbol->discriminantRecord : symbol->currentInstance;
+        }
+        return nullptr;
     case ExprKind::Binary: {
         auto* binary = static_cast<BinaryExpr*>(expression);
         Type* left = discriminantDependency(binary->left.get());
@@ -112,7 +114,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             predeclared = true;
         }
     }
+    TypeDecl* partialDeclaration = completing != nullptr ? completing->incompleteDeclaration : nullptr;
+    Type* declaredAncestorSubtype = completing != nullptr && completing->privateExtension ? completing->parentSubtype : nullptr;
     if (decl->definition == nullptr) {
+        if (decl->taggedIncomplete) {
+            for (const RecordField& discriminant : decl->discriminants) {
+                if (discriminant.defaultValue != nullptr) {
+                    m_diagnostics.error(discriminant.location, "a tagged type cannot have defaulted discriminants");
+                }
+            }
+        }
         if (completing != nullptr && !predeclared) {
             m_diagnostics.error(decl->location, "'" + decl->name + "' has already been named here");
             return;
@@ -153,7 +164,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         for (std::size_t i = 0; conforms && i < previous.size(); ++i) {
             const auto& before = previous[i];
             const auto& after = decl->discriminants[i];
-            Type* beforeType = completing->fields[i].type;
+            Type* beforeType = discriminantField(completing, static_cast<int>(i)).type;
             Type* afterType = resolveSubtypeIndication(after.subtype.get(), scope);
             if (after.defaultValue != nullptr) { analyzeExpr(after.defaultValue.get(), scope, afterType); }
             conforms = before.lower == after.lower && SemaSupport::staticallyMatches(beforeType, afterType)
@@ -198,6 +209,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool tagged = completing->tagged;
         bool privateViewTagged = completing->privateViewTagged;
         bool privateViewAbstract = completing->privateViewAbstract;
+        bool unknownDiscriminants = completing->unknownDiscriminants;
+        bool privateExtension = completing->privateExtension;
+        Type* privateAncestor = completing->privateAncestor;
+        int publicParentFieldCount = completing->publicParentFieldCount;
         bool controlled = completing->controlled;
         std::string tagName = completing->tagName;
         auto slots = std::move(completing->dispatchSlots);
@@ -213,6 +228,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->tagged = tagged;
         completing->privateViewTagged = privateViewTagged;
         completing->privateViewAbstract = privateViewAbstract;
+        completing->unknownDiscriminants = unknownDiscriminants;
+        completing->privateExtension = privateExtension;
+        completing->privateAncestor = privateAncestor;
+        completing->publicParentFieldCount = publicParentFieldCount;
         completing->controlled = controlled;
         completing->tagName = tagName;
         return completing;
@@ -235,6 +254,21 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         && !completing->abstract && definition->abstract) {
         m_diagnostics.error(decl->location, "a nonabstract private view cannot have an abstract full view");
         return;
+    }
+    if (completing != nullptr && completing->privateTo != nullptr && completing->tagged
+        && completing->isLimited && definition->kind == TypeDefKind::Record && !definition->isLimited) {
+        m_diagnostics.error(decl->location, "a limited tagged private view requires a limited full view");
+    }
+    if (completing != nullptr && completing->privateExtension && partialDeclaration != nullptr) {
+        if (definition->kind == TypeDefKind::Derived
+            && partialDeclaration->definition->isLimited != definition->isLimited) {
+            m_diagnostics.error(decl->location, "a private extension and its completion must agree on the limited keyword");
+        }
+        if (!completing->unknownDiscriminants && partialDeclaration->discriminants.empty()
+            && completing->discriminantCount > 0 && !decl->discriminants.empty()) {
+            m_diagnostics.error(decl->location, "a private extension with inherited discriminants must inherit them in its full view");
+            return;
+        }
     }
     bool nonlimitedPrivateCompletion = completing != nullptr && completing->privateTo != nullptr
         && !completing->isLimited;
@@ -493,7 +527,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->aliasedElements = definition->aliasedElements;
         Type* cell = resolveSubtypeIndication(definition->elementType.get(), scope, true, true);
         checkCompleteView(cell, decl->location, "an array component");
-        if (baseType(cell) != nullptr && baseType(cell)->discriminantCount > 0
+        if (unknownDiscriminantView(cell)) {
+            m_diagnostics.error(decl->location, "an array component requires a definite subtype view");
+        }
+        if (!unknownDiscriminantView(cell) && baseType(cell) != nullptr && baseType(cell)->discriminantCount > 0
             && !hasKnownDiscriminants(cell) && !hasDefaultDiscriminants(cell)) {
             m_diagnostics.error(decl->location, "an array component requires a definite discriminated subtype");
         }
@@ -578,7 +615,22 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         break;
     }
     case TypeDefKind::Derived: {
-        Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
+        Type* extensionType = nullptr;
+        Scope* parentScope = scope;
+        std::vector<Symbol*> newDiscriminants;
+        if (!decl->discriminants.empty()) {
+            extensionType = makeType(TypeKind::Record);
+            parentScope = m_symbolTable.createScope(scope);
+            for (RecordField& discriminant : decl->discriminants) {
+                Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, discriminant.lower, discriminant.name);
+                symbol->type = resolveSubtypeIndication(discriminant.subtype.get(), scope);
+                symbol->isConstant = true;
+                symbol->discriminantRecord = extensionType;
+                parentScope->add(symbol);
+                newDiscriminants.push_back(symbol);
+            }
+        }
+        Type* parent = resolveSubtypeIndication(definition->parent.get(), parentScope, false, true);
         if (!checkCompleteView(parent, decl->location, "type derivation")) { return; }
         if (parent == nullptr) {
             return;
@@ -589,8 +641,20 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 : "derivation from an uncompleted private view is not yet supported");
             return;
         }
-        if (!decl->discriminants.empty()) {
-            m_diagnostics.error(decl->location, "new discriminant parts on derived types are not yet supported");
+        if (!decl->discriminants.empty() && unknownDiscriminantView(parent)) {
+            m_diagnostics.error(decl->location, "a new discriminant part requires a known parent subtype view");
+            return;
+        }
+        if (!definition->privateExtension && !decl->discriminants.empty() && parent->discriminantCount > 0
+            && !hasDiscriminantConstraint(parent)) {
+            m_diagnostics.error(decl->location, "a derived type with new discriminants requires a constrained parent subtype");
+            return;
+        }
+        if (definition->isLimited && !parent->isLimited) {
+            m_diagnostics.error(decl->location, "a limited extension requires a limited ancestor type");
+        }
+        if (!decl->discriminants.empty() && !parent->tagged) {
+            m_diagnostics.error(decl->location, "new discriminants on an untagged derived type are not yet supported");
             return;
         }
         if (hasProtected(parent)) {
@@ -609,9 +673,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "a class-wide type cannot be a derivation parent");
             return;
         }
-        if (parent->tagged) {
-            parent = rootType(parent);
-        }
         if (definition->extension && (!parent->tagged || parent->kind != TypeKind::Record)) {
             m_diagnostics.error(decl->location, "a record extension requires a tagged parent type");
             return;
@@ -620,8 +681,20 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "derivation from a tagged type requires with record or with null record");
             return;
         }
-        bool finalizationRoot = parent->controlled && parent->parentType == nullptr;
-        if (parent->tagged && ((!representationVisible(parent) && !finalizationRoot) || parent->isIncomplete)) {
+        if (!definition->privateExtension && parent->incompleteLayout) {
+            m_diagnostics.error(decl->location, "a derivation parent requires complete component types");
+            return;
+        }
+        if (declaredAncestorSubtype != nullptr && hasDiscriminantConstraint(declaredAncestorSubtype)) {
+            Type* ancestorView = parent;
+            while (ancestorView != nullptr && rootType(ancestorView) != rootType(declaredAncestorSubtype)) {
+                ancestorView = rootType(ancestorView)->parentSubtype;
+            }
+            if (ancestorView == nullptr || !SemaSupport::staticallyMatches(ancestorView, declaredAncestorSubtype)) {
+                m_diagnostics.error(decl->location, "a private extension completion must preserve its ancestor discriminant constraint");
+            }
+        }
+        if (parent->tagged && parent->isIncomplete && !definition->privateExtension) {
             m_diagnostics.error(decl->location, "extension of a private or incomplete tagged view is not yet supported");
             return;
         }
@@ -642,7 +715,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
 
         // Settled before the literals are made, so that each of them names the
         // type this declaration ends up being.
-        type = makeType(parent->kind);
+        type = extensionType != nullptr ? extensionType : makeType(parent->kind);
+        for (std::size_t i = 0; i < newDiscriminants.size(); ++i) {
+            newDiscriminants[i]->discriminantIndex = static_cast<int>(parent->fields.size() + i);
+        }
         std::string name = type->name;
         auto primitives = std::move(type->primitives);
         Type* classWide = type->classWide;
@@ -651,37 +727,90 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool isLimited = type->isLimited;
         bool privateViewTagged = type->privateViewTagged;
         bool privateViewAbstract = type->privateViewAbstract;
+        bool unknownDiscriminants = type->unknownDiscriminants;
+        bool privateExtension = type->privateExtension;
+        Type* privateAncestor = type->privateAncestor;
+        int publicParentFieldCount = type->publicParentFieldCount;
         *type = *built;
+        type->layoutSymbol = nullptr;
+        type->discriminantRecord = nullptr;
         type->recordRepresentationSpecified = false;
         if (completing != nullptr) {
             type->privateTo = privateTo;
             type->privateDiscriminantCount = privateDiscriminantCount;
             type->privateViewTagged = privateViewTagged;
             type->privateViewAbstract = privateViewAbstract;
+            type->unknownDiscriminants = unknownDiscriminants;
+            type->privateExtension = privateExtension;
+            type->privateAncestor = privateAncestor;
+            type->publicParentFieldCount = publicParentFieldCount;
             type->isLimited = isLimited;
         }
-        if (completing == nullptr && parent->controlled) {
+        if (completing == nullptr) {
             type->privateTo = nullptr;
+            type->privateExtension = false;
+            type->privateAncestor = nullptr;
+            type->publicParentFieldCount = 0;
+            type->unknownDiscriminants = false;
+        }
+        if (!representationVisible(parent)) {
+            for (FieldInfo& field : type->fields) {
+                bool visible = fieldVisible(rootType(parent), field);
+                if (!visible) { field.name = "$hidden_" + std::to_string(field.index); }
+            }
+        }
+        if (completing != nullptr && privateExtension && !isTaggedAncestor(privateAncestor, parent)) {
+            m_diagnostics.error(decl->location, "a private extension completion must descend from its declared ancestor");
         }
         type->primitives = std::move(primitives);
         type->parentType = rootType(parent);
+        type->parentSubtype = parent;
+        type->unknownDiscriminantAncestor = unknownDiscriminantView(parent);
         type->parentVisible = completing == nullptr || privateTo == nullptr;
         type->classWide = completing != nullptr ? classWide : nullptr;
-        type->dispatchSlots = parent->dispatchSlots;
+        type->dispatchSlots = rootType(parent)->dispatchSlots;
         for (Symbol* primitive : type->primitives) {
             primitive->dispatchSlot = -1;
         }
         type->dispatchFrozen = false;
-        rootType(parent)->dispatchFrozen = parent->tagged;
+        if (!definition->privateExtension) { rootType(parent)->dispatchFrozen = parent->tagged; }
         type->name = name;
         if (definition->extension) {
             type->byteSize = 0;
+            type->compositeSize = 0;
+            type->sizeBounds.clear();
             type->tagName.clear();
             type->parentFieldCount = static_cast<int>(parent->fields.size());
+            if (!decl->discriminants.empty()) {
+                for (FieldInfo& field : type->fields) {
+                    if (field.isDiscriminant) { field.name = "$ancestor_" + std::to_string(field.index); }
+                }
+                type->discriminantStart = static_cast<int>(type->fields.size());
+                type->discriminantCount = static_cast<int>(decl->discriminants.size());
+                type->discriminantConstraintSource = nullptr;
+                type->discriminantsKnown = false;
+                type->discriminantValues.clear();
+            }
             layoutRecord(decl, definition, type, scope);
         }
+        if (definition->privateExtension) {
+            if (scope != m_packageSpecScope || !m_inVisiblePart || m_packages.empty()) {
+                m_diagnostics.error(decl->location, "a private extension belongs in the visible part of a package");
+            } else {
+                type->privateTo = m_packages.back();
+                type->privateViewTagged = true;
+                type->privateViewAbstract = definition->abstract;
+                type->privateExtension = true;
+                type->privateAncestor = rootType(parent);
+                type->publicParentFieldCount = static_cast<int>(parent->fields.size());
+                type->privateDiscriminantCount = static_cast<int>(decl->discriminants.size());
+                type->unknownDiscriminants = decl->unknownDiscriminants;
+                type->isIncomplete = true;
+                type->incompleteDeclaration = decl;
+            }
+        }
         type->abstract = definition->abstract;
-        inheritPrimitives(type, parent, scope, decl->location);
+        inheritPrimitives(type, rootType(parent), scope, decl->location);
         if (type->tagged) {
             // A private view can declare operations before its parent is known.
             // Complete inherited slots first, then append its own operations.
@@ -754,8 +883,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         break;
     }
     case TypeDefKind::Private: {
-        if (m_packages.empty()) {
-            m_diagnostics.error(decl->location, "a private type belongs in a package specification");
+        if (m_packages.empty() || scope != m_packageSpecScope || !m_inVisiblePart) {
+            m_diagnostics.error(decl->location, "a private type belongs in the visible part of a package specification");
             return;
         }
         type = makeType(TypeKind::Record);
@@ -763,9 +892,26 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->tagged = definition->tagged;
         type->privateViewTagged = definition->tagged;
         type->privateViewAbstract = definition->abstract;
+        type->unknownDiscriminants = decl->unknownDiscriminants;
+        type->incompleteDeclaration = decl;
         type->privateTo = m_packages.back();
         type->privateDiscriminantCount = static_cast<int>(decl->discriminants.size());
         type->isLimited = definition->isLimited;
+        for (RecordField& discriminant : decl->discriminants) {
+            FieldInfo field;
+            field.name = discriminant.lower;
+            field.displayName = discriminant.name;
+            field.index = static_cast<int>(type->fields.size());
+            field.type = resolveSubtypeIndication(discriminant.subtype.get(), scope);
+            field.isDiscriminant = true;
+            field.defaultValue = discriminant.defaultValue.get();
+            if (discriminant.defaultValue) {
+                if (definition->tagged) { m_diagnostics.error(discriminant.location, "a tagged type cannot have defaulted discriminants"); }
+                analyzeExpr(discriminant.defaultValue.get(), scope, field.type);
+            }
+            type->fields.push_back(field);
+        }
+        type->discriminantCount = static_cast<int>(decl->discriminants.size());
         break;
     }
     }
@@ -779,14 +925,21 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     if (hasTasks(type) && nonlimitedPrivateCompletion) {
         m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
     }
-    if (type->tagged && hasDependentStorage(type)) {
-        m_diagnostics.error(decl->location, "tagged records with discriminant-dependent components are not yet supported");
-    }
     if (hasTasks(type) && type->tagged) {
         m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
     }
     if (type->variantOn >= 0 && hasTasks(type)) {
         m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
+    }
+    if (nonlimitedPrivateCompletion && hasLimitedParts(type)) {
+        m_diagnostics.error(decl->location, "a nonlimited private view requires a nonlimited full view");
+    }
+    if (completing != nullptr && type->privateTo != nullptr && !type->unknownDiscriminants
+        && type->privateDiscriminantCount == 0 && !type->privateExtension
+        && ((type->discriminantCount > 0 && !hasKnownDiscriminants(type) && !hasDefaultDiscriminants(type))
+            || (type->kind == TypeKind::Array && !type->constrained && type->boundsSymbol == nullptr
+                && type->boundExpressions.empty()))) {
+        m_diagnostics.error(decl->location, "a private view without discriminants requires a definite full view");
     }
     type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedParts(type) || hasTasks(type) || hasProtected(type);
@@ -881,16 +1034,34 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_currentSubprogram->needsFrame = true;
         }
     }
-    if (type->kind == TypeKind::Record && hasRuntimeLayout(type) && type->layoutSymbol == nullptr) {
-        if (type->tagged) {
-            m_diagnostics.error(decl->location, "runtime-sized tagged records are not yet supported");
-        }
+    if (type->kind == TypeKind::Record && (hasRuntimeLayout(type) || type->incompleteLayout) && type->layoutSymbol == nullptr) {
         type->layoutSymbol = symbol;
         symbol->owner = m_currentSubprogram;
         symbol->isGlobal = m_currentSubprogram == nullptr;
         symbol->qbeName = "$" + mangle(decl->lower + "__layout");
         if (m_currentSubprogram != nullptr) { m_currentSubprogram->needsFrame = true; }
         m_types.refreshRecordSubtypes(type);
+    }
+    if (type->incompleteLayout) {
+        type->deferredLayout = true;
+        m_pendingLayouts.push_back(type);
+    }
+    bool progress = true;
+    while (progress) {
+        progress = false;
+        for (auto pending = m_pendingLayouts.begin(); pending != m_pendingLayouts.end();) {
+            Type* layout = *pending;
+            bool ready = layout->kind == TypeKind::Array ? !hasIncompleteParts(layout->element)
+                : std::none_of(layout->fields.begin(), layout->fields.end(),
+                    [](const FieldInfo& field) { return hasIncompleteParts(field.type); });
+            if (!ready) { ++pending; continue; }
+            layout->incompleteLayout = false;
+            layout->isLimited |= hasLimitedParts(layout);
+            m_types.refreshRecordSubtypes(layout);
+            decl->completedLayouts.push_back(layout);
+            pending = m_pendingLayouts.erase(pending);
+            progress = true;
+        }
     }
 
 }
@@ -955,14 +1126,31 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 // discriminant it was made with.
 void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope)
 {
-    if (type->tagged && (!decl->discriminants.empty() || definition->variant != nullptr)) {
-        m_diagnostics.error(decl->location, "discriminated tagged records are not yet supported");
-        return;
-    }
     long long offset = definition->extension ? typeSize(type->parentType)
         : type->tagged || type->protectedScope != nullptr ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
     Scope* componentScope = m_symbolTable.createScope(scope);
+    Symbol* current = m_symbolTable.createSymbol(SymbolKind::Object, decl->lower, decl->name);
+    current->type = type;
+    current->currentInstance = type;
+    current->aliased = definition->isLimited || type->limitedRecord
+        || (definition->extension && hasLimitedParts(type->parentType))
+        || type->protectedScope != nullptr;
+    current->isConstant = !current->aliased;
+    current->accessibilityLevel = m_accessibilityLevel;
+    componentScope->add(current);
+    if (definition->extension && decl->discriminants.empty()) {
+        for (int i = 0; i < type->discriminantCount; ++i) {
+            const FieldInfo& field = discriminantField(type, i);
+            if (!fieldVisible(type, field)) { continue; }
+            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, field.name, field.displayName);
+            symbol->type = field.type;
+            symbol->isConstant = true;
+            symbol->discriminantRecord = type;
+            symbol->discriminantIndex = field.index;
+            componentScope->add(symbol);
+        }
+    }
 
     auto place = [&](RecordField& field, int variantIndex, bool isDiscriminant) {
         for (const FieldInfo& seen : type->fields) {
@@ -977,7 +1165,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.displayName = field.name;
         info.type = resolveSubtypeIndication(field.subtype.get(), isDiscriminant ? scope : componentScope, true, true);
         checkCompleteView(info.type, field.location, "a record component");
-        if (baseType(info.type) != nullptr && baseType(info.type)->discriminantCount > 0
+        if (unknownDiscriminantView(info.type)) {
+            m_diagnostics.error(field.location, "a record component requires a definite subtype view");
+        }
+        if (!unknownDiscriminantView(info.type) && baseType(info.type) != nullptr && baseType(info.type)->discriminantCount > 0
             && !hasKnownDiscriminants(info.type) && !hasDefaultDiscriminants(info.type)) {
             m_diagnostics.error(field.location, "a record component requires a definite discriminated subtype");
         }
@@ -997,7 +1188,14 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
             recordArrayConstraint(info.type, field.subtype.get());
             info.dependentBounds = info.type->discriminantRecord != nullptr;
-            type->dependentStorage |= info.dependentBounds;
+            type->dependentStorage |= info.dependentBounds && !type->tagged;
+            if (info.dependentBounds && type->tagged) {
+                info.storageType = m_types.create(TypeKind::Record, anonymousTypeName());
+                info.storageType->dependentStorage = true;
+                info.storageType->dependentArrayStorage = true;
+                info.storageType->arrayRank = info.type->arrayRank;
+                info.storageType->tagName = "$" + mangle(decl->lower) + "__array_" + std::to_string(fieldIndex);
+            }
             if (info.dependentBounds && (needsFinalization(info.type->element) || hasTasks(info.type->element))) {
                 m_diagnostics.error(field.location, "discriminant-dependent arrays with controlled, task or protected elements are not yet supported");
             }
@@ -1027,7 +1225,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         long long alignment = info.dependentBounds ? 8 : typeAlignment(info.type);
         __int128 aligned = offset;
         if (alignment > 0 && offset % alignment != 0) { aligned += alignment - offset % alignment; }
-        __int128 end = aligned + (info.dependentBounds ? adaArrayLocalSize(info.type->arrayRank) : typeSize(info.type));
+        __int128 end = aligned + (info.dependentBounds ? adaArrayLocalSize(info.type->arrayRank) + (info.storageType != nullptr ? 8 : 0) : typeSize(info.type));
         long long recordAlignment = std::max(typeAlignment(type), alignment);
         __int128 padded = end;
         if (recordAlignment > 0 && padded % recordAlignment != 0) { padded += recordAlignment - padded % recordAlignment; }
@@ -1043,6 +1241,9 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
     };
 
     for (RecordField& discriminant : decl->discriminants) {
+        if (type->tagged && discriminant.defaultValue != nullptr) {
+            m_diagnostics.error(discriminant.location, "a tagged type cannot have defaulted discriminants");
+        }
         if (bool(discriminant.defaultValue) != bool(decl->discriminants.front().defaultValue)) {
             m_diagnostics.error(discriminant.location, "defaults must be provided for all discriminants or none");
         }
@@ -1075,7 +1276,6 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
 
     auto finish = [&]() {
         if (type->dependentStorage) {
-            if (type->tagged) { m_diagnostics.error(decl->location, "discriminant-dependent tagged records are not yet supported"); }
             bool overflow = false;
             for (FieldInfo& field : type->fields) {
                 if (__builtin_add_overflow(field.offset, 16LL, &field.offset)) {
@@ -1301,10 +1501,6 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
 
     Type* type = symbol->type;
-    if (type->tagged) {
-        m_diagnostics.error(decl->location, "size clauses for tagged types are not yet supported");
-        return;
-    }
     if (type->isIncomplete || !representationVisible(type)) {
         m_diagnostics.error(decl->location, "a size clause requires a complete, visible representation");
         return;
@@ -1339,11 +1535,15 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             return;
         }
         if (bytes != typeSize(type)) {
+            if (type->tagged && type->isSubtype) {
+                m_diagnostics.error(decl->location, "a tagged subtype Size clause cannot change its type layout");
+                return;
+            }
             if (type != precedingType) {
                 m_diagnostics.error(decl->location, "a size-changing clause must be adjacent to its type or subtype declaration, before representation use");
                 return;
             }
-            if (needsFinalization(type) || hasTasks(type) || hasProtected(type) || type->isLimited) {
+            if ((!type->tagged && (needsFinalization(type) || type->isLimited)) || hasTasks(type) || hasProtected(type)) {
                 m_diagnostics.error(decl->location, "size-changing clauses for controlled, limited, task or protected composites are not yet supported");
                 return;
             }
@@ -1492,6 +1692,10 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
     if (base->limitedView && (indication->nullExclusion || indication->rangeLow || indication->digits
         || !indication->indexLows.empty())) {
         m_diagnostics.error(indication->location, "an incomplete type view cannot be constrained");
+        return base;
+    }
+    if (unknownDiscriminantView(base) && !indication->indexLows.empty()) {
+        m_diagnostics.error(indication->location, "an unknown-discriminant view cannot have a discriminant constraint");
         return base;
     }
     if (base->accessProfile != nullptr) { rootType(base)->accessConventionFrozen = true; }
@@ -1767,6 +1971,10 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
 Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Scope* scope)
 {
     Type* record = baseType(base);
+    if (unknownDiscriminantView(base)) {
+        m_diagnostics.error(indication->location, "an unknown-discriminant view cannot have a discriminant constraint");
+        return base;
+    }
     if (record->discriminantCount == 0) {
         m_diagnostics.error(indication->location, "'" + record->name + "' has no discriminants to constrain");
         return base;
@@ -1797,9 +2005,9 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
             named = true;
             Type* associatedType = nullptr;
             for (const std::string& selector : indication->discriminantNames[association]) {
-                auto field = std::find_if(record->fields.begin(), record->fields.begin() + record->discriminantCount,
+                auto field = std::find_if(record->fields.begin() + record->discriminantStart, record->fields.begin() + record->discriminantStart + record->discriminantCount,
                     [&](const FieldInfo& candidate) { return candidate.name == selector; });
-                if (field == record->fields.begin() + record->discriminantCount) {
+                if (field == record->fields.begin() + record->discriminantStart + record->discriminantCount) {
                     m_diagnostics.error(value->location, "unknown discriminant '" + selector + "'");
                     continue;
                 }
@@ -1807,7 +2015,7 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
                     m_diagnostics.error(value->location, "grouped discriminant selectors must have the same type");
                 }
                 associatedType = field->type;
-                associate(field->index);
+                associate(field->index - record->discriminantStart);
             }
         }
     }
@@ -1822,7 +2030,7 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
 
     for (int i = 0; i < record->discriminantCount; ++i) {
         Expr* value = values[i];
-        Type* discriminantType = record->fields[static_cast<std::size_t>(i)].type;
+        Type* discriminantType = discriminantField(record, i).type;
         Type* valueType = analyzeExpr(value, scope, discriminantType);
         if (!typesCompatible(discriminantType, valueType)) {
             m_diagnostics.error(value->location, "discriminant constraint has an incompatible type");
@@ -1832,7 +2040,11 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         subtype->discriminantPerObject.push_back(dependency != nullptr);
         if (dependency != nullptr) {
             subtype->discriminantRecord = dependency;
-            if (value->kind != ExprKind::Identifier) {
+            bool currentAccess = value->kind == ExprKind::Attribute
+                && static_cast<AttributeExpr*>(value)->prefix->kind == ExprKind::Identifier
+                && static_cast<IdentifierExpr*>(static_cast<AttributeExpr*>(value)->prefix.get())->symbol != nullptr
+                && static_cast<IdentifierExpr*>(static_cast<AttributeExpr*>(value)->prefix.get())->symbol->currentInstance != nullptr;
+            if (value->kind != ExprKind::Identifier && !currentAccess) {
                 m_diagnostics.error(value->location, "a discriminant in a component constraint must appear alone");
             }
         }
@@ -1843,7 +2055,7 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
             subtype->discriminantsKnown = false;
         } else if (discriminantType != nullptr && (fixed < discriminantType->low || fixed > discriminantType->high)) {
             m_diagnostics.error(value->location, describeValue(discriminantType, fixed) + " is not a value '"
-                                                     + record->fields[static_cast<std::size_t>(i)].name
+                                                     + discriminantField(record, i).name
                                                      + "' can take");
         }
         subtype->discriminantValues.push_back(fixed);
@@ -2076,8 +2288,8 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
             return original;
         }
         if (type->tagged) {
-            // This stage supports only nondiscriminated tagged types, so there
-            // are no profile constraints to retain separately from the layout.
+            // Controlling tagged parameters use the corresponding first
+            // subtype; parent constraints belong to the inherited body view.
             return type;
         }
         Type* subtype = m_types.create(original->kind, type->name);

@@ -155,7 +155,8 @@ long long typeSize(const Type* type)
         return __builtin_mul_overflow(count, elementSize, &size) ? std::numeric_limits<long long>::max() : size;
     }
     case TypeKind::Record: {
-        long long size = type->tagged || type->protectedScope != nullptr ? 8 : 0;
+        long long size = type->tagged && type->parentType != nullptr ? typeSize(type->parentType)
+            : type->tagged || type->protectedScope != nullptr ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
@@ -183,7 +184,7 @@ long long typeSize(const Type* type)
 long long fieldStorageSize(const FieldInfo& field)
 {
     if (field.representationSize >= 0) { return field.representationSize; }
-    return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) : typeSize(field.type);
+    return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) + (field.storageType != nullptr ? 8 : 0) : typeSize(field.type);
 }
 
 bool variantsExclusive(const Type* type, int left, int right)
@@ -446,6 +447,9 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
     subtype->discriminantCount = parent->discriminantCount;
+    subtype->discriminantStart = parent->discriminantStart;
+    subtype->unknownDiscriminants = parent->unknownDiscriminants;
+    subtype->unknownDiscriminantAncestor = parent->unknownDiscriminantAncestor;
     subtype->dependentStorage = parent->dependentStorage;
     subtype->discriminantRecord = parent->discriminantRecord;
     subtype->variantOn = parent->variantOn;
@@ -469,6 +473,8 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->dependentStorage = completed->dependentStorage;
         subtype->tagName = completed->tagName;
         subtype->parentFieldCount = completed->parentFieldCount;
+        subtype->discriminantStart = completed->discriminantStart;
+        subtype->discriminantCount = completed->discriminantCount;
         subtype->isLimited = subtype->isLimited || completed->isLimited;
         subtype->limitedRecord = completed->limitedRecord;
         subtype->fields = completed->fields;
@@ -519,10 +525,27 @@ bool hasDependentStorage(const Type* type)
     if (type->kind == TypeKind::Array) { return hasDependentStorage(type->element); }
     if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : type->fields) {
-            if (hasDependentStorage(field.type)) { return true; }
+            if (field.storageType != nullptr || hasDependentStorage(field.type)) { return true; }
         }
     }
     return false;
+}
+
+std::vector<int> recordComponentOrder(const Type* type)
+{
+    std::vector<int> order;
+    for (int i = 0; i < type->discriminantCount; ++i) {
+        order.push_back(type->discriminantStart + i);
+    }
+    for (const FieldInfo& field : type->fields) {
+        if (!field.isDiscriminant) { order.push_back(field.index); }
+    }
+    return order;
+}
+
+const FieldInfo& discriminantField(const Type* type, int index)
+{
+    return type->fields[type->discriminantStart + index];
 }
 
 bool hasDefaultDiscriminants(const Type* type)
@@ -530,7 +553,7 @@ bool hasDefaultDiscriminants(const Type* type)
     const Type* record = type;
     while (record != nullptr && record->isSubtype) { record = record->base; }
     return record != nullptr && record->discriminantCount > 0
-        && record->fields.front().defaultValue != nullptr;
+        && discriminantField(record, 0).defaultValue != nullptr;
 }
 
 bool hasDiscriminantConstraint(const Type* type)
@@ -587,7 +610,9 @@ int variantPresence(Type* type, int variant)
     for (int current = variant; current >= 0; current = record->variants[current].parent) {
         const VariantInfo& info = record->variants[current];
         long long value = 0;
-        if (!discriminantValueOf(type, info.discriminant, value)) {
+        if (info.discriminant < record->discriminantStart
+            || info.discriminant >= record->discriminantStart + record->discriminantCount
+            || !discriminantValueOf(type, info.discriminant - record->discriminantStart, value)) {
             unknown = true;
         } else if (variantFor(record, value, info.parent) != current) {
             return 0;
@@ -669,7 +694,7 @@ bool needsFinalization(const Type* type)
     }
     if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : type->fields) {
-            if (needsFinalization(field.type)) {
+            if (field.storageType != nullptr || needsFinalization(field.type)) {
                 return true;
             }
         }

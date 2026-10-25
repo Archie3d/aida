@@ -1,8 +1,7 @@
 taggederrors.adb:5:5: error: a record extension requires a tagged parent type
 taggederrors.adb:9:5: error: derivation from a tagged type requires with record or with null record
-taggederrors.adb:13:5: error: discriminated tagged records are not yet supported
 taggederrors.adb:15:9: error: 'X' is named twice in 'Duplicate_Field'
-taggederrors.adb:17:5: error: size clauses for tagged types are not yet supported
+taggederrors.adb:17:5: error: composite Size must cover its components and be a multiple of its alignment
 taggederrors.adb:22:29: error: extension aggregate ancestor must be a proper tagged ancestor of the result type
 taggederrors.adb:23:38: error: component 'X' is already supplied by the ancestor part
 taggederrors.adb:24:24: error: component 'Y' has no value in the aggregate

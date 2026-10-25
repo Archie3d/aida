@@ -398,6 +398,35 @@ int main(void)
     CHECK(finalizationOrder == 21 && __ada_exception == ADA_PROGRAM_ERROR);
     CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL && __ada_task_context()->registeredFinalizations == NULL);
     __ada_exception = NULL;
+    /* A dependent tagged array has a descriptor followed by its own arena.
+       Failed cloning must leave the source owned by its original object. */
+    int payload[] = { 1, 2, 3 };
+    struct
+    {
+        void* data;
+        AdaArrayDimension dimension;
+        void* arena;
+    } component = { payload, { 4, 6, 3, sizeof(int) }, NULL };
+    failNext = 1;
+    __ada_component_array_copy(&component, 1);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && component.arena == NULL);
+    CHECK(component.data == payload && liveAllocations == 0);
+    __ada_exception = NULL;
+    __ada_component_array_copy(&component, 1);
+    CHECK(__ada_exception == NULL && component.data != payload);
+    CHECK(memcmp(component.data, payload, sizeof payload) == 0);
+    ((int*)component.data)[1] = 99;
+    CHECK(payload[1] == 2);
+    __ada_array_release(&component.arena);
+    CHECK(liveAllocations == 0);
+    component.data = NULL;
+    component.dimension.last = 3;
+    component.dimension.length = 0;
+    __ada_component_array_copy(&component, 1);
+    CHECK(__ada_exception == NULL && component.data != NULL);
+    __ada_array_release(&component.arena);
+    CHECK(liveAllocations == 0);
+
     /* Tagged results use the same ownership transfer and rewind boundaries. */
     AdaDispatchEntry slots[] = { { NULL, NULL } };
     AdaTag template = { NULL, 32, 8, slots, NULL, NULL, "TEST.ROOT", 1, NULL, 1, 0, 0 };
@@ -405,8 +434,11 @@ int main(void)
     CHECK(__ada_tag_create(&template, NULL, &owner) == NULL);
     CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == 0);
     __ada_exception = NULL;
-    AdaTag* tag = __ada_tag_create(&template, NULL, &owner);
+    int64_t layout[] = { 32, 8, 16, 24 };
+    __ada_tag_set_layout(&template, 16, NULL);
+    AdaTag* tag = __ada_tag_create_layout(&template, NULL, &owner, 32, layout);
     CHECK(tag != NULL && tag->master == &owner && tag->slots != slots);
+    CHECK(tag->size == 32 && tag->layout == layout && template.size == 16);
     CHECK(liveAllocations == 3);
     struct TaggedObject
     {

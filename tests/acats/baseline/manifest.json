@@ -926,9 +926,9 @@
       ],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6f private tagged views",
-        "note": "Record extension of a private tagged ancestor at line 95; requires private-view extension/inherited primitive support, not an ordinary access-type repair."
+        "kind": "repaired",
+        "owner": "P6f tagged/private views",
+        "note": "Passes unchanged after tagged/private-view extensions and aggregate support; execution is registered in the strict baseline selection."
       }
     },
     {
@@ -1118,9 +1118,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6f private extensions",
-        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
+        "kind": "repaired",
+        "owner": "P6f tagged/private views",
+        "note": "Passes unchanged after tagged/private-view extensions and aggregate support; execution is registered in the strict baseline selection."
       }
     },
     {
@@ -1137,9 +1137,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6f private extensions",
-        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
+        "kind": "repaired",
+        "owner": "P6f tagged/private views",
+        "note": "Passes unchanged after tagged/private-view extensions and aggregate support; execution is registered in the strict baseline selection."
       }
     },
     {
@@ -1639,9 +1639,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6f private extensions",
-        "note": "Private extension declarations (new ancestor with private); parser currently accepts record extensions only. Review aggregate/finalization behavior after private extensions are implemented."
+        "kind": "repaired",
+        "owner": "P6f tagged/private views",
+        "note": "Passes unchanged after tagged/private-view extensions and aggregate support; execution is registered in the strict baseline selection."
       }
     },
     {
@@ -1681,9 +1681,9 @@
         "REPORT.ident_char"
       ],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6f discriminated tagged types; P8 REPORT adapter",
-        "note": "Class-wide use-type parsing is repaired. New discriminants on a derived controlled tagged type at line 78 remain P6f; REPORT.Ident_Char at lines 193/208 independently needs the P8 adapter. Cascaded missing-type diagnostics are not new defects."
+        "kind": "support_gap",
+        "owner": "P8 REPORT adapter",
+        "note": "Tagged discriminants now compile; REPORT.Ident_Char at lines 193/208 is the remaining observed adapter blocker."
       }
     },
     {
@@ -1782,8 +1782,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6f unknown-discriminant private views",
-        "note": "Unknown discriminants on a private type declaration at line 107; controlled lifetimes alone do not supply this type category."
+        "owner": "P6d/P6g access subtypes and dependent controlled arrays",
+        "note": "Unknown-discriminant private views now compile. Remaining observations include access-to-array subtype constraints, dependent arrays of controlled elements and cascaded indefinite-object diagnostics."
       }
     },
     {

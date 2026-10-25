@@ -36,6 +36,7 @@ typedef struct AdaTag
     /* Walk mode: 0 active child-first, 1 active parent-first, 2 reserve all alternatives. */
     void (*parts)(void*, void (*)(void*, void (*)(void*), void (*)(void*), void*), void*, int);
     int64_t hasLimitedParts;
+    const int64_t* layout;
 } AdaTag;
 
 
@@ -217,6 +218,7 @@ int64_t __ada_array_concat_shape(AdaArrayDimension* shape, int64_t leftFirst, in
     int64_t rightFirst, int64_t rightLast, int64_t rightLength, int64_t indexFirst, int64_t indexLast,
     int constrainedAncestor, int64_t elementSize);
 int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize);
+void __ada_component_array_copy(void* descriptor, int rank);
 void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize);
 void __ada_array_release(void** owner);
 void __ada_array_rewind(void** owner, void* checkpoint);
@@ -230,6 +232,8 @@ void __ada_array_result_cleanup(AdaTaskContext* context, void* descriptor);
    the captured frames. Tagged results transfer a heap copy to the caller. */
 void __ada_tag_register(void* tag);
 void* __ada_tag_create(const void* templateTag, void* parent, void* master);
+void* __ada_tag_create_layout(const void* templateTag, void* parent, void* master, int64_t size, const int64_t* layout);
+void __ada_tag_set_layout(void* value, int64_t size, const int64_t* layout);
 void __ada_tag_check_level(const void* object, int level);
 void __ada_tag_check_accessibility(const void* object, int level);
 void* __ada_collection_begin(void* collection);

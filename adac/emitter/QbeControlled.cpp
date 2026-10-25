@@ -258,7 +258,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     if (!constructed) {
         initializeDependentStorage(destination, type);
         walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
-            if (partType->dependentStorage) { line("storel 0, " + part.name); }
+            if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
             emitCallInstruction("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
                  + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
         }, false);
@@ -347,6 +347,9 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     if (!needsFinalization(type)) {
         return;
     }
+    if (m_context->initializingStorage && type->tagged) {
+        line("storel " + typeTag(type).name + ", " + object.name);
+    }
     if (type->protectedScope != nullptr) {
         action(object, type);
         return;
@@ -385,7 +388,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
         label(done);
     } else if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : baseType(type)->fields) {
-            if (needsFinalization(field.type)) {
+            if (field.storageType != nullptr || needsFinalization(field.type)) {
                 std::string done;
                 if (activeOnly && field.variant >= 0) {
                     std::string active = newLabel("controlledvariant");
@@ -393,8 +396,9 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
                     branch(variantCondition(object, baseType(type), field.variant), active, done);
                     label(active);
                 }
-                Value component = fieldAddress(object, baseType(type), field);
-                walkControlled(component, field.type, parentFirst, action, activeOnly);
+                Value component = field.storageType != nullptr ? fieldStorage(object, baseType(type), field)
+                    : fieldAddress(object, baseType(type), field);
+                walkControlled(component, field.storageType != nullptr ? field.storageType : field.type, parentFirst, action, activeOnly);
                 if (!done.empty()) { jump(done); label(done); }
             }
         }
@@ -408,7 +412,7 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
 {
     initializeDependentStorage(object, type);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
-        if (partType->dependentStorage) { line("storel 0, " + part.name); }
+        if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
         if (library) {
             emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
             return;
@@ -433,7 +437,7 @@ void QbeEmitter::adjustControlledObject(const Value& object, Type* type, const s
     line("storew 0, " + failure);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
         if (partType->dependentStorage) {
-            line("storel 0, " + part.name);
+            line("storel 0, " + dependentArena(part, partType));
             activateControlledObject(part, partType);
             emitCallInstruction("call " + rootType(partType)->tagName + ".adjust(l " + part.name + ")", CallEffects::CheckException);
             return;

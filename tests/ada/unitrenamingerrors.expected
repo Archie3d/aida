@@ -10,4 +10,4 @@ unitrenamingerrors.adb:35:5: error: 'Absent' does not denote a generic procedure
 unitrenamingerrors.adb:37:5: error: 'Good_Generic' has already been declared in this scope
 unitrenamingerrors.adb:38:5: error: generic unit kind does not match this instantiation
 unitrenamingerrors.adb:41:18: error: 'Hidden' is not declared in 'Good'
-unitrenamingerrors.adb:42:20: error: '.' reaches inside a value of 'Item', whose representation 'Plain' keeps to itself
+unitrenamingerrors.adb:42:20: error: component 'Field' is not visible through this type view

@@ -1,0 +1,10 @@
+privatecompletionerrors.adb:3:20: error: a tagged type cannot have defaulted discriminants
+privatecompletionerrors.adb:5:20: error: a tagged type cannot have defaulted discriminants
+privatecompletionerrors.adb:10:9: error: a private view without discriminants requires a definite full view
+privatecompletionerrors.adb:15:9: error: a limited tagged private view requires a limited full view
+privatecompletionerrors.adb:20:9: error: completion discriminants do not conform to the incomplete declaration
+privatecompletionerrors.adb:18:9: error: 'Item' is never described
+privatecompletionerrors.adb:26:9: error: a private extension completion must preserve its ancestor discriminant constraint
+privatecompletionerrors.adb:32:9: error: a private extension and its completion must agree on the limited keyword
+privatecompletionerrors.adb:39:9: error: an object requires the full type to be completed before its declaration
+privatecompletionerrors.adb:50:32: error: object 'Access requires an aliased object view

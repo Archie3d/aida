@@ -77,8 +77,9 @@ The `overriding*`, `null*`, `protected*indicator*`, `accessparameterlegalityerro
 and `accessresult*errors`
 fixtures check the corresponding illegal controls.
 
-Private extensions, tagged discriminants and interfaces retain the remaining
-6f owners. Generic abstract formals and null formal-procedure defaults remain
+Private extensions and tagged discriminants now follow the
+[tagged/private-view contract](tagged-discriminants.md). Interfaces retain their
+remaining 6f owner. Generic abstract formals and null formal-procedure defaults remain
 6g; null defaults receive an explicit unsupported diagnostic. General freezing
 beyond the existing object/body/derivation checks remains in the Phase 8 audit.
 

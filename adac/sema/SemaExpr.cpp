@@ -260,6 +260,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
     if (!checkCompleteView(designated, expr->location, "an allocator")) { return access; }
+    if (unknownDiscriminantView(designated) && expr->value == nullptr) {
+        m_diagnostics.error(expr->location, "an allocator of an unknown-discriminant view requires an initializer");
+        return access;
+    }
     if (abstractView(designated)) {
         m_diagnostics.error(expr->location, "an allocator cannot create an object of an abstract type");
         return nullptr;

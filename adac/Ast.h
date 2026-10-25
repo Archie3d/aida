@@ -517,6 +517,7 @@ struct TypeDefinition : Node
     bool tagged = false;
     bool abstract = false;
     bool extension = false;
+    bool privateExtension = false;
     std::vector<RecordField> fields;
     VariantPartPtr variant;
 
@@ -859,6 +860,7 @@ struct TypeDecl : Decl
     std::vector<RecordField> discriminants;
     TypeDefinitionPtr definition;
     Type* declaredType = nullptr;
+    std::vector<Type*> completedLayouts;
     Expr* smallClause = nullptr;
     DeclList taskObjects; // Anonymous type followed by its single concurrent object.
     DeclList protectedDeclarations;
@@ -877,6 +879,7 @@ struct SubtypeDecl : Decl
     std::string lower;
     SubtypeIndicationPtr subtype;
     Type* declaredType = nullptr;
+    std::vector<Type*> completedLayouts;
     Expr* smallClause = nullptr;
 };
 

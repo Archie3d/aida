@@ -1106,6 +1106,23 @@ int64_t __ada_array_concat_shape(AdaArrayDimension* shape, int64_t leftFirst, in
     return bytes;
 }
 
+/* Tagged dependent components own separate arenas so an ancestor-view
+   assignment cannot release storage belonging to the extension. */
+void __ada_component_array_copy(void* descriptor, int rank)
+{
+    void** data = descriptor;
+    AdaArrayDimension* dimensions = (AdaArrayDimension*)((char*)descriptor + 8);
+    void** arena = (void**)((char*)descriptor + adaArrayLocalSize(rank));
+    void* source = *data;
+    *arena = NULL;
+    void* copy = __ada_array_local(arena, dimensions[0].first, dimensions[0].last, dimensions[0].stride);
+    if (copy == NULL) { return; }
+    int64_t bytes = __ada_array_size(dimensions[0].first, dimensions[0].last, dimensions[0].stride);
+    if (__ada_task_context()->exception != NULL) { return; }
+    if (bytes != 0) { memcpy(copy, source, (size_t)bytes); }
+    *data = copy;
+}
+
 void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize)
 {
     int64_t bytes;
@@ -1849,6 +1866,7 @@ static void copyTaggedObject(void* target, const void* source, TaggedCopyContext
         return;
     }
     if (reserve && tag->parts != NULL) {
+        *(const AdaTag**)target = tag;
         tag->parts(target, reserveTaggedPart, copy, 2);
         if (context->exception != NULL) {
             return;

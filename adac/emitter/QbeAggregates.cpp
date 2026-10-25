@@ -371,8 +371,10 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     return result;
 }
 
-void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Type* type)
+void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& destination, Type* type)
 {
+    Value address = destination;
+    address.declaredLayout = true;
     Type* target = type != nullptr && type->tagged ? rootType(type) : type;
     if (target == nullptr) {
         return;
@@ -384,9 +386,29 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
             m_context->discriminantObjects[baseType(walk)] = address;
         }
         if (target->dependentStorage) { activateControlledObject(address, target); }
+        if (target->tagged) { line("storel " + typeTag(target).name + ", " + address.name); }
+        // Own discriminants precede both inherited per-object constraints and
+        // extension components, irrespective of the physical parent prefix.
+        for (int i = 0; i < target->discriminantCount; ++i) {
+            const FieldInfo& field = discriminantField(target, i);
+            Expr* value = expr->resolvedFields[field.index];
+            if (value == nullptr) { continue; }
+            if (value->kind == ExprKind::Box) { value = field.defaultValue; }
+            assignInto(fieldAddress(address, target, field), field.type, value, true);
+        }
+        if (expr->ancestor == nullptr && target->parentSubtype != nullptr) {
+            for (const FieldInfo& field : target->fields) {
+                if (!field.isDiscriminant || field.index >= target->discriminantStart) { continue; }
+                Value fixed = fieldDiscriminantConstraint(target, field.index);
+                if (!fixed.name.empty()) { storeInto(fieldAddress(address, target, field), fixed, field.type); }
+            }
+        }
         if (expr->ancestor != nullptr) {
             if (expr->ancestorIsType) {
-                emitDefaultInit(address, expr->ancestorType);
+                Type* ancestor = target->parentSubtype != nullptr
+                    && rootType(target->parentSubtype) == rootType(expr->ancestorType)
+                    ? target->parentSubtype : expr->ancestorType;
+                emitDefaultInit(address, ancestor);
             } else {
                 if (needsFinalization(expr->ancestorType) || hasLimitedParts(expr->ancestorType)) {
                     assignInto(address, expr->ancestorType, expr->ancestor.get(), true);
@@ -405,6 +427,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
         for (std::size_t i = 0; i < target->fields.size() && i < expr->resolvedFields.size(); ++i) {
             const FieldInfo& field = target->fields[i];
             Expr* value = expr->resolvedFields[i];
+            if (field.isDiscriminant) { continue; }
             if (value == nullptr) { continue; }
             if (field.dependentBounds) { initializeDependentField(address, baseType(target), field); }
             Value component = fieldAddress(address, target, field);
@@ -412,9 +435,10 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& address, Ty
                 value = field.defaultValue;
             }
             assignInto(component, field.type, value, true);
-            if (field.isDiscriminant && field.index + 1 == target->discriminantCount) {
-                emitRecordConstraintCheck(address, type);
-            }
+        }
+        emitRecordConstraintCheck(address, type);
+        if (target->parentSubtype != nullptr && target->discriminantStart > 0) {
+            emitRecordConstraintCheck(address, target->parentSubtype);
         }
         m_context->discriminantObjects = std::move(savedObjects);
         if (target->controlled) {

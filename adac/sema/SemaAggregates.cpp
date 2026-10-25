@@ -40,6 +40,14 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    if (expr->ancestor == nullptr && target->tagged) {
+        for (Type* ancestor = target->parentType; ancestor != nullptr; ancestor = ancestor->parentType) {
+            if (!representationVisible(ancestor)) {
+                m_diagnostics.error(expr->location, "a record aggregate cannot expose a private ancestor; use an extension aggregate");
+                return nullptr;
+            }
+        }
+    }
     std::size_t firstField = 0;
     if (expr->ancestor != nullptr) {
         Type* extension = rootType(target);
@@ -95,8 +103,8 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                 continue;
             }
             long long chosen = 0;
-            if (!discriminantValue(target, info.discriminant, chosen)
-                && !aggregateDiscriminant(expr, record, scope, info.discriminant, chosen)) {
+            if (!discriminantValue(target, info.discriminant - record->discriminantStart, chosen)
+                && !aggregateDiscriminant(expr, record, scope, info.discriminant - record->discriminantStart, chosen)) {
                 unknown = true;
                 break;
             }
@@ -123,7 +131,10 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
 
         auto present = [&](const FieldInfo& field) {
-            return static_cast<std::size_t>(field.index) >= firstField && (field.variant < 0 || active[field.variant]);
+            return static_cast<std::size_t>(field.index) >= firstField
+                && (!field.isDiscriminant || (field.index >= record->discriminantStart
+                    && field.index < record->discriminantStart + record->discriminantCount))
+                && (field.variant < 0 || active[field.variant]);
         };
         if (!expr->nullRecord && std::none_of(target->fields.begin(), target->fields.end(), present)) {
             m_diagnostics.error(expr->location, "an aggregate with no needed record components requires null record");
@@ -158,7 +169,8 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         bool complained = false;
 
         expr->resolvedFields.assign(target->fields.size(), nullptr);
-        std::size_t positional = firstField;
+        auto componentOrder = recordComponentOrder(record);
+        std::size_t positional = 0;
         bool hasNamed = false;
         bool hasOthers = false;
         for (AggregateComponent& component : expr->components) {
@@ -188,16 +200,17 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                         "positional record components must precede named associations");
                     continue;
                 }
-                while (positional < target->fields.size() && !present(target->fields[positional])) {
+                while (positional < componentOrder.size() && !present(target->fields[componentOrder[positional]])) {
                     ++positional;
                 }
-                if (positional >= target->fields.size()) {
+                if (positional >= componentOrder.size()) {
                     m_diagnostics.error(component.value->location, "too many components in record aggregate");
                     break;
                 }
-                Type* fieldType = target->fields[positional].type;
+                int fieldIndex = componentOrder[positional];
+                Type* fieldType = target->fields[fieldIndex].type;
                 analyzeComponent(component.value.get(), fieldType);
-                expr->resolvedFields[positional] = component.value.get();
+                expr->resolvedFields[fieldIndex] = component.value.get();
                 ++positional;
                 continue;
             }
@@ -211,7 +224,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
             for (const std::string& fieldName : component.names) {
                 bool found = false;
                 for (const FieldInfo& field : target->fields) {
-                    if (field.name != fieldName) {
+                    if (field.name != fieldName || !fieldVisible(record, field)) {
                         continue;
                     }
                     found = true;
@@ -377,13 +390,18 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
 bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope, int index,
                                  long long& value, Expr** source)
 {
+    if (index < 0 || index >= record->discriminantCount) { return false; }
+    auto order = recordComponentOrder(record);
     std::size_t positional = 0;
+    if (expr->ancestor != nullptr && expr->ancestorType != nullptr) {
+        std::erase_if(order, [&](int field) { return field < static_cast<int>(expr->ancestorType->fields.size()); });
+    }
 
     for (AggregateComponent& component : expr->components) {
         if (component.isOthers) {
             if (component.value->kind == ExprKind::Box) {
                 if (source != nullptr) { *source = component.value.get(); }
-                Expr* defaultValue = record->fields[static_cast<std::size_t>(index)].defaultValue;
+                Expr* defaultValue = discriminantField(record, index).defaultValue;
                 return defaultValue != nullptr && foldStatic(defaultValue, value);
             }
             break;
@@ -391,7 +409,8 @@ bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope
 
         int which = -1;
         if (component.names.empty() || component.names.front().empty()) {
-            which = static_cast<int>(positional++);
+            if (positional >= order.size()) { return false; }
+            which = order[positional++];
         } else {
             for (const FieldInfo& field : record->fields) {
                 if (field.name == component.names.front()) {
@@ -400,16 +419,16 @@ bool Sema::aggregateDiscriminant(AggregateExpr* expr, Type* record, Scope* scope
                 }
             }
         }
-        if (which != index) {
+        if (which != index + record->discriminantStart) {
             continue;
         }
         Expr* expression = component.value.get();
         if (source != nullptr) { *source = expression; }
         if (expression->kind == ExprKind::Box) {
-            expression = record->fields[static_cast<std::size_t>(index)].defaultValue;
+            expression = discriminantField(record, index).defaultValue;
             return expression != nullptr && foldStatic(expression, value);
         }
-        analyzeExpr(expression, scope, record->fields[static_cast<std::size_t>(index)].type);
+        analyzeExpr(expression, scope, discriminantField(record, index).type);
         return foldStatic(component.value.get(), value);
     }
     return false;
@@ -430,7 +449,7 @@ bool Sema::checkAggregateDiscriminants(AggregateExpr* expr, Type* target, Scope*
             || !aggregateDiscriminant(expr, record, scope, which, given, &source) || given == fixed) {
             continue;
         }
-        const FieldInfo& discriminant = record->fields[static_cast<std::size_t>(which)];
+        const FieldInfo& discriminant = discriminantField(record, which);
         m_diagnostics.error(source->location, "'" + discriminant.displayName + "' was fixed at "
                                                   + describeValue(discriminant.type, fixed)
                                                   + " when the object was declared");

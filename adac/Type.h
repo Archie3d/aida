@@ -43,6 +43,7 @@ struct FieldInfo
     // use inline payload storage in represented records instead of a view slot.
     long long representationSize = -1;
     bool inlineDependent = false;
+    Type* storageType = nullptr; // Per-component ownership for tagged dependent arrays.
     bool dependentBounds = false; // This field stores an object-owned array view.
 
     // Which alternative of the variant part the component belongs to, or -1
@@ -125,6 +126,11 @@ struct Type
     // assignment or equality to the outside.
     Symbol* privateTo = nullptr;
     int privateDiscriminantCount = 0;
+    bool unknownDiscriminants = false;
+    bool unknownDiscriminantAncestor = false;
+    bool privateExtension = false;
+    Type* privateAncestor = nullptr;
+    int publicParentFieldCount = 0;
     bool isLimited = false;
     // Explicit limitedness of the full view, inherited by subtypes/derivations.
     bool limitedRecord = false;
@@ -133,13 +139,17 @@ struct Type
     Symbol* protectedObject = nullptr;
     bool protectedBodySeen = false;
     bool incompleteLayout = false;
+    bool deferredLayout = false;
     Symbol* taskBody = nullptr; // Task identity occupies one pointer-sized slot.
 
     // Discriminants and the variant part they may select.  The discriminants
-    // are the first components of the record; variantOn identifies the outer
+    // start after the physical parent prefix in an extension with new
+    // discriminants; variantOn identifies the outer
     // selector, or -1 when there is no variant part. Each nested alternative
     // records its own selector and parent in variants.
     int discriminantCount = 0;
+    int discriminantStart = 0;
+    Type* parentSubtype = nullptr;
     bool recordRepresentationSpecified = false;
     int variantOn = -1;
     std::vector<VariantInfo> variants;
@@ -155,6 +165,7 @@ struct Type
     std::vector<struct Expr*> discriminantExpressions;
     std::vector<bool> discriminantPerObject;
     bool dependentStorage = false;
+    bool dependentArrayStorage = false;
     bool discriminantPerEvaluation = false;
     bool discriminantObjectConstraint = false;
 
@@ -287,6 +298,8 @@ int variantPresence(Type* type, int variant);
 // anything did.
 bool discriminantValueOf(const Type* type, int index, long long& value);
 bool hasDefaultDiscriminants(const Type* type);
+std::vector<int> recordComponentOrder(const Type* type);
+const FieldInfo& discriminantField(const Type* type, int index);
 bool hasDependentStorage(const Type* type);
 bool hasDiscriminantConstraint(const Type* type);
 

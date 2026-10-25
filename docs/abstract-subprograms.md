@@ -37,8 +37,8 @@ subtype marks in concrete extension aggregates.
 
 ## Boundaries and validation
 
-Interfaces, private extensions and discriminated tagged types retain their
-later 6f owners. Controlling anonymous access results and their inherited
+Interfaces retain their later 6f owner. Private extensions and tagged
+discriminants now follow the [tagged/private-view contract](tagged-discriminants.md). Controlling anonymous access results and their inherited
 required-overriding rules are now implemented by the
 [overriding/null-procedure milestone](overriding-null-procedures.md).
 Generic abstract formal types/subprograms remain 6g.

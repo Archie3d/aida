@@ -56,6 +56,7 @@ struct Symbol
     bool genericFormalSubprogram = false;
     bool explicitNullExclusion = false;
     Type* discriminantRecord = nullptr;
+    Type* currentInstance = nullptr;
     int discriminantIndex = -1;
     int shared = 0;
     Expr* sharedAlias = nullptr;

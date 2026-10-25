@@ -200,6 +200,15 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
                                           true, !decl->isRenaming);
 
     checkCompleteView(type, decl->location, "an object declaration");
+    if (type != nullptr && !decl->isRenaming && hasIncompleteParts(type)
+        && !(decl->isConstant && !decl->initializer)) {
+        m_diagnostics.error(decl->location, "an object requires the full type to be completed before its declaration");
+        return;
+    }
+    if (unknownDiscriminantView(type) && !decl->initializer && !decl->isRenaming && !decl->isConstant) {
+        m_diagnostics.error(decl->location, "an object of an unknown-discriminant view requires an initializer");
+        return;
+    }
     bool ownsScalarConstraint = type != nullptr && std::find(decl->scalarConstraints.begin(),
         decl->scalarConstraints.end(), type) != decl->scalarConstraints.end();
     if (ownsScalarConstraint) { type->scalarObjectConstraint = true; }

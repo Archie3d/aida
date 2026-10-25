@@ -334,6 +334,26 @@ bool Sema::abstractView(Type* type) const
         && (representationVisible(type) ? type->abstract : type->privateViewAbstract);
 }
 
+bool Sema::unknownDiscriminantView(Type* type) const
+{
+    type = rootType(type);
+    return type != nullptr && (type->unknownDiscriminantAncestor
+        || (type->unknownDiscriminants && !representationVisible(type)));
+}
+
+bool Sema::fieldVisible(Type* type, const FieldInfo& field) const
+{
+    if (field.name.starts_with("$hidden_")) { return false; }
+    if (field.isDiscriminant && (field.index < type->discriminantStart
+        || field.index >= type->discriminantStart + type->discriminantCount)) { return false; }
+    if (representationVisible(type)) { return true; }
+    if (field.isDiscriminant && !type->unknownDiscriminants
+        && field.index >= type->discriminantStart
+        && field.index < type->discriminantStart + type->privateDiscriminantCount) { return true; }
+    return type->privateAncestor != nullptr && field.index < type->publicParentFieldCount
+        && fieldVisible(type->privateAncestor, type->privateAncestor->fields[field.index]);
+}
+
 bool Sema::limitedView(Type* type) const
 {
     if (type == nullptr) { return false; }

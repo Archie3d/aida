@@ -92,7 +92,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             else if (expr->accessObject != nullptr) { object.accessLevel = accessLevelFor(expr->accessObject); }
             else if (object.accessLevel.empty()) { object.accessLevel = currentAccessLevel(); }
             if (name != "unchecked_access" && !expr->type->accessParameter && !expr->type->accessDiscriminant
-                && (expr->objectAccessLevel > expr->type->accessLevel || object.accessLevel[0] == '%')) {
+                && (expr->objectAccessLevel > expr->type->accessLevel || object.accessLevel[0] == '%'
+                    || (expr->prefix->kind == ExprKind::Identifier
+                        && static_cast<IdentifierExpr*>(expr->prefix.get())->symbol->currentInstance != nullptr))) {
                 emitCallInstruction("call $__ada_accessibility_check(w " + object.accessLevel
                     + ", w " + accessLevelFor(expr->type) + ")", CallEffects::CheckException);
             }

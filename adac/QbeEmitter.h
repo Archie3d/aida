@@ -43,6 +43,7 @@ struct Value
     std::string accessLevel;
     std::string accessOwner;
 
+    bool declaredLayout = false; // Destination under construction; its tag may name an ancestor.
     bool shared = false; // This value denotes shared scalar storage.
 
     bool hasBounds() const { return !first.empty() && !last.empty(); }
@@ -97,6 +98,7 @@ private:
         std::unordered_map<std::string, std::size_t> transferMasterDepth;
         std::string temporaryFinalizationChain;
         bool initializingTemporary = false;
+        bool initializingStorage = false;
         std::string extendedReturnLabel;
         bool cleansArrayResult = false;
         struct ReturnCleanup
@@ -272,10 +274,12 @@ private:
                     const std::string& constrained = "1");
     Value recordConstrained(Expr* object, const Value* evaluated = nullptr);
     Value discriminantConstraint(Type* type, int index);
+    Value fieldDiscriminantConstraint(Type* type, int fieldIndex);
     void emitDiscriminantConstraint(Type* type);
     Value fieldStorage(const Value& object, Type* type, const FieldInfo& field);
     void initializeDependentField(const Value& object, Type* type, const FieldInfo& field);
     void cloneDependentStorage(const Value& object, Type* type);
+    std::string dependentArena(const Value& object, Type* type);
     void initializeDependentStorage(const Value& object, Type* type);
     void checkRecordAssignment(const Value& address, const Value& source, Type* type,
                                bool initialize, const std::string& constrained);
