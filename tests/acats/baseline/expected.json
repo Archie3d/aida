@@ -8,7 +8,7 @@
   "compiler_sha256": "692685fdeeabeef5a1d87d0f3b91edd65cd0fb64f58a0a2d47cb608afb77274c",
   "counts": {
     "B_REJECTED_UNGRADED": 20,
-    "COMPILE_REJECTED": 18,
+    "COMPILE_REJECTED": 19,
     "HARNESS_BLOCKED": 8,
     "PASS": 76
   },
@@ -267,6 +267,12 @@
       "run_stdout": "TEST C393012\nPASSED\n",
       "run_stderr": "",
       "outcome": "PASS"
+    },
+    "c393013": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/c3/c393013.a:191:31: error: generic formal type definition 'new' is not yet supported\n<upstream>/tests/c3/c393013.a:202:31: error: generic formal type definition 'new' is not yet supported\n",
+      "outcome": "COMPILE_REJECTED"
     },
     "c393a02": {
       "compile_exit": 0,

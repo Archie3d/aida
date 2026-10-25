@@ -217,6 +217,10 @@
       "sha256": "b2d5685279ed705d18243ffb3d3c08472a20f2440c91da0d7f15e67405a01ae3",
       "git_blob": "16bf6ddccf854a0855031502622caa670a900938"
     },
+    "tests/c3/c393013.a": {
+      "sha256": "c2d2f7e4c0de68520988a51e51ed3fb59b696fb1f4e79ec5df9280b0354a5587",
+      "git_blob": "ec3bfb8fa8a08ef312791fabffeb9b842c95fb0e"
+    },
     "tests/c3/c393a02.a": {
       "sha256": "45858d3b7d06e2e640f468fdc52fa0c7bd5b075163f61d995d8bc19894d48bde",
       "git_blob": "177bd34b87e1cd761216bf93b5e58dbefaada0ed"
@@ -1104,6 +1108,25 @@
         "kind": "covered_probe",
         "owner": "P6f object orientation",
         "note": "Passes unchanged after Phase 6f; registered as an executable baseline regression, with original foundation sources where required."
+      }
+    },
+    {
+      "id": "c393013",
+      "class": "C",
+      "area": "object_orientation",
+      "owner": "P6f/P6g",
+      "rm": "3.9.3/12.5.1",
+      "objective": "Check that a non-abstract function with a controlling result of type T is inherited as non-abstract and does not require overriding for a null extension of T. Check that a call on an inherited function for a null extension returns the equivalent of a null extension aggregate. For a private extension of type T, check that an inherited non-abstract function with a controlling result does not require overriding if the full type is a null extension of T.",
+      "sources": [
+        "tests/c3/c393013.a"
+      ],
+      "report_name": "C393013",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P6g formal derived types",
+        "note": "Expected compile rejection until generic formal derived types are supported. Tests inherited non-abstract controlling-result functions of null extensions, including private full views and generic derivations. Frozen as COMPILE_REJECTED; not an executable PASS."
       }
     },
     {

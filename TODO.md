@@ -593,7 +593,9 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 - [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
   Phase 1 rejections with derived, access and interface formals (modular/decimal added in Phase 5)
   as those types become available. Support constrained-array actuals for formal
-  private types (ACATS CA2009A).
+  private types (ACATS CA2009A). C393013 is a baseline probe with an expected
+  compile rejection for formal derived types (`baseline.acats_c393013`); promote
+  it after the full null-extension controlling-result scenario passes.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
 - [ ] Formal packages and matching of their generic contracts, including Ada

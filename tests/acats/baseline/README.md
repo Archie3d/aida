@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 122 cases to the existing 55-case strict selection:
-102 executable C-tests and 20 ungraded B-test probes. The selection targets
+implement. It adds 123 cases to the existing 55-case strict selection:
+103 executable C-tests and 20 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 124 source files (including two shared foundations) retain their original
+All 125 source files (including two shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -42,7 +42,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 76 C passes, 18 legal-source rejections, eight support
+has 76 C passes, 19 legal-source rejections, eight support
 blockers and 20 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -53,6 +53,12 @@ dispatch, private/discriminated extensions and generic-instance tags. C390010
 now also passes unchanged after constrained class-wide access checks and
 parent/extension variant selection were repaired. All 16 join the passing CTest
 selection. The original 106 observations remain unchanged.
+
+C393013 is a Phase 6g probe with an expected COMPILE_REJECTED observation for
+unsupported generic formal derived types. `baseline.acats_c393013` checks that
+exact rejection in the normal suite under the baseline label; it is not an
+executable ACATS pass. An improvement requires reviewing the snapshot and
+promoting the case when the complete REPORT execution protocol passes.
 
 ## Reproduce
 

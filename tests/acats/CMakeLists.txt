@@ -133,6 +133,15 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(baseline.acats_metadata baseline.acats_runner
         PROPERTIES TIMEOUT 30 LABELS "baseline")
 
+    # A legal C-test blocked by Phase 6g. Check the frozen rejection without
+    # treating it as an executable ACATS pass; improvements require review.
+    add_test(NAME baseline.acats_c393013
+        COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
+            --case c393013 --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-probes")
+    set_tests_properties(baseline.acats_c393013
+        PROPERTIES TIMEOUT 60 LABELS "baseline")
+
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         "${baseline_root}/manifest.json" "${baseline_root}/expected.json")
     file(READ "${baseline_root}/manifest.json" baseline_selection)

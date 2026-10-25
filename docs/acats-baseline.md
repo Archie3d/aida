@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — 2026-10-25
 
-This backfill adds **122 unchanged upstream cases**: 102 C-tests and 20 B-test
+This backfill adds **123 unchanged upstream cases**: 103 C-tests and 20 B-test
 probes, alongside the existing 55-case selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 20 |
-| Legal C-test rejected | 18 |
+| Legal C-test rejected | 19 |
 | Support/harness blocked | 8 |
 | Executable PASS | 76 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **18 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **19 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
@@ -24,6 +24,13 @@ rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
+
+C393013 is added as a Phase 6g probe, expected to reject generic formal derived
+types until that category is implemented. It tests inherited controlling-result
+functions for null extensions, including generic and private extensions.
+`baseline.acats_c393013` checks the frozen compile rejection in the normal suite;
+its success means snapshot stability, not an executable language pass. The
+previous 122 observations are unchanged.
 
 The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
 all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
@@ -162,7 +169,7 @@ be blocked before reaching the feature named in their objective.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | derived scalars | 8 | 1 | 0 | 1 | 0 |
 | arrays discriminants | 4 | 6 | 0 | 0 | 0 |
-| object orientation | 16 | 0 | 0 | 0 | 0 |
+| object orientation | 16 | 1 | 0 | 0 | 0 |
 | access callbacks | 6 | 1 | 0 | 0 | 0 |
 | indexing slices | 6 | 1 | 0 | 1 | 0 |
 | aggregates | 0 | 4 | 0 | 0 | 0 |
@@ -235,6 +242,7 @@ The table below gives the observed status and initial triage for every case.
 | [C392D02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392d02.a); [f392d00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f392d00.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393001.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393012](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393012.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
+| [C393013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393013.a) | 3.9.3/12.5.1 | Legal C-test rejected | expected generic formal derived-type rejection; P6g |
 | [C393A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a02.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a03.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393A06](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a06.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
