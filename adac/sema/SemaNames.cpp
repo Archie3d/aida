@@ -495,6 +495,22 @@ Type* Sema::classWideType(Type* specific)
         return specific->classWide;
     }
 
+    if (specific->isSubtype && hasDiscriminantConstraint(specific)) {
+        if (specific->classWide == nullptr) {
+            Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
+            *wide = *specific;
+            wide->name = specific->name + "'Class";
+            wide->base = classWideType(rootType(specific));
+            wide->discriminantConstraintSource = specific;
+            wide->classRoot = rootType(specific);
+            wide->classWide = nullptr;
+            wide->abstract = false;
+            wide->primitives.clear();
+            wide->declarationScope = nullptr;
+            specific->classWide = wide;
+        }
+        return specific->classWide;
+    }
     specific = rootType(specific);
     if (specific->classWide == nullptr) {
         Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");

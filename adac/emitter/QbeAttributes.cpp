@@ -86,6 +86,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "access" || name == "unchecked_access") {
         if (expr->objectAccess) {
             Value object = emitAddress(expr->prefix.get());
+            if (expr->type->target->classRoot != nullptr) {
+                emitRecordConstraintCheck(object, expr->type->target);
+            }
             // Keep library-level accessibility when forwarding through an
             // anonymous access parameter as well as for this attribute itself.
             if (name == "unchecked_access") { object.accessLevel = "0"; }

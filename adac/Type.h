@@ -294,7 +294,7 @@ Type* rootType(Type* type);
 
 // Which alternative of a variant part a discriminant value picks, or -1 when
 // it picks none.
-int variantFor(const Type* record, long long discriminant, int parent = -1);
+int variantFor(const Type* record, long long value, int discriminant, int parent = -1);
 // -1 means unknown, 0 absent, 1 present, including all enclosing variants.
 int variantPresence(Type* type, int variant);
 

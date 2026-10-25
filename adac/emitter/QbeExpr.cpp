@@ -32,6 +32,18 @@ Value QbeEmitter::emitExpr(Expr* expr)
                 + ", w " + targetLevel + ")", CallEffects::CheckException);
         }
         if (expr->accessTarget != nullptr && expr->accessTarget != expr->type
+            && expr->accessTarget->target != nullptr && expr->accessTarget->target->classRoot != nullptr
+            && hasDiscriminantConstraint(expr->accessTarget->target)) {
+            std::string check = newLabel("anonymousconstraint"), done = newLabel("anonymousconstraintdone");
+            Value nonNull {newTemp(), 'w'};
+            line(nonNull.name + " =w cnel " + result.name + ", 0");
+            branch(nonNull, check, done);
+            label(check);
+            emitRecordConstraintCheck(result, expr->accessTarget->target);
+            jump(done);
+            label(done);
+        }
+        if (expr->accessTarget != nullptr && expr->accessTarget != expr->type
             && !expr->accessTarget->accessParameter && !expr->accessTarget->accessDiscriminant) {
             preserveAccessView(result, expr->accessTarget, expr->type);
         }
@@ -381,6 +393,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         return emitAggregate(static_cast<AggregateExpr*>(expr));
     case ExprKind::Qualified: {
         Value value = emitExpr(static_cast<QualifiedExpr*>(expr)->operand.get());
+        if (expr->type->classRoot != nullptr) { emitRecordConstraintCheck(value, expr->type); }
         if (expr->type->excludesNull || expr->type->scalarBoundsSymbol != nullptr || expr->type->modulus != 0 || expr->type->kind == TypeKind::Fixed) {
             emitRangeCheck(value, expr->type, expr->location);
         }
@@ -853,11 +866,20 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
     }
     if (base->dependentStorage) { activateControlledObject(address, type); }
     std::vector<const FieldInfo*> initializationOrder;
-    for (int i = 0; i < base->discriminantCount; ++i) {
-        initializationOrder.push_back(&discriminantField(base, i));
+    std::vector<bool> queued(base->fields.size(), false);
+    // Each ancestor constraint may depend on its immediate child's
+    // discriminants. Store those before working outward to the root.
+    for (Type* walk = base; walk != nullptr; walk = walk->parentType) {
+        for (int i = 0; i < walk->discriminantCount; ++i) {
+            int index = discriminantField(walk, i).index;
+            if (!queued[index]) {
+                initializationOrder.push_back(&base->fields[index]);
+                queued[index] = true;
+            }
+        }
     }
     for (const FieldInfo& field : base->fields) {
-        if (field.index < base->discriminantStart || field.index >= base->discriminantStart + base->discriminantCount) {
+        if (!queued[field.index]) {
             initializationOrder.push_back(&field);
         }
     }

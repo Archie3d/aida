@@ -90,6 +90,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             }
             source = emitExpr(expression);
         }
+        emitRecordConstraintCheck(source, returnType);
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w "
              + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
         std::string result = source.name;

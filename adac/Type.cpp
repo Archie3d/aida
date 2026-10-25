@@ -393,6 +393,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->tagged = parent->tagged;
+    subtype->classRoot = parent->classRoot;
     subtype->interfaceKind = parent->interfaceKind;
     subtype->interfaces = parent->interfaces;
     subtype->privateViewTagged = parent->privateViewTagged;
@@ -587,11 +588,11 @@ bool discriminantValueOf(const Type* type, int index, long long& value)
     return false;
 }
 
-int variantFor(const Type* record, long long discriminant, int parent)
+int variantFor(const Type* record, long long value, int discriminant, int parent)
 {
     int fallback = -1;
     for (std::size_t v = 0; v < record->variants.size(); ++v) {
-        if (record->variants[v].parent != parent) {
+        if (record->variants[v].parent != parent || record->variants[v].discriminant != discriminant) {
             continue;
         }
         if (record->variants[v].isOthers) {
@@ -599,7 +600,7 @@ int variantFor(const Type* record, long long discriminant, int parent)
             continue;
         }
         for (const VariantChoice& choice : record->variants[v].choices) {
-            if (discriminant >= choice.low && discriminant <= choice.high) {
+            if (value >= choice.low && value <= choice.high) {
                 return static_cast<int>(v);
             }
         }
@@ -618,7 +619,7 @@ int variantPresence(Type* type, int variant)
             || info.discriminant >= record->discriminantStart + record->discriminantCount
             || !discriminantValueOf(type, info.discriminant - record->discriminantStart, value)) {
             unknown = true;
-        } else if (variantFor(record, value, info.parent) != current) {
+        } else if (variantFor(record, value, info.discriminant, info.parent) != current) {
             return 0;
         }
     }

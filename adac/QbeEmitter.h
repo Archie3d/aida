@@ -216,6 +216,7 @@ private:
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,
                       const std::string& dispatchLabel);
     void emitRecordConstraintCheck(const Value& value, Type* type);
+    Value recordConstraintMatches(const Value& value, Type* type);
     void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location);
     Value variantCondition(const Value& address, Type* record, int variant);
     void checkVariant(const Value& address, Type* record, int variant);

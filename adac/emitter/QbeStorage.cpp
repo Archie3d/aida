@@ -426,6 +426,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         m_context->controllingTag = tag;
         Value source = emitExpr(value);
         m_context->controllingTag = saved;
+        emitRecordConstraintCheck(source, type);
         emitCallInstruction("call $__ada_tagged_assign(l " + address.name + ", l " + source.name
              + ", l " + m_context->temporaryFinalizationChain + ", l " + storageArena(true, true) + ")", CallEffects::CheckException);
         return;
@@ -553,6 +554,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
 // Membership includes the physical parent chain and transitive interface views.
 Value QbeEmitter::taggedMembership(const Value& object, Type* target)
 {
+    Type* subtype = target;
     target = rootType(target);
     if (target->classRoot != nullptr) {
         target = target->classRoot;
@@ -561,6 +563,19 @@ Value QbeEmitter::taggedMembership(const Value& object, Type* target)
     line(tag + " =l loadl " + object.name);
     emitCallInstruction(answer + " =w call $__ada_tag_has_ancestor(l " + tag + ", l "
         + typeTag(target).name + ")", CallEffects::DeferredCheck);
+    if (hasDiscriminantConstraint(subtype)) {
+        std::string check = newLabel("membershipconstraint"), done = newLabel("membershipdone");
+        std::string result = allocScratch(4);
+        line("storew " + answer + ", " + result);
+        branch(Value {answer, 'w'}, check, done);
+        label(check);
+        Value matches = recordConstraintMatches(object, subtype);
+        line("storew " + matches.name + ", " + result);
+        jump(done);
+        label(done);
+        answer = newTemp();
+        line(answer + " =w loadw " + result);
+    }
     return Value { answer, 'w' };
 }
 

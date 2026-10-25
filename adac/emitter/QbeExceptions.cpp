@@ -224,7 +224,8 @@ Value QbeEmitter::variantCondition(const Value& address, Type* record, int varia
     line(matched + " =w copy 0");
     for (std::size_t i = 0; i < record->variants.size(); ++i) {
         const VariantInfo& other = record->variants[i];
-        if (alternative.isOthers ? (other.parent != alternative.parent || other.isOthers)
+        if (alternative.isOthers ? (other.parent != alternative.parent
+                                    || other.discriminant != alternative.discriminant || other.isOthers)
                                  : static_cast<int>(i) != variant) {
             continue;
         }
@@ -302,24 +303,35 @@ void QbeEmitter::raiseConstraintError()
     }
 }
 
-void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
+Value QbeEmitter::recordConstraintMatches(const Value& value, Type* type)
 {
+    Value matches {"1", 'w'};
     for (int i = 0; i < type->discriminantCount; ++i) {
         Value expected = discriminantConstraint(type, i);
         if (expected.name.empty()) {
             continue;
         }
-        const FieldInfo& field = type->fields[i];
+        const FieldInfo& field = discriminantField(baseType(type), i);
         std::string slot = newTemp();
         line(slot + " =l add " + value.name + ", " + fieldOffset(type, field));
         Value actual = loadFrom(Value { slot, 'l' }, field.type);
         std::string same = newTemp();
         line(same + " =w ceq" + actual.type + " " + actual.name + ", " + expected.name);
-        std::string good = newLabel("conversionconstraint");
-        std::string bad = newLabel("conversionconstraintbad");
-        branch(Value { same, 'w' }, good, bad);
-        label(bad);
-        raiseConstraintError();
-        label(good);
+        std::string combined = newTemp();
+        line(combined + " =w and " + matches.name + ", " + same);
+        matches.name = combined;
     }
+    return matches;
+}
+
+void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
+{
+    Value matches = recordConstraintMatches(value, type);
+    if (matches.name == "1") { return; }
+    std::string good = newLabel("conversionconstraint");
+    std::string bad = newLabel("conversionconstraintbad");
+    branch(matches, good, bad);
+    label(bad);
+    raiseConstraintError();
+    label(good);
 }

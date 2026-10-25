@@ -9,6 +9,20 @@ that distinction. A new discriminant part requires a constrained parent; tagged
 discriminants cannot have defaults. Specified ancestor discriminants are reached
 through an ancestor conversion rather than selectors of the new type.
 
+Constrained `S'Class` views preserve S's captured discriminant constraints while
+sharing the root class-wide type identity. Access attributes/conversions,
+anonymous access arguments, class-wide initialization/assignment, parameters,
+results and membership check those constraints; null access values remain legal.
+Parent and extension variant parts select alternatives independently, including
+`others`. Default initialization stores each generation's discriminants before
+initializing the ancestor discriminants that depend on them. The unchanged
+ACATS C390010 now passes; `classwideconstraints` and `taggedvariantgroups` exercise
+these paths with local captured constraints and concurrent elaborations.
+The repair passes all 1,137 CTest checks, both fixtures in whole/per-unit modes
+with the compiler and C runtime checked separately under ASan/UBSan, and an
+instrumented-compiler check of C390010. The remaining 121 baseline observations
+are unchanged.
+
 Private extensions inherit visible ancestor components and operations while
 keeping additional components private. They can precede the ancestor's full
 view; their own completion follows the complete parent. Full record extensions

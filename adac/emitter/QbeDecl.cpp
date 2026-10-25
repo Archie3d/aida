@@ -955,6 +955,7 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
         m_context->resultTargetArena = arena;
     }
     Value source = emitExpr(object->initializer.get());
+    emitRecordConstraintCheck(source, symbol->type);
     emitCallInstruction("call $__ada_tag_check_accessibility(l " + source.name + ", w " + std::to_string(symbol->accessibilityLevel) + ")", CallEffects::CheckException);
     std::string pointer = limited ? source.name : newTemp();
     if (!limited) {

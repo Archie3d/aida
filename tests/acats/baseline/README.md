@@ -42,18 +42,17 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 75 C passes, one executable failure, 18 legal-source rejections, eight support
+has 76 C passes, 18 legal-source rejections, eight support
 blockers and 20 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
-The Phase 6f backfill adds 16 C-tests: 15 unchanged executable passes covering
-interfaces, abstract operations, dispatch, private/discriminated extensions and
-generic-instance tags, plus C390010 as RUN_FAILED. C390010 compiles and runs but
-reports failures in cases 2, 4, 5 and 6 involving constrained class-wide access
-values and discriminants. It remains in the observational cohort, outside the
-passing CTest selection. The original 106 observations remain unchanged.
+The Phase 6f backfill adds 16 C-tests covering interfaces, abstract operations,
+dispatch, private/discriminated extensions and generic-instance tags. C390010
+now also passes unchanged after constrained class-wide access checks and
+parent/extension variant selection were repaired. All 16 join the passing CTest
+selection. The original 106 observations remain unchanged.
 
 ## Reproduce
 

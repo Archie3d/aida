@@ -901,9 +901,9 @@
       ],
       "harness_gaps": [],
       "triage": {
-        "kind": "runtime_failure_to_investigate",
-        "owner": "P6f constrained class-wide discriminants",
-        "note": "Compiles and runs, but REPORT records failures in cases 2, 4, 5 and 6. Investigate constrained class-wide access conversions and inherited discriminant/component handling; retain RUN_FAILED, not PASS or compile XFAIL."
+        "kind": "repaired",
+        "owner": "P6f-prelude constrained class-wide discriminants",
+        "note": "PASS unchanged after preserving constrained class-wide subtype views, checking designated discriminants on access/value boundaries, and separating parent/extension variant selection. Local classwideconstraints/taggedvariantgroups cover captured constraints, nullable/anonymous access, value checks and static/runtime multilevel defaults."
       }
     },
     {

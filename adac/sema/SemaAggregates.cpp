@@ -108,7 +108,7 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
                 unknown = true;
                 break;
             }
-            active[i] = variantFor(record, chosen, info.parent) == static_cast<int>(i);
+            active[i] = variantFor(record, chosen, info.discriminant, info.parent) == static_cast<int>(i);
         }
         if (unknown) {
             m_diagnostics.error(expr->location, "an aggregate for '" + baseType(target)->name

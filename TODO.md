@@ -445,6 +445,17 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
+- [x] **Constrained class-wide views and tagged variants.** C390010 now PASS
+  unchanged. Preserve captured discriminant constraints through `'Class` and
+  subtype aliases, check access/value boundaries, and select independent parent/
+  extension variants by their own discriminants (including `others`). Initialize
+  each ancestor's discriminants after the child discriminants they reference.
+  `classwideconstraints` and `taggedvariantgroups` cover static/runtime defaults,
+  nullable/anonymous access, membership, calls, results and failed assignments
+  in whole/per-unit/deterministic modes with four workers.
+  Full suite 1,137/1,137 passes; both fixtures pass with the compiler and C
+  runtime checked separately under ASan/UBSan. C390010 also compiles with the
+  instrumented compiler; all other 121 baseline observations remain unchanged.
 - [x] **Derived scalar operations.** C34001A/C34001D/C34002A now PASS unchanged:
   scalar `'Value` returns/checks `S'Base`, including runtime-constrained derived
   types (RM 3.5(53)). `derivedscalaroperations` covers enumeration, Boolean and
@@ -569,12 +580,10 @@ full-tasking restrictions retain their later roadmap owners.
 - [x] Phase 6f ACATS backfill: 16 unchanged C-tests and their original shared
   foundations. Fifteen new executable passes cover interfaces, abstract/private
   dispatch, discriminated/local extensions and generic-instance tags. C390010
-  is recorded as RUN_FAILED (cases 2, 4, 5 and 6); constrained class-wide access
-  conversions and inherited discriminant/component handling need investigation.
+  now also passes after the constrained class-wide/variant repair in 6f-prelude.
   All original 106 observations remain unchanged. Expanded baseline: 122 cases,
-  75 PASS, 18 compile rejections, eight harness blockers, one runtime failure
-  and 20 ungraded B observations. All 133 ACATS/baseline CTest checks and the
-  full snapshot-stability target pass. [Inventory and triage](docs/acats-baseline.md).
+  76 PASS, 18 compile rejections, eight harness blockers and 20 ungraded B
+  observations. [Inventory and triage](docs/acats-baseline.md).
 
 ### 6g. Generics
 
