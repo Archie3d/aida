@@ -283,9 +283,9 @@ determinism tests and instrumented C run-time checks.
 Complete the remaining Ada 95 foundations and Ada 2005 additions together.
 Grouped by dependency into milestones 6a–6h, taken in order; within a group,
 work top to bottom, except that the first three 6e items come before the
-remaining 6d items. The 6h pragmas have no prerequisites here and may be
-pulled forward. Reuse the existing controlled-result construction, cleanup
-and dispatch mechanisms. Completed items have
+remaining 6d items. Run 6f-prelude after 6e and before starting 6f.
+The 6h pragmas have no prerequisites here and may be pulled forward. Reuse
+the existing controlled-result construction, cleanup and dispatch mechanisms. Completed items have
 whole/separate/determinism tests and, where relevant, four-task and sanitizer
 checks.
 
@@ -436,6 +436,55 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   generic-access-object XFAIL. Task/protected aggregates/results remain
   diagnosed for Phase 9. [Contract](docs/returns.md).
 
+### 6f-prelude. ACATS gaps in supported features
+
+Repair correctness and legality gaps exposed by the
+[completed-feature ACATS baseline](docs/acats-baseline.md) before adding the
+6f language features. Localize each failure and confirm the applicable Ada
+2005 rule before changing the compiler. This milestone covers the existing
+supported subset; documented private-extension, generic-formal, library and
+full-tasking restrictions retain their later roadmap owners.
+
+- [ ] **Derived scalar operations.** Resolve the unexpected `Constraint_Error`
+  in C34001A, C34001D and C34002A. Cover derived enumeration, Boolean and integer
+  predefined operations, inherited constraints and conversions with focused
+  regressions for the localized causes.
+- [ ] **Controlled adjustment failure.** Resolve C761006's missing remaining
+  adjustment after an `Adjust` exception. Audit required adjustment/finalization
+  work and `Program_Error` propagation, retaining ownership and cleanup on
+  partial failure.
+- [ ] **Primitive operator visibility.** Resolve C84009A's operator hiding/use
+  failure and the implicit equality/operator lookup rejections in C840001 and
+  C84008A. Cover predefined and user operators, homographs, `use type`, expanded
+  names and visible/private/body contexts.
+- [ ] **Array declaration legality.** Reject the mixed constrained/unconstrained
+  multidimensional index definitions accepted by B36002A. Add diagnostic tests
+  for the intended rule and legal controls with consistently constrained or
+  unconstrained indices. Keep the upstream B observation ungraded until the
+  Phase 8 B-test grader validates its error markers and legal controls.
+- [ ] **Expanded names of enclosing declarations.** Resolve C83022A/C83024A's
+  rejection of declarations qualified by a named block. Cover hiding, enclosing
+  subprogram/generic scopes and the distinction between a statement identifier
+  used as a qualifying prefix and one used as a value.
+- [ ] **Case-selector overload resolution.** Resolve C540002's ambiguous calls
+  when the case-statement context identifies the discrete result. Cover direct
+  and generic calls and retain diagnostics for genuinely ambiguous selectors.
+- [ ] **Real named-number arithmetic.** Resolve C49022C's rejection of legal
+  static arithmetic in real named-number declarations. Reuse the checked exact
+  folding rules and test mixed numeric contexts, conversions and invalid cases.
+- [ ] **Remaining supported-area rejections.** Review the baseline's other
+  front-end rejections to investigate, including C41103A/C41105A, C64004G/
+  C64005A/C64005B, C730004 and C73002A. Add confirmed in-scope defects to this
+  prelude; identify independent unsupported rules and their owners explicitly
+  when a compound case also needs a later feature.
+- [ ] **Validation and promotion.** For each repair, add a focused regression
+  and run the unchanged upstream case; use whole/per-unit/determinism checks
+  and task/sanitizer checks where relevant. Promote newly passing C-cases into
+  the strict ACATS suite. Update the observation snapshot, coverage matrix and
+  documented restrictions only after reviewing the changed result. Close this
+  prelude once its supported-area defects are resolved and every remaining
+  blocked case has a specific later-phase requirement and owner.
+
 ### 6f. Object orientation
 
 - [ ] Abstract subprograms and their full legality rules.
@@ -556,16 +605,15 @@ Ada 2005 additions and track annex packages separately.
   including inherited Ada 95 requirements and cross-feature legality/runtime
   cases. Record unsupported cases and implementation-defined behavior; extend
   coverage as the subset grows without treating a passing selection as full
-  conformance. GNAT comparisons are not a project requirement.
+  conformance. GNAT comparisons are not a project requirement. Correctness
+  repairs in the completed subset are owned by
+  [6f-prelude](#6f-prelude-acats-gaps-in-supported-features).
   - [x] Completed-feature backfill baseline: 106 unchanged cases with pinned
     provenance, exact observations and triage (`baseline.acats_*`); 37 C PASS,
     37 legal-source rejections, five execution failures, seven support blockers;
     20 B observations remain ungraded, including accepted B36002A.
     Only observed C passes join the regular ACATS label.
     [Baseline and follow-up order](docs/acats-baseline.md).
-- [ ] Before 6f, localize the ACATS backfill execution failures
-  (C34001A/C34001D/C34002A, C761006, C84009A) and accepted B36002A; add focused
-  regressions for confirmed defects, then fix them.
 - [ ] Add B-test grading for expected error locations, allowed diagnostic
   groups, recovery and legal controls. Rejection for an unrelated unsupported
   construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol
