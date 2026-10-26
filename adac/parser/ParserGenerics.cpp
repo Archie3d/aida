@@ -37,11 +37,17 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
 
         GenericFormal formal;
         formal.location = current().location;
+        std::size_t formalStart = m_position;
         if (match(TokenKind::KwType)) {
             const Token& name = expect(TokenKind::Identifier, "in generic formal type");
             formal.kind = GenericFormalKind::TypeFormal;
             formal.name = name.text;
             formal.lower = name.lower;
+            if (match(TokenKind::LeftParen)) {
+                expect(TokenKind::Box, "in generic formal unknown discriminants");
+                expect(TokenKind::RightParen, "after generic formal unknown discriminants");
+                formal.unknownDiscriminants = true;
+            }
             expect(TokenKind::KwIs, "in generic formal type");
             formal.limited = check(TokenKind::KwLimited);
             // Parse the entire supported definition. Never infer private-type
@@ -59,7 +65,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                     fail("generic formal type definition '" + current().text + "' is not yet supported");
                 }
             };
-            if (check(TokenKind::KwArray)) {
+            if (check(TokenKind::KwAccess) || check(TokenKind::KwNot)) {
+                formal.typeClass = FormalTypeClass::AccessType;
+                parseTypeDefinition();
+                if (!check(TokenKind::Semicolon)) {
+                    fail("expected ';' after formal access type");
+                }
+                formal.typeTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(formalStart),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
+                formal.typeTokens.push_back(m_tokens.back());
+            } else if (check(TokenKind::KwArray)) {
                 formal.typeClass = FormalTypeClass::ArrayType;
                 formal.arrayDefinition = parseTypeDefinition();
                 for (const auto& index : formal.arrayDefinition->indexTypes) {
@@ -110,6 +125,9 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 advance();
             } else if (!match(TokenKind::KwPrivate)) {
                 rejectUnsupportedFormal();
+            }
+            if (formal.unknownDiscriminants && formal.typeClass != FormalTypeClass::Any) {
+                fail("unknown discriminants require a private formal type");
             }
         } else if (match(TokenKind::KwWith)) {
             formal.kind = GenericFormalKind::SubprogramFormal;

@@ -53,12 +53,36 @@ void renameUnit(Decl* decl, const std::string& name, const std::string& lower, c
     }
 }
 
-// An unconstrained array has no width until an object of it exists, so it
-// cannot be the element type of a file.
-bool isDefinite(Type* type)
+// Definiteness belongs to the actual subtype, not its unconstrained base.
+bool isDefiniteArray(Type* type)
 {
-    Type* base = baseType(type);
-    return base == nullptr || base->kind != TypeKind::Array || base->constrained || base->boundsSymbol != nullptr;
+    return type == nullptr || type->kind != TypeKind::Array || type->constrained || type->boundsSymbol != nullptr;
+}
+
+bool matchesAccessFormal(Type* actual, Type* formal)
+{
+    if (actual->excludesNull != formal->excludesNull) { return false; }
+    if (actual->accessProfile == nullptr && formal->accessProfile == nullptr) {
+        return actual->accessConstant == formal->accessConstant
+            && (!formal->generalAccess || actual->generalAccess)
+            && staticallyMatches(actual->target, formal->target);
+    }
+    Symbol* actualProfile = actual->accessProfile;
+    Symbol* formalProfile = formal->accessProfile;
+    if (actualProfile == nullptr || formalProfile == nullptr || actual->accessProtected != formal->accessProtected
+        || actualProfile->parameters.size() != formalProfile->parameters.size()
+        || !SemaSupport::profileTypeMatches(actualProfile->returnType, formalProfile->returnType)) {
+        return false;
+    }
+    // RM 12.5.4 requires mode conformance, which permits different subtype
+    // constraints and parameter names in a designated profile.
+    for (std::size_t i = 0; i < actualProfile->parameters.size(); ++i) {
+        if (actualProfile->parameters[i]->mode != formalProfile->parameters[i]->mode
+            || !SemaSupport::profileTypeMatches(actualProfile->parameters[i]->type, formalProfile->parameters[i]->type)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Copying a limited object requires build-in-place support, even when it is
@@ -346,6 +370,15 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
         }
         if (formal.kind == GenericFormalKind::TypeFormal) {
             Type* type = nullptr;
+            if (formal.typeClass == FormalTypeClass::AccessType) {
+                Parser parser(formal.typeTokens, m_diagnostics);
+                DeclList declarations = parser.parseDeclarations();
+                if (declarations.size() == 1 && declarations.front()->kind == DeclKind::Type) {
+                    analyzeTypeDecl(static_cast<TypeDecl*>(declarations.front().get()), bindings);
+                    contract->profiles.push_back(std::move(declarations.front()));
+                }
+                continue;
+            }
             if (formal.typeClass == FormalTypeClass::ArrayType) {
                 TypeDecl array;
                 array.name = formal.name;
@@ -377,6 +410,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             if (formal.typeClass == FormalTypeClass::Any) {
                 type->privateTo = decl->symbol;
                 type->isLimited = formal.limited;
+                type->unknownDiscriminants = formal.unknownDiscriminants;
             }
             Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
             symbol->type = type;
@@ -432,7 +466,7 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
                              const SourceLocation& location)
 {
     Type* base = baseType(actual);
-    if (unknownDiscriminantView(actual)) {
+    if (unknownDiscriminantView(actual) && !formal.unknownDiscriminants) {
         m_diagnostics.error(location, "this generic formal requires a definite actual subtype view");
         return false;
     }
@@ -479,8 +513,14 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
             wanted = "an array type";
         }
         break;
+    case FormalTypeClass::AccessType:
+        if (base->kind != TypeKind::Access) {
+            wanted = "an access type";
+        }
+        break;
     case FormalTypeClass::Any:
-        if (!isDefinite(actual)) {
+        if (!formal.unknownDiscriminants && (!isDefiniteArray(actual) || actual->classRoot != nullptr
+                || (base->discriminantCount > 0 && !hasKnownDiscriminants(actual) && !hasDefaultDiscriminants(actual)))) {
             wanted = "a type of a fixed size";
         } else if (!formal.limited && base->isLimited) {
             wanted = "a nonlimited type";
@@ -862,6 +902,33 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             if (formal.typeClass == FormalTypeClass::ArrayType
                 && !matchesFormalArray(formal, type, bindings, actual->location)) {
                 return false;
+            }
+            if (formal.typeClass == FormalTypeClass::AccessType) {
+                // Resolve a fresh definition with preceding formals bound to
+                // their actuals, while retaining declaration-site name binding.
+                Parser parser(formal.typeTokens, m_diagnostics);
+                DeclList declarations = parser.parseDeclarations();
+                if (declarations.size() != 1 || declarations.front()->kind != DeclKind::Type) { return false; }
+                auto* definition = static_cast<TypeDecl*>(declarations.front().get());
+                auto* savedReplay = m_replayContract;
+                auto* savedRecord = m_recordContract;
+                std::size_t savedFirst = m_instanceFirstSymbol;
+                m_replayContract = m_genericContracts.at(generic->generic).get();
+                m_recordContract = nullptr;
+                m_instanceFirstSymbol = firstSymbol;
+                int errors = m_diagnostics.errorCount();
+                analyzeTypeDecl(definition, m_symbolTable.createScope(bindings));
+                m_replayContract = savedReplay;
+                m_recordContract = savedRecord;
+                m_instanceFirstSymbol = savedFirst;
+                Type* expected = definition->declaredType;
+                bool matches = errors == m_diagnostics.errorCount() && expected != nullptr
+                    && matchesAccessFormal(type, expected);
+                decl->formalTypes.push_back(std::move(declarations.front()));
+                if (!matches) {
+                    m_diagnostics.error(actual->location, "actual access type does not match generic formal '" + formal.name + "'");
+                    return false;
+                }
             }
             // Enumeration_IO cannot yet enumerate Character spellings. This
             // library limitation must not reject Character as a general formal.

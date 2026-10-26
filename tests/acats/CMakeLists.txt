@@ -115,7 +115,7 @@ add_acats_test(c3a2004)
 
 # Separate subprogram and package bodies, including generic subunits.
 add_acats_test(ca1006a)
-add_acats_test(ca2009a REJECTION "'PKG1' expects a type of a fixed size, and 'STR15' is not one")
+add_acats_test(ca2009a)
 add_acats_test(ca2009d)
 
 # Ada 2005 extended returns, including limited generic results and transfers.
@@ -170,3 +170,8 @@ if(Python3_Interpreter_FOUND)
 else()
     message(STATUS "Python 3.9+ unavailable: ACATS backfill probes are not registered")
 endif()
+
+# Phase 6g: formal private/access types, pointer containers and callbacks.
+add_acats_test(cc54001)
+add_acats_test(cc54002)
+add_acats_test(cc54003)

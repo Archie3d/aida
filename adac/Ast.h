@@ -1023,7 +1023,8 @@ enum class FormalTypeClass
     FloatType,
     FixedType,
     DecimalType,
-    ArrayType
+    ArrayType,
+    AccessType
 };
 
 struct GenericFormal
@@ -1035,11 +1036,13 @@ struct GenericFormal
     SubtypeIndicationPtr subtype;   // The type of an object formal.
     ExprPtr defaultValue;
     TypeDefinitionPtr arrayDefinition;
+    std::vector<Token> typeTokens;
     std::vector<Token> subprogramTokens;
     std::vector<Token> objectTokens;
     ParameterMode mode = ParameterMode::In;
     bool boxDefault = false;
     bool limited = false;
+    bool unknownDiscriminants = false;
     std::vector<Symbol*> defaultCandidates;
     bool defaultUsesFormal = false;
     SourceLocation location;
@@ -1088,6 +1091,8 @@ struct GenericInstantiationDecl : Decl
     // Filled in by Sema for a generic written in Ada: what came back from
     // parsing the tokens again, analysed as though it were written here.
     DeclList expansion;
+    // Resolved formal access definitions used only for actual matching.
+    DeclList formalTypes;
 };
 
 // A pragma the compiler acts on.  Only Import is understood, and it is what

@@ -389,9 +389,8 @@ The already imported CA12002 now passes private-with visibility inherited by a
 subunit. Its former stub-rejection expectation has been removed.
 
 CA2009A checks generic package subunits with scalar and constrained-string
-actuals. It remains an exact compile XFAIL for the existing formal-private
-constrained-array actual restriction (P6g/P8); no body is modified and no
-executable pass is claimed. Local `subunits` covers generic package subunits,
+actuals. It now executes unchanged as PASS after Phase 6g retained the actual
+subtype constraints when matching a formal private type. Local `subunits` covers generic package subunits,
 nested subunits, captured frames and four tasks; `semantics.subunits` checks
 legality, context isolation and incremental rebuilds.
 
@@ -421,3 +420,38 @@ allocators, bounds, four tasks and failing initialization/finalization.
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |
 | tests/c6/c650003.a | `2f364c642750d710a352af07bdf9cd9813e57700` | `fbfdf6356f171d3054d1cca4bd355d9b55d34a81d3f1e91358b23ee82950f33e` |
+
+
+## Generic private and access types (Phase 6g, first increment)
+
+CA2009A is promoted from compile XFAIL to executable PASS. CC54001, CC54002
+and CC54003 are copied unchanged from the same pinned
+[snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+retrieved 2026-10-26, retaining their rights/disclaimers and using `.ada`
+filenames. All three execute as PASS with the existing REPORT adapter:
+
+- CC54001: an indefinite private formal and access-to-constant formal implement
+  a stack of differently sized strings, allocated and borrowed.
+- CC54002: a formal general access-to-variable type implements a list whose
+  designated objects are read and updated.
+- CC54003: formal object-access and callback types implement a stack of
+  functions, each called through its access value.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cc/cc54001.a | `eb297d0ecdcd25ee108f60ef2236656f03ceda0b` | `19259fa1a04862198f2fc5d82c53f42e4d7e9b4ec10008b335e81548d6e8658d` |
+| tests/cc/cc54002.a | `623f25d6c86fd2c219b8834d9703d18e1f2527d2` | `67b2a028bb92b5d4b41117ce586d7acf6da61877d69837b644ace125c7832a1a` |
+| tests/cc/cc54003.a | `d8aaeaf9c815ae822e8419d7d726c3e3ba9bdd3d` | `38c3fd427072ac5bea5d4bd936a7836033dd520a90ccb141bee27c081de4e6f4` |
+
+C3A2A01/C460A01/C460A02 were assessed unchanged from the same snapshot.
+They additionally require derived/tagged/unknown-discriminant derived formals,
+so remain deferred to the next 6g increments. CC3225A also requires task
+rendezvous (P9); CC54004 requires abstract derived formals (6g). These are
+not counted as passes. C393013 retains its existing exact baseline rejection
+until its complete controlling-result/null-extension scenario executes.
+
+Local `genericaccess*` covers legal and illegal modifiers, constraints, null
+exclusions, callback mode/type/result/count matching, declaration-time contract
+errors, nested instances and declaration-site name capture. `genericprivatearrays`
+and `genericprivateerrors` cover constrained/runtime/multidimensional actuals
+and indefinite-view legality. See the [contract](../../docs/generic-types.md).

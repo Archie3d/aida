@@ -1,6 +1,5 @@
 genericformalerrors.adb:2:22: error: generic formal modular definition must end after '<>'
 genericformalerrors.adb:7:15: error: generic formal type definition 'new' is not yet supported
-genericformalerrors.adb:12:15: error: generic formal type definition 'access' is not yet supported
 genericformalerrors.adb:17:15: error: generic formal type definition 'tagged' is not yet supported
 genericformalerrors.adb:22:15: error: generic formal type definition 'abstract' is not yet supported
 genericformalerrors.adb:27:24: error: generic formal range definition must end after '<>'

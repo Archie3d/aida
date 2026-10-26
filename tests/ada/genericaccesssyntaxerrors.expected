@@ -1,0 +1,4 @@
+genericaccesssyntaxerrors.adb:2:36: error: expected an expression
+genericaccesssyntaxerrors.adb:6:26: error: 'access all' cannot be combined with 'constant'
+genericaccesssyntaxerrors.adb:10:19: error: expected 'null' after not in null exclusion, found 'access'
+genericaccesssyntaxerrors.adb:14:34: error: unknown discriminants require a private formal type

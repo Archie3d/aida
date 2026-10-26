@@ -1,0 +1,7 @@
+genericprivateerrors.adb:13:40: error: 'Definite' expects a type of a fixed size, and 'Vector' is not one
+genericprivateerrors.adb:14:41: error: 'Definite' expects a type of a fixed size, and 'Record_Type' is not one
+genericprivateerrors.adb:15:44: error: 'Indefinite' expects a nonlimited type, and 'Limited_Type' is not one
+genericprivateerrors.adb:19:9: error: an object of an unknown-discriminant view requires an initializer
+genericprivateerrors.adb:20:9: error: an array component requires a definite subtype view
+genericprivateerrors.adb:22:13: error: a record component requires a definite subtype view
+genericprivateerrors.adb:28:45: error: this generic formal requires a definite actual subtype view

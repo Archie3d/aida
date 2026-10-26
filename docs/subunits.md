@@ -47,9 +47,9 @@ context isolation and bad completions. `subprogramstuberrors` pins recovery
 for illegal stub placements. Compiler AddressSanitizer checks cover positive
 loading/generic paths and rejection scenarios.
 
-Unchanged ACATS CA1006A, CA2009D and CA12002 execute successfully. CA2009A is an
-exact compile XFAIL for the existing constrained-array actual restriction on
-formal private types; its bodies are not edited to bypass that restriction.
+Unchanged ACATS CA1006A, CA2009D, CA12002 and CA2009A execute successfully.
+CA2009A was promoted in Phase 6g after preserving constrained-array actual
+subtypes during formal-private matching.
 
 Task and protected body subunits remain unsupported and diagnosed. Existing
 restrictions on generic formals, types, tasking and profiles also apply inside

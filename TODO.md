@@ -423,8 +423,8 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   stub-scope visibility, local contexts, profile conformance and generic replay;
   parent object dependencies include transitive subunit sources (`subunits`,
   whole/per-unit/determinism and four tasks; `semantics.subunits`,
-  `subprogramstuberrors`). ACATS CA1006A/CA2009D/CA12002 PASS; CA2009A remains
-  a constrained-array generic-actual XFAIL (P6g/P8). Task/protected subunits
+  `subprogramstuberrors`). ACATS CA1006A/CA2009D/CA12002 PASS; CA2009A was
+  promoted in 6g after retaining constrained-array actual subtypes. Task/protected subunits
   remain diagnosed. [Contract](docs/subunits.md).
 - [x] Noncontrolled extended returns, general limited aggregates and
   build-in-place results for supported result types. Pulled forward explicitly
@@ -596,6 +596,20 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
   private types (ACATS CA2009A). C393013 is a baseline probe with an expected
   compile rejection for formal derived types (`baseline.acats_c393013`); promote
   it after the full null-extension controlling-result scenario passes.
+  - [x] Constrained-array actual subtypes retain their constraints, including
+    runtime bounds; unchanged CA2009A now executes as PASS.
+  - [x] Unknown-discriminant private/limited-private formals and named object/
+    subprogram access formals. Match designated subtypes, general/constant
+    access, null exclusions and mode-conformant callback profiles; check formal
+    contracts before instantiation and replay declaration-site bindings.
+    CC54001/CC54002/CC54003 PASS unchanged. `genericaccess*`,
+    `genericprivatearrays` and `genericprivateerrors` cover whole/per-unit/
+    determinism, four tasks and legality. Full suite 1,154/1,154; 13 compiler
+    ASan/UBSan checks and three whole/per-unit scenarios with the instrumented
+    C runtime pass; all 123 ACATS baseline observations unchanged.
+    [Contract](docs/generic-types.md).
+    Known discriminants, tagged/abstract private formals, derived/interface
+    formals and Definite remain open; named protected callbacks retain P9.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
 - [ ] Formal packages and matching of their generic contracts, including Ada

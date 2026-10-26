@@ -1,0 +1,7 @@
+genericaccesscontracterrors.adb:8:34: error: a numeric literal cannot denote a private type outside its defining package
+genericaccesscontracterrors.adb:8:32: error: arithmetic operators require numeric operands
+genericaccesscontracterrors.adb:8:32: error: 'Item' is private, so 'Bad' has to be the one to say what this operator means
+genericaccesscontracterrors.adb:15:14: error: a constant access view cannot be modified
+genericaccesscontracterrors.adb:22:15: error: the target of an assignment must be a variable
+genericaccesscontracterrors.adb:25:37: error: access-to-subprogram parameters cannot have defaults
+genericaccesscontracterrors.adb:29:36: error: access-to-function parameters must have mode in

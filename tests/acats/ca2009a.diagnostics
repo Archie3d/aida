@@ -1,1 +1,0 @@
-ca2009a.ada:51:35: error: 'PKG1' expects a type of a fixed size, and 'STR15' is not one
