@@ -1024,7 +1024,8 @@ enum class FormalTypeClass
     FixedType,
     DecimalType,
     ArrayType,
-    AccessType
+    AccessType,
+    DerivedType
 };
 
 struct GenericFormal
@@ -1043,6 +1044,8 @@ struct GenericFormal
     bool boxDefault = false;
     bool limited = false;
     bool unknownDiscriminants = false;
+    bool abstract = false;
+    bool tagged = false;
     std::vector<Symbol*> defaultCandidates;
     bool defaultUsesFormal = false;
     SourceLocation location;

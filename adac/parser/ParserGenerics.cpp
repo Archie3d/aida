@@ -65,7 +65,31 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                     fail("generic formal type definition '" + current().text + "' is not yet supported");
                 }
             };
-            if (check(TokenKind::KwAccess) || check(TokenKind::KwNot)) {
+            if (check(TokenKind::KwNew) || check(TokenKind::KwAbstract) || check(TokenKind::KwTagged)
+                || (check(TokenKind::KwLimited) && peek(1).kind == TokenKind::KwNew)) {
+                auto definition = parseTypeDefinition();
+                formal.abstract = definition->abstract;
+                formal.tagged = definition->tagged;
+                formal.limited = definition->isLimited;
+                if (definition->kind == TypeDefKind::Derived) {
+                    formal.typeClass = FormalTypeClass::DerivedType;
+                    if (definition->extension && !definition->privateExtension) {
+                        fail("a formal derived extension requires with private");
+                    }
+                    if (!definition->parent->indexLows.empty() || definition->parent->rangeLow || definition->parent->nullExclusion) {
+                        fail("a formal derived ancestor must be a subtype mark");
+                    }
+                    if (!definition->progenitors.empty()) {
+                        fail("interface progenitors on formal derived types are not yet supported");
+                    }
+                } else if (definition->kind != TypeDefKind::Private || !definition->tagged) {
+                    fail("expected a formal derived type or tagged private type");
+                }
+                if (!check(TokenKind::Semicolon)) { fail("expected ';' after generic formal type"); }
+                formal.typeTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(formalStart),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
+                formal.typeTokens.push_back(m_tokens.back());
+            } else if (check(TokenKind::KwAccess) || check(TokenKind::KwNot)) {
                 formal.typeClass = FormalTypeClass::AccessType;
                 parseTypeDefinition();
                 if (!check(TokenKind::Semicolon)) {
@@ -126,8 +150,14 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             } else if (!match(TokenKind::KwPrivate)) {
                 rejectUnsupportedFormal();
             }
-            if (formal.unknownDiscriminants && formal.typeClass != FormalTypeClass::Any) {
+            if (formal.unknownDiscriminants && formal.typeClass != FormalTypeClass::Any
+                && formal.typeClass != FormalTypeClass::DerivedType) {
                 fail("unknown discriminants require a private formal type");
+            }
+            if (formal.unknownDiscriminants && formal.typeClass == FormalTypeClass::DerivedType) {
+                // Ordinary type declarations do not allow this formal-only
+                // discriminant part. Keep the definition tokens for replay.
+                formal.typeTokens.erase(formal.typeTokens.begin() + 2, formal.typeTokens.begin() + 5);
             }
         } else if (match(TokenKind::KwWith)) {
             formal.kind = GenericFormalKind::SubprogramFormal;

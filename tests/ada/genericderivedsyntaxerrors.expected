@@ -1,0 +1,4 @@
+genericderivedsyntaxerrors.adb:2:43: error: a formal derived extension requires with private
+genericderivedsyntaxerrors.adb:6:39: error: a formal derived ancestor must be a subtype mark
+genericderivedsyntaxerrors.adb:12:15: error: expected a formal derived type or tagged private type
+genericderivedsyntaxerrors.adb:16:58: error: interface progenitors on formal derived types are not yet supported

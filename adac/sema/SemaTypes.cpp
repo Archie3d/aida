@@ -718,6 +718,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* built = m_types.makeSubtype(decl->name, parent, parent->low, parent->high);
         built->isSubtype = false;
         built->base = nullptr;
+        built->formalDerived = false;
         built->kind = parent->kind;
         built->literals = parent->literals;
         if (hasKnownDiscriminants(parent)) { built->discriminantConstraintSource = parent; }
@@ -833,7 +834,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             }
         }
         type->abstract = definition->abstract;
-        inheritPrimitives(type, rootType(parent), scope, decl->location);
+        inheritPrimitives(type, parent->formalDerived ? parent : rootType(parent), scope, decl->location);
         if (type->tagged) {
             // A private view can declare operations before its parent is known.
             // Complete inherited slots first, then append its own operations.
@@ -1460,7 +1461,7 @@ void Sema::reportIncompleteTypes(DeclList& declarations)
                     && type->privateViewAbstract) {
                     m_diagnostics.error(decl->location, "a nonabstract full view cannot have an abstract primitive '"
                         + primitive->displayName + "'");
-                } else if (primitive->inheritedFrom != nullptr && (primitive->abstract
+                } else if (primitive->inheritedFrom != nullptr && primitive->renamedSubprogram == nullptr && (primitive->abstract
                     || (controllingResultType(primitive->returnType) == type
                         && ((primitive->returnType != nullptr && primitive->returnType->anonymousAccess)
                             || type->fields.size() > static_cast<std::size_t>(type->parentFieldCount))))) {
@@ -2329,7 +2330,8 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     || SemaSupport::staticallyMatches(primitive->parameters[i]->type, symbol->parameters[i]->type));
             }
             if (matches) {
-                scope->remove(primitive);
+                bool publicView = symbol->privatePrimitiveTo != nullptr && primitive->privatePrimitiveTo == nullptr;
+                if (!publicView) { scope->remove(primitive); }
                 if (type->tagged && primitive->dispatchSlot >= 0) {
                     if (type->dispatchFrozen) {
                         m_diagnostics.error(symbol->location, "a tagged primitive cannot be overridden after its type is frozen");
@@ -2343,7 +2345,15 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                         symbol->interfaceOrigins.push_back(origin);
                     }
                 }
-                primitive = symbol;
+                if (publicView) {
+                    // The private override implements the inherited public
+                    // view; clients retain that view's profile and defaults.
+                    primitive->renamedSubprogram = symbol;
+                    primitive->abstract = symbol->abstract;
+                    primitive->nullProcedure = symbol->nullProcedure;
+                } else {
+                    primitive = symbol;
+                }
                 replaced = true;
             }
         }
@@ -2392,7 +2402,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         }
         return subtype;
     };
-    for (Symbol* primitive : rootType(parent)->primitives) {
+    for (Symbol* primitive : (parent->formalDerived ? parent : rootType(parent))->primitives) {
         if (primitive->kind != SymbolKind::Subprogram) { continue; }
         bool fromInterface = parent->interfaceKind != InterfaceKind::None;
         bool hidden = primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo);

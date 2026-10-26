@@ -97,6 +97,7 @@ struct Symbol
     bool missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.
     Symbol* inheritedFrom = nullptr;
+    Symbol* genericFormalOrigin = nullptr; // Ancestor operation represented by a formal-derived view.
     Symbol* privatePrimitiveTo = nullptr;
     bool overrides = false;
     Type* controllingType = nullptr;

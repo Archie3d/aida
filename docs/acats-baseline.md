@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 20 |
-| Legal C-test rejected | 19 |
+| Legal C-test rejected | 16 |
 | Support/harness blocked | 8 |
-| Executable PASS | 76 |
+| Executable PASS | 79 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **19 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **16 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
 All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
@@ -25,12 +25,16 @@ B-test grader remains required before any upstream legality-pass claim.
 
 ## Reviewed repairs
 
-C393013 is added as a Phase 6g probe, expected to reject generic formal derived
-types until that category is implemented. It tests inherited controlling-result
-functions for null extensions, including generic and private extensions.
-`baseline.acats_c393013` checks the frozen compile rejection in the normal suite;
-its success means snapshot stability, not an executable language pass. The
-previous 122 observations are unchanged.
+Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
+C393013 runs the complete null-extension controlling-result scenario through
+generic and private extensions, including private overrides. C640001 exercises
+tagged generic callbacks and redispatch. C760010 verifies controlled lifetimes
+and explicit/implicit exception propagation through tagged private formals.
+C393013 now uses `acats.backfill_c393013`; its frozen-rejection probe is removed.
+C540001 retains only its independent expanded character-literal syntax rejection
+(`Pkg.'A'`), owned by the following 6g enumeration-literal work. Its complete
+remaining diagnostics are reviewed and pinned. The other 119 observations are
+unchanged; the current cohort has 79 executable passes.
 
 The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
 all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
@@ -45,7 +49,7 @@ boundaries; parent and extension variants select independently, including
 `others`, and ancestor discriminants initialize after their child dependencies.
 `classwideconstraints` and `taggedvariantgroups` cover the repairs in whole/per-unit/
 deterministic modes with four workers. All original 106 observations remain
-unchanged; the expanded cohort has 76 executable passes.
+unchanged at that milestone; the expanded cohort then had 76 executable passes.
 
 Before this backfill, the final Phase 6f interface milestone retained all 106 observations:
 60 executable passes, 18 legal-source rejections, eight support blockers and
@@ -198,7 +202,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 76 observed
+crash/timeout handling and source/snapshot integrity. Only the 79 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -242,7 +246,7 @@ The table below gives the observed status and initial triage for every case.
 | [C392D02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c392d02.a); [f392d00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f392d00.a) | 3.9.2/7.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393001.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393012](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393012.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
-| [C393013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393013.a) | 3.9.3/12.5.1 | Legal C-test rejected | expected generic formal derived-type rejection; P6g |
+| [C393013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393013.a) | 3.9.3/12.5.1 | Executable PASS | repaired; P6g derived formals and private-override public views |
 | [C393A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a02.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a03.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
 | [C393A06](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c393a06.a); [f393a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/f393a00.a) | 3.9.3 | Executable PASS | covered probe; P6f object orientation |
@@ -274,11 +278,11 @@ The table below gives the observed status and initial triage for every case.
 | [C49021A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49021a.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022b.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022c.ada) | 4.6/4.9 | Executable PASS | covered probe; P6f-prelude |
-| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Legal C-test rejected | documented language gap; P6g formal derived types |
+| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Legal C-test rejected | expanded character-literal names (`Pkg.'A'`); P6g enumeration literals |
 | [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Executable PASS | discrete-context selector resolution repaired; P6f-prelude |
 | [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | Legal C-test rejected | predefined library gap; P7 predefined ASCII |
 | [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Support/harness blocked | support adapter gap; P8 REPORT adapter |
-| [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Legal C-test rejected | documented language gap; P6g tagged generic formals |
+| [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Executable PASS | repaired; P6g tagged private formals |
 | [C64002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64002b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C64004G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64004g.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005a.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
@@ -291,7 +295,7 @@ The table below gives the observed status and initial triage for every case.
 | [C760001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760001.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C760002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760002.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C760009](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760009.a) | 7.3/7.6 | Executable PASS | repaired; P6f tagged/private views |
-| [C760010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6g tagged generic formals |
+| [C760010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760010.a) | 7.3/7.6 | Executable PASS | repaired; P6g tagged private formals |
 | [C760011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760011.a) | 7.3/7.6 | Support/harness blocked | support gap; P8 REPORT.Ident_Char adapter |
 | [C760013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760013.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Legal C-test rejected | cross feature language gap; P9 task entries |

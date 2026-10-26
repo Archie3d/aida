@@ -593,9 +593,8 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 - [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
   Phase 1 rejections with derived, access and interface formals (modular/decimal added in Phase 5)
   as those types become available. Support constrained-array actuals for formal
-  private types (ACATS CA2009A). C393013 is a baseline probe with an expected
-  compile rejection for formal derived types (`baseline.acats_c393013`); promote
-  it after the full null-extension controlling-result scenario passes.
+  private types (ACATS CA2009A). C393013 now executes its full null-extension
+  controlling-result scenario unchanged as `acats.backfill_c393013`.
   - [x] Constrained-array actual subtypes retain their constraints, including
     runtime bounds; unchanged CA2009A now executes as PASS.
   - [x] Unknown-discriminant private/limited-private formals and named object/
@@ -608,10 +607,25 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
     ASan/UBSan checks and three whole/per-unit scenarios with the instrumented
     C runtime pass; all 123 ACATS baseline observations unchanged.
     [Contract](docs/generic-types.md).
-    Known discriminants, tagged/abstract private formals, derived/interface
-    formals and Definite remain open; named protected callbacks retain P9.
+  - [x] Derived formals for supported scalar, array, record and object-access
+    types, plus tagged/abstract private formals. Match ancestry, constraints,
+    definiteness, null exclusions and abstract-operation contracts. Preserve
+    ancestor operations for untagged formals, actual overrides for tagged
+    formals, copied operations through nested/library instances, and the public
+    views of private overrides. `genericderived*` adds execution, legality,
+    whole/per-unit/determinism and four-task coverage. Unchanged C393013,
+    C3A2A01, C640001, C760010 and CC54004 execute as PASS.
+    Validation: 1,175/1,175 full-suite tests plus the added CC54004 pass;
+    17 compiler ASan/UBSan checks and five whole/per-unit scenarios with the
+    instrumented C runtime pass. The reviewed 123-case baseline has 79 PASS,
+    16 compile rejections, eight harness blockers and 20 ungraded B probes.
+    Known discriminants, interface/synchronized formals and derived interface
+    ancestors/progenitors, class-wide derived actuals and Definite remain open;
+    unsupported forms stay diagnosed. Named protected callbacks retain P9.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
+  Expanded character-literal names such as `Pkg.'A'` still block C540001
+  after its formal-derived parser rejections were removed.
 - [ ] Formal packages and matching of their generic contracts, including Ada
   2005 partial actual parameter lists and box associations.
 - [ ] Access formal objects and limited `in` objects built in place

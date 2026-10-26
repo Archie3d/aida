@@ -30,6 +30,7 @@ ObjectAccessView accessView(Expr* expression)
                 view.object->owner->needsFrame = true;
             }
             view.object = symbol;
+            view.aliased = view.aliased || (symbol->genericObject && symbol->type != nullptr && symbol->type->tagged);
             return view;
         }
         bool taggedFormal = symbol->type != nullptr && symbol->type->tagged

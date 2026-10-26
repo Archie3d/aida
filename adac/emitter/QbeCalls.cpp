@@ -53,7 +53,7 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
         call.resolvedArguments = expr->resolvedArguments;
         return emitCall(&call, inheritedControllingType);
     }
-    if (!expr->dispatching && subprogram->inheritedFrom != nullptr) {
+    if (!expr->dispatching && subprogram->inheritedFrom != nullptr && subprogram->renamedSubprogram == nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;
         inherited.form = CallForm::Subprogram;

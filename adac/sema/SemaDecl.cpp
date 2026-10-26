@@ -432,8 +432,9 @@ static bool isPrimitive(Symbol* symbol)
 {
     auto belongsTo = [&](Type* type) {
         type = rootType(type);
-        return type != nullptr
-            && std::find(type->primitives.begin(), type->primitives.end(), symbol) != type->primitives.end();
+        return type != nullptr && std::any_of(type->primitives.begin(), type->primitives.end(), [&](Symbol* primitive) {
+            return primitive == symbol || primitive->renamedSubprogram == symbol;
+        });
     };
     if (belongsTo(controllingResultType(symbol->returnType))) {
         return true;

@@ -227,8 +227,8 @@ SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
 C3A0014 tests the superseded Ada 95 aliased-constrained rule and is inapplicable
 here. C3A0015 needs storage pools; C3A2002/C460001/C460002 now pass with anonymous
 access parameters; C3A2003 still needs range-attribute aggregate choices (P8).
-C3A2A01/C460A01/C460A02 need formal access types (P6g). These cases
-are deferred unchanged; [local evidence and limits](../../docs/general-access.md)
+C3A2A01 now passes after formal access/derived types (P6g). C460A01/C460A02
+retain later generic gaps and are deferred unchanged; [local evidence and limits](../../docs/general-access.md)
 cover the implemented named-access subset.
 
 C460001, C460002 and C3A2002 come from GCC releases/gcc-15, retrieved 2026-10-24,
@@ -443,15 +443,44 @@ filenames. All three execute as PASS with the existing REPORT adapter:
 | tests/cc/cc54002.a | `623f25d6c86fd2c219b8834d9703d18e1f2527d2` | `67b2a028bb92b5d4b41117ce586d7acf6da61877d69837b644ace125c7832a1a` |
 | tests/cc/cc54003.a | `d8aaeaf9c815ae822e8419d7d726c3e3ba9bdd3d` | `38c3fd427072ac5bea5d4bd936a7836033dd520a90ccb141bee27c081de4e6f4` |
 
-C3A2A01/C460A01/C460A02 were assessed unchanged from the same snapshot.
-They additionally require derived/tagged/unknown-discriminant derived formals,
-so remain deferred to the next 6g increments. CC3225A also requires task
-rendezvous (P9); CC54004 requires abstract derived formals (6g). These are
-not counted as passes. C393013 retains its existing exact baseline rejection
-until its complete controlling-result/null-extension scenario executes.
+The later 6g derived/tagged increment now executes C3A2A01 unchanged.
+C460A01 still requires class-wide actuals for formal derived types; C460A02
+still requires access generic objects. CC3225A requires task rendezvous (P9).
+Those deferred cases are not counted as passes. CC54004 now executes after
+abstract derived formals (6g).
 
 Local `genericaccess*` covers legal and illegal modifiers, constraints, null
 exclusions, callback mode/type/result/count matching, declaration-time contract
 errors, nested instances and declaration-site name capture. `genericprivatearrays`
 and `genericprivateerrors` cover constrained/runtime/multidimensional actuals
 and indefinite-view legality. See the [contract](../../docs/generic-types.md).
+
+## Derived and tagged private formals (Phase 6g)
+
+C393013, C640001 and C760010 now pass their complete REPORT execution protocol,
+unchanged, and join the strict baseline ACATS selection. Their original sources
+and hashes remain in the [baseline manifest](baseline/manifest.json).
+C393013 covers inherited controlling results and tags of null extensions;
+C640001 covers callbacks/redispatch through tagged generic profiles; C760010
+covers controlled initialization/finalization and exception propagation through
+a tagged private formal. C540001 gets past derived-formal parsing but still
+rejects expanded character-literal names, tracked in the following 6g work.
+
+C3A2A01, its original F3A2A00 foundation, and CC54004 are copied unchanged from
+the same pinned ACATS revision, retrieved 2026-10-26. They retain their original
+rights and disclaimers under `.ada` filenames. C3A2A01 executes as PASS, checking
+accessibility levels and Program_Error in generic specifications, bodies,
+formal tagged-object aliases and access parameters. CC54004 checks abstract
+formal-derived types, formal access-to-class-wide types and dispatch through
+heterogeneous pointer containers.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/c3/c3a2a01.a | `8271d4869047b9768e7ac9297009262cd90920b1` | `cd95d2b17fefa1c2fafe660a91579622f0c232fabf48f962c444eb8bff2e4c5f` |
+| support/f3a2a00.a | `c839082312e02b799354cdd0e89866b08bf1441a` | `929a2720dec58d22fb460ec647ca4dc978c229bc2bd696542a358c063cb56dd3` |
+| tests/cc/cc54004.a | `0023b3a74610d1eaf9c5024914b6a3ea360ad073` | `1e46e506db5fbaf49928d10af1d1fadd102cb01c672de07854d8578da1c5699f` |
+
+Local `genericderived*` adds scalar/array/record/access matching, runtime
+record layouts and discriminants, ancestor versus actual override selection,
+public views of private overrides, callbacks, nested and separate generic
+bodies, four-task runs and exact rejection tests with legal controls.

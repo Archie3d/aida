@@ -42,7 +42,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 76 C passes, 19 legal-source rejections, eight support
+has 79 C passes, 16 legal-source rejections, eight support
 blockers and 20 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -54,11 +54,13 @@ now also passes unchanged after constrained class-wide access checks and
 parent/extension variant selection were repaired. All 16 join the passing CTest
 selection. The original 106 observations remain unchanged.
 
-C393013 is a Phase 6g probe with an expected COMPILE_REJECTED observation for
-unsupported generic formal derived types. `baseline.acats_c393013` checks that
-exact rejection in the normal suite under the baseline label; it is not an
-executable ACATS pass. An improvement requires reviewing the snapshot and
-promoting the case when the complete REPORT execution protocol passes.
+Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
+C393013 now exercises the complete controlling-result/null-extension scenario
+under the ACATS label; its old frozen-rejection probe is removed. C540001's
+formal-derived parser errors are gone, but expanded character-literal names
+such as `Pkg.'A'` remain a separately owned 6g syntax gap. Its remaining exact
+diagnostics are pinned, without claiming a pass. The other 119 observations
+are unchanged.
 
 ## Reproduce
 

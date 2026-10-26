@@ -77,8 +77,8 @@ must be followed by a fresh review and execution of the entire compound case.
 | C37003A, C37006A | Discriminant constraints on access subtypes' designated records | P8 access-subtype constraints |
 | C3A0007 | Record extension of a private tagged ancestor | P6f private tagged views |
 | C432001, C432004, C760009 | Private extension declarations and their aggregate/finalization interactions | P6f private extensions |
-| C540001 | Generic formal derived types and their primitive operations | P6g formal derived types |
-| C640001, C760010 | Generic formal tagged types | P6g tagged generic formals |
+| C540001 | Derived-formal parsing repaired; expanded character-literal names such as `Pkg.'A'` remain rejected | P6g enumeration-literal names |
+| C640001, C760010 | Execute unchanged as PASS after tagged private formals | P6g repaired |
 | C54A03A | Predefined ASCII.NUL | P7 predefined library |
 | C760011 | New discriminants on a derived controlled tagged type; independent REPORT.Ident_Char dependency | P6f discriminated tagged types; P8 REPORT adapter |
 | C761010 | Unknown-discriminant private views | P6f private views |

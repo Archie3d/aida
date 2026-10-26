@@ -1124,9 +1124,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6g formal derived types",
-        "note": "Expected compile rejection until generic formal derived types are supported. Tests inherited non-abstract controlling-result functions of null extensions, including private full views and generic derivations. Frozen as COMPILE_REJECTED; not an executable PASS."
+        "kind": "covered_probe",
+        "owner": "P6g derived/tagged formals",
+        "note": "Executes unchanged after derived and tagged/abstract private formals and public views of private overrides were implemented."
       }
     },
     {
@@ -1742,8 +1742,8 @@
       "harness_gaps": [],
       "triage": {
         "kind": "documented_language_gap",
-        "owner": "P6g formal derived types",
-        "note": "Generic formal derived integer/real types and their primitive operators; separate from the completed case-selector repair in C540002."
+        "owner": "P6g expanded enumeration-literal names",
+        "note": "Derived formal syntax is supported. Parsing still rejects expanded character-literal names such as C540001_1.'A'; the unchanged case is not an executable pass."
       }
     },
     {
@@ -1819,9 +1819,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6g tagged generic formals",
-        "note": "Generic formal tagged types; call/finalization semantics need review after this formal category is implemented."
+        "kind": "covered_probe",
+        "owner": "P6g derived/tagged formals",
+        "note": "Executes unchanged after derived and tagged/abstract private formals and public views of private overrides were implemented."
       }
     },
     {
@@ -2072,9 +2072,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6g tagged generic formals",
-        "note": "Generic formal tagged types; call/finalization semantics need review after this formal category is implemented."
+        "kind": "covered_probe",
+        "owner": "P6g derived/tagged formals",
+        "note": "Executes unchanged after derived and tagged/abstract private formals and public views of private overrides were implemented."
       }
     },
     {

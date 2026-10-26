@@ -1,0 +1,12 @@
+genericderivederrors.adb:58:56: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:59:54: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:60:55: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:61:56: error: an abstract actual type requires an abstract generic formal type
+genericderivederrors.adb:62:52: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:63:56: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:64:66: error: actual subtype does not match generic formal derived type 'T'
+genericderivederrors.adb:65:50: error: 'Private_Tagged' expects a tagged type, and 'Integer' is not one
+genericderivederrors.adb:66:62: error: class-wide actuals for formal derived types are not yet supported
+genericderivederrors.adb:71:65: error: actual primitive 'Op' must be nonabstract for this formal derived type
+genericderivederrors.adb:82:22: error: 'Extra' is not a component of type 'T'
+genericderivederrors.adb:88:9: error: an abstract type cannot be used to create an object

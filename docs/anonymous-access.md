@@ -101,7 +101,8 @@ Unchanged C460001, C460002 and C3A2002 execute as PASS. C3A0013 now parses its
 access discriminants; private extensions and limited current-instance Access
 are implemented in [Phase 6f](tagged-discriminants.md). Its remaining compile
 XFAIL is array type `Object'Range` syntax (P8). C3A2003 additionally needs range-attribute aggregate choices
-(P8); formal access-type cases C3A2A01/C460A01/C460A02 remain 6g. No edits to
+(P8); C3A2A01 now passes after 6g derived/access formals. C460A01/C460A02
+retain class-wide derived-actual/access-object gaps in 6g. No edits to
 upstream test bodies weaken these requirements.
 
 Controlling anonymous access results use the existing hidden accessibility

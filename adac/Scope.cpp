@@ -180,6 +180,8 @@ std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Sc
     auto symbols = lookupLocal(name);
     std::erase_if(symbols, [&](Symbol* symbol) {
         if (!symbol->libraryName.empty() && !from->libraryVisible(symbol->libraryName)) { return true; }
+        if (symbol->inheritedFrom != nullptr && symbol->renamedSubprogram != nullptr
+            && from->privateVisible(symbol->renamedSubprogram->privatePrimitiveTo)) { return true; }
         return !from->privateVisible(symbol->privatePrimitiveTo);
     });
     // RM 8.3: when a limited package view is visible, package renamings

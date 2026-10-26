@@ -151,6 +151,9 @@ private:
                               GenericContract* contract, std::size_t firstSymbol);
     bool matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,
                             const SourceLocation& location);
+    void analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal, Scope* scope, Symbol* owner);
+    bool bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
+                               Type*& actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);
     void analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* scope);
 
