@@ -1,0 +1,17 @@
+genericinterfaceerrors.adb:34:45: error: 'Ordinary' expects an interface type, and 'Item' is not one
+genericinterfaceerrors.adb:35:44: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:36:51: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:37:55: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:38:52: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:39:49: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:40:49: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:41:59: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:42:47: error: 'Ordinary' expects an interface type, and 'I'Class' is not one
+genericinterfaceerrors.adb:43:48: error: actual subtype does not match generic formal interface type 'F'
+genericinterfaceerrors.adb:56:65: error: actual subtype does not match generic formal derived type 'D'
+genericinterfaceerrors.adb:67:67: error: actual primitive 'Ping' must be nonabstract for this formal interface type
+genericinterfaceerrors.adb:72:9: error: an abstract type cannot be used to create an object
+genericinterfaceerrors.adb:73:9: error: an array component cannot have an abstract type
+genericinterfaceerrors.adb:75:13: error: a record component cannot have an abstract type
+genericinterfaceerrors.adb:77:9: error: a function returning an abstract type must be abstract
+genericinterfaceerrors.adb:81:9: error: a generic formal in object cannot have an abstract type

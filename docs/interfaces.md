@@ -54,7 +54,11 @@ The slot maps contain no record-component offsets: those implementations can
 provide wrapper entry points for protected actions and entries while preserving
 the canonical object argument and interface identities.
 
-Interface/derived generic formal categories remain Phase 6g. Concrete interface
+Phase 6g adds interface formals of all five categories and derived contracts
+with ordinary/limited interface ancestors and progenitors. Actual categories
+match exactly; interface-origin maps preserve operations through reordered,
+nested and library instances ([contract](generic-types.md#interface-formals)).
+Synchronized formal derived extensions remain open. Concrete interface
 implementations inside supported generic packages work, including separate
 instances that share library-level interface contracts. General freezing,
 storage pools, and the other previously documented type restrictions retain

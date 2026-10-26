@@ -13,6 +13,10 @@
       "sha256": "89f4a94a558e59b5aa61f90b9c2b1b2a13258379ba1472f3689e5a8c6a250d8e",
       "git_blob": "e85c3f49cd09c74860d95b790e942c3605383533"
     },
+    "support/f394a00.a": {
+      "sha256": "c854401d7b25cc9d4e42b1e77e77a49b3d1fcc9b1ac38130de0753b8267c8237",
+      "git_blob": "81bdfaefb2ddc57f97855ee2c562dd014aa4264f"
+    },
     "tests/b3/b330001.a": {
       "sha256": "8f9bdf304520a59f04d3e22b1eb973c296f4483e7cdea93e63451eca76a64db0",
       "git_blob": "cfb9f47f05dd18532d3869fdfed904893f5a4ee8"
@@ -44,6 +48,14 @@
     "tests/b3/b37004a.ada": {
       "sha256": "734ff2942ea01f45e1801490cae34431dfa37d811f856958c904904fb03d8a16",
       "git_blob": "94ecf924dba4101af01502a8c9cdc468e2fdb293"
+    },
+    "tests/b3/b394a01.a": {
+      "sha256": "5e8c4d2e711517787713ed445aec5897f032ef13367e30ae2f6052d49ac9dc8e",
+      "git_blob": "5e693d8f47a2fe15e71d8053aab19a7701cb8bd1"
+    },
+    "tests/b3/b394a02.a": {
+      "sha256": "adf85f40d9c90ee43a3ca141e46af1d2f4bb81c067730978417a7dcf24627d07",
+      "git_blob": "4b8f736b968b9aabc33f65dba8b0f27e0c54ceb1"
     },
     "tests/b3/b3a0001.a": {
       "sha256": "492913ed541a701e2f961940c3cf1ab66209ed27c8b0395d7cbc7d06c27818dc",
@@ -2887,6 +2899,46 @@
         "owner": "P8 B-test harness",
         "note": "Compilation status is an observation only; expected error locations, allowed diagnostics and legal controls have not been graded."
       }
+    },
+    {
+      "id": "b394a01",
+      "class": "B",
+      "area": "generic_interfaces",
+      "owner": "P6g/P8/P9",
+      "rm": "3.9.4/12.5.1/12.5.5",
+      "objective": "Check that progenitor subtype marks denote interfaces, including formal interface and formal derived declarations.",
+      "sources": [
+        "support/f394a00.a",
+        "tests/b3/b394a01.a"
+      ],
+      "report_name": "B394A01",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading; P9 concurrent interface syntax",
+        "note": "Unchanged Ada 2005 legality scenarios. Whole-source rejection is ungraded and includes unsupported concurrent constructs in the foundation and test; local genericinterface* regressions isolate relevant rules and legal controls."
+      }
+    },
+    {
+      "id": "b394a02",
+      "class": "B",
+      "area": "generic_interfaces",
+      "owner": "P6g/P8/P9",
+      "rm": "3.9.4/12.5.1/12.5.5",
+      "objective": "Check that descendants of nonlimited interfaces cannot be limited, including generic formal declarations.",
+      "sources": [
+        "support/f394a00.a",
+        "tests/b3/b394a02.a"
+      ],
+      "report_name": "B394A02",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading; P9 concurrent interface syntax",
+        "note": "Unchanged Ada 2005 legality scenarios. Whole-source rejection is ungraded and includes unsupported concurrent constructs in the foundation and test; local genericinterface* regressions isolate relevant rules and legal controls."
+      }
     }
   ],
   "excluded_candidates": [
@@ -2903,6 +2955,13 @@
       "reason": "Uses Ada 2012 Default_Value aspect and expression functions; outside the Ada 2005 target.",
       "sha256": "6a0e86bda9ec8caece0e0c9530f81cc9729a4a0792011743dfeae9adfd9f8179",
       "git_blob": "7c979cff99e0aebd30b7a7caf3b182b01635f73d"
+    },
+    {
+      "id": "bc55001",
+      "source": "tests/bc/bc55001.a",
+      "reason": "Explicitly targets later AI05-0073-1/AI12-0203-1 abstract-result legality (RM 3.9.3(8/3)), outside the Ada 2005 target.",
+      "sha256": "740c001bf274f1b89b5fa60a9f19dd14777f2fa9d7dedbb30cf16e8d760f1da5",
+      "git_blob": "a2b263b2dc655a58010a9c1ace8a61645dcbe5db"
     }
   ]
 }

@@ -1,0 +1,1 @@
+genericinterfaceobligationerrors.adb:10:9: error: inherited operation 'Required_Operation' must be overridden with a nonabstract subprogram

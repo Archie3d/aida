@@ -5,8 +5,8 @@ The selection is offline and enabled in the normal CTest suite. This is a small
 set of inherited Ada requirements applicable to Ada 2005, not a full ACATS run
 or a claim of conformity assessment. Ada 2005-specific additions still need tests.
 
-A completed-feature [backfill baseline](baseline/README.md) adds 106 pinned,
-unchanged cases. Its 55 observed executable passes join the normal ACATS label;
+A completed-feature [backfill baseline](baseline/README.md) adds 125 pinned,
+unchanged cases. Its 79 observed executable passes join the normal ACATS label;
 failures, support blockers and ungraded B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
@@ -484,3 +484,36 @@ Local `genericderived*` adds scalar/array/record/access matching, runtime
 record layouts and discriminants, ancestor versus actual override selection,
 public views of private overrides, callbacks, nested and separate generic
 bodies, four-task runs and exact rejection tests with legal controls.
+
+## Interface-formal contract validation (Phase 6g)
+
+Existing unchanged C394002/C394003 retain their executable PASS status for
+limited/nonlimited interface inheritance and shared operations. Local
+`genericinterfaceformals`, `genericinterfacecategories`, `genericinterfacenested`
+and `genericinterfacelibrary_main` add formal-category, ancestry, reordered
+operation-map, callback, diamond and separate-body coverage in whole/per-unit/
+deterministic modes with four workers. Their `*errors` controls isolate wrong
+actual kinds, missing ancestors, abstract objects, duplicate/non-interface
+progenitors, limitedness and additional abstract obligations.
+
+B394A01/B394A02 and their original F394A00 foundation are imported unchanged
+from the same pinned revision on 2026-10-26, with original rights/disclaimers.
+They target Ada 2005 RM 3.9.4, 12.5.1 and 12.5.5. Their whole-source diagnostics
+are pinned as baseline-only B_REJECTED_UNGRADED observations: unsupported
+concurrent syntax in the original foundation/test prevents isolating their
+expected error groups. Neither rejection is counted as an upstream legality
+pass. The local controls above provide feature evidence while P8 B grading and
+P9 concurrent interfaces remain open. All original 123 observations are
+unchanged; the expanded 125-case cohort has 79 executable passes and 22 ungraded
+B observations.
+
+BC55001 was assessed and excluded because it explicitly checks later
+AI05/AI12 abstract-result rules. C394001 still needs task-interface implementations,
+rendezvous/abort and ImpDef, so remains P9/P8 work. No new executable ACATS pass
+is claimed for this interface-formal increment.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| support/f394a00.a | `81bdfaefb2ddc57f97855ee2c562dd014aa4264f` | `c854401d7b25cc9d4e42b1e77e77a49b3d1fcc9b1ac38130de0753b8267c8237` |
+| tests/b3/b394a01.a | `5e693d8f47a2fe15e71d8053aab19a7701cb8bd1` | `5e8c4d2e711517787713ed445aec5897f032ef13367e30ae2f6052d49ac9dc8e` |
+| tests/b3/b394a02.a | `4b8f736b968b9aabc33f65dba8b0f27e0c54ceb1` | `adf85f40d9c90ee43a3ca141e46af1d2f4bb81c067730978417a7dcf24627d07` |

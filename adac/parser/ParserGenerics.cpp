@@ -65,22 +65,28 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                     fail("generic formal type definition '" + current().text + "' is not yet supported");
                 }
             };
-            if (check(TokenKind::KwNew) || check(TokenKind::KwAbstract) || check(TokenKind::KwTagged)
+            bool interfaceDefinition = check(TokenKind::KwInterface)
+                || ((check(TokenKind::KwLimited) || check(TokenKind::KwSynchronized)
+                     || check(TokenKind::KwTask) || check(TokenKind::KwProtected)) && peek(1).kind == TokenKind::KwInterface);
+            if (interfaceDefinition || check(TokenKind::KwNew) || check(TokenKind::KwAbstract) || check(TokenKind::KwTagged)
                 || (check(TokenKind::KwLimited) && peek(1).kind == TokenKind::KwNew)) {
                 auto definition = parseTypeDefinition();
                 formal.abstract = definition->abstract;
                 formal.tagged = definition->tagged;
                 formal.limited = definition->isLimited;
-                if (definition->kind == TypeDefKind::Derived) {
+                formal.interfaceKind = definition->interfaceKind;
+                if (definition->interfaceKind != InterfaceKind::None) {
+                    formal.typeClass = FormalTypeClass::InterfaceType;
+                } else if (definition->kind == TypeDefKind::Derived) {
                     formal.typeClass = FormalTypeClass::DerivedType;
                     if (definition->extension && !definition->privateExtension) {
                         fail("a formal derived extension requires with private");
                     }
+                    if (!definition->progenitors.empty() && !definition->privateExtension) {
+                        fail("a formal derived interface list requires with private");
+                    }
                     if (!definition->parent->indexLows.empty() || definition->parent->rangeLow || definition->parent->nullExclusion) {
                         fail("a formal derived ancestor must be a subtype mark");
-                    }
-                    if (!definition->progenitors.empty()) {
-                        fail("interface progenitors on formal derived types are not yet supported");
                     }
                 } else if (definition->kind != TypeDefKind::Private || !definition->tagged) {
                     fail("expected a formal derived type or tagged private type");

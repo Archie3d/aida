@@ -276,7 +276,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (chosen->renamedAccess != nullptr) {
             noteReference(chosen->renamedAccess);
-        } else {
+        } else if (m_recordContract == nullptr) {
             chosen->addressTaken = true;
             implementation->addressTaken = true;
         }

@@ -619,9 +619,23 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
     17 compiler ASan/UBSan checks and five whole/per-unit scenarios with the
     instrumented C runtime pass. The reviewed 123-case baseline has 79 PASS,
     16 compile rejections, eight harness blockers and 20 ungraded B probes.
-    Known discriminants, interface/synchronized formals and derived interface
-    ancestors/progenitors, class-wide derived actuals and Definite remain open;
-    unsupported forms stay diagnosed. Named protected callbacks retain P9.
+  - [x] Interface formals with exact ordinary/limited/synchronized/task/protected
+    categories; ordinary/limited interface ancestors and progenitors on derived
+    formals. Map operations by interface origins rather than slot numbers,
+    retain copied contracts through nested/library instances, and enforce
+    additional actual-interface abstract obligations on concrete descendants.
+    Contract-only callback checks no longer mark abstract ancestor entries for
+    emission. `genericinterface*` covers legal/rejected categories, ancestry,
+    callbacks, reordered maps, diamonds, library bodies and four tasks.
+    Full suite 1,194/1,194; 16 compiler ASan/UBSan checks and four whole/per-unit
+    scenarios with the instrumented C runtime pass. All original 123 ACATS
+    observations remain unchanged; B394A01/B394A02 plus F394A00 add two pinned,
+    ungraded rejection probes, not legality passes. The 125-case baseline has
+    79 executable PASS, 16 compile rejections, eight harness blockers and 22
+    ungraded B observations. [Contract](docs/generic-types.md#interface-formals).
+    Known discriminants, synchronized formal derived extensions, class-wide
+    derived actuals and Definite remain open; unsupported forms stay diagnosed.
+    Concurrent implementations and named protected callbacks retain P9.
 - [ ] Abstract formal subprograms, null procedure defaults, attribute and
   enumeration-literal actuals, and matching of runtime array constraints.
   Expanded character-literal names such as `Pkg.'A'` still block C540001

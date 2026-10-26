@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 123 cases to the existing 55-case strict selection:
-103 executable C-tests and 20 ungraded B-test probes. The selection targets
+implement. It adds 125 cases to the existing 55-case strict selection:
+103 executable C-tests and 22 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 125 source files (including two shared foundations) retain their original
+All 128 source files (including three shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -90,3 +90,17 @@ artifacts, and timeout cleanup terminates the spawned process group on POSIX.
 Source/work/repo paths are normalized in snapshots; full observation logs
 remain available under the chosen work directory. The frozen failure messages
 are a host baseline, not a cross-host diagnostic-format contract.
+
+## Interface-formal legality probes (Phase 6g)
+
+B394A01 and B394A02, with their original F394A00 foundation, are unchanged
+Ada 2005 progenitor/limitedness legality scenarios, including formal interface
+and formal-derived declarations. They are imported from the same pinned archive
+on 2026-10-26. Their complete sources also contain unsupported concurrent
+interface declarations and synchronized private/formal extensions. Rejection is
+recorded exactly as B_REJECTED_UNGRADED and checked by baseline-only CTests;
+it is neither a legality pass nor an executable ACATS pass. The P8 grader and
+P9 syntax are still needed. Local `genericinterface*errors` isolates the rules
+and legal controls without those unrelated blockers. All previous 123
+observations are unchanged. BC55001 was assessed and excluded: it explicitly
+checks later AI05/AI12 abstract-result rules outside the Ada 2005 target.

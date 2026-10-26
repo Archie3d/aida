@@ -955,7 +955,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     std::vector<Type*> directInterfaces;
     for (const auto& indication : definition->progenitors) {
-        Type* progenitor = rootType(resolveTypeName(indication->lower, scope, indication->location));
+        Type* progenitorView = resolveTypeName(indication->lower, scope, indication->location);
+        Type* progenitor = rootType(progenitorView);
         if (progenitor == nullptr) { continue; }
         if (progenitor->interfaceKind == InterfaceKind::None || progenitor->classRoot != nullptr
             || !representationVisible(progenitor)) {
@@ -969,7 +970,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         directInterfaces.push_back(progenitor);
         addInterface(progenitor);
         for (Type* ancestor : progenitor->interfaces) { addInterface(ancestor); }
-        inheritPrimitives(type, progenitor, scope, indication->location);
+        inheritPrimitives(type, progenitorView->formalDerived ? progenitorView : progenitor, scope, indication->location);
         progenitor->dispatchFrozen = true;
     }
     for (Type* ancestor : type->interfaces) {
@@ -2402,7 +2403,18 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         }
         return subtype;
     };
-    for (Symbol* primitive : (parent->formalDerived ? parent : rootType(parent))->primitives) {
+    std::vector<Symbol*> parentPrimitives = (parent->formalDerived ? parent : rootType(parent))->primitives;
+    if (parent->formalDerived && parent->interfaceKind != InterfaceKind::None && rootType(parent) != parent) {
+        // Additional actual interface operations still impose obligations on
+        // descendants, even though the generic body cannot name them.
+        for (Symbol* actual : rootType(parent)->primitives) {
+            bool copied = std::any_of(parentPrimitives.begin(), parentPrimitives.end(), [&](Symbol* operation) {
+                return operation->dispatchSlot == actual->dispatchSlot;
+            });
+            if (!copied) { parentPrimitives.push_back(actual); }
+        }
+    }
+    for (Symbol* primitive : parentPrimitives) {
         if (primitive->kind != SymbolKind::Subprogram) { continue; }
         bool fromInterface = parent->interfaceKind != InterfaceKind::None;
         bool hidden = primitive->privatePrimitiveTo != nullptr && !withinPackage(primitive->privatePrimitiveTo);

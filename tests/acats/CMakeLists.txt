@@ -133,6 +133,16 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(baseline.acats_metadata baseline.acats_runner
         PROPERTIES TIMEOUT 30 LABELS "baseline")
 
+    # Raw legality observations only; these are not graded B-test passes.
+    foreach(case_id b394a01 b394a02)
+        add_test(NAME baseline.acats_${case_id}
+            COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
+                --case ${case_id} --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+                --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-probes")
+        set_tests_properties(baseline.acats_${case_id}
+            PROPERTIES TIMEOUT 60 LABELS "baseline")
+    endforeach()
+
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         "${baseline_root}/manifest.json" "${baseline_root}/expected.json")
     file(READ "${baseline_root}/manifest.json" baseline_selection)

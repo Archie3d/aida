@@ -13,6 +13,6 @@ generic
 package Concrete_Record is
 end Concrete_Record;
 generic
-    type T is new Integer and Some_Interface with private;
+    type T is new Integer and Some_Interface;
 package Progenitors is
 end Progenitors;

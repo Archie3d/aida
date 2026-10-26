@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — 2026-10-25
 
-This backfill adds **123 unchanged upstream cases**: 103 C-tests and 20 B-test
+This backfill adds **125 unchanged upstream cases**: 103 C-tests and 22 B-test
 probes, alongside the existing 55-case selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -10,7 +10,7 @@ This is a baseline of the current subset, not a conformance claim.
 | Observation | Cases |
 | --- | ---: |
 | B accepted, ungraded | 0 |
-| B rejected, ungraded | 20 |
+| B rejected, ungraded | 22 |
 | Legal C-test rejected | 16 |
 | Support/harness blocked | 8 |
 | Executable PASS | 79 |
@@ -19,9 +19,20 @@ This is a baseline of the current subset, not a conformance claim.
 No crashes or timeouts were observed. **16 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
-All 20 rejected B-probes remain ungraded, not legality passes. B36002A now
+All 22 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
+
+## Interface-formal observations (Phase 6g)
+
+B394A01/B394A02 and F394A00 add two unchanged Ada 2005 legality probes for
+progenitor kinds and limited descendants, including generic formals. The whole
+sources reject on unsupported concurrent syntax as well, so their observations
+remain ungraded, with exact diagnostics under the baseline label. They are not
+legality passes. All original 123 observations, including the 79 executable
+passes, are unchanged. Local `genericinterface*` covers the isolated legality
+rules, legal controls, dispatch, category matching, callbacks and nested/library
+replay; existing C394002/C394003 retain their strict inheritance passes.
 
 ## Reviewed repairs
 
@@ -326,6 +337,8 @@ The table below gives the observed status and initial triage for every case.
 | [B36001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36001a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B36002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36002a.ada) | 3/4/6/8 | B rejected, ungraded | mixed-index diagnostics repaired in P6f-prelude; grading: P8 B-test harness |
 | [B37004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b37004a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
+| [B394A01](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a01.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | progenitor-type legality, including formals; P8 grading/P9 concurrent syntax |
+| [B394A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a02.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | nonlimited-interface descendant legality, including formals; P8 grading/P9 concurrent syntax |
 | [B3A0001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B3A0002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0002.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B43002D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002d.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |

@@ -85,6 +85,35 @@ bool matchesAccessFormal(Type* actual, Type* formal)
     return true;
 }
 
+Symbol* formalOperationImplementation(Symbol* operation, Type* actual)
+{
+    const auto& slots = rootType(actual)->dispatchSlots;
+    if (operation->interfaceOrigins.empty()) {
+        return operation->dispatchSlot >= 0 && static_cast<std::size_t>(operation->dispatchSlot) < slots.size()
+            ? slots[operation->dispatchSlot] : nullptr;
+    }
+    auto originOf = [](Symbol* symbol) {
+        while (symbol->renamedSubprogram != nullptr || symbol->inheritedFrom != nullptr) {
+            symbol = symbol->renamedSubprogram != nullptr ? symbol->renamedSubprogram : symbol->inheritedFrom;
+        }
+        return symbol;
+    };
+    Symbol* implementation = nullptr;
+    for (Symbol* origin : operation->interfaceOrigins) {
+        Symbol* found = nullptr;
+        for (Symbol* candidate : slots) {
+            bool matches = candidate == origin || originOf(candidate) == originOf(origin);
+            for (Symbol* candidateOrigin : candidate->interfaceOrigins) {
+                matches = matches || candidateOrigin == origin || originOf(candidateOrigin) == originOf(origin);
+            }
+            if (matches) { found = candidate; break; }
+        }
+        if (found == nullptr || (implementation != nullptr && implementation != found)) { return nullptr; }
+        implementation = found;
+    }
+    return implementation;
+}
+
 // Copying a limited object requires build-in-place support, even when it is
 // hidden in an array or record. References do not copy these components.
 bool hasLimitedComponents(Type* type)
@@ -373,7 +402,8 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
         }
         if (formal.kind == GenericFormalKind::TypeFormal) {
             Type* type = nullptr;
-            if (formal.typeClass == FormalTypeClass::AccessType || formal.typeClass == FormalTypeClass::DerivedType) {
+            if (formal.typeClass == FormalTypeClass::AccessType || formal.typeClass == FormalTypeClass::DerivedType
+                || formal.typeClass == FormalTypeClass::InterfaceType) {
                 Parser parser(formal.typeTokens, m_diagnostics);
                 DeclList declarations = parser.parseDeclarations();
                 if (declarations.size() == 1 && declarations.front()->kind == DeclKind::Type) {
@@ -382,6 +412,9 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                         analyzeFormalDerivedType(typeDecl, formal, bindings, decl->symbol);
                     } else {
                         analyzeTypeDecl(typeDecl, bindings);
+                        if (formal.typeClass == FormalTypeClass::InterfaceType && typeDecl->declaredType != nullptr) {
+                            typeDecl->declaredType->formalDerived = true;
+                        }
                     }
                     contract->profiles.push_back(std::move(declarations.front()));
                 }
@@ -476,9 +509,16 @@ void Sema::analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal,
     TypeDefinition* definition = decl->definition.get();
     Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
     if (parent == nullptr) { return; }
-    if (parent->interfaceKind != InterfaceKind::None) {
-        m_diagnostics.error(decl->location, "interface ancestors on formal derived types are not yet supported");
+    if (parent->interfaceKind >= InterfaceKind::Synchronized) {
+        m_diagnostics.error(decl->location, "synchronized formal derived types are not yet supported");
         return;
+    }
+    for (const auto& progenitor : definition->progenitors) {
+        Type* type = resolveTypeName(progenitor->lower, scope, progenitor->location);
+        if (type != nullptr && type->interfaceKind >= InterfaceKind::Synchronized) {
+            m_diagnostics.error(decl->location, "synchronized formal derived types are not yet supported");
+            return;
+        }
     }
     if (parent->tagged != definition->privateExtension) {
         m_diagnostics.error(decl->location, "with private is required exactly for a tagged formal derived ancestor");
@@ -533,7 +573,11 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
     int errors = m_diagnostics.errorCount();
-    analyzeFormalDerivedType(definition, formal, matching, generic);
+    if (formal.typeClass == FormalTypeClass::InterfaceType) {
+        analyzeTypeDecl(definition, matching);
+    } else {
+        analyzeFormalDerivedType(definition, formal, matching, generic);
+    }
     m_replayContract = savedReplay;
     m_recordContract = savedRecord;
     m_instanceFirstSymbol = savedFirst;
@@ -544,16 +588,29 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
         m_diagnostics.error(location, "class-wide actuals for formal derived types are not yet supported");
         return false;
     }
-    Type* ancestor = baseType(actual);
-    while (ancestor != nullptr && ancestor != baseType(parent)) {
-        if (!ancestor->parentVisible && !representationVisible(ancestor)) {
-            ancestor = ancestor->privateAncestor;
-        } else {
-            ancestor = ancestor->parentType;
+    bool matches = false;
+    if (formal.typeClass == FormalTypeClass::InterfaceType) {
+        matches = actual->interfaceKind == formal.interfaceKind && representationVisible(actual);
+    } else if (parent->interfaceKind != InterfaceKind::None) {
+        matches = taggedViewVisible(actual) && isTaggedAncestor(parent, actual);
+    } else {
+        Type* ancestor = baseType(actual);
+        while (ancestor != nullptr && ancestor != baseType(parent)) {
+            if (!ancestor->parentVisible && !representationVisible(ancestor)) {
+                ancestor = ancestor->privateAncestor;
+            } else {
+                ancestor = ancestor->parentType;
+            }
         }
+        matches = ancestor != nullptr && (!parent->tagged || taggedViewVisible(actual));
     }
-    bool matches = ancestor != nullptr && (!view->isLimited || limitedView(actual));
-    if (matches && !formal.unknownDiscriminants) {
+    if (formal.typeClass == FormalTypeClass::DerivedType) {
+        matches = matches && (view->isLimited || !limitedView(actual));
+    }
+    for (Type* progenitor : view->interfaces) {
+        matches = matches && isTaggedAncestor(progenitor, actual);
+    }
+    if (matches && parent != nullptr && !formal.unknownDiscriminants) {
         auto definite = [&](Type* type) {
             return !unknownDiscriminantView(type) && isDefiniteArray(type) && type->classRoot == nullptr
                 && (type->discriminantCount == 0 || hasKnownDiscriminants(type) || hasDefaultDiscriminants(type));
@@ -593,16 +650,22 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
         }
     }
     if (!matches) {
-        m_diagnostics.error(location, "actual subtype does not match generic formal derived type '" + formal.name + "'");
+        m_diagnostics.error(location, "actual subtype does not match generic formal "
+            + std::string(formal.typeClass == FormalTypeClass::InterfaceType ? "interface" : "derived") + " type '" + formal.name + "'");
         return false;
     }
     for (Symbol* operation : view->primitives) {
-        if (actual->tagged && operation->kind == SymbolKind::Subprogram && !operation->abstract
-            && operation->dispatchSlot >= 0
-            && static_cast<std::size_t>(operation->dispatchSlot) < rootType(actual)->dispatchSlots.size()
-            && rootType(actual)->dispatchSlots[operation->dispatchSlot]->abstract) {
-            m_diagnostics.error(location, "actual primitive '" + operation->displayName + "' must be nonabstract for this formal derived type");
-            return false;
+        if (actual->tagged && operation->kind == SymbolKind::Subprogram) {
+            Symbol* implementation = formalOperationImplementation(operation, actual);
+            if (implementation == nullptr) {
+                m_diagnostics.error(location, "actual type has no corresponding primitive for generic formal operation '" + operation->displayName + "'");
+                return false;
+            }
+            if (!operation->abstract && implementation->abstract) {
+                m_diagnostics.error(location, "actual primitive '" + operation->displayName + "' must be nonabstract for this formal "
+                    + std::string(formal.typeClass == FormalTypeClass::InterfaceType ? "interface" : "derived") + " type");
+                return false;
+            }
         }
     }
     // Keep the formal operation profiles, but give their corresponding type
@@ -618,18 +681,18 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
             bindings->add(operation);
             continue;
         }
-        if (actual->tagged && operation->dispatchSlot >= 0
-            && static_cast<std::size_t>(operation->dispatchSlot) < rootType(actual)->dispatchSlots.size()) {
-            Symbol* implementation = rootType(actual)->dispatchSlots[operation->dispatchSlot];
+        if (actual->tagged) {
+            Symbol* implementation = formalOperationImplementation(operation, actual);
             Symbol* origin = operation->inheritedFrom;
             auto parameters = std::move(operation->parameters);
             Type* result = operation->returnType;
             Symbol* privateTo = operation->privatePrimitiveTo;
+            SourceLocation operationLocation = operation->location;
             *operation = *implementation;
             operation->parameters = std::move(parameters);
             operation->returnType = result;
             operation->privatePrimitiveTo = privateTo;
-            operation->location = formal.location;
+            operation->location = operationLocation;
             operation->genericFormalOrigin = origin;
             operation->inheritedFrom = nullptr;
             operation->renamedSubprogram = implementation;
@@ -701,6 +764,11 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
         break;
     case FormalTypeClass::DerivedType:
         // The ancestor and its inherited constraints use preceding bindings.
+        break;
+    case FormalTypeClass::InterfaceType:
+        if (base->interfaceKind == InterfaceKind::None || actual->classRoot != nullptr || !representationVisible(actual)) {
+            wanted = "an interface type";
+        }
         break;
     case FormalTypeClass::Any:
         if (formal.tagged && !taggedViewVisible(actual)) {
@@ -1089,7 +1157,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
                 && !matchesFormalArray(formal, type, bindings, actual->location)) {
                 return false;
             }
-            if (formal.typeClass == FormalTypeClass::DerivedType
+            if ((formal.typeClass == FormalTypeClass::DerivedType || formal.typeClass == FormalTypeClass::InterfaceType)
                 && !bindFormalDerivedType(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
                 return false;
             }

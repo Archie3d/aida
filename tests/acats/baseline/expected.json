@@ -5,9 +5,9 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "e969074199bab24d2aa527cc75bc566f9306c83013d24bd9f53131722ab727f1",
+  "compiler_sha256": "4f712e5fce7f762f253ddbde1732f164f02653e70396f8d9391ac5d64ad54c8e",
   "counts": {
-    "B_REJECTED_UNGRADED": 20,
+    "B_REJECTED_UNGRADED": 22,
     "COMPILE_REJECTED": 16,
     "HARNESS_BLOCKED": 8,
     "PASS": 79
@@ -986,6 +986,18 @@
       "compile_exit": 1,
       "compile_stdout": "",
       "compile_stderr": "<upstream>/tests/b8/b840001.a:236:4: error: 'B840001_0' is not a type\n<upstream>/tests/b8/b840001.a:239:4: error: 'B840001_4' is not a type\n<upstream>/tests/b8/b840001.a:244:24: error: 'Tag_Op' is not declared\n<upstream>/tests/b8/b840001.a:249:15: error: 'another_integer' is not declared\n<upstream>/tests/b8/b840001.a:253:54: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:259:15: error: 'my_integer' is not declared\n<upstream>/tests/b8/b840001.a:263:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:266:39: error: no visible operator '-' matches this operand\n<upstream>/tests/b8/b840001.a:270:34: error: no visible operator '>=' matches these operands\n<upstream>/tests/b8/b840001.a:276:39: error: 'Int_Op' is not declared\n<upstream>/tests/b8/b840001.a:290:34: error: no visible operator '-' matches these operands\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b394a01": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/support/f394a00.a:88:31: error: protected interfaces are not yet supported\n<upstream>/support/f394a00.a:95:23: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:142:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:144:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:146:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:148:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:150:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:152:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:154:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:156:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:158:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:160:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:161:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a01.a:164:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:166:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:168:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:170:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:172:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:174:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:176:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:178:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:180:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:182:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a01.a:184:30: error: protected interfaces are not yet supported\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "b394a02": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/support/f394a00.a:88:31: error: protected interfaces are not yet supported\n<upstream>/support/f394a00.a:95:23: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a02.a:81:33: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a02.a:82:33: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a02.a:85:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a02.a:87:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a02.a:88:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a02.a:90:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a02.a:93:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a02.a:95:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a02.a:96:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a02.a:98:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a02.a:117:24: error: unsupported reserved word 'synchronized' in generic formal type definition\n<upstream>/tests/b3/b394a02.a:118:37: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a02.a:152:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a02.a:154:30: error: protected interfaces are not yet supported\n",
       "outcome": "B_REJECTED_UNGRADED"
     }
   }

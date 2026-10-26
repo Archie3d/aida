@@ -1025,7 +1025,8 @@ enum class FormalTypeClass
     DecimalType,
     ArrayType,
     AccessType,
-    DerivedType
+    DerivedType,
+    InterfaceType
 };
 
 struct GenericFormal
@@ -1046,6 +1047,7 @@ struct GenericFormal
     bool unknownDiscriminants = false;
     bool abstract = false;
     bool tagged = false;
+    InterfaceKind interfaceKind = InterfaceKind::None;
     std::vector<Symbol*> defaultCandidates;
     bool defaultUsesFormal = false;
     SourceLocation location;

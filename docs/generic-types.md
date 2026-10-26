@@ -1,7 +1,8 @@
 # Generic type formals — Phase 6g
 
-The target is Ada 2005 RM [12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html)
-and [12.5.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-4.html).
+The target is Ada 2005 RM [12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html),
+[12.5.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-4.html)
+and [12.5.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-5.html).
 These increments extend the numeric, discrete, array and private formals;
 Phase 6g remains in progress.
 
@@ -74,11 +75,42 @@ view with the inherited names/defaults. Private code sees the overriding
 profile; external static calls, callbacks, dispatch and further derivations
 reach the override through the public contract.
 
+## Interface formals
+
+Formal interface declarations support ordinary, limited, synchronized, task and
+protected interfaces, with zero or more progenitors. Actuals must be specific
+interface types of exactly the same category and descend from every declared
+progenitor. A concrete implementation or a class-wide subtype cannot stand in
+for an interface actual. Duplicate and non-interface progenitors, incompatible
+categories and unknown discriminants are diagnosed.
+
+Derived formals can use ordinary/limited interfaces as ancestors or progenitors.
+A nonlimited formal rejects a limited actual; a limited formal can accept a
+nonlimited descendant of its limited interface ancestor. The existing abstract
+and inherited-constraint rules still apply. Synchronized formal derived
+extensions remain explicitly unsupported; declaring a formal synchronized,
+task or protected *interface* does not implement concurrent objects.
+
+Corresponding primitives use interface-origin identities rather than assumed
+slot numbers. Reordered actual interfaces, diamond inheritance, inherited null
+procedures and matching concrete-ancestor implementations preserve the actual
+layout, tags, lexical links and dispatch maps. Nested and separately compiled
+instances retain the copied operation contract. Additional actual interface
+operations still impose abstract overriding obligations when the instance
+derives a concrete descendant; they cannot be silently dropped.
+
+A generic contract can take Access of a nonabstract inherited formal operation
+whose ancestor is abstract: the actual supplies the concrete implementation.
+Contract checking records the name without marking the ancestor for closure
+emission. Replaying an instance marks the actual callable entry instead.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
 `genericderived`, `genericderivedtagged`, `genericderivednested`,
-`genericderiveddiscriminants` and `genericderivedlibrary_main` run in whole,
+`genericderiveddiscriminants`, `genericderivedlibrary_main`,
+`genericinterfaceformals`, `genericinterfacecategories`, `genericinterfacenested`
+and `genericinterfacelibrary_main` run in whole,
 per-unit and deterministic modes, including four concurrent workers.
 The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
@@ -90,16 +122,18 @@ callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
 in the [ACATS inventory](../tests/acats/README.md).
 
-Validation passes all 1,176 registered tests (the 1,175-test full run plus the
-subsequently registered CC54004), 17 focused compiler ASan/UBSan checks, and
-five whole/per-unit execution scenarios with the instrumented C runtime.
-The reviewed 123-case baseline is stable at 79 executable passes, 16 compile
-rejections, eight harness blockers and 20 ungraded B observations.
+Current validation passes 1,194/1,194 tests, 16 focused compiler ASan/UBSan
+checks, and four interface scenarios in whole/per-unit modes with the
+instrumented C runtime. All original 123 ACATS observations remain unchanged.
+B394A01/B394A02 and their unchanged F394A00 foundation add ungraded legality
+probes: their full-source rejection includes unsupported concurrent constructs
+and is not an Ada legality pass. The 125-case baseline contains 79 executable
+passes, 16 compile rejections, eight harness blockers and 22 ungraded B probes.
 LeakSanitizer is unavailable on this host; QBE-generated Ada memory accesses
 remain uninstrumented.
 
-Known discriminants on private formals, interface/synchronized formals,
-interface ancestors/progenitors on derived formals, class-wide derived actuals,
+Known discriminants on private formals, synchronized formal derived extensions,
+class-wide derived actuals,
 Definite, formal packages and the later 6g bullets remain open. Class-wide
 actuals for derived formals need the RM 12.5.1 dispatch wrappers and
 controlling-result Program_Error behavior; they are diagnosed until implemented.

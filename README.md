@@ -95,7 +95,7 @@ Supported:
 - Scalar `'Value` uses the base range; receiving contexts check subtype constraints
 - Derived Boolean operations and byte-character literals and strings
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
-- Generics with private/indefinite, derived, tagged and access formals ([limits](docs/generic-types.md));
+- Generics with private/indefinite, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   tagged dispatching and prefixed calls ([limits](docs/prefixed-calls.md))
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md));
@@ -125,7 +125,7 @@ Not supported yet:
   protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Interfaces, task/protected subunits and formal packages
+- Concurrent interface implementations, task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - Wide character types and their string literals

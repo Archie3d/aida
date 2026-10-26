@@ -1,0 +1,5 @@
+genericinterfaceprogenitorerrors.adb:7:33: error: a progenitor must name a specific interface type
+genericinterfaceprogenitorerrors.adb:11:39: error: duplicate interface progenitor
+genericinterfaceprogenitorerrors.adb:15:9: error: a descendant of a nonlimited interface must be nonlimited
+genericinterfaceprogenitorerrors.adb:19:9: error: incompatible synchronized interface categories
+genericinterfaceprogenitorerrors.adb:27:9: error: a descendant of a nonlimited interface must be nonlimited
