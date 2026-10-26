@@ -1,0 +1,12 @@
+genericsynchronizederrors.adb:9:9: error: a synchronized formal derived type requires a tagged ancestor
+genericsynchronizederrors.adb:12:9: error: limited or synchronized formal derivation requires limited ancestors and progenitors
+genericsynchronizederrors.adb:15:9: error: limited or synchronized formal derivation requires limited ancestors and progenitors
+genericsynchronizederrors.adb:18:9: error: a synchronized interface ancestor or progenitor requires synchronized formal derivation
+genericsynchronizederrors.adb:21:9: error: a synchronized interface ancestor or progenitor requires synchronized formal derivation
+genericsynchronizederrors.adb:24:9: error: a type cannot have both task and protected interface ancestors
+genericsynchronizederrors.adb:27:9: error: limited or synchronized formal derivation requires limited ancestors and progenitors
+genericsynchronizederrors.adb:32:39: error: actual subtype does not match generic formal derived type 'T'
+genericsynchronizederrors.adb:33:44: error: actual subtype does not match generic formal derived type 'T'
+genericsynchronizederrors.adb:37:46: error: actual subtype does not match generic formal derived type 'T'
+genericsynchronizederrors.adb:41:9: error: extending a synchronized formal requires Phase 9 concurrent types
+genericsynchronizederrors.adb:46:53: error: an abstract actual type requires an abstract generic formal type

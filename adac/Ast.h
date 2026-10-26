@@ -519,6 +519,8 @@ struct TypeDefinition : Node
     bool abstract = false;
     bool extension = false;
     bool privateExtension = false;
+    bool formalDerived = false;
+    bool formalSynchronized = false;
     InterfaceKind interfaceKind = InterfaceKind::None;
     std::vector<SubtypeIndicationPtr> progenitors;
     std::vector<RecordField> fields;
@@ -1045,6 +1047,7 @@ struct GenericFormal
     ParameterMode mode = ParameterMode::In;
     bool boxDefault = false;
     bool limited = false;
+    bool synchronized = false;
     bool unknownDiscriminants = false;
     bool abstract = false;
     bool tagged = false;

@@ -1,1 +1,1 @@
-genericderiveddiscriminanterrors.adb:3:9: error: a formal derived discriminant part requires a non-interface record ancestor
+genericderiveddiscriminanterrors.adb:3:9: error: a formal derived discriminant part requires a record ancestor

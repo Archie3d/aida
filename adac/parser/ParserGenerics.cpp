@@ -75,9 +75,20 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             bool interfaceDefinition = check(TokenKind::KwInterface)
                 || ((check(TokenKind::KwLimited) || check(TokenKind::KwSynchronized)
                      || check(TokenKind::KwTask) || check(TokenKind::KwProtected)) && peek(1).kind == TokenKind::KwInterface);
-            if (interfaceDefinition || check(TokenKind::KwNew) || check(TokenKind::KwAbstract) || check(TokenKind::KwTagged)
+            if (interfaceDefinition || check(TokenKind::KwSynchronized) || check(TokenKind::KwNew)
+                || check(TokenKind::KwAbstract) || check(TokenKind::KwTagged)
                 || (check(TokenKind::KwLimited) && peek(1).kind == TokenKind::KwNew)) {
+                bool abstractSynchronized = check(TokenKind::KwAbstract)
+                    && peek(1).kind == TokenKind::KwSynchronized && peek(2).kind == TokenKind::KwNew;
+                if (abstractSynchronized) { advance(); }
+                bool synchronizedDerived = check(TokenKind::KwSynchronized) && peek(1).kind == TokenKind::KwNew;
+                if (synchronizedDerived) { advance(); }
                 auto definition = parseTypeDefinition();
+                if (synchronizedDerived) {
+                    formal.synchronized = true;
+                    definition->isLimited = true;
+                    definition->abstract = abstractSynchronized;
+                }
                 formal.abstract = definition->abstract;
                 formal.tagged = definition->tagged;
                 formal.limited = definition->isLimited;
@@ -102,6 +113,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 formal.typeTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(formalStart),
                     m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
                 formal.typeTokens.push_back(m_tokens.back());
+                // Replay uses ordinary derived syntax; the formal retains the
+                // stronger synchronized contract separately.
+                if (formal.synchronized) {
+                    for (Token& token : formal.typeTokens) {
+                        if (token.kind == TokenKind::KwSynchronized) {
+                            token.kind = TokenKind::KwLimited;
+                            token.text = token.lower = "limited";
+                        }
+                    }
+                }
             } else if (check(TokenKind::KwAccess) || check(TokenKind::KwNot)) {
                 formal.typeClass = FormalTypeClass::AccessType;
                 parseTypeDefinition();

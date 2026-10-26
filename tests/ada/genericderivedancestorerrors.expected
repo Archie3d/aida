@@ -1,4 +1,4 @@
 genericderivedancestorerrors.adb:5:9: error: with private is required exactly for a tagged formal derived ancestor
 genericderivedancestorerrors.adb:9:9: error: with private is required exactly for a tagged formal derived ancestor
 genericderivedancestorerrors.adb:13:9: error: an abstract formal derived type requires a tagged ancestor
-genericderivedancestorerrors.adb:17:9: error: a limited extension requires a limited ancestor type
+genericderivedancestorerrors.adb:17:9: error: limited or synchronized formal derivation requires limited ancestors and progenitors

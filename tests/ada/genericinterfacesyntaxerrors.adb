@@ -10,7 +10,3 @@ generic
     type F is interface and;
 package Missing_Ancestor is
 end Missing_Ancestor;
-generic
-    type F is synchronized new Integer with private;
-package Synchronized_Derived is
-end Synchronized_Derived;

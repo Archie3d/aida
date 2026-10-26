@@ -516,6 +516,18 @@
     "tests/ca/ca1005a.ada": {
       "sha256": "0c2ab7d38a0afa56d3eb8a69bd9869ae39dc91dbe11ac15488e51ad69b35553a",
       "git_blob": "9f9e2a283554864b1be8636b2a0fa2c228332c1e"
+    },
+    "tests/b3/b394a03.a": {
+      "sha256": "a841defb5c1f45e65f09ec1405fd3169e48f2749c6ee6d82d44dd9ec6b0f1f20",
+      "git_blob": "0957c26e3793acb229a0204b3c2c53613836e9b6"
+    },
+    "tests/b3/b394a04.a": {
+      "sha256": "d717ee36aa03038bf3c7b068c8be0f95400c960fb37f9622aa7670ed699143c3",
+      "git_blob": "9ff3c42389b4001244904a9311d947ee548cefab"
+    },
+    "tests/b3/b394a05.a": {
+      "sha256": "209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7",
+      "git_blob": "fbb331bb7566d5e1bcb98534ef084e2000f41e84"
     }
   },
   "cases": [
@@ -2938,6 +2950,66 @@
         "kind": "ungraded_legality_probe",
         "owner": "P8 B-test grading; P9 concurrent interface syntax",
         "note": "Unchanged Ada 2005 legality scenarios. Whole-source rejection is ungraded and includes unsupported concurrent constructs in the foundation and test; local genericinterface* regressions isolate relevant rules and legal controls."
+      }
+    },
+    {
+      "id": "b394a03",
+      "class": "B",
+      "area": "generic_interfaces",
+      "owner": "P6g/P8/P9",
+      "rm": "3.9.4/12.5.1/12.5.5",
+      "objective": "Check task-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
+      "sources": [
+        "support/f394a00.a",
+        "tests/b3/b394a03.a"
+      ],
+      "report_name": "B394A03",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading; P9 concurrent interface syntax",
+        "note": "Unchanged Ada 2005 scenarios include synchronized formal extensions. Full-source rejection also includes unsupported concurrent/private-extension syntax and is not a legality pass; local genericsynchronized* tests isolate the implemented contracts and legal controls."
+      }
+    },
+    {
+      "id": "b394a04",
+      "class": "B",
+      "area": "generic_interfaces",
+      "owner": "P6g/P8/P9",
+      "rm": "3.9.4/12.5.1/12.5.5",
+      "objective": "Check protected-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
+      "sources": [
+        "support/f394a00.a",
+        "tests/b3/b394a04.a"
+      ],
+      "report_name": "B394A04",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading; P9 concurrent interface syntax",
+        "note": "Unchanged Ada 2005 scenarios include synchronized formal extensions. Full-source rejection also includes unsupported concurrent/private-extension syntax and is not a legality pass; local genericsynchronized* tests isolate the implemented contracts and legal controls."
+      }
+    },
+    {
+      "id": "b394a05",
+      "class": "B",
+      "area": "generic_interfaces",
+      "owner": "P6g/P8/P9",
+      "rm": "3.9.4/12.5.1/12.5.5",
+      "objective": "Check synchronized-interface descendants, including formal derived extensions.",
+      "sources": [
+        "support/f394a00.a",
+        "tests/b3/b394a05.a"
+      ],
+      "report_name": "B394A05",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading; P9 concurrent interface syntax",
+        "note": "Unchanged Ada 2005 scenarios include synchronized formal extensions. Full-source rejection also includes unsupported concurrent/private-extension syntax and is not a legality pass; local genericsynchronized* tests isolate the implemented contracts and legal controls."
       }
     }
   ],

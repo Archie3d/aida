@@ -599,21 +599,32 @@ void Sema::analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal,
     TypeDefinition* definition = decl->definition.get();
     Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
     if (parent == nullptr) { return; }
-    if (formal.unknownDiscriminants && (parent->kind != TypeKind::Record || parent->interfaceKind != InterfaceKind::None)) {
-        m_diagnostics.error(decl->location, "a formal derived discriminant part requires a non-interface record ancestor");
+    if (formal.unknownDiscriminants && parent->kind != TypeKind::Record) {
+        m_diagnostics.error(decl->location, "a formal derived discriminant part requires a record ancestor");
         return;
     }
-    if (parent->interfaceKind >= InterfaceKind::Synchronized) {
-        m_diagnostics.error(decl->location, "synchronized formal derived types are not yet supported");
-        return;
-    }
+    bool requiresSynchronized = parent->interfaceKind >= InterfaceKind::Synchronized;
+    bool allLimited = limitedView(parent);
     for (const auto& progenitor : definition->progenitors) {
         Type* type = resolveTypeName(progenitor->lower, scope, progenitor->location);
-        if (type != nullptr && type->interfaceKind >= InterfaceKind::Synchronized) {
-            m_diagnostics.error(decl->location, "synchronized formal derived types are not yet supported");
-            return;
-        }
+        if (type == nullptr) { return; }
+        requiresSynchronized = requiresSynchronized || type->interfaceKind >= InterfaceKind::Synchronized;
+        allLimited = allLimited && limitedView(type);
     }
+    if (formal.synchronized && !parent->tagged) {
+        m_diagnostics.error(decl->location, "a synchronized formal derived type requires a tagged ancestor");
+        return;
+    }
+    if (formal.limited && !allLimited) {
+        m_diagnostics.error(decl->location, "limited or synchronized formal derivation requires limited ancestors and progenitors");
+        return;
+    }
+    if (requiresSynchronized && !formal.synchronized) {
+        m_diagnostics.error(decl->location, "a synchronized interface ancestor or progenitor requires synchronized formal derivation");
+        return;
+    }
+    definition->formalDerived = true;
+    definition->formalSynchronized = formal.synchronized;
     if (parent->tagged != definition->privateExtension) {
         m_diagnostics.error(decl->location, "with private is required exactly for a tagged formal derived ancestor");
         return;
@@ -700,6 +711,9 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
     }
     if (formal.typeClass == FormalTypeClass::DerivedType) {
         matches = matches && (view->isLimited || !limitedView(actual));
+        if (formal.synchronized) {
+            matches = matches && (actual->synchronizedFormal || actual->interfaceKind >= InterfaceKind::Synchronized);
+        }
     }
     for (Type* progenitor : view->interfaces) {
         matches = matches && isTaggedAncestor(progenitor, actual);

@@ -624,13 +624,22 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   named constraints by position through nested/library instances. Record
   membership checks discriminant constraints. `genericdiscriminant*` and
   `genericdefinite*`; unchanged CC1204A/CC3240A PASS.
-- [ ] **Synchronized formal derived extensions.** Parse and enforce
+- [x] **Synchronized formal derived extensions.** Parse and enforce
   synchronized ancestors/progenitors, category/limitedness rules and matching
   of actual descendants; preserve corresponding primitive operations through
   instances. Formal synchronized/task/protected interface declarations alone
   do not satisfy this item. Complete syntax, matching and contract tests here
   (RM 12.5.1(3/2–5.1/2)); concrete task/protected implementation and execution
   tests belong to Phase 9 and do not block completion of this static support.
+  `genericsynchronized*` covers abstract/specific contracts, synchronized actual
+  categories, ancestry, callbacks, unknown discriminants, nested/subtype/library
+  replay, whole/per-unit/determinism and four workers. Full suite 1,227/1,227;
+  14 compiler ASan/UBSan checks and three scenarios with the instrumented C
+  runtime pass. Unchanged B394A03–B394A05 add ungraded probes; B394A02 loses two
+  obsolete parser diagnostics, while the other 124 prior observations remain
+  unchanged. The 128-case cohort has 79 PASS, 16 compile rejections, eight
+  harness blockers and 25 ungraded B observations.
+  [Contract](docs/generic-types.md#synchronized-derived-formals).
 - [ ] **Class-wide actuals for formal derived types.** Implement actual
   matching, dispatch wrappers and the required controlling-result
   `Program_Error` behavior, including nested/library replay. Execute unchanged

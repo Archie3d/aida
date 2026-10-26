@@ -546,3 +546,33 @@ All four imported files retain their original rights/disclaimers; upstream
 | tests/cc/cc3240a.ada | `1983b94294f4aeabe61afb1b536fb4b2a3ba3e53` | `6e724d1a5de26d965e21a974a63e372d4ac6531ccdad114058c34caa55a3c471` |
 | tests/cc/cc51b03.a | `0cbeeb46f633d5ce2925af2cd2941f4297dc3079` | `5d1fb7b92f07fe498d072f4bf307e6d9103da244f57711fcaf243b35de5baa72` |
 | support/fc51b00.a | `1d2b57e3231a33a05c7bf645694c8689dc27d5f6` | `95ec3d736dc4fc0f7e22657ff0de01ac6ca03589651cb403e2ac59038448ecee` |
+
+## Synchronized formal derived contracts (Phase 6g)
+
+Unchanged B394A03/B394A04/B394A05 are imported from the same pinned revision on
+2026-10-26 and retain their rights/disclaimers. They test task, protected and
+synchronized ancestry, including generic formal extensions and forbidden
+combined task/protected ancestry (Ada 2005 RM 3.9.4 and 12.5.1). Their original
+F394A00 foundation is already present. Full-source compilation still rejects
+unsupported concrete concurrent/private-extension constructs, so all three are
+baseline-only B_REJECTED_UNGRADED probes, not legality passes. No new executable
+upstream PASS is claimed for this increment.
+
+Local `genericsynchronized*` isolates valid/invalid ancestors, modifier rules,
+synchronized actual matching, abstractness, inherited callbacks, tags,
+unknown discriminants and nested/library replay. It executes the supported tag
+and callback checks in whole/per-unit/deterministic modes with four workers;
+primitive dispatching bodies compile but await Phase 9 concurrent objects for
+execution. Existing B394A02 loses two obsolete parser errors; all other 124
+prior observations are unchanged. The expanded 128-case baseline has 79 PASS,
+16 compile rejections, eight harness blockers and 25 ungraded B observations.
+B730008/B730009 were assessed and deferred: their private-extension completions
+include concrete task/protected interface implementations (Phase 9). B730011
+instead covers private-declaration placement and completion legality, a broader
+Phase 8 audit rather than an isolated formal-derived matching scenario.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/b3/b394a03.a | `0957c26e3793acb229a0204b3c2c53613836e9b6` | `a841defb5c1f45e65f09ec1405fd3169e48f2749c6ee6d82d44dd9ec6b0f1f20` |
+| tests/b3/b394a04.a | `9ff3c42389b4001244904a9311d947ee548cefab` | `d717ee36aa03038bf3c7b068c8be0f95400c960fb37f9622aa7670ed699143c3` |
+| tests/b3/b394a05.a | `fbb331bb7566d5e1bcb98534ef084e2000f41e84` | `209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7` |

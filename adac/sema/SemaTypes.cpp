@@ -674,6 +674,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "interface progenitors require a tagged parent type");
             return;
         }
+        if (parent->synchronizedFormal && !definition->formalDerived) {
+            m_diagnostics.error(decl->location, "extending a synchronized formal requires Phase 9 concurrent types");
+            return;
+        }
         if (hasProtected(parent)) {
             m_diagnostics.error(decl->location, "derivation of types containing protected objects is not yet supported");
             return;
@@ -720,6 +724,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         built->base = nullptr;
         built->formalDerived = false;
         built->genericFormal = false;
+        built->synchronizedFormal = definition->formalSynchronized;
         built->kind = parent->kind;
         built->literals = parent->literals;
         if (hasKnownDiscriminants(parent)) { built->discriminantConstraintSource = parent; }
@@ -979,10 +984,21 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool incompatible = (kind == InterfaceKind::Task && type->interfaceKind != InterfaceKind::Task)
             || (kind == InterfaceKind::Protected && type->interfaceKind != InterfaceKind::Protected)
             || (kind == InterfaceKind::Synchronized && type->interfaceKind < InterfaceKind::Synchronized);
-        if (incompatible) {
+        if (incompatible && !definition->formalSynchronized) {
             m_diagnostics.error(decl->location, type->interfaceKind == InterfaceKind::None
                 ? "implementing synchronized, task or protected interfaces requires Phase 9 concurrent types"
                 : "incompatible synchronized interface categories");
+        }
+    }
+    if (definition->formalSynchronized) {
+        bool taskAncestor = false;
+        bool protectedAncestor = false;
+        for (Type* ancestor : type->interfaces) {
+            taskAncestor = taskAncestor || ancestor->interfaceKind == InterfaceKind::Task;
+            protectedAncestor = protectedAncestor || ancestor->interfaceKind == InterfaceKind::Protected;
+        }
+        if (taskAncestor && protectedAncestor) {
+            m_diagnostics.error(decl->location, "a type cannot have both task and protected interface ancestors");
         }
     }
     if (completing != nullptr && type->privateViewTagged) {

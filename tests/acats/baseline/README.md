@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 125 cases to the existing 55-case strict selection:
-103 executable C-tests and 22 ungraded B-test probes. The selection targets
+implement. It adds 128 cases to the existing strict selection:
+103 executable C-tests and 25 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 128 source files (including three shared foundations) retain their original
+All 131 source files (including three shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -43,7 +43,7 @@ not converted to the existing harness's compile XFAILs.
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
 has 79 C passes, 16 legal-source rejections, eight support
-blockers and 20 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
+blockers and 25 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
@@ -104,3 +104,12 @@ P9 syntax are still needed. Local `genericinterface*errors` isolates the rules
 and legal controls without those unrelated blockers. All previous 123
 observations are unchanged. BC55001 was assessed and excluded: it explicitly
 checks later AI05/AI12 abstract-result rules outside the Ada 2005 target.
+
+Synchronized-formal follow-up (Phase 6g): unchanged B394A03–B394A05 add three
+ungraded probes, sharing F394A00. B394A02 loses two obsolete parser errors after
+synchronized formal derived syntax is supported; the remaining 124 observations
+are unchanged. Full-source rejections still include unsupported concurrent and
+private-extension constructs. Local `genericsynchronized*` supplies focused
+legal/illegal contract controls; the B probes do not establish legality PASS.
+The 128 cases have 79 executable passes, 16 compile rejections, eight harness
+blockers and 25 ungraded B observations.

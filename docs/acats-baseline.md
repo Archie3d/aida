@@ -1,7 +1,7 @@
-# ACATS completed-feature baseline — 2026-10-25
+# ACATS completed-feature baseline — 2026-10-26
 
-This backfill adds **125 unchanged upstream cases**: 103 C-tests and 22 B-test
-probes, alongside the existing 55-case selection. The recorded host is Darwin
+This backfill adds **128 unchanged upstream cases**: 103 C-tests and 25 B-test
+probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
 [selection manifest](../tests/acats/baseline/manifest.json).
@@ -10,7 +10,7 @@ This is a baseline of the current subset, not a conformance claim.
 | Observation | Cases |
 | --- | ---: |
 | B accepted, ungraded | 0 |
-| B rejected, ungraded | 22 |
+| B rejected, ungraded | 25 |
 | Legal C-test rejected | 16 |
 | Support/harness blocked | 8 |
 | Executable PASS | 79 |
@@ -19,7 +19,7 @@ This is a baseline of the current subset, not a conformance claim.
 No crashes or timeouts were observed. **16 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
-All 22 rejected B-probes remain ungraded, not legality passes. B36002A now
+All 25 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
 
@@ -33,6 +33,13 @@ legality passes. All original 123 observations, including the 79 executable
 passes, are unchanged. Local `genericinterface*` covers the isolated legality
 rules, legal controls, dispatch, category matching, callbacks and nested/library
 replay; existing C394002/C394003 retain their strict inheritance passes.
+
+Synchronized-derived-formal follow-up adds unchanged B394A03–B394A05 for task,
+protected and synchronized ancestry, including formal extensions. They remain
+ungraded because full sources also contain unsupported Phase 9 constructs.
+B394A02 loses two obsolete formal-syntax parser diagnostics; the other 124
+previous observations are unchanged. `genericsynchronized*` isolates the new
+static contracts, legal controls, tags/callbacks and nested/library replay.
 
 ## Reviewed repairs
 
@@ -351,3 +358,6 @@ The table below gives the observed status and initial triage for every case.
 | [B650002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650002.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B650004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650004.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b8/b840001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
+| [B394A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a03.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Task ancestry/conflicting task-protected ancestors; P8 grading/P9 execution |
+| [B394A04](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a04.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Protected ancestry; P8 grading/P9 execution |
+| [B394A05](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a05.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Synchronized ancestry; P8 grading/P9 execution |
