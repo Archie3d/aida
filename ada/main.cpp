@@ -23,9 +23,13 @@ enum class Stage
 void printUsage()
 {
     std::cerr << "AIDA Ada compiler\n"
-              << "usage: ada [options] <source> [<source>...]\n"
+              << "usage: ada [options] <source> [<source>|<object.o>|<library.a>...]\n"
+              << "\n"
+              << "  .o/.a inputs are passed in order to the executable linker\n"
+              << "  the last Ada source selects the main program and default output name\n"
               << "\n"
               << "  -o <file>     name of the produced file\n"
+              << "  --source <file> treat an input as Ada source regardless of extension\n"
               << "  -D <dir>      where the per unit objects are kept\n"
               << "  --clean       remove that directory and stop\n"
               << "  --emit-ir     stop after generating QBE intermediate language\n"
@@ -61,6 +65,7 @@ bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::
 int main(int argc, char** argv)
 {
     std::vector<std::string> sources;
+    std::vector<std::string> linkerInputs;
     std::string output;
     std::string objectDirectory;
     Stage stage = Stage::Executable;
@@ -77,6 +82,12 @@ int main(int argc, char** argv)
                 return 2;
             }
             output = argv[++i];
+        } else if (argument == "--source") {
+            if (i + 1 >= argc) {
+                std::cerr << "ada: error: missing file name after '--source'\n";
+                return 2;
+            }
+            sources.push_back(argv[++i]);
         } else if (argument == "-D") {
             if (i + 1 >= argc) {
                 std::cerr << "ada: error: missing directory after '-D'\n";
@@ -102,12 +113,22 @@ int main(int argc, char** argv)
             std::cerr << "ada: error: unknown option '" << argument << "'\n";
             return 2;
         } else {
-            sources.push_back(argument);
+            const std::string extension = std::filesystem::path(argument).extension().string();
+            if (extension == ".o" || extension == ".a") {
+                linkerInputs.push_back(argument);
+            } else {
+                sources.push_back(argument);
+            }
         }
     }
 
     if (sources.empty()) {
+        std::cerr << "ada: error: at least one Ada source is required\n";
         printUsage();
+        return 2;
+    }
+    if (!clean && stage != Stage::Executable && !linkerInputs.empty()) {
+        std::cerr << "ada: error: .o and .a inputs require executable output (omit -S and --emit-ir)\n";
         return 2;
     }
 
@@ -293,6 +314,11 @@ int main(int argc, char** argv)
         link.push_back(base + ".o");
     }
 
+    // Archives follow their users. Preserve external input order, including
+    // repetitions, and let external code refer to the Ada runtime as well.
+    for (const std::string& file : linkerInputs) {
+        link.push_back(file);
+    }
     for (const std::string& file : toolchain.runtime()) {
         link.push_back(file);
     }

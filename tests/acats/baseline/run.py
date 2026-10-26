@@ -137,7 +137,12 @@ def observeCase(case, args):
         if case["class"] == "B":
             command = [str(args.adac), "-o", str(directory / "test.ssa"), *helpers, *sources]
         else:
-            command = [str(args.ada), "-o", str(program), *helpers, *sources]
+            # Upstream ACATS also uses .a for Ada sources; explicitly override
+            # the driver's static-archive interpretation without renaming files.
+            source_inputs = []
+            for source in sources:
+                source_inputs.extend(["--source", source])
+            command = [str(args.ada), "-o", str(program), *helpers, *source_inputs]
         compiled = runCommand(command, args.compile_timeout)
         observed = {"compile_exit": compiled["exit"],
                     "compile_stdout": normalize(compiled["stdout"], directory),

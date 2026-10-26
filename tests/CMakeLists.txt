@@ -2,6 +2,18 @@ set(ADA_TEST_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/work)
 
 add_subdirectory(acats)
 
+add_test(NAME driver.external_linkage
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DCC=${CMAKE_C_COMPILER}
+        -DAR=${CMAKE_AR}
+        -DRANLIB=${CMAKE_RANLIB}
+        -DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/external linkage"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckExternalLinkage.cmake)
+set_tests_properties(driver.external_linkage PROPERTIES TIMEOUT 120)
+
 # add_ada_test(<name> SOURCES <file>...)
 #
 # Builds the sources into a program with the ada driver and compares its

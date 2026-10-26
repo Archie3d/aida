@@ -50,6 +50,23 @@ the frontend, QBE, and the system C compiler, then links the runtime. For
 frontend-only use, `adac --help` describes its options. Executable builds keep
 per-unit artifacts in `<program>.adaobj` by default and reuse unchanged units.
 
+Pass external C objects and static libraries directly when building an executable:
+
+```sh
+cc -c helper.c -o helper.o
+ada -o program main.adb helper.o libexample.a
+```
+
+Declare C entry points with `pragma Import (C, Ada_Name, "c_symbol")`.
+External `.o`/`.a` inputs retain their order after the Ada objects and before the
+runtime; put archives after objects or archives that use them. The last Ada
+source selects the main program and default output name. At least one Ada source
+is required; `.o`/`.a` inputs cannot be used with `-S` or `--emit-ir`.
+Use `--source file.a` for Ada sources with an archive extension (such as ACATS).
+For manual linking, `ada -S -o program.s main.adb` produces whole-program
+assembly; assemble it with `cc -c` and link with the AIDA runtime and its system
+dependencies (`ada -v` shows the toolchain's link command).
+
 ## Architecture
 
 The repository consists of the following components:

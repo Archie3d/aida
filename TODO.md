@@ -827,6 +827,9 @@ Ada 2005 additions and track annex packages separately.
   dependency changes or removal, search-path shadowing.
 - [ ] Driver: skip scan, bind and link when nothing changed; let `--clean` work
   without a source argument.
+- [x] Driver external linkage: accept ordered `.o`/`.a` inputs for executable
+  builds, retaining Ada binding/runtime linkage; diagnose inputs in nonlinking
+  modes (`driver.external_linkage`).
 - [x] Lowering layer decision: see the Phase 5 prelude. Reopen before select
   emission if the existing contracts cannot express its cleanup/cancellation
   paths without duplication, or when an independent backend needs a separate
