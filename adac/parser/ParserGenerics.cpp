@@ -43,7 +43,14 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             formal.kind = GenericFormalKind::TypeFormal;
             formal.name = name.text;
             formal.lower = name.lower;
-            if (match(TokenKind::LeftParen)) {
+            if (check(TokenKind::LeftParen) && peek(1).kind != TokenKind::Box) {
+                parseDiscriminantPart(formal.discriminants);
+                for (const RecordField& discriminant : formal.discriminants) {
+                    if (discriminant.defaultValue != nullptr) {
+                        fail("a generic formal discriminant cannot have a default");
+                    }
+                }
+            } else if (match(TokenKind::LeftParen)) {
                 expect(TokenKind::Box, "in generic formal unknown discriminants");
                 expect(TokenKind::RightParen, "after generic formal unknown discriminants");
                 formal.unknownDiscriminants = true;
@@ -159,6 +166,14 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             if (formal.unknownDiscriminants && formal.typeClass != FormalTypeClass::Any
                 && formal.typeClass != FormalTypeClass::DerivedType) {
                 fail("unknown discriminants require a private formal type");
+            }
+            if (!formal.discriminants.empty()) {
+                if (formal.typeClass != FormalTypeClass::Any) {
+                    fail("known discriminants require a private formal type");
+                }
+                formal.typeTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(formalStart),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
+                formal.typeTokens.push_back(m_tokens.back());
             }
             if (formal.unknownDiscriminants && formal.typeClass == FormalTypeClass::DerivedType) {
                 // Ordinary type declarations do not allow this formal-only

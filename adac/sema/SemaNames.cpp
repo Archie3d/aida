@@ -366,6 +366,15 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     }
 
     // A component's expected type can also distinguish overloaded prefixes.
+    int formalDiscriminant = -1;
+    std::string selectionKey = nameContractKey(expr);
+    auto selectedDiscriminant = [&](GenericContract* contract) {
+        if (contract == nullptr) { return; }
+        auto found = contract->discriminantSelections.find(selectionKey);
+        if (found != contract->discriminantSelections.end()) { formalDiscriminant = found->second; }
+    };
+    selectedDiscriminant(m_replayContract);
+    if (formalDiscriminant < 0) { selectedDiscriminant(m_recordContract); }
     Type* prefixContext = nullptr;
     bool ambiguousPrefix = false;
     for (Type* type : expressionTypes(expr->prefix.get(), scope)) {
@@ -381,7 +390,10 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             for (const FieldInfo& field : designated->fields) {
                 bool visible = representationVisible(designated)
                     || (field.isDiscriminant && field.index < designated->privateDiscriminantCount);
-                matches = matches || (visible && field.name == expr->selectorLower && typesCompatible(expected, field.type));
+                bool selected = formalDiscriminant >= 0
+                    ? field.isDiscriminant && field.index == designated->discriminantStart + formalDiscriminant
+                    : field.name == expr->selectorLower;
+                matches = matches || (visible && selected && typesCompatible(expected, field.type));
             }
         }
         if (matches) {
@@ -448,7 +460,10 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
     }
     expr->recordType = record;
     for (const FieldInfo& field : record->fields) {
-        if (field.name != expr->selectorLower) {
+        bool selected = formalDiscriminant >= 0
+            ? field.isDiscriminant && field.index == record->discriminantStart + formalDiscriminant
+            : field.name == expr->selectorLower;
+        if (!selected) {
             continue;
         }
         if (!fieldVisible(record, field)) {
@@ -457,6 +472,9 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         }
         expr->fieldIndex = field.index;
         expr->type = field.type;
+        if (m_recordContract != nullptr && field.isDiscriminant) {
+            m_recordContract->discriminantSelections[selectionKey] = field.index - record->discriminantStart;
+        }
 
         // A component of a variant part is only there when the discriminant
         // says so.  Where the subtype fixed it, the answer is known now; where

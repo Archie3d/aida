@@ -1,0 +1,10 @@
+genericdiscriminanterrors.adb:12:33: error: actual subtype does not match discriminants of generic formal 'T'
+genericdiscriminanterrors.adb:13:32: error: actual subtype does not match discriminants of generic formal 'T'
+genericdiscriminanterrors.adb:14:38: error: actual subtype does not match discriminants of generic formal 'T'
+genericdiscriminanterrors.adb:15:33: error: actual subtype does not match discriminants of generic formal 'T'
+genericdiscriminanterrors.adb:21:10: error: 'D' is a discriminant and cannot be assigned individually
+genericdiscriminanterrors.adb:26:9: error: an object of 'T' has to fix its discriminants, as in 'X : T (...)'
+genericdiscriminanterrors.adb:29:17: error: a discriminant has to be discrete, and 'Float' is not
+genericdiscriminanterrors.adb:39:41: error: this generic formal requires a definite actual subtype view
+genericdiscriminanterrors.adb:40:40: error: actual subtype does not match discriminants of generic formal 'T'
+genericdiscriminanterrors.adb:46:43: error: actual subtype does not match discriminants of generic formal 'T'

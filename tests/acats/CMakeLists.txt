@@ -180,3 +180,9 @@ add_acats_test(cc54003)
 # Generic tagged/access formals, accessibility and shared upstream foundation.
 add_acats_test(c3a2a01 SOURCES f3a2a00.ada c3a2a01.ada)
 add_acats_test(cc54004)
+
+# Known private discriminants and the nonstatic formal Definite attribute.
+add_acats_test(cc1204a)
+add_acats_test(cc3240a)
+add_acats_test(cc51b03 SOURCES fc51b00.ada cc51b03.ada
+    REJECTION "class-wide actuals for formal derived types are not yet supported")

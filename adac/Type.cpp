@@ -415,6 +415,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->fixedAft = parent->fixedAft;
     subtype->fixedRadix = parent->fixedRadix;
     subtype->formalFixed = parent->formalFixed;
+    subtype->genericFormal = parent->genericFormal;
     subtype->formalDerived = parent->formalDerived;
     if (parent->formalDerived) { subtype->primitives = parent->primitives; }
     subtype->delta = parent->delta;

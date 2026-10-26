@@ -403,6 +403,17 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     case ExprKind::Membership: {
         auto* membership = static_cast<MembershipExpr*>(expr);
         Value operand = emitExpr(membership->operand.get());
+        if (membership->membershipSubtype != nullptr
+            && baseType(membership->membershipSubtype)->kind == TypeKind::Record
+            && membership->testedTaggedType == nullptr) {
+            Value result = recordConstraintMatches(operand, membership->membershipSubtype);
+            if (membership->negated) {
+                std::string negated = newTemp();
+                line(negated + " =w ceqw " + result.name + ", 0");
+                result.name = negated;
+            }
+            return result;
+        }
         if (membership->testedTaggedType != nullptr) {
             Type* tested = membership->testedTaggedType;
             Value result { "1", 'w' };

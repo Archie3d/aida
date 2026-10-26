@@ -1,0 +1,4 @@
+cc51b03.ada:204:66: error: class-wide actuals for formal derived types are not yet supported
+cc51b03.ada:246:7: error: 'DerivedFormal_ClassWideActual' is not declared
+cc51b03.ada:246:36: error: 'Is_Definite' is not a component of a record
+cc51b03.ada:246:36: error: condition must be of type Boolean

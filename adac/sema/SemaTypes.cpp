@@ -719,6 +719,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         built->isSubtype = false;
         built->base = nullptr;
         built->formalDerived = false;
+        built->genericFormal = false;
         built->kind = parent->kind;
         built->literals = parent->literals;
         if (hasKnownDiscriminants(parent)) { built->discriminantConstraintSource = parent; }
@@ -2065,6 +2066,16 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         return base;
     }
     std::vector<Expr*> values(record->discriminantCount, nullptr);
+    std::string constraintKey = contractKey(indication->location);
+    std::vector<std::vector<int>> selectedDiscriminants(indication->indexLows.size());
+    const std::vector<std::vector<int>>* checkedDiscriminants = nullptr;
+    auto checkedConstraint = [&](GenericContract* contract) {
+        if (contract == nullptr) { return; }
+        auto found = contract->discriminantConstraints.find(constraintKey);
+        if (found != contract->discriminantConstraints.end()) { checkedDiscriminants = &found->second; }
+    };
+    checkedConstraint(m_replayContract);
+    if (checkedDiscriminants == nullptr) { checkedConstraint(m_recordContract); }
     bool named = false;
     int positional = 0;
     for (std::size_t association = 0; association < indication->indexLows.size(); ++association) {
@@ -2085,9 +2096,12 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
         } else {
             named = true;
             Type* associatedType = nullptr;
-            for (const std::string& selector : indication->discriminantNames[association]) {
+            for (std::size_t s = 0; s < indication->discriminantNames[association].size(); ++s) {
+                const std::string& selector = indication->discriminantNames[association][s];
+                int checked = checkedDiscriminants != nullptr && association < checkedDiscriminants->size()
+                    && s < (*checkedDiscriminants)[association].size() ? (*checkedDiscriminants)[association][s] : -1;
                 auto field = std::find_if(record->fields.begin() + record->discriminantStart, record->fields.begin() + record->discriminantStart + record->discriminantCount,
-                    [&](const FieldInfo& candidate) { return candidate.name == selector; });
+                    [&](const FieldInfo& candidate) { return checked >= 0 ? candidate.index == record->discriminantStart + checked : candidate.name == selector; });
                 if (field == record->fields.begin() + record->discriminantStart + record->discriminantCount) {
                     m_diagnostics.error(value->location, "unknown discriminant '" + selector + "'");
                     continue;
@@ -2096,13 +2110,18 @@ Type* Sema::constrainDiscriminants(SubtypeIndication* indication, Type* base, Sc
                     m_diagnostics.error(value->location, "grouped discriminant selectors must have the same type");
                 }
                 associatedType = field->type;
-                associate(field->index - record->discriminantStart);
+                int ordinal = field->index - record->discriminantStart;
+                selectedDiscriminants[association].push_back(ordinal);
+                associate(ordinal);
             }
         }
     }
     if (std::any_of(values.begin(), values.end(), [](Expr* value) { return value == nullptr; })) {
         m_diagnostics.error(indication->location, "a discriminant constraint requires exactly one value for each discriminant");
         return base;
+    }
+    if (m_recordContract != nullptr) {
+        m_recordContract->discriminantConstraints[constraintKey] = std::move(selectedDiscriminants);
     }
 
     Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);

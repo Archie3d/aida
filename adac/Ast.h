@@ -1038,6 +1038,7 @@ struct GenericFormal
     SubtypeIndicationPtr subtype;   // The type of an object formal.
     ExprPtr defaultValue;
     TypeDefinitionPtr arrayDefinition;
+    std::vector<RecordField> discriminants;
     std::vector<Token> typeTokens;
     std::vector<Token> subprogramTokens;
     std::vector<Token> objectTokens;

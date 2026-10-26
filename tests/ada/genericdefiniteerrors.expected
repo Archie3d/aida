@@ -1,0 +1,5 @@
+genericdefiniteerrors.adb:2:26: error: 'Definite requires a formal indefinite subtype and no arguments
+genericdefiniteerrors.adb:4:21: error: 'Definite requires a formal indefinite subtype and no arguments
+genericdefiniteerrors.adb:8:29: error: 'Definite requires a formal indefinite subtype and no arguments
+genericdefiniteerrors.adb:13:37: error: 'Definite requires a formal indefinite subtype and no arguments
+genericdefiniteerrors.adb:20:23: error: choices have to be static

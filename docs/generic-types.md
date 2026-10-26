@@ -22,6 +22,31 @@ formal without discriminants also rejects an unconstrained array, a class-wide
 subtype or a discriminated record lacking both constraints and defaults.
 Limited actuals still require a limited formal.
 
+## Known discriminants and Definite
+
+Private, limited-private and tagged-private formals can declare known
+discriminants, including supported anonymous access discriminants. Defaults are
+forbidden. The actual must be an unconstrained specific record subtype with
+visible discriminants of matching count and statically matching subtypes. A
+constrained subtype, hidden/unknown discriminant view, wrong subtype or null
+exclusion is rejected. Discriminant types can refer to preceding formals.
+
+Formal and actual discriminant names need not match. Checked selections and
+named constraints retain discriminant positions through instance replay,
+including nested generics and separate library bodies. An ordinary actual
+field with the formal's discriminant name cannot capture a generic selection.
+Instance clients still select the actual's own fields normally. Record subtype
+membership checks discriminant constraints and supports `not in`.
+
+`S'Definite` is supported for a formal indefinite subtype, including a subtype
+alias. It returns whether the bound actual subtype is definite: constrained
+arrays/records and defaulted records are definite; unconstrained arrays,
+nondefaulted unconstrained records and class-wide subtypes are indefinite.
+The attribute is nonstatic even when the instance's answer is known, and
+cannot justify static case choices. Arguments, object prefixes, ordinary
+subtypes and definite formals are diagnosed. The generic contract keeps the
+formal indefinite even when a particular actual is definite.
+
 ## Access formals
 
 Named object access formals support pool-specific, general variable and constant
@@ -109,21 +134,22 @@ emission. Replaying an instance marks the actual callable entry instead.
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
 `genericderived`, `genericderivedtagged`, `genericderivednested`,
 `genericderiveddiscriminants`, `genericderivedlibrary_main`,
-`genericinterfaceformals`, `genericinterfacecategories`, `genericinterfacenested`
-and `genericinterfacelibrary_main` run in whole,
+`genericinterfaceformals`, `genericinterfacecategories`, `genericinterfacenested`,
+`genericinterfacelibrary_main`, `genericdiscriminants`, `genericdefinite`,
+`genericdiscriminantviews` and `genericdiscriminantlibrary_main` run in whole,
 per-unit and deterministic modes, including four concurrent workers.
 The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
 
-Unchanged CA2009A, CC54001–CC54004, C393013, C3A2A01, C640001 and C760010
-execute successfully. C393013 covers the full null-extension controlling-result
-scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
+Unchanged CC1204A, CC3240A, CA2009A, CC54001–CC54004, C393013, C3A2A01,
+C640001 and C760010 execute successfully. C393013 covers the full null-extension
+controlling-result scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
 callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
 in the [ACATS inventory](../tests/acats/README.md).
 
-Current validation passes 1,194/1,194 tests, 16 focused compiler ASan/UBSan
-checks, and four interface scenarios in whole/per-unit modes with the
+Current validation passes 1,214/1,214 tests, 16 focused compiler ASan/UBSan
+checks, and four discriminant/Definite scenarios in whole/per-unit modes with the
 instrumented C runtime. All original 123 ACATS observations remain unchanged.
 B394A01/B394A02 and their unchanged F394A00 foundation add ungraded legality
 probes: their full-source rejection includes unsupported concurrent constructs
@@ -132,12 +158,52 @@ passes, 16 compile rejections, eight harness blockers and 22 ungraded B probes.
 LeakSanitizer is unavailable on this host; QBE-generated Ada memory accesses
 remain uninstrumented.
 
-Known discriminants on private formals, synchronized formal derived extensions,
-class-wide derived actuals,
-Definite, formal packages and the later 6g bullets remain open. Class-wide
-actuals for derived formals need the RM 12.5.1 dispatch wrappers and
-controlling-result Program_Error behavior; they are diagnosed until implemented.
-Existing limits on derivation before private completion and task/protected
-composites still apply. Named protected callbacks retain Phase 9.
-Generic access objects and limited `in` objects remain diagnosed. The predefined
-Unchecked_Deallocation compatibility contract is unchanged.
+The remaining scope and completion criteria are listed in
+[TODO.md, Phase 6g](../TODO.md#6g-generics). The longer checklist unpacks the
+original five commitments rather than adding new feature families:
+
+| Original commitment | Remaining work within it |
+| --- | --- |
+| Formal type categories | Synchronized derived formals; class-wide derived actuals |
+| Formal subprograms and array constraints | Abstract formals; null defaults; attribute and enumeration-literal actuals; nonstatic constraint matching |
+| Formal packages | Package contract matching, including partial lists and box associations |
+| Formal objects | Access objects; limited `in` objects |
+| Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
+
+The scope audit compared the original roadmap at commit `094b812` (before the
+first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing rejection tests and seven
+small compiler probes. The probes confirmed missing synchronized-derived and
+abstract syntax, null defaults, attribute/enum actuals, nonstatic formal arrays
+and formal packages. Access/limited-object restrictions remain explicit in
+`generic_object_errors`/`generic_composite_errors`; class-wide derived actuals
+remain covered by CC51B03's exact rejection. Partial package associations are
+part of the same missing formal-package feature.
+
+Three qualifications prevent the checklist from overstating the work:
+
+- Synchronized-derived syntax and contract matching are 6g work
+  ([RM 12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html)).
+  Full concurrent implementations/execution stay in Phase 9; they do not block
+  completion of static support in 6g.
+- Formal array constraints require static matching even when bounds are
+  nonstatic. Preserve the identities allowed by
+  [RM 4.9.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-9-1.html)
+  and [RM 12.5.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-3.html);
+  do not substitute runtime equality of unrelated dynamic ranges.
+- Contract checking must retain the instance legality checks required by
+  [RM 12.3(11)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-3.html)
+  while preserving template interpretation under 12.3(14). Removing all
+  instantiation-time legality checking would be incorrect.
+
+CC51B03 remains an exact compile XFAIL until class-wide derived actuals include
+the RM 12.5.1 dispatch wrappers and controlling-result `Program_Error` behavior;
+its full upstream Definite scenario is not counted as a pass.
+
+The same roadmap explicitly lists generic-related Phase 8 work (prefixed and
+implicit operator callable views, renaming-as-body completions and the broader
+legality/staticness audit) and Phase 9 dependencies (concurrent implementations,
+protected-operation actuals, named protected callbacks and task/protected
+features). Existing limits on derivation before private completion and
+composites still apply. Generic access objects and limited `in` objects remain
+diagnosed. The predefined Unchecked_Deallocation compatibility contract is
+unchanged.

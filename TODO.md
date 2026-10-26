@@ -589,63 +589,118 @@ full-tasking restrictions retain their later roadmap owners.
 
 Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
+[Implemented contract and limits](docs/generic-types.md).
 
-- [ ] Parse and enforce all Ada 2005 formal type categories. Replace the strict
-  Phase 1 rejections with derived, access and interface formals (modular/decimal added in Phase 5)
-  as those types become available. Support constrained-array actuals for formal
-  private types (ACATS CA2009A). C393013 now executes its full null-extension
-  controlling-result scenario unchanged as `acats.backfill_c393013`.
-  - [x] Constrained-array actual subtypes retain their constraints, including
-    runtime bounds; unchanged CA2009A now executes as PASS.
-  - [x] Unknown-discriminant private/limited-private formals and named object/
-    subprogram access formals. Match designated subtypes, general/constant
-    access, null exclusions and mode-conformant callback profiles; check formal
-    contracts before instantiation and replay declaration-site bindings.
-    CC54001/CC54002/CC54003 PASS unchanged. `genericaccess*`,
-    `genericprivatearrays` and `genericprivateerrors` cover whole/per-unit/
-    determinism, four tasks and legality. Full suite 1,154/1,154; 13 compiler
-    ASan/UBSan checks and three whole/per-unit scenarios with the instrumented
-    C runtime pass; all 123 ACATS baseline observations unchanged.
-    [Contract](docs/generic-types.md).
-  - [x] Derived formals for supported scalar, array, record and object-access
-    types, plus tagged/abstract private formals. Match ancestry, constraints,
-    definiteness, null exclusions and abstract-operation contracts. Preserve
-    ancestor operations for untagged formals, actual overrides for tagged
-    formals, copied operations through nested/library instances, and the public
-    views of private overrides. `genericderived*` adds execution, legality,
-    whole/per-unit/determinism and four-task coverage. Unchanged C393013,
-    C3A2A01, C640001, C760010 and CC54004 execute as PASS.
-    Validation: 1,175/1,175 full-suite tests plus the added CC54004 pass;
-    17 compiler ASan/UBSan checks and five whole/per-unit scenarios with the
-    instrumented C runtime pass. The reviewed 123-case baseline has 79 PASS,
-    16 compile rejections, eight harness blockers and 20 ungraded B probes.
-  - [x] Interface formals with exact ordinary/limited/synchronized/task/protected
-    categories; ordinary/limited interface ancestors and progenitors on derived
-    formals. Map operations by interface origins rather than slot numbers,
-    retain copied contracts through nested/library instances, and enforce
-    additional actual-interface abstract obligations on concrete descendants.
-    Contract-only callback checks no longer mark abstract ancestor entries for
-    emission. `genericinterface*` covers legal/rejected categories, ancestry,
-    callbacks, reordered maps, diamonds, library bodies and four tasks.
-    Full suite 1,194/1,194; 16 compiler ASan/UBSan checks and four whole/per-unit
-    scenarios with the instrumented C runtime pass. All original 123 ACATS
-    observations remain unchanged; B394A01/B394A02 plus F394A00 add two pinned,
-    ungraded rejection probes, not legality passes. The 125-case baseline has
-    79 executable PASS, 16 compile rejections, eight harness blockers and 22
-    ungraded B observations. [Contract](docs/generic-types.md#interface-formals).
-    Known discriminants, synchronized formal derived extensions, class-wide
-    derived actuals and Definite remain open; unsupported forms stay diagnosed.
-    Concurrent implementations and named protected callbacks retain P9.
-- [ ] Abstract formal subprograms, null procedure defaults, attribute and
-  enumeration-literal actuals, and matching of runtime array constraints.
-  Expanded character-literal names such as `Pkg.'A'` still block C540001
-  after its formal-derived parser rejections were removed.
-- [ ] Formal packages and matching of their generic contracts, including Ada
-  2005 partial actual parameter lists and box associations.
-- [ ] Access formal objects and limited `in` objects built in place
-  (library-level runtime-bound array objects landed in 6b).
-- [ ] Extend contract checking to each new formal category, and remove the
-  remaining legality rechecks done at instantiation.
+The unchecked entries expand the original five commitments: formal type
+categories; formal subprograms and array matching; formal packages; formal
+objects; and generic contract checking. They are implementation substeps, not
+new feature families or equally sized measures of progress. Completed entries
+record supported subsets, not completion of every case in a formal category.
+Follow the listed order among unblocked items. Record newly discovered gaps
+with evidence and a phase owner before starting an additional increment.
+Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
+
+- [x] Constrained-array actual subtypes for private formals retain static and
+  runtime bounds. Unchanged CA2009A executes as PASS.
+- [x] Unknown-discriminant private/limited-private formals and named object/
+  subprogram access formals. Match designated subtypes, general/constant access,
+  null exclusions and mode-conformant callback profiles; check contracts before
+  instantiation and replay declaration-site bindings. `genericaccess*`,
+  `genericprivatearrays` and `genericprivateerrors`; CC54001–CC54003 PASS.
+- [x] Derived formals for supported scalar, array, record and object-access
+  types, plus tagged/abstract private formals. Preserve ancestry, constraints,
+  definiteness, primitive contracts and public views through nested/library
+  instances. `genericderived*`; unchanged C393013 (full null-extension
+  controlling-result scenario), C3A2A01, C640001, C760010 and CC54004 PASS.
+- [x] Interface formals with exact ordinary/limited/synchronized/task/protected
+  categories; ordinary/limited interface ancestors and progenitors on derived
+  formals. Preserve interface-origin operation mapping, copied contracts and
+  abstract obligations. `genericinterface*` covers categories, ancestry,
+  callbacks, reordered maps, diamonds and library bodies. B394A01/B394A02 are
+  pinned ungraded rejection probes, not executable or legality passes.
+- [x] Known discriminants on private/limited-private/tagged-private formals
+  and nonstatic Definite on formal indefinite subtypes. Match visible,
+  unconstrained actual discriminants by count/subtype; replay selections and
+  named constraints by position through nested/library instances. Record
+  membership checks discriminant constraints. `genericdiscriminant*` and
+  `genericdefinite*`; unchanged CC1204A/CC3240A PASS.
+- [ ] **Synchronized formal derived extensions.** Parse and enforce
+  synchronized ancestors/progenitors, category/limitedness rules and matching
+  of actual descendants; preserve corresponding primitive operations through
+  instances. Formal synchronized/task/protected interface declarations alone
+  do not satisfy this item. Complete syntax, matching and contract tests here
+  (RM 12.5.1(3/2–5.1/2)); concrete task/protected implementation and execution
+  tests belong to Phase 9 and do not block completion of this static support.
+- [ ] **Class-wide actuals for formal derived types.** Implement actual
+  matching, dispatch wrappers and the required controlling-result
+  `Program_Error` behavior, including nested/library replay. Execute unchanged
+  CC51B03 with its FC51B00 foundation; its current compile XFAIL stays recorded
+  until the whole case passes.
+- [ ] **Abstract formal subprograms.** Parse abstract formal procedure/
+  function declarations, enforce controlling/profile and actual-matching rules,
+  and preserve dispatching semantics through instances.
+- [ ] **Null procedure defaults.** Support `is null` on formal procedures,
+  validate allowed profiles, and bind an omitted actual to the null procedure.
+- [ ] **Attribute subprogram actuals.** Resolve permitted attribute
+  references as callable actuals, check profiles and generate instance calls;
+  cover explicit actuals and applicable defaults.
+- [ ] **Enumeration-literal subprogram actuals.** Resolve identifier and
+  character literals as parameterless function actuals, including expanded
+  names such as `Pkg.'A'`. Complete the remaining C540001 scenario rather than
+  treating removal of its formal-derived parser rejection as a pass.
+- [ ] **Nonstatic constraints in formal array matching.** Accept the legal
+  cases where index ranges/subtypes or component subtypes statically match
+  despite nonstatic bounds; preserve constraint identity and descriptors through
+  nested/library instances. RM 12.5.3 and 4.9.1 require static matching, not a
+  runtime equality test that admits unrelated dynamic constraints. The current
+  matcher rejects runtime-bound arrays outright. Constrained-array actuals for
+  private formals above do not close this item.
+- [ ] **Formal packages and contract matching.** Parse formal package
+  declarations, expose their formal views and enforce matching of actual
+  package instances and their generic contracts through nested/library use.
+- [ ] **Partial formal-package actual lists and boxes.** Add Ada 2005
+  partial actual parameter lists and box associations, with matching,
+  visibility/default rules and invalid-association diagnostics. This completes
+  the formal-package feature above; it is not a separate feature family.
+- [ ] **Access formal objects.** Support permitted named/anonymous access
+  formal object declarations and actuals, including mode, null exclusion,
+  accessibility, lifetime and aliasing checks. Named access *type* formals above
+  do not close this item; retain the C3A0020/C3A0025 rejection evidence until
+  their complete scenarios execute.
+- [ ] **Limited `in` formal objects.** Build permitted limited actual
+  expressions in place; preserve identity, lifetime, finalization and exception
+  cleanup. Library-level runtime-bound array objects already landed in 6b.
+- [ ] **Complete generic contract checking for the features above.** Reject
+  template contract violations without needing an instance and replay
+  declaration-site resolution through nested and separate compilation.
+  Apply RM 12.3(11,14): preserve required legality checks in instance visible/
+  formal parts and explicitly specified exceptions elsewhere; prevent body
+  re-resolution or rechecks from changing the template's interpretation.
+  This is a correctness requirement across the listed features, not a separate
+  compiler architecture rewrite. Include legal controls and uninstantiated
+  invalid generics; retain matching and required runtime checks.
+
+For each item, add execution/legality coverage, whole/per-unit and determinism
+checks where applicable, and relevant unchanged ACATS scenarios with explicit
+PASS/XFAIL/deferred status. Preserve the baseline and document sanitizer limits.
+Close each item against its stated language behavior and tests. Phase 6g
+completion covers generic semantics over currently supported actual types;
+concurrent extensions requiring Phase 9 remain explicitly deferred. Neither the number
+of checkboxes nor an unrelated ACATS rejection measures language completeness.
+
+**Generic-related work owned by other phases**
+
+- Phase 8: prefixed-view renaming and generic subprogram actuals (C413005),
+  including receiver binding, lifetime and reduced-profile conformance; implicit
+  operator callable views/renaming/actuals; generic subprogram renaming-as-body
+  completions; full staticness/legality audit and B-test grading. These remain
+  Phase 8 work rather than implicit additions to 6g.
+- Phase 9: concrete synchronized/task/protected interface implementations,
+  protected-operation generic actuals, named protected callbacks, task/protected
+  discriminants, entries and rendezvous (including deferred CC1207B).
+  Concurrent actuals and their execution tests belong here; they are not
+  supplied by the completed interface-formal increment and do not turn the
+  static synchronized-derived-formal item into a full tasking prerequisite.
 
 ### 6h. Pragmas and checks
 

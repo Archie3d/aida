@@ -324,6 +324,23 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
     expr->prefixType = prefixType;
     if (expr->lower != "class" && !checkCompleteView(prefixType, expr->location, "this attribute")) { return nullptr; }
+    if (expr->lower == "definite") {
+        std::string key = contractKey(expr->location);
+        bool checked = (m_replayContract != nullptr && m_replayContract->definiteAttributes.contains(key))
+            || (m_recordContract != nullptr && m_recordContract->definiteAttributes.contains(key));
+        if (!prefixIsType || prefixType == nullptr || !expr->arguments.empty()
+            || (!checked && (!prefixType->genericFormal || isDefiniteSubtype(prefixType)))) {
+            m_diagnostics.error(expr->location, "'Definite requires a formal indefinite subtype and no arguments");
+            return nullptr;
+        }
+        if (m_recordContract != nullptr) { m_recordContract->definiteAttributes.insert(key); }
+        expr->type = m_types.booleanType();
+        // This is not a static attribute, even when an instance's answer is
+        // known. Keep its value separate from static-expression legality.
+        expr->isStatic = false;
+        expr->staticValue = isDefiniteSubtype(prefixType);
+        return expr->type;
+    }
     if (expr->lower == "constrained") {
         Type* record = baseType(prefixType);
         if (prefixIsType || record == nullptr || record->discriminantCount == 0

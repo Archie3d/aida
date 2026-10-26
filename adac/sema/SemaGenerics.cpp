@@ -369,6 +369,24 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
         owned->bindings->m_genericBindings = true;
         owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
         owned->valid = true;
+        // A nested declaration is rechecked in each enclosing instance. Keep
+        // its source-level discriminant identities and attribute legality even
+        // when the enclosing formal has already been replaced by its actual.
+        if (m_replayContract != nullptr) {
+            for (Symbol* original : m_replayContract->localSymbols) {
+                if (original->kind != SymbolKind::Generic || original->generic == nullptr
+                    || contractKey(original->generic->location) != contractKey(decl->location)) {
+                    continue;
+                }
+                auto source = m_genericContracts.find(original->generic);
+                if (source != m_genericContracts.end()) {
+                    owned->discriminantSelections = source->second->discriminantSelections;
+                    owned->discriminantConstraints = source->second->discriminantConstraints;
+                    owned->definiteAttributes = source->second->definiteAttributes;
+                    break;
+                }
+            }
+        }
     }
     GenericContract* contract = owned.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
@@ -402,6 +420,19 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
         }
         if (formal.kind == GenericFormalKind::TypeFormal) {
             Type* type = nullptr;
+            if (!formal.discriminants.empty()) {
+                Parser parser(formal.typeTokens, m_diagnostics);
+                DeclList declarations = parser.parseDeclarations();
+                if (declarations.size() == 1 && declarations.front()->kind == DeclKind::Type) {
+                    type = analyzeFormalPrivateType(static_cast<TypeDecl*>(declarations.front().get()), formal, bindings, decl->symbol);
+                    Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
+                    symbol->type = type;
+                    symbol->location = formal.location;
+                    bindings->add(symbol);
+                    contract->profiles.push_back(std::move(declarations.front()));
+                }
+                continue;
+            }
             if (formal.typeClass == FormalTypeClass::AccessType || formal.typeClass == FormalTypeClass::DerivedType
                 || formal.typeClass == FormalTypeClass::InterfaceType) {
                 Parser parser(formal.typeTokens, m_diagnostics);
@@ -416,6 +447,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                             typeDecl->declaredType->formalDerived = true;
                         }
                     }
+                    if (typeDecl->declaredType != nullptr) { typeDecl->declaredType->genericFormal = true; }
                     contract->profiles.push_back(std::move(declarations.front()));
                 }
                 continue;
@@ -427,6 +459,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 array.location = formal.location;
                 array.definition = std::move(formal.arrayDefinition);
                 analyzeTypeDecl(&array, bindings);
+                if (array.declaredType != nullptr) { array.declaredType->genericFormal = true; }
                 formal.arrayDefinition = std::move(array.definition);
                 continue;
             }
@@ -435,6 +468,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 : (formal.typeClass == FormalTypeClass::FixedType || formal.typeClass == FormalTypeClass::DecimalType) ? TypeKind::Fixed
                 : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
             type = m_types.create(kind, formal.name);
+            type->genericFormal = true;
             type->low = std::numeric_limits<int>::min();
             type->high = std::numeric_limits<int>::max();
             if (formal.typeClass == FormalTypeClass::ModularType) {
@@ -504,11 +538,71 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     m_unitExceptions = std::move(savedExceptions);
 }
 
+bool Sema::isDefiniteSubtype(Type* type) const
+{
+    return type != nullptr && type->classRoot == nullptr && !unknownDiscriminantView(type)
+        && isDefiniteArray(type)
+        && (type->kind != TypeKind::Record || type->discriminantCount == 0
+            || hasDiscriminantConstraint(type) || hasDefaultDiscriminants(type));
+}
+
+Type* Sema::analyzeFormalPrivateType(TypeDecl* decl, const GenericFormal& formal, Scope* scope, Symbol* owner)
+{
+    Type* type = m_types.create(TypeKind::Record, formal.name);
+    decl->declaredType = type;
+    type->privateTo = owner;
+    type->genericFormal = true;
+    type->isLimited = formal.limited;
+    type->tagged = type->privateViewTagged = formal.tagged;
+    type->abstract = type->privateViewAbstract = formal.abstract;
+    type->declarationScope = scope;
+    layoutRecord(decl, decl->definition.get(), type, scope);
+    type->privateDiscriminantCount = type->discriminantCount;
+    return type;
+}
+
+bool Sema::matchesFormalDiscriminants(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
+                                      Type* actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location)
+{
+    Parser parser(formal.typeTokens, m_diagnostics);
+    DeclList declarations = parser.parseDeclarations();
+    if (declarations.size() != 1 || declarations.front()->kind != DeclKind::Type) { return false; }
+    auto* savedReplay = m_replayContract;
+    auto* savedRecord = m_recordContract;
+    std::size_t savedFirst = m_instanceFirstSymbol;
+    m_replayContract = m_genericContracts.at(generic->generic).get();
+    m_recordContract = nullptr;
+    m_instanceFirstSymbol = firstSymbol;
+    int errors = m_diagnostics.errorCount();
+    Type* expected = analyzeFormalPrivateType(static_cast<TypeDecl*>(declarations.front().get()), formal,
+        m_symbolTable.createScope(bindings), generic);
+    m_replayContract = savedReplay;
+    m_recordContract = savedRecord;
+    m_instanceFirstSymbol = savedFirst;
+    Type* record = baseType(actual);
+    bool matches = errors == m_diagnostics.errorCount() && record->kind == TypeKind::Record
+        && actual->classRoot == nullptr && !unknownDiscriminantView(actual) && !hasDiscriminantConstraint(actual)
+        && record->discriminantCount == expected->discriminantCount;
+    for (int i = 0; matches && i < expected->discriminantCount; ++i) {
+        const FieldInfo& field = discriminantField(record, i);
+        matches = fieldVisible(record, field) && staticallyMatches(field.type, discriminantField(expected, i).type);
+    }
+    decl->formalTypes.push_back(std::move(declarations.front()));
+    if (!matches) {
+        m_diagnostics.error(location, "actual subtype does not match discriminants of generic formal '" + formal.name + "'");
+    }
+    return matches;
+}
+
 void Sema::analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal, Scope* scope, Symbol* owner)
 {
     TypeDefinition* definition = decl->definition.get();
     Type* parent = resolveSubtypeIndication(definition->parent.get(), scope, false, true);
     if (parent == nullptr) { return; }
+    if (formal.unknownDiscriminants && (parent->kind != TypeKind::Record || parent->interfaceKind != InterfaceKind::None)) {
+        m_diagnostics.error(decl->location, "a formal derived discriminant part requires a non-interface record ancestor");
+        return;
+    }
     if (parent->interfaceKind >= InterfaceKind::Synchronized) {
         m_diagnostics.error(decl->location, "synchronized formal derived types are not yet supported");
         return;
@@ -611,11 +705,7 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
         matches = matches && isTaggedAncestor(progenitor, actual);
     }
     if (matches && parent != nullptr && !formal.unknownDiscriminants) {
-        auto definite = [&](Type* type) {
-            return !unknownDiscriminantView(type) && isDefiniteArray(type) && type->classRoot == nullptr
-                && (type->discriminantCount == 0 || hasKnownDiscriminants(type) || hasDefaultDiscriminants(type));
-        };
-        matches = !definite(parent) || definite(actual);
+        matches = !isDefiniteSubtype(parent) || isDefiniteSubtype(actual);
         if (parent->kind == TypeKind::Array) {
             Type normalized = *actual;
             normalized.base = baseType(parent);
@@ -773,8 +863,7 @@ bool Sema::acceptsFormalType(const GenericFormal& formal, Type* actual, const st
     case FormalTypeClass::Any:
         if (formal.tagged && !taggedViewVisible(actual)) {
             wanted = "a tagged type";
-        } else if (!formal.unknownDiscriminants && (!isDefiniteArray(actual) || actual->classRoot != nullptr
-                || (base->discriminantCount > 0 && !hasKnownDiscriminants(actual) && !hasDefaultDiscriminants(actual)))) {
+        } else if (!formal.unknownDiscriminants && formal.discriminants.empty() && !isDefiniteSubtype(actual)) {
             wanted = "a type of a fixed size";
         } else if (!formal.limited && base->isLimited) {
             wanted = "a nonlimited type";
@@ -1151,6 +1240,10 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
                 && formal.lower == "object";
             if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
+                return false;
+            }
+            if (!formal.discriminants.empty()
+                && !matchesFormalDiscriminants(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
                 return false;
             }
             if (formal.typeClass == FormalTypeClass::ArrayType

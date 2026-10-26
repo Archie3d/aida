@@ -103,6 +103,9 @@ private:
         std::unordered_map<std::string, Symbol*> typeNames;
         std::unordered_map<std::string, Symbol*> unitNames;
         std::unordered_map<std::string, std::vector<Symbol*>> instances;
+        std::unordered_map<std::string, int> discriminantSelections;
+        std::unordered_map<std::string, std::vector<std::vector<int>>> discriminantConstraints;
+        std::unordered_set<std::string> definiteAttributes;
         bool valid = false;
     };
     // An instance specification must remain visible while its template body
@@ -146,6 +149,10 @@ private:
                                 bool isPackage, bool isFunction);
     bool acceptsFormalType(const GenericFormal& formal, Type* actual, const std::string& genericName,
                            const SourceLocation& location);
+    bool isDefiniteSubtype(Type* type) const;
+    Type* analyzeFormalPrivateType(TypeDecl* decl, const GenericFormal& formal, Scope* scope, Symbol* owner);
+    bool matchesFormalDiscriminants(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
+                                    Type* actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location);
     bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
                               Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
                               GenericContract* contract, std::size_t firstSymbol);

@@ -12,6 +12,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "definite") {
+        return constantValue(expr->staticValue, 'w');
+    }
     if (name == "constrained") {
         Value object = emitExpr(expr->prefix.get());
         return recordConstrained(expr->prefix.get(), &object);

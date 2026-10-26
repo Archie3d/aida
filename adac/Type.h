@@ -208,6 +208,7 @@ struct Type
     bool fixedRadixSpecified = false;
     // Contract-only fixed-point types have no scale or bounds until instantiation.
     bool formalFixed = false;
+    bool genericFormal = false;
     bool formalDerived = false; // Retains the copied primitive contract through generic replay.
     struct Expr* delta = nullptr;
     struct Expr* smallClause = nullptr;

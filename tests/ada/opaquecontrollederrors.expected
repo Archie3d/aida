@@ -4,4 +4,3 @@ opaquecontrollederrors.adb:8:26: error: tag attributes require a specific tagged
 opaquecontrollederrors.adb:9:27: error: tag attributes require a specific tagged subtype or a tagged object
 opaquecontrollederrors.adb:12:6: error: component 'Data' is not visible through this type view
 opaquecontrollederrors.adb:13:28: error: 'Adjust' is not declared in 'Opaque_Controlled_Model'
-opaquecontrollederrors.adb:14:10: error: membership subtype must match the operand's scalar type

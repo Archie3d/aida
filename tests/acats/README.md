@@ -517,3 +517,32 @@ is claimed for this interface-formal increment.
 | support/f394a00.a | `81bdfaefb2ddc57f97855ee2c562dd014aa4264f` | `c854401d7b25cc9d4e42b1e77e77a49b3d1fcc9b1ac38130de0753b8267c8237` |
 | tests/b3/b394a01.a | `5e693d8f47a2fe15e71d8053aab19a7701cb8bd1` | `5e8c4d2e711517787713ed445aec5897f032ef13367e30ae2f6052d49ac9dc8e` |
 | tests/b3/b394a02.a | `4b8f736b968b9aabc33f65dba8b0f27e0c54ceb1` | `adf85f40d9c90ee43a3ca141e46af1d2f4bb81c067730978417a7dcf24627d07` |
+
+## Known formal discriminants and Definite (Phase 6g)
+
+CC1204A and CC3240A are imported unchanged from revision
+`2785c30c1f8577d97ac7b3043882f6818781e9c5` on 2026-10-26. Both execute as PASS:
+CC1204A checks private/limited-private discriminants that use preceding formal
+types, dependent components and generic formal objects; CC3240A checks subtype
+membership, conversions, Constrained and selections whose formal discriminant
+name collides with an ordinary actual component. Record subtype membership
+compares the target subtype's discriminant constraints.
+
+CC51B03 and its FC51B00 foundation are also unchanged. CC51B03 remains an exact
+compile XFAIL because its full Definite scenario includes a class-wide actual
+for a formal derived type. It is not counted as an executable pass. Local
+`genericdefinite` covers true/false results for scalar, array, discriminated,
+defaulted, constrained and class-wide actuals; `genericdiscriminants` checks
+Definite and discriminant identities through nested instances. The attribute
+remains nonstatic, as checked by `genericdefiniteerrors`.
+CC1207B was assessed and deferred because it requires task entries and accept
+statements (P9). The existing 125-case baseline observations are unchanged.
+All four imported files retain their original rights/disclaimers; upstream
+`.a` files are stored with `.ada` extensions.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cc/cc1204a.ada | `17e3d7f0f00d0e2a8de240138cb6e07cd32cdec4` | `131fb2f04b857727d5b519ece988d559bd7c7988c41aa08e97a5dacd409a979b` |
+| tests/cc/cc3240a.ada | `1983b94294f4aeabe61afb1b536fb4b2a3ba3e53` | `6e724d1a5de26d965e21a974a63e372d4ac6531ccdad114058c34caa55a3c471` |
+| tests/cc/cc51b03.a | `0cbeeb46f633d5ce2925af2cd2941f4297dc3079` | `5d1fb7b92f07fe498d072f4bf307e6d9103da244f57711fcaf243b35de5baa72` |
+| support/fc51b00.a | `1d2b57e3231a33a05c7bf645694c8689dc27d5f6` | `95ec3d736dc4fc0f7e22657ff0de01ac6ca03589651cb403e2ac59038448ecee` |

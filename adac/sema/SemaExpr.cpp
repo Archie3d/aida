@@ -748,6 +748,11 @@ Type* Sema::analyzeMembership(MembershipExpr* expr, Scope* scope)
     checkCompleteView(mark, expr->location, "membership testing");
     expr->membershipSubtype = mark;
     Type* operand = analyzeExpr(expr->operand.get(), scope, taggedViewVisible(mark) ? nullptr : mark);
+    if (mark != nullptr && baseType(mark)->kind == TypeKind::Record
+        && !taggedViewVisible(mark) && typesCompatible(mark, operand)) {
+        expr->type = m_types.booleanType();
+        return expr->type;
+    }
     if (taggedViewVisible(mark) && taggedViewVisible(operand)) {
         Type* target = mark->classRoot != nullptr ? mark->classRoot : mark;
         Type* source = operand->classRoot != nullptr ? operand->classRoot : operand;
