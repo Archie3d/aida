@@ -657,8 +657,15 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   `Access` are diagnosed. `genericabstract*` runs whole/per-unit/determinism
   with four workers; unchanged CC60001 executes as PASS.
   [Contract](docs/generic-types.md#abstract-formal-subprograms).
-- [ ] **Null procedure defaults.** Support `is null` on formal procedures,
-  validate allowed profiles, and bind an omitted actual to the null procedure.
+- [x] **Null procedure defaults.** `is null` on concrete formal procedures;
+  omitted actuals bind an intrinsic null procedure with the formal profile.
+  Explicit replacements keep normal matching and convention. Calls retain
+  argument/default evaluation, checks and cleanup; renamed/forwarded intrinsic
+  views reject `Access`. Concrete formals hide inherited homographs without
+  adding primitive slots. `genericnull*` runs whole/per-unit/determinism with
+  four workers; unchanged BC60001 is an ungraded rejection probe, with all
+  previous 128 baseline observations unchanged.
+  [Contract](docs/generic-types.md#null-procedure-defaults).
 - [ ] **Attribute subprogram actuals.** Resolve permitted attribute
   references as callable actuals, check profiles and generate instance calls;
   cover explicit actuals and applicable defaults.
@@ -694,6 +701,12 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   Apply RM 12.3(11,14): preserve required legality checks in instance visible/
   formal parts and explicitly specified exceptions elsewhere; prevent body
   re-resolution or rechecks from changing the template's interpretation.
+  Bound tagged formals also need idempotent `'Class` replay and the nested-body
+  class-wide controlling-type exception in AARM 12.6(8.i–8.m): an outer derived
+  formal bound to `Root'Class`, used as the type/operation actuals of an inner
+  abstract-formal instance, currently rejects with "'Class requires a specific
+  tagged type" and "exactly one specific tagged controlling type". This remains
+  owned here, rather than reopening unrelated feature work.
   This is a correctness requirement across the listed features, not a separate
   compiler architecture rewrite. Include legal controls and uninstantiated
   invalid generics; retain matching and required runtime checks.

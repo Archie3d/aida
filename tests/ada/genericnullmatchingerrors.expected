@@ -1,0 +1,3 @@
+genericnullmatchingerrors.adb:11:38: error: no matching actual for generic formal 'Hook'
+genericnullmatchingerrors.adb:12:38: error: no matching actual for generic formal 'Hook'
+genericnullmatchingerrors.adb:13:39: error: no matching actual for generic formal 'Hook'

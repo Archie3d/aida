@@ -134,7 +134,7 @@ if(Python3_Interpreter_FOUND)
         PROPERTIES TIMEOUT 30 LABELS "baseline")
 
     # Raw legality observations only; these are not graded B-test passes.
-    foreach(case_id b394a01 b394a02 b394a03 b394a04 b394a05)
+    foreach(case_id b394a01 b394a02 b394a03 b394a04 b394a05 bc60001)
         add_test(NAME baseline.acats_${case_id}
             COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
                 --case ${case_id} --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>

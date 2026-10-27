@@ -1,4 +1,4 @@
 generic
-    with procedure Action is null;
+    with function Action return Integer is null;
 package NullFormalDefaultErrors is
 end NullFormalDefaultErrors;

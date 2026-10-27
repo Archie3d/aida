@@ -1044,7 +1044,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     if (actual == nullptr && formal.boxDefault) {
         actual = &defaultName;
     }
-    if (actual == nullptr) {
+    bool nullDefault = actual == nullptr && formal.nullDefault;
+    if (actual == nullptr && !nullDefault) {
         m_diagnostics.error(decl->location, "no actual supplied for generic formal '" + formal.name + "'");
         return false;
     }
@@ -1060,6 +1061,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     body->location = formal.location;
     body->spec = std::move(static_cast<SubprogramDecl*>(declarations.front().get())->spec);
     body->spec.abstract = formal.abstract;
+    body->spec.nullProcedure = nullDefault;
     int errors = m_diagnostics.errorCount();
     auto* savedReplay = m_replayContract;
     auto* savedRecord = m_recordContract;
@@ -1077,6 +1079,12 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         return false;
     }
     body->symbol = wrapper;
+    if (nullDefault) {
+        body->isNull = true;
+        wrapper->intrinsicRenaming = true;
+        decl->expansion.push_back(std::move(body));
+        return true;
+    }
 
     auto sameType = [](Type* a, Type* b) { return SemaSupport::profileTypeMatches(a, b); };
     auto matches = [&](Symbol* candidate) {
@@ -1188,6 +1196,14 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     if (!formal.abstract && !intrinsic && candidates.front()->abstract) {
         m_diagnostics.error(actual->location, "an abstract subprogram cannot be an actual for a nonabstract formal subprogram");
         return false;
+    }
+    // The formal's calling convention comes from its actual, including an
+    // intrinsic null default forwarded through another generic or renaming.
+    wrapper->intrinsicRenaming = intrinsic;
+    if (!intrinsic) {
+        for (Symbol* target = candidates.front(); target != nullptr; target = target->renamedSubprogram) {
+            wrapper->intrinsicRenaming = wrapper->intrinsicRenaming || target->intrinsicRenaming;
+        }
     }
     if (formal.abstract) {
         Symbol* operation = intrinsic ? nullptr : dispatchingOperation(candidates.front());

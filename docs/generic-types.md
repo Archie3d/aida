@@ -229,10 +229,50 @@ four workers. Matching `*errors` cover missing/multiple controlling types,
 nonprimitive actuals, mode mismatches, invalid defaults, static calls and
 abstract `Access`, including uninstantiated invalid templates and legal controls.
 Unchanged Ada 2005 ACATS CC60001 executes its complete dispatch/box-default
-scenario as PASS. The current suite passes 1,255/1,255 tests. Four scenarios also pass compiler/runtime ASan/UBSan execution
+scenario as PASS. The abstract-formal increment passed 1,255/1,255 tests. Four scenarios also pass compiler/runtime ASan/UBSan execution
 in whole/per-unit modes; four rejection tests and CC60001 pass compiler checks.
 Generated Ada memory accesses remain uninstrumented, and LeakSanitizer is
 unavailable on this host.
+
+## Null procedure defaults
+
+`with procedure ... is null;` permits an omitted actual, including a procedure
+without parameters. The synthesized actual is an intrinsic null procedure with
+the formal profile (RM 12.6(10.1/2,16.2/2)). Functions and abstract formals cannot
+use a null default. An explicitly supplied subprogram still undergoes the usual
+mode/profile/null-exclusion matching and keeps its own calling convention;
+a null default does not perform name lookup at the instantiation site.
+
+Calls use the ordinary call ABI with an empty null-procedure body. Actual and
+parameter-default expressions are evaluated once at the call, with range,
+array-shape and null checks, exception propagation and normal temporary cleanup.
+Limited and unconstrained composite parameters retain their existing reference
+and descriptor behavior. Concrete formal subprograms hide inherited homographs
+in the formal scope without becoming new primitives or dispatching operations.
+
+The intrinsic convention survives public renamings, forwarding through another
+generic formal, and nested/separate library replay. Taking `Access` of a view
+ultimately bound to the intrinsic default is rejected; a replacement with an
+ordinary Ada procedure remains callable through `Access`.
+
+`genericnull`, `genericnullcomposites` and `genericnulllibrary_main` execute
+whole/per-unit/deterministic checks with four workers. They cover empty and
+parameterized profiles, omitted/explicit actuals, side effects and exceptions
+in arguments/defaults, checks, aliases, limited records, slices, closures and
+nested/library forwarding. `genericnull*errors`, `nullformaldefaulterrors` and
+`genericabstractsyntaxerrors` reject invalid actuals, illegal defaults, intrinsic
+Access and attempts to use concrete formals as dispatching operations.
+Unchanged BC60001 is a frozen B_REJECTED_UNGRADED observation; its four forbidden
+default syntax errors prevent semantic grading of the rest of that source.
+Local tests separately exercise its legal controls and intrinsic restriction.
+The prior 128 baseline observations remain unchanged; the expanded cohort has
+79 executable passes, 16 compile rejections, eight harness blockers and 26
+ungraded B observations.
+
+Null-default validation passes 1,268/1,268 tests. Three scenarios execute
+whole/per-unit with the compiler and C runtime under ASan/UBSan; five rejection
+tests and the BC60001 observation also pass compiler instrumentation. Generated
+Ada memory accesses remain uninstrumented; LeakSanitizer is unavailable here.
 
 ## Evidence and remaining work
 
@@ -264,7 +304,7 @@ and three scenarios with the instrumented C runtime. Unchanged B394A03–B394A05
 probes. B394A02 loses two obsolete formal-syntax parser errors; all other 124
 previous observations are unchanged. Their full sources still reject unsupported
 concurrent/private-extension constructs, so none is an upstream legality pass.
-The 128-case baseline contains 79 executable passes, 16 compile rejections,
+At that increment the 128-case baseline contained 79 executable passes, 16 compile rejections,
 eight harness blockers and 25 ungraded B probes.
 LeakSanitizer is unavailable on this host; QBE-generated Ada memory accesses
 remain uninstrumented.
@@ -276,7 +316,7 @@ original five commitments rather than adding new feature families:
 | Original commitment | Remaining work within it |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
-| Formal subprograms and array constraints | Null defaults; attribute and enumeration-literal actuals; nonstatic constraint matching |
+| Formal subprograms and array constraints | Attribute and enumeration-literal actuals; nonstatic constraint matching |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
@@ -311,6 +351,13 @@ Three qualifications prevent the checklist from overstating the work:
 CC51B03 now executes unchanged as PASS. Local `genericclasswide*` additionally
 checks RM 12.5.1 dispatch wrappers and controlling-result `Program_Error`
 behavior beyond the upstream Definite scenario.
+
+One reproduced replay gap remains owned by the final 6g contract-checking item:
+when an outer derived formal is bound to `Root'Class`, an inner abstract-formal
+instance in its body using that formal and its inherited operation currently
+rejects bound `T'Class` and the controlling profile. This is the nested-body
+exception described in [AARM 12.6(8.i–8.m)](https://www.adaic.org/resources/add_content/standards/05aarm/html/AA-12-6.html),
+not a direct instantiation with an ordinary class-wide controlling actual.
 
 The same roadmap explicitly lists generic-related Phase 8 work (prefixed and
 implicit operator callable views, renaming-as-body completions and the broader

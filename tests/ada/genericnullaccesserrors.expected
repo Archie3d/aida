@@ -1,0 +1,2 @@
+genericnullaccesserrors.adb:9:44: error: 'Access of intrinsic subprograms is not allowed
+genericnullaccesserrors.adb:23:47: error: 'Access of intrinsic subprograms is not allowed

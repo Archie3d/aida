@@ -528,6 +528,10 @@
     "tests/b3/b394a05.a": {
       "sha256": "209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7",
       "git_blob": "fbb331bb7566d5e1bcb98534ef084e2000f41e84"
+    },
+    "tests/bc/bc60001.a": {
+      "sha256": "88b039164aec66ec5778b818248a32c3a9ee1ee3c8519bb3835d9037bd508396",
+      "git_blob": "3e53066491ed69675b44429dba72dc8b190b6427"
     }
   },
   "cases": [
@@ -3010,6 +3014,23 @@
         "kind": "ungraded_legality_probe",
         "owner": "P8 B-test grading; P9 concurrent interface syntax",
         "note": "Unchanged Ada 2005 scenarios include synchronized formal extensions. Full-source rejection also includes unsupported concurrent/private-extension syntax and is not a legality pass; local genericsynchronized* tests isolate the implemented contracts and legal controls."
+      }
+    },
+    {
+      "id": "bc60001",
+      "class": "B",
+      "rm": "12.6(4.1/2,10.1/2,16.2/2); 3.10.2(32/2)",
+      "objective": "Check that null defaults are forbidden for formal functions and abstract formals, and that an omitted null default has Intrinsic convention.",
+      "sources": [
+        "tests/bc/bc60001.a"
+      ],
+      "report_name": "BC60001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "ungraded_legality_probe",
+        "owner": "P8 B-test grading",
+        "note": "Unchanged Ada 2005 null-default legality source. Local genericnull* tests isolate legal controls, execution, matching, intrinsic renamings and replay; frozen rejection is not a graded legality pass."
       }
     }
   ],

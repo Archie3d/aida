@@ -1047,6 +1047,7 @@ struct GenericFormal
     std::vector<Token> objectTokens;
     ParameterMode mode = ParameterMode::In;
     bool boxDefault = false;
+    bool nullDefault = false;
     bool limited = false;
     bool synchronized = false;
     bool unknownDiscriminants = false;

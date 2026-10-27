@@ -5,7 +5,7 @@ The selection is offline and enabled in the normal CTest suite. This is a small
 set of inherited Ada requirements applicable to Ada 2005, not a full ACATS run
 or a claim of conformity assessment. Ada 2005-specific additions still need tests.
 
-A completed-feature [backfill baseline](baseline/README.md) adds 125 pinned,
+A completed-feature [backfill baseline](baseline/README.md) adds 129 pinned,
 unchanged cases. Its 79 observed executable passes join the normal ACATS label;
 failures, support blockers and ungraded B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
@@ -606,3 +606,21 @@ modes; rejection tests and CC60001 also pass compiler instrumentation. Generated
 Ada memory accesses are not instrumented; LeakSanitizer is unavailable here.
 BC60002/BC60003 include Ada 2012-specific objectives/syntax, so they are not
 adopted as Ada 2005 legality passes. B-test grading remains Phase 8 work.
+
+
+## Null procedure defaults (Phase 6g)
+
+Unchanged BC60001 is imported from `tests/bc/bc60001.a` in the pinned
+`2785c30c1f8577d97ac7b3043882f6818781e9c5` archive on 2026-10-27. It is a
+baseline-only B_REJECTED_UNGRADED probe, not an executable or legality pass.
+Its exact observation is four syntax diagnostics for illegal function/abstract
+null defaults; parsing errors prevent semantic checking of the remaining
+source, including its intrinsic Access rejection. Local `genericnull*` supplies
+those separate rejection and executable legal controls. There is no executable
+C-test adoption for this increment. All 128 previous observations are unchanged;
+the expanded cohort has 79 PASS, 16 compile rejections, eight harness blockers
+and 26 ungraded B observations.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/bc/bc60001.a | `3e53066491ed69675b44429dba72dc8b190b6427` | `88b039164aec66ec5778b818248a32c3a9ee1ee3c8519bb3835d9037bd508396` |

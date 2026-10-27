@@ -1,6 +1,6 @@
-# ACATS completed-feature baseline — 2026-10-26
+# ACATS completed-feature baseline — 2026-10-27
 
-This backfill adds **128 unchanged upstream cases**: 103 C-tests and 25 B-test
+This backfill adds **129 unchanged upstream cases**: 103 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -10,7 +10,7 @@ This is a baseline of the current subset, not a conformance claim.
 | Observation | Cases |
 | --- | ---: |
 | B accepted, ungraded | 0 |
-| B rejected, ungraded | 25 |
+| B rejected, ungraded | 26 |
 | Legal C-test rejected | 16 |
 | Support/harness blocked | 8 |
 | Executable PASS | 79 |
@@ -19,7 +19,7 @@ This is a baseline of the current subset, not a conformance claim.
 No crashes or timeouts were observed. **16 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
-All 25 rejected B-probes remain ungraded, not legality passes. B36002A now
+All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
 
@@ -40,6 +40,16 @@ ungraded because full sources also contain unsupported Phase 9 constructs.
 B394A02 loses two obsolete formal-syntax parser diagnostics; the other 124
 previous observations are unchanged. `genericsynchronized*` isolates the new
 static contracts, legal controls, tags/callbacks and nested/library replay.
+
+## Null-default observation (Phase 6g)
+
+BC60001 adds one unchanged Ada 2005 null-default legality source. Its frozen
+B_REJECTED_UNGRADED observation contains the four illegal function/abstract
+null-default syntax errors; parsing errors prevent semantic grading of the
+remaining legal and intrinsic-convention cases. Local `genericnull*` isolates
+those cases, including Access restrictions through aliases/forwarding. All 128
+previous observations are unchanged; the current cohort has 79 PASS, 16 compile
+rejections, eight harness blockers and 26 ungraded B observations.
 
 ## Reviewed repairs
 

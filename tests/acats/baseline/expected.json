@@ -5,9 +5,9 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "933a50a4c63dcf657beb198822a5fafa82895f47e989d6273186e2f7ba8cca24",
+  "compiler_sha256": "577731651f63bd682d05437ff346d19f07f95e29f142623bfdb1e36be32e48f8",
   "counts": {
-    "B_REJECTED_UNGRADED": 25,
+    "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 16,
     "HARNESS_BLOCKED": 8,
     "PASS": 79
@@ -1016,6 +1016,12 @@
       "compile_exit": 1,
       "compile_stdout": "",
       "compile_stderr": "<upstream>/support/f394a00.a:88:31: error: protected interfaces are not yet supported\n<upstream>/support/f394a00.a:95:23: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a05.a:81:33: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a05.a:83:33: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a05.a:85:33: error: expected 'interface' in interface type definition, found 'new'\n<upstream>/tests/b3/b394a05.a:88:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a05.a:89:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a05.a:91:16: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a05.a:92:21: error: task entries, interfaces and task definition items are not yet supported\n<upstream>/tests/b3/b394a05.a:95:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a05.a:97:25: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a05.a:98:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a05.a:141:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a05.a:143:30: error: protected interfaces are not yet supported\n<upstream>/tests/b3/b394a05.a:145:30: error: protected interfaces are not yet supported\n",
+      "outcome": "B_REJECTED_UNGRADED"
+    },
+    "bc60001": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/bc/bc60001.a:60:53: error: a formal function cannot have a null default\n<upstream>/tests/bc/bc60001.a:67:13: error: a formal function cannot have a null default\n<upstream>/tests/bc/bc60001.a:79:20: error: an abstract formal subprogram cannot have a null default\n<upstream>/tests/bc/bc60001.a:86:55: error: an abstract formal subprogram cannot have a null default\n",
       "outcome": "B_REJECTED_UNGRADED"
     }
   }

@@ -216,9 +216,12 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                     if (!formal.boxDefault) {
                         if (check(TokenKind::KwNull)) {
                             if (formal.abstract) { fail("an abstract formal subprogram cannot have a null default"); }
-                            fail("null defaults for generic formal subprograms are not yet supported");
+                            if (spec.isFunction) { fail("a formal function cannot have a null default"); }
+                            advance();
+                            formal.nullDefault = true;
+                        } else {
+                            formal.defaultValue = parseExpression();
                         }
-                        formal.defaultValue = parseExpression();
                     }
                 }
             }
