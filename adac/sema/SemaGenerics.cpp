@@ -85,7 +85,7 @@ bool matchesAccessFormal(Type* actual, Type* formal)
     return true;
 }
 
-bool matchesAbstractFormalDefault(Symbol* actual, Symbol* formal)
+bool matchesFormalProfile(Symbol* actual, Symbol* formal)
 {
     if (actual->kind != SymbolKind::Subprogram || actual->parameters.size() != formal->parameters.size()
         || !SemaSupport::profileTypeMatches(actual->returnType, formal->returnType)) { return false; }
@@ -440,15 +440,20 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 // visible, so a same-named formal cannot capture its default.
                 auto defaults = formal.defaultValue != nullptr && formal.abstract
                     ? expressionNames(formal.defaultValue.get(), bindings) : std::vector<Symbol*> {};
+                Symbol* attributeDefault = formal.defaultValue != nullptr && formal.defaultValue->kind == ExprKind::Attribute
+                    ? attributeSubprogram(static_cast<AttributeExpr*>(formal.defaultValue.get()), bindings) : nullptr;
                 declaration->spec.abstract = formal.abstract;
                 declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
                 declaration->symbol->genericFormalSubprogram = true;
+                if (attributeDefault != nullptr && !matchesFormalProfile(attributeDefault, declaration->symbol)) {
+                    m_diagnostics.error(formal.location, "attribute default does not match the generic formal subprogram profile");
+                }
                 if (formal.abstract) {
                     analyzeAbstractFormalSubprogram(declaration->symbol);
                     if (formal.defaultValue != nullptr) {
                         for (Symbol* candidate : defaults) {
                             Symbol* operation = dispatchingOperation(candidate);
-                            if (matchesAbstractFormalDefault(candidate, declaration->symbol) && operation != nullptr
+                            if (matchesFormalProfile(candidate, declaration->symbol) && operation != nullptr
                                 && operation->controllingType == declaration->symbol->controllingType) {
                                 if (formal.abstractDefault != nullptr) {
                                     m_diagnostics.error(formal.location, "ambiguous default for abstract formal subprogram");
@@ -1113,7 +1118,21 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         return false;
     }
     std::vector<Symbol*> candidates;
-    const auto actualCandidates = namedDefault && formal.abstract
+    Symbol* attributeProfile = nullptr;
+    if (actual->kind == ExprKind::Attribute) {
+        auto* previousReplay = m_replayContract;
+        std::size_t previousFirst = m_instanceFirstSymbol;
+        if (namedDefault) {
+            m_replayContract = contract;
+            m_instanceFirstSymbol = firstSymbol;
+        }
+        attributeProfile = attributeSubprogram(static_cast<AttributeExpr*>(actual), namedDefault ? bindings : actualScope);
+        m_replayContract = previousReplay;
+        m_instanceFirstSymbol = previousFirst;
+        if (attributeProfile == nullptr) { return false; }
+    }
+    const auto actualCandidates = attributeProfile != nullptr ? std::vector<Symbol*> { attributeProfile }
+        : namedDefault && formal.abstract
         ? (abstractDefault != nullptr ? std::vector<Symbol*> { abstractDefault } : std::vector<Symbol*> {})
         : namedDefault && actual->kind == ExprKind::Selected
             ? formal.defaultCandidates : expressionNames(actual, actualScope);
@@ -1230,18 +1249,13 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         decl->formalTypes.push_back(std::move(declaration));
         return true;
     }
-    // An instance's formal subprogram is a view of its actual. Preserve the
-    // actual's null contract even when the formal used a named subtype.
+    // An instance's formal subprogram takes the actual's subtypes and ABI,
+    // while retaining its own parameter names and default expressions.
     if (!intrinsic) {
-        auto actualSubtype = [&](Type* formalType, Type* actualType) {
-            if (formalType == nullptr || formalType->kind != TypeKind::Access) { return formalType; }
-            Type* view = m_types.makeSubtype(anonymousTypeName(), formalType, formalType->low, formalType->high);
-            view->excludesNull = actualType->excludesNull;
-            return view;
-        };
-        wrapper->returnType = actualSubtype(wrapper->returnType, candidates.front()->returnType);
+        wrapper->returnType = candidates.front()->returnType;
         for (std::size_t i = 0; i < wrapper->parameters.size(); ++i) {
-            wrapper->parameters[i]->type = actualSubtype(wrapper->parameters[i]->type, candidates.front()->parameters[i]->type);
+            wrapper->parameters[i]->type = candidates.front()->parameters[i]->type;
+            wrapper->parameters[i]->byReference = candidates.front()->parameters[i]->byReference;
             operands[i]->type = wrapper->parameters[i]->type;
         }
     }
@@ -1249,7 +1263,26 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     Symbol* savedSubprogram = m_currentSubprogram;
     m_currentSubprogram = wrapper;
     ExprPtr implementation;
-    if (intrinsic) {
+    if (attributeProfile != nullptr) {
+        auto* source = static_cast<AttributeExpr*>(actual);
+        auto attribute = std::make_unique<AttributeExpr>();
+        attribute->name = source->name;
+        attribute->lower = source->lower;
+        attribute->location = source->location;
+        // A bound internal type mark avoids both mutating a shared default AST
+        // and capture by a formal parameter named like the source prefix.
+        std::string prefixName = "$attribute_type_" + std::to_string(m_symbolTable.symbols().size());
+        Symbol* prefix = m_symbolTable.createSymbol(SymbolKind::TypeName, prefixName, prefixName);
+        prefix->type = source->prefixType;
+        operandsScope->add(prefix);
+        auto mark = std::make_unique<IdentifierExpr>();
+        mark->name = mark->lower = prefixName;
+        mark->location = source->prefix->location;
+        attribute->prefix = std::move(mark);
+        attribute->arguments = std::move(operands);
+        analyzeExpr(attribute.get(), operandsScope, wrapper->returnType);
+        implementation = std::move(attribute);
+    } else if (intrinsic) {
         CallExpr call;
         call.location = formal.location;
         auto callee = std::make_unique<IdentifierExpr>();

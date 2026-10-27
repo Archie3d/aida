@@ -182,8 +182,19 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         return analyzeSelected(static_cast<SelectedExpr*>(expr), scope, expected);
     case ExprKind::Call:
         return analyzeCall(static_cast<CallExpr*>(expr), scope, expected);
-    case ExprKind::Attribute:
-        return analyzeAttribute(static_cast<AttributeExpr*>(expr), scope, expected);
+    case ExprKind::Attribute: {
+        auto* attribute = static_cast<AttributeExpr*>(expr);
+        Type* result = analyzeAttribute(attribute, scope, expected);
+        // A contract's stand-in scalar bounds are not bounds of the actual
+        // subtype. In particular Succ(T'Last) must not fold to a template-time
+        // overflow before an instance supplies T.
+        if (attribute->prefixType != nullptr && attribute->prefixType->genericFormal && isScalar(attribute->prefixType)
+            && (attribute->lower == "first" || attribute->lower == "last")) {
+            attribute->isStatic = false;
+            attribute->exactReal = {};
+        }
+        return result;
+    }
     case ExprKind::Box:
         m_diagnostics.error(expr->location, "box defaults are only allowed in aggregate component associations");
         return nullptr;

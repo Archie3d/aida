@@ -666,9 +666,17 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   four workers; unchanged BC60001 is an ungraded rejection probe, with all
   previous 128 baseline observations unchanged.
   [Contract](docs/generic-types.md#null-procedure-defaults).
-- [ ] **Attribute subprogram actuals.** Resolve permitted attribute
-  references as callable actuals, check profiles and generate instance calls;
-  cover explicit actuals and applicable defaults.
+- [x] **Attribute subprogram actuals.** Scalar Image/Value/Succ/Pred/Min/Max,
+  with mode/profile checks, base-subtype profiles, Intrinsic convention and
+  explicit/named/box-default binding through nested/library instances.
+  Attribute defaults are checked before an instance; prefix bindings survive
+  shadowing. Scalar Min/Max lowering and nonstatic formal scalar bounds cover
+  the required prerequisites. `genericattribute*` runs whole/per-unit/
+  determinism with four workers; unchanged CC1302A executes as PASS. CC3601A
+  remains a compile XFAIL for grouped formal objects (Phase 8). Anonymous
+  universal profiles cannot match named formals; standard stream profiles await
+  the Phase 7 stream-type model.
+  [Contract](docs/generic-types.md#attribute-subprogram-actuals).
 - [ ] **Enumeration-literal subprogram actuals.** Resolve identifier and
   character literals as parameterless function actuals, including expanded
   names such as `Pkg.'A'`. Complete the remaining C540001 scenario rather than
@@ -819,6 +827,11 @@ Ada 2005 additions and track annex packages separately.
 - [ ] Complete access-subtype designated-record discriminant constraints
   (C37003A/C37006A); keep the explicit diagnostic until constraint capture,
   null/conversion checks and library/per-unit behavior are implemented.
+- [ ] Grouped generic formal objects: parse declarations such as `V, V1 : T`,
+  retaining each object's mode, defaults, association and instance identity.
+  Unchanged CC3601A currently compile-XFAILs at the first comma; rerun the whole
+  scenario after the grammar is supported. This is a syntax gap in existing
+  ordinary formal objects, separate from 6g's access/limited-object increments.
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime

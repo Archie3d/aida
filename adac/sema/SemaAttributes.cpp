@@ -79,6 +79,65 @@ int digitsOf(const Type* type)
 
 }
 
+Type* Sema::attributeSubtypeMark(Expr* prefix, Scope* scope)
+{
+    if (prefix->kind == ExprKind::Attribute) {
+        auto* attribute = static_cast<AttributeExpr*>(prefix);
+        if (attribute->lower == "base" && attribute->arguments.empty()) {
+            Type* type = attributeSubtypeMark(attribute->prefix.get(), scope);
+            return type != nullptr && representationVisible(type) ? m_types.scalarBaseType(type) : nullptr;
+        }
+        return nullptr;
+    }
+    for (Symbol* symbol : expressionNames(prefix, scope)) {
+        if (symbol->kind != SymbolKind::TypeName) { continue; }
+        recordContractName(prefix, symbol);
+        return symbol->type;
+    }
+    return nullptr;
+}
+
+Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
+{
+    Type* type = attributeSubtypeMark(attribute->prefix.get(), scope);
+    if (type == nullptr || !representationVisible(type) || !checkCompleteView(type, attribute->location, "an attribute subprogram prefix")) {
+        m_diagnostics.error(attribute->location, "an attribute subprogram actual requires a visible subtype mark");
+        return nullptr;
+    }
+    if (!attribute->arguments.empty()) {
+        m_diagnostics.error(attribute->location, "an attribute subprogram actual must not include call arguments");
+        return nullptr;
+    }
+    const std::string& name = attribute->lower;
+    if (name == "pos" || name == "val" || name == "mod" || name == "round") {
+        m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' has an anonymous universal profile that cannot match a named subprogram profile");
+        return nullptr;
+    }
+    bool scalar = isDiscrete(type) || isReal(type) || type->kind == TypeKind::Fixed;
+    if (!scalar || (name != "image" && name != "value" && name != "succ" && name != "pred"
+        && name != "min" && name != "max")) {
+        m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' does not denote a supported attribute subprogram");
+        return nullptr;
+    }
+    attribute->prefixType = type;
+    Type* base = m_types.scalarBaseType(type);
+    Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "$attribute_" + name, attribute->name);
+    profile->location = attribute->location;
+    profile->hasBody = true;
+    profile->intrinsicRenaming = true;
+    profile->returnType = name == "image" ? m_types.stringType() : base;
+    std::size_t count = name == "min" || name == "max" ? 2 : 1;
+    for (std::size_t i = 0; i < count; ++i) {
+        std::string parameterName = count == 1 ? "arg" : i == 0 ? "left" : "right";
+        Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, parameterName, parameterName);
+        parameter->type = name == "value" ? m_types.stringType() : base;
+        parameter->mode = ParameterMode::In;
+        parameter->byReference = isComposite(parameter->type);
+        profile->parameters.push_back(parameter);
+    }
+    return profile;
+}
+
 bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 {
     if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
@@ -749,9 +808,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    if ((name == "min" || name == "max") && base != nullptr && (base->modulus != 0 || base->kind == TypeKind::Fixed)) {
-        if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 2) {
-            m_diagnostics.error(expr->location, "Min and Max require a modular or fixed subtype and two arguments");
+    if (name == "min" || name == "max") {
+        if (!prefixIsType || !representationVisible(base) || expr->arguments.size() != 2
+            || (!isDiscrete(base) && !isReal(base) && (base == nullptr || base->kind != TypeKind::Fixed))) {
+            m_diagnostics.error(expr->location, "Min and Max require a scalar subtype and two arguments");
             return nullptr;
         }
         expr->type = m_types.scalarBaseType(prefixType);
@@ -767,7 +827,11 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         bool fixed = base->kind == TypeKind::Fixed;
         bool staticFixed = fixed && foldFixed(expr->arguments[0].get(), fixedLeft)
             && foldFixed(expr->arguments[1].get(), fixedRight);
-        if (staticFixed) {
+        if (isReal(base) && expr->arguments[0]->isStatic && expr->arguments[1]->isStatic) {
+            expr->isStatic = true;
+            double a = expr->arguments[0]->staticReal, b = expr->arguments[1]->staticReal;
+            expr->staticReal = name == "min" ? std::min(a, b) : std::max(a, b);
+        } else if (staticFixed) {
             expr->isStatic = true;
             expr->staticValue = name == "min" ? std::min(fixedLeft, fixedRight) : std::max(fixedLeft, fixedRight);
         } else if (!fixed && foldWideInteger(expr->arguments[0].get(), left, failure)

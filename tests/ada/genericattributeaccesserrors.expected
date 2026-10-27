@@ -1,0 +1,2 @@
+genericattributeaccesserrors.adb:9:40: error: 'Access of intrinsic subprograms is not allowed
+genericattributeaccesserrors.adb:16:45: error: 'Access of intrinsic subprograms is not allowed

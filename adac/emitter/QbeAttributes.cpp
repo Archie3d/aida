@@ -226,6 +226,20 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value left = emitExpr(expr->arguments[0].get());
         Value right = emitExpr(expr->arguments[1].get());
         std::string result = newTemp();
+        if (prefixType->modulus == 0 && prefixType->kind != TypeKind::Fixed) {
+            std::string chooseLeft = newTemp();
+            std::string leftLabel = newLabel("minmaxleft"), rightLabel = newLabel("minmaxright"), done = newLabel("minmaxdone");
+            line(chooseLeft + " =w " + QbeSupport::comparisonInstruction(name == "min" ? BinaryOp::LessEqual : BinaryOp::GreaterEqual, left.type)
+                + " " + left.name + ", " + right.name);
+            branch(Value { chooseLeft, 'w' }, leftLabel, rightLabel);
+            label(leftLabel);
+            jump(done);
+            label(rightLabel);
+            jump(done);
+            label(done);
+            line(result + " =" + left.type + " phi " + leftLabel + " " + left.name + ", " + rightLabel + " " + right.name);
+            return Value { result, left.type };
+        }
         Value a = wideBound(left), b = wideBound(right);
         emitCallInstruction(result + " =l call $" + (prefixType->kind == TypeKind::Fixed ? "__ada_fixed_minmax" : "__ada_modular_minmax") + "(l " + a.name + ", l " + b.name
             + ", w " + (name == "min" ? "0" : "1") + ")", CallEffects::DeferredCheck);

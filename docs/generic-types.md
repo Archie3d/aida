@@ -274,6 +274,59 @@ whole/per-unit with the compiler and C runtime under ASan/UBSan; five rejection
 tests and the BC60001 observation also pass compiler instrumentation. Generated
 Ada memory accesses remain uninstrumented; LeakSanitizer is unavailable here.
 
+## Attribute subprogram actuals
+
+Scalar `Image`, `Value`, `Succ`, `Pred`, `Min` and `Max` can be supplied explicitly
+or as named defaults to concrete formal functions. Supported prefixes include
+integer, modular, enumeration/character, floating, ordinary fixed and decimal
+subtypes, including selected names and `Base` prefixes. Box defaults can find
+an existing attribute renaming by the formal's name.
+
+Resolution constructs the attribute's callable profile and requires mode
+conformance with the formal. Image/Value use unconstrained String; scalar
+parameters/results use the base subtype, even when the prefix or formal names
+a constrained subtype. A forwarded callable view also retains the actual's
+subtypes and parameter ABI, with the formal's names and default expressions.
+Attribute defaults are checked without an instance and retain declaration-site
+prefix bindings during nested/library replay. Generated calls use a bound type
+mark so parameter names and instantiation-site hiding cannot capture the prefix.
+The shared direct-attribute lowering and normal result ownership handle
+argument evaluation, exceptions and returned strings. Intrinsic convention
+survives renaming/forwarding and prevents `Access` of the bound view.
+
+Two local prerequisites are included: scalar Min/Max now lower for signed,
+enumeration and floating types as well as the existing modular/fixed cases;
+formal scalar First/Last do not fold contract placeholder bounds or exact-value
+metadata into false overflow diagnostics. Instance bounds are still evaluated
+and checked normally. `genericattributestaticerrors` confirms those template
+bounds cannot be used as static case choices.
+
+`genericattributes`, `genericattributenumeric` and
+`genericattributelibrary_main` run whole/per-unit/deterministically with four
+workers. They cover explicit/default/box binding, base profiles, selected/Base
+prefixes, parameter names/defaults, nested forwarding, prefix hiding, single
+argument evaluation and numeric families including binary32/64. Matching
+`*errors` reject mismatched profiles, private/object prefixes, attribute calls
+instead of references, non-callable attributes and intrinsic Access.
+
+Unchanged CC1302A executes its full nested default-attribute scenario as PASS.
+CC3601A retains an exact compile XFAIL for grouped formal object declarations
+such as `V, V1 : T`; this separate Phase 8 grammar gap prevents execution of its
+whole operator/attribute scenario. All 129 prior backfill observations are
+unchanged. Current validation passes 1,282/1,282 tests; three local scenarios
+pass compiler/runtime ASan/UBSan in whole/per-unit modes, three rejection cases
+pass compiler checks and CC1302A executes with the instrumented C runtime.
+QBE-generated Ada memory accesses remain uninstrumented; LeakSanitizer is
+unavailable on this host.
+
+Attributes with anonymous universal profiles (`Pos`, `Val`, `Mod`, decimal
+`Round`) cannot conform to a named subprogram profile; this is the same
+restriction described for renamings in RM 8.5.4(10). Attribute values such as
+First/Last/Size are not parameterless function actuals. Other currently
+unsupported scalar functions retain diagnostics. Standard stream-attribute
+actuals await Phase 7's Root_Stream_Type/class-wide stream profile model; the
+current opaque stream-address ABI is not substituted for that profile.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -290,7 +343,7 @@ The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
 
 Unchanged CC1204A, CC3240A, CA2009A, CC54001–CC54004, C393013, C3A2A01,
-C640001, C760010, CC51B03 and CC60001 execute successfully. C393013 covers the full null-extension
+C640001, C760010, CC51B03, CC60001 and CC1302A execute successfully. C393013 covers the full null-extension
 controlling-result scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
 callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
@@ -316,7 +369,7 @@ original five commitments rather than adding new feature families:
 | Original commitment | Remaining work within it |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
-| Formal subprograms and array constraints | Attribute and enumeration-literal actuals; nonstatic constraint matching |
+| Formal subprograms and array constraints | Enumeration-literal actuals; nonstatic constraint matching |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
@@ -325,7 +378,7 @@ The scope audit compared the original roadmap at commit `094b812` (before the
 first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing
 rejection tests and seven small compiler probes. At that audit the probes confirmed missing synchronized-
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
-formal arrays and formal packages. Synchronized-derived contracts and abstract formal subprograms have since
+formal arrays and formal packages. Synchronized-derived contracts, abstract formals, null defaults and attribute actuals have since
 been implemented as described above. Access/limited-object restrictions remain
 explicit in
 `generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals

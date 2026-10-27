@@ -624,3 +624,30 @@ and 26 ungraded B observations.
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |
 | tests/bc/bc60001.a | `3e53066491ed69675b44429dba72dc8b190b6427` | `88b039164aec66ec5778b818248a32c3a9ee1ee3c8519bb3835d9037bd508396` |
+
+## Attribute subprogram actuals (Phase 6g)
+
+CC1302A and CC3601A are imported unchanged from `tests/cc/cc1302a.ada` and
+`tests/cc/cc3601a.ada` in the pinned
+`2785c30c1f8577d97ac7b3043882f6818781e9c5` archive on 2026-10-27.
+CC1302A executes its complete nested generic default-attribute scenario as PASS,
+including Succ/Pred/Image/Value, multiple scalar subtypes and results outside
+the prefix subtype but inside its base range. Contract placeholder scalar
+bounds are no longer folded into false static overflows.
+
+CC3601A is an exact compile XFAIL at grouped generic formal objects (`V, V1 : T`),
+a Phase 8 syntax gap. Its complete operator/attribute scenario is not an
+executable pass. Local `genericattribute*` isolates explicit/default/box actuals,
+base-subtype profiles, named arguments/defaults, prefix capture, nested/library
+replay, binary32/64, fixed/decimal/modular types, Min/Max and intrinsic Access.
+These three scenarios run whole/per-unit/deterministically with four workers;
+three rejection cases cover profile and attribute-category errors and nonstatic
+formal bounds. Compiler/runtime ASan/UBSan passes those scenarios in both modes
+and CC1302A in whole-program mode. Generated Ada memory accesses remain
+uninstrumented; LeakSanitizer is unavailable. All 129 backfill observations are
+unchanged.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cc/cc1302a.ada | `c61a310d53e33192320fb45e34550d1069ac1745` | `c15c780bdcff7375dab77ff82e1bda6468f01ac448ff96b95a0068ca4fb375fc` |
+| tests/cc/cc3601a.ada | `198f47ecd38997d6f7a19675766993768d736289` | `0130fcec65e597a7ebb18734474dfd263933a91babd65ab824fbf7af7acca579` |

@@ -188,3 +188,7 @@ add_acats_test(cc51b03 SOURCES fc51b00.ada cc51b03.ada)
 
 # Ada 2005 abstract formal subprograms and dispatch through box defaults.
 add_acats_test(cc60001)
+
+# Attribute function defaults; grouped formal object syntax remains separate.
+add_acats_test(cc1302a)
+add_acats_test(cc3601a REJECTION "expected ':' in generic formal object")

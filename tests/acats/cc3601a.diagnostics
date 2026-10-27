@@ -1,0 +1,5 @@
+cc3601a.ada:39:12: error: expected ':' in generic formal object, found ','
+cc3601a.ada:41:11: error: expected a declaration
+cc3601a.ada:55:12: error: expected ':' in generic formal object, found ','
+cc3601a.ada:57:11: error: expected a declaration
+cc3601a.ada:57:45: error: expected 'identifier' in name, found 'IN'
