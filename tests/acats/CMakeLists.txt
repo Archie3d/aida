@@ -185,3 +185,6 @@ add_acats_test(cc54004)
 add_acats_test(cc1204a)
 add_acats_test(cc3240a)
 add_acats_test(cc51b03 SOURCES fc51b00.ada cc51b03.ada)
+
+# Ada 2005 abstract formal subprograms and dispatch through box defaults.
+add_acats_test(cc60001)

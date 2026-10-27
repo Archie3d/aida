@@ -578,3 +578,31 @@ Phase 8 audit rather than an isolated formal-derived matching scenario.
 | tests/b3/b394a03.a | `0957c26e3793acb229a0204b3c2c53613836e9b6` | `a841defb5c1f45e65f09ec1405fd3169e48f2749c6ee6d82d44dd9ec6b0f1f20` |
 | tests/b3/b394a04.a | `9ff3c42389b4001244904a9311d947ee548cefab` | `d717ee36aa03038bf3c7b068c8be0f95400c960fb37f9622aa7670ed699143c3` |
 | tests/b3/b394a05.a | `fbb331bb7566d5e1bcb98534ef084e2000f41e84` | `209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7` |
+
+## Abstract formal subprograms (Phase 6g)
+
+CC60001 is imported unchanged from `tests/cc/cc60001.a` in the pinned
+`2785c30c1f8577d97ac7b3043882f6818781e9c5` archive on 2026-10-27.
+Its full Ada 2005 scenario executes as PASS: abstract procedure/function formals,
+box defaults, dispatch to several descendants and an unrelated tagged type,
+private extensions, inherited operations and class-wide actual operands.
+The local TCTouch adapter's Validate parameter now uses the upstream name
+`Message`, supporting the unchanged named associations as well as existing
+positional calls. The case joins the focused executable selection; the
+128-case backfill cohort and its observations are unchanged.
+
+| Source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cc/cc60001.a | `08dae248b5b45b0596ce941acb51af94593defa8` | `b85a01d86a7d95175e22fa03bcb410b34b895be7dd91f57d1b00738f72351333` |
+
+Local `genericabstract*` additionally checks controlling access parameters and
+results, same-named inherited operations, formal parameter names/defaults,
+actual scalar subtypes, explicit/named/box actuals, nested and library replay,
+operator mapping and uninstantiated invalid contracts. Four scenarios execute
+whole/per-unit/deterministically with four workers; four rejection tests cover
+controlling types, matching, defaults, static calls and abstract Access.
+Compiler/runtime ASan/UBSan execution covers the four local scenarios in both
+modes; rejection tests and CC60001 also pass compiler instrumentation. Generated
+Ada memory accesses are not instrumented; LeakSanitizer is unavailable here.
+BC60002/BC60003 include Ada 2012-specific objectives/syntax, so they are not
+adopted as Ada 2005 legality passes. B-test grading remains Phase 8 work.

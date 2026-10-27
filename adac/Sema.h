@@ -156,6 +156,7 @@ private:
     bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
                               Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
                               GenericContract* contract, std::size_t firstSymbol);
+    void analyzeAbstractFormalSubprogram(Symbol* symbol);
     bool matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,
                             const SourceLocation& location);
     void analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal, Scope* scope, Symbol* owner);

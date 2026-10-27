@@ -1055,6 +1055,7 @@ struct GenericFormal
     InterfaceKind interfaceKind = InterfaceKind::None;
     std::vector<Symbol*> defaultCandidates;
     bool defaultUsesFormal = false;
+    Symbol* abstractDefault = nullptr; // Checked declaration-site abstract-formal default.
     SourceLocation location;
 };
 

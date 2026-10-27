@@ -109,13 +109,15 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
         }
         return result;
     }
-    if (!expr->dispatching && subprogram->negatedEquality != nullptr) {
+    if (subprogram->negatedEquality != nullptr) {
         CallExpr equality;
         equality.location = expr->location;
         equality.form = CallForm::Subprogram;
         equality.subprogram = subprogram->negatedEquality;
         equality.type = subprogram->returnType;
         equality.resolvedArguments = expr->resolvedArguments;
+        equality.dispatching = expr->dispatching;
+        equality.tagIndeterminate = expr->tagIndeterminate;
         Value result = emitCall(&equality);
         std::string complement = newTemp();
         line(complement + " =w ceqw " + result.name + ", 0");
@@ -186,7 +188,11 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
     m_context->resultTargetOwner.clear();
     m_context->resultTargetArena.clear();
 
-    bool dispatchEquality = expr->dispatching && (subprogram->name == "=" || subprogram->name == "/=")
+    Symbol* dispatchOperation = subprogram;
+    if (subprogram->genericFormalSubprogram && subprogram->abstract) {
+        while (dispatchOperation->renamedSubprogram != nullptr) { dispatchOperation = dispatchOperation->renamedSubprogram; }
+    }
+    bool dispatchEquality = expr->dispatching && (dispatchOperation->name == "=" || dispatchOperation->name == "/=")
         && subprogram->parameters.size() == 2
         && rootType(subprogram->parameters[0]->type) == subprogram->controllingType
         && rootType(subprogram->parameters[1]->type) == subprogram->controllingType;
@@ -512,7 +518,7 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
         result.accessLevel = newTemp();
         line(result.accessLevel + " =w loadsw " + accessResultLevel);
     }
-    if (dispatchEquality && subprogram->name == "/=") {
+    if (dispatchEquality && dispatchOperation->name == "/=") {
         std::string negated = newTemp();
         line(negated + " =w ceqw " + result.name + ", 0");
         result = Value { negated, 'w' };

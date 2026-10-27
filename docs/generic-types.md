@@ -192,6 +192,48 @@ restrictions, with legal controls.
 Unchanged CC51B03 and its FC51B00 foundation execute the full Definite scenario
 as PASS; their former compile-XFAIL expectation is removed.
 
+## Abstract formal subprograms
+
+`with procedure ... is abstract [Default];` and
+`with function ... return ... is abstract [Default];` support an omitted default,
+a declaration-site name, or `<>`. An abstract formal has exactly one specific
+tagged controlling type, considering its parameters, result and anonymous
+access designated types (RM 12.6(8.4)). Class-wide and named access types do not
+supply a controlling type. Null defaults remain forbidden for abstract formals.
+
+An actual must have a mode-conformant profile and denote a dispatching operation
+of the controlling type or its corresponding actual type (RM 12.6(8.5)). It may
+be abstract or concrete; a renaming of a dispatching operation is also accepted.
+Named defaults check explicit null exclusions, resolve before the formal becomes visible and replay the
+checked declaration-site binding. Box defaults resolve at the instantiation
+site. Invalid named defaults are rejected even without an instance.
+
+The copied formal remains abstract even for a concrete actual, so every call
+must dispatch. Specific statically tagged calls and `Access` are diagnosed in
+uninstantiated templates. An instance retains the actual's parameter/result
+subtypes and dispatch slot, with the formal's names and default expressions.
+The formal is a dispatching view and does not add or replace a primitive slot
+on the controlling type. Inherited homographs are hidden within the formal
+scope while the type's original primitive contract remains intact.
+
+Dispatch covers controlling access parameters, tag-indeterminate results,
+interfaces, nested abstract-formal actuals, and separately compiled library
+bodies. A formal operator dispatches to its supplied operation, including when
+formal `"="` denotes a differently named comparator; implicit `"/="` negates that
+same dispatched result. The existing tag consistency and result ownership
+checks still apply.
+
+`genericabstract`, `genericabstractinterfaces`, `genericabstractoperators` and
+`genericabstractlibrary_main` execute whole/per-unit/deterministic checks with
+four workers. Matching `*errors` cover missing/multiple controlling types,
+nonprimitive actuals, mode mismatches, invalid defaults, static calls and
+abstract `Access`, including uninstantiated invalid templates and legal controls.
+Unchanged Ada 2005 ACATS CC60001 executes its complete dispatch/box-default
+scenario as PASS. The current suite passes 1,255/1,255 tests. Four scenarios also pass compiler/runtime ASan/UBSan execution
+in whole/per-unit modes; four rejection tests and CC60001 pass compiler checks.
+Generated Ada memory accesses remain uninstrumented, and LeakSanitizer is
+unavailable on this host.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -208,13 +250,13 @@ The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
 
 Unchanged CC1204A, CC3240A, CA2009A, CC54001–CC54004, C393013, C3A2A01,
-C640001, C760010 and CC51B03 execute successfully. C393013 covers the full null-extension
+C640001, C760010, CC51B03 and CC60001 execute successfully. C393013 covers the full null-extension
 controlling-result scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
 callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
 in the [ACATS inventory](../tests/acats/README.md).
 
-Class-wide actual validation passes 1,238/1,238 tests. Five scenarios pass
+The class-wide actual increment passed 1,238/1,238 tests. Five scenarios pass
 whole/per-unit execution with the compiler and C runtime under ASan/UBSan;
 two rejection tests and unchanged CC51B03 also pass compiler instrumentation.
 The synchronized-formal increment previously passed 14 focused compiler checks
@@ -234,7 +276,7 @@ original five commitments rather than adding new feature families:
 | Original commitment | Remaining work within it |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
-| Formal subprograms and array constraints | Abstract formals; null defaults; attribute and enumeration-literal actuals; nonstatic constraint matching |
+| Formal subprograms and array constraints | Null defaults; attribute and enumeration-literal actuals; nonstatic constraint matching |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
@@ -243,7 +285,7 @@ The scope audit compared the original roadmap at commit `094b812` (before the
 first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing
 rejection tests and seven small compiler probes. At that audit the probes confirmed missing synchronized-
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
-formal arrays and formal packages. Synchronized-derived contracts have since
+formal arrays and formal packages. Synchronized-derived contracts and abstract formal subprograms have since
 been implemented as described above. Access/limited-object restrictions remain
 explicit in
 `generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals

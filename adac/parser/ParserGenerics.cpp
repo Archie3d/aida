@@ -210,12 +210,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             formal.subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
                 m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
             if (match(TokenKind::KwIs)) {
-                formal.boxDefault = match(TokenKind::Box);
-                if (!formal.boxDefault) {
-                    if (check(TokenKind::KwNull)) {
-                        fail("null defaults for generic formal subprograms are not yet supported");
+                formal.abstract = match(TokenKind::KwAbstract);
+                if (!formal.abstract || !check(TokenKind::Semicolon)) {
+                    formal.boxDefault = match(TokenKind::Box);
+                    if (!formal.boxDefault) {
+                        if (check(TokenKind::KwNull)) {
+                            if (formal.abstract) { fail("an abstract formal subprogram cannot have a null default"); }
+                            fail("null defaults for generic formal subprograms are not yet supported");
+                        }
+                        formal.defaultValue = parseExpression();
                     }
-                    formal.defaultValue = parseExpression();
                 }
             }
             formal.subprogramTokens.push_back(current()); // The terminating semicolon.

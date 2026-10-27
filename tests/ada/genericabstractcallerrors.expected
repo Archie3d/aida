@@ -1,0 +1,4 @@
+genericabstractcallerrors.adb:14:26: error: a call to an abstract subprogram must be dispatching
+genericabstractcallerrors.adb:16:26: error: a call to an abstract subprogram must be dispatching
+genericabstractcallerrors.adb:16:44: error: a call to an abstract subprogram must be dispatching
+genericabstractcallerrors.adb:16:43: error: a call to an abstract subprogram must be dispatching

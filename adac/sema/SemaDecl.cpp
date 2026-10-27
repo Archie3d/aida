@@ -502,7 +502,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (parameterType != nullptr && parameterType->anonymousAccess && parameterType->target != nullptr
             && parameterType->target->tagged && parameterType->target->classRoot == nullptr
             && rootType(parameterType->target)->declarationScope == scope
-            && (scope == m_packageSpecScope || spec.overriding == 1)) {
+            && (scope == m_packageSpecScope || spec.overriding == 1 || (isFormal && spec.abstract))) {
             parameterType->excludesNull = true;
         }
         if (parameterType != nullptr && (!parameterType->tagged || (isBody && !spec.nullProcedure))) {
@@ -560,7 +560,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             matches = matches && (rootType(candidate->parameters[i]->type) == rootType(parameterTypes[i])
                     || SemaSupport::staticallyMatches(candidate->parameters[i]->type, parameterTypes[i]));
         }
-        if (matches && (candidate->inheritedFrom != nullptr || (isBody && candidate->overrides))) {
+        if (!(isFormal && spec.abstract) && matches
+            && (candidate->inheritedFrom != nullptr || (isBody && candidate->overrides))) {
             overrides = true;
             bool subtypeConformant = candidate->returnType == returnType
                 || SemaSupport::staticallyMatches(candidate->returnType, returnType);
@@ -576,7 +577,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             }
         }
     }
-    if (!overrides && !operatorSymbol(spec.lower).empty() && spec.isFunction) {
+    if (!(isFormal && spec.abstract) && !overrides && !operatorSymbol(spec.lower).empty() && spec.isFunction) {
         // Predefined operators can only be overridden in the declarative
         // region of their type. An inner homograph merely hides them.
         bool localType = returnType != nullptr && rootType(returnType)->declarationScope == scope;
@@ -764,7 +765,22 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
 
     scope->add(symbol);
-    registerPrimitive(symbol, scope);
+    if (isFormal && spec.abstract) {
+        // Hide inherited homographs without replacing the controlling type's
+        // primitive or dispatch table: this formal denotes a supplied view.
+        for (Symbol* inherited : scope->lookupLocal(symbol->name)) {
+            if (inherited == symbol || inherited->kind != SymbolKind::Subprogram
+                || (inherited->inheritedFrom == nullptr && inherited->genericFormalOrigin == nullptr)
+                || inherited->parameters.size() != symbol->parameters.size()
+                || !SemaSupport::profileTypeMatches(inherited->returnType, symbol->returnType)) { continue; }
+            bool homograph = true;
+            for (std::size_t i = 0; i < symbol->parameters.size(); ++i) {
+                homograph = homograph && SemaSupport::profileTypeMatches(inherited->parameters[i]->type, symbol->parameters[i]->type);
+            }
+            if (homograph) { scope->remove(inherited); }
+        }
+    }
+    if (!(isFormal && spec.abstract)) { registerPrimitive(symbol, scope); }
     if (abstractView(returnType) && !symbol->abstract) {
         m_diagnostics.error(spec.location, "a function returning an abstract type must be abstract");
     }
@@ -787,7 +803,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         complement->declarationScope = symbol->declarationScope;
         complement->level = symbol->level;
         scope->add(complement);
-        registerPrimitive(complement, scope);
+        if (!(isFormal && spec.abstract)) { registerPrimitive(complement, scope); }
     }
     if (m_recordContract != nullptr) {
         m_recordContract->subprograms[contractKey(spec.location)] = symbol;

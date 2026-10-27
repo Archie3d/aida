@@ -1,0 +1,11 @@
+genericabstracterrors.adb:7:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericabstracterrors.adb:11:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericabstracterrors.adb:15:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericabstracterrors.adb:19:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericabstracterrors.adb:23:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericabstracterrors.adb:36:43: error: actual for abstract formal subprogram must be a dispatching operation of its controlling type
+genericabstracterrors.adb:38:9: error: abstract formal default must be a mode-conformant dispatching operation of its controlling type
+genericabstracterrors.adb:49:43: error: no matching actual for generic formal 'Change'
+genericabstracterrors.adb:54:58: error: an abstract subprogram cannot be an actual for a nonabstract formal subprogram
+genericabstracterrors.adb:59:52: error: an abstract subprogram cannot be an actual for a nonabstract formal subprogram
+genericabstracterrors.adb:72:9: error: abstract formal default must be a mode-conformant dispatching operation of its controlling type

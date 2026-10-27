@@ -3,5 +3,5 @@ package TCTouch is
     procedure Assert (Condition : Boolean; Description : String);
     procedure Assert_Not (Condition : Boolean; Description : String);
     procedure Touch (Tag : Character);
-    procedure Validate (Expected : String; Description : String);
+    procedure Validate (Expected : String; Message : String);
 end TCTouch;

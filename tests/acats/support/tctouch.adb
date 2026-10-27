@@ -21,10 +21,10 @@ package body TCTouch is
             Trace (Used) := Tag;
         end if;
     end Touch;
-    procedure Validate (Expected : String; Description : String) is
+    procedure Validate (Expected : String; Message : String) is
     begin
         if Trace (1 .. Used) /= Expected then
-            Report.Failed (Description);
+            Report.Failed (Message);
         end if;
         Used := 0;
     end Validate;

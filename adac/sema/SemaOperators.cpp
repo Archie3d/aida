@@ -66,7 +66,8 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
                 && matchesExpression(operands[i], scope, context);
             candidate.parameters.push_back(context);
         }
-        if (dispatching && (name == "=" || name == "/=") && symbol->parameters.size() == 2
+        if (dispatching && !(symbol->genericFormalSubprogram && symbol->abstract)
+            && (name == "=" || name == "/=") && symbol->parameters.size() == 2
             && rootType(symbol->parameters[0]->type) == symbol->controllingType
             && rootType(symbol->parameters[1]->type) == symbol->controllingType) {
             continue; // Class-wide equality dispatches the complete specific equality.

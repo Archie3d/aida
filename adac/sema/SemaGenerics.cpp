@@ -85,6 +85,29 @@ bool matchesAccessFormal(Type* actual, Type* formal)
     return true;
 }
 
+bool matchesAbstractFormalDefault(Symbol* actual, Symbol* formal)
+{
+    if (actual->kind != SymbolKind::Subprogram || actual->parameters.size() != formal->parameters.size()
+        || !SemaSupport::profileTypeMatches(actual->returnType, formal->returnType)) { return false; }
+    if (formal->explicitNullExclusion && !actual->returnType->excludesNull) { return false; }
+    for (std::size_t i = 0; i < formal->parameters.size(); ++i) {
+        if (actual->parameters[i]->mode != formal->parameters[i]->mode
+            || !SemaSupport::profileTypeMatches(actual->parameters[i]->type, formal->parameters[i]->type)
+            || (formal->parameters[i]->explicitNullExclusion && !actual->parameters[i]->type->excludesNull)) { return false; }
+    }
+    return true;
+}
+
+Symbol* dispatchingOperation(Symbol* symbol)
+{
+    while (symbol != nullptr) {
+        if (symbol->controllingType != nullptr && !symbol->classWideWrapper
+            && (symbol->dispatchSlot >= 0 || (symbol->genericFormalSubprogram && symbol->abstract))) { return symbol; }
+        symbol = symbol->renamedSubprogram;
+    }
+    return nullptr;
+}
+
 Symbol* formalOperationImplementation(Symbol* operation, Type* actual)
 {
     Type* specific = actual->classRoot != nullptr ? actual->classRoot : actual;
@@ -413,8 +436,32 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             DeclList profile = parser.parseDeclarations();
             if (profile.size() == 1) {
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
+                // A default name is resolved before the declaration becomes
+                // visible, so a same-named formal cannot capture its default.
+                auto defaults = formal.defaultValue != nullptr && formal.abstract
+                    ? expressionNames(formal.defaultValue.get(), bindings) : std::vector<Symbol*> {};
+                declaration->spec.abstract = formal.abstract;
                 declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
                 declaration->symbol->genericFormalSubprogram = true;
+                if (formal.abstract) {
+                    analyzeAbstractFormalSubprogram(declaration->symbol);
+                    if (formal.defaultValue != nullptr) {
+                        for (Symbol* candidate : defaults) {
+                            Symbol* operation = dispatchingOperation(candidate);
+                            if (matchesAbstractFormalDefault(candidate, declaration->symbol) && operation != nullptr
+                                && operation->controllingType == declaration->symbol->controllingType) {
+                                if (formal.abstractDefault != nullptr) {
+                                    m_diagnostics.error(formal.location, "ambiguous default for abstract formal subprogram");
+                                    break;
+                                }
+                                formal.abstractDefault = candidate;
+                            }
+                        }
+                        if (formal.abstractDefault == nullptr) {
+                            m_diagnostics.error(formal.location, "abstract formal default must be a mode-conformant dispatching operation of its controlling type");
+                        }
+                    }
+                }
                 contract->profiles.push_back(std::move(profile.front()));
             }
             continue;
@@ -934,6 +981,46 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
     return matches;
 }
 
+void Sema::analyzeAbstractFormalSubprogram(Symbol* symbol)
+{
+    Type* controlling = nullptr;
+    bool multiple = false;
+    auto consider = [&](Type* type) {
+        if (type != nullptr && type->anonymousAccess) { type = type->target; }
+        type = rootType(type);
+        if (type == nullptr || !type->tagged || type->classRoot != nullptr) { return; }
+        multiple = multiple || (controlling != nullptr && controlling != type);
+        controlling = type;
+    };
+    consider(symbol->returnType);
+    for (Symbol* parameter : symbol->parameters) { consider(parameter->type); }
+    if (controlling == nullptr || multiple) {
+        m_diagnostics.error(symbol->location, "an abstract formal subprogram must have exactly one specific tagged controlling type");
+        return;
+    }
+    symbol->controllingType = controlling;
+    symbol->abstract = true;
+    symbol->genericFormalSubprogram = true;
+    for (Symbol* complement : symbol->declarationScope->lookupLocal("/=")) {
+        if (complement->negatedEquality == symbol) {
+            complement->abstract = true;
+            complement->genericFormalSubprogram = true;
+            complement->controllingType = controlling;
+        }
+    }
+    for (Symbol* parameter : symbol->parameters) {
+        if (controllingParameterType(parameter->type) != controlling) { continue; }
+        if (parameter->type->anonymousAccess) { parameter->type->excludesNull = true; }
+        if (parameter->hasDefault) {
+            if (!parameter->defaultExpr->tagIndeterminate) {
+                m_diagnostics.error(parameter->location, "a controlling parameter default must be tag indeterminate");
+            } else {
+                dispatchIndeterminate(parameter->defaultExpr, controlling);
+            }
+        }
+    }
+}
+
 bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
                                  Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
                                  GenericContract* contract, std::size_t firstSymbol)
@@ -972,6 +1059,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     auto body = std::make_unique<SubprogramBody>();
     body->location = formal.location;
     body->spec = std::move(static_cast<SubprogramDecl*>(declarations.front().get())->spec);
+    body->spec.abstract = formal.abstract;
     int errors = m_diagnostics.errorCount();
     auto* savedReplay = m_replayContract;
     auto* savedRecord = m_recordContract;
@@ -980,6 +1068,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
     Symbol* wrapper = declareSubprogram(body->spec, bindings, true, true);
+    if (formal.abstract) { analyzeAbstractFormalSubprogram(wrapper); }
+    Symbol* abstractDefault = formal.abstractDefault != nullptr ? instanceSymbol(formal.abstractDefault) : nullptr;
     m_replayContract = savedReplay;
     m_recordContract = savedRecord;
     m_instanceFirstSymbol = savedFirst;
@@ -1015,8 +1105,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         return false;
     }
     std::vector<Symbol*> candidates;
-    const auto& actualCandidates = namedDefault && actual->kind == ExprKind::Selected
-        ? formal.defaultCandidates : expressionNames(actual, actualScope);
+    const auto actualCandidates = namedDefault && formal.abstract
+        ? (abstractDefault != nullptr ? std::vector<Symbol*> { abstractDefault } : std::vector<Symbol*> {})
+        : namedDefault && actual->kind == ExprKind::Selected
+            ? formal.defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
         if (matches(candidate) && candidate->protectedType != nullptr) {
             m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
@@ -1093,9 +1185,34 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         return false;
     }
 
-    if (!intrinsic && candidates.front()->abstract) {
+    if (!formal.abstract && !intrinsic && candidates.front()->abstract) {
         m_diagnostics.error(actual->location, "an abstract subprogram cannot be an actual for a nonabstract formal subprogram");
         return false;
+    }
+    if (formal.abstract) {
+        Symbol* operation = intrinsic ? nullptr : dispatchingOperation(candidates.front());
+        if (operation == nullptr || operation->controllingType != wrapper->controllingType) {
+            m_diagnostics.error(actual->location, "actual for abstract formal subprogram must be a dispatching operation of its controlling type");
+            return false;
+        }
+        wrapper->dispatchSlot = operation->dispatchSlot;
+        wrapper->renamedSubprogram = candidates.front();
+        wrapper->interfaceOrigins = operation->interfaceOrigins;
+        wrapper->hasBody = false;
+        wrapper->requiresBody = false;
+        // A formal abstract declaration is a dispatching view, not a new
+        // primitive slot or a statically callable forwarding body.
+        for (std::size_t i = 0; i < wrapper->parameters.size(); ++i) {
+            wrapper->parameters[i]->type = candidates.front()->parameters[i]->type;
+            wrapper->parameters[i]->byReference = candidates.front()->parameters[i]->byReference;
+        }
+        wrapper->returnType = candidates.front()->returnType;
+        auto declaration = std::make_unique<SubprogramDecl>();
+        declaration->spec = std::move(body->spec);
+        declaration->symbol = wrapper;
+        declaration->location = formal.location;
+        decl->formalTypes.push_back(std::move(declaration));
+        return true;
     }
     // An instance's formal subprogram is a view of its actual. Preserve the
     // actual's null contract even when the formal used a named subtype.

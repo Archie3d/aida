@@ -648,9 +648,15 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   whole/per-unit/determinism and four workers: `genericclasswide*`.
   Unchanged CC51B03 with FC51B00 executes as PASS.
   [Contract](docs/generic-types.md#class-wide-derived-actuals).
-- [ ] **Abstract formal subprograms.** Parse abstract formal procedure/
-  function declarations, enforce controlling/profile and actual-matching rules,
-  and preserve dispatching semantics through instances.
+- [x] **Abstract formal subprograms.** Procedures/functions with exactly one
+  specific tagged controlling type; mode-conformant dispatching actuals,
+  declaration-site named defaults and box defaults. Preserve actual subtypes,
+  formal names/defaults and dispatch slots through nested/library replay,
+  including interface/access operands, controlling results and operators.
+  Static calls, nonprimitive actuals, invalid profiles/defaults and abstract
+  `Access` are diagnosed. `genericabstract*` runs whole/per-unit/determinism
+  with four workers; unchanged CC60001 executes as PASS.
+  [Contract](docs/generic-types.md#abstract-formal-subprograms).
 - [ ] **Null procedure defaults.** Support `is null` on formal procedures,
   validate allowed profiles, and bind an omitted actual to the null procedure.
 - [ ] **Attribute subprogram actuals.** Resolve permitted attribute
