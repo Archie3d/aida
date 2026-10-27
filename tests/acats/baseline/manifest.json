@@ -1769,9 +1769,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6g expanded enumeration-literal names",
-        "note": "Derived formal syntax is supported. Parsing still rejects expanded character-literal names such as C540001_1.'A'; the unchanged case is not an executable pass."
+        "kind": "covered_probe",
+        "owner": "P6g enumeration-literal subprogram actuals",
+        "note": "PASS unchanged after expanded character-literal names, enumeration-literal function actuals and static related-enumeration conversions were implemented. The complete case-expression scenario executes."
       }
     },
     {

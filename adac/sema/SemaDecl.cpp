@@ -769,6 +769,11 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         // Hide inherited homographs without replacing the controlling type's
         // primitive or dispatch table: this formal denotes a supplied view.
         for (Symbol* inherited : scope->lookupLocal(symbol->name)) {
+            if (inherited->kind == SymbolKind::EnumerationLiteral && inherited->inheritedFrom != nullptr
+                && symbol->parameters.empty() && SemaSupport::profileTypeMatches(inherited->type, symbol->returnType)) {
+                scope->remove(inherited);
+                continue;
+            }
             if (inherited == symbol || inherited->kind != SymbolKind::Subprogram
                 || (inherited->inheritedFrom == nullptr && inherited->genericFormalOrigin == nullptr)
                 || inherited->parameters.size() != symbol->parameters.size()

@@ -265,7 +265,7 @@ Access and attempts to use concrete formals as dispatching operations.
 Unchanged BC60001 is a frozen B_REJECTED_UNGRADED observation; its four forbidden
 default syntax errors prevent semantic grading of the rest of that source.
 Local tests separately exercise its legal controls and intrinsic restriction.
-The prior 128 baseline observations remain unchanged; the expanded cohort has
+The prior 128 baseline observations were unchanged; at that increment the cohort had
 79 executable passes, 16 compile rejections, eight harness blockers and 26
 ungraded B observations.
 
@@ -327,6 +327,44 @@ unsupported scalar functions retain diagnostics. Standard stream-attribute
 actuals await Phase 7's Root_Stream_Type/class-wide stream profile model; the
 current opaque stream-address ABI is not substituted for that profile.
 
+## Enumeration-literal subprogram actuals
+
+Enumeration identifiers and character literals denote parameterless functions
+when supplied to a formal function with a matching result type (RM 3.5.1, 12.6).
+Expanded names such as `Pkg.Red`, `Pkg.'A'` and `Standard.'a'` preserve visibility,
+overloads and character case. Objects, numeric values and qualified expressions
+are not callable actuals. Procedures, nonempty parameter profiles and unrelated
+result types do not match.
+
+Explicit actuals, named defaults and box defaults are supported. Literal named
+defaults are checked without an instance and retain their declaration-site
+binding through nested and separate library replay, even if the client hides
+the name. A same-named formal can hide an inherited literal after resolving its
+default. Inherited literal results retain the derived base subtype, including
+values outside the derived first subtype's constraint. Calls preserve
+positional values under enumeration representation clauses.
+
+The bound view uses Intrinsic convention through renaming and forwarding;
+`Access` is rejected. Explicit ordinary Ada function replacements retain their
+own convention. Calls use the normal result-checking path. Static conversions
+between related enumeration types retain their positions and constraint checks,
+so they can appear in case choices.
+
+`genericliterals` and `genericliterallibrary_main` exercise whole/per-unit and
+deterministic builds with four concurrent workers. `genericliteralerrors`
+rejects invalid actuals/defaults and intrinsic Access through forwarded aliases.
+Unchanged C540001 executes its complete case-expression scenario as PASS and
+joins the normal ACATS label. It is the only changed observation in the 129-case
+baseline: 80 executable passes, 15 compile rejections, eight harness blockers
+and 26 ungraded B observations.
+
+Validation passes 1,290/1,290 tests and the complete baseline snapshot check.
+Both local scenarios pass whole/per-unit execution with the compiler and C
+runtime under ASan/UBSan; the rejection test and unchanged C540001 also pass
+instrumented compiler checks, with C540001 executing against the instrumented
+C runtime. Generated Ada memory accesses remain uninstrumented; LeakSanitizer
+is unavailable on this host.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -343,7 +381,7 @@ The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
 
 Unchanged CC1204A, CC3240A, CA2009A, CC54001–CC54004, C393013, C3A2A01,
-C640001, C760010, CC51B03, CC60001 and CC1302A execute successfully. C393013 covers the full null-extension
+C640001, C760010, CC51B03, CC60001, CC1302A and C540001 execute successfully. C393013 covers the full null-extension
 controlling-result scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
 callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
@@ -369,7 +407,7 @@ original five commitments rather than adding new feature families:
 | Original commitment | Remaining work within it |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
-| Formal subprograms and array constraints | Enumeration-literal actuals; nonstatic constraint matching |
+| Formal subprograms and array constraints | Nonstatic constraint matching |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |

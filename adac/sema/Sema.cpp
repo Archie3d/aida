@@ -59,6 +59,17 @@ void Sema::setupStandardScope()
         symbol->type = m_types.booleanType();
         symbol->enumerationValue = i;
         m_standardScope->add(symbol);
+        m_types.booleanType()->primitives.push_back(symbol);
+    }
+    // Character literals are callable enumeration declarations too. Keep the
+    // compact Character representation while exposing ordinary overload names.
+    for (int i = 0; i < 256; ++i) {
+        std::string name = "'" + std::string(1, static_cast<char>(i)) + "'";
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, name, name);
+        symbol->type = m_types.characterType();
+        symbol->enumerationValue = i;
+        m_standardScope->add(symbol);
+        m_types.characterType()->primitives.push_back(symbol);
     }
 
     // System describes the machine rather than the language.  Address is what

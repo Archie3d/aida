@@ -5,12 +5,12 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "577731651f63bd682d05437ff346d19f07f95e29f142623bfdb1e36be32e48f8",
+  "compiler_sha256": "4ce70bda6a4eb6bcb05425a31fa16125d9c6cb1e7acba0a3a420cd78699333e2",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
-    "COMPILE_REJECTED": 16,
+    "COMPILE_REJECTED": 15,
     "HARNESS_BLOCKED": 8,
-    "PASS": 79
+    "PASS": 80
   },
   "cases": {
     "c34001a": {
@@ -545,10 +545,13 @@
       "outcome": "PASS"
     },
     "c540001": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c5/c540001.a:181:39: error: expected ';' after assignment, found '.'\n<upstream>/tests/c5/c540001.a:182:39: error: expected ';' after assignment, found '.'\n<upstream>/tests/c5/c540001.a:339:27: error: expected 'then' in if statement, found '.'\n<upstream>/tests/c5/c540001.a:342:11: error: expected ';' after block statement, found 'if'\n<upstream>/tests/c5/c540001.a:344:8: error: closing name 'Function_Call_Subtest' does not match 'c540001'\n<upstream>/tests/c5/c540001.a:346:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:351:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:352:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:353:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:356:11: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:358:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:360:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:363:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:365:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:367:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:381:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:383:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:385:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:388:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:390:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:392:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:396:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:399:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:401:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:404:7: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:406:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:408:4: error: expected a procedure, function or package declaration\n<upstream>/tests/c5/c540001.a:410:1: error: expected a procedure, function or package declaration\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C540001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c540002": {
       "compile_exit": 0,

@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 16 |
+| Legal C-test rejected | 15 |
 | Support/harness blocked | 8 |
-| Executable PASS | 79 |
+| Executable PASS | 80 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **16 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **15 executable C-cases fail**, all compile
 rejections; eight further C-cases are blocked by
 support adapters.
 All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
@@ -48,8 +48,8 @@ B_REJECTED_UNGRADED observation contains the four illegal function/abstract
 null-default syntax errors; parsing errors prevent semantic grading of the
 remaining legal and intrinsic-convention cases. Local `genericnull*` isolates
 those cases, including Access restrictions through aliases/forwarding. All 128
-previous observations are unchanged; the current cohort has 79 PASS, 16 compile
-rejections, eight harness blockers and 26 ungraded B observations.
+previous observations were unchanged; at that increment the cohort had 79 PASS,
+16 compile rejections, eight harness blockers and 26 ungraded B observations.
 
 ## Reviewed repairs
 
@@ -59,10 +59,11 @@ generic and private extensions, including private overrides. C640001 exercises
 tagged generic callbacks and redispatch. C760010 verifies controlled lifetimes
 and explicit/implicit exception propagation through tagged private formals.
 C393013 now uses `acats.backfill_c393013`; its frozen-rejection probe is removed.
-C540001 retains only its independent expanded character-literal syntax rejection
-(`Pkg.'A'`), owned by the following 6g enumeration-literal work. Its complete
-remaining diagnostics are reviewed and pinned. The other 119 observations are
-unchanged; the current cohort has 79 executable passes.
+C540001 now passes unchanged after enumeration-literal function actuals,
+expanded character names (`Pkg.'A'`) and static related-enumeration conversions.
+The complete case-expression scenario is registered as `acats.backfill_c540001`.
+It is the only changed observation at this increment: all other 128 observations
+remain unchanged; the current cohort has 80 executable passes.
 
 The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
 all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
@@ -230,7 +231,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 79 observed
+crash/timeout handling and source/snapshot integrity. Only the 80 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -306,7 +307,7 @@ The table below gives the observed status and initial triage for every case.
 | [C49021A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49021a.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022b.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022c.ada) | 4.6/4.9 | Executable PASS | covered probe; P6f-prelude |
-| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Legal C-test rejected | expanded character-literal names (`Pkg.'A'`); P6g enumeration literals |
+| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | PASS | complete case-expression scenario, including expanded character names and literal function actuals |
 | [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Executable PASS | discrete-context selector resolution repaired; P6f-prelude |
 | [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | Legal C-test rejected | predefined library gap; P7 predefined ASCII |
 | [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Support/harness blocked | support adapter gap; P8 REPORT adapter |

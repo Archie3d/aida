@@ -677,10 +677,15 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   universal profiles cannot match named formals; standard stream profiles await
   the Phase 7 stream-type model.
   [Contract](docs/generic-types.md#attribute-subprogram-actuals).
-- [ ] **Enumeration-literal subprogram actuals.** Resolve identifier and
-  character literals as parameterless function actuals, including expanded
-  names such as `Pkg.'A'`. Complete the remaining C540001 scenario rather than
-  treating removal of its formal-derived parser rejection as a pass.
+- [x] **Enumeration-literal subprogram actuals.** Identifier and character
+  literals, including case-sensitive expanded names such as `Pkg.'A'`, bind
+  parameterless functions with explicit/named/box binding. Named defaults retain
+  declaration-site bindings; inherited result subtypes and Intrinsic convention survive nested/library
+  replay and forwarding. `genericliteral*` covers whole/per-unit/determinism
+  with four workers and invalid profiles/defaults/Access. Static related-enum
+  conversions complete unchanged C540001, now an executable PASS; the other
+  128 baseline observations are unchanged.
+  [Contract](docs/generic-types.md#enumeration-literal-subprogram-actuals).
 - [ ] **Nonstatic constraints in formal array matching.** Accept the legal
   cases where index ranges/subtypes or component subtypes statically match
   despite nonstatic bounds; preserve constraint identity and descriptors through

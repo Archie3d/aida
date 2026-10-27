@@ -87,6 +87,10 @@ bool matchesAccessFormal(Type* actual, Type* formal)
 
 bool matchesFormalProfile(Symbol* actual, Symbol* formal)
 {
+    if (actual->kind == SymbolKind::EnumerationLiteral) {
+        return formal->parameters.empty() && formal->returnType != nullptr
+            && SemaSupport::profileTypeMatches(actual->type, formal->returnType);
+    }
     if (actual->kind != SymbolKind::Subprogram || actual->parameters.size() != formal->parameters.size()
         || !SemaSupport::profileTypeMatches(actual->returnType, formal->returnType)) { return false; }
     if (formal->explicitNullExclusion && !actual->returnType->excludesNull) { return false; }
@@ -315,6 +319,8 @@ std::string Sema::nameContractKey(Expr* expr)
         name = static_cast<IdentifierExpr*>(expr)->lower;
     } else if (expr->kind == ExprKind::Selected) {
         name = static_cast<SelectedExpr*>(expr)->selectorLower;
+    } else if (expr->kind == ExprKind::CharacterLiteral) {
+        name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
     }
     return contractKey(expr->location) + ":" + std::to_string(static_cast<int>(expr->kind)) + ":" + name;
 }
@@ -438,13 +444,27 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
                 // A default name is resolved before the declaration becomes
                 // visible, so a same-named formal cannot capture its default.
-                auto defaults = formal.defaultValue != nullptr && formal.abstract
+                auto defaults = formal.defaultValue != nullptr
                     ? expressionNames(formal.defaultValue.get(), bindings) : std::vector<Symbol*> {};
                 Symbol* attributeDefault = formal.defaultValue != nullptr && formal.defaultValue->kind == ExprKind::Attribute
                     ? attributeSubprogram(static_cast<AttributeExpr*>(formal.defaultValue.get()), bindings) : nullptr;
                 declaration->spec.abstract = formal.abstract;
                 declaration->symbol = declareSubprogram(declaration->spec, bindings, false, true);
                 declaration->symbol->genericFormalSubprogram = true;
+                if (!formal.abstract && std::any_of(defaults.begin(), defaults.end(), [](Symbol* candidate) {
+                        return candidate->kind == SymbolKind::EnumerationLiteral;
+                    })) {
+                    std::vector<Symbol*> matching;
+                    for (Symbol* candidate : defaults) {
+                        if (matchesFormalProfile(candidate, declaration->symbol)) { matching.push_back(candidate); }
+                    }
+                    if (matching.size() != 1) {
+                        m_diagnostics.error(formal.location, "enumeration-literal default does not uniquely match the generic formal function profile");
+                    } else if (matching.front()->kind == SymbolKind::EnumerationLiteral) {
+                        formal.literalDefault = matching.front();
+                        recordContractName(formal.defaultValue.get(), formal.literalDefault);
+                    }
+                }
                 if (attributeDefault != nullptr && !matchesFormalProfile(attributeDefault, declaration->symbol)) {
                     m_diagnostics.error(formal.location, "attribute default does not match the generic formal subprogram profile");
                 }
@@ -1077,6 +1097,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     Symbol* wrapper = declareSubprogram(body->spec, bindings, true, true);
     if (formal.abstract) { analyzeAbstractFormalSubprogram(wrapper); }
     Symbol* abstractDefault = formal.abstractDefault != nullptr ? instanceSymbol(formal.abstractDefault) : nullptr;
+    Symbol* literalDefault = formal.literalDefault != nullptr ? instanceSymbol(formal.literalDefault) : nullptr;
     m_replayContract = savedReplay;
     m_recordContract = savedRecord;
     m_instanceFirstSymbol = savedFirst;
@@ -1093,6 +1114,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
 
     auto sameType = [](Type* a, Type* b) { return SemaSupport::profileTypeMatches(a, b); };
     auto matches = [&](Symbol* candidate) {
+        if (candidate->kind == SymbolKind::EnumerationLiteral) { return matchesFormalProfile(candidate, wrapper); }
         if (candidate->kind != SymbolKind::Subprogram || !sameType(candidate->returnType, wrapper->returnType)
             || candidate->parameters.size() != wrapper->parameters.size()) {
             return false;
@@ -1131,7 +1153,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         m_instanceFirstSymbol = previousFirst;
         if (attributeProfile == nullptr) { return false; }
     }
-    const auto actualCandidates = attributeProfile != nullptr ? std::vector<Symbol*> { attributeProfile }
+    const auto actualCandidates = namedDefault && literalDefault != nullptr ? std::vector<Symbol*> { literalDefault }
+        : attributeProfile != nullptr ? std::vector<Symbol*> { attributeProfile }
         : namedDefault && formal.abstract
         ? (abstractDefault != nullptr ? std::vector<Symbol*> { abstractDefault } : std::vector<Symbol*> {})
         : namedDefault && actual->kind == ExprKind::Selected
@@ -1142,6 +1165,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
             return false;
         }
         if (matches(candidate)) {
+            if (candidate->kind == SymbolKind::EnumerationLiteral) {
+                candidates.push_back(candidate);
+                continue;
+            }
             if (body->spec.returnType != nullptr && body->spec.returnType->nullExclusion
                 && !((candidate->genericFormalSubprogram && m_genericBodyContext) ? candidate->explicitNullExclusion : candidate->returnType->excludesNull)) {
                 m_diagnostics.error(actual->location, "generic actual result must exclude null");
@@ -1218,7 +1245,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     }
     // The formal's calling convention comes from its actual, including an
     // intrinsic null default forwarded through another generic or renaming.
-    wrapper->intrinsicRenaming = intrinsic;
+    bool enumeration = !intrinsic && candidates.front()->kind == SymbolKind::EnumerationLiteral;
+    wrapper->intrinsicRenaming = intrinsic || enumeration;
     if (!intrinsic) {
         for (Symbol* target = candidates.front(); target != nullptr; target = target->renamedSubprogram) {
             wrapper->intrinsicRenaming = wrapper->intrinsicRenaming || target->intrinsicRenaming;
@@ -1252,7 +1280,9 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     // An instance's formal subprogram takes the actual's subtypes and ABI,
     // while retaining its own parameter names and default expressions.
     if (!intrinsic) {
-        wrapper->returnType = candidates.front()->returnType;
+        // Delay the inherited literal's base result subtype until callable use:
+        // creating it at type declaration would freeze representation clauses.
+        wrapper->returnType = enumeration ? m_types.scalarBaseType(candidates.front()->type) : candidates.front()->returnType;
         for (std::size_t i = 0; i < wrapper->parameters.size(); ++i) {
             wrapper->parameters[i]->type = candidates.front()->parameters[i]->type;
             wrapper->parameters[i]->byReference = candidates.front()->parameters[i]->byReference;
@@ -1263,7 +1293,14 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     Symbol* savedSubprogram = m_currentSubprogram;
     m_currentSubprogram = wrapper;
     ExprPtr implementation;
-    if (attributeProfile != nullptr) {
+    if (enumeration) {
+        auto value = std::make_unique<IntegerLiteralExpr>();
+        value->location = actual->location;
+        value->type = wrapper->returnType;
+        value->isStatic = true;
+        value->value = value->staticValue = candidates.front()->enumerationValue;
+        implementation = std::move(value);
+    } else if (attributeProfile != nullptr) {
         auto* source = static_cast<AttributeExpr*>(actual);
         auto attribute = std::make_unique<AttributeExpr>();
         attribute->name = source->name;

@@ -337,6 +337,16 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
+        // Enumeration conversions preserve positions, including conversions
+        // between a parent enumeration and its derived types (RM 4.9).
+        if (!numeric && relatedUntagged && isDiscrete(expr->type) && operand->isStatic
+            && expr->type->scalarBoundsSymbol == nullptr) {
+            expr->isStatic = true;
+            expr->staticValue = operand->staticValue;
+            expr->staticFailure = operand->staticFailure != StaticFailure::None ? StaticFailure::Dependent
+                : operand->staticValue < expr->type->low || operand->staticValue > expr->type->high
+                    ? StaticFailure::Check : StaticFailure::None;
+        }
         if (numeric && operand->isStatic && expr->type->scalarBoundsSymbol == nullptr) {
             ExactReal exact;
             expr->isStatic = true;

@@ -857,12 +857,19 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             }
         }
 
-        for (std::size_t i = 0; i < parent->literals.size(); ++i) {
-            Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, parent->literals[i],
-                                                         parent->literals[i]);
+        std::size_t literalCount = m_types.isCharacter(parent) && parent->literals.empty() ? 256 : parent->literals.size();
+        for (std::size_t i = 0; i < literalCount; ++i) {
+            std::string name = parent->literals.empty() ? "'" + std::string(1, static_cast<char>(i)) + "'" : parent->literals[i];
+            Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, name, name);
             literal->location = definition->location;
             literal->type = type;
             literal->enumerationValue = static_cast<long long>(i);
+            for (Symbol* inherited : parent->primitives) {
+                if (inherited->kind == SymbolKind::EnumerationLiteral && inherited->name == name) {
+                    literal->inheritedFrom = inherited;
+                    break;
+                }
+            }
             if (scope == m_packageSpecScope && !m_inVisiblePart && !m_packages.empty()) {
                 literal->privatePrimitiveTo = m_packages.back();
             }

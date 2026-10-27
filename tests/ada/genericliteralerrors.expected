@@ -1,0 +1,12 @@
+genericliteralerrors.adb:16:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:17:39: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:18:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:20:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:21:35: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:22:50: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:24:9: error: enumeration-literal default does not uniquely match the generic formal function profile
+genericliteralerrors.adb:27:9: error: enumeration-literal default does not uniquely match the generic formal function profile
+genericliteralerrors.adb:31:38: error: 'Access of intrinsic subprograms is not allowed
+genericliteralerrors.adb:33:44: error: 'Access of intrinsic subprograms is not allowed
+genericliteralerrors.adb:35:32: error: constraint check fails in static expression
+genericliteralerrors.adb:37:9: error: enumeration-literal default does not uniquely match the generic formal function profile

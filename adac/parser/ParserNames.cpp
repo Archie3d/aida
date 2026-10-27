@@ -109,7 +109,7 @@ void Parser::parseClosingName(const std::string& lower, bool allowSimpleName)
 ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
 {
     while (true) {
-        if (check(TokenKind::Dot) && (peek(1).kind == TokenKind::Identifier || peek(1).kind == TokenKind::KwAll
+        if (check(TokenKind::Dot) && (peek(1).kind == TokenKind::Identifier || peek(1).kind == TokenKind::CharacterLiteral || peek(1).kind == TokenKind::KwAll
             || (peek(1).kind == TokenKind::StringLiteral && !operatorSymbol(peek(1).text).empty()))) {
             SourceLocation location = current().location;
             advance();
@@ -121,6 +121,8 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
             expr->selectorLower = selector.lower.empty() ? "all" : selector.lower;
             if (selector.kind == TokenKind::StringLiteral) {
                 expr->selectorLower = operatorSymbol(selector.text);
+            } else if (selector.kind == TokenKind::CharacterLiteral) {
+                expr->selector = expr->selectorLower = "'" + selector.text + "'";
             }
             expr->isDereference = selector.kind == TokenKind::KwAll;
             prefix = std::move(expr);

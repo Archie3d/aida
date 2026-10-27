@@ -107,6 +107,10 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
     if (expr == nullptr) {
         return {};
     }
+    if (expr->kind == ExprKind::CharacterLiteral) {
+        std::string name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
+        return contractNames(expr, scope->lookup(name));
+    }
     if (expr->kind == ExprKind::Identifier) {
         const std::string& lower = static_cast<IdentifierExpr*>(expr)->lower;
         // A Base conversion synthesizes its type mark in analyzeCall; its

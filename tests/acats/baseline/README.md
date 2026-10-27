@@ -42,7 +42,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 79 C passes, 16 legal-source rejections, eight support
+has 80 C passes, 15 legal-source rejections, eight support
 blockers and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
 adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -56,11 +56,11 @@ selection. The original 106 observations remain unchanged.
 
 Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
 C393013 now exercises the complete controlling-result/null-extension scenario
-under the ACATS label; its old frozen-rejection probe is removed. C540001's
-formal-derived parser errors are gone, but expanded character-literal names
-such as `Pkg.'A'` remain a separately owned 6g syntax gap. Its remaining exact
-diagnostics are pinned, without claiming a pass. The other 119 observations
-are unchanged.
+under the ACATS label; its old frozen-rejection probe is removed. C540001 now
+also passes unchanged after enumeration-literal actuals, expanded
+character names and static related-enumeration conversions. Its complete
+case-expression scenario runs as `acats.backfill_c540001`; the other 128
+observations remain unchanged for that increment.
 
 ## Reproduce
 
@@ -123,5 +123,5 @@ null-default syntax diagnostics; parser errors prevent semantic checking of the
 rest of the unit. It remains B_REJECTED_UNGRADED, not a legality pass. Local
 `genericnull*` tests separately execute the legal cases and check the intrinsic
 Access restriction through renaming and forwarding. All prior 128 observations
-are unchanged. The current 129-case cohort has 79 executable passes, 16 compile
-rejections, eight harness blockers and 26 ungraded B observations.
+are unchanged. At that increment the 129-case cohort had 79 executable passes,
+16 compile rejections, eight harness blockers and 26 ungraded B observations.
