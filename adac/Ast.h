@@ -100,6 +100,7 @@ struct Expr : Node
     Expr* protectedObject = nullptr; // Borrowed target of an external protected call.
     Symbol* protectedReceiver = nullptr; // Current instance for fields/internal calls.
     bool tagIndeterminate = false;
+    bool contextDeterminedTag = false; // A surrounding dispatch/assignment supplies the tag.
     std::unique_ptr<Expr> implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
     bool isStatic = false;

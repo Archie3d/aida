@@ -242,14 +242,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             bindProtectedCall(expr, chosen, object, scope);
         }
         // A renaming is another view of the same callable entity.
-        while (chosen->renamedSubprogram != nullptr) {
+        while (chosen->renamedSubprogram != nullptr && !chosen->classWideWrapper) {
             chosen = chosen->renamedSubprogram;
         }
         if (chosen->abstract) {
             m_diagnostics.error(expr->location, "an abstract subprogram cannot be the prefix of 'Access");
             return nullptr;
         }
-        if (chosen->intrinsicRenaming || (chosen->inheritedFrom != nullptr && chosen->controllingType != nullptr
+        if (chosen->classWideWrapper || chosen->intrinsicRenaming || (chosen->inheritedFrom != nullptr && chosen->controllingType != nullptr
             && !chosen->controllingType->tagged)) {
             m_diagnostics.error(expr->location, "'Access of intrinsic subprograms is not allowed");
             return nullptr;

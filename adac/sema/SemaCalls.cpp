@@ -549,6 +549,17 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                 }
             }
         }
+        // A class-wide actual supplies dispatching wrappers even though the
+        // checked template used a specific formal type. A determinate operand
+        // supplies the tag to the other, tag-indeterminate controlling operands.
+        if (chosen->classWideWrapper) {
+            for (std::size_t i = 0; i < chosen->parameters.size(); ++i) {
+                if (controllingParameterType(chosen->parameters[i]->type) == chosen->controllingType
+                    && expr->resolvedArguments[i] != nullptr && !expr->resolvedArguments[i]->tagIndeterminate) {
+                    expr->dispatching = true;
+                }
+            }
+        }
         expr->tagIndeterminate = chosen->controllingType != nullptr
             && controllingResultType(chosen->returnType) == chosen->controllingType
             && !expr->dispatching;

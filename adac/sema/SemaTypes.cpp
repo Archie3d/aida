@@ -690,7 +690,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "a limited controlled completion requires a limited private view");
             return;
         }
-        if (parent->classRoot != nullptr) {
+        if (parent->classRoot != nullptr && !(definition->formalDerived && parent->formalDerived && !parent->genericFormal)) {
             m_diagnostics.error(decl->location, "a class-wide type cannot be a derivation parent");
             return;
         }
@@ -723,6 +723,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         built->isSubtype = false;
         built->base = nullptr;
         built->formalDerived = false;
+        // A nested formal inherits the copied contract even when its enclosing
+        // formal is bound to a class-wide actual. It is still a specific formal
+        // view until matching replaces it with its own actual subtype.
+        if (definition->formalDerived) { built->classRoot = nullptr; }
         built->genericFormal = false;
         built->synchronizedFormal = definition->formalSynchronized;
         built->kind = parent->kind;

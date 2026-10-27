@@ -499,6 +499,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
 
 Type* Sema::classWideType(Type* specific)
 {
+    if (specific->classRoot != nullptr) { return specific; }
     if (specific->limitedView) {
         if (specific->classWide == nullptr) {
             Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
@@ -566,6 +567,7 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
     if (expr == nullptr || !expr->tagIndeterminate) {
         return;
     }
+    expr->contextDeterminedTag = true;
     if (expr->implicitCall != nullptr) {
         dispatchIndeterminate(expr->implicitCall.get(), controlling);
     } else if (expr->kind == ExprKind::Qualified) {
@@ -581,11 +583,13 @@ void Sema::dispatchIndeterminate(Expr* expr, Type* controlling)
         if (call->operatorExpression != nullptr) {
             dispatchIndeterminate(call->operatorExpression.get(), controlling);
         }
-        if (call->subprogram != nullptr && call->subprogram->controllingType == controlling) {
+        if (call->subprogram != nullptr && (call->subprogram->controllingType == controlling
+            || (call->subprogram->classWideWrapper
+                && call->subprogram->controllingType->classRoot == controlling))) {
             call->dispatching = true;
             for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
-                if (controllingParameterType(call->subprogram->parameters[i]->type) == controlling) {
-                    dispatchIndeterminate(call->resolvedArguments[i], controlling);
+                if (controllingParameterType(call->subprogram->parameters[i]->type) == call->subprogram->controllingType) {
+                    dispatchIndeterminate(call->resolvedArguments[i], call->subprogram->controllingType);
                 }
             }
         }

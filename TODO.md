@@ -640,11 +640,14 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   unchanged. The 128-case cohort has 79 PASS, 16 compile rejections, eight
   harness blockers and 25 ungraded B observations.
   [Contract](docs/generic-types.md#synchronized-derived-formals).
-- [ ] **Class-wide actuals for formal derived types.** Implement actual
-  matching, dispatch wrappers and the required controlling-result
-  `Program_Error` behavior, including nested/library replay. Execute unchanged
-  CC51B03 with its FC51B00 foundation; its current compile XFAIL stays recorded
-  until the whole case passes.
+- [x] **Class-wide actuals for formal derived types.** Match ancestry,
+  progenitors and definiteness; dispatch intrinsic copied operations with the
+  actual tag, including controlling access parameters and results. Constructors
+  without controlling parameters raise `Program_Error` for a statically formal
+  tag, and all calls through their renamings raise it. Nested/library replay,
+  whole/per-unit/determinism and four workers: `genericclasswide*`.
+  Unchanged CC51B03 with FC51B00 executes as PASS.
+  [Contract](docs/generic-types.md#class-wide-derived-actuals).
 - [ ] **Abstract formal subprograms.** Parse abstract formal procedure/
   function declarations, enforce controlling/profile and actual-matching rules,
   and preserve dispatching semantics through instances.

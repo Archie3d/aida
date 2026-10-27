@@ -154,7 +154,43 @@ created or invoked. `genericsynchronizederrors` isolates invalid modifiers,
 ancestry conflicts, nonsynchronized/wrong-category actuals, abstractness and
 attempts to implement a synchronized formal with an ordinary record extension.
 Concrete task/protected implementations and executing those dispatching bodies
-remain Phase 9. Class-wide derived actuals remain the next open 6g item.
+remain Phase 9.
+
+## Class-wide derived actuals
+
+A tagged derived formal with unknown discriminants accepts class-wide actual
+subtypes whose specific root descends from the ancestor and every progenitor.
+Definite formals continue to reject indefinite class-wide subtypes. Matching
+retains the actual subtype's constraints, identity and ownership; a class-wide
+root may be abstract because dispatch reaches a concrete descendant.
+
+Copied inherited operations act as intrinsic dispatch wrappers, preserving the
+formal parameter names and defaults while calling the corresponding actual
+operation. They use the existing tag checks, interface-origin mapping, lexical
+links and owned-result ABI. Controlling access parameters dispatch through the
+designated object's tag. Multiple controlling operands must have the same tag,
+otherwise `Constraint_Error` is raised. Nested formal ancestors retain their
+copied contracts when an enclosing formal is bound to a class-wide actual.
+
+For an operation with a controlling result and no controlling parameters,
+a class-wide assignment or surrounding dispatch supplies the concrete tag.
+A call whose tag would instead be statically that of the formal type raises
+`Program_Error`. Any call through a renaming of that operation raises
+`Program_Error`, including within an assignment with a concrete destination tag
+(RM 12.5.1(23.1–23.3)). Inherited operations of tagged formals with unknown
+discriminants are intrinsic already in the template (RM 6.3.1(8)); taking their
+`Access` is diagnosed without requiring an instance.
+
+`genericclasswide`, `genericclasswideinterfaces` and
+`genericclasswidelibrary_main` cover overrides, formal profile replay, abstract
+roots, reordered interface maps, anonymous controlling access parameters,
+controlling results, default arguments, tag mismatch, nested instances and
+library bodies. Each executes whole/per-unit and deterministic checks with four
+workers. `genericclasswideerrors` and `genericderivederrors` check ancestry,
+progenitors, definiteness, illegal class-wide ancestors and intrinsic access
+restrictions, with legal controls.
+Unchanged CC51B03 and its FC51B00 foundation execute the full Definite scenario
+as PASS; their former compile-XFAIL expectation is removed.
 
 ## Evidence and remaining work
 
@@ -165,21 +201,24 @@ remain Phase 9. Class-wide derived actuals remain the next open 6g item.
 `genericinterfacelibrary_main`, `genericdiscriminants`, `genericdefinite`,
 `genericdiscriminantviews`, `genericdiscriminantlibrary_main`,
 `genericsynchronized`, `genericsynchronizednested` and
-`genericsynchronizedlibrary_main` run in whole,
+`genericsynchronizedlibrary_main`, `genericclasswide`,
+`genericclasswideinterfaces` and `genericclasswidelibrary_main` run in whole,
 per-unit and deterministic modes, including four concurrent workers.
 The matching `*errors` tests cover syntax, category, contract, ancestry,
 constraints, privacy and abstractness, with legal controls.
 
 Unchanged CC1204A, CC3240A, CA2009A, CC54001–CC54004, C393013, C3A2A01,
-C640001 and C760010 execute successfully. C393013 covers the full null-extension
+C640001, C760010 and CC51B03 execute successfully. C393013 covers the full null-extension
 controlling-result scenario; C3A2A01 covers generic accessibility checks; C640001 exercises
 callbacks and redispatch; C760010 covers controlled lifetime and exception
 propagation through tagged private formals. Provenance and deferred cases are
 in the [ACATS inventory](../tests/acats/README.md).
 
-Current validation passes 1,227/1,227 tests, 14 focused compiler ASan/UBSan
-checks and three synchronized-formal scenarios in whole/per-unit modes with the
-instrumented C runtime. Unchanged B394A03–B394A05 add three ungraded ancestry
+Class-wide actual validation passes 1,238/1,238 tests. Five scenarios pass
+whole/per-unit execution with the compiler and C runtime under ASan/UBSan;
+two rejection tests and unchanged CC51B03 also pass compiler instrumentation.
+The synchronized-formal increment previously passed 14 focused compiler checks
+and three scenarios with the instrumented C runtime. Unchanged B394A03–B394A05 add three ungraded ancestry
 probes. B394A02 loses two obsolete formal-syntax parser errors; all other 124
 previous observations are unchanged. Their full sources still reject unsupported
 concurrent/private-extension constructs, so none is an upstream legality pass.
@@ -194,7 +233,7 @@ original five commitments rather than adding new feature families:
 
 | Original commitment | Remaining work within it |
 | --- | --- |
-| Formal type categories | Class-wide derived actuals (synchronized derived contracts now implemented) |
+| Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Abstract formals; null defaults; attribute and enumeration-literal actuals; nonstatic constraint matching |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
@@ -207,8 +246,8 @@ derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
 formal arrays and formal packages. Synchronized-derived contracts have since
 been implemented as described above. Access/limited-object restrictions remain
 explicit in
-`generic_object_errors`/`generic_composite_errors`; class-wide derived actuals
-remain covered by CC51B03's exact rejection. Partial package associations are
+`generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals
+now pass the full CC51B03 scenario. Partial package associations are
 part of the same missing formal-package feature.
 
 Three qualifications prevent the checklist from overstating the work:
@@ -227,9 +266,9 @@ Three qualifications prevent the checklist from overstating the work:
   while preserving template interpretation under 12.3(14). Removing all
   instantiation-time legality checking would be incorrect.
 
-CC51B03 remains an exact compile XFAIL until class-wide derived actuals include
-the RM 12.5.1 dispatch wrappers and controlling-result `Program_Error` behavior;
-its full upstream Definite scenario is not counted as a pass.
+CC51B03 now executes unchanged as PASS. Local `genericclasswide*` additionally
+checks RM 12.5.1 dispatch wrappers and controlling-result `Program_Error`
+behavior beyond the upstream Definite scenario.
 
 The same roadmap explicitly lists generic-related Phase 8 work (prefixed and
 implicit operator callable views, renaming-as-body completions and the broader

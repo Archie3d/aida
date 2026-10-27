@@ -184,5 +184,4 @@ add_acats_test(cc54004)
 # Known private discriminants and the nonstatic formal Definite attribute.
 add_acats_test(cc1204a)
 add_acats_test(cc3240a)
-add_acats_test(cc51b03 SOURCES fc51b00.ada cc51b03.ada
-    REJECTION "class-wide actuals for formal derived types are not yet supported")
+add_acats_test(cc51b03 SOURCES fc51b00.ada cc51b03.ada)

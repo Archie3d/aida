@@ -125,7 +125,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.protectedObject = expr->protectedObject;
             call.protectedReceiver = expr->protectedReceiver;
             call.type = expr->type;
-            call.dispatching = expr->tagIndeterminate && expr->type != nullptr && designatedViewType(expr->type)->classRoot != nullptr;
+            call.dispatching = symbol->classWideWrapper ? expr->contextDeterminedTag
+                : expr->tagIndeterminate && expr->type != nullptr && designatedViewType(expr->type)->classRoot != nullptr;
             call.tagIndeterminate = expr->tagIndeterminate;
             return emitCall(&call);
         }
@@ -160,7 +161,8 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             call.protectedObject = expr->protectedObject;
             call.protectedReceiver = expr->protectedReceiver;
             call.type = expr->type;
-            call.dispatching = expr->tagIndeterminate && expr->type != nullptr && designatedViewType(expr->type)->classRoot != nullptr;
+            call.dispatching = symbol->classWideWrapper ? expr->contextDeterminedTag
+                : expr->tagIndeterminate && expr->type != nullptr && designatedViewType(expr->type)->classRoot != nullptr;
             call.tagIndeterminate = expr->tagIndeterminate;
             return emitCall(&call);
         }

@@ -1,0 +1,5 @@
+genericclasswideerrors.adb:24:67: error: actual subtype does not match generic formal derived type 'T'
+genericclasswideerrors.adb:25:64: error: actual subtype does not match generic formal derived type 'T'
+genericclasswideerrors.adb:26:60: error: actual subtype does not match generic formal derived type 'T'
+genericclasswideerrors.adb:34:36: error: 'Access of intrinsic subprograms is not allowed
+genericclasswideerrors.adb:43:13: error: a class-wide type cannot be a derivation parent

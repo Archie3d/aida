@@ -528,9 +528,11 @@ membership, conversions, Constrained and selections whose formal discriminant
 name collides with an ordinary actual component. Record subtype membership
 compares the target subtype's discriminant constraints.
 
-CC51B03 and its FC51B00 foundation are also unchanged. CC51B03 remains an exact
-compile XFAIL because its full Definite scenario includes a class-wide actual
-for a formal derived type. It is not counted as an executable pass. Local
+CC51B03 and its FC51B00 foundation are also unchanged. CC51B03 now executes
+as PASS, including its class-wide actual for a formal derived type. Its former
+compile-XFAIL expectation is removed. Local `genericclasswide*` additionally
+checks dispatch wrappers, controlling-result `Program_Error`, nested/library
+replay and intrinsic-operation restrictions. Local
 `genericdefinite` covers true/false results for scalar, array, discriminated,
 defaulted, constrained and class-wide actuals; `genericdiscriminants` checks
 Definite and discriminant identities through nested instances. The attribute

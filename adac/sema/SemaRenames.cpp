@@ -250,6 +250,15 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     alias->hasBody = !alias->abstract;
+    if (chosen != nullptr && (chosen->classWideWrapper || chosen->classWideResultRenaming)) {
+        bool controllingParameters = false;
+        for (Symbol* parameter : chosen->parameters) {
+            controllingParameters = controllingParameters
+                || controllingParameterType(parameter->type) == chosen->controllingType;
+        }
+        alias->classWideResultRenaming = chosen->classWideResultRenaming
+            || (!controllingParameters && controllingResultType(chosen->returnType) == chosen->controllingType);
+    }
     alias->requiresBody = false;
     if (m_diagnostics.errorCount() != errors) {
         return;

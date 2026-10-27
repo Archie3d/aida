@@ -87,7 +87,8 @@ bool matchesAccessFormal(Type* actual, Type* formal)
 
 Symbol* formalOperationImplementation(Symbol* operation, Type* actual)
 {
-    const auto& slots = rootType(actual)->dispatchSlots;
+    Type* specific = actual->classRoot != nullptr ? actual->classRoot : actual;
+    const auto& slots = rootType(specific)->dispatchSlots;
     if (operation->interfaceOrigins.empty()) {
         return operation->dispatchSlot >= 0 && static_cast<std::size_t>(operation->dispatchSlot) < slots.size()
             ? slots[operation->dispatchSlot] : nullptr;
@@ -656,6 +657,9 @@ void Sema::analyzeFormalDerivedType(TypeDecl* decl, const GenericFormal& formal,
     }
     for (Symbol* operation : type->primitives) {
         if (operation->kind != SymbolKind::Subprogram) { continue; }
+        // RM 6.3.1(8): unknown-discriminant tagged formal operations are
+        // intrinsic even before an instance supplies a class-wide actual.
+        operation->intrinsicRenaming = parent->tagged && formal.unknownDiscriminants;
         // A nonabstract formal relies on the actual's required overrides.
         // An abstract private extension has no known null-extension full view.
         operation->abstract = formal.abstract && (operation->abstract
@@ -689,18 +693,16 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
     Type* view = definition->declaredType;
     if (view == nullptr || errors != m_diagnostics.errorCount()) { return false; }
     Type* parent = view->parentSubtype;
-    if (actual->classRoot != nullptr) {
-        m_diagnostics.error(location, "class-wide actuals for formal derived types are not yet supported");
-        return false;
-    }
+    Type* specificParent = parent != nullptr && parent->classRoot != nullptr ? parent->classRoot : parent;
+    Type* specificActual = actual->classRoot != nullptr ? actual->classRoot : actual;
     bool matches = false;
     if (formal.typeClass == FormalTypeClass::InterfaceType) {
         matches = actual->interfaceKind == formal.interfaceKind && representationVisible(actual);
     } else if (parent->interfaceKind != InterfaceKind::None) {
-        matches = taggedViewVisible(actual) && isTaggedAncestor(parent, actual);
+        matches = taggedViewVisible(actual) && isTaggedAncestor(specificParent, specificActual);
     } else {
-        Type* ancestor = baseType(actual);
-        while (ancestor != nullptr && ancestor != baseType(parent)) {
+        Type* ancestor = baseType(specificActual);
+        while (ancestor != nullptr && ancestor != baseType(specificParent)) {
             if (!ancestor->parentVisible && !representationVisible(ancestor)) {
                 ancestor = ancestor->privateAncestor;
             } else {
@@ -716,7 +718,7 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
         }
     }
     for (Type* progenitor : view->interfaces) {
-        matches = matches && isTaggedAncestor(progenitor, actual);
+        matches = matches && isTaggedAncestor(progenitor, specificActual);
     }
     if (matches && parent != nullptr && !formal.unknownDiscriminants) {
         matches = !isDefiniteSubtype(parent) || isDefiniteSubtype(actual);
@@ -765,7 +767,7 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
                 m_diagnostics.error(location, "actual type has no corresponding primitive for generic formal operation '" + operation->displayName + "'");
                 return false;
             }
-            if (!operation->abstract && implementation->abstract) {
+            if (actual->classRoot == nullptr && !operation->abstract && implementation->abstract) {
                 m_diagnostics.error(location, "actual primitive '" + operation->displayName + "' must be nonabstract for this formal "
                     + std::string(formal.typeClass == FormalTypeClass::InterfaceType ? "interface" : "derived") + " type");
                 return false;
@@ -792,14 +794,21 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
             Type* result = operation->returnType;
             Symbol* privateTo = operation->privatePrimitiveTo;
             SourceLocation operationLocation = operation->location;
+            bool intrinsic = operation->intrinsicRenaming;
             *operation = *implementation;
             operation->parameters = std::move(parameters);
             operation->returnType = result;
             operation->privatePrimitiveTo = privateTo;
             operation->location = operationLocation;
+            operation->intrinsicRenaming = intrinsic;
             operation->genericFormalOrigin = origin;
             operation->inheritedFrom = nullptr;
             operation->renamedSubprogram = implementation;
+            operation->classWideWrapper = actual->classRoot != nullptr;
+            if (operation->classWideWrapper) {
+                operation->abstract = false;
+                operation->controllingType = rootType(actual);
+            }
         }
         bindings->add(operation);
     }

@@ -27,6 +27,38 @@ Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
+    if (subprogram->classWideWrapper || subprogram->classWideResultRenaming) {
+        Symbol* target = subprogram;
+        while (!target->classWideWrapper && target->renamedSubprogram != nullptr) {
+            target = target->renamedSubprogram;
+        }
+        bool controllingParameters = false;
+        for (Symbol* parameter : target->parameters) {
+            controllingParameters = controllingParameters
+                || controllingParameterType(parameter->type) == target->controllingType;
+        }
+        auto arguments = expr->resolvedArguments;
+        arguments.resize(subprogram->parameters.size(), nullptr);
+        for (std::size_t i = 0; i < arguments.size(); ++i) {
+            if (arguments[i] == nullptr) { arguments[i] = subprogram->parameters[i]->defaultExpr; }
+        }
+        if (subprogram->classWideResultRenaming || (!controllingParameters
+            && (!expr->dispatching || m_context->controllingTag.empty()))) {
+            for (Expr* argument : arguments) {
+                if (argument != nullptr) { emitExpr(argument); }
+            }
+            emitCallInstruction("call $__ada_raise(l $__ada_exc_program_error)", CallEffects::CheckException);
+            return Value { "0", 'l' };
+        }
+        CallExpr dispatch;
+        dispatch.location = expr->location;
+        dispatch.form = CallForm::Subprogram;
+        dispatch.subprogram = target->renamedSubprogram;
+        dispatch.type = expr->type;
+        dispatch.dispatching = true;
+        dispatch.resolvedArguments = std::move(arguments);
+        return emitCall(&dispatch);
+    }
     if (expr->indirect && expr->callee != nullptr && expr->callee->type->accessConventionC) {
         Value code = emitExpr(expr->callee.get());
         checkNotNull(code);

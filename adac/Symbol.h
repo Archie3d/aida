@@ -98,6 +98,8 @@ struct Symbol
     // An inherited operation uses its own profile and the original implementation.
     Symbol* inheritedFrom = nullptr;
     Symbol* genericFormalOrigin = nullptr; // Ancestor operation represented by a formal-derived view.
+    bool classWideWrapper = false; // Intrinsic dispatching view for a class-wide generic actual.
+    bool classWideResultRenaming = false;
     Symbol* privatePrimitiveTo = nullptr;
     bool overrides = false;
     Type* controllingType = nullptr;
