@@ -2,7 +2,7 @@
 
 import importlib.util
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -35,6 +35,35 @@ class ObservationTests(unittest.TestCase):
     def testCompleteReportPasses(self):
         value = self.observe([commandResult(), commandResult(out="TEST PROBE\nPASSED\n")])
         self.assertEqual(value["outcome"], "PASS")
+
+    def testWindowsDiagnosticPathsNormalizeWithoutChangingMessages(self):
+        root = PureWindowsPath("C:/prj with spaces/aida/tests/acats/baseline")
+        directory = root.parents[2] / "build/probes/attempt-1"
+        paths = [(root / "upstream/tests/bc/bc60001.a", "<upstream>/tests/bc/bc60001.a"),
+                 (root.parent / "support/report.ads", "<support>/report.ads"),
+                 (directory / "test.ssa", "<work>/test.ssa"),
+                 (root.parents[2] / "adac/main.cpp", "<repo>/adac/main.cpp")]
+        message = r":4:2: error: expected '\n' and '\t'"
+        with patch.object(runner, "kRoot", root):
+            for path, expected in paths:
+                for spelling in (str(path), path.as_posix(), str(path.parent) + "/" + path.name,
+                                 str(path).replace("C:", "c:")):
+                    with self.subTest(spelling=spelling):
+                        self.assertEqual(runner.normalize(spelling + message + "\r\n", directory),
+                                         expected + message + "\n")
+
+    def testDriftShowsDiagnosticAndExitDifferences(self):
+        recorded = {"outcome": "B_REJECTED_UNGRADED", "compile_exit": 1,
+                    "compile_stderr": "<upstream>/probe.ada:4:2: error: illegal\n"}
+        observed = dict(recorded, compile_exit=2,
+                        compile_stderr="C:\\prj\\aida\\probe.ada:4:2: error: illegal\n")
+        difference = runner.observationDiff(recorded, observed)
+        self.assertIn("--- recorded/compile_stderr", difference)
+        self.assertIn("-<upstream>/probe.ada:4:2: error: illegal", difference)
+        self.assertIn("+C:\\prj\\aida\\probe.ada:4:2: error: illegal", difference)
+        self.assertIn("--- recorded/compile_exit", difference)
+        self.assertNotIn("outcome", difference)
+        self.assertEqual(runner.observationDiff(recorded, recorded), "")
 
     def testZeroExitWithoutResultDoesNotPass(self):
         for output in ["", "TEST PROBE\n", "TEST WRONG\nPASSED\n", "TEST PROBE\nFAILED bad\n"]:

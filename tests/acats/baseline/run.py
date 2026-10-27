@@ -4,6 +4,7 @@
 import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+import difflib
 import hashlib
 import json
 import os
@@ -90,8 +91,28 @@ def normalize(value, directory):
                      (str(kRoot.parent / "support"), "<support>"),
                      (str(kRoot.parents[2]), "<repo>")]
     for source, target in substitutions:
-        value = value.replace(source, target)
+        # Python and compiler paths may use different or mixed separators on
+        # Windows. Canonicalize only recognized paths, not diagnostic text
+        # containing meaningful backslash escapes.
+        pattern = re.escape(source.replace("\\", "/")).replace("/", r"[\\/]")
+        pattern += r"(?P<suffix>(?:[\\/][^\s:'\"<>\\/]*)*)"
+        flags = re.IGNORECASE if re.match(r"^[A-Za-z]:", source) else 0
+        value = re.sub(pattern, lambda match: target + match["suffix"].replace("\\", "/"), value, flags=flags)
     return value.replace("\r\n", "\n")
+
+
+def observationDiff(recorded, observed):
+    lines = []
+    for field in sorted(recorded.keys() | observed.keys()):
+        if field in recorded and field in observed and recorded[field] == observed[field]:
+            continue
+        before = recorded.get(field, "<missing>")
+        after = observed.get(field, "<missing>")
+        before = before if isinstance(before, str) else json.dumps(before)
+        after = after if isinstance(after, str) else json.dumps(after)
+        lines.extend(difflib.unified_diff(before.splitlines(), after.splitlines(),
+                     fromfile=f"recorded/{field}", tofile=f"observed/{field}", lineterm=""))
+    return "\n".join(lines)
 
 
 def abnormal(result):
@@ -225,6 +246,7 @@ def main():
         drift = [name for name, result in results.items() if result != expected["cases"][name]]
         for name in drift:
             print(f"DRIFT {name}: recorded {expected['cases'][name]['outcome']}, observed {results[name]['outcome']}")
+            print(observationDiff(expected["cases"][name], results[name]))
         print("Snapshot " + ("changed" if drift else "unchanged") + "; unchanged failures are not ACATS passes.")
     critical = [name for name, result in results.items() if result["outcome"] in kCritical]
     if critical:

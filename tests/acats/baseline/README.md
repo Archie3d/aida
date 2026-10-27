@@ -68,10 +68,13 @@ Git attributes disable line-ending conversion for vendored ACATS sources so
 the original-byte hashes also validate on Windows with `core.autocrlf=true`.
 For an existing checkout that already converted these files to CRLF, first
 preserve any local edits to the vendored sources, then restore their exact
-tracked bytes from an MSys2 shell after obtaining the updated `.gitattributes`:
+committed bytes from an MSys2 shell after obtaining the updated `.gitattributes`.
+Extracting an archive bypasses checkout line-ending conversion and Git's cached
+working-tree status:
 
 ```sh
-git ls-files -z tests/acats/upstream tests/acats/baseline/upstream | git checkout-index --force -z --stdin
+git archive HEAD tests/acats/upstream tests/acats/baseline/upstream | tar -x
+python -B tests/acats/baseline/run.py --validate
 ```
 
 Python 3.9+ and the built compiler/toolchain are required. From the repo root:
@@ -84,6 +87,10 @@ cmake --build build --target acats_baseline
 `--check` checks **snapshot stability**, including recorded failures. A zero
 exit status means the observation matches, not that all cases passed ACATS.
 Any changed result, including an improvement, requires review of the snapshot.
+Drift output includes a diff of each changed field, including compiler
+diagnostics. Known source/work paths normalize Windows separators as well as
+host-specific prefixes; diagnostic message text and rejection details still
+compare exactly.
 `--observe` writes a fresh `results.json` and per-case `observation.json` files
 under `--work` without changing the committed snapshot. `--record` replaces
 the complete snapshot and should be used only after reviewing changed results.
