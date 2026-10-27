@@ -64,6 +64,16 @@ observations remain unchanged for that increment.
 
 ## Reproduce
 
+Git attributes disable line-ending conversion for vendored ACATS sources so
+the original-byte hashes also validate on Windows with `core.autocrlf=true`.
+For an existing checkout that already converted these files to CRLF, first
+preserve any local edits to the vendored sources, then restore their exact
+tracked bytes from an MSys2 shell after obtaining the updated `.gitattributes`:
+
+```sh
+git ls-files -z tests/acats/upstream tests/acats/baseline/upstream | git checkout-index --force -z --stdin
+```
+
 Python 3.9+ and the built compiler/toolchain are required. From the repo root:
 
 ```sh

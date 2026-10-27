@@ -1,0 +1,4 @@
+# Vendored ACATS sources have byte-for-byte upstream provenance and hashes.
+# Preserve their original line endings, including with core.autocrlf=true.
+/tests/acats/upstream/** -text
+/tests/acats/baseline/upstream/** -text
