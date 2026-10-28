@@ -1,9 +1,0 @@
-c3a0020.ada:430:34: error: access generic formal objects are not yet supported
-c3a0020.ada:447:13: error: 'Inst_1' is not declared
-c3a0020.ada:447:19: error: 'User' is not a component of a record
-c3a0020.ada:455:42: error: access generic formal objects are not yet supported
-c3a0020.ada:458:13: error: 'Inst_2' is not declared
-c3a0020.ada:458:19: error: 'User' is not a component of a record
-c3a0020.ada:466:42: error: access generic formal objects are not yet supported
-c3a0020.ada:468:13: error: 'Inst_3' is not declared
-c3a0020.ada:468:19: error: 'User' is not a component of a record

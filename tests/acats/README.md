@@ -256,10 +256,13 @@ example and independent grouped type/bound/initializer semantics are covered by
 
 Imported unchanged from [simonjwright/ACATS](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
 revision `2785c30c1f8577d97ac7b3043882f6818781e9c5` (the GCC snapshot above predates these Ada 2005 tests).
-C3A0030 executes as PASS. C3A0020 is a compile XFAIL for generic access
-objects (6g); C3A0025 remains blocked by the same formal-object category.
-Its limited-record prerequisite landed in 6e.
-Their exact diagnostics are pinned; no upstream bodies are changed.
+C3A0030, C3A0020 and C3A0025 execute as PASS. Phase 6g access formal objects
+completed the last two scenarios; their old exact rejection snapshots are
+retired. C3A0025's limited-record prerequisite landed in 6e. No upstream bodies
+are changed. Local `genericaccessobjects`, `genericanonymousobjects`,
+`genericaccesscallbacks`, `genericaccesslifetime` and
+`genericaccessobjectlibrary_main` add copy/reference identity, strict matching,
+defaults, collection cleanup and nested/library replay coverage.
 
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |
@@ -407,8 +410,8 @@ was selected on 2026-10-25 from the same pinned ACATS snapshot and stored as
 `c650003.ada`, retaining all rights/disclaimers. It executes as PASS, checking
 limited-record constructors, generic constructors, normal/early extended
 returns and abandoning returns by exit, goto and exception (RM 6.5, 7.5).
-CA120012 also executes as PASS unchanged. C3A0025 remains an exact compile
-XFAIL for generic access objects; its old limited-record diagnostic is removed.
+CA120012 also executes as PASS unchanged. C3A0025 now executes unchanged as
+PASS after Phase 6g access formal objects completed its generic prerequisite.
 
 C650A02/C650B01–C650B03 were assessed and excluded: their sources identify
 Ada 2012-specific extended-return coverage; they are not Ada 2005 pass evidence.

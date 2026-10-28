@@ -167,6 +167,7 @@ private:
                                Type*& actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);
     bool associateGenericActuals(GenericInstantiationDecl* decl, Symbol* generic, std::vector<Expr*>& actuals);
+    bool checkGenericAccessObject(const GenericFormal& formal, Expr* actual, Type* type, Type* actualType);
     bool bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
                            Expr* supplied, Scope* bindings, Scope* scope, std::size_t firstSymbol);
     void applyGenericUses(GenericDecl* generic, std::size_t beforeFormal, Scope* scope, DeclList& owned);

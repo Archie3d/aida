@@ -16,10 +16,10 @@ through the designated object's tag and implicitly exclude null.
 This extends the [named general-access contract](general-access.md).
 [Null exclusions](null-exclusions.md) cover named and anonymous definitions.
 [Imported and inherited tagged callbacks](subprogram-access.md) extend the
-same callback and call machinery. The existing restrictions on
-limited/tagged definitions (6f), generic formal objects/types (6g), and task/
-protected discriminants and named protected callback types (9) still apply and
-produce diagnostics. Anonymous access definitions require subtype marks;
+same callback and call machinery. Phase 6g supports
+[access formal objects](generic-types.md#access-formal-objects) and access type
+formals. Unsupported actual types, task/protected discriminants and named
+protected callback types (9) still produce diagnostics. Anonymous access definitions require subtype marks;
 constraints belong on a named designated subtype. They cannot specify `all`.
 
 ## Accessibility and ABI

@@ -71,8 +71,8 @@ accesses are not instrumented.
 
 Unchanged Ada 2005 ACATS C650003 passes limited/generic extended returns and
 simple return/exit/goto/exception transfers. CA120012 now passes its limited
-record declarations unchanged. C3A0025 remains a pinned generic-access-object
-compile XFAIL; its former limited-record diagnostic is removed.
+record declarations unchanged. C3A0025 now executes unchanged as PASS after
+Phase 6g access formal objects completed its generic prerequisite.
 
 Task/protected aggregates and function results remain explicitly diagnosed.
 Phase 9 must add caller-master adoption and delayed activation for task-valued

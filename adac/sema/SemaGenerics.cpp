@@ -598,12 +598,16 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
             symbol->location = formal.location;
             symbol->isConstant = formal.mode == ParameterMode::In;
             symbol->genericObject = true;
+            symbol->explicitNullExclusion = formal.subtype->nullExclusion;
+            symbol->accessibilityLevel = m_accessibilityLevel;
             // Formal values are unknown while checking the contract. Symbolic
             // layouts are retained here and resolved when instantiating.
             if (formal.defaultValue) {
                 Type* value = analyzeExpr(formal.defaultValue.get(), bindings, type);
                 if (!typesCompatible(type, value)) {
                     m_diagnostics.error(formal.location, "generic formal object default has an incompatible type");
+                } else {
+                    checkGenericAccessObject(formal, formal.defaultValue.get(), type, value);
                 }
             }
             bindings->add(symbol);
@@ -1486,6 +1490,43 @@ bool Sema::associateGenericActuals(GenericInstantiationDecl* decl, Symbol* gener
     return true;
 }
 
+bool Sema::checkGenericAccessObject(const GenericFormal& formal, Expr* actual, Type* type, Type* actualType)
+{
+    if (type == nullptr || actualType == nullptr) { return false; }
+    bool reference = formal.mode == ParameterMode::InOut;
+    if (type->kind == TypeKind::Access) {
+        // RM 12.4: anonymous formal objects require exact designated subtype
+        // and constant-view matching, unlike ordinary access initialization.
+        if (type->anonymousAccess && actual->kind != ExprKind::Null) {
+            bool matches = actualType->kind == TypeKind::Access
+                && (!reference || actualType->anonymousAccess)
+                && type->accessConstant == actualType->accessConstant
+                && type->accessProtected == actualType->accessProtected
+                && type->accessConventionC == actualType->accessConventionC;
+            if (matches) {
+                matches = type->accessProfile != nullptr
+                    ? actualType->accessProfile != nullptr && matchesAccessProfile(actualType->accessProfile, type)
+                    : actualType->accessProfile == nullptr && staticallyMatches(actualType->target, type->target);
+            }
+            if (!matches) {
+                m_diagnostics.error(actual->location, "actual access type does not match anonymous generic formal object '" + formal.name + "'");
+                return false;
+            }
+        }
+        if (reference && formal.subtype->nullExclusion) {
+            Symbol* entity = actual->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(actual)->symbol
+                : actual->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(actual)->symbol : nullptr;
+            bool excludesNull = entity != nullptr && entity->genericObject && m_genericBodyContext
+                ? entity->explicitNullExclusion : actualType->excludesNull;
+            if (!excludesNull) {
+                m_diagnostics.error(actual->location, "a null-excluding generic in out object requires an actual that excludes null");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
                               Expr* supplied, Scope* bindings, Scope* scope, std::size_t firstSymbol)
 {
@@ -1629,11 +1670,8 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
     if (type == nullptr || actualType == nullptr) {
         return false;
     }
-    if (type->kind == TypeKind::Access) {
-        m_diagnostics.error(actual->location, "access generic formal objects are not yet supported");
-        return false;
-    }
     bool reference = formal.mode == ParameterMode::InOut;
+    if (!checkGenericAccessObject(formal, actual, type, actualType)) { return false; }
     if (reference) {
         m_sharedGenericActuals.push_back({actual, type});
         int errors = m_diagnostics.errorCount();
@@ -1666,6 +1704,8 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
     symbol->isConstant = !reference;
     symbol->objectReference = reference;
     symbol->genericObject = true;
+    symbol->explicitNullExclusion = object->subtype->nullExclusion;
+    symbol->accessibilityLevel = m_accessibilityLevel;
     symbol->genericActualExpression = actual;
     symbol->sharedAlias = reference ? actual : nullptr;
     symbol->owner = m_currentSubprogram;

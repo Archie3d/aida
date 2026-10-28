@@ -34,10 +34,12 @@ parameters/results to exclude null. A generic formal subprogram forwarded as
 an actual within a generic body must have an explicit exclusion for the
 corresponding promise.
 Instance wrappers preserve the actual's exclusion even when the formal's
-named subtype differs. Generic access objects and formal access types remain
-unsupported until 6g, with diagnostics; their null-exclusion scenarios are
-not claimed as implemented. Existing limited/tagged/discriminant restrictions
-also remain in force.
+named subtype differs. Phase 6g also supports formal access types and
+[access formal objects](generic-types.md#access-formal-objects). Explicit
+null-excluding `in out` objects require null-excluding actuals, with an explicit
+promise on forwarded generic formals in bodies; `in` objects retain checked
+initialization for nullable actuals/defaults (AI12-0287-1 correction).
+Existing restrictions on unsupported actual types remain in force.
 
 `nullexclusions`, `nullexclusionerrors`, `nullexclusiongenericerrors` and
 `nullexclusionsyntaxerrors` and `nullexclusiontasking` cover successful values, default initialization,
@@ -47,9 +49,8 @@ failed copy-back. Executable cases run whole/separate compilation and
 determinism checks; four workers exercise concurrent failures.
 
 Unchanged ACATS C3A0030 passes (nullable and excluded access discriminants).
-C3A0020 and C3A0025 are pinned compile XFAILs for generic access objects
-(6g); C3A0025's limited-record prerequisite landed in 6e. These XFAILs do not claim execution
-of their runtime scenarios. B-test protocol remains a Phase 8 harness gap.
+C3A0020 and C3A0025 now pass unchanged in full, including their generic
+access-object scenarios (6g); C3A0025's limited-record prerequisite landed in 6e. B-test protocol remains a Phase 8 harness gap.
 
 Normative references: [RM 3.10](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-10.html),
 [RM 6.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-3-1.html),

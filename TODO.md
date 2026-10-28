@@ -367,8 +367,8 @@ formals, protected callback types and foreign ABI work retain their later owners
   6f/6g/9. [Contract](docs/anonymous-access.md).
 - [x] Null exclusions (`not null`): profile conformance, initialization,
   conversions, generic subprogram matching and runtime checks
-  (`nullexclusion*`, ACATS C3A0030 PASS; C3A0020/C3A0025 compile XFAIL for
-  6g access objects; limited records landed in 6e). [Contract](docs/null-exclusions.md).
+  (`nullexclusion*`, ACATS C3A0030 PASS; C3A0020/C3A0025 now PASS after
+  6g access formal objects; limited records landed in 6e). [Contract](docs/null-exclusions.md).
 - [x] `'Access` of imported Ada/C subprograms and inherited tagged operations,
   with calling-convention checks, native C callbacks, inherited entries and
   result tags (`importedcallback*`, `inheritedcallback*`, `callbackextension*`;
@@ -432,8 +432,8 @@ cases (C59002A, C761002, part of C3A0013); take them next.
   subtypes/completion/derivation, identity, constraints, accessibility and
   master/cleanup paths (`extendedreturns`, `limitedresults`, `returncleanup`,
   whole/per-unit/determinism and four workers; `semantics.returns`,
-  `runtime.array_storage`). ACATS C650003/CA120012 PASS; C3A0025 remains a
-  generic-access-object XFAIL. Task/protected aggregates/results remain
+  `runtime.array_storage`). ACATS C650003/CA120012 PASS; C3A0025 now PASS
+  after 6g access formal objects. Task/protected aggregates/results remain
   diagnosed for Phase 9. [Contract](docs/returns.md).
 
 ### 6f-prelude. ACATS gaps in supported features
@@ -717,11 +717,22 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   compiler/C-runtime ASan/UBSan checks. All 1,333 tests pass and all 129 baseline
   observations remain unchanged; no new partial-specific ACATS PASS is claimed.
   [Contract](docs/generic-types.md#partial-formal-package-actual-lists-and-boxes).
-- [ ] **Access formal objects.** Support permitted named/anonymous access
-  formal object declarations and actuals, including mode, null exclusion,
-  accessibility, lifetime and aliasing checks. Named access *type* formals above
-  do not close this item; retain the C3A0020/C3A0025 rejection evidence until
-  their complete scenarios execute.
+- [x] **Access formal objects.** Named/anonymous object and callback access
+  formals support `in` copies, `in out` aliases, defaults, strict designated
+  subtype/profile/constant-view matching, null exclusions and existing
+  accessibility checks. Anonymous `in out` requires an anonymous actual;
+  explicit exclusions retain forwarding checks. Checked `in` initialization
+  follows the documented AI12-0287-1 correction. Collection cleanup covers
+  normal/exceptional completion and failure of later actuals; nested/library
+  replay retains identity and single evaluation. Five scenarios pass
+  whole/per-unit/determinism with four workers; the rejection test diagnoses
+  invalid actuals/defaults and uninstantiated escaping/forwarding contracts.
+  ACATS C3A0020/C3A0025 execute unchanged as PASS; old rejection snapshots
+  retired. All 1,349 tests pass; all 129 baseline observations stay unchanged.
+  Compiler/C-runtime ASan/UBSan checks pass the five whole/per-unit scenarios,
+  rejection test and both ACATS executions (generated Ada accesses remain
+  uninstrumented; LeakSanitizer unavailable).
+  [Contract](docs/generic-types.md#access-formal-objects).
 - [ ] **Limited `in` formal objects.** Build permitted limited actual
   expressions in place; preserve identity, lifetime, finalization and exception
   cleanup. Library-level runtime-bound array objects already landed in 6b.

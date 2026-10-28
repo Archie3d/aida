@@ -760,9 +760,12 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         } else if (expr->value != nullptr) {
             assignInto(object, designated, expr->value.get(), true);
         } else {
-            // For an elementary allocator, the created object's nominal
-            // subtype is the access type's designated subtype (RM 4.8).
-            emitDefaultInit(object, designated->kind == TypeKind::Access ? expr->type->target : designated);
+            // The allocator's subtype indication can itself exclude null,
+            // even when the expected access type designates a nullable subtype.
+            emitDefaultInit(object, designated);
+        }
+        if (designated->kind == TypeKind::Access && expr->type->target->excludesNull) {
+            checkNotNull(loadFrom(object, designated));
         }
         m_context->taskCollection = savedTaskCollection;
         m_context->taskGroup = savedTaskGroup;

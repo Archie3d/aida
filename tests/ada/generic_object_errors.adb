@@ -37,7 +37,7 @@ procedure Generic_Object_Errors is
     package Access_Object is
     end Access_Object;
     Pointer : Integer_Access;
-    package Unsupported is new Access_Object (Pointer);
+    package Supported is new Access_Object (Pointer);
 begin
     null;
 end Generic_Object_Errors;

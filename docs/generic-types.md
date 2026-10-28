@@ -71,6 +71,54 @@ Contract violations such as writing through access-to-constant, arithmetic on a
 private designated object or an invalid callback call are rejected even without
 an instantiation.
 
+## Access formal objects
+
+Named and anonymous access-to-object and access-to-subprogram formal objects
+support modes `in` and `in out`, defaults for `in`, and null exclusions. An `in`
+formal is a constant initialized once at instance elaboration: it copies the
+access value, including callback closure and accessibility metadata, and retains
+the designated object's identity. An `in out` formal aliases the actual access
+object; assigning a new access value changes that object. Repeated actuals keep
+their aliases, and indexed actual names are evaluated once.
+
+Named formals require the same access type. Anonymous formals require statically
+matching designated subtypes and identical access-to-constant properties, or
+subtype-conformant designated subprogram profiles and matching conventions.
+Unlike ordinary anonymous access initialization, an anonymous formal object
+cannot accept a variable-access object as a constant-access actual. An anonymous
+`in out` formal additionally requires an anonymous access object actual. Null,
+constants and expressions cannot serve as variable actuals.
+
+An explicit null exclusion on an `in out` formal requires an actual whose subtype
+excludes null; forwarding another generic formal in a generic body requires its
+explicit exclusion. Mode `in` performs a checked initialization, including for
+nullable actuals and defaults. This uses the correction in
+[AI12-0287-1](https://www.adaic.org/resources/add_content/standards/22aarm/html/AA-12-4.html),
+which limits the static null-exclusion matching rule to mode `in out`; the
+original [Ada 2005 RM 12.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-4.html)
+wording imposed it on both modes. The existing unchanged C3A0025 scenario
+requires the checked `in` behavior. A named null-excluding subtype also retains
+its initialization check when used as a formal without an explicit exclusion.
+
+Existing object/subprogram accessibility checks apply to the actual and to uses
+inside the template. Borrowed access parameters may feed an instance within the
+call; a deeper designation cannot escape into an enclosing anonymous access
+object. Anonymous allocator collections belong to the instance's enclosing master and clean up
+controlled designations after normal completion, exceptions and failure of a
+later actual. Defaults replay declaration-site resolution, including through
+nested and separate library generic bodies.
+
+`genericaccessobjects`, `genericanonymousobjects`, `genericaccesscallbacks`,
+`genericaccesslifetime` and `genericaccessobjectlibrary_main` execute whole/per-unit
+and determinism checks with four workers. `genericaccessobjecterrors` checks
+variable views, named/anonymous distinctions, designated subtype/profile
+mismatches, defaults, null exclusions and invalid escaping/forwarding contracts
+without an instance. Unchanged ACATS C3A0020 and C3A0025 now execute as PASS;
+the old rejection snapshots are retired. Compiler/C-runtime ASan/UBSan checks
+cover all five scenarios in whole/per-unit modes, the rejection test and both
+ACATS executions. Generated QBE memory accesses remain uninstrumented;
+LeakSanitizer is unavailable in this environment.
+
 ## Derived and tagged formals
 
 Formal derived declarations support existing scalar, array, record and named
@@ -566,9 +614,8 @@ rejection tests and seven small compiler probes. At that audit the probes confir
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
 formal arrays and formal packages. Synchronized-derived contracts, abstract formals,
 null defaults, attribute/literal actuals, nonstatic formal-array matching and core formal packages have since been implemented
-as described above. Access/limited-object restrictions remain
-explicit in
-`generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals
+as described above. Access formal objects are now implemented; limited-object
+restrictions remain explicit in `generic_composite_errors`. Class-wide derived actuals
 now pass the full CC51B03 scenario. Partial package associations and boxes are now implemented as described above.
 
 Three qualifications prevent the checklist from overstating the work:
@@ -603,6 +650,5 @@ implicit operator callable views, renaming-as-body completions and the broader
 legality/staticness audit) and Phase 9 dependencies (concurrent implementations,
 protected-operation actuals, named protected callbacks and task/protected
 features). Existing limits on derivation before private completion and
-composites still apply. Generic access objects and limited `in` objects remain
-diagnosed. The predefined Unchecked_Deallocation compatibility contract is
+composites still apply. Limited `in` objects remain diagnosed. The predefined Unchecked_Deallocation compatibility contract is
 unchanged.
