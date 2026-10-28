@@ -78,8 +78,9 @@ Task/protected aggregates and function results remain explicitly diagnosed.
 Phase 9 must add caller-master adoption and delayed activation for task-valued
 results, and the corresponding protected lifecycle work. Phase 6f retains
 private extensions, tagged discriminants, runtime-sized tagged layouts and
-limited current-instance access in defaults. Phase 6g retains limited generic
-formal-object initialization and the remaining formal-type categories.
+limited current-instance access in defaults. Phase 6g now reuses these paths
+for [limited `in` formal objects](generic-types.md#limited-in-formal-objects);
+the final generic contract-checking audit remains open.
 The existing unsupported type/layout restrictions also apply here.
 
 Normative references: [RM 6.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-5.html),

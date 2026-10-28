@@ -802,7 +802,7 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
         emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::DeferredCheck);
         emitCallInstruction(m_context->constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::DeferredCheck);
     }
-    if (!needsFinalization(type) && symbol->genericObject && type->kind == TypeKind::Array
+    if (!needsFinalization(type) && !hasLimitedParts(type) && symbol->genericObject && type->kind == TypeKind::Array
         && initializer->kind != ExprKind::Aggregate) {
         Value source = emitExpr(initializer);
         Value target = withBounds(address, type, nullptr);

@@ -142,26 +142,6 @@ Symbol* formalOperationImplementation(Symbol* operation, Type* actual)
     return implementation;
 }
 
-// Copying a limited object requires build-in-place support, even when it is
-// hidden in an array or record. References do not copy these components.
-bool hasLimitedComponents(Type* type)
-{
-    if (type->isLimited) {
-        return true;
-    }
-    if (type->kind == TypeKind::Array) {
-        return hasLimitedComponents(type->element);
-    }
-    if (type->kind == TypeKind::Record) {
-        for (const FieldInfo& field : type->fields) {
-            if (hasLimitedComponents(field.type)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 // Restrict reference actuals to object names; calls can also denote indexed
 // components, whose prefix must itself be a variable.
 bool isGenericVariable(Expr* expr)
@@ -607,7 +587,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 if (!typesCompatible(type, value)) {
                     m_diagnostics.error(formal.location, "generic formal object default has an incompatible type");
                 } else {
-                    checkGenericAccessObject(formal, formal.defaultValue.get(), type, value);
+                    checkGenericObjectActual(formal, formal.defaultValue.get(), type, value);
                 }
             }
             bindings->add(symbol);
@@ -1490,10 +1470,20 @@ bool Sema::associateGenericActuals(GenericInstantiationDecl* decl, Symbol* gener
     return true;
 }
 
-bool Sema::checkGenericAccessObject(const GenericFormal& formal, Expr* actual, Type* type, Type* actualType)
+bool Sema::checkGenericObjectActual(const GenericFormal& formal, Expr* actual, Type* type, Type* actualType)
 {
     if (type == nullptr || actualType == nullptr) { return false; }
     bool reference = formal.mode == ParameterMode::InOut;
+    if (!reference) {
+        if (hasTasks(type) || hasProtected(type)) {
+            m_diagnostics.error(actual->location, "generic in objects containing task or protected parts are not yet supported");
+            return false;
+        }
+        if ((limitedView(type) || limitedView(actualType)) && !buildsLimitedResult(actual)) {
+            m_diagnostics.error(actual->location, "a limited generic in object requires an aggregate or function call");
+            return false;
+        }
+    }
     if (type->kind == TypeKind::Access) {
         // RM 12.4: anonymous formal objects require exact designated subtype
         // and constant-view matching, unlike ordinary access initialization.
@@ -1671,7 +1661,7 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
         return false;
     }
     bool reference = formal.mode == ParameterMode::InOut;
-    if (!checkGenericAccessObject(formal, actual, type, actualType)) { return false; }
+    if (!checkGenericObjectActual(formal, actual, type, actualType)) { return false; }
     if (reference) {
         m_sharedGenericActuals.push_back({actual, type});
         int errors = m_diagnostics.errorCount();
@@ -1686,15 +1676,11 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
         // A formal in out is a view of the actual, including its bounds.
         type = actualType;
     } else {
-        if (hasLimitedComponents(type)) {
-            m_diagnostics.error(actual->location, "limited generic in objects require build-in-place initialization, which is not yet supported");
-            return false;
-        }
         SemaSupport::adaptUniversal(actual, type);
         // An unconstrained constant acquires its bounds/discriminants from
         // its initializer. A dynamic array keeps its per-object descriptor.
         if ((type->kind == TypeKind::Array && !type->constrained && type->boundsSymbol == nullptr)
-            || (type->kind == TypeKind::Record && !hasKnownDiscriminants(type))) {
+            || (type->kind == TypeKind::Record && type->classRoot == nullptr && !hasKnownDiscriminants(type))) {
             type = actualType;
         }
     }
@@ -1703,6 +1689,7 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
     symbol->location = formal.location;
     symbol->isConstant = !reference;
     symbol->objectReference = reference;
+    symbol->classWideObject = !reference && type->classRoot != nullptr;
     symbol->genericObject = true;
     symbol->explicitNullExclusion = object->subtype->nullExclusion;
     symbol->accessibilityLevel = m_accessibilityLevel;

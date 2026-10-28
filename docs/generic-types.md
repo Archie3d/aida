@@ -119,6 +119,53 @@ cover all five scenarios in whole/per-unit modes, the rejection test and both
 ACATS executions. Generated QBE memory accesses remain uninstrumented;
 LeakSanitizer is unavailable in this environment.
 
+## Limited `in` formal objects
+
+Limited `in` formals accept aggregates and function calls, including defaults,
+qualified/parenthesized expressions and calls through formal subprograms.
+Existing limited object names, dereferences, selections and slices cannot be
+copied into a new formal object. The same restrictions apply to aggregate
+components and ancestor parts, including components whose types are limited
+private formals. Invalid defaults are diagnosed without an instantiation.
+These are the initialization rules in
+[Ada 2005 RM 7.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-7-5.html)
+and [RM 12.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-4.html).
+Limitedness depends on the visible view: a limited private type's nonlimited
+full view still permits copying inside its defining package and private children.
+A limited-private type formal can also bind a nonlimited actual, whose object
+actuals then follow the ordinary nonlimited initialization rules.
+
+Instance formals use the existing object-declaration construction paths, so
+limited aggregates and results are built at their final addresses. No generic
+array copy shortcut is used for limited components. Constrained arrays retain
+shape checks and sliding; unconstrained arrays retain their result bounds and
+storage. Runtime-sized records use their existing dependent-storage ownership.
+Class-wide formals retain the declared class-wide view, dynamic tag and dispatch,
+and adopt the limited result's storage rather than copying it.
+
+Each actual/default is evaluated once during instance elaboration. The formal
+is a constant for the instance's lifetime. Existing construction ownership and
+finalization paths cover normal completion, constructor exceptions, partial
+aggregates, failure of a later actual, package-body elaboration failure and a
+failing finalizer. This includes local and library instances and nested/separate
+library generic bodies. Task/protected aggregates and results remain Phase 9
+restrictions and are diagnosed.
+
+`genericlimitedobjects`, `genericlimitedarrays`, `genericlimitedtagged`,
+`genericlimitedcleanup` and `genericlimitedlibrary_main` run whole/per-unit and
+determinism checks with four workers. Self-addresses detect copies; controlled
+counters check identity, evaluation count, destruction order and cleanup.
+`genericlimitederrors` rejects copied names, invalid defaults/components,
+mutation of constants, invalid reference actuals and unsupported concurrent
+construction. `generic_composite_errors` retains its limited-copy rejection
+with the new legality diagnostic. Existing unchanged ACATS C650003, CA120012
+and C730004 remain PASS; no new limited-object-specific upstream PASS is claimed.
+All 1,365 tests pass and all 129 baseline observations remain unchanged.
+
+Compiler/C-runtime ASan/UBSan checks cover all five scenarios in whole/per-unit
+modes, the rejection test and unchanged C650003/CA120012 execution. Generated
+QBE memory accesses remain uninstrumented; LeakSanitizer is unavailable.
+
 ## Derived and tagged formals
 
 Formal derived declarations support existing scalar, array, record and named
@@ -605,7 +652,7 @@ original five commitments rather than adding new feature families:
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
 | Formal packages | Implemented for the documented template/view categories; generic-child loader limitation remains |
-| Formal objects | Access objects; limited `in` objects |
+| Formal objects | Access objects and limited `in` objects implemented for supported actual types |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
 
 The scope audit compared the original roadmap at commit `094b812` (before the
@@ -614,8 +661,8 @@ rejection tests and seven small compiler probes. At that audit the probes confir
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
 formal arrays and formal packages. Synchronized-derived contracts, abstract formals,
 null defaults, attribute/literal actuals, nonstatic formal-array matching and core formal packages have since been implemented
-as described above. Access formal objects are now implemented; limited-object
-restrictions remain explicit in `generic_composite_errors`. Class-wide derived actuals
+as described above. Access and limited `in` formal objects are now implemented;
+`generic_composite_errors` rejects prohibited copies of existing limited objects. Class-wide derived actuals
 now pass the full CC51B03 scenario. Partial package associations and boxes are now implemented as described above.
 
 Three qualifications prevent the checklist from overstating the work:
@@ -650,5 +697,5 @@ implicit operator callable views, renaming-as-body completions and the broader
 legality/staticness audit) and Phase 9 dependencies (concurrent implementations,
 protected-operation actuals, named protected callbacks and task/protected
 features). Existing limits on derivation before private completion and
-composites still apply. Limited `in` objects remain diagnosed. The predefined Unchecked_Deallocation compatibility contract is
-unchanged.
+composites still apply. Task/protected construction remains Phase 9 work.
+The predefined Unchecked_Deallocation compatibility contract is unchanged.

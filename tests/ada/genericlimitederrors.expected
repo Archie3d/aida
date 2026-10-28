@@ -1,0 +1,15 @@
+genericlimitederrors.adb:11:36: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:12:45: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:13:44: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:14:44: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:15:53: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:17:25: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:22:38: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:23:45: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:27:40: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:28:53: error: limited components cannot be copied
+genericlimitederrors.adb:32:21: error: a limited generic in object requires an aggregate or function call
+genericlimitederrors.adb:38:33: error: limited components cannot be copied
+genericlimitederrors.adb:45:9: error: 'Value' cannot be assigned to
+genericlimitederrors.adb:50:51: error: an in out generic formal object requires a variable actual
+genericlimitederrors.adb:60:43: error: aggregates containing tasks are not yet supported

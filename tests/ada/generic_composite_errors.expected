@@ -5,4 +5,4 @@ generic_composite_errors.adb:30:47: error: an in out generic formal object requi
 generic_composite_errors.adb:31:52: error: an in out generic formal object requires a variable actual
 generic_composite_errors.adb:32:48: error: an in out generic formal object requires a variable actual
 generic_composite_errors.adb:33:48: error: an in out generic formal object requires a variable actual
-generic_composite_errors.adb:46:47: error: limited generic in objects require build-in-place initialization, which is not yet supported
+generic_composite_errors.adb:46:47: error: a limited generic in object requires an aggregate or function call

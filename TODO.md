@@ -733,9 +733,22 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   rejection test and both ACATS executions (generated Ada accesses remain
   uninstrumented; LeakSanitizer unavailable).
   [Contract](docs/generic-types.md#access-formal-objects).
-- [ ] **Limited `in` formal objects.** Build permitted limited actual
-  expressions in place; preserve identity, lifetime, finalization and exception
-  cleanup. Library-level runtime-bound array objects already landed in 6b.
+- [x] **Limited `in` formal objects.** Permitted aggregates and function-call
+  actuals/defaults build in place, preserving identity, single evaluation,
+  bounds/sliding, class-wide tags/dispatch and local/library lifetime. Existing
+  object names cannot be copied; invalid defaults and limited aggregate
+  components are rejected without an instance. View-aware checks preserve
+  internal copying through nonlimited private completions. Five scenarios
+  pass whole/per-unit/determinism with four workers, including controlled
+  destruction order and cleanup after constructor, later-actual, aggregate,
+  package-elaboration and finalizer failures. Library-level runtime-bound
+  array objects reuse 6b storage. All 1,365 tests pass; all 129 baseline
+  observations remain unchanged. Existing C650003/CA120012/C730004 stay PASS;
+  no new limited-object-specific ACATS PASS is claimed. The five whole/per-unit
+  scenarios, rejection test and C650003/CA120012 executions pass compiler/C-runtime
+  ASan/UBSan checks (generated Ada accesses remain uninstrumented;
+  LeakSanitizer unavailable). Concurrent construction stays diagnosed for P9.
+  [Contract](docs/generic-types.md#limited-in-formal-objects).
 - [ ] **Complete generic contract checking for the features above.** Reject
   template contract violations without needing an instance and replay
   declaration-site resolution through nested and separate compilation.

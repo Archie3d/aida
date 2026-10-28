@@ -683,3 +683,19 @@ Ada 2005 selection.
 | [tests/cc/cc70b01.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70b01.a) | `6c514e17b0651b66184f4319ef0f90c38a44d35b` | `433ebc3a325dfec59dd23e70fd38402c2ad6dbb6c7a294823cecf4b0707c5437` |
 | [support/fc70a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/fc70a00.a) | `e903a13ade37cbeaa96817393134d1f314e3eaa4` | `dbb016afbcedc7a8d30fee2e59ad01facac084b3c9668406ce7195f1d27b84b5` |
 | [support/fc70b00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/fc70b00.a) | `46b106e0b25a0e3fad98ea1719cad3bdb7337544` | `c68c2cc36258aefa1d967ea40843b03105401798f7971cef4b27d49f2efbbd65` |
+
+## Limited generic `in` objects (Phase 6g)
+
+Existing unchanged C650003 and CA120012 continue to execute as PASS while local
+`genericlimitedobjects`, `genericlimitedarrays`, `genericlimitedtagged`,
+`genericlimitedcleanup` and `genericlimitedlibrary_main` cover limited formal
+object construction directly. They check defaults and formal-subprogram calls,
+self-address identity, array shapes/sliding, class-wide dispatch, local/library
+storage and controlled cleanup after normal and exceptional completion. The
+rejection test checks invalid copied actuals and uninstantiated defaults.
+C730004 remains an unchanged baseline PASS: a limited private type's visible
+nonlimited completion must allow ordinary aggregate component copying in its
+private children. The 129 baseline observations remain unchanged; no new
+limited-object-specific upstream PASS is claimed. C650003 and CA120012 also
+pass instrumented compiler/C-runtime execution; generated Ada memory accesses
+remain uninstrumented and LeakSanitizer is unavailable.
