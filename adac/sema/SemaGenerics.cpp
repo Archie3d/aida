@@ -112,6 +112,13 @@ Symbol* dispatchingOperation(Symbol* symbol)
     return nullptr;
 }
 
+bool matchesAbstractActual(Symbol* candidate, Type* controlling, bool classwideReplay)
+{
+    Symbol* operation = dispatchingOperation(candidate);
+    return operation != nullptr && (operation->controllingType == controlling
+        || (classwideReplay && candidate->classWideWrapper && candidate->controllingType == controlling));
+}
+
 Symbol* formalOperationImplementation(Symbol* operation, Type* actual)
 {
     Type* specific = actual->classRoot != nullptr ? actual->classRoot : actual;
@@ -391,9 +398,12 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 }
                 auto source = m_genericContracts.find(original->generic);
                 if (source != m_genericContracts.end()) {
+                    owned->source = source->second.get();
                     owned->discriminantSelections = source->second->discriminantSelections;
                     owned->discriminantConstraints = source->second->discriminantConstraints;
                     owned->definiteAttributes = source->second->definiteAttributes;
+                    owned->classAttributes = source->second->classAttributes;
+                    owned->abstractFormals = source->second->abstractFormals;
                     break;
                 }
             }
@@ -401,6 +411,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     }
     GenericContract* contract = owned.get();
     std::size_t firstSymbol = m_symbolTable.symbols().size();
+    if (!continuation) { contract->firstSymbol = firstSymbol; }
     Scope* bindings = contract->bindings;
     if (continuation && scope != bindings) {
         contract->environment = scope;
@@ -411,8 +422,18 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     auto savedNames = m_subprogramNames;
     auto savedTagNames = m_tagNames;
     auto savedExceptions = m_unitExceptions;
+    auto savedCopies = m_instanceCopies;
+    std::size_t savedFirst = m_instanceFirstSymbol;
+    if (contract->source != nullptr && savedReplay != nullptr) {
+        // References outside the nested template still denote declarations
+        // in the enclosing template. Map those before switching contracts.
+        for (Symbol* original : savedReplay->localSymbols) {
+            if (Symbol* copy = instanceSymbol(original)) { m_instanceCopies[original] = copy; }
+        }
+    }
     m_recordContract = contract;
-    m_replayContract = nullptr;
+    m_replayContract = contract->source;
+    m_instanceFirstSymbol = contract->firstSymbol;
     int errors = m_diagnostics.errorCount();
     std::vector<Expr*> packageActuals;
     if (partial != nullptr && !associateGenericActuals(partial, packageTemplate, packageActuals)) {
@@ -471,12 +492,14 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                     m_diagnostics.error(formal.location, "attribute default does not match the generic formal subprogram profile");
                 }
                 if (formal.abstract) {
-                    analyzeAbstractFormalSubprogram(declaration->symbol);
+                    analyzeAbstractFormalSubprogram(declaration->symbol,
+                        contract->abstractFormals.contains(contractKey(declaration->symbol->location)));
+                    contract->abstractFormals.insert(contractKey(declaration->symbol->location));
                     if (formal.defaultValue != nullptr) {
                         for (Symbol* candidate : defaults) {
-                            Symbol* operation = dispatchingOperation(candidate);
-                            if (matchesFormalProfile(candidate, declaration->symbol) && operation != nullptr
-                                && operation->controllingType == declaration->symbol->controllingType) {
+                            if (matchesFormalProfile(candidate, declaration->symbol)
+                                && matchesAbstractActual(candidate, declaration->symbol->controllingType,
+                                    contract->source != nullptr)) {
                                 if (formal.abstractDefault != nullptr) {
                                     m_diagnostics.error(formal.location, "ambiguous default for abstract formal subprogram");
                                     break;
@@ -596,6 +619,8 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     if (partial != nullptr && !contract->valid) {
         m_recordContract = savedRecord;
         m_replayContract = savedReplay;
+        m_instanceCopies = std::move(savedCopies);
+        m_instanceFirstSymbol = savedFirst;
         m_subprogramNames = std::move(savedNames);
         m_tagNames = std::move(savedTagNames);
         m_unitExceptions = std::move(savedExceptions);
@@ -621,6 +646,8 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     contract->valid = contract->valid && m_diagnostics.errorCount() == errors;
     m_recordContract = savedRecord;
     m_replayContract = savedReplay;
+    m_instanceCopies = std::move(savedCopies);
+    m_instanceFirstSymbol = savedFirst;
     m_subprogramNames = std::move(savedNames);
     m_tagNames = std::move(savedTagNames);
     m_unitExceptions = std::move(savedExceptions);
@@ -1026,14 +1053,14 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
     return matches;
 }
 
-void Sema::analyzeAbstractFormalSubprogram(Symbol* symbol)
+void Sema::analyzeAbstractFormalSubprogram(Symbol* symbol, bool classwideReplay)
 {
     Type* controlling = nullptr;
     bool multiple = false;
     auto consider = [&](Type* type) {
         if (type != nullptr && type->anonymousAccess) { type = type->target; }
         type = rootType(type);
-        if (type == nullptr || !type->tagged || type->classRoot != nullptr) { return; }
+        if (type == nullptr || !type->tagged || (type->classRoot != nullptr && !classwideReplay)) { return; }
         multiple = multiple || (controlling != nullptr && controlling != type);
         controlling = type;
     };
@@ -1115,7 +1142,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
     Symbol* wrapper = declareSubprogram(body->spec, bindings, true, true);
-    if (formal.abstract) { analyzeAbstractFormalSubprogram(wrapper); }
+    bool checkedInstance = (savedReplay != nullptr
+        && savedReplay->instances.contains(contractKey(decl->location)))
+        || (contract->source != nullptr && contract->abstractFormals.contains(contractKey(wrapper->location)));
+    if (formal.abstract) { analyzeAbstractFormalSubprogram(wrapper, checkedInstance); }
     Symbol* abstractDefault = formal.abstractDefault != nullptr ? instanceSymbol(formal.abstractDefault) : nullptr;
     Symbol* literalDefault = formal.literalDefault != nullptr ? instanceSymbol(formal.literalDefault) : nullptr;
     m_replayContract = savedReplay;
@@ -1279,10 +1309,13 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     }
     if (formal.abstract) {
         Symbol* operation = intrinsic ? nullptr : dispatchingOperation(candidates.front());
-        if (operation == nullptr || operation->controllingType != wrapper->controllingType) {
+        bool classwide = checkedInstance && !intrinsic && candidates.front()->classWideWrapper
+            && candidates.front()->controllingType == wrapper->controllingType;
+        if (operation == nullptr || (!classwide && operation->controllingType != wrapper->controllingType)) {
             m_diagnostics.error(actual->location, "actual for abstract formal subprogram must be a dispatching operation of its controlling type");
             return false;
         }
+        wrapper->classWideWrapper = classwide;
         wrapper->dispatchSlot = operation->dispatchSlot;
         wrapper->renamedSubprogram = candidates.front();
         wrapper->interfaceOrigins = operation->interfaceOrigins;
@@ -1858,6 +1891,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         pending.prefix = m_namePrefix;
         pending.accessibilityLevel = m_accessibilityLevel;
         pending.depth = m_instantiationDepth;
+        pending.bodyContext = m_genericInstanceBody;
         m_pendingGenericInstances.push_back(std::move(pending));
     }
     --m_instantiationDepth;
@@ -1992,6 +2026,7 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     m_namePrefix = std::move(pending.prefix);
     m_accessibilityLevel = pending.accessibilityLevel;
     m_instantiationDepth = pending.depth;
+    m_genericInstanceBody = pending.bodyContext;
     m_recordContract = nullptr;
     m_replayContract = contract;
     m_instanceOwnerContract = pending.enclosingContract;
@@ -2030,6 +2065,7 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     m_accessibilityLevel = 0;
     m_instantiationDepth = 0;
     m_replayContract = nullptr;
+    m_genericInstanceBody = false;
     m_instanceOwnerContract = nullptr;
     m_instanceCopies.clear();
 }

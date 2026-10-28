@@ -92,6 +92,8 @@ private:
     {
         Scope* environment = nullptr;
         Scope* bindings = nullptr;
+        GenericContract* source = nullptr;
+        std::size_t firstSymbol = 0;
         std::string unitName;
         std::size_t tokenCount = 0;
         std::unordered_set<Symbol*> localSymbols;
@@ -106,6 +108,8 @@ private:
         std::unordered_map<std::string, int> discriminantSelections;
         std::unordered_map<std::string, std::vector<std::vector<int>>> discriminantConstraints;
         std::unordered_set<std::string> definiteAttributes;
+        std::unordered_set<std::string> classAttributes;
+        std::unordered_set<std::string> abstractFormals;
         bool valid = false;
     };
     // An instance specification must remain visible while its template body
@@ -125,12 +129,14 @@ private:
         std::vector<std::string> prefix;
         int accessibilityLevel = 0;
         int depth = 0;
+        bool bodyContext = false;
     };
     std::vector<PendingGenericInstance> m_pendingGenericInstances;
     void completeGenericInstance(PendingGenericInstance pending);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
     bool m_genericBodyContext = false;
+    bool m_genericInstanceBody = false;
     GenericContract* m_replayContract = nullptr;
     GenericContract* m_instanceOwnerContract = nullptr;
     std::size_t m_instanceFirstSymbol = 0;
@@ -157,7 +163,7 @@ private:
     bool bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFormal& formal,
                               Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
                               GenericContract* contract, std::size_t firstSymbol);
-    void analyzeAbstractFormalSubprogram(Symbol* symbol);
+    void analyzeAbstractFormalSubprogram(Symbol* symbol, bool classwideReplay = false);
     Type* attributeSubtypeMark(Expr* prefix, Scope* scope);
     Symbol* attributeSubprogram(AttributeExpr* attribute, Scope* scope);
     bool matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* bindings,

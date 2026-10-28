@@ -1,11 +1,13 @@
-# Generic type formals — Phase 6g
+# Generic semantics — Phase 6g
 
 The target is Ada 2005 RM [12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html),
 [12.5.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-3.html),
 [12.5.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-4.html)
 and [12.5.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-5.html).
-These increments extend the numeric, discrete, array and private formals;
-Phase 6g remains in progress.
+These increments extend the numeric, discrete, array and private formals.
+Phase 6g is complete for the documented supported actual types and profiles;
+Phase 8 legality/staticness and loader audits and Phase 9 concurrent extensions
+remain separately owned.
 
 ## Private actual subtypes
 
@@ -554,7 +556,8 @@ LeakSanitizer is unavailable on this host.
 
 CC70001 remains deferred because its generic child package of a generic parent
 is rejected by the existing unit loader before formal-package execution; this
-source does not establish a PASS.
+source does not establish a PASS. This existing deferred loader gap is owned
+by the Phase 8 compiler-completeness audit.
 
 ## Partial formal-package actual lists and boxes
 
@@ -608,6 +611,64 @@ pass instrumented compiler/C-runtime execution. Generated Ada memory accesses
 remain uninstrumented; LeakSanitizer is unavailable on this host.
 
 
+## Contract checking and phase completion
+
+Templates are checked before instantiation, with the capabilities promised by
+their formal declarations. Instance names, operators, subtype marks, defaults
+and declaration completions retain the source contract's interpretation under
+[RM 12.3(14)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-3.html).
+A copied nested generic now retains its source contract too: replacing an outer
+formal by an actual must not introduce a new operator overload into the nested
+body. Enclosing symbol mappings are captured before switching contracts, and
+the mapping boundary survives specification/body continuation and separate
+compilation. Source ASTs and copied bindings remain owned throughout analysis.
+
+Legality checks retain their individual rules rather than being disabled during
+replay. [RM 12.3(11)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-3.html)
+requires instance visible/formal-part checks and rules that explicitly extend to
+other parts. In particular,
+[RM 8.3(26)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-8-3.html)
+permits ordinary overloads to acquire type-conformant profiles in an instance,
+but still rejects homographic dispatching operations in its visible part.
+Private/body overloads preserve their distinct source declarations and calls.
+Tracking the enclosing instance-body region prevents an inner package's visible
+part from being mistaken for the visible part of the containing instance.
+The explicit null-exclusion check for a renaming in an instance's private part
+still rejects a nullable actual even when the template's formal nominal subtype
+excluded null. Generic matching and required runtime checks remain active.
+
+A validated source occurrence of `T'Class` replays idempotently when a bound
+formal is already class-wide; ordinary illegal uses of `Class` remain errors.
+The unusual nested abstract-formal case in
+[AARM 12.6(8.i–8.n)](https://www.adaic.org/resources/add_content/standards/05aarm/html/AA-12-6.html)
+now works: an outer derived formal bound to `Root'Class` can supply its inherited
+dispatching wrapper to an inner abstract formal. Source instantiation/profile
+proofs distinguish this case from an illegal direct class-wide controlling
+actual. Calls, defaults and controlling results preserve dispatch through the
+actual wrapper; a fresh unrelated class-wide subprogram is not accepted.
+
+The completion audit uses the existing feature families as well as four new
+whole/per-unit/deterministic scenarios, each executing with four workers:
+
+| Contract area | Evidence |
+| --- | --- |
+| Nested class-wide abstract formals and controlling results | `genericcontractnested`, `genericcontractlibrary_main`; existing `genericabstract*`, `genericclasswide*` |
+| Frozen nested and separate operator resolution | `genericcontractreplay`, `genericcontractlibrary_main`; existing `generic_contracts`, attribute/literal/default fixtures |
+| Visible dispatching homographs, legal ordinary/private/body collapse | `genericcontractregions`, `genericcontracterrors`, `generic_contracts` |
+| Private-part null exclusions and uninstantiated invalid templates/defaults | `genericcontracterrors`, `genericcontractregions`; existing access, limited, null and abstract rejection fixtures |
+| Formal type categories and nonstatic array matching | Existing `genericprivate*`, `genericderived*`, `genericinterface*`, `genericsynchronized*`, `genericdiscriminant*`, `genericarrayconstraint*` |
+| Formal-package provenance, copied declarations and partial lists | Existing `genericpackage*`, `genericpartialpackagelibrary_main` and rejection fixtures |
+| Runtime constraints, accessibility, identity and cleanup | Existing generic object/composite checks, `genericaccess*`, `genericanonymousobjects`, `genericlimited*` |
+
+All 1,378 tests pass. The 129 ACATS observations remain unchanged (80 executable
+PASS, 15 compile rejections, eight harness blockers and 26 ungraded B probes).
+Existing unchanged CC51B03 and CC70002 execute under compiler/C-runtime
+ASan/UBSan along with the four new scenarios and five representative array,
+package, discriminant, limited and access scenarios in whole/per-unit modes.
+Eight rejection fixtures also pass compiler instrumentation. QBE-generated Ada
+memory accesses remain uninstrumented; LeakSanitizer is unavailable.
+No new contract-specific upstream PASS or complete Ada conformance is claimed.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -647,13 +708,13 @@ The remaining scope and completion criteria are listed in
 [TODO.md, Phase 6g](../TODO.md#6g-generics). The longer checklist unpacks the
 original five commitments rather than adding new feature families:
 
-| Original commitment | Remaining work within it |
+| Original commitment | Completion and boundaries |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
 | Formal packages | Implemented for the documented template/view categories; generic-child loader limitation remains |
 | Formal objects | Access objects and limited `in` objects implemented for supported actual types |
-| Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
+| Contract checking | Completed for the documented features; broader Phase 8 legality/staticness audit remains |
 
 The scope audit compared the original roadmap at commit `094b812` (before the
 first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing
@@ -685,12 +746,9 @@ CC51B03 now executes unchanged as PASS. Local `genericclasswide*` additionally
 checks RM 12.5.1 dispatch wrappers and controlling-result `Program_Error`
 behavior beyond the upstream Definite scenario.
 
-One reproduced replay gap remains owned by the final 6g contract-checking item:
-when an outer derived formal is bound to `Root'Class`, an inner abstract-formal
-instance in its body using that formal and its inherited operation currently
-rejects bound `T'Class` and the controlling profile. This is the nested-body
-exception described in [AARM 12.6(8.i–8.m)](https://www.adaic.org/resources/add_content/standards/05aarm/html/AA-12-6.html),
-not a direct instantiation with an ordinary class-wide controlling actual.
+The formerly reproduced nested class-wide abstract-formal replay gap is closed
+by the contract-checking increment above. Direct illegal class-wide abstract
+actuals remain rejected.
 
 The same roadmap explicitly lists generic-related Phase 8 work (prefixed and
 implicit operator callable views, renaming-as-body completions and the broader

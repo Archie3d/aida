@@ -468,10 +468,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->lower == "class") {
-        if (!prefixIsType || !taggedViewVisible(prefixType) || prefixType->classRoot != nullptr) {
+        std::string key = contractKey(expr->location);
+        bool checked = (m_replayContract != nullptr && m_replayContract->classAttributes.contains(key))
+            || (m_recordContract != nullptr && m_recordContract->classAttributes.contains(key));
+        if (!prefixIsType || !taggedViewVisible(prefixType) || (prefixType->classRoot != nullptr && !checked)) {
             m_diagnostics.error(expr->location, "'Class requires a specific tagged type");
             return nullptr;
         }
+        if (m_recordContract != nullptr) { m_recordContract->classAttributes.insert(key); }
         expr->type = classWideType(prefixType);
         return expr->type;
     }

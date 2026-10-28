@@ -106,10 +106,16 @@ Type* Sema::resolveTypeName(const std::string& lower, Scope* scope, const Source
         if (specific == nullptr) {
             return nullptr;
         }
-        if (!taggedViewVisible(specific) || specific->classRoot != nullptr) {
+        // Recursive subtype marks share a location; keep each Class suffix
+        // distinct so a valid inner occurrence cannot authorize T'Class'Class.
+        std::string key = contractKey(location) + ":" + lower;
+        bool checked = (m_replayContract != nullptr && m_replayContract->classAttributes.contains(key))
+            || (m_recordContract != nullptr && m_recordContract->classAttributes.contains(key));
+        if (!taggedViewVisible(specific) || (specific->classRoot != nullptr && !checked)) {
             m_diagnostics.error(location, "'Class requires a specific tagged type");
             return nullptr;
         }
+        if (m_recordContract != nullptr) { m_recordContract->classAttributes.insert(key); }
         return classWideType(specific);
     }
     if (lower.ends_with("'base")) {

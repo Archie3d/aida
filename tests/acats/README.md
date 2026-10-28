@@ -699,3 +699,24 @@ private children. The 129 baseline observations remain unchanged; no new
 limited-object-specific upstream PASS is claimed. C650003 and CA120012 also
 pass instrumented compiler/C-runtime execution; generated Ada memory accesses
 remain uninstrumented and LeakSanitizer is unavailable.
+
+## Generic contract completion (Phase 6g)
+
+The completion increment retains every one of the 129 frozen observations and
+all existing unchanged executable selections. CC51B03 and CC70002 additionally
+pass instrumented compiler/C-runtime execution. No new contract-specific ACATS
+PASS is claimed. Local `genericcontractnested`, `genericcontractreplay`,
+`genericcontractregions` and `genericcontractlibrary_main` exercise the nested
+class-wide abstract-formal exception, controlling results, source operator
+identity, ordinary/private/body overload collapse and library replay.
+`genericcontracterrors` rejects visible dispatching homographs, illegal direct
+class-wide abstract actuals, invalid uninstantiated templates/defaults and a
+private-part null-excluding renaming with a nullable actual. Existing binding,
+array/static-matching, accessibility, null and runtime checks remain active.
+
+Phase 6g closes for the supported actual types/profiles. The existing CC70001
+generic-child loader deferral belongs to the Phase 8 compiler-completeness
+audit; grouped formals, broader legality/staticness and B-test grading also
+remain Phase 8. Concurrent implementations and protected-operation actuals
+remain Phase 9. Generated QBE memory accesses remain uninstrumented;
+LeakSanitizer is unavailable.

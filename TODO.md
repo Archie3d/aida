@@ -591,7 +591,7 @@ Code: `Parser::parseGenericDeclaration`, `Sema::bindGenericFormals`,
 `Sema::analyzeGenericInstantiation`.
 [Implemented contract and limits](docs/generic-types.md).
 
-The unchecked entries expand the original five commitments: formal type
+The entries below expand the original five commitments: formal type
 categories; formal subprograms and array matching; formal packages; formal
 objects; and generic contract checking. They are implementation substeps, not
 new feature families or equally sized measures of progress. Completed entries
@@ -749,21 +749,28 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   ASan/UBSan checks (generated Ada accesses remain uninstrumented;
   LeakSanitizer unavailable). Concurrent construction stays diagnosed for P9.
   [Contract](docs/generic-types.md#limited-in-formal-objects).
-- [ ] **Complete generic contract checking for the features above.** Reject
-  template contract violations without needing an instance and replay
-  declaration-site resolution through nested and separate compilation.
-  Apply RM 12.3(11,14): preserve required legality checks in instance visible/
-  formal parts and explicitly specified exceptions elsewhere; prevent body
-  re-resolution or rechecks from changing the template's interpretation.
-  Bound tagged formals also need idempotent `'Class` replay and the nested-body
-  class-wide controlling-type exception in AARM 12.6(8.i–8.m): an outer derived
-  formal bound to `Root'Class`, used as the type/operation actuals of an inner
-  abstract-formal instance, currently rejects with "'Class requires a specific
-  tagged type" and "exactly one specific tagged controlling type". This remains
-  owned here, rather than reopening unrelated feature work.
-  This is a correctness requirement across the listed features, not a separate
-  compiler architecture rewrite. Include legal controls and uninstantiated
-  invalid generics; retain matching and required runtime checks.
+- [x] **Complete generic contract checking for the features above.** Invalid
+  templates/defaults reject without an instance. Copied nested contracts retain
+  source name/operator/type/completion resolution and enclosing symbol mappings
+  through separate compilation and specification/body continuation. Validated
+  `Class` occurrences replay idempotently; repeated `Class` in source still
+  rejects. The AARM 12.6(8.i–8.n) nested class-wide abstract-formal exception
+  preserves dispatch, defaults and controlling results; illegal direct actuals
+  remain rejected. Apply RM 12.3(11,14) and the RM 8.3(26) exception: ordinary
+  overloads may collapse in an instance, visible dispatching homographs reject,
+  private/body copies retain their source meanings. Explicit private-part null
+  checks, generic matching and runtime constraints remain active. Four new
+  scenarios pass whole/per-unit/determinism with four workers; legal controls
+  and uninstantiated invalid templates are covered. Full suite 1,378/1,378;
+  all 129 baseline observations remain unchanged. Compiler/C-runtime ASan/UBSan
+  passes the four new and five representative existing scenarios in whole/
+  per-unit modes, eight rejection fixtures and unchanged CC51B03/CC70002
+  executions (generated Ada accesses uninstrumented; LeakSanitizer unavailable).
+  [Contract and completion audit](docs/generic-types.md#contract-checking-and-phase-completion).
+
+**Phase 6g is complete for the documented supported actual types and profiles.**
+The existing CC70001 generic-child loader deferral is owned by Phase 8 below;
+no complete Ada conformance or concurrent implementation is implied.
 
 For each item, add execution/legality coverage, whole/per-unit and determinism
 checks where applicable, and relevant unchanged ACATS scenarios with explicit
@@ -778,7 +785,8 @@ of checkboxes nor an unrelated ACATS rejection measures language completeness.
 - Phase 8: prefixed-view renaming and generic subprogram actuals (C413005),
   including receiver binding, lifetime and reduced-profile conformance; implicit
   operator callable views/renaming/actuals; generic subprogram renaming-as-body
-  completions; full staticness/legality audit and B-test grading. These remain
+  completions; the existing CC70001 generic-child loader deferral; full
+  staticness/legality audit and B-test grading. These remain
   Phase 8 work rather than implicit additions to 6g.
 - Phase 9: concrete synchronized/task/protected interface implementations,
   protected-operation generic actuals, named protected callbacks, task/protected
@@ -873,6 +881,12 @@ Ada 2005 additions and track annex packages separately.
 - [ ] Complete access-subtype designated-record discriminant constraints
   (C37003A/C37006A); keep the explicit diagnostic until constraint capture,
   null/conversion checks and library/per-unit behavior are implemented.
+- [ ] Complete generic-child unit loading for generic parents. Unchanged
+  CC70001 is currently rejected by the loader before formal-package execution;
+  this is the existing deferral recorded during Phase 6g. Preserve parent and
+  child instance identity and dependencies in whole/per-unit loading, then run
+  the complete upstream scenario. This belongs to compiler completeness rather
+  than reopening the completed formal-package matching increment.
 - [ ] Grouped generic formal objects: parse declarations such as `V, V1 : T`,
   retaining each object's mode, defaults, association and instance identity.
   Unchanged CC3601A currently compile-XFAILs at the first comma; rerun the whole

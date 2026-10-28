@@ -324,6 +324,13 @@ ExprPtr Sema::bindOperator(Symbol* symbol, std::vector<ExprPtr> operands, Scope*
         argument.value = std::move(operands[i]);
         call->arguments.push_back(std::move(argument));
     }
+    if (symbol->genericFormalSubprogram && symbol->abstract && symbol->controllingType != nullptr
+        && symbol->controllingType->classRoot != nullptr) {
+        for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {
+            if (controllingParameterType(symbol->parameters[i]->type) == symbol->controllingType
+                && !call->resolvedArguments[i]->tagIndeterminate) { call->dispatching = true; }
+        }
+    }
     call->tagIndeterminate = symbol->controllingType != nullptr
         && rootType(call->type) == symbol->controllingType && !call->dispatching;
     for (std::size_t i = 0; i < call->resolvedArguments.size(); ++i) {

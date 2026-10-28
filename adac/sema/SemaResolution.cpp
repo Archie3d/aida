@@ -552,7 +552,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             add(m_types.stringType());
         } else if (name == "class") {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
-                if (taggedViewVisible(prefix) && prefix->classRoot == nullptr) {
+                bool checked = (m_replayContract != nullptr && m_replayContract->classAttributes.contains(contractKey(attribute->location)))
+                    || (m_recordContract != nullptr && m_recordContract->classAttributes.contains(contractKey(attribute->location)));
+                if (taggedViewVisible(prefix) && (prefix->classRoot == nullptr || checked)) {
                     add(classWideType(prefix));
                 }
             }

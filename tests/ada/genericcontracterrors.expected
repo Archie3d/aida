@@ -1,0 +1,8 @@
+genericcontracterrors.adb:10:9: error: instance visible part contains homographic declarations of 'P'
+genericcontracterrors.adb:19:14: error: an abstract formal subprogram must have exactly one specific tagged controlling type
+genericcontracterrors.adb:29:33: error: 'Class requires a specific tagged type
+genericcontracterrors.adb:31:26: error: 'Class requires a specific tagged type
+genericcontracterrors.adb:38:21: error: arithmetic operators require numeric operands
+genericcontracterrors.adb:38:21: error: 'T' is private, so 'Invalid' has to be the one to say what this operator means
+genericcontracterrors.adb:43:21: error: a limited generic in object requires an aggregate or function call
+genericcontracterrors.adb:51:9: error: a null-excluding renaming requires an object that excludes null

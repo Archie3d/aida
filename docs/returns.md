@@ -80,7 +80,7 @@ results, and the corresponding protected lifecycle work. Phase 6f retains
 private extensions, tagged discriminants, runtime-sized tagged layouts and
 limited current-instance access in defaults. Phase 6g now reuses these paths
 for [limited `in` formal objects](generic-types.md#limited-in-formal-objects);
-the final generic contract-checking audit remains open.
+the Phase 6g contract-checking increment is complete for supported profiles.
 The existing unsupported type/layout restrictions also apply here.
 
 Normative references: [RM 6.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-5.html),

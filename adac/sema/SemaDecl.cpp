@@ -114,6 +114,10 @@ void Sema::reportMissingBodies(const DeclList& declarations)
 void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
     bool savedGenericBody = m_genericBodyContext;
+    bool savedInstanceBody = m_genericInstanceBody;
+    if (m_replayContract != nullptr && (decl->kind == DeclKind::SubprogramBody || decl->kind == DeclKind::PackageBody)) {
+        m_genericInstanceBody = true;
+    }
     if (m_recordContract != nullptr && (decl->kind == DeclKind::SubprogramBody || decl->kind == DeclKind::PackageBody)) {
         m_genericBodyContext = true;
     }
@@ -192,6 +196,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     }
     m_scalarConstraintDeclaration = savedConstraintDeclaration;
     m_genericBodyContext = savedGenericBody;
+    m_genericInstanceBody = savedInstanceBody;
 }
 
 void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
@@ -629,10 +634,15 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         }
     }
     for (Symbol* candidate : scope->lookupDeclaration(spec.lower)) {
-        if (candidate->inheritedFrom != nullptr || candidate->negatedEquality != nullptr
-            || (m_replayContract != nullptr && candidate != contractDeclaration)) {
+        if (candidate->inheritedFrom != nullptr || candidate->negatedEquality != nullptr) {
             continue;
         }
+        bool replayOther = m_replayContract != nullptr && candidate != contractDeclaration;
+        // RM 8.3(26): ordinary overloads may collapse in an instance;
+        // dispatching operations in its visible part retain the homograph check.
+        bool checkVisible = !m_genericInstanceBody && m_inVisiblePart && scope == m_packageSpecScope
+            && candidate->declarationScope == scope && candidate->controllingType != nullptr;
+        if (replayOther && !checkVisible) { continue; }
         bool matches = candidate->kind == SymbolKind::Subprogram
             && candidate->parameters.size() == parameterTypes.size()
             && SemaSupport::profileTypeMatches(candidate->returnType, returnType);
@@ -646,6 +656,10 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             break;
         }
         if (!matches) {
+            continue;
+        }
+        if (replayOther) {
+            m_diagnostics.error(spec.location, "instance visible part contains homographic declarations of '" + spec.name + "'");
             continue;
         }
         if (spec.overriding != 0 && !isPrimitive(candidate) && (candidate->protectedType == nullptr || isBody)) {
