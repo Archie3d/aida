@@ -651,3 +651,27 @@ unchanged.
 | --- | --- | --- |
 | tests/cc/cc1302a.ada | `c61a310d53e33192320fb45e34550d1069ac1745` | `c15c780bdcff7375dab77ff82e1bda6468f01ac448ff96b95a0068ca4fb375fc` |
 | tests/cc/cc3601a.ada | `198f47ecd38997d6f7a19675766993768d736289` | `0130fcec65e597a7ebb18734474dfd263933a91babd65ab824fbf7af7acca579` |
+
+## Formal packages (Phase 6g)
+
+CC70002, CC70003, CC70A02 and CC70B01 execute unchanged as PASS. They cover
+complete formal-package contracts, boxed views, formal access-to-subprogram
+types, visible operations/copied formals and generic-formal `use` clauses.
+FC70A00 and FC70B00 are unchanged shared foundations. Imported 2026-10-28 from
+the same pinned archive revision used by the backfill baseline; `.a` files are
+stored with `.ada` extensions without changing bytes or rights/disclaimers.
+The existing 129-case backfill cohort is unchanged.
+
+CC70001 remains deferred: the unit loader rejects its generic child package of
+a generic parent before the formal-package scenario can execute. This is not
+an executable pass. Mixed explicit/boxed formal-package lists and `others => <>`
+remain the next Phase 6g item, with a targeted local rejection test.
+
+| Upstream source | Git blob | SHA-256 |
+| --- | --- | --- |
+| [tests/cc/cc70002.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70002.a) | `3e4d9c40b307f296da99b9543bb6b0105e22820e` | `92304981e11f44fe7bc47019c5526ece21a5eecfbb1487120183baf34d933e91` |
+| [tests/cc/cc70003.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70003.a) | `d2309fc3695099a14540a84644ed246279f29f6f` | `5b6311497b206b3e073a0e7a48fab7b34830cd4f688636443eb5757671fd4436` |
+| [tests/cc/cc70a02.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70a02.a) | `3601ce443e140558e6b7082b888bdff5014ddf9c` | `160a0356e2d92a68b3923531ac47147eb8d772a25b37329832c748e743b573bd` |
+| [tests/cc/cc70b01.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70b01.a) | `6c514e17b0651b66184f4319ef0f90c38a44d35b` | `433ebc3a325dfec59dd23e70fd38402c2ad6dbb6c7a294823cecf4b0707c5437` |
+| [support/fc70a00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/fc70a00.a) | `e903a13ade37cbeaa96817393134d1f314e3eaa4` | `dbb016afbcedc7a8d30fee2e59ad01facac084b3c9668406ce7195f1d27b84b5` |
+| [support/fc70b00.a](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/fc70b00.a) | `46b106e0b25a0e3fad98ea1719cad3bdb7337544` | `c68c2cc36258aefa1d967ea40843b03105401798f7971cef4b27d49f2efbbd65` |

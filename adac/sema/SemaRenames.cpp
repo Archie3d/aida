@@ -403,6 +403,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     }
     m_currentSubprogram = saved;
     alias->intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr;
+    if (completion == nullptr) {
+        alias->genericActualEntity = enumeration ? chosen : nullptr;
+        alias->genericIntrinsic = intrinsic ? operation : attributeType != nullptr
+            ? "attribute:" + static_cast<AttributeExpr*>(name)->lower : std::string();
+        alias->intrinsicPrefix = attributeType != nullptr ? baseType(attributeType) : nullptr;
+    }
     if (implementation == nullptr) {
         m_diagnostics.error(name->location, "unsupported renamed subprogram");
         return;

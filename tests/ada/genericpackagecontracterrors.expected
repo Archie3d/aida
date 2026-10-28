@@ -1,0 +1,5 @@
+genericpackagecontracterrors.adb:23:46: error: actual parameters do not match the contract of formal package 'P'
+genericpackagecontracterrors.adb:24:48: error: actual parameters do not match the contract of formal package 'P'
+genericpackagecontracterrors.adb:25:46: error: actual parameters do not match the contract of formal package 'P'
+genericpackagecontracterrors.adb:33:58: error: actual parameters do not match the contract of formal package 'P'
+genericpackagecontracterrors.adb:44:59: error: actual parameters do not match the contract of formal package 'P'

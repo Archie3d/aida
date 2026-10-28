@@ -165,6 +165,11 @@ private:
     bool bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
                                Type*& actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);
+    void applyGenericUses(GenericDecl* generic, std::size_t beforeFormal, Scope* scope, DeclList& owned);
+    Symbol* declareFormalPackage(const GenericFormal& formal, Scope* bindings, DeclList& owned);
+    bool bindFormalPackage(GenericInstantiationDecl* decl, const GenericFormal& formal, Expr* actual,
+                           Scope* bindings, Scope* scope, GenericContract* contract, std::size_t firstSymbol);
+    void mapPackageMembers(Symbol* formal, Symbol* actual, std::unordered_map<Symbol*, Symbol*>& copies);
     void analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* scope);
 
     // SemaTypes.cpp

@@ -1,0 +1,10 @@
+genericpackageerrors.adb:20:42: error: actual for formal package 'P' must be an instance of its generic template
+genericpackageerrors.adb:21:40: error: actual for formal package 'P' must be an instance of its generic template
+genericpackageerrors.adb:22:39: error: actual for formal package 'P' must be an instance of its generic template
+genericpackageerrors.adb:23:5: error: no actual supplied for generic formal 'P'
+genericpackageerrors.adb:28:38: error: actual parameters do not match the contract of formal package 'P'
+genericpackageerrors.adb:35:9: error: the assigned value has an incompatible type
+genericpackageerrors.adb:40:31: error: 'Secret' is not declared in 'P'
+genericpackageerrors.adb:45:18: error: 'p.t' is not declared
+genericpackageerrors.adb:48:9: error: a formal package template must denote a generic package
+genericpackageerrors.adb:51:14: error: no actual supplied for generic formal 'T'

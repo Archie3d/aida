@@ -8,6 +8,7 @@
 DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
 {
     SourceLocation location = current().location;
+    std::size_t genericStart = m_position;
     expect(TokenKind::KwGeneric, "in generic declaration");
 
     auto decl = std::make_unique<GenericDecl>();
@@ -33,6 +34,17 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     while (!check(TokenKind::KwPackage) && !check(TokenKind::KwProcedure) && !check(TokenKind::KwFunction)) {
         if (check(TokenKind::EndOfFile)) {
             fail("expected a package, procedure or function after the generic formal part");
+        }
+        if (check(TokenKind::KwUse)) {
+            std::size_t start = m_position;
+            parseUseClause();
+            GenericDecl::UseClause use;
+            use.beforeFormal = decl->formals.size();
+            use.tokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                              m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+            use.tokens.push_back(m_tokens.back());
+            decl->formalUses.push_back(std::move(use));
+            continue;
         }
 
         GenericFormal formal;
@@ -202,31 +214,66 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 formal.typeTokens.erase(formal.typeTokens.begin() + 2, formal.typeTokens.begin() + 5);
             }
         } else if (match(TokenKind::KwWith)) {
-            formal.kind = GenericFormalKind::SubprogramFormal;
-            std::size_t start = m_position;
-            SubprogramSpec spec = parseSubprogramSpec();
-            formal.name = spec.name;
-            formal.lower = spec.lower;
-            formal.subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
-                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
-            if (match(TokenKind::KwIs)) {
-                formal.abstract = match(TokenKind::KwAbstract);
-                if (!formal.abstract || !check(TokenKind::Semicolon)) {
-                    formal.boxDefault = match(TokenKind::Box);
-                    if (!formal.boxDefault) {
-                        if (check(TokenKind::KwNull)) {
-                            if (formal.abstract) { fail("an abstract formal subprogram cannot have a null default"); }
-                            if (spec.isFunction) { fail("a formal function cannot have a null default"); }
-                            advance();
-                            formal.nullDefault = true;
-                        } else {
-                            formal.defaultValue = parseExpression();
+            if (match(TokenKind::KwPackage)) {
+                formal.kind = GenericFormalKind::PackageFormal;
+                std::size_t packageStart = m_position - 1;
+                const Token& name = expect(TokenKind::Identifier, "in formal package declaration");
+                formal.name = name.text;
+                formal.lower = name.lower;
+                expect(TokenKind::KwIs, "in formal package declaration");
+                expect(TokenKind::KwNew, "in formal package declaration");
+                std::size_t templateStart = m_position;
+                std::string lower;
+                parseCompoundName(lower);
+                std::size_t templateEnd = m_position;
+                if (check(TokenKind::LeftParen) && peek(1).kind == TokenKind::Box) {
+                    advance();
+                    advance();
+                    expect(TokenKind::RightParen, "after formal package box");
+                    formal.packageBox = true;
+                    formal.packageTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(packageStart),
+                                                m_tokens.begin() + static_cast<std::ptrdiff_t>(templateEnd));
+                    formal.packageTokens.push_back(current());
+                } else {
+                    for (std::size_t i = m_position; i < m_tokens.size() && m_tokens[i].kind != TokenKind::Semicolon; ++i) {
+                        if (m_tokens[i].kind == TokenKind::Box || m_tokens[i].kind == TokenKind::KwOthers) {
+                            fail("partial formal-package actual lists and boxes are not yet supported");
+                        }
+                    }
+                    m_position = templateStart;
+                    parseGenericInstantiation(formal.location, formal.name, formal.lower, true);
+                    --m_position; // The shared formal-part loop consumes the semicolon.
+                    formal.packageTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(packageStart),
+                                                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
+                }
+                formal.packageTokens.push_back(m_tokens.back());
+            } else {
+                formal.kind = GenericFormalKind::SubprogramFormal;
+                std::size_t start = m_position;
+                SubprogramSpec spec = parseSubprogramSpec();
+                formal.name = spec.name;
+                formal.lower = spec.lower;
+                formal.subprogramTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+                if (match(TokenKind::KwIs)) {
+                    formal.abstract = match(TokenKind::KwAbstract);
+                    if (!formal.abstract || !check(TokenKind::Semicolon)) {
+                        formal.boxDefault = match(TokenKind::Box);
+                        if (!formal.boxDefault) {
+                            if (check(TokenKind::KwNull)) {
+                                if (formal.abstract) { fail("an abstract formal subprogram cannot have a null default"); }
+                                if (spec.isFunction) { fail("a formal function cannot have a null default"); }
+                                advance();
+                                formal.nullDefault = true;
+                            } else {
+                                formal.defaultValue = parseExpression();
+                            }
                         }
                     }
                 }
+                formal.subprogramTokens.push_back(current()); // The terminating semicolon.
+                formal.subprogramTokens.push_back(m_tokens.back());
             }
-            formal.subprogramTokens.push_back(current()); // The terminating semicolon.
-            formal.subprogramTokens.push_back(m_tokens.back());
         } else if (check(TokenKind::Identifier)) {
             std::size_t start = m_position;
             const Token& name = advance();
@@ -301,6 +348,9 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         fail("a generic declaration must name a package or a subprogram");
     }
 
+    decl->specificationTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(genericStart),
+                                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+    decl->specificationTokens.push_back(m_tokens.back());
     // Local generic bodies are retained with their declaration for expansion.
     // Library bodies remain distinct items with their own context and identity.
     while (includeFollowingBody) {

@@ -405,6 +405,63 @@ whole/per-unit with the compiler and C runtime under ASan/UBSan; the rejection
 test also passes compiler instrumentation. Generated Ada memory accesses remain
 uninstrumented, and LeakSanitizer is unavailable on this host.
 
+## Formal packages and contract matching
+
+`with package P is new Template (<>);` declares a fully boxed formal package.
+Complete positional/named actual lists and omission of defaulted actuals are
+also supported. The template must be a generic package, and the actual must
+be an instance of that template, including through package/generic renaming
+and forwarding of another formal package (RM 12.7).
+
+A boxed view exposes the template's visible declarations plus copies of its
+formals and their implicit primitive declarations. Each formal package receives
+a distinct checked specification: `P.T` and `Q.T` do not become the same type
+merely because P and Q have the same template. Private declarations remain
+hidden. Complete lists expose the package's visible declarations but do not
+expose the template formals that are required to match. Generic-formal `use`
+and `use type` clauses apply at their source position and into the unit body.
+
+Complete contracts check every actual, including defaults. Type actuals must
+statically match; `in` objects require equal static values, the same statically
+named constant, or null; other objects, subprograms and packages require the
+same entity. Generic `in` object actuals are followed recursively. Renamed
+operations retain their identity; intrinsic operators, enumeration literals,
+attribute functions and null defaults retain their callable identity. Static
+string matching handles literals, constants, concatenation, qualification,
+conversion and slices without evaluating arbitrary functions at compile time.
+Independently declared equal-valued runtime constants and coincident variable
+values do not satisfy the contract.
+
+A bound view maps checked members, nested package members and copied formals
+to the existing actual instance. Matching-only specifications emit no package
+elaboration: actual package state, exceptions, closures and object identity
+are reused. Symbolic formal-array index bounds remain symbolic until an actual
+subtype is available; subtype-mark array aggregate choices lower to their
+bounds. These prerequisites allow the complete CC70002 matrix/group scenario.
+
+`genericpackages`, `genericpackagecontracts`, `genericpackagecallables` and
+`genericpackagelibrary_main` exercise whole/per-unit/deterministic builds with
+four workers, including distinct instances, forwarding, nested packages,
+defaults, static values, shared state, single elaboration and exception identity.
+Three rejection tests cover wrong templates/actuals, independent types,
+private members, hidden matched formals and the unsupported partial-box syntax.
+Unchanged CC70002, CC70003, CC70A02 and CC70B01 execute as PASS with their
+unchanged FC70A00/FC70B00 foundations. All 129 prior baseline observations remain
+unchanged. Source hashes and grading boundaries are in the
+[ACATS inventory](../tests/acats/README.md#formal-packages-phase-6g).
+
+Validation passes 1,319/1,319 tests and the complete baseline snapshot check.
+All four local scenarios execute whole/per-unit with the compiler and C runtime
+under ASan/UBSan. The three rejection tests and four unchanged ACATS scenarios
+also pass compiler instrumentation; those ACATS executables run against the
+instrumented C runtime. Generated Ada memory accesses remain uninstrumented;
+LeakSanitizer is unavailable on this host.
+
+Mixed explicit/boxed associations and `others => <>` are explicitly diagnosed
+and remain the next roadmap item. CC70001 is deferred because its generic child
+package of a generic parent is rejected by the existing unit loader before
+formal-package execution; this source does not establish a PASS.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -448,7 +505,7 @@ original five commitments rather than adding new feature families:
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
-| Formal packages | Package contract matching, including partial lists and box associations |
+| Formal packages | Partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
 
@@ -456,12 +513,13 @@ The scope audit compared the original roadmap at commit `094b812` (before the
 first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing
 rejection tests and seven small compiler probes. At that audit the probes confirmed missing synchronized-
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
-formal arrays and formal packages. Synchronized-derived contracts, abstract formals, null defaults, attribute/literal actuals
-and nonstatic formal-array matching have since been implemented as described above. Access/limited-object restrictions remain
+formal arrays and formal packages. Synchronized-derived contracts, abstract formals,
+null defaults, attribute/literal actuals, nonstatic formal-array matching and core formal packages have since been implemented
+as described above. Access/limited-object restrictions remain
 explicit in
 `generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals
 now pass the full CC51B03 scenario. Partial package associations are
-part of the same missing formal-package feature.
+the remaining part of the formal-package feature.
 
 Three qualifications prevent the checklist from overstating the work:
 

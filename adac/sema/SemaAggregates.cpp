@@ -291,11 +291,31 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
     std::vector<std::pair<long long, long long>> staticChoices;
     for (AggregateComponent& component : expr->components) {
         for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
-            analyzeExpr(component.choiceLows[i].get(), scope, target->index);
+            Type* subtypeChoice = nullptr;
+            if (component.choiceHighs[i] == nullptr) {
+                for (Symbol* symbol : expressionNames(component.choiceLows[i].get(), scope)) {
+                    if (symbol->kind == SymbolKind::TypeName && isDiscrete(symbol->type)) {
+                        subtypeChoice = symbol->type;
+                        recordContractName(component.choiceLows[i].get(), symbol);
+                        break;
+                    }
+                }
+            }
+            if (subtypeChoice != nullptr) {
+                SourceLocation location = component.choiceLows[i]->location;
+                component.choiceLows[i] = scalarBoundExpr(subtypeChoice, true, location);
+                component.choiceHighs[i] = scalarBoundExpr(subtypeChoice, false, location);
+                if (m_recordContract != nullptr && subtypeChoice->genericFormal) {
+                    component.choiceLows[i]->isStatic = component.choiceHighs[i]->isStatic = false;
+                    component.choiceLows[i]->exactReal = component.choiceHighs[i]->exactReal = {};
+                }
+            } else {
+                analyzeExpr(component.choiceLows[i].get(), scope, target->index);
+            }
             adaptUniversal(component.choiceLows[i].get(),
                            target->index != nullptr ? target->index : m_types.integerType());
             if (component.choiceHighs[i]) {
-                analyzeExpr(component.choiceHighs[i].get(), scope, target->index);
+                if (subtypeChoice == nullptr) { analyzeExpr(component.choiceHighs[i].get(), scope, target->index); }
                 adaptUniversal(component.choiceHighs[i].get(),
                                target->index != nullptr ? target->index : m_types.integerType());
             }

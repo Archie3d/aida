@@ -144,6 +144,15 @@ struct Symbol
     // Generic units, which keep the declaration they came from so that an
     // instantiation can read the tokens again.
     struct GenericDecl* generic = nullptr;
+    Symbol* instanceTemplate = nullptr;
+    Scope* instanceBindings = nullptr;
+    Symbol* packageActual = nullptr;
+    bool formalPackage = false;
+    Expr* genericActualExpression = nullptr;
+    Expr* constantInitializer = nullptr;
+    Symbol* genericActualEntity = nullptr;
+    std::string genericIntrinsic;
+    Type* intrinsicPrefix = nullptr;
 
     // Enumeration literals.
     long long enumerationValue = 0;

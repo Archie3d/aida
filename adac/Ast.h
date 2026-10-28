@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 struct Type;
@@ -1014,7 +1015,8 @@ enum class GenericFormalKind
 
     // 'Size : Integer := 10'.  The instantiation supplies a static value.
     ObjectFormal,
-    SubprogramFormal
+    SubprogramFormal,
+    PackageFormal
 };
 
 // What a formal type will accept.  Ada writes this after 'is', and the
@@ -1048,6 +1050,9 @@ struct GenericFormal
     std::vector<Token> typeTokens;
     std::vector<Token> subprogramTokens;
     std::vector<Token> objectTokens;
+    std::vector<Token> packageTokens;
+    bool packageBox = false;
+    Symbol* packageView = nullptr;
     ParameterMode mode = ParameterMode::In;
     bool boxDefault = false;
     bool nullDefault = false;
@@ -1082,6 +1087,13 @@ struct GenericDecl : Decl
     std::string renames;
     std::string renamesLower;
     std::vector<GenericFormal> formals;
+    struct UseClause
+    {
+        std::size_t beforeFormal = 0;
+        std::vector<Token> tokens;
+    };
+    std::vector<UseClause> formalUses;
+    std::vector<Token> specificationTokens; // Generic formal part and package specification.
     std::vector<Token> tokens;
     Symbol* symbol = nullptr;
 };
@@ -1109,6 +1121,7 @@ struct GenericInstantiationDecl : Decl
     DeclList expansion;
     // Resolved formal access definitions used only for actual matching.
     DeclList formalTypes;
+    std::unordered_map<Symbol*, Symbol*> packageCopies;
 };
 
 // A pragma the compiler acts on.  Only Import is understood, and it is what

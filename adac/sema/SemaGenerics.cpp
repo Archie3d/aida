@@ -433,9 +433,15 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     m_recordContract = contract;
     m_replayContract = nullptr;
     int errors = m_diagnostics.errorCount();
+    std::size_t formalIndex = 0;
     for (GenericFormal& formal : decl->formals) {
         if (continuation) {
             break;
+        }
+        applyGenericUses(decl, formalIndex++, bindings, contract->profiles);
+        if (formal.kind == GenericFormalKind::PackageFormal) {
+            formal.packageView = declareFormalPackage(formal, bindings, contract->profiles);
+            continue;
         }
         if (formal.kind == GenericFormalKind::SubprogramFormal) {
             Parser parser(formal.subprogramTokens, m_diagnostics);
@@ -587,6 +593,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             bindings->add(symbol);
         }
     }
+    if (!continuation) { applyGenericUses(decl, decl->formals.size(), bindings, contract->profiles); }
     std::vector<Token> tokens(decl->tokens.begin() + static_cast<std::ptrdiff_t>(contract->tokenCount),
                               decl->tokens.end());
     Parser parser(tokens, m_diagnostics);
@@ -1113,6 +1120,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     if (nullDefault) {
         body->isNull = true;
         wrapper->intrinsicRenaming = true;
+        auto defaults = contract->bindings->lookupLocal(formal.lower);
+        if (!defaults.empty()) { wrapper->genericActualEntity = defaults.front(); }
         decl->expansion.push_back(std::move(body));
         return true;
     }
@@ -1251,6 +1260,9 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     // The formal's calling convention comes from its actual, including an
     // intrinsic null default forwarded through another generic or renaming.
     bool enumeration = !intrinsic && candidates.front()->kind == SymbolKind::EnumerationLiteral;
+    wrapper->genericActualExpression = actual == &defaultName ? nullptr : actual;
+    wrapper->genericActualEntity = intrinsic ? nullptr : candidates.front();
+    wrapper->genericIntrinsic = intrinsic ? operation : std::string();
     wrapper->intrinsicRenaming = intrinsic || enumeration;
     if (!intrinsic) {
         for (Symbol* target = candidates.front(); target != nullptr; target = target->renamedSubprogram) {
@@ -1427,6 +1439,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
     }
 
     for (std::size_t i = 0; i < formals.size(); ++i) {
+        applyGenericUses(generic->generic, i, bindings, decl->formalTypes);
         const GenericFormal& formal = formals[i];
         Expr* actual = actuals[i];
         if (actual == nullptr && formal.defaultValue) {
@@ -1443,6 +1456,12 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         if (actual == nullptr) {
             m_diagnostics.error(decl->location, "no actual supplied for generic formal '" + formal.name + "'");
             return false;
+        }
+
+        if (formal.kind == GenericFormalKind::PackageFormal) {
+            if (!bindFormalPackage(decl, formal, actual, bindings, scope,
+                    m_genericContracts.at(generic->generic).get(), firstSymbol)) { return false; }
+            continue;
         }
 
         if (formal.kind == GenericFormalKind::TypeFormal) {
@@ -1599,6 +1618,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         symbol->isConstant = !reference;
         symbol->objectReference = reference;
         symbol->genericObject = true;
+        symbol->genericActualExpression = actual;
         symbol->sharedAlias = reference ? actual : nullptr;
         symbol->owner = m_currentSubprogram;
         symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
@@ -1629,6 +1649,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         decl->expansion.push_back(std::move(objects.front()));
     }
 
+    applyGenericUses(generic->generic, formals.size(), bindings, decl->formalTypes);
     // The predefined deallocator uses a private formal in its source until
     // general formal access types are implemented. Preserve its actual access
     // contract rather than accepting arbitrary private types as pointers.
@@ -1719,7 +1740,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
     auto savedCopies = std::move(m_instanceCopies);
-    m_instanceCopies.clear();
+    m_instanceCopies = decl->packageCopies;
     ++m_instantiationDepth;
     analyzeDeclarativePart(expansion, bindings);
     if (!generic->hasBody) {
@@ -1788,6 +1809,10 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         Symbol* symbol = declaredSymbol(unit.get());
         if (symbol != nullptr && symbol->name == instanceName) {
             decl->symbol = symbol;
+            if (symbol->kind == SymbolKind::Package) {
+                symbol->instanceTemplate = generic;
+                symbol->instanceBindings = bindings;
+            }
             if (symbol->kind == SymbolKind::Subprogram) {
                 symbol->declarationScope = home;
                 for (Symbol* inherited : home->lookupDeclaration(symbol->name)) {

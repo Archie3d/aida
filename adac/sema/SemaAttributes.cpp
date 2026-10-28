@@ -126,6 +126,8 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
     profile->location = attribute->location;
     profile->hasBody = true;
     profile->intrinsicRenaming = true;
+    profile->genericIntrinsic = "attribute:" + name;
+    profile->intrinsicPrefix = baseType(type);
     profile->returnType = name == "image" ? m_types.stringType() : base;
     std::size_t count = name == "min" || name == "max" ? 2 : 1;
     for (std::size_t i = 0; i < count; ++i) {

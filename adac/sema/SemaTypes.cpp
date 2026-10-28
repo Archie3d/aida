@@ -561,6 +561,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 ? commonOperandType(index->rangeLow.get(), index->rangeHigh.get(), scope, nullptr)
                 : index->name.empty() ? m_types.integerType() : resolveTypeName(index->lower, scope, index->location);
             if (indexType == nullptr || isUniversal(indexType)) { indexType = m_types.integerType(); }
+            bool symbolicIndex = m_recordContract != nullptr && indexType->genericFormal;
             row->index = indexType;
             row->indexConstraint = index->indexSubtypeMark ? indexType : nullptr;
             if (indexType->high > LLONG_MAX) {
@@ -582,15 +583,15 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                     dynamicBounds = true;
                 }
             } else if (indexType != nullptr && row->constrained) {
-                row->indexRangeStatic = indexType->scalarBoundsSymbol == nullptr;
+                row->indexRangeStatic = indexType->scalarBoundsSymbol == nullptr && !symbolicIndex;
                 row->indexLow = indexType->low;
                 row->indexHigh = indexType->high;
-                if (indexType->scalarBoundsSymbol != nullptr) {
+                if (indexType->scalarBoundsSymbol != nullptr || symbolicIndex) {
                     index->rangeLow = scalarBoundExpr(indexType, true, index->location);
                     index->rangeHigh = scalarBoundExpr(indexType, false, index->location);
                 }
             }
-            if (indexType != nullptr && indexType->scalarBoundsSymbol != nullptr && row->constrained) {
+            if (indexType != nullptr && (indexType->scalarBoundsSymbol != nullptr || symbolicIndex) && row->constrained) {
                 dynamicBounds = true;
             }
             type->boundExpressions.push_back({ index->rangeLow.get(), index->rangeHigh.get() });

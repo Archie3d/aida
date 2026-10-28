@@ -355,6 +355,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         symbol->classWideObject = type != nullptr && type->classRoot != nullptr && !decl->isRenaming;
         symbol->awaitsValue = decl->awaitsValue;
         symbol->isConstant = decl->isConstant;
+        symbol->constantInitializer = decl->isConstant ? decl->initializer.get() : nullptr;
         symbol->aliased = decl->aliased;
         symbol->location = decl->location;
         symbol->owner = m_currentSubprogram;

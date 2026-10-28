@@ -695,9 +695,17 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   targeted rejections and compiler/C-runtime ASan/UBSan checks pass.
   All 1,300 tests pass; all 129 baseline observations remain unchanged.
   [Contract](docs/generic-types.md#nonstatic-constraints-in-formal-array-matching).
-- [ ] **Formal packages and contract matching.** Parse formal package
-  declarations, expose their formal views and enforce matching of actual
-  package instances and their generic contracts through nested/library use.
+- [x] **Formal packages and contract matching.** Fully boxed views and
+  complete positional/named/defaulted lists; template provenance, static subtype/
+  value matching and entity identity survive renaming, forwarding and nested/
+  library replay. Distinct views keep independent types and private declarations
+  stay hidden. Formal-part use clauses retain source order; matching emits no
+  duplicate elaboration. Four local scenarios run whole/per-unit/determinism
+  with four workers; three rejection tests and compiler/C-runtime ASan/UBSan
+  checks pass. Unchanged CC70002, CC70003, CC70A02 and CC70B01 execute as PASS.
+  CC70001 remains deferred at the existing generic-child unit-loader gap.
+  All 1,319 tests pass; the 129-case baseline is unchanged.
+  [Contract](docs/generic-types.md#formal-packages-and-contract-matching).
 - [ ] **Partial formal-package actual lists and boxes.** Add Ada 2005
   partial actual parameter lists and box associations, with matching,
   visibility/default rules and invalid-association diagnostics. This completes

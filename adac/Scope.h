@@ -36,6 +36,7 @@ public:
     void setCompletionScope(Scope* scope) { m_completionScope = scope; }
     Scope* completionScope() const { return m_completionScope; }
     std::vector<Symbol*> lookupDeclaration(const std::string& name) const;
+    const std::unordered_map<std::string, std::vector<Symbol*>>& declarations() const { return m_symbols; }
     bool m_privateRegion = false;
     std::string m_packageName;
     std::string m_libraryPackage;
