@@ -1793,6 +1793,7 @@ add_test(NAME runtime.pragmaimport_modes
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/PragmaHooks.c
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/pragmaimport.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/pragmaimport.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/pragmaimport-modes
