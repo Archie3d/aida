@@ -336,6 +336,7 @@ private:
 
     // Calls (QbeCalls.cpp).
     Value emitCall(CallExpr* expr, Type* inheritedControllingType = nullptr);
+    Value emitCallValue(CallExpr* expr, Type* inheritedControllingType);
     Value consumeArrayResult(const std::string& resultStorage, int rank, bool adopt);
     Value emitRuntimeCall(CallExpr* expr, Symbol* subprogram);
 
@@ -370,6 +371,8 @@ private:
     void emitAggregateInto(AggregateExpr* expr, const Value& address, Type* type);
     Value emitAggregate(AggregateExpr* expr);
 
+    void emitPragma(PragmaDecl* pragma);
+    uint32_t m_suppressedChecks = 0;
     Sema& m_sema;
     Diagnostics& m_diagnostics;
     std::ostringstream m_data;

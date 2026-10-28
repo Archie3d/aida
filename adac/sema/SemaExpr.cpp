@@ -29,6 +29,9 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
+    // Replay conservatively retains checks: declaration and instance permissions
+    // can differ, and Unsuppress must never be weakened by a cached template.
+    if (expr != nullptr) { expr->suppressedChecks = activeCheckPermissions(); }
     int errors = m_diagnostics.errorCount();
     ++m_expressionDepth;
     Type* result = analyzeExprValue(expr, scope, expected);

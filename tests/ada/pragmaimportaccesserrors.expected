@@ -1,0 +1,3 @@
+pragmaimportaccesserrors.adb:6:30: error: 'Access of imported No_Return procedures is not yet supported
+pragmaimportaccesserrors.adb:12:39: error: 'Access of imported No_Return procedures is not yet supported
+pragmaimportaccesserrors.adb:20:45: error: 'Access of a No_Return renaming without a No_Return target is not yet supported

@@ -236,6 +236,8 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     decl->symbol = alias;
+    if (completion != nullptr) { m_noReturnRenamings.emplace_back(alias, chosen); }
+    if (chosen != nullptr && chosen->noReturn) { alias->noReturn = true; }
     if (completion != nullptr && completion->abstract) {
         m_diagnostics.error(decl->location, "an abstract subprogram cannot have a completion");
     }

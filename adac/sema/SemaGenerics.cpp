@@ -387,6 +387,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
         owned->bindings->m_genericBindings = true;
         owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
         owned->valid = true;
+        owned->checkMask = m_suppressedChecks;
         // A nested declaration is rechecked in each enclosing instance. Keep
         // its source-level discriminant identities and attribute legality even
         // when the enclosing formal has already been replaced by its actual.
@@ -410,6 +411,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
         }
     }
     GenericContract* contract = owned.get();
+    ScopedCheckPolicy contractChecks(m_suppressedChecks, m_suppressedChecks | contract->checkMask);
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     if (!continuation) { contract->firstSymbol = firstSymbol; }
     Scope* bindings = contract->bindings;
@@ -1842,6 +1844,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         return;
     }
     GenericContract* contract = foundContract->second.get();
+    ScopedCheckPolicy instanceChecks(m_suppressedChecks, m_suppressedChecks | contract->checkMask);
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     Scope* bindings = m_symbolTable.createScope(contract->environment);
     bindings->m_genericBindings = true;
@@ -1939,6 +1942,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         Symbol* symbol = declaredSymbol(unit.get());
         if (symbol != nullptr && symbol->name == instanceName) {
             decl->symbol = symbol;
+            symbol->genericInstance = true;
             if (symbol->kind == SymbolKind::Package) {
                 symbol->instanceTemplate = generic;
                 symbol->instanceBindings = bindings;
@@ -2022,6 +2026,8 @@ void Sema::completeGenericInstance(PendingGenericInstance pending)
     // position by checkGenericContract; replay maps them to this instance.
     m_currentSubprogram = pending.owner;
     m_currentUnit = pending.unit;
+    m_assertionsEnabled = pending.unit->assertionsEnabled;
+    m_suppressedChecks = pending.instance->suppressedChecks | contract->checkMask;
     m_packages = std::move(pending.packages);
     m_namePrefix = std::move(pending.prefix);
     m_accessibilityLevel = pending.accessibilityLevel;
@@ -2093,6 +2099,38 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     if (m_diagnostics.hasErrors()) {
         return;
+    }
+    for (const auto& owned : m_symbolTable.symbols()) {
+        Symbol* symbol = owned.get();
+        if (symbol->noReturn && symbol->inheritedFrom == nullptr) {
+            for (const SourceLocation& location : symbol->returnStatements) {
+                m_diagnostics.error(location, "a return statement cannot apply to a No_Return procedure");
+            }
+        }
+    }
+    for (const auto& [symbol, location] : m_noReturnAccesses) {
+        Symbol* implementation = symbol;
+        bool noReturn = symbol->noReturn;
+        while (implementation->renamedSubprogram != nullptr || implementation->inheritedFrom != nullptr) {
+            implementation = implementation->renamedSubprogram != nullptr
+                ? implementation->renamedSubprogram : implementation->inheritedFrom;
+            noReturn = noReturn || implementation->noReturn;
+        }
+        if (implementation->builtin == BuiltinKind::Runtime && noReturn) {
+            m_diagnostics.error(location, "'Access of imported No_Return procedures is not yet supported");
+        } else if (noReturn && !implementation->noReturn) {
+            m_diagnostics.error(location, "'Access of a No_Return renaming without a No_Return target is not yet supported");
+        }
+    }
+    for (const auto& [declared, renamed] : m_noReturnRenamings) {
+        if (declared->noReturn && (renamed == nullptr || !renamed->noReturn)) {
+            m_diagnostics.error(declared->location, "a No_Return renaming-as-body requires a No_Return target");
+        }
+    }
+    for (const auto& [overriding, parent] : m_noReturnOverrides) {
+        if ((parent->noReturn || m_noReturnRequired.contains(overriding)) && !overriding->noReturn) {
+            m_diagnostics.error(overriding->location, "an override of a No_Return procedure must also be No_Return");
+        }
     }
     finishLimitedViews();
     if (m_diagnostics.hasErrors()) { return; }

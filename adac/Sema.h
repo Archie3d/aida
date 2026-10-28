@@ -110,6 +110,9 @@ private:
         std::unordered_set<std::string> definiteAttributes;
         std::unordered_set<std::string> classAttributes;
         std::unordered_set<std::string> abstractFormals;
+        std::unordered_map<std::string, bool> assertions;
+        uint32_t checkMask = 0;
+        bool noReturn = false;
         bool valid = false;
     };
     // An instance specification must remain visible while its template body
@@ -135,6 +138,14 @@ private:
     void completeGenericInstance(PendingGenericInstance pending);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
+    std::vector<std::pair<Symbol*, Symbol*>> m_noReturnOverrides;
+    std::unordered_set<Symbol*> m_noReturnRequired;
+    std::vector<std::pair<Symbol*, Symbol*>> m_noReturnRenamings;
+    std::vector<std::pair<Symbol*, SourceLocation>> m_noReturnAccesses;
+    std::unordered_set<Type*> m_storageControlledTypes;
+    uint32_t activeCheckPermissions() const;
+    bool m_assertionsEnabled = true;
+    uint32_t m_suppressedChecks = 0;
     bool m_genericBodyContext = false;
     bool m_genericInstanceBody = false;
     GenericContract* m_replayContract = nullptr;

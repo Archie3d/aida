@@ -1,0 +1,12 @@
+pragmaplacementerrors.adb:1:1: error: assertion policy must be Check or Ignore
+pragmaplacementerrors.adb:2:1: error: unknown language-defined check 'bogus_check'
+pragmaplacementerrors.adb:3:1: error: unknown language-defined check 'unknown_check'
+pragmaplacementerrors.adb:5:29: error: pragma Assertion_Policy is only allowed as a configuration pragma in Ada 2005
+pragmaplacementerrors.adb:6:23: error: List requires On or Off
+pragmaplacementerrors.adb:7:26: error: Optimize requires Time, Space or Off
+pragmaplacementerrors.adb:8:17: error: expected ';' after pragma, found '('
+pragmaplacementerrors.adb:10:21: error: pragma Suppress is only allowed in a declarative part or package specification
+pragmaplacementerrors.adb:11:23: error: pragma Unsuppress is only allowed in a declarative part or package specification
+pragmaplacementerrors.adb:12:22: error: pragma No_Return is only allowed in a declarative part or package specification
+pragmaplacementerrors.adb:13:23: error: pragma Controlled is only allowed in a declarative part or package specification
+pragmaplacementerrors.adb:15:1: error: pragma Assert is not allowed after a library unit

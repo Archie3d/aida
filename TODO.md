@@ -80,6 +80,7 @@ phases replace each rejection as they implement it.
 - [x] **Pragmas.** `Import` implemented; `Inline`, `Pure`, `Preelaborate`
   advisory; others rejected (`pragmas`, `pragma*errors`). Elaboration,
   `Atomic` and `Volatile` pragmas were added in Phases 3–4.
+  Assertion/check policies and No_Return were added in Phase 6h.
 - [x] **Representation clauses.** Only validated `'Size` clauses accepted
   (`sizeclauses`, `representationerrors`, `size*errors`); Phases 5 and 6c add
   the other supported clauses.
@@ -797,10 +798,24 @@ of checkboxes nor an unrelated ACATS rejection measures language completeness.
 
 ### 6h. Pragmas and checks
 
-- [ ] Implement the remaining Ada 2005 core pragmas and check policies, including
+- [x] Implement the Ada 2005 assertion and check-policy milestone, including
   `Assert`, `Assertion_Policy`, `Suppress`, `Unsuppress` and `No_Return`. Validate
   placement and arguments, enabled/disabled behavior and failure propagation;
   continue diagnosing unsupported pragmas until each is implemented.
+  `Ada.Assertions`, lazy messages, ignored-but-checked assertions, source generic
+  policies, scoped check permissions and nonreturning cleanup/overrides now work
+  in whole/per-unit builds (`pragma*`, `semantics.pragmapolicies`, C651001).
+  List/Page/Optimize and noncollecting Controlled are validated. Check omission is optional
+  and conservative across package/generic/subunit and C-runtime boundaries.
+  Imported No_Return 'Access remains diagnosed pending Phase 7 foreign adapters;
+  categorization remains Phase 7, packing/representation and the wider pragma
+  audit Phase 8, concurrent policies Phase 9. [Contract](docs/pragmas-and-checks.md).
+  The implementation-defined Restrictions set is empty; unsupported restrictions
+  diagnose. Task Storage_Size remains with the existing Phase 9 item.
+  No_Return renamings of ordinarily returning targets diagnose 'Access until
+  the Phase 8 callable-completeness audit supplies guard adapters.
+  Validation: 1,408/1,408 tests, all 129 baseline observations unchanged, and
+  focused compiler/C-runtime ASan/UBSan checks passed.
 
 Tests: allocation and deallocation through a shared collection from several
 tasks, finalization inside an abort-deferred region, defaulted discriminants
@@ -845,6 +860,8 @@ Ada 2005 additions and track annex packages separately.
   their required I/O, string and character facilities, and Ada 2005 identifier
   character rules with a documented source encoding policy.
 - [ ] A foreign ABI and ownership contract for imported controlled results.
+  Include guarded foreign callbacks for imported No_Return procedures (their
+  'Access is currently diagnosed; direct calls are guarded).
 
 ## Phase 8 — Tooling and validation (alongside the phases above)
 

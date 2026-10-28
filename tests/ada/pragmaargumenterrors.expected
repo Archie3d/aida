@@ -1,0 +1,16 @@
+pragmaargumenterrors.adb:2:20: error: Assert Check must have a Boolean type
+pragmaargumenterrors.adb:3:26: error: Assert Message must have type String
+pragmaargumenterrors.adb:4:31: error: Assert arguments must remain in Check, Message order
+pragmaargumenterrors.adb:4:5: error: pragma Assert requires a Check expression
+pragmaargumenterrors.adb:5:44: error: Assert arguments must remain in Check, Message order
+pragmaargumenterrors.adb:5:44: error: duplicate Assert argument 'check'
+pragmaargumenterrors.adb:6:29: error: unknown or excess Assert argument
+pragmaargumenterrors.adb:6:5: error: pragma Assert requires a Check expression
+pragmaargumenterrors.adb:7:31: error: Assert arguments must remain in Check, Message order
+pragmaargumenterrors.adb:7:55: error: Assert arguments must remain in Check, Message order
+pragmaargumenterrors.adb:8:35: error: positional pragma argument follows a named argument
+pragmaargumenterrors.adb:8:35: error: no visible interpretation of 'False' matches this context
+pragmaargumenterrors.adb:13:23: error: No_Return requires a procedure declared in this region
+pragmaargumenterrors.adb:15:23: error: No_Return requires a procedure declared in this region
+pragmaargumenterrors.adb:17:23: error: No_Return requires a nonnull procedure or generic procedure, not an instance
+pragmaargumenterrors.adb:25:23: error: No_Return requires a nonnull procedure or generic procedure, not an instance

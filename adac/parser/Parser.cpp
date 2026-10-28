@@ -80,6 +80,8 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
             std::size_t start = m_position;
             auto unit = std::make_unique<CompilationUnit>();
             parseContextClause(*unit);
+            unit->assertionsEnabled = m_assertionsEnabled;
+            unit->suppressedChecks = m_configurationChecks;
             if (check(TokenKind::EndOfFile)) {
                 break;
             }
@@ -91,12 +93,20 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
             m_libraryItem = true;
             bool privateUnit = match(TokenKind::KwPrivate);
             DeclPtr decl = parseLibraryUnit();
-            if (decl != nullptr) { decl->privateUnit = privateUnit; }
+            if (decl != nullptr) {
+                decl->privateUnit = privateUnit;
+                unit->assertionPolicies[decl->location.file] = m_assertionsEnabled;
+            }
             if (decl) {
                 while (check(TokenKind::KwPragma) && peek(1).lower != "elaborate"
-                    && peek(1).lower != "elaborate_all") {
+                    && peek(1).lower != "elaborate_all" && peek(1).lower != "assertion_policy"
+                    && peek(1).lower != "suppress" && peek(1).lower != "unsuppress") {
                     if (peek(1).lower != "elaborate_body") {
-                        parsePragma();
+                        DeclPtr pragma = parsePragma(true);
+                        if (pragma != nullptr && static_cast<PragmaDecl*>(pragma.get())->lower == "assert") {
+                            m_diagnostics.error(pragma->location, "pragma Assert is not allowed after a library unit");
+                        }
+                        if (pragma != nullptr) { unit->units.push_back(std::move(pragma)); }
                         continue;
                     }
                     std::string name;
@@ -120,9 +130,20 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
                     || (decl->kind == DeclKind::SubprogramBody && static_cast<SubprogramBody*>(decl.get())->isNull))) {
                     fail("a subunit requires a proper subprogram or package body");
                 }
-                unit->tokens.assign(m_tokens.begin() + start, m_tokens.begin() + m_position);
+                unit->tokens = m_configurationTokens;
+                unit->tokens.insert(unit->tokens.end(), m_tokens.begin() + start, m_tokens.begin() + m_position);
                 unit->tokens.push_back(m_tokens.back());
-                unit->units.push_back(std::move(decl));
+                for (std::size_t i = 0; i + 1 < unit->tokens.size(); ++i) {
+                    if (unit->tokens[i].kind == TokenKind::KwPragma && unit->tokens[i + 1].lower == "assert") {
+                        WithClause dependency;
+                        dependency.names.push_back("Ada.Assertions");
+                        dependency.namesLower.push_back("ada.assertions");
+                        dependency.location = unit->tokens[i].location;
+                        unit->withClauses.push_back(std::move(dependency));
+                        break;
+                    }
+                }
+                unit->units.insert(unit->units.begin(), std::move(decl));
                 units.push_back(std::move(unit));
             }
         } catch (const ParseError&) {
@@ -230,7 +251,15 @@ void Parser::parseContextClause(CompilationUnit& unit)
                 expect(TokenKind::Semicolon, "after elaboration pragma");
                 unit.elaborationPragmas.push_back(std::move(pragma));
             } else {
-                parsePragma();
+                std::size_t start = m_position;
+                DeclPtr pragma = parsePragma(false, true);
+                if (pragma != nullptr && (pragma->kind == DeclKind::Pragma)) {
+                    auto* policy = static_cast<PragmaDecl*>(pragma.get());
+                    if (policy->lower == "assertion_policy" || policy->lower == "suppress" || policy->lower == "unsuppress") {
+                        m_configurationTokens.insert(m_configurationTokens.end(), m_tokens.begin() + start,
+                            m_tokens.begin() + m_position);
+                    }
+                }
             }
             continue;
         }

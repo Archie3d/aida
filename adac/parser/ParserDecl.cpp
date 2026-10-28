@@ -208,15 +208,95 @@ DeclPtr Parser::parseUseClause()
 }
 
 // Keep Import and shared-variable pragmas for analysis. Inline, Pure and
-// Preelaborate are
-// explicitly accepted as advisory only; reject every other pragma rather than
-// silently losing requirements on representation, checks or execution.
-DeclPtr Parser::parsePragma(bool allowShared)
+// Preelaborate are explicitly accepted as advisory only. Keep unsupported
+// requirements on representation, checks or execution visible as diagnostics.
+DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
 {
     SourceLocation location = current().location;
     expect(TokenKind::KwPragma, "in pragma");
 
     const Token& name = expect(TokenKind::Identifier, "as pragma name");
+    if (name.lower == "page" || name.lower == "list" || name.lower == "optimize") {
+        if (name.lower != "page") {
+            expect(TokenKind::LeftParen, "after pragma name");
+            const Token& argument = expect(TokenKind::Identifier, "as pragma argument");
+            bool valid = name.lower == "list" ? argument.lower == "on" || argument.lower == "off"
+                : argument.lower == "time" || argument.lower == "space" || argument.lower == "off";
+            if (!valid) { fail(name.lower == "list" ? "List requires On or Off" : "Optimize requires Time, Space or Off"); }
+            expect(TokenKind::RightParen, "after pragma argument");
+        }
+        expect(TokenKind::Semicolon, "after pragma");
+        // No listing is generated. All optimization modes use the same QBE
+        // pipeline; the language defines Optimize as implementation advice.
+        return nullptr;
+    }
+    if (name.lower == "assert" || name.lower == "assertion_policy"
+        || name.lower == "suppress" || name.lower == "unsuppress" || name.lower == "no_return") {
+        if (name.lower == "assertion_policy" && !configuration) {
+            fail("pragma Assertion_Policy is only allowed as a configuration pragma in Ada 2005");
+        }
+        if ((name.lower == "assert" || name.lower == "no_return") && configuration) {
+            fail("pragma " + name.text + " is not a configuration pragma");
+        }
+        if (!configuration && !allowShared && name.lower != "assert") {
+            fail("pragma " + name.text + " is only allowed in a declarative part or package specification");
+        }
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->name = name.text;
+        pragma->lower = name.lower;
+        expect(TokenKind::LeftParen, "after pragma name");
+        if (name.lower == "assert") {
+            do {
+                Association argument;
+                if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+                    argument.name = advance().text;
+                    argument.nameLower = toLower(argument.name);
+                    advance();
+                }
+                argument.value = parseExpression();
+                pragma->arguments.push_back(std::move(argument));
+            } while (match(TokenKind::Comma));
+        } else {
+            do {
+                Association argument;
+                const Token& entity = expect(TokenKind::Identifier, "as pragma argument");
+                auto identifier = std::make_unique<IdentifierExpr>();
+                identifier->location = entity.location;
+                identifier->name = entity.text;
+                identifier->lower = entity.lower;
+                argument.value = std::move(identifier);
+                pragma->arguments.push_back(std::move(argument));
+            } while (match(TokenKind::Comma));
+        }
+        expect(TokenKind::RightParen, "after pragma arguments");
+        expect(TokenKind::Semicolon, "after pragma");
+        if (name.lower == "assertion_policy" || name.lower == "suppress" || name.lower == "unsuppress") {
+            if (pragma->arguments.size() != 1) {
+                m_diagnostics.error(location, "pragma " + name.text + " requires one identifier");
+                return nullptr;
+            }
+            std::string argument = static_cast<IdentifierExpr*>(pragma->arguments.front().value.get())->lower;
+            if (name.lower == "assertion_policy") {
+                if (argument != "check" && argument != "ignore") {
+                    m_diagnostics.error(location, "assertion policy must be Check or Ignore");
+                    return nullptr;
+                }
+                m_assertionsEnabled = argument == "check";
+            } else {
+                pragma->checkMask = CheckPolicy::namedCheck(argument);
+                if (pragma->checkMask == 0) {
+                    m_diagnostics.error(location, "unknown language-defined check '" + argument + "'");
+                    return nullptr;
+                }
+                if (configuration) {
+                    if (name.lower == "suppress") { m_configurationChecks |= pragma->checkMask; }
+                    else { m_configurationChecks &= ~pragma->checkMask; }
+                }
+            }
+        }
+        return pragma;
+    }
     if (name.lower == "elaborate" || name.lower == "elaborate_all"
         || name.lower == "elaborate_body") {
         m_diagnostics.error(name.location, name.lower == "elaborate_body"
@@ -240,6 +320,20 @@ DeclPtr Parser::parsePragma(bool allowShared)
         }
         expect(TokenKind::Semicolon, "after pragma");
         return nullptr;
+    }
+    if (name.lower == "controlled") {
+        if (!allowShared) { fail("pragma Controlled is only allowed in a declarative part or package specification"); }
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->name = name.text;
+        pragma->lower = name.lower;
+        expect(TokenKind::LeftParen, "after pragma Controlled");
+        const Token& entity = expect(TokenKind::Identifier, "as Controlled type name");
+        pragma->entity = entity.text;
+        pragma->entityLower = entity.lower;
+        expect(TokenKind::RightParen, "after Controlled type name");
+        expect(TokenKind::Semicolon, "after pragma");
+        return pragma;
     }
     if (name.lower == "atomic" || name.lower == "volatile") {
         if (!allowShared) {
@@ -278,7 +372,7 @@ DeclPtr Parser::parsePragma(bool allowShared)
     }
     if (name.lower != "import") {
         m_diagnostics.error(name.location, "unsupported or unknown pragma '" + name.text
-            + "'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile");
+            + "'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize");
         skipToSemicolon();
         return nullptr;
     }

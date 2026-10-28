@@ -53,6 +53,9 @@ struct Symbol
     bool isGlobal = false;
     bool byReference = false;
     bool genericObject = false;
+    bool noReturn = false;
+    bool genericInstance = false;
+    std::vector<SourceLocation> returnStatements;
     bool genericFormalSubprogram = false;
     bool explicitNullExclusion = false;
     Type* discriminantRecord = nullptr;

@@ -59,7 +59,7 @@ DeclPtr Parser::parsePackage(bool library)
         if (peek(1).lower == "elaborate_body") {
             parseElaborateBody(*spec, spec->lower, true);
         } else {
-            DeclPtr pragma = parsePragma();
+            DeclPtr pragma = parsePragma(true);
             if (pragma) {
                 spec->publicPart.push_back(std::move(pragma));
             }

@@ -10,6 +10,7 @@ using QbeSupport::comparisonInstruction;
 
 Value QbeEmitter::emitExpr(Expr* expr)
 {
+    ScopedCheckPolicy checks(m_suppressedChecks, expr != nullptr ? expr->suppressedChecks : m_suppressedChecks);
     SourceLocation saved = m_context->sourceLocation;
     if (expr != nullptr) {
         m_context->sourceLocation = expr->location;

@@ -150,9 +150,14 @@ StmtPtr Parser::parseStatement()
         return parseReturnStatement();
     case TokenKind::KwRaise:
         return parseRaiseStatement();
-    case TokenKind::KwPragma:
-        parsePragma();
-        return nullptr;
+    case TokenKind::KwPragma: {
+        DeclPtr pragma = parsePragma();
+        if (!pragma) { return nullptr; }
+        auto statement = std::make_unique<PragmaStmt>();
+        statement->location = pragma->location;
+        statement->pragma.reset(static_cast<PragmaDecl*>(pragma.release()));
+        return statement;
+    }
     default:
         break;
     }

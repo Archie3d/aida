@@ -177,9 +177,22 @@ void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
     }
 }
 
+uint32_t Sema::activeCheckPermissions() const
+{
+    // Permission to omit is optional. Retain checks across package, generic
+    // and subunit boundaries, where declaration and caller policies can differ.
+    if (m_replayContract != nullptr || !m_packages.empty()
+        || (m_currentUnit != nullptr && (!m_currentUnit->subunitSources.empty() || !m_currentUnit->subunitParent.empty()))) {
+        return 0;
+    }
+    return m_suppressedChecks;
+}
+
 void Sema::analyze(CompilationUnit& unit)
 {
     m_currentUnit = &unit;
+    m_assertionsEnabled = unit.assertionsEnabled;
+    m_suppressedChecks = unit.suppressedChecks;
     // Executable package parts need local ownership without changing the
     // library lifetime of declarations in the package itself.
     m_elaborationOwners[&unit] = m_symbolTable.createSymbol(SymbolKind::Subprogram,

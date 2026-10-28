@@ -38,7 +38,11 @@ void QbeEmitter::emitStatements(StmtList& statements)
 
 void QbeEmitter::emitStatement(Stmt* statement)
 {
+    ScopedCheckPolicy checks(m_suppressedChecks, statement->suppressedChecks);
     switch (statement->kind) {
+    case StmtKind::Pragma:
+        emitPragma(static_cast<PragmaStmt*>(statement)->pragma.get());
+        break;
     case StmtKind::Goto: {
         auto* transfer = static_cast<GotoStmt*>(statement);
         const auto target = m_context->gotoTargets.at(transfer->target);

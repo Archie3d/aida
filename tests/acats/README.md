@@ -720,3 +720,25 @@ audit; grouped formals, broader legality/staticness and B-test grading also
 remain Phase 8. Concurrent implementations and protected-operation actuals
 remain Phase 9. Generated QBE memory accesses remain uninstrumented;
 LeakSanitizer is unavailable.
+
+## Pragmas and checks (Phase 6h)
+
+Unchanged [C651001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c651001.a)
+is copied byte-for-byte to `upstream/c651001.ada`, retaining its rights and
+disclaimers. It executes as PASS with the complete REPORT protocol, checking
+Program_Error when a No_Return procedure completes normally. It also passes
+instrumented compiler/C-runtime execution. Generated Ada memory accesses remain
+uninstrumented; LeakSanitizer is unavailable.
+
+| Upstream source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/c6/c651001.a | `4d016539556545b22e24c602633c8d260a222ad9` | `f479cadeea490db8630f91c2d7f0d3a9fd6bd9eee91391a867fd9ac718a4c6c3` |
+
+CB42001–CB42003 in the pinned archive use Ada 2012 local Assertion_Policy
+pragmas, so they are excluded from the Ada 2005 selection. Local pragma
+fixtures cover configuration policies, source-generic policy retention,
+lazy evaluation, exception cleanup, check permissions and declaration legality.
+No assertion-specific upstream PASS is claimed. All 129 baseline observations
+remain unchanged: 80 PASS, 15 compile rejections, eight harness blockers and
+26 ungraded B rejections. Categorization, representation and concurrent-policy
+pragmas retain their Phase 7/8/9 owners; see the [contract](../../docs/pragmas-and-checks.md).

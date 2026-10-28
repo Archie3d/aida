@@ -53,6 +53,11 @@ previous observations were unchanged; at that increment the cohort had 79 PASS,
 
 ## Reviewed repairs
 
+Phase 6h retains all 129 observations unchanged. Its new strict executable
+C651001 selection lives alongside this baseline and checks nonreturning
+procedure completion. Assertion/check policies and their conservative check
+retention are documented in the [contract](pragmas-and-checks.md).
+
 Phase 6g promotes C393013, C640001 and C760010 to executable PASS, unchanged.
 C393013 runs the complete null-extension controlling-result scenario through
 generic and private extensions, including private overrides. C640001 exercises

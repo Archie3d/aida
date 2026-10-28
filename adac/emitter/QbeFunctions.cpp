@@ -176,6 +176,7 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
 
 void QbeEmitter::emitSubprogram(SubprogramBody* body)
 {
+    ScopedCheckPolicy checks(m_suppressedChecks, body->suppressedChecks);
     Symbol* symbol = body->symbol;
     if (symbol == nullptr) {
         return;
@@ -445,6 +446,9 @@ void QbeEmitter::finishFunction(const std::string& signature)
                 emitReturn("0");
             }
         } else {
+            if (context.symbol != nullptr && context.symbol->noReturn) {
+                emitCallInstruction("call $__ada_raise(l $__ada_exc_program_error)", CallEffects::DeferredCheck);
+            }
             emitReturn();
         }
         context.terminated = true;

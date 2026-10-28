@@ -1,4 +1,2 @@
-pragmacheckerrors.adb:1:8: error: unsupported or unknown pragma 'Restrictions'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
-pragmacheckerrors.adb:2:8: error: unsupported or unknown pragma 'Suppress'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
-pragmacheckerrors.adb:3:8: error: unsupported or unknown pragma 'Assert'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
-pragmacheckerrors.adb:4:8: error: unsupported or unknown pragma 'Assertion_Policy'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
+pragmacheckerrors.adb:1:8: error: unsupported or unknown pragma 'Restrictions'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
+pragmacheckerrors.adb:3:15: error: pragma Assert is not a configuration pragma

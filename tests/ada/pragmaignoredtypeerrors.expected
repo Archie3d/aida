@@ -1,0 +1,3 @@
+pragmaignoredtypeerrors.adb:4:20: error: 'Unknown_Name' is not declared
+pragmaignoredtypeerrors.adb:4:20: error: Assert Check must have a Boolean type
+pragmaignoredtypeerrors.adb:5:26: error: Assert Message must have type String

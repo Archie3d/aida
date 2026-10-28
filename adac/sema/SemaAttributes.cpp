@@ -304,6 +304,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             bindProtectedCall(expr, chosen, object, scope);
         }
         // A renaming is another view of the same callable entity.
+        Symbol* accessView = chosen;
         while (chosen->renamedSubprogram != nullptr && !chosen->classWideWrapper) {
             chosen = chosen->renamedSubprogram;
         }
@@ -318,6 +319,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         Symbol* implementation = chosen;
         while (implementation->inheritedFrom != nullptr) { implementation = implementation->inheritedFrom; }
+        m_noReturnAccesses.emplace_back(accessView, expr->location);
         bool importedC = chosen->renamedAccess != nullptr ? chosen->renamedAccess->type->accessConventionC
             : implementation->builtin == BuiltinKind::Runtime && !implementation->importAda;
         if (expected->accessConventionC != importedC) {

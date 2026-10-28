@@ -113,6 +113,8 @@ void Sema::reportMissingBodies(const DeclList& declarations)
 
 void Sema::analyzeDecl(Decl* decl, Scope* scope)
 {
+    uint32_t savedChecks = m_suppressedChecks;
+    decl->suppressedChecks = activeCheckPermissions();
     bool savedGenericBody = m_genericBodyContext;
     bool savedInstanceBody = m_genericInstanceBody;
     if (m_replayContract != nullptr && (decl->kind == DeclKind::SubprogramBody || decl->kind == DeclKind::PackageBody)) {
@@ -195,6 +197,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         break;
     }
     m_scalarConstraintDeclaration = savedConstraintDeclaration;
+    if (decl->kind != DeclKind::Pragma) { m_suppressedChecks = savedChecks; }
     m_genericBodyContext = savedGenericBody;
     m_genericInstanceBody = savedInstanceBody;
 }
@@ -716,6 +719,12 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     }
 
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Subprogram, spec.lower, spec.name);
+    if (m_recordContract != nullptr && m_recordContract->noReturn && spec.lower == m_recordContract->unitName
+        && scope == m_recordContract->bindings) { symbol->noReturn = true; }
+    if (m_replayContract != nullptr) {
+        auto source = m_replayContract->subprograms.find(contractKey(spec.location));
+        if (source != m_replayContract->subprograms.end()) { symbol->noReturn = source->second->noReturn; }
+    }
     symbol->location = spec.location;
     symbol->returnType = returnType;
     symbol->pendingControlledResult = returnType != nullptr && rootType(returnType)->isIncomplete;
@@ -960,6 +969,10 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
         }
 
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Exception, decl->namesLower[i], decl->names[i]);
+        if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "assertions"
+            && decl->namesLower[i] == "assertion_error") {
+            symbol->displayName = "ADA.ASSERTIONS.ASSERTION_ERROR";
+        }
         if (!renamed.empty()) {
             symbol->exceptionObject = renamed;
         } else if (predefined) {
@@ -979,7 +992,91 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
 // overloads of a subprogram can each name the routine that carries them out.
 void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 {
+    if (decl->lower == "suppress" || decl->lower == "unsuppress") {
+        if (decl->lower == "suppress") { m_suppressedChecks |= decl->checkMask; }
+        else { m_suppressedChecks &= ~decl->checkMask; }
+        return;
+    }
+    if (decl->lower == "assert") {
+        bool named = false;
+        for (std::size_t i = 0; i < decl->arguments.size(); ++i) {
+            Association& argument = decl->arguments[i];
+            if (!argument.nameLower.empty()) { named = true; }
+            else if (named) { m_diagnostics.error(argument.value->location, "positional pragma argument follows a named argument"); }
+            std::string name = argument.nameLower.empty() ? (i == 0 ? "check" : i == 1 ? "message" : "") : argument.nameLower;
+            if ((name == "check" && i != 0) || (name == "message" && i != 1)) {
+                m_diagnostics.error(argument.value->location, "Assert arguments must remain in Check, Message order");
+            }
+            Expr** target = name == "check" ? &decl->assertion : name == "message" ? &decl->message : nullptr;
+            if (target == nullptr) { m_diagnostics.error(argument.value->location, "unknown or excess Assert argument"); }
+            else if (*target != nullptr) { m_diagnostics.error(argument.value->location, "duplicate Assert argument '" + name + "'"); }
+            else { *target = argument.value.get(); }
+        }
+        if (decl->assertion == nullptr) { m_diagnostics.error(decl->location, "pragma Assert requires a Check expression"); return; }
+        Type* condition = analyzeCondition(decl->assertion, scope);
+        if (!m_types.isBoolean(condition) || !representationVisible(condition)) {
+            m_diagnostics.error(decl->assertion->location, "Assert Check must have a Boolean type");
+        }
+        if (decl->message != nullptr && !typesCompatible(m_types.stringType(), analyzeExpr(decl->message, scope, m_types.stringType()))) {
+            m_diagnostics.error(decl->message->location, "Assert Message must have type String");
+        }
+        std::string key = contractKey(decl->location);
+        decl->assertionsEnabled = m_assertionsEnabled;
+        if (m_currentUnit != nullptr && m_currentUnit->assertionPolicies.contains(decl->location.file)) {
+            decl->assertionsEnabled = m_currentUnit->assertionPolicies.at(decl->location.file);
+        }
+        if (m_replayContract != nullptr && m_replayContract->assertions.contains(key)) {
+            decl->assertionsEnabled = m_replayContract->assertions.at(key);
+        }
+        if (m_recordContract != nullptr) { m_recordContract->assertions[key] = decl->assertionsEnabled; }
+        decl->assertionError = lookupName("ada.assertions.assertion_error", m_globalScope);
+        if (decl->assertionError == nullptr) { m_diagnostics.error(decl->location, "pragma Assert requires Ada.Assertions"); }
+        return;
+    }
+    if (decl->lower == "no_return") {
+        for (Association& argument : decl->arguments) {
+            auto* name = static_cast<IdentifierExpr*>(argument.value.get());
+            auto entities = scope->lookupLocal(name->lower);
+            bool found = false;
+            for (Symbol* entity : entities) {
+                bool generic = entity->kind == SymbolKind::Generic && entity->generic != nullptr
+                    && !entity->generic->isPackage && !entity->generic->isFunction;
+                bool procedure = entity->kind == SymbolKind::Subprogram && entity->returnType == nullptr && !entity->entry;
+                if (!generic && !procedure) { continue; }
+                found = true;
+                if (entity->nullProcedure || entity->genericObject || entity->genericInstance || entity->instanceTemplate != nullptr || entity->genericActualEntity != nullptr) {
+                    m_diagnostics.error(name->location, "No_Return requires a nonnull procedure or generic procedure, not an instance");
+                    continue;
+                }
+                entity->noReturn = true;
+                if (generic && m_genericContracts.contains(entity->generic)) {
+                    auto* contract = m_genericContracts.at(entity->generic).get();
+                    contract->noReturn = true;
+                    for (Symbol* local : contract->localSymbols) {
+                        if (local->kind == SymbolKind::Subprogram && local->name == contract->unitName
+                            && local->declarationScope == contract->bindings) { local->noReturn = true; }
+                    }
+                }
+            }
+            if (!found) { m_diagnostics.error(name->location, "No_Return requires a procedure declared in this region"); }
+        }
+        return;
+    }
     std::vector<Symbol*> candidates = scope->lookupLocal(decl->entityLower);
+    if (decl->lower == "controlled") {
+        Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
+        Type* type = entity != nullptr ? entity->type : nullptr;
+        if (entity == nullptr || entity->kind != SymbolKind::TypeName || type == nullptr
+            || type->kind != TypeKind::Access || type->isSubtype || type->parentType != nullptr
+            || type->anonymousAccess || !representationVisible(type)) {
+            m_diagnostics.error(decl->location, "Controlled requires a nonderived access first subtype declared here");
+        } else if (!m_storageControlledTypes.insert(type).second) {
+            m_diagnostics.error(decl->location, "Controlled may be specified only once for an access type");
+        }
+        // This runtime never collects or moves still-existing allocated
+        // objects. Collection finalization at the type's master is unchanged.
+        return;
+    }
     if (decl->lower == "atomic" || decl->lower == "volatile") {
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         bool object = entity != nullptr && entity->kind == SymbolKind::Object

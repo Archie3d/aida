@@ -137,6 +137,7 @@ Supported:
 - Separate compilation and incremental builds, including subprogram/package
   subunits ([limits](docs/subunits.md))
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
+- Assertions, check policies and `No_Return` ([contract](docs/pragmas-and-checks.md))
 
 Not supported yet:
 - Task entries, entry families, select/requeue, abort, and task/protected discriminants

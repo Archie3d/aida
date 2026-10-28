@@ -1,0 +1,5 @@
+pragmacontrollederrors.adb:4:5: error: Controlled may be specified only once for an access type
+pragmacontrollederrors.adb:6:5: error: Controlled requires a nonderived access first subtype declared here
+pragmacontrollederrors.adb:8:5: error: Controlled requires a nonderived access first subtype declared here
+pragmacontrollederrors.adb:10:5: error: Controlled requires a nonderived access first subtype declared here
+pragmacontrollederrors.adb:11:5: error: Controlled requires a nonderived access first subtype declared here

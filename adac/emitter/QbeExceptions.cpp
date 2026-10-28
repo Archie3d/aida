@@ -32,6 +32,17 @@ void QbeEmitter::emitExceptionObjects(const std::vector<Symbol*>& exceptions)
     }
 }
 
+void QbeEmitter::emitPragma(PragmaDecl* pragma)
+{
+    if (pragma->lower != "assert" || !pragma->assertionsEnabled) { return; }
+    Value condition = emitExpr(pragma->assertion);
+    std::string good = newLabel("assertionok"), bad = newLabel("assertionfailed");
+    branch(condition, good, bad);
+    label(bad);
+    emitRaise(pragma->assertionError, pragma->location, pragma->message);
+    label(good);
+}
+
 void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Expr* message)
 {
     if (exception == nullptr) {
@@ -147,6 +158,7 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
 void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLocation& location)
 {
     if (type != nullptr && type->kind == TypeKind::Access && type->excludesNull) { checkNotNull(value); }
+    if (m_suppressedChecks & CheckPolicy::kRange) { return; }
     if (type != nullptr && type->kind == TypeKind::Float) {
         Value bounds = scalarBounds(type);
         char type_ = value.type;
@@ -253,6 +265,7 @@ Value QbeEmitter::variantCondition(const Value& address, Type* record, int varia
 
 void QbeEmitter::checkVariant(const Value& address, Type* record, int variant)
 {
+    if (m_suppressedChecks & CheckPolicy::kDiscriminant) { return; }
     Value matches = variantCondition(address, record, variant);
     std::string ok = newLabel("rightvariant");
     std::string bad = newLabel("wrongvariant");
@@ -280,6 +293,7 @@ std::string QbeEmitter::rangeTest(const Value& value, long long low, long long h
 
 void QbeEmitter::checkNotNull(const Value& pointer)
 {
+    if (m_suppressedChecks & CheckPolicy::kAccess) { return; }
     // null designates no object at all, so reaching through it is an error.
     std::string isNull = newTemp();
     line(isNull + " =w ceql " + pointer.name + ", 0");
@@ -326,6 +340,7 @@ Value QbeEmitter::recordConstraintMatches(const Value& value, Type* type)
 
 void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
 {
+    if (m_suppressedChecks & CheckPolicy::kDiscriminant) { return; }
     Value matches = recordConstraintMatches(value, type);
     if (matches.name == "1") { return; }
     std::string good = newLabel("conversionconstraint");

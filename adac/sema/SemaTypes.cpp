@@ -2416,6 +2416,8 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     || SemaSupport::staticallyMatches(primitive->parameters[i]->type, symbol->parameters[i]->type));
             }
             if (matches) {
+                m_noReturnOverrides.emplace_back(symbol, primitive);
+                if (primitive->noReturn) { m_noReturnRequired.insert(symbol); }
                 bool publicView = symbol->privatePrimitiveTo != nullptr && primitive->privatePrimitiveTo == nullptr;
                 if (!publicView) { scope->remove(primitive); }
                 if (type->tagged && primitive->dispatchSlot >= 0) {
@@ -2532,6 +2534,7 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
         inherited->interfaceOrigins = primitive->interfaceOrigins;
         if (fromInterface) { inherited->interfaceOrigins.push_back(primitive); }
         inherited->nullProcedure = primitive->nullProcedure;
+        inherited->noReturn = primitive->noReturn;
         inherited->dispatchSlot = fromInterface ? -1 : primitive->dispatchSlot;
         inherited->controllingType = type;
         if (inherited->dispatchSlot >= 0) {
@@ -2617,6 +2620,8 @@ void Sema::inheritPrimitives(Type* type, Type* parent, Scope* scope, const Sourc
                 }
                 declared->overrides = true;
                 if (type->tagged && inherited->dispatchSlot >= 0) {
+                    m_noReturnOverrides.emplace_back(declared, inherited);
+                    if (inherited->noReturn) { m_noReturnRequired.insert(declared); }
                     declared->controllingType = type;
                     declared->dispatchSlot = inherited->dispatchSlot;
                     type->dispatchSlots[declared->dispatchSlot] = declared;

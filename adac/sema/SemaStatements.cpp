@@ -310,7 +310,12 @@ Type* Sema::analyzeCondition(Expr* expr, Scope* scope)
 
 void Sema::analyzeStatement(Stmt* statement, Scope* scope)
 {
+    ScopedCheckPolicy checks(m_suppressedChecks, m_suppressedChecks);
+    statement->suppressedChecks = activeCheckPermissions();
     switch (statement->kind) {
+    case StmtKind::Pragma:
+        analyzePragma(static_cast<PragmaStmt*>(statement)->pragma.get(), scope);
+        break;
     case StmtKind::Goto: {
         auto* transfer = static_cast<GotoStmt*>(statement);
         std::vector<Symbol*> found;
@@ -562,6 +567,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(returnStatement->location, "a return statement must appear within a subprogram");
             break;
         }
+        if (m_currentSubprogram->returnType == nullptr) { m_currentSubprogram->returnStatements.push_back(returnStatement->location); }
         if (!m_extendedReturns.empty() && m_extendedReturns.back() == m_currentSubprogram) {
             if (returnStatement->value != nullptr || returnStatement->object != nullptr) {
                 m_diagnostics.error(returnStatement->location, "a return inside an extended return cannot have a value");

@@ -1,0 +1,4 @@
+pragmanoreturnerrors.adb:4:9: error: a return statement cannot apply to a No_Return procedure
+pragmanoreturnerrors.adb:11:9: error: a return statement cannot apply to a No_Return procedure
+pragmanoreturnerrors.adb:35:5: error: a No_Return renaming-as-body requires a No_Return target
+pragmanoreturnerrors.adb:19:9: error: an override of a No_Return procedure must also be No_Return

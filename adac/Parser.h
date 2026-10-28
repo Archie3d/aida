@@ -48,7 +48,7 @@ private:
     DeclPtr parseObjectOrNumberDecl();
     void appendDeclaration(DeclList& declarations, DeclPtr declaration);
     DeclPtr parseUseClause();
-    DeclPtr parsePragma(bool allowShared = false);
+    DeclPtr parsePragma(bool allowShared = false, bool configuration = false);
     DeclPtr parseRepresentationClause();
 
     // Types and ranges (ParserTypes.cpp).
@@ -108,6 +108,9 @@ private:
     Diagnostics& m_diagnostics;
     std::size_t m_position = 0;
     bool m_libraryItem = false;
+    bool m_assertionsEnabled = true;
+    uint32_t m_configurationChecks = 0;
+    std::vector<Token> m_configurationTokens;
     std::string m_stubParent;
     std::unordered_set<std::string> m_stubNames;
     SubunitResolver m_subunitResolver;

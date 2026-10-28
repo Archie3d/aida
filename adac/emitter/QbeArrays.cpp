@@ -396,6 +396,7 @@ std::string QbeEmitter::arrayElementSize(const Value& array, Type* type)
 
 void QbeEmitter::checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType)
 {
+    if (m_suppressedChecks & CheckPolicy::kLength) { return; }
     Value left = withBounds(target, targetType, nullptr);
     Value right = withBounds(source, sourceType, nullptr);
     int rank = targetType->arrayRank;

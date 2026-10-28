@@ -8,6 +8,16 @@ using QbeSupport::isUnconstrainedArray;
 
 Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
 {
+    Value result = emitCallValue(expr, inheritedControllingType);
+    if (expr->subprogram != nullptr && expr->subprogram->noReturn) {
+        emitExceptionCheck();
+        emitCallInstruction("call $__ada_raise(l $__ada_exc_program_error)", CallEffects::CheckException);
+    }
+    return result;
+}
+
+Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
+{
     // Constructor arguments own their temporaries independently of the
     // destination being constructed by this call.
     struct ConstructionContext

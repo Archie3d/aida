@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics.h"
+#include "CheckPolicy.h"
 #include "Interface.h"
 #include "Token.h"
 #include "ExactReal.h"
@@ -17,6 +18,7 @@ struct TypeDefinition;
 struct Node
 {
     SourceLocation location;
+    uint32_t suppressedChecks = 0;
     virtual ~Node() = default;
 };
 
@@ -564,7 +566,8 @@ enum class StmtKind
     Block,
     Raise,
     Delay,
-    Goto
+    Goto,
+    Pragma
 };
 
 struct StatementLabel
@@ -1127,12 +1130,7 @@ struct GenericInstantiationDecl : Decl
     std::unordered_map<Symbol*, Symbol*> packageCopies;
 };
 
-// A pragma the compiler acts on.  Only Import is understood, and it is what
-// lets the predefined environment be written in Ada while the work is still
-// done by the C run time:
-//
-//     pragma Import (C, Put_Line, "__ada_put_line");
-//
+// A retained pragma, including executable assertions and scoped check policies.
 struct PragmaDecl : Decl
 {
     PragmaDecl()
@@ -1146,6 +1144,18 @@ struct PragmaDecl : Decl
     std::string entityLower;
     std::string linkName;
     bool conventionAda = false;
+    std::vector<Association> arguments;
+    uint32_t checkMask = 0;
+    bool assertionsEnabled = true;
+    Expr* assertion = nullptr;
+    Expr* message = nullptr;
+    Symbol* assertionError = nullptr;
+};
+
+struct PragmaStmt : Stmt
+{
+    PragmaStmt() : Stmt(StmtKind::Pragma) {}
+    std::unique_ptr<PragmaDecl> pragma;
 };
 
 // How wide a type is to be laid out, which is how Ada says that a stream
@@ -1201,6 +1211,9 @@ struct ElaborationPragma
 
 struct CompilationUnit
 {
+    bool assertionsEnabled = true;
+    uint32_t suppressedChecks = 0;
+    std::unordered_map<int, bool> assertionPolicies;
     std::vector<ElaborationPragma> elaborationPragmas;
     std::vector<WithClause> withClauses;
     std::vector<UseDecl> useClauses;

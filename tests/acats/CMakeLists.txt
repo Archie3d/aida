@@ -198,3 +198,6 @@ add_acats_test(cc70002)
 add_acats_test(cc70003)
 add_acats_test(cc70a02 SOURCES fc70a00.ada cc70a02.ada)
 add_acats_test(cc70b01 SOURCES fc70b00.ada cc70b01.ada)
+
+# Nonreturning ordinary and generic procedures, including normal fall-through.
+add_acats_test(c651001)

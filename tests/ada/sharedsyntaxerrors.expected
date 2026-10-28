@@ -1,5 +1,5 @@
 sharedsyntaxerrors.adb:3:25: error: expected ')' after shared-variable pragma entity, found ','
 sharedsyntaxerrors.adb:4:29: error: expected ')' after shared-variable pragma entity, found '=>'
-sharedsyntaxerrors.adb:5:12: error: unsupported or unknown pragma 'Atomic_Components'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
-sharedsyntaxerrors.adb:6:12: error: unsupported or unknown pragma 'Volatile_Components'; supported pragmas are Import, Convention, Inline, Pure, Preelaborate, Atomic and Volatile
+sharedsyntaxerrors.adb:5:12: error: unsupported or unknown pragma 'Atomic_Components'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
+sharedsyntaxerrors.adb:6:12: error: unsupported or unknown pragma 'Volatile_Components'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
 sharedsyntaxerrors.adb:8:19: error: shared-variable pragmas are only supported in declarative parts

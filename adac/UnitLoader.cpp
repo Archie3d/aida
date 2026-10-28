@@ -830,6 +830,7 @@ std::vector<Token> UnitLoader::resolveSubunit(CompilationUnit& owner, const std:
     }
     auto info = std::make_shared<SubunitInfo>();
     info->fullName = fullName;
+    owner.assertionPolicies.insert(unit->assertionPolicies.begin(), unit->assertionPolicies.end());
     info->withClauses = unit->withClauses;
     info->useClauses = unit->useClauses;
     for (WithClause clause : unit->withClauses) {

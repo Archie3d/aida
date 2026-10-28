@@ -278,6 +278,7 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
 void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
+        ScopedCheckPolicy checks(m_suppressedChecks, decl->suppressedChecks);
         m_context->sourceLocation = decl->location;
         for (Type* access : decl->anonymousAccessTypes) { initializeCollection(access); }
         for (Type* constraint : decl->constraintOrder) {
@@ -286,7 +287,9 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 if (!constraint->discriminantObjectConstraint) { emitDiscriminantConstraint(constraint); }
             } else if (!constraint->scalarObjectConstraint) { emitScalarSubtype(constraint, decl->location); }
         }
-        if (decl->kind == DeclKind::GenericDeclaration) {
+        if (decl->kind == DeclKind::Pragma) {
+            emitPragma(static_cast<PragmaDecl*>(decl.get()));
+        } else if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
             if (generic->hasBody && generic->renamesLower.empty()) {
                 line("storew 1, " + elaborationFlag(generic->symbol).name);
@@ -441,6 +444,7 @@ void QbeEmitter::prepareElaborationFlags(DeclList& declarations)
 
 void QbeEmitter::emitElaborationCheck(Symbol* symbol)
 {
+    if (m_suppressedChecks & CheckPolicy::kElaboration) { return; }
     Value flag = elaborationFlag(symbol);
     std::string ready = newTemp();
     line(ready + " =w loadw " + flag.name);
@@ -475,6 +479,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         line(finalizationMark + " =l loadl " + m_context->temporaryFinalizationChain);
     }
     for (const DeclPtr& decl : declarations) {
+        ScopedCheckPolicy checks(m_suppressedChecks, decl->suppressedChecks);
         m_context->sourceLocation = decl->location;
         for (Type* access : decl->anonymousAccessTypes) { initializeCollection(access); }
         for (Type* constraint : decl->constraintOrder) {
@@ -492,6 +497,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         if (subprogram != nullptr) { captureAccessLevel(subprogram); }
         initializeAccessDescriptor(subprogram);
         switch (decl->kind) {
+        case DeclKind::Pragma:
+            emitPragma(static_cast<PragmaDecl*>(decl.get()));
+            break;
         case DeclKind::SubprogramDeclaration: {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
             if (!renaming->renamingExpansion.empty()) {
