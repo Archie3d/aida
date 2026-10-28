@@ -227,6 +227,7 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
                 expect(TokenKind::DoubleDot, "in index range");
                 index->rangeHigh = parseSimpleExpression();
             }
+            index->indexSubtypeMark = index->rangeLow == nullptr;
             // RM 3.6: an array definition uses index_subtype_definitions
             // (all boxed) or discrete_subtype_definitions (none boxed).
             if (definition->indexTypes.empty()) {

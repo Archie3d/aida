@@ -427,6 +427,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->isArrayRow = parent->isArrayRow;
     subtype->element = parent->element;
     subtype->index = parent->index;
+    subtype->indexConstraint = parent->indexConstraint;
+    subtype->indexRangeStatic = parent->indexRangeStatic;
     subtype->indexLow = parent->indexLow;
     subtype->indexHigh = parent->indexHigh;
     subtype->constrained = parent->constrained;

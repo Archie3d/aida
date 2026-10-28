@@ -562,6 +562,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 : index->name.empty() ? m_types.integerType() : resolveTypeName(index->lower, scope, index->location);
             if (indexType == nullptr || isUniversal(indexType)) { indexType = m_types.integerType(); }
             row->index = indexType;
+            row->indexConstraint = index->indexSubtypeMark ? indexType : nullptr;
             if (indexType->high > LLONG_MAX) {
                 m_diagnostics.error(index->location, "array index subtypes require signed 64-bit bounds");
             }
@@ -574,11 +575,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 if (!typesCompatible(indexType, lowType) || !typesCompatible(indexType, highType)) {
                     m_diagnostics.error(index->location, "array index bounds have an incompatible type");
                 }
-                if (!foldStatic(index->rangeLow.get(), row->indexLow)
-                    || !foldStatic(index->rangeHigh.get(), row->indexHigh)) {
+                bool staticLow = foldStatic(index->rangeLow.get(), row->indexLow);
+                bool staticHigh = foldStatic(index->rangeHigh.get(), row->indexHigh);
+                row->indexRangeStatic = staticLow && staticHigh;
+                if (!row->indexRangeStatic) {
                     dynamicBounds = true;
                 }
             } else if (indexType != nullptr && row->constrained) {
+                row->indexRangeStatic = indexType->scalarBoundsSymbol == nullptr;
                 row->indexLow = indexType->low;
                 row->indexHigh = indexType->high;
                 if (indexType->scalarBoundsSymbol != nullptr) {
@@ -1992,6 +1996,28 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
             return base;
         }
+        // A discrete_range can name an existing scalar subtype. Keep that
+        // constraint's identity instead of treating synthesized First/Last as
+        // an independently evaluated range (RM 4.9.1).
+        std::vector<Type*> indexConstraints(indication->indexLows.size(), nullptr);
+        indication->indexSubtypeMarks.resize(indication->indexLows.size());
+        for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
+            Expr* mark = indication->indexSubtypeMarks[i] != nullptr ? indication->indexSubtypeMarks[i].get()
+                : indication->indexHighs[i] == nullptr ? indication->indexLows[i].get() : nullptr;
+            if (mark == nullptr) { continue; }
+            for (Symbol* symbol : expressionNames(mark, scope)) {
+                if (symbol->kind != SymbolKind::TypeName || !isDiscrete(symbol->type)) { continue; }
+                indexConstraints[i] = symbol->type;
+                recordContractName(mark, symbol);
+                SourceLocation location = mark->location;
+                if (indication->indexSubtypeMarks[i] == nullptr) {
+                    indication->indexSubtypeMarks[i] = std::move(indication->indexLows[i]);
+                }
+                indication->indexLows[i] = scalarBoundExpr(symbol->type, true, location);
+                indication->indexHighs[i] = scalarBoundExpr(symbol->type, false, location);
+                break;
+            }
+        }
         if (array->arrayRank > 1) {
             if (base->constrained) {
                 m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
@@ -2009,13 +2035,15 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                     m_diagnostics.error(indication->location, "array index constraints require ranges");
                     return base;
                 }
-                Type* lowType = analyzeExpr(low, scope, original->index);
-                Type* highType = analyzeExpr(high, scope, original->index);
+                Type* lowType = indexConstraints[dimension] != nullptr ? low->type : analyzeExpr(low, scope, original->index);
+                Type* highType = indexConstraints[dimension] != nullptr ? high->type : analyzeExpr(high, scope, original->index);
                 if (!typesCompatible(original->index, lowType) || !typesCompatible(original->index, highType)) {
                     m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
                 }
                 bool staticLow = foldStatic(low, row->indexLow);
                 bool staticHigh = foldStatic(high, row->indexHigh);
+                row->indexConstraint = indexConstraints[dimension];
+                row->indexRangeStatic = staticLow && staticHigh;
                 allStatic = allStatic && staticLow && staticHigh && original->index->scalarBoundsSymbol == nullptr;
                 rows.push_back(row);
                 if (dimension + 1 < array->arrayRank) {
@@ -2033,21 +2061,25 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             indication->resolved = subtype;
             return subtype;
         }
-        Type* lowType = analyzeExpr(indication->indexLows.front().get(), scope, array->index);
+        Type* lowType = indexConstraints.front() != nullptr ? indication->indexLows.front()->type
+            : analyzeExpr(indication->indexLows.front().get(), scope, array->index);
         if (!typesCompatible(array->index, lowType)) {
             m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
         }
         long long low = 0;
         long long high = 0;
-        bool ok = foldStatic(indication->indexLows.front().get(), low);
+        bool staticLow = foldStatic(indication->indexLows.front().get(), low);
+        bool staticHigh = false;
         if (indication->indexHighs.front()) {
-            Type* highType = analyzeExpr(indication->indexHighs.front().get(), scope, array->index);
+            Type* highType = indexConstraints.front() != nullptr ? indication->indexHighs.front()->type
+                : analyzeExpr(indication->indexHighs.front().get(), scope, array->index);
             if (!typesCompatible(array->index, highType)) {
                 m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
             }
-            ok = ok && foldStatic(indication->indexHighs.front().get(), high);
+            staticHigh = foldStatic(indication->indexHighs.front().get(), high);
         }
-        ok = ok && array->index->scalarBoundsSymbol == nullptr;
+        bool staticRange = staticLow && staticHigh;
+        bool ok = staticRange && array->index->scalarBoundsSymbol == nullptr;
         if (!ok && allowDynamic && indication->indexHighs.front() != nullptr) {
             if (!isDiscrete(indication->indexLows.front()->type)
                 || !isDiscrete(indication->indexHighs.front()->type)) {
@@ -2056,6 +2088,10 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             }
             Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
             subtype->constrained = false;
+            subtype->indexConstraint = indexConstraints.front();
+            subtype->indexRangeStatic = staticRange;
+            subtype->indexLow = low;
+            subtype->indexHigh = high;
             indication->resolved = subtype;
             return subtype;
         }
@@ -2065,6 +2101,8 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         }
         Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
         subtype->constrained = true;
+        subtype->indexConstraint = indexConstraints.front();
+        subtype->indexRangeStatic = true;
         subtype->indexLow = low;
         subtype->indexHigh = high;
         checkArrayStorage(subtype, m_diagnostics, indication->location);

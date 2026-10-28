@@ -686,13 +686,15 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   conversions complete unchanged C540001, now an executable PASS; the other
   128 baseline observations are unchanged.
   [Contract](docs/generic-types.md#enumeration-literal-subprogram-actuals).
-- [ ] **Nonstatic constraints in formal array matching.** Accept the legal
-  cases where index ranges/subtypes or component subtypes statically match
-  despite nonstatic bounds; preserve constraint identity and descriptors through
-  nested/library instances. RM 12.5.3 and 4.9.1 require static matching, not a
-  runtime equality test that admits unrelated dynamic constraints. The current
-  matcher rejects runtime-bound arrays outright. Constrained-array actuals for
-  private formals above do not close this item.
+- [x] **Nonstatic constraints in formal array matching.** Shared nonstatic
+  index ranges/subtypes and component constraints statically match by identity,
+  including aliases, derived arrays and named index constraints. Per-axis
+  constraint metadata survives nested/library replay independently of runtime
+  descriptors; unrelated equal-valued constraints still reject. Three
+  `genericarray*` scenarios run whole/per-unit/determinism with four workers;
+  targeted rejections and compiler/C-runtime ASan/UBSan checks pass.
+  All 1,300 tests pass; all 129 baseline observations remain unchanged.
+  [Contract](docs/generic-types.md#nonstatic-constraints-in-formal-array-matching).
 - [ ] **Formal packages and contract matching.** Parse formal package
   declarations, expose their formal views and enforce matching of actual
   package instances and their generic contracts through nested/library use.

@@ -224,6 +224,9 @@ struct Type
     bool isArrayRow = false;
     Type* element = nullptr;
     Type* index = nullptr;
+    // Constraint identity is distinct from the descriptor storing array bounds.
+    Type* indexConstraint = nullptr;
+    bool indexRangeStatic = true;
     long long indexLow = 0;
     long long indexHigh = 0;
     bool constrained = true;

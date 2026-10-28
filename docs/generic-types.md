@@ -1,6 +1,7 @@
 # Generic type formals — Phase 6g
 
 The target is Ada 2005 RM [12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html),
+[12.5.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-3.html),
 [12.5.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-4.html)
 and [12.5.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-5.html).
 These increments extend the numeric, discrete, array and private formals;
@@ -365,6 +366,45 @@ instrumented compiler checks, with C540001 executing against the instrumented
 C runtime. Generated Ada memory accesses remain uninstrumented; LeakSanitizer
 is unavailable on this host.
 
+## Nonstatic constraints in formal array matching
+
+Constrained and unconstrained formal arrays accept nonstatic index and component
+constraints when they statically match (RM 12.5.3 and 4.9.1). Shared scalar
+subtypes and their aliases retain the identity of the original constraint.
+A constrained array records that identity separately for each index; its runtime
+bounds descriptor still controls storage, indexing, attributes, copies and
+results. An actual with a descriptor is constrained for matching even though its
+storage layout is determined at runtime.
+
+For constrained formals, index ranges must share the same constraint evaluation
+or have equal static bounds. For unconstrained formals, the index subtypes must
+statically match. Component subtypes also statically match, including shared
+runtime scalar ranges, constrained array components and record discriminants.
+Aliases and derivations preserve index metadata. Rank, index type, constrained
+category, component subtype and aliased-component requirements still apply.
+
+An array subtype constraint can name a scalar subtype, as in `Vector (Index)`.
+Its generated bounds read the existing subtype's captured values and preserve
+the source mark for contract replay. This differs from a new range such as
+`Vector (Low .. High)`: independently elaborated nonstatic constraints remain
+distinct even when their expressions or runtime values are equal. Matching
+never substitutes a runtime equality test for the required static rule.
+
+`genericarrayconstraints`, `genericarraycomponents` and
+`genericarrayconstraintlibrary_main` run whole/per-unit/deterministically with
+four workers. Coverage includes aliases, derived arrays, multiple dimensions,
+null ranges, single evaluation of bound functions, dynamic component layouts,
+returned arrays and nested/library instances. `genericarrayconstrainterrors`
+rejects independent index/range/component constraints with coincident values,
+constrained/unconstrained mismatches and a mismatching second dimension.
+All 129 upstream baseline observations remain unchanged; no new ACATS pass is
+claimed for these local scenarios.
+
+Validation passes 1,300/1,300 tests. All three executable scenarios pass
+whole/per-unit with the compiler and C runtime under ASan/UBSan; the rejection
+test also passes compiler instrumentation. Generated Ada memory accesses remain
+uninstrumented, and LeakSanitizer is unavailable on this host.
+
 ## Evidence and remaining work
 
 `genericaccess`, `genericaccessmatching`, `genericprivatearrays`,
@@ -407,7 +447,7 @@ original five commitments rather than adding new feature families:
 | Original commitment | Remaining work within it |
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
-| Formal subprograms and array constraints | Nonstatic constraint matching |
+| Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
 | Formal packages | Package contract matching, including partial lists and box associations |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
@@ -416,8 +456,8 @@ The scope audit compared the original roadmap at commit `094b812` (before the
 first 6g increment) with `ParserGenerics.cpp`, `SemaGenerics.cpp`, existing
 rejection tests and seven small compiler probes. At that audit the probes confirmed missing synchronized-
 derived and abstract syntax, null defaults, attribute/enum actuals, nonstatic
-formal arrays and formal packages. Synchronized-derived contracts, abstract formals, null defaults and attribute actuals have since
-been implemented as described above. Access/limited-object restrictions remain
+formal arrays and formal packages. Synchronized-derived contracts, abstract formals, null defaults, attribute/literal actuals
+and nonstatic formal-array matching have since been implemented as described above. Access/limited-object restrictions remain
 explicit in
 `generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals
 now pass the full CC51B03 scenario. Partial package associations are

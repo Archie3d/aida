@@ -981,10 +981,13 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
     const TypeDefinition& definition = *formal.arrayDefinition;
     bool matches = (!definition.aliasedElements || actual->aliasedElements)
         && actual->arrayRank == static_cast<int>(definition.indexTypes.size())
-        && actual->constrained != definition.unconstrainedIndexes && actual->boundsSymbol == nullptr;
+        && (actual->constrained || actual->boundsSymbol != nullptr) != definition.unconstrainedIndexes;
     Type* axis = actual;
     for (const auto& index : definition.indexTypes) {
-        Type* expected = resolveSubtypeIndication(index.get(), bindings);
+        // Constrained formal indexes are subtype marks (RM 12.5.3). Ignore
+        // generated bound expressions left by contract analysis of that mark.
+        Type* expected = definition.unconstrainedIndexes ? resolveSubtypeIndication(index.get(), bindings)
+            : resolveTypeName(index->lower, bindings, index->location);
         if (axis == nullptr || axis->kind != TypeKind::Array || expected == nullptr) {
             matches = false;
             break;
@@ -993,8 +996,10 @@ bool Sema::matchesFormalArray(const GenericFormal& formal, Type* actual, Scope* 
         if (definition.unconstrainedIndexes) {
             matches = matches && staticallyMatches(axis->index, expected);
         } else {
-            matches = matches && expected->scalarBoundsSymbol == nullptr
-                && axis->indexLow == expected->low && axis->indexHigh == expected->high;
+            matches = matches && (axis->indexConstraint != nullptr
+                ? staticallyMatches(axis->indexConstraint, expected)
+                : axis->indexRangeStatic && expected->scalarBoundsSymbol == nullptr
+                    && axis->indexLow == expected->low && axis->indexHigh == expected->high);
         }
         axis = axis->element;
     }

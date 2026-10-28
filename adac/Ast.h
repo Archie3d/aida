@@ -355,6 +355,8 @@ struct MembershipExpr : Expr
 
 struct SubtypeIndication : Node
 {
+    // Array index syntax was a subtype mark, before runtime bounds synthesis.
+    bool indexSubtypeMark = false;
     SubtypeIndication();
     ~SubtypeIndication() override;
     std::unique_ptr<TypeDefinition> accessDefinition;
@@ -368,6 +370,7 @@ struct SubtypeIndication : Node
     ExprPtr rangeLow;
     ExprPtr rangeHigh;
     std::vector<ExprPtr> indexLows;   // Index constraint for array subtypes.
+    std::vector<ExprPtr> indexSubtypeMarks; // Original marks before bound synthesis.
     std::vector<std::vector<std::string>> discriminantNames;
     std::vector<ExprPtr> indexHighs;
     Type* resolved = nullptr;
