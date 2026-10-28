@@ -123,7 +123,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.4.2 | Ada.Strings.Maps | Mapping/set subset; callback operations incomplete; Constants child missing | `stringmaps` | P7 Maps.Constants |
 | A.4.3 | Ada.Strings.Fixed | Fixed strings; byte components only | `fixedstrings` | P7 strings |
 | A.4.4 | Ada.Strings.Bounded | Bounded strings; byte components only | `boundedstrings` | P7 strings |
-| A.4.5 | Ada.Strings.Unbounded (missing) | Not implemented | — | P7 Unbounded |
+| A.4.5 | Ada.Strings.Unbounded | Controlled Ada implementation, byte strings and mapping-value operations; mapping callbacks/wide facilities/categorization remain open ([contract](library-collections.md)) | `unboundedstrings`, `librarycollectiontasking`, whole/per-unit/determinism; CXA4010/CXA4011/CXA4031 PASS; CXA4032 compile XFAIL (Maps.Constants), CXA4030 deferred (callbacks) | P7 first library item complete for documented subset; later P7 items |
 | A.5 | Ada.Numerics | Root constants/exceptions | `numerics` | P8 |
 | A.5.1 | Ada.Numerics.Generic_Elementary_Functions; Ada.Numerics.Elementary_Functions; Ada.Numerics.Long_Elementary_Functions | Host numeric functions; core arithmetic model documented, full library/Annex G accuracy audit remains | `runtime.numerics_precision` | P5 Real edge cases complete; P8 |
 | A.7 | Ada.IO_Exceptions | I/O exception declarations | `textfiles`, `seqio`, `directio` | P8 |
@@ -139,7 +139,7 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.12.1 | Ada.Streams | Representation-oriented stream support; full abstraction/attributes pending | `streamio`, `streamresults` | P7 streaming |
 | A.12.1 | Ada.Streams.Stream_IO | File stream subset; limited private File_Type with opaque storage; type-aware/class-wide streaming and file-object finalization audit pending | `streamio`, `iofileprivacyerrors` | P7 streaming |
 | A.15 | Ada.Command_Line | Arguments/environment exit status | `commandline`, `runtime.shared_tables` | P8 |
-| A.18 | Ada.Containers families (missing) | Not implemented, including Ada 2005 indefinite containers | — | P7 containers |
+| A.18.1–A.18.2 | Ada.Containers, Ada.Containers.Vectors | Count/Hash types and basic definite vectors: copying, geometric capacity, indexed mutation, controlled lifetime and failure cleanup; cursors, callbacks, sorting, full operation set, indefinite vectors and other families remain open ([contract](library-collections.md)) | `basicvectors`, `vectorlifetime`, `librarycollectiontasking`, `librarycollectionerrors`; whole/per-unit/determinism and focused ASan/UBSan | P7 first library item complete for documented basic subset; next P7 container item |
 | A.16–A.17 | Ada.Environment_Variables; Ada.Directories (missing) | Need host policies; Directories depends on Calendar.Time | — | P7 |
 | 3.9 | Ada.Tags | Single-parent tag registry/dispatch subset | `tagged*`, `runtime.shared_tables` | P6f interfaces; P7 streams |
 | 7.6 | Ada.Finalization | Controlled lifetimes/owned results; [controlled variant components](controlled-variants.md); general limited results implemented in P6e ([contract](returns.md)); [disjoint assignment and adjustment failure](controlled-assignment.md) | `controlled*`; C760007 PASS, C761012 compile XFAIL (new derived tagged discriminants); C760001/C760002/C760013 PASS; C761006 PASS ([baseline](acats-baseline.md)) | P6a/P6c/P6e |

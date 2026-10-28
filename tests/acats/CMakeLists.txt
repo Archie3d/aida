@@ -201,3 +201,9 @@ add_acats_test(cc70b01 SOURCES fc70b00.ada cc70b01.ada)
 
 # Nonreturning ordinary and generic procedures, including normal fall-through.
 add_acats_test(c651001)
+
+# Unchanged unbounded-string cases; Constants is a later Phase 7 item.
+add_acats_test(cxa4010)
+add_acats_test(cxa4011)
+add_acats_test(cxa4031)
+add_acats_test(cxa4032 REJECTION "cannot find the unit 'Ada.Strings.Maps.Constants'")

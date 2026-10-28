@@ -1,0 +1,4 @@
+librarycollectionerrors.adb:4:65: error: 'Ada.Containers.Vectors' expects a type of a fixed size, and 'String' is not one
+librarycollectionerrors.adb:8:71: error: 'Ada.Containers.Vectors' expects a nonlimited type, and 'Limited_Item' is not one
+librarycollectionerrors.adb:11:9: error: component 'Value' is not visible through this type view
+librarycollectionerrors.adb:11:15: error: 'Data' is not a component of a record

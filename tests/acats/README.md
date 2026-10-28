@@ -742,3 +742,24 @@ No assertion-specific upstream PASS is claimed. All 129 baseline observations
 remain unchanged: 80 PASS, 15 compile rejections, eight harness blockers and
 26 ungraded B rejections. Categorization, representation and concurrent-policy
 pragmas retain their Phase 7/8/9 owners; see the [contract](../../docs/pragmas-and-checks.md).
+
+## Phase 7 unbounded strings
+
+CXA4010, CXA4011, CXA4031 and CXA4032 were retrieved unchanged on 2026-10-28
+from the same GCC releases/gcc-14 mirror, under `tests/cxa/` with `.a` suffixes.
+They retain their unlimited-rights grants and disclaimers; local `.ada` filenames
+let the existing offline harness load them. The first three execute as PASS.
+CXA4032 compile-XFAILs specifically at its missing `Ada.Strings.Maps.Constants`
+dependency, whose implementation is a later Phase 7 item. Its exact diagnostic
+is pinned; it must become an executable test when that dependency is available.
+CXA4030 (mapping-function overloads) remains deferred with the later mapping
+callback item. These are additional cases; the 129-case backfill baseline is
+unchanged. The [library contract](../../docs/library-collections.md) records the
+supported API and remaining restrictions.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| cxa4010.ada | `8646b12b5e48755331ec2b8c009a67bee3d03b0d` | `ed0b5f2fa0d9904dc4aa9f1e5236ecfd5fbfbba3bb829ce4c63da650a58dc1e1` |
+| cxa4011.ada | `05388a04ba7767c3ac407b45c80880fd218878e6` | `4a25d9ca6bce4007b1e1d962da6cf69bb977cd83f4c6806242b5a51f170edb1b` |
+| cxa4031.ada | `91bc68ce6e719667cec4767036678271ce018fa0` | `909b2f15c55c4ab683d32da516fd99ba97fd5b335755f4e23e84094ebc33258d` |
+| cxa4032.ada | `031d01c6cb79be32a4b418a0842c9a6345241564` | `4e2f2c1659783bee6ac13cdd83b49dd512177762a4e0ac000f09e46185c4a61e` |

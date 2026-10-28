@@ -832,9 +832,17 @@ Inventory the Ada 2005 predefined environment in Phase 8. These are staged
 deliverables, not an exhaustive list; distinguish missing Ada 95 packages from
 Ada 2005 additions and track annex packages separately.
 
-- [ ] `Ada.Strings.Unbounded`, written in Ada on the controlled-type support.
-  Then a basic `Ada.Containers.Vectors`. Cover copying, growth, element
-  lifetime, bounds and exception cleanup.
+- [x] `Ada.Strings.Unbounded`, written in Ada on the controlled-type support,
+  followed by basic definite `Ada.Containers.Vectors`. Deep ownership, growth,
+  bounds, controlled-element lifetime, partial-copy/finalization failure cleanup
+  and four-task use pass whole/per-unit/determinism checks (`unboundedstrings`,
+  `basicvectors`, `vectorlifetime`, `librarycollectiontasking`,
+  `librarycollectionerrors`). Unchanged CXA4010/CXA4011/CXA4031 PASS; CXA4032
+  compile-XFAILs at missing Maps.Constants. Mapping callbacks, cursor/callback
+  APIs, full container operations and categorization retain their later owners.
+  Full suite: 1,425/1,425 checks; focused compiler/C-runtime ASan/UBSan and
+  C-runtime TSan pass (generated Ada accesses remain uninstrumented).
+  [API, ownership and limits](docs/library-collections.md).
 - [ ] Complete the Ada 2005 container families: definite and indefinite vectors,
   lists, hashed/ordered maps and sets, plus sorting utilities. Test cursors,
   tampering checks, copying, finalization and generic contract interactions.

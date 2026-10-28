@@ -132,6 +132,7 @@ Supported:
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
+- Unbounded byte strings and basic definite vectors ([API and limits](docs/library-collections.md))
 - Text and stream I/O
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
@@ -151,8 +152,7 @@ Not supported yet:
 - Wide character types and their string literals
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
-- Standard libraries such as `Ada.Strings.Unbounded`, `Ada.Containers` and
-  `Ada.Calendar`
+- Full container families, cursor/callback APIs and sorting; `Ada.Calendar`
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).

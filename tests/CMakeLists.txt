@@ -1799,3 +1799,24 @@ add_test(NAME runtime.pragmaimport_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}/pragmaimport-modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.pragmaimport_modes PROPERTIES TIMEOUT 60)
+
+# Phase 7: controlled Ada library collections, in whole/per-unit modes.
+foreach(collection_case unboundedstrings basicvectors vectorlifetime librarycollectiontasking)
+    add_ada_test(${collection_case} SOURCES ${collection_case}.adb)
+    add_determinism_test(${collection_case} SOURCE ${collection_case}.adb)
+    add_test(NAME runtime.${collection_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${collection_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${collection_case} runtime.${collection_case}_modes
+        PROPERTIES TIMEOUT 90)
+endforeach()
+add_ada_error_test(librarycollectionerrors SOURCES librarycollectionerrors.adb)
