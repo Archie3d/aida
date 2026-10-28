@@ -141,7 +141,8 @@ private:
     Symbol* instanceSymbol(Symbol* symbol);
     std::vector<Symbol*> contractNames(Expr* expr, std::vector<Symbol*> candidates);
     void recordContractName(Expr* expr, Symbol* symbol);
-    void checkGenericContract(GenericDecl* decl, Scope* scope);
+    void checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstantiationDecl* partial = nullptr,
+                              Symbol* packageTemplate = nullptr, Scope* actualScope = nullptr);
     void analyzeGenericDecl(GenericDecl* decl, Scope* scope);
     Symbol* declareUnitRenaming(const std::string& name, const std::string& lower,
                                 const std::string& renamed, const std::string& renamedLower,
@@ -165,6 +166,9 @@ private:
     bool bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
                                Type*& actual, Scope* bindings, std::size_t firstSymbol, const SourceLocation& location);
     bool bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope);
+    bool associateGenericActuals(GenericInstantiationDecl* decl, Symbol* generic, std::vector<Expr*>& actuals);
+    bool bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
+                           Expr* supplied, Scope* bindings, Scope* scope, std::size_t firstSymbol);
     void applyGenericUses(GenericDecl* generic, std::size_t beforeFormal, Scope* scope, DeclList& owned);
     Symbol* declareFormalPackage(const GenericFormal& formal, Scope* bindings, DeclList& owned);
     bool bindFormalPackage(GenericInstantiationDecl* decl, const GenericFormal& formal, Expr* actual,

@@ -1114,6 +1114,9 @@ struct GenericInstantiationDecl : Decl
     bool isPackage = true;
     bool isFunction = false;
     std::vector<Association> arguments;
+    bool formalPackageActualPart = false;
+    bool packageOthers = false;
+    std::vector<bool> packageMatches;
     Symbol* symbol = nullptr;
 
     // Filled in by Sema for a generic written in Ada: what came back from

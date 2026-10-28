@@ -706,10 +706,17 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   CC70001 remains deferred at the existing generic-child unit-loader gap.
   All 1,319 tests pass; the 129-case baseline is unchanged.
   [Contract](docs/generic-types.md#formal-packages-and-contract-matching).
-- [ ] **Partial formal-package actual lists and boxes.** Add Ada 2005
-  partial actual parameter lists and box associations, with matching,
-  visibility/default rules and invalid-association diagnostics. This completes
-  the formal-package feature above; it is not a separate feature family.
+- [x] **Partial formal-package actual lists and boxes.** Mixed explicit/
+  named-box lists and `others => <>`, with selective matching and copied-formal
+  visibility/default rules. Dependent types/profiles, package forwarding and
+  nested/library replay preserve member identity; matched/private declarations
+  stay hidden. Overload identity and implicit `/=` survive copying; invalid
+  selectors, duplicates, omissions and association order are diagnosed.
+  Four scenarios run whole/per-unit/determinism with four workers; five
+  rejection checks and the existing four formal-package ACATS scenarios pass
+  compiler/C-runtime ASan/UBSan checks. All 1,333 tests pass and all 129 baseline
+  observations remain unchanged; no new partial-specific ACATS PASS is claimed.
+  [Contract](docs/generic-types.md#partial-formal-package-actual-lists-and-boxes).
 - [ ] **Access formal objects.** Support permitted named/anonymous access
   formal object declarations and actuals, including mode, null exclusion,
   accessibility, lifetime and aliasing checks. Named access *type* formals above

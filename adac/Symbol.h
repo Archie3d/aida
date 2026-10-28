@@ -146,8 +146,11 @@ struct Symbol
     struct GenericDecl* generic = nullptr;
     Symbol* instanceTemplate = nullptr;
     Scope* instanceBindings = nullptr;
+    Symbol* instanceSpecification = nullptr;
     Symbol* packageActual = nullptr;
     bool formalPackage = false;
+    std::vector<bool> packageMatches;
+    std::vector<Symbol*> exposedFormals;
     Expr* genericActualExpression = nullptr;
     Expr* constantInitializer = nullptr;
     Symbol* genericActualEntity = nullptr;

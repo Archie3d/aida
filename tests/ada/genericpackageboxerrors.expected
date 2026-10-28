@@ -1,1 +1,1 @@
-genericpackageboxerrors.adb:7:37: error: partial formal-package actual lists and boxes are not yet supported
+genericpackageboxerrors.adb:7:14: error: a generic formal cannot be supplied more than once

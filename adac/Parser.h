@@ -20,6 +20,7 @@ public:
     // Parses a run of declarations, which is how a generic unit is expanded
     // from the tokens it was written with.
     DeclList parseDeclarations();
+    DeclPtr parseFormalPackageInstantiation();
 
 private:
     struct ParseError
@@ -72,7 +73,7 @@ private:
     // Generics (ParserGenerics.cpp).
     DeclPtr parseGenericDeclaration(bool includeFollowingBody = true);
     DeclPtr parseGenericInstantiation(const SourceLocation& location, const std::string& name,
-                                      const std::string& lower, bool isPackage);
+                                      const std::string& lower, bool isPackage, bool formalPackage = false);
 
     // Statements (ParserStatements.cpp).
     StmtList parseSequenceOfStatements();

@@ -114,7 +114,7 @@ Supported:
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,
-  formal packages and class-wide derived actuals with dispatch wrappers;
+  formal packages with partial actual lists and class-wide derived actuals with dispatch wrappers;
   tagged dispatching and prefixed calls ([limits](docs/prefixed-calls.md))
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md));

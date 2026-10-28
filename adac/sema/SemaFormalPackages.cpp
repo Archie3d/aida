@@ -7,6 +7,19 @@
 namespace
 {
 
+Symbol* parameterBinding(Scope* scope, const GenericFormal& parameter)
+{
+    auto symbols = scope->lookupLocal(parameter.lower);
+    if (symbols.size() == 1) { return symbols.front(); }
+    SourceLocation location = parameter.kind == GenericFormalKind::SubprogramFormal
+        ? parameter.subprogramTokens.front().location : parameter.location;
+    for (Symbol* symbol : symbols) {
+        if (symbol->location.file == location.file && symbol->location.line == location.line
+            && symbol->location.column == location.column) { return symbol; }
+    }
+    return nullptr;
+}
+
 Symbol* packageEntity(Symbol* symbol)
 {
     while (symbol != nullptr && symbol->renamedUnit != nullptr) { symbol = symbol->renamedUnit; }
@@ -109,8 +122,8 @@ void Sema::applyGenericUses(GenericDecl* generic, std::size_t beforeFormal, Scop
 Symbol* Sema::declareFormalPackage(const GenericFormal& formal, Scope* bindings, DeclList& owned)
 {
     Parser parser(formal.packageTokens, m_diagnostics);
-    DeclList declarations = parser.parseDeclarations();
-    if (declarations.size() != 1 || declarations.front()->kind != DeclKind::GenericInstantiation) { return nullptr; }
+    DeclList declarations;
+    declarations.push_back(parser.parseFormalPackageInstantiation());
     auto* instance = static_cast<GenericInstantiationDecl*>(declarations.front().get());
     Symbol* generic = packageEntity(lookupName(instance->genericLower, bindings));
     if (generic == nullptr || generic->kind != SymbolKind::Generic || !generic->generic->isPackage) {
@@ -127,15 +140,19 @@ Symbol* Sema::declareFormalPackage(const GenericFormal& formal, Scope* bindings,
         m_diagnostics.error(formal.location, "'" + formal.name + "' has already been declared in this scope");
         return nullptr;
     }
-    if (!formal.packageBox) {
+    instance->packageOthers = instance->packageOthers || formal.packageBox;
+    std::vector<Expr*> actuals;
+    if (!associateGenericActuals(instance, generic, actuals)) { return nullptr; }
+    bool partial = std::any_of(instance->packageMatches.begin(), instance->packageMatches.end(), [](bool match) { return !match; });
+    if (!partial) {
         analyzeGenericInstantiation(instance, bindings);
         Symbol* view = instance->symbol;
-        if (view != nullptr) { view->formalPackage = true; }
+        if (view != nullptr) { view->formalPackage = true; view->packageMatches = instance->packageMatches; }
         owned.push_back(std::move(declarations.front()));
         return view;
     }
 
-    // Every fully boxed formal gets its own formal types and checked package
+    // Every partial view gets its own formal types and checked package
     // specification. Sharing the template's contract would equate P.T and Q.T.
     Parser cloneParser(generic->generic->specificationTokens, m_diagnostics);
     DeclList clones = cloneParser.parseDeclarations();
@@ -144,7 +161,7 @@ Symbol* Sema::declareFormalPackage(const GenericFormal& formal, Scope* bindings,
     clone->symbol = m_symbolTable.createSymbol(SymbolKind::Generic, clone->lower, clone->name);
     clone->symbol->generic = clone;
     ++m_instantiationDepth;
-    checkGenericContract(clone, source->second->environment);
+    checkGenericContract(clone, source->second->environment, instance, generic, bindings);
     --m_instantiationDepth;
     auto* contract = m_genericContracts.at(clone).get();
     Symbol* specification = nullptr;
@@ -153,6 +170,7 @@ Symbol* Sema::declareFormalPackage(const GenericFormal& formal, Scope* bindings,
     }
     if (specification == nullptr || !contract->valid) {
         owned.push_back(std::move(clones.front()));
+        owned.push_back(std::move(declarations.front()));
         return nullptr;
     }
     Symbol* view = m_symbolTable.createSymbol(SymbolKind::Package, formal.lower, formal.name);
@@ -160,15 +178,40 @@ Symbol* Sema::declareFormalPackage(const GenericFormal& formal, Scope* bindings,
     view->scope = m_symbolTable.createScope(bindings, specification->scope);
     view->instanceTemplate = generic;
     view->instanceBindings = contract->bindings;
+    view->instanceSpecification = specification;
+    view->packageMatches = instance->packageMatches;
     view->formalPackage = true;
     view->hasSpecification = true;
-    // RM 12.7(10): only unmatched (boxed) formals are visible as members.
-    for (const auto& [name, symbols] : contract->bindings->declarations()) {
-        if (name == contract->unitName) { continue; }
-        for (Symbol* symbol : symbols) { view->scope->add(symbol); }
+    // RM 12.7(10): expose only declarations not required to match.
+    for (std::size_t i = 0; i < clone->formals.size(); ++i) {
+        if (view->packageMatches[i]) { continue; }
+        if (Symbol* symbol = parameterBinding(contract->bindings, clone->formals[i])) {
+            view->scope->add(symbol);
+            view->exposedFormals.push_back(symbol);
+            if (symbol->kind == SymbolKind::Subprogram && symbol->name == "=") {
+                for (Symbol* complement : contract->bindings->lookupLocal("/=")) {
+                    if (complement->negatedEquality == symbol) {
+                        view->scope->add(complement);
+                        view->exposedFormals.push_back(complement);
+                    }
+                }
+            }
+            if (symbol->kind == SymbolKind::TypeName) {
+                for (Symbol* primitive : symbol->type->primitives) {
+                    auto local = contract->bindings->lookupLocal(primitive->name);
+                    if (std::find(local.begin(), local.end(), primitive) == local.end()) { continue; }
+                    auto present = view->scope->lookupLocal(primitive->name);
+                    if (std::find(present.begin(), present.end(), primitive) == present.end()) {
+                        view->scope->add(primitive);
+                        view->exposedFormals.push_back(primitive);
+                    }
+                }
+            }
+        }
     }
     bindings->add(view);
     owned.push_back(std::move(clones.front()));
+    owned.push_back(std::move(declarations.front()));
     return view;
 }
 
@@ -223,19 +266,19 @@ bool Sema::bindFormalPackage(GenericInstantiationDecl* decl, const GenericFormal
         m_diagnostics.error(actual->location, "actual for formal package '" + formal.name + "' must be an instance of its generic template");
         return false;
     }
-    if (!formal.packageBox) {
+    if (std::any_of(formal.packageView->packageMatches.begin(), formal.packageView->packageMatches.end(), [](bool match) { return match; })) {
         Scope* matching = m_symbolTable.createScope(bindings);
         // Rebind the complete list/defaults to preceding outer actuals. This
         // specification is for matching only and emits no new package instance.
         Symbol* expected = declareFormalPackage(formal, matching, decl->formalTypes);
         if (expected == nullptr) { return false; }
         bool matches = true;
+        std::size_t index = 0;
         for (const GenericFormal& parameter : expectedTemplate->generic->formals) {
-            auto expectedSymbols = expected->instanceBindings->lookupLocal(parameter.lower);
-            auto actualSymbols = supplied->instanceBindings->lookupLocal(parameter.lower);
-            if (expectedSymbols.size() != 1 || actualSymbols.size() != 1) { matches = false; break; }
-            Symbol* a = actualSymbols.front();
-            Symbol* b = expectedSymbols.front();
+            if (!expected->packageMatches[index++]) { continue; }
+            Symbol* a = parameterBinding(supplied->instanceBindings, parameter);
+            Symbol* b = parameterBinding(expected->instanceBindings, parameter);
+            if (a == nullptr || b == nullptr) { matches = false; break; }
             bool same = false;
             if (parameter.kind == GenericFormalKind::TypeFormal) {
                 same = SemaSupport::staticallyMatches(a->type, b->type);
@@ -301,18 +344,22 @@ bool Sema::bindFormalPackage(GenericInstantiationDecl* decl, const GenericFormal
     }
     Symbol* view = m_symbolTable.createSymbol(SymbolKind::Package, formal.lower, formal.name);
     view->location = formal.location;
-    view->scope = m_symbolTable.createScope(bindings, supplied->scope);
+    view->scope = m_symbolTable.createScope(bindings, supplied->instanceSpecification->scope);
     view->instanceTemplate = supplied->instanceTemplate;
     view->instanceBindings = supplied->instanceBindings;
+    view->instanceSpecification = supplied->instanceSpecification;
+    view->packageMatches = formal.packageView->packageMatches;
     view->packageActual = supplied->packageActual != nullptr ? supplied->packageActual : supplied;
     view->formalPackage = true;
     view->hasSpecification = true;
-    if (formal.packageBox) {
-        for (const auto& [name, symbols] : supplied->instanceBindings->declarations()) {
-            for (Symbol* symbol : symbols) {
-                if (symbol->kind == SymbolKind::Package && symbol->instanceBindings == supplied->instanceBindings) { continue; }
-                auto present = view->scope->lookupLocal(name);
-                if (std::find(present.begin(), present.end(), symbol) == present.end()) { view->scope->add(symbol); }
+    for (Symbol* original : formal.packageView->exposedFormals) {
+        for (Symbol* candidate : supplied->instanceBindings->lookupLocal(original->name)) {
+            if (candidate->kind != original->kind || candidate->parameters.size() != original->parameters.size()
+                || contractKey(candidate->location) != contractKey(original->location)) { continue; }
+            auto present = view->scope->lookupLocal(candidate->name);
+            if (std::find(present.begin(), present.end(), candidate) == present.end()) {
+                view->scope->add(candidate);
+                view->exposedFormals.push_back(candidate);
             }
         }
     }

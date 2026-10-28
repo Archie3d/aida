@@ -1,0 +1,13 @@
+genericpackagepartialerrors.adb:15:38: error: actual parameters do not match the contract of formal package 'P'
+genericpackagepartialerrors.adb:19:41: error: actual parameters do not match the contract of formal package 'P'
+genericpackagepartialerrors.adb:23:55: error: actual parameters do not match the contract of formal package 'P'
+genericpackagepartialerrors.adb:27:18: error: 'p.t' is not declared
+genericpackagepartialerrors.adb:32:29: error: 'Secret' is not declared in 'P'
+genericpackagepartialerrors.adb:35:14: error: no actual supplied for generic formal 'T'
+genericpackagepartialerrors.adb:38:14: error: 'Unknown' is not a formal of 'Model', which takes 'T', 'N'
+genericpackagepartialerrors.adb:41:14: error: a positional generic actual cannot follow a named actual
+genericpackagepartialerrors.adb:49:9: error: the assigned value has an incompatible type
+genericpackagepartialerrors.adb:54:48: error: actual parameters do not match the contract of formal package 'P'
+genericpackagepartialerrors.adb:57:43: error: a generic formal type expects a type name
+genericpackagepartialerrors.adb:64:14: error: a named formal-package association cannot select overloaded formals
+genericpackagepartialerrors.adb:69:30: error: no visible subprogram matches this call

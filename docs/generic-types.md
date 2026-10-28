@@ -444,23 +444,74 @@ bounds. These prerequisites allow the complete CC70002 matrix/group scenario.
 four workers, including distinct instances, forwarding, nested packages,
 defaults, static values, shared state, single elaboration and exception identity.
 Three rejection tests cover wrong templates/actuals, independent types,
-private members, hidden matched formals and the unsupported partial-box syntax.
+private members, hidden matched formals and invalid associations.
 Unchanged CC70002, CC70003, CC70A02 and CC70B01 execute as PASS with their
 unchanged FC70A00/FC70B00 foundations. All 129 prior baseline observations remain
 unchanged. Source hashes and grading boundaries are in the
 [ACATS inventory](../tests/acats/README.md#formal-packages-phase-6g).
 
-Validation passes 1,319/1,319 tests and the complete baseline snapshot check.
+The core formal-package increment passed 1,319/1,319 tests and the complete baseline snapshot check.
 All four local scenarios execute whole/per-unit with the compiler and C runtime
 under ASan/UBSan. The three rejection tests and four unchanged ACATS scenarios
 also pass compiler instrumentation; those ACATS executables run against the
 instrumented C runtime. Generated Ada memory accesses remain uninstrumented;
 LeakSanitizer is unavailable on this host.
 
-Mixed explicit/boxed associations and `others => <>` are explicitly diagnosed
-and remain the next roadmap item. CC70001 is deferred because its generic child
-package of a generic parent is rejected by the existing unit loader before
-formal-package execution; this source does not establish a PASS.
+CC70001 remains deferred because its generic child package of a generic parent
+is rejected by the existing unit loader before formal-package execution; this
+source does not establish a PASS.
+
+## Partial formal-package actual lists and boxes
+
+Ada 2005 mixed lists support explicit positional/named associations, named
+`Formal => <>` associations and a final `others => <>`. The standalone
+`(others => <>)` form has the same unrestricted matching as `(<>)`. A positional box is not permitted. Selectors must identify a
+unique formal; duplicates, unknown selectors, excess actuals, positional
+associations after named ones and misplaced/non-box `others` are diagnosed.
+
+A partial view checks explicit actuals using the ordinary generic binding
+rules, in formal declaration order. The remaining parameters keep copied
+formal declarations, including dependent type definitions and callable profiles.
+Only the parameters required to match constrain the supplied instance. A mixed
+explicit/boxed list leaves omitted defaulted parameters unmatched; without
+`others => <>`, those omissions must still have defaults. A list containing
+only named boxes leaves omitted defaulted parameters required to match their
+defaults. Complete lists keep the existing rule that every actual, including
+defaults, must match (RM 12.7(4.1,5.1–5.2)).
+
+Unmatched formals and their implicit declarations are visible through the view;
+matched formals and private declarations remain hidden. This includes implicit
+`/=` for a copied `=` formal. Boxed types in different views remain independent.
+For overloaded formal subprograms, positional actuals and trailing `others`
+preserve the identity and visibility of each declaration; an ambiguous named
+selector is rejected. Each view starts from the actual package specification,
+so forwarding a more permissive formal package cannot leak its extra copied
+formals into a more restrictive view.
+
+Partial views can depend on earlier packages (for example, one package's value
+type as another's explicit key type), can themselves be package actuals, and
+replay through nested and separately compiled generics. Member mappings from
+an earlier package binding also apply when binding later type/object/subprogram
+profiles. Checking a view does not elaborate another runtime package instance
+or evaluate boxed defaults; the actual instance's state and elaboration remain
+shared.
+
+`genericpackagepartial`, `genericpackagepartialtypes`,
+`genericpackagepartialoverloads` and `genericpartialpackagelibrary_main` exercise
+whole/per-unit/deterministic builds with four workers. The rejection tests cover
+matching, visibility, defaults, forwarding, ambiguous overload selectors and
+association syntax. CC70002/CC70003/CC70A02/CC70B01 remain unchanged executable
+PASS cases; the 129-case observational baseline remains unchanged. No new
+partial-specific upstream PASS is claimed. The pinned archive's CC51009 and
+CC51011 examples use Ada 2012 formal incomplete types (CC51011 also cites a
+later AI12 correction), so they are excluded from the Ada 2005 selection.
+
+Validation passes 1,333/1,333 tests. All four new scenarios execute whole/per-unit
+with the compiler and C runtime under ASan/UBSan; five rejection checks pass
+compiler instrumentation. The four existing formal-package ACATS scenarios also
+pass instrumented compiler/C-runtime execution. Generated Ada memory accesses
+remain uninstrumented; LeakSanitizer is unavailable on this host.
+
 
 ## Evidence and remaining work
 
@@ -505,7 +556,7 @@ original five commitments rather than adding new feature families:
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
-| Formal packages | Partial lists and box associations |
+| Formal packages | Implemented for the documented template/view categories; generic-child loader limitation remains |
 | Formal objects | Access objects; limited `in` objects |
 | Contract checking | Correct checking/replay for those features, not a separate architecture rewrite |
 
@@ -518,8 +569,7 @@ null defaults, attribute/literal actuals, nonstatic formal-array matching and co
 as described above. Access/limited-object restrictions remain
 explicit in
 `generic_object_errors`/`generic_composite_errors`. Class-wide derived actuals
-now pass the full CC51B03 scenario. Partial package associations are
-the remaining part of the formal-package feature.
+now pass the full CC51B03 scenario. Partial package associations and boxes are now implemented as described above.
 
 Three qualifications prevent the checklist from overstating the work:
 

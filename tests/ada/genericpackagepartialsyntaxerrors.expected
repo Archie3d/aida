@@ -1,0 +1,4 @@
+genericpackagepartialsyntaxerrors.adb:7:41: error: expected ')' after formal package box, found ','
+genericpackagepartialsyntaxerrors.adb:10:50: error: others => <> must be last in a formal package actual part
+genericpackagepartialsyntaxerrors.adb:13:52: error: a formal-package box association requires a selector name
+genericpackagepartialsyntaxerrors.adb:16:48: error: expected '<>' after others => in formal package actual part, found '3'

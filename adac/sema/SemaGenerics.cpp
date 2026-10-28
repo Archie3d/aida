@@ -388,7 +388,8 @@ void Sema::recordContractName(Expr* expr, Symbol* symbol)
     }
 }
 
-void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
+void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstantiationDecl* partial,
+                                Symbol* packageTemplate, Scope* actualScope)
 {
     auto& owned = m_genericContracts[decl];
     bool continuation = owned != nullptr;
@@ -433,12 +434,27 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
     m_recordContract = contract;
     m_replayContract = nullptr;
     int errors = m_diagnostics.errorCount();
+    std::vector<Expr*> packageActuals;
+    if (partial != nullptr && !associateGenericActuals(partial, packageTemplate, packageActuals)) {
+        contract->valid = false;
+    }
     std::size_t formalIndex = 0;
     for (GenericFormal& formal : decl->formals) {
-        if (continuation) {
+        if (continuation || (partial != nullptr && !contract->valid)) {
             break;
         }
         applyGenericUses(decl, formalIndex++, bindings, contract->profiles);
+        if (partial != nullptr && contract->valid && partial->packageMatches[formalIndex - 1]) {
+            // Reuse ordinary binding for an explicit actual or a required
+            // default. Boxed declarations are checked in the usual formal path.
+            auto savedCopies = m_instanceCopies;
+            for (const auto& [original, copy] : partial->packageCopies) { m_instanceCopies[original] = copy; }
+            bool bound = bindGenericFormal(partial, packageTemplate, packageTemplate->generic->formals[formalIndex - 1],
+                                            packageActuals[formalIndex - 1], bindings, actualScope, firstSymbol);
+            m_instanceCopies = std::move(savedCopies);
+            if (!bound) { contract->valid = false; }
+            continue;
+        }
         if (formal.kind == GenericFormalKind::PackageFormal) {
             formal.packageView = declareFormalPackage(formal, bindings, contract->profiles);
             continue;
@@ -592,6 +608,14 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope)
             }
             bindings->add(symbol);
         }
+    }
+    if (partial != nullptr && !contract->valid) {
+        m_recordContract = savedRecord;
+        m_replayContract = savedReplay;
+        m_subprogramNames = std::move(savedNames);
+        m_tagNames = std::move(savedTagNames);
+        m_unitExceptions = std::move(savedExceptions);
+        return;
     }
     if (!continuation) { applyGenericUses(decl, decl->formals.size(), bindings, contract->profiles); }
     std::vector<Token> tokens(decl->tokens.begin() + static_cast<std::ptrdiff_t>(contract->tokenCount),
@@ -1391,14 +1415,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     return true;
 }
 
-// Matches the actuals to the formals and declares each one in a scope of its
-// own, which the copy of the generic is then analysed inside.
-bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope)
+bool Sema::associateGenericActuals(GenericInstantiationDecl* decl, Symbol* generic, std::vector<Expr*>& actuals)
 {
-    const std::vector<GenericFormal>& formals = generic->generic->formals;
-    std::size_t firstSymbol = m_symbolTable.symbols().size();
-    std::vector<Expr*> actuals(formals.size(), nullptr);
-
+    const auto& formals = generic->generic->formals;
+    actuals.assign(formals.size(), nullptr);
     if (decl->arguments.size() > formals.size()) {
         m_diagnostics.error(decl->location, "too many actual parameters for generic '" + decl->genericName + "'");
         return false;
@@ -1411,6 +1431,12 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
             index = formals.size();
             for (std::size_t f = 0; f < formals.size(); ++f) {
                 if (formals[f].lower == decl->arguments[i].nameLower) {
+                    if (decl->formalPackageActualPart && std::count_if(formals.begin(), formals.end(), [&](const GenericFormal& formal) {
+                            return formal.lower == decl->arguments[i].nameLower;
+                        }) != 1) {
+                        m_diagnostics.error(decl->location, "a named formal-package association cannot select overloaded formals");
+                        return false;
+                    }
                     index = f;
                     break;
                 }
@@ -1437,216 +1463,259 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
         }
         actuals[index] = decl->arguments[i].value.get();
     }
-
-    for (std::size_t i = 0; i < formals.size(); ++i) {
-        applyGenericUses(generic->generic, i, bindings, decl->formalTypes);
-        const GenericFormal& formal = formals[i];
-        Expr* actual = actuals[i];
-        if (actual == nullptr && formal.defaultValue) {
-            actual = formal.defaultValue.get();
-        }
-        if (formal.kind == GenericFormalKind::SubprogramFormal) {
-            if (!bindFormalSubprogram(decl, formal, actual, bindings, scope,
-                    actuals[i] == nullptr && formal.defaultValue != nullptr,
-                    m_genericContracts.at(generic->generic).get(), firstSymbol)) {
+    if (decl->formalPackageActualPart) {
+        bool partial = decl->packageOthers || std::any_of(actuals.begin(), actuals.end(), [](Expr* actual) {
+            return actual != nullptr && actual->kind == ExprKind::Box;
+        });
+        bool explicitActual = std::any_of(actuals.begin(), actuals.end(), [](Expr* actual) {
+            return actual != nullptr && actual->kind != ExprKind::Box;
+        });
+        decl->packageMatches.assign(formals.size(), !partial);
+        for (std::size_t i = 0; i < formals.size(); ++i) {
+            if (partial) {
+                decl->packageMatches[i] = actuals[i] != nullptr ? actuals[i]->kind != ExprKind::Box
+                    : !decl->packageOthers && !explicitActual;
+            }
+            if (!decl->packageOthers && actuals[i] == nullptr && formals[i].defaultValue == nullptr
+                && !formals[i].boxDefault && !formals[i].nullDefault) {
+                m_diagnostics.error(decl->location, "no actual supplied for generic formal '" + formals[i].name + "'");
                 return false;
             }
-            continue;
         }
-        if (actual == nullptr) {
-            m_diagnostics.error(decl->location, "no actual supplied for generic formal '" + formal.name + "'");
+    }
+    return true;
+}
+
+bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, const GenericFormal& formal,
+                              Expr* supplied, Scope* bindings, Scope* scope, std::size_t firstSymbol)
+{
+    Expr* actual = supplied;
+    if (actual == nullptr && formal.defaultValue) {
+        actual = formal.defaultValue.get();
+    }
+    if (formal.kind == GenericFormalKind::SubprogramFormal) {
+        if (!bindFormalSubprogram(decl, formal, actual, bindings, scope,
+                supplied == nullptr && formal.defaultValue != nullptr,
+                m_genericContracts.at(generic->generic).get(), firstSymbol)) {
             return false;
         }
+        return true;
+    }
+    if (actual == nullptr) {
+        m_diagnostics.error(decl->location, "no actual supplied for generic formal '" + formal.name + "'");
+        return false;
+    }
 
-        if (formal.kind == GenericFormalKind::PackageFormal) {
-            if (!bindFormalPackage(decl, formal, actual, bindings, scope,
-                    m_genericContracts.at(generic->generic).get(), firstSymbol)) { return false; }
-            continue;
-        }
+    if (formal.kind == GenericFormalKind::PackageFormal) {
+        if (!bindFormalPackage(decl, formal, actual, bindings, scope,
+                m_genericContracts.at(generic->generic).get(), firstSymbol)) { return false; }
+        return true;
+    }
 
-        if (formal.kind == GenericFormalKind::TypeFormal) {
-            Type* type = nullptr;
-            if (actual->kind == ExprKind::Identifier) {
-                type = resolveTypeName(static_cast<IdentifierExpr*>(actual)->lower, scope, actual->location);
-            } else if (actual->kind == ExprKind::Attribute
-                       && (static_cast<AttributeExpr*>(actual)->lower == "base"
-                           || static_cast<AttributeExpr*>(actual)->lower == "class")) {
-                type = analyzeAttribute(static_cast<AttributeExpr*>(actual), scope);
-            } else if (actual->kind == ExprKind::Selected) {
-                auto* selected = static_cast<SelectedExpr*>(actual);
-                type = analyzeSelected(selected, scope, nullptr);
-                if (selected->symbol == nullptr || selected->symbol->kind != SymbolKind::TypeName) {
-                    m_diagnostics.error(actual->location, "a generic formal type expects a type name");
-                    return false;
-                }
-            } else {
+    if (formal.kind == GenericFormalKind::TypeFormal) {
+        Type* type = nullptr;
+        if (actual->kind == ExprKind::Identifier) {
+            type = resolveTypeName(static_cast<IdentifierExpr*>(actual)->lower, scope, actual->location);
+        } else if (actual->kind == ExprKind::Attribute
+                   && (static_cast<AttributeExpr*>(actual)->lower == "base"
+                       || static_cast<AttributeExpr*>(actual)->lower == "class")) {
+            type = analyzeAttribute(static_cast<AttributeExpr*>(actual), scope);
+        } else if (actual->kind == ExprKind::Selected) {
+            auto* selected = static_cast<SelectedExpr*>(actual);
+            type = analyzeSelected(selected, scope, nullptr);
+            if (selected->symbol == nullptr || selected->symbol->kind != SymbolKind::TypeName) {
                 m_diagnostics.error(actual->location, "a generic formal type expects a type name");
                 return false;
             }
-            if (type == nullptr) {
-                return false;
-            }
-            if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
-            bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
-                && formal.lower == "object";
-            if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
-                return false;
-            }
-            if (!formal.discriminants.empty()
-                && !matchesFormalDiscriminants(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
-                return false;
-            }
-            if (formal.typeClass == FormalTypeClass::ArrayType
-                && !matchesFormalArray(formal, type, bindings, actual->location)) {
-                return false;
-            }
-            if ((formal.typeClass == FormalTypeClass::DerivedType || formal.typeClass == FormalTypeClass::InterfaceType)
-                && !bindFormalDerivedType(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
-                return false;
-            }
-            if (formal.typeClass == FormalTypeClass::AccessType) {
-                // Resolve a fresh definition with preceding formals bound to
-                // their actuals, while retaining declaration-site name binding.
-                Parser parser(formal.typeTokens, m_diagnostics);
-                DeclList declarations = parser.parseDeclarations();
-                if (declarations.size() != 1 || declarations.front()->kind != DeclKind::Type) { return false; }
-                auto* definition = static_cast<TypeDecl*>(declarations.front().get());
-                auto* savedReplay = m_replayContract;
-                auto* savedRecord = m_recordContract;
-                std::size_t savedFirst = m_instanceFirstSymbol;
-                m_replayContract = m_genericContracts.at(generic->generic).get();
-                m_recordContract = nullptr;
-                m_instanceFirstSymbol = firstSymbol;
-                int errors = m_diagnostics.errorCount();
-                analyzeTypeDecl(definition, m_symbolTable.createScope(bindings));
-                m_replayContract = savedReplay;
-                m_recordContract = savedRecord;
-                m_instanceFirstSymbol = savedFirst;
-                Type* expected = definition->declaredType;
-                bool matches = errors == m_diagnostics.errorCount() && expected != nullptr
-                    && matchesAccessFormal(type, expected);
-                decl->formalTypes.push_back(std::move(declarations.front()));
-                if (!matches) {
-                    m_diagnostics.error(actual->location, "actual access type does not match generic formal '" + formal.name + "'");
-                    return false;
-                }
-            }
-            // Enumeration_IO cannot yet enumerate Character spellings. This
-            // library limitation must not reject Character as a general formal.
-            if (generic->generic->lower == "ada.text_io.enumeration_io"
-                && baseType(type)->kind == TypeKind::Enumeration && baseType(type)->literals.empty()) {
-                m_diagnostics.error(actual->location, "'" + type->name
-                    + "' names its literals by their spelling, so use Text_IO.Put on one instead of instantiating '"
-                    + decl->genericName + "'");
-                return false;
-            }
-            Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
-            symbol->type = type;
-            symbol->location = formal.location;
-            bindings->add(symbol);
-            continue;
-        }
-
-        // Reparse the subtype/default so its semantic annotations belong to
-        // this instance. Declaration-site names replay the checked contract.
-        Parser objectParser(formal.objectTokens, m_diagnostics);
-        DeclList objects = objectParser.parseDeclarations();
-        if (objects.size() != 1 || objects.front()->kind != DeclKind::Object) {
-            return false;
-        }
-        auto* object = static_cast<ObjectDecl*>(objects.front().get());
-        auto* savedReplay = m_replayContract;
-        auto* savedRecord = m_recordContract;
-        std::size_t savedFirst = m_instanceFirstSymbol;
-        m_replayContract = m_genericContracts.at(generic->generic).get();
-        m_recordContract = nullptr;
-        m_instanceFirstSymbol = firstSymbol;
-        Type* type = resolveSubtypeIndication(object->subtype.get(), bindings);
-        bool useDefault = actuals[i] == nullptr;
-        Type* actualType = nullptr;
-        if (useDefault) {
-            actual = object->initializer.get();
-            actualType = analyzeExpr(actual, bindings, type);
-        }
-        m_replayContract = savedReplay;
-        m_recordContract = savedRecord;
-        m_instanceFirstSymbol = savedFirst;
-        if (!useDefault) {
-            actualType = analyzeExpr(actual, scope, type);
-        }
-        if (!typesCompatible(type, actualType)) {
-            m_diagnostics.error(actual->location, "generic formal object actual has an incompatible type");
-            return false;
-        }
-        if (type == nullptr || actualType == nullptr) {
-            return false;
-        }
-        if (type->kind == TypeKind::Access) {
-            m_diagnostics.error(actual->location, "access generic formal objects are not yet supported");
-            return false;
-        }
-        bool reference = formal.mode == ParameterMode::InOut;
-        if (reference) {
-            m_sharedGenericActuals.push_back({actual, type});
-            int errors = m_diagnostics.errorCount();
-            if (!isGenericVariable(actual)) {
-                m_diagnostics.error(actual->location, "an in out generic formal object requires a variable actual");
-            } else {
-                checkAssignable(actual, scope, true);
-            }
-            if (errors != m_diagnostics.errorCount()) {
-                return false;
-            }
-            // A formal in out is a view of the actual, including its bounds.
-            type = actualType;
         } else {
-            if (hasLimitedComponents(type)) {
-                m_diagnostics.error(actual->location, "limited generic in objects require build-in-place initialization, which is not yet supported");
+            m_diagnostics.error(actual->location, "a generic formal type expects a type name");
+            return false;
+        }
+        if (type == nullptr) {
+            return false;
+        }
+        if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
+        bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
+            && formal.lower == "object";
+        if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
+            return false;
+        }
+        if (!formal.discriminants.empty()
+            && !matchesFormalDiscriminants(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
+            return false;
+        }
+        if (formal.typeClass == FormalTypeClass::ArrayType
+            && !matchesFormalArray(formal, type, bindings, actual->location)) {
+            return false;
+        }
+        if ((formal.typeClass == FormalTypeClass::DerivedType || formal.typeClass == FormalTypeClass::InterfaceType)
+            && !bindFormalDerivedType(decl, generic, formal, type, bindings, firstSymbol, actual->location)) {
+            return false;
+        }
+        if (formal.typeClass == FormalTypeClass::AccessType) {
+            // Resolve a fresh definition with preceding formals bound to
+            // their actuals, while retaining declaration-site name binding.
+            Parser parser(formal.typeTokens, m_diagnostics);
+            DeclList declarations = parser.parseDeclarations();
+            if (declarations.size() != 1 || declarations.front()->kind != DeclKind::Type) { return false; }
+            auto* definition = static_cast<TypeDecl*>(declarations.front().get());
+            auto* savedReplay = m_replayContract;
+            auto* savedRecord = m_recordContract;
+            std::size_t savedFirst = m_instanceFirstSymbol;
+            m_replayContract = m_genericContracts.at(generic->generic).get();
+            m_recordContract = nullptr;
+            m_instanceFirstSymbol = firstSymbol;
+            int errors = m_diagnostics.errorCount();
+            analyzeTypeDecl(definition, m_symbolTable.createScope(bindings));
+            m_replayContract = savedReplay;
+            m_recordContract = savedRecord;
+            m_instanceFirstSymbol = savedFirst;
+            Type* expected = definition->declaredType;
+            bool matches = errors == m_diagnostics.errorCount() && expected != nullptr
+                && matchesAccessFormal(type, expected);
+            decl->formalTypes.push_back(std::move(declarations.front()));
+            if (!matches) {
+                m_diagnostics.error(actual->location, "actual access type does not match generic formal '" + formal.name + "'");
                 return false;
             }
-            SemaSupport::adaptUniversal(actual, type);
-            // An unconstrained constant acquires its bounds/discriminants from
-            // its initializer. A dynamic array keeps its per-object descriptor.
-            if ((type->kind == TypeKind::Array && !type->constrained && type->boundsSymbol == nullptr)
-                || (type->kind == TypeKind::Record && !hasKnownDiscriminants(type))) {
-                type = actualType;
-            }
         }
-        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
+        // Enumeration_IO cannot yet enumerate Character spellings. This
+        // library limitation must not reject Character as a general formal.
+        if (generic->generic->lower == "ada.text_io.enumeration_io"
+            && baseType(type)->kind == TypeKind::Enumeration && baseType(type)->literals.empty()) {
+            m_diagnostics.error(actual->location, "'" + type->name
+                + "' names its literals by their spelling, so use Text_IO.Put on one instead of instantiating '"
+                + decl->genericName + "'");
+            return false;
+        }
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
         symbol->type = type;
         symbol->location = formal.location;
-        symbol->isConstant = !reference;
-        symbol->objectReference = reference;
-        symbol->genericObject = true;
-        symbol->genericActualExpression = actual;
-        symbol->sharedAlias = reference ? actual : nullptr;
-        symbol->owner = m_currentSubprogram;
-        symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
-        symbol->isGlobal = m_currentSubprogram == nullptr;
-        if (symbol->isGlobal) {
-            symbol->qbeName = "$" + mangle(decl->lower + "__formal__" + formal.lower);
-        }
-        if (!reference && !isComposite(type) && sharedTypeKind(type) == 0) {
-            long long value = 0;
-            double real = 0.0;
-            if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {
-                symbol->hasStaticValue = true;
-                symbol->staticValue = value;
-                symbol->staticReal = real;
-            }
-        }
         bindings->add(symbol);
-        object->isConstant = !reference;
-        object->symbols.push_back(symbol);
-        if (!useDefault) {
-            for (Association& argument : decl->arguments) {
-                if (argument.value.get() == actual) {
-                    object->initializer = std::move(argument.value);
-                    break;
-                }
+        return true;
+    }
+
+    // Reparse the subtype/default so its semantic annotations belong to
+    // this instance. Declaration-site names replay the checked contract.
+    Parser objectParser(formal.objectTokens, m_diagnostics);
+    DeclList objects = objectParser.parseDeclarations();
+    if (objects.size() != 1 || objects.front()->kind != DeclKind::Object) {
+        return false;
+    }
+    auto* object = static_cast<ObjectDecl*>(objects.front().get());
+    auto* savedReplay = m_replayContract;
+    auto* savedRecord = m_recordContract;
+    std::size_t savedFirst = m_instanceFirstSymbol;
+    m_replayContract = m_genericContracts.at(generic->generic).get();
+    m_recordContract = nullptr;
+    m_instanceFirstSymbol = firstSymbol;
+    Type* type = resolveSubtypeIndication(object->subtype.get(), bindings);
+    bool useDefault = supplied == nullptr;
+    Type* actualType = nullptr;
+    if (useDefault) {
+        actual = object->initializer.get();
+        actualType = analyzeExpr(actual, bindings, type);
+    }
+    m_replayContract = savedReplay;
+    m_recordContract = savedRecord;
+    m_instanceFirstSymbol = savedFirst;
+    if (!useDefault) {
+        actualType = analyzeExpr(actual, scope, type);
+    }
+    if (!typesCompatible(type, actualType)) {
+        m_diagnostics.error(actual->location, "generic formal object actual has an incompatible type");
+        return false;
+    }
+    if (type == nullptr || actualType == nullptr) {
+        return false;
+    }
+    if (type->kind == TypeKind::Access) {
+        m_diagnostics.error(actual->location, "access generic formal objects are not yet supported");
+        return false;
+    }
+    bool reference = formal.mode == ParameterMode::InOut;
+    if (reference) {
+        m_sharedGenericActuals.push_back({actual, type});
+        int errors = m_diagnostics.errorCount();
+        if (!isGenericVariable(actual)) {
+            m_diagnostics.error(actual->location, "an in out generic formal object requires a variable actual");
+        } else {
+            checkAssignable(actual, scope, true);
+        }
+        if (errors != m_diagnostics.errorCount()) {
+            return false;
+        }
+        // A formal in out is a view of the actual, including its bounds.
+        type = actualType;
+    } else {
+        if (hasLimitedComponents(type)) {
+            m_diagnostics.error(actual->location, "limited generic in objects require build-in-place initialization, which is not yet supported");
+            return false;
+        }
+        SemaSupport::adaptUniversal(actual, type);
+        // An unconstrained constant acquires its bounds/discriminants from
+        // its initializer. A dynamic array keeps its per-object descriptor.
+        if ((type->kind == TypeKind::Array && !type->constrained && type->boundsSymbol == nullptr)
+            || (type->kind == TypeKind::Record && !hasKnownDiscriminants(type))) {
+            type = actualType;
+        }
+    }
+    Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, formal.lower, formal.name);
+    symbol->type = type;
+    symbol->location = formal.location;
+    symbol->isConstant = !reference;
+    symbol->objectReference = reference;
+    symbol->genericObject = true;
+    symbol->genericActualExpression = actual;
+    symbol->sharedAlias = reference ? actual : nullptr;
+    symbol->owner = m_currentSubprogram;
+    symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level : 0;
+    symbol->isGlobal = m_currentSubprogram == nullptr;
+    if (symbol->isGlobal) {
+        symbol->qbeName = "$" + mangle(decl->lower + "__formal__" + formal.lower);
+    }
+    if (!reference && !isComposite(type) && sharedTypeKind(type) == 0) {
+        long long value = 0;
+        double real = 0.0;
+        if (isReal(type) ? foldStaticReal(actual, real) : foldStatic(actual, value)) {
+            symbol->hasStaticValue = true;
+            symbol->staticValue = value;
+            symbol->staticReal = real;
+        }
+    }
+    bindings->add(symbol);
+    object->isConstant = !reference;
+    object->symbols.push_back(symbol);
+    if (!useDefault) {
+        for (Association& argument : decl->arguments) {
+            if (argument.value.get() == actual) {
+                object->initializer = std::move(argument.value);
+                break;
             }
         }
-        decl->expansion.push_back(std::move(objects.front()));
+    }
+    decl->expansion.push_back(std::move(objects.front()));
+
+    return true;
+}
+
+// Matches the actuals to the formals and declares each one in a scope of its
+// own, which the copy of the generic is then analysed inside.
+bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, Scope* bindings, Scope* scope)
+{
+    const std::vector<GenericFormal>& formals = generic->generic->formals;
+    std::size_t firstSymbol = m_symbolTable.symbols().size();
+    std::vector<Expr*> actuals(formals.size(), nullptr);
+
+    if (!associateGenericActuals(decl, generic, actuals)) { return false; }
+
+    for (std::size_t i = 0; i < formals.size(); ++i) {
+        applyGenericUses(generic->generic, i, bindings, decl->formalTypes);
+        auto savedCopies = m_instanceCopies;
+        for (const auto& [original, copy] : decl->packageCopies) { m_instanceCopies[original] = copy; }
+        bool bound = bindGenericFormal(decl, generic, formals[i], actuals[i], bindings, scope, firstSymbol);
+        m_instanceCopies = std::move(savedCopies);
+        if (!bound) { return false; }
     }
 
     applyGenericUses(generic->generic, formals.size(), bindings, decl->formalTypes);
@@ -1812,6 +1881,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
             if (symbol->kind == SymbolKind::Package) {
                 symbol->instanceTemplate = generic;
                 symbol->instanceBindings = bindings;
+                symbol->instanceSpecification = symbol;
             }
             if (symbol->kind == SymbolKind::Subprogram) {
                 symbol->declarationScope = home;

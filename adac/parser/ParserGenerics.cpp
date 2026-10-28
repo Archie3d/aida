@@ -235,13 +235,8 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                                                 m_tokens.begin() + static_cast<std::ptrdiff_t>(templateEnd));
                     formal.packageTokens.push_back(current());
                 } else {
-                    for (std::size_t i = m_position; i < m_tokens.size() && m_tokens[i].kind != TokenKind::Semicolon; ++i) {
-                        if (m_tokens[i].kind == TokenKind::Box || m_tokens[i].kind == TokenKind::KwOthers) {
-                            fail("partial formal-package actual lists and boxes are not yet supported");
-                        }
-                    }
                     m_position = templateStart;
-                    parseGenericInstantiation(formal.location, formal.name, formal.lower, true);
+                    parseGenericInstantiation(formal.location, formal.name, formal.lower, true, true);
                     --m_position; // The shared formal-part loop consumes the semicolon.
                     formal.packageTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(packageStart),
                                                 m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position + 1));
@@ -391,18 +386,35 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     return decl;
 }
 
+DeclPtr Parser::parseFormalPackageInstantiation()
+{
+    SourceLocation location = expect(TokenKind::KwPackage, "in formal package").location;
+    Token name = expect(TokenKind::Identifier, "in formal package");
+    expect(TokenKind::KwIs, "in formal package");
+    expect(TokenKind::KwNew, "in formal package");
+    return parseGenericInstantiation(location, name.text, name.lower, true, true);
+}
+
 DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const std::string& name,
-                                          const std::string& lower, bool isPackage)
+                                          const std::string& lower, bool isPackage, bool formalPackage)
 {
     auto decl = std::make_unique<GenericInstantiationDecl>();
     decl->location = location;
     decl->name = name;
     decl->lower = lower;
     decl->isPackage = isPackage;
+    decl->formalPackageActualPart = formalPackage;
     decl->genericName = parseCompoundName(decl->genericLower);
 
     if (match(TokenKind::LeftParen)) {
         while (true) {
+            if (formalPackage && match(TokenKind::KwOthers)) {
+                expect(TokenKind::Arrow, "after others in formal package actual part");
+                expect(TokenKind::Box, "after others => in formal package actual part");
+                decl->packageOthers = true;
+                if (!check(TokenKind::RightParen)) { fail("others => <> must be last in a formal package actual part"); }
+                break;
+            }
             Association association;
             if ((check(TokenKind::Identifier) || (check(TokenKind::StringLiteral)
                     && !operatorSymbol(current().text).empty())) && peek(1).kind == TokenKind::Arrow) {
@@ -412,7 +424,13 @@ DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const 
                 advance();
                 advance();
             }
-            association.value = parseExpression();
+            if (formalPackage && check(TokenKind::Box)) {
+                if (association.nameLower.empty()) { fail("a formal-package box association requires a selector name"); }
+                association.value = std::make_unique<Expr>(ExprKind::Box);
+                association.value->location = advance().location;
+            } else {
+                association.value = parseExpression();
+            }
             decl->arguments.push_back(std::move(association));
             if (!match(TokenKind::Comma)) {
                 break;

@@ -665,7 +665,12 @@ The existing 129-case backfill cohort is unchanged.
 CC70001 remains deferred: the unit loader rejects its generic child package of
 a generic parent before the formal-package scenario can execute. This is not
 an executable pass. Mixed explicit/boxed formal-package lists and `others => <>`
-remain the next Phase 6g item, with a targeted local rejection test.
+are now covered by local `genericpackagepartial*` and
+`genericpartialpackagelibrary_main` scenarios and targeted rejection tests.
+No new partial-specific upstream PASS is claimed: CC51009 and CC51011 in the
+pinned archive require Ada 2012 formal incomplete types; CC51011 additionally
+references a later AI12 correction. Those sources are excluded from the
+Ada 2005 selection.
 
 | Upstream source | Git blob | SHA-256 |
 | --- | --- | --- |
