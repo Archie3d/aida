@@ -868,7 +868,10 @@ Ada 2005 additions and track annex packages separately.
   limits: [host library](docs/host-library.md). Win32 adapters implement native
   environment, drive/UNC paths, handle metadata and reparse-safe deletion;
   MinGW tests are enabled, including `runtime.windows_host_library`.
-  Native Windows execution/cross-host validation remain Phase 8 work;
+  Host regression repairs: filesystem-clamped timestamp fixtures, ordinary and
+  extended Windows CWD spellings, and driver Windows stack-page probes for large
+  generated frames (`driver.windows_stack_probes`, `windowsstackframes`).
+  Native Windows confirmation/cross-host validation remain Phase 8 work;
   Calendar children retain the later item below.
 - [ ] Type-aware streaming: components, bounds and discriminants, user-defined
   stream attributes and a real stream abstraction. Streams mostly copy object

@@ -882,6 +882,7 @@ add_test(NAME runtime.tasking
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/taskconcurrency.adb
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/TaskingHooks.c
         -DWORKDIR=${ADA_TEST_WORK_DIR}/tasking
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.tasking determinism.taskconcurrency PROPERTIES TIMEOUT 60)
 add_executable(tasking_runtime_test TaskingRuntimeTest.c)
@@ -921,6 +922,7 @@ foreach(protected_case protectedobjects protectedconcurrency protectedlibrary pr
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${protected_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${protected_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${protected_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(runtime.${protected_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -954,6 +956,7 @@ foreach(entry_case protectedentries entryproducer entrylibrary entrygenerics)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${entry_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${entry_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${entry_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${entry_case} determinism.${entry_case}
         runtime.${entry_case}_modes PROPERTIES TIMEOUT 60)
@@ -976,6 +979,7 @@ add_test(NAME runtime.entryexceptions_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/entryexceptions.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/entryexceptions.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/entryexceptions-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.entryexceptions determinism.entryexceptions
     runtime.entryexceptions_modes error.entryerrors PROPERTIES TIMEOUT 30)
@@ -994,6 +998,7 @@ foreach(time_case timevalues timedelays timelibrary)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${time_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${time_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${time_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${time_case} determinism.${time_case}
         runtime.${time_case}_modes PROPERTIES TIMEOUT 60)
@@ -1019,6 +1024,7 @@ foreach(shared_case sharedscalars sharedconcurrency sharedlibrary)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${shared_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${shared_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${shared_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${shared_case} determinism.${shared_case}
         runtime.${shared_case}_modes PROPERTIES TIMEOUT 60)
@@ -1036,6 +1042,7 @@ add_test(NAME runtime.sharedimports_modes
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/sharedimports.expected
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/SharedHooks.c
         -DWORKDIR=${ADA_TEST_WORK_DIR}/sharedimports-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.sharedimports_modes determinism.sharedimports PROPERTIES TIMEOUT 60)
 foreach(shared_error sharederrors sharedcompletionerrors sharedsyntaxerrors)
@@ -1064,6 +1071,7 @@ foreach(identity_case taskidentity taskidentitylifecycle taskidentityobjects)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${identity_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${identity_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${identity_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${identity_case} determinism.${identity_case}
         runtime.${identity_case}_modes PROPERTIES TIMEOUT 60)
@@ -1086,6 +1094,7 @@ foreach(boundary_case realedges realtasking realvalue realvaluetasking derivedsc
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${boundary_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${boundary_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${boundary_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${boundary_case} determinism.${boundary_case}
         runtime.${boundary_case}_modes PROPERTIES TIMEOUT 60)
@@ -1134,6 +1143,7 @@ foreach(modular_case modularwide modulario modulartasking)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${modular_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${modular_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${modular_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${modular_case} determinism.${modular_case}
         runtime.${modular_case}_modes PROPERTIES TIMEOUT 60)
@@ -1168,6 +1178,7 @@ foreach(fixed_case fixedwide fixedstreams fixedtasking)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${fixed_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${fixed_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${fixed_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${fixed_case} determinism.${fixed_case}
         runtime.${fixed_case}_modes PROPERTIES TIMEOUT 60)
@@ -1196,6 +1207,7 @@ foreach(decimal_case decimalpoint decimalchecks decimalstreams decimaltasking)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${decimal_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${decimal_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(runtime.${decimal_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1219,6 +1231,7 @@ add_test(NAME runtime.alignmentclauses_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/alignmentclauses.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/alignmentclauses.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/alignmentclauses-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(error.alignmenterrors determinism.alignmentclauses runtime.alignmentclauses_modes
     PROPERTIES TIMEOUT 60)
@@ -1239,6 +1252,7 @@ foreach(enum_case enumrepresentation enumstreams enumtasking)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${enum_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${enum_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${enum_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(runtime.${enum_case}_modes determinism.${enum_case} PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1264,6 +1278,7 @@ foreach(size_case sizestorage sizestreams sizetasking)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${size_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${size_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${size_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(runtime.${size_case}_modes determinism.${size_case} PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1288,6 +1303,7 @@ add_test(NAME runtime.checkedarithmetic_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedarithmetic.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedarithmetic.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/checkedarithmetic-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.checkedarithmetic_modes determinism.checkedarithmetic PROPERTIES TIMEOUT 60)
 
@@ -1305,6 +1321,7 @@ add_test(NAME runtime.checkedtasking_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedtasking.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/checkedtasking.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/checkedtasking-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.checkedtasking runtime.checkedtasking_modes
     determinism.checkedtasking PROPERTIES TIMEOUT 60)
@@ -1322,6 +1339,7 @@ add_test(NAME runtime.namedoperators_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/namedoperators.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/namedoperators.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/namedoperators-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.namedoperators determinism.namedoperators
     runtime.namedoperators_modes PROPERTIES TIMEOUT 60)
@@ -1352,6 +1370,7 @@ add_test(NAME runtime.abortdeferral_modes
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/AbortDeferralProbe.c
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/abortdeferral.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/abortdeferral-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(determinism.abortdeferral runtime.abortdeferral_modes PROPERTIES TIMEOUT 60)
 
@@ -1373,6 +1392,7 @@ foreach(collection_case sharedcollections sharedtaskcollections)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${collection_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${collection_case} determinism.${collection_case}
         runtime.${collection_case}_modes PROPERTIES TIMEOUT 60)
@@ -1401,6 +1421,7 @@ foreach(dynamic_case pragmaunitbundle pragmasuppressed pragmaunsuppressed pragma
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${dynamic_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${dynamic_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${dynamic_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${dynamic_case} determinism.${dynamic_case}
         runtime.${dynamic_case}_modes PROPERTIES TIMEOUT 60)
@@ -1449,6 +1470,7 @@ foreach(record_case recordrepresentation recorddependent)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${record_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${record_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${record_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(runtime.${record_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1488,6 +1510,7 @@ add_test(NAME runtime.importedcallbackabi_modes
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/importedcallbackabi.expected
         -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/ImportedCallbacks.c
         -DWORKDIR=${ADA_TEST_WORK_DIR}/importedcallbackabi-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.importedcallbackabi_modes PROPERTIES TIMEOUT 60)
 
@@ -1510,6 +1533,7 @@ foreach(goto_case gotostatements gotocleanup)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${goto_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${goto_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${goto_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${goto_case} runtime.${goto_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1529,6 +1553,7 @@ foreach(renaming_case unitrenaming renaminglibrary)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${renaming_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${renaming_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${renaming_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${renaming_case} runtime.${renaming_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1562,6 +1587,7 @@ foreach(prefixed_case prefixedcalls prefixedcleanup)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${prefixed_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${prefixed_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${prefixed_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${prefixed_case} runtime.${prefixed_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1583,6 +1609,7 @@ foreach(context_case limitedwith privatewith taggedincomplete)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${context_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${context_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${context_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${context_case} runtime.${context_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1618,6 +1645,7 @@ foreach(unchecked_case uncheckedaccess uncheckedaccessir)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${unchecked_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${unchecked_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${unchecked_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${unchecked_case} runtime.${unchecked_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
@@ -1646,6 +1674,7 @@ add_test(NAME runtime.callbackdereference_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/callbackdereference.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/callbackdereference.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/callbackdereference-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.callbackdereference runtime.callbackdereference_modes PROPERTIES TIMEOUT 60)
 add_ada_error_test(callbackdereferenceerrors SOURCES callbackdereferenceerrors.adb)
@@ -1664,6 +1693,7 @@ add_test(NAME runtime.subunits_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/subunits.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/subunits.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/subunits-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.subunits runtime.subunits_modes PROPERTIES TIMEOUT 90)
 
@@ -1690,6 +1720,7 @@ foreach(return_case extendedreturns limitedresults returncleanup)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${return_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${return_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${return_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${return_case} runtime.${return_case}_modes PROPERTIES TIMEOUT 90)
 endforeach()
@@ -1797,6 +1828,7 @@ add_test(NAME runtime.pragmaimport_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/pragmaimport.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/pragmaimport.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/pragmaimport-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.pragmaimport_modes PROPERTIES TIMEOUT 60)
 
@@ -1815,6 +1847,7 @@ foreach(collection_case unboundedstrings basicvectors vectorlifetime librarycoll
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${collection_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${collection_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${collection_case} runtime.${collection_case}_modes
         PROPERTIES TIMEOUT 90)
@@ -1838,6 +1871,7 @@ foreach(container_case containerfamilies containercursors containersorting conta
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${container_case}.expected
             -DCOMMAND_TIMEOUT=60
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${container_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${container_case} runtime.${container_case}_modes
         determinism.${container_case} PROPERTIES TIMEOUT 180)
@@ -1864,6 +1898,7 @@ foreach(host_case IN LISTS host_cases)
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${host_case}.adb
             -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${host_case}.expected
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${host_case}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
     set_tests_properties(ada.${host_case} runtime.${host_case}_modes
         determinism.${host_case} PROPERTIES TIMEOUT 120)
@@ -1892,6 +1927,7 @@ add_test(NAME runtime.textgetstrings_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/textgetstrings.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/textgetstrings.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/textgetstrings-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.textgetstrings determinism.textgetstrings
     runtime.textgetstrings_modes PROPERTIES TIMEOUT 90)
@@ -1908,3 +1944,24 @@ if(WIN32)
     add_test(NAME runtime.windows_host_library COMMAND windows_host_library_test)
     set_tests_properties(runtime.windows_host_library PROPERTIES TIMEOUT 60)
 endif()
+
+add_executable(windows_stack_probe_test WindowsStackProbeTest.cpp ../ada/WindowsStack.cpp)
+add_test(NAME driver.windows_stack_probes COMMAND windows_stack_probe_test)
+add_ada_test(windowsstackframes SOURCES windowsstackframes.adb)
+add_determinism_test(windowsstackframes SOURCE windowsstackframes.adb)
+set_tests_properties(ada.windowsstackframes determinism.windowsstackframes PROPERTIES TIMEOUT 60)
+
+add_test(NAME runtime.windowsstackframes_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/windowsstackframes.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/windowsstackframes.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/windowsstackframes-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.windowsstackframes_modes PROPERTIES TIMEOUT 90)

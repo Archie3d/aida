@@ -127,16 +127,26 @@ int main(void)
     __ada_host_delete_tree(nested, (int)strlen(nested));
     CHECK(context.exception == NULL && __ada_host_exists(outside, (int)strlen(outside)));
     CHECK(!__ada_host_exists(nested, (int)strlen(nested)));
-    struct timespec oldTimes[2] = {{-INT64_C(2208988801), 0}, {-INT64_C(2208988801), 0}};
-    CHECK(utimensat(AT_FDCWD, source, oldTimes, 0) == 0);
-    HostSearch* oldSearch = __ada_host_search_start(root, (int)strlen(root), "source", 6, 7);
-    CHECK(oldSearch != NULL && __ada_host_search_more(oldSearch));
-    __ada_host_search_time(oldSearch, &y, &m, &d, &seconds, &valid);
-    CHECK(!valid && context.exception == NULL && __ada_host_search_size(oldSearch) == 7);
-    __ada_host_search_release(oldSearch);
-    __ada_host_modification_time(source, (int)strlen(source), &y, &m, &d, &seconds);
-    CHECK(context.exception == ADA_USE_ERROR);
-    context.exception = NULL;
+    static const int64_t kTimestampCases[] = {-INT64_C(2208988801), -INT64_C(2147483648)};
+    for (size_t i = 0; i < sizeof kTimestampCases / sizeof kTimestampCases[0]; ++i) {
+        struct timespec oldTimes[2] = {{kTimestampCases[i], 0}, {kTimestampCases[i], 0}};
+        CHECK(utimensat(AT_FDCWD, source, oldTimes, 0) == 0);
+        /* Filesystems can successfully clamp timestamps to their supported
+           range (for example ext4's lower limit in 1901). Check the stored
+           timestamp, and explicitly exercise that clamped-in-range case too. */
+        struct stat stored;
+        CHECK(stat(source, &stored) == 0);
+        int expectedValid = (__int128)stored.st_mtime >= -INT64_C(2177452800)
+            && (__int128)stored.st_mtime < INT64_C(13569465600);
+        HostSearch* oldSearch = __ada_host_search_start(root, (int)strlen(root), "source", 6, 7);
+        CHECK(oldSearch != NULL && __ada_host_search_more(oldSearch));
+        __ada_host_search_time(oldSearch, &y, &m, &d, &seconds, &valid);
+        CHECK(valid == expectedValid && context.exception == NULL && __ada_host_search_size(oldSearch) == 7);
+        __ada_host_search_release(oldSearch);
+        __ada_host_modification_time(source, (int)strlen(source), &y, &m, &d, &seconds);
+        CHECK(context.exception == (expectedValid ? NULL : ADA_USE_ERROR));
+        context.exception = NULL;
+    }
     for (int i = 0; i < 200; ++i) {
         HostSearch* search = __ada_host_search_start(root, (int)strlen(root), "*", 1, 7);
         CHECK(search != NULL);

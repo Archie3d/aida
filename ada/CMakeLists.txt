@@ -13,6 +13,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Toolchain.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/WindowsStack.cpp
         ${CMAKE_SOURCE_DIR}/adac/UnitManifest.cpp
 )
 

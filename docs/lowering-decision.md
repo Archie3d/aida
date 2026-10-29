@@ -141,3 +141,30 @@ Lexical master exits share the existing depth-aware helper across transfers.
 The extraction preserved 83 baseline units byte for byte. Runtime deferral now
 covers protected actions and existing finalization paths; Phase 9 delivery gates
 remain explicit in that contract.
+
+## Windows stack reservations
+
+QBE's amd64_win assembly currently reserves a large fixed frame in one stack
+pointer decrement without probing its pages. CXAG001 exposes a roughly 28 KB
+entry frame before its first Ada call. On Windows, skipping the guard page can
+fault before REPORT.Test runs. The Windows `ada` pipeline now prepares generated
+assembly with `WindowsStack.cpp`, outside the unchanged external `qbe/` tree.
+
+Each positive constant stack reservation of at least 4096 bytes is split into
+steps of at most 4096 bytes, each followed by a byte read from the new stack
+pointer. This preserves the total reservation, all GPRs, stack data and argument
+registers. Stack-adjustment condition codes are not live in these QBE prologues
+or call setup sequences. Small reservations and negative deallocations remain
+unchanged; AIDA emits only fixed-size QBE stack slots, with runtime-sized arrays
+using the existing allocation arenas. The pass introduces no runtime globals,
+helper calls or labels. This satisfies the sequential page-touch requirement
+explained in Microsoft's [stack allocation documentation](https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-170).
+
+The driver applies this in both whole assembly and per-unit executable builds.
+The object-cache contract is versioned so old unprobed objects are rebuilt.
+RunTasking's raw-QBE separate mode applies the same preparation via the test
+adapter. Other external consumers of raw QBE Windows assembly must likewise
+handle stack probing. `driver.windows_stack_probes` pins the transformation;
+`windowsstackframes` exercises a 64 KB local array from the environment task and
+four workers through executable, whole-assembly and separate-unit builds.
+Native Windows confirmation remains part of the host audit.

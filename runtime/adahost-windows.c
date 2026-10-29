@@ -828,13 +828,24 @@ void __ada_host_modification_time(const char* name, int length, int* year, int* 
 
 void __ada_host_set_directory(const char* name, int length)
 {
-    wchar_t* path = fileName(name, length);
-    if (path != NULL) {
-        if (!SetCurrentDirectoryW(path)) {
-            hostError(GetLastError());
-        }
-        free(path);
+    wchar_t* text = pathString(name, length, 0);
+    if (text == NULL) {
+        return;
     }
+    wchar_t* full = fullPath(text);
+    free(text);
+    if (full == NULL) {
+        return;
+    }
+    /* Keep ordinary working directories in the ordinary Win32 namespace.
+       Publishing an extended prefix changes subsequent foreign/CRT full-path
+       results too; reserve it for directories that actually need it. */
+    wchar_t* extended = wcslen(full) >= MAX_PATH - 1 ? nativePath(full) : NULL;
+    if (__ada_task_context()->exception == NULL && !SetCurrentDirectoryW(extended != NULL ? extended : full)) {
+        hostError(GetLastError());
+    }
+    free(extended);
+    free(full);
 }
 
 static void createDirectory(const char* name, int length, int parents, int formLength)

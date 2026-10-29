@@ -1,6 +1,7 @@
 #include "Cache.h"
 #include "Toolchain.h"
 #include "UnitManifest.h"
+#include "WindowsStack.h"
 
 #include <cctype>
 #include <cstdio>
@@ -207,6 +208,11 @@ int main(int argc, char** argv)
         qbeCommand.push_back(assemblyFile);
         qbeCommand.push_back(irFile);
         int result = toolchain.run(qbeCommand);
+#ifdef _WIN32
+        if (result == 0 && !prepareWindowsAssembly(assemblyFile)) {
+            result = 1;
+        }
+#endif
         if (!keepIntermediates) {
             std::remove(irFile.c_str());
         }
@@ -282,7 +288,13 @@ int main(int argc, char** argv)
     }
     units.push_back("__ada_binder");
 
-    Cache cache(objectDirectory, toolDigest({ toolchain.qbe(), toolchain.compiler() }));
+    std::string objectTools = toolDigest({ toolchain.qbe(), toolchain.compiler() });
+#ifdef _WIN32
+    // Existing objects may contain unprobed frames, even when their IR and
+    // external tools have not changed. Reassemble them under the new contract.
+    objectTools += ":windows-stack-probes-v1";
+#endif
+    Cache cache(objectDirectory, objectTools);
 
     std::vector<std::string> link = { toolchain.compiler(), "-o", stem };
     for (const std::string& unit : units) {
@@ -307,6 +319,11 @@ int main(int argc, char** argv)
         if (toolchain.run(qbeCommand) != 0) {
             return 1;
         }
+#ifdef _WIN32
+        if (!prepareWindowsAssembly(base + ".s")) {
+            return 1;
+        }
+#endif
         if (toolchain.run({ toolchain.compiler(), "-c", "-o", base + ".o", base + ".s" }) != 0) {
             return 1;
         }

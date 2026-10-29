@@ -12,7 +12,7 @@
 #include <wchar.h>
 
 #define CHECK(condition) do { if (!(condition)) { \
-    fprintf(stderr, "Windows host check failed at line %d (Win32 error %lu)\n", __LINE__, (unsigned long)GetLastError()); abort(); \
+    fprintf(stderr, "Windows host check failed at line %d (%s; Win32 error %lu)\n", __LINE__, #condition, (unsigned long)GetLastError()); abort(); \
 } } while (0)
 #define LENGTH(text) ((int)strlen(text))
 
@@ -33,7 +33,9 @@ static void createJunction(const char* name, const char* target)
     CHECK(MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, name, -1, wideName, 1024) != 0);
     CHECK(MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, target, -1, wideTarget, 1024) != 0);
     DWORD length = GetFullPathNameW(wideTarget, 1024, full, NULL);
-    CHECK(length > 0 && length < 1024 && full[1] == L':');
+    CHECK(length > 0 && length < 1024);
+    const wchar_t* targetPath = wcsncmp(full, L"\\\\?\\", 4) == 0 ? full + 4 : full;
+    CHECK(wcslen(targetPath) >= 3 && targetPath[1] == L':');
     CHECK(CreateDirectoryW(wideName, NULL));
     HANDLE handle = CreateFileW(wideName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
         FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
@@ -52,11 +54,11 @@ static void createJunction(const char* name, const char* target)
     JunctionData data = {0};
     data.tag = IO_REPARSE_TAG_MOUNT_POINT;
     wcscpy(data.path, L"\\??\\");
-    wcscat(data.path, full);
+    wcscat(data.path, targetPath);
     data.substituteLength = (WORD)(wcslen(data.path) * sizeof(wchar_t));
     data.printOffset = data.substituteLength + sizeof(wchar_t);
-    data.printLength = (WORD)(wcslen(full) * sizeof(wchar_t));
-    wcscpy((wchar_t*)((char*)data.path + data.printOffset), full);
+    data.printLength = (WORD)(wcslen(targetPath) * sizeof(wchar_t));
+    wcscpy((wchar_t*)((char*)data.path + data.printOffset), targetPath);
     data.dataLength = 8 + data.printOffset + data.printLength + sizeof(wchar_t);
     DWORD returned;
     CHECK(DeviceIoControl(handle, FSCTL_SET_REPARSE_POINT, &data, data.dataLength + 8,
@@ -178,8 +180,29 @@ int main(void)
     CHECK(context.exception == NULL && __ada_host_exists("original.txt", 12));
     __ada_host_set_directory(oldDirectory, LENGTH(oldDirectory));
     CHECK(context.exception == NULL);
-    free(oldDirectory);
+    /* Reproduce a foreign caller leaving an extended-prefix working directory.
+       The junction helper must accept GetFullPathNameW preserving that prefix. */
+    wchar_t wideDirectory[1024], extendedDirectory[1028];
+    CHECK(MultiByteToWideChar(CP_ACP, MB_ERR_INVALID_CHARS, oldDirectory, -1, wideDirectory, 1024));
+    for (wchar_t* p = wideDirectory; *p; ++p) {
+        if (*p == L'/') {
+            *p = L'\\';
+        }
+    }
+    CHECK(wideDirectory[1] == L':');
+    wchar_t restored[1024];
+    DWORD restoredLength = GetCurrentDirectoryW(1024, restored);
+    CHECK(restoredLength > 0 && restoredLength < 1024);
+    if (wcslen(wideDirectory) < MAX_PATH - 1) {
+        CHECK(wcsncmp(restored, L"\\\\?\\", 4) != 0);
+    }
+    wcscpy(extendedDirectory, L"\\\\?\\");
+    wcscat(extendedDirectory, wideDirectory);
+    CHECK(SetCurrentDirectoryW(extendedDirectory));
     createJunction(junction, outside);
+    __ada_host_set_directory(oldDirectory, LENGTH(oldDirectory));
+    CHECK(context.exception == NULL);
+    free(oldDirectory);
     __ada_host_delete_tree(junction, LENGTH(junction));
     CHECK(context.exception == ADA_USE_ERROR);
     context.exception = NULL;

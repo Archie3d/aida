@@ -111,6 +111,9 @@ Both '/' and '\' are accepted as input separators. Returned paths use '/'.
 Drive-absolute, drive-relative and UNC server/share names are supported.
 Full_Name uses GetFullPathNameW and can name files that do not exist; Windows
 performs lexical dot/dot-dot normalization before resolving filesystem links.
+Set_Directory retains ordinary Win32 spelling for short working directories,
+using an extended prefix only when needed for a long directory. The native
+regression also exercises a foreign caller setting an extended-prefix CWD.
 Roots retain their drive or UNC share; Containing_Directory of a root raises
 Use_Error. Compose preserves the distinction between C:file and C:/file.
 Explicit Win32 device namespaces, alternate data streams, reserved DOS device
@@ -182,7 +185,10 @@ controlled guard and can be finalized by a different task after synchronization.
 checks. `hostlibraryerrors` pins private/limited legality diagnostics.
 `runtime.host_library` exercises calendar boundaries, concurrent readers and
 searches, owned results, hard-link copy refusal, symlink-aware names and
-recursive deletion. Focused compiler/C-runtime ASan/UBSan and C-runtime TSan
+recursive deletion. Timestamp fixtures check stat's stored result: filesystems
+can clamp successful timestamp updates (ext4's lower range starts in December
+1901). Both genuinely out-of-Calendar timestamps and clamped-in-range timestamps
+are covered without assuming that utimensat preserves its requested value. Focused compiler/C-runtime ASan/UBSan and C-runtime TSan
 cover the same increment; generated Ada accesses remain uninstrumented.
 The host-library Ada cases and CXAH001/CXAH002/CXAG001 are enabled for MinGW as
 well as POSIX. `runtime.windows_host_library` adds native environment/CRT
