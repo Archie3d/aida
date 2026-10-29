@@ -89,9 +89,9 @@ checks runtime tag layout metadata.
 
 Unchanged ACATS C3A0009 and C761012 are promoted from compile XFAIL to execution
 PASS. Baseline C3A0007, C432001, C432004 and C760009 also pass unchanged.
-C3A0013's private-extension and current-instance obstacles are removed; its
-remaining compile XFAIL is `array (Object'Range)` declaration syntax (Phase 8).
-C760011 now reaches the missing REPORT.Ident_Char adapter. B observations remain
+C3A0013 now executes unchanged as PASS after Phase 7 added
+`array (Object'Range)` declaration syntax. REPORT.Ident_Char was added while
+assessing stream cases; C760011 retains its separate baseline observation. B observations remain
 ungraded.
 
 Dependent arrays with controlled, task or protected elements, access-subtype

@@ -214,6 +214,11 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
                         expect(TokenKind::DoubleDot, "in index range");
                         index->rangeHigh = parseSimpleExpression();
                     }
+                } else if (check(TokenKind::Tick)) {
+                    m_position = saved;
+                    index->name.clear();
+                    index->lower.clear();
+                    parseDiscreteRange(index->name, index->lower, index->rangeLow, index->rangeHigh);
                 } else if (check(TokenKind::DoubleDot)) {
                     m_position = saved;
                     index->name.clear();

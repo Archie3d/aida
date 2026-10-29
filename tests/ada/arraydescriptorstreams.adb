@@ -20,6 +20,13 @@ begin
         end if;
     end;
     Ada.Streams.Stream_IO.Close (File);
+    -- String uses Integer base bounds. Write invalid non-null bounds in that
+    -- format instead of reinterpreting Long_Integer bounds as Integer values.
+    Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, "arraydescriptorstreams.tmp");
+    Channel := Ada.Streams.Stream_IO.Stream (File);
+    Integer'Write (Channel, -2);
+    Integer'Write (Channel, -1);
+    Ada.Streams.Stream_IO.Close (File);
     Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, "arraydescriptorstreams.tmp");
     Channel := Ada.Streams.Stream_IO.Stream (File);
     begin

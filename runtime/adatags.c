@@ -7,7 +7,7 @@
 
 /* The first three words are the published object layout descriptor prefix.
    Entries pair code with its enclosing activation, independently of callers. */
-_Static_assert(sizeof(AdaTag) == 144, "tag descriptor ABI");
+_Static_assert(sizeof(AdaTag) == 208, "tag descriptor ABI");
 _Static_assert(offsetof(AdaTag, slots) == 24, "dispatch table offset");
 _Static_assert(offsetof(AdaTag, equality) == 32, "equality entry offset");
 _Static_assert(offsetof(AdaTag, level) == 56, "accessibility level offset");
@@ -136,6 +136,9 @@ void* __ada_tag_create_full(const void* templateTag, void* parent, void* master,
     }
     tag->parent = parent;
     tag->master = tag->equalityLink = master;
+    for (int i = 0; i < 4; ++i) {
+        if (tag->streams[i].code != NULL) { tag->streams[i].link = master; }
+    }
     if (!registerTag(tag, 1)) {
         free(tag->interfaces);
         free(tag->slots);

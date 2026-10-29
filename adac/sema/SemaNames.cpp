@@ -166,7 +166,7 @@ void Sema::noteReference(Symbol* symbol)
     if (symbol == nullptr || symbol->discriminantRecord != nullptr || symbol->owner == nullptr || symbol->isGlobal) {
         return;
     }
-    if (symbol->owner != m_currentSubprogram) {
+    if (symbol->owner != m_currentSubprogram || m_streamDefault) {
         symbol->isUplevel = true;
         symbol->owner->needsFrame = true;
     }
@@ -510,6 +510,7 @@ Type* Sema::classWideType(Type* specific)
         if (specific->classWide == nullptr) {
             Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
             *wide = *specific;
+        wide->streamAttributes = {};
             wide->name = specific->name + "'Class";
             wide->base = classWideType(rootType(specific));
             wide->classRoot = rootType(specific);
@@ -524,6 +525,7 @@ Type* Sema::classWideType(Type* specific)
         if (specific->classWide == nullptr) {
             Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
             *wide = *specific;
+        wide->streamAttributes = {};
             wide->name = specific->name + "'Class";
             wide->base = classWideType(rootType(specific));
             wide->discriminantConstraintSource = specific;
@@ -540,6 +542,7 @@ Type* Sema::classWideType(Type* specific)
     if (specific->classWide == nullptr) {
         Type* wide = m_types.create(TypeKind::Record, specific->name + "'Class");
         *wide = *specific;
+        wide->streamAttributes = {};
         wide->base = nullptr;
         wide->name = specific->name + "'Class";
         wide->classRoot = specific;

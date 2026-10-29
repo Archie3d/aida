@@ -1246,6 +1246,32 @@ static int __ada_direct_sizeImpl(AdaFileRef handle, int size)
 /* Stream_IO                                                                 */
 /* ------------------------------------------------------------------------ */
 
+static AdaFileStream* __ada_file_stream_viewImpl(AdaFileRef handle, struct AdaTag* tag)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
+    if (file == NULL) {
+        return NULL;
+    }
+    if (file->streamView.tag == NULL) {
+        file->streamView.file = file;
+        file->streamView.tag = tag;
+    } else if (file->streamView.tag != tag) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    return &file->streamView;
+}
+
+static void __ada_file_stream_elements_readImpl(AdaFile* stream, void* item, int length, int first, int* last)
+{
+    __ada_stream_elements_readImpl(&stream, item, length, first, last);
+}
+
+static void __ada_file_stream_elements_writeImpl(AdaFile* stream, const void* item, int length)
+{
+    __ada_stream_elements_writeImpl(&stream, item, length);
+}
+
 static AdaFile* __ada_stream_ofImpl(AdaFileRef handle)
 {
     return __ada_file_checked(handle, ADA_MODE_ANY);

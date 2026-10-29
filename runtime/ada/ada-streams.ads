@@ -11,6 +11,15 @@ package Ada.Streams is
 
     subtype Stream_Element_Count is Stream_Element_Offset range 0 .. 2147483647;
 
-    type Stream_Element_Array is array (Stream_Element_Offset range <>) of Stream_Element;
+    type Stream_Element_Array is array (Stream_Element_Offset range <>) of aliased Stream_Element;
+
+    type Root_Stream_Type is abstract tagged limited private;
+    procedure Read (Stream : in out Root_Stream_Type;
+                    Item : out Stream_Element_Array;
+                    Last : out Stream_Element_Offset) is abstract;
+    procedure Write (Stream : in out Root_Stream_Type;
+                     Item : Stream_Element_Array) is abstract;
+private
+    type Root_Stream_Type is abstract tagged limited null record;
 
 end Ada.Streams;

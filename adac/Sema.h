@@ -21,6 +21,10 @@ public:
 
     TypeTable& typeTable() { return m_types; }
     Type* exceptionOccurrenceType() const { return m_exceptionOccurrenceType; }
+    Type* streamRootType() const { return m_streamRootType; }
+    Type* fileStreamType() const { return m_fileStreamType; }
+    Symbol* streamRead() const { return m_streamRead; }
+    Symbol* streamWrite() const { return m_streamWrite; }
     Symbol* mainSubprogram() const { return m_main; }
 
     // The exceptions declared in one file, whose objects that file's unit is
@@ -354,6 +358,11 @@ private:
     Type* m_exceptionOccurrenceType = nullptr;
     Type* m_exceptionIdType = nullptr;
     Type* m_taskIdType = nullptr;
+    bool m_streamDefault = false;
+    Type* m_streamRootType = nullptr;
+    Type* m_fileStreamType = nullptr;
+    Symbol* m_streamRead = nullptr;
+    Symbol* m_streamWrite = nullptr;
     Type* m_realTimeType = nullptr;
     Type* m_calendarTimeType = nullptr;
     std::vector<Expr*> m_sharedEscapes;

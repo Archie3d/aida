@@ -1184,6 +1184,7 @@ struct RepresentationDecl : Decl
     std::string name;
     std::string lower;
     std::string attribute;
+    bool classWide = false;
     ExprPtr value;
     ExprPtr modulus;
     std::vector<ComponentClause> components;

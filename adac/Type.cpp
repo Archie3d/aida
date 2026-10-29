@@ -944,3 +944,39 @@ Type* designatedViewType(Type* type)
 {
     return type != nullptr && type->kind == TypeKind::Access ? type->target : type;
 }
+
+Symbol* streamAttribute(Type* type, int attribute)
+{
+    for (Type* walk = rootType(type); walk != nullptr; walk = walk->parentType) {
+        if (walk->streamAttributes[attribute] != nullptr) { return walk->streamAttributes[attribute]; }
+        // Tagged streaming operations are never inherited. Their defaults
+        // invoke the parent's attribute for the parent part instead.
+        if (walk->tagged) { break; }
+    }
+    return nullptr;
+}
+
+bool streamAvailable(Type* type, int attribute)
+{
+    if (type == nullptr) { return false; }
+    if (streamAttribute(type, attribute) != nullptr) { return true; }
+    // Anonymous access discriminants carry master/ownership metadata, which
+    // has no default external representation. Explicit attributes can define
+    // a process-independent encoding for a specific type.
+    if (hasAccessDiscriminants(type)) { return false; }
+    if (attribute >= 2) { return streamAvailable(type, attribute == 2 ? 0 : 1); }
+    if (type->classRoot != nullptr) { return streamAvailable(type->classRoot, attribute); }
+    Type* first = rootType(type);
+    if (!first->isLimited) { return true; }
+    if (!first->tagged || first->parentType == nullptr || !streamAvailable(first->parentType, attribute)) { return false; }
+    for (const FieldInfo& field : first->fields) {
+        if (field.index >= first->parentFieldCount && !streamAvailable(field.type, attribute)) { return false; }
+    }
+    return true;
+}
+
+int streamSizeBits(Type* type)
+{
+    Type* first = rootType(type);
+    return first->streamSize >= 0 ? first->streamSize : static_cast<int>(typeSize(first) * 8);
+}

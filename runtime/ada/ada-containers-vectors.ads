@@ -1,5 +1,6 @@
 -- Ada 2005 container implementation; ownership and cursor machinery is shared.
 with Ada.Finalization;
+with Ada.Streams;
 with Ada.Containers.Storage;
 generic
     type Index_Type is range <>;
@@ -115,6 +116,12 @@ private
     type Vector is tagged record
         Data : Storage.Store;
     end record;
+    procedure Read_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out Vector);
+    procedure Write_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : Vector);
+    for Vector'Read use Read_Container;
+    for Vector'Write use Write_Container;
     No_Element : constant Cursor := (Ptr => null);
     Empty_Vector : constant Vector :=
         (Data => (Ada.Finalization.Controlled with Data => null));

@@ -7,5 +7,5 @@ classwideerrors.adb:25:30: error: 'Class requires a specific tagged type
 classwideerrors.adb:29:29: error: a class-wide allocator requires an initializer
 classwideerrors.adb:32:14: error: all controlling operands of a dispatching call must be class-wide
 classwideerrors.adb:33:9: error: class-wide assignment requires a dynamically tagged value
-classwideerrors.adb:34:19: error: class-wide streaming requires tag-aware stream support
+classwideerrors.adb:34:26: error: 'Read' expects access to Ada.Streams.Root_Stream_Type'Class
 classwideerrors.adb:17:9: error: subprogram 'Added' has no body

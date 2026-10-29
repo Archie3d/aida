@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <climits>
 
 using QbeSupport::constantValue;
 using QbeSupport::isFloatClass;
@@ -437,6 +438,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         }
         return Value { std::to_string(typeAlignment(prefixType)), qbeClass(expr->type) };
     }
+    if (name == "stream_size") { return constantValue(streamSizeBits(prefixType), 'l'); }
     if (name == "size") {
         Value bytes;
         if (prefixType->classRoot != nullptr) {
@@ -553,16 +555,308 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 // 'Read, 'Write, 'Output and 'Input move a value between an object and a
 // stream as the bytes it occupies.  'Output and 'Input additionally carry the
 // bounds of every array dimension.
+Type QbeEmitter::streamStorageType(Type* type)
+{
+    Type storage = *rootType(type);
+    storage.byteSize = streamSizeBits(type) / 8;
+    // Stream_Size belongs to the type, independently of subtype Size clauses.
+    storage.base = nullptr;
+    storage.isSubtype = false;
+    if (isDiscrete(type) && type->kind != TypeKind::Enumeration && type->modulus == 0) {
+        long long signedMax = storage.byteSize == 8 ? LLONG_MAX : (1LL << (storage.byteSize * 8 - 1)) - 1;
+        if (storage.low >= 0 && storage.high <= signedMax) { storage.low = -1; }
+    }
+    return storage;
+}
+
+void QbeEmitter::emitStreamScalarCheck(const Value& value, Type* type, const Type& storage)
+{
+    if (type->kind == TypeKind::Float || type->kind == TypeKind::Access) { return; }
+    int bits = static_cast<int>(storage.byteSize * 8);
+    if (bits == 64) { return; }
+    bool signedValue = scalarStorageSigned(&storage) || type->kind == TypeKind::Fixed;
+    Type limits(TypeKind::Integer, "stream representation");
+    limits.modulus = !signedValue ? (__int128(1) << bits) : 0;
+    limits.low = signedValue ? -(1LL << (bits - 1)) : 0;
+    limits.high = signedValue ? (1LL << (bits - 1)) - 1 : (1LL << bits) - 1;
+    emitRangeCheck(enumCode(value, type), &limits, m_context->sourceLocation);
+}
+
+// These ordinary Ada functions share the normal result ownership and exception
+// ABI. A local tag pairs their code with the declaring activation's static link.
+void QbeEmitter::emitStreamWrappers(Type* type)
+{
+    Type channelType(TypeKind::Access, "stream parameter");
+    channelType.target = m_sema.typeTable().integerType();
+    channelType.anonymousAccess = true;
+    channelType.accessParameter = true;
+    const char* names[] = {"read", "write", "input", "output"};
+    for (int i = 0; i < 4; ++i) {
+        if (!streamAvailable(type, i)) { continue; }
+        Symbol operation;
+        operation.kind = SymbolKind::Subprogram;
+        operation.qbeName = type->tagName + ".stream" + std::to_string(i);
+        operation.displayName = type->name + "'" + names[i];
+        operation.level = type->tagOwner == nullptr ? 0 : type->tagOwner->level + 1;
+        operation.owner = type->tagOwner;
+        operation.usesFinalization = true;
+        operation.streamWrapper = true;
+        operation.returnType = i == 2 ? type : nullptr;
+        Symbol stream, item;
+        stream.kind = SymbolKind::Parameter;
+        stream.name = "stream";
+        stream.type = &channelType;
+        stream.owner = &operation;
+        operation.parameters.push_back(&stream);
+        item.kind = SymbolKind::Parameter;
+        item.name = "item";
+        item.type = type;
+        item.owner = &operation;
+        item.byReference = true;
+        item.mode = i == 0 ? ParameterMode::Out : ParameterMode::In;
+        if (i != 2) { operation.parameters.push_back(&item); }
+        auto attribute = std::make_unique<AttributeExpr>();
+        attribute->name = attribute->lower = names[i];
+        attribute->prefixType = type;
+        attribute->type = i == 2 ? type : m_sema.typeTable().voidType();
+        auto channel = std::make_unique<IdentifierExpr>();
+        channel->symbol = &stream;
+        channel->type = &channelType;
+        attribute->arguments.push_back(std::move(channel));
+        if (i != 2) {
+            auto value = std::make_unique<IdentifierExpr>();
+            value->symbol = &item;
+            value->type = type;
+            attribute->arguments.push_back(std::move(value));
+        }
+        SubprogramBody body;
+        body.symbol = &operation;
+        if (i == 2) {
+            auto result = std::make_unique<ReturnStmt>();
+            result->value = std::move(attribute);
+            body.body.push_back(std::move(result));
+        } else {
+            auto call = std::make_unique<ProcedureCallStmt>();
+            call->call = std::move(attribute);
+            body.body.push_back(std::move(call));
+        }
+        emitSubprogram(&body);
+    }
+}
+
+Value QbeEmitter::emitStreamCall(Symbol* operation, const Value& stream, const Value* item, Type* type,
+                                  const std::string& constrained, Expr* actual)
+{
+    Symbol channel;
+    channel.type = operation->parameters[0]->type;
+    channel.owner = m_context->symbol;
+    Value channelSlot {allocTypeScratch(channel.type), 'l'};
+    storeInto(channelSlot, stream, channel.type);
+    m_context->locals[&channel] = channelSlot.name;
+    IdentifierExpr channelExpr;
+    channelExpr.type = channel.type;
+    channelExpr.symbol = &channel;
+    Symbol value;
+    IdentifierExpr valueExpr;
+    CallExpr call;
+    call.form = CallForm::Subprogram;
+    call.subprogram = operation;
+    call.type = operation->returnType;
+    call.resolvedArguments.push_back(&channelExpr);
+    if (actual != nullptr) { call.resolvedArguments.push_back(actual); }
+    else if (item != nullptr) {
+        value.type = type;
+        value.owner = m_context->symbol;
+        m_context->locals[&value] = item->name;
+        m_context->bounds[&value] = *item;
+        m_context->streamConstraints[&value] = constrained;
+        valueExpr.type = type;
+        valueExpr.symbol = &value;
+        call.resolvedArguments.push_back(&valueExpr);
+    }
+    Value result = emitCall(&call);
+    m_context->locals.erase(&channel);
+    m_context->locals.erase(&value);
+    m_context->bounds.erase(&value);
+    m_context->streamConstraints.erase(&value);
+    return result;
+}
+
+Value QbeEmitter::emitStreamRecordInput(const Value& stream, Type* type)
+{
+    Type* record = baseType(type);
+    Type constrainedType = *record;
+    constrainedType.isSubtype = true;
+    constrainedType.base = record;
+    constrainedType.discriminantsKnown = false;
+    constrainedType.discriminantValues.clear();
+    constrainedType.discriminantConstraintSource = nullptr;
+    constrainedType.discriminantRecord = nullptr;
+    Symbol capture;
+    constrainedType.discriminantSymbol = &capture;
+    constrainedType.discriminantPerEvaluation = true;
+    Value captured {allocScratch(record->discriminantCount * 32), 'l'};
+    m_context->discriminantBounds[&constrainedType] = captured;
+    for (int i = 0; i < record->discriminantCount; ++i) {
+        Value slot {newTemp(), 'l'};
+        line(slot.name + " =l add " + captured.name + ", " + std::to_string(i * 32));
+        emitStreamComponents(stream, true, slot, discriminantField(record, i).type);
+    }
+    Value result {allocTypeScratch(&constrainedType), 'l'};
+    bool saved = m_context->initializingTemporary;
+    m_context->initializingTemporary = true;
+    prepareControlledObject(result, &constrainedType);
+    emitDefaultInit(result, &constrainedType);
+    m_context->initializingTemporary = saved;
+    // Input's normal initialization precedes its call of Read. A specified
+    // Read sees that initialized object, including its streamed discriminants.
+    if (Symbol* operation = streamAttribute(record, 0)) {
+        emitStreamCall(operation, stream, &result, &constrainedType);
+    } else {
+        emitStreamComponents(stream, true, result, &constrainedType, true);
+    }
+    m_context->discriminantBounds.erase(&constrainedType);
+    return result;
+}
+
+// Stream values describe logical components, independently of record padding,
+// array descriptors and the tag stored at the start of a tagged object.
+void QbeEmitter::emitStreamComponents(const Value& stream, bool reading, Value object, Type* type,
+                                      bool skipDiscriminants, const std::string& constrained)
+{
+    if (Symbol* operation = streamAttribute(type, reading ? 0 : 1)) {
+        emitStreamCall(operation, stream, &object, type, constrained);
+        return;
+    }
+    if (type->kind == TypeKind::Array) {
+        Value array = object.hasBounds() ? object : withBounds(object, type, nullptr);
+        Value length = lengthOf(array, type);
+        std::string count = newTemp();
+        line(count + " =l copy " + length.name);
+        std::string stride = arrayElementSize(array, type);
+        std::string cursor = allocScratch(8);
+        line("storel 0, " + cursor);
+        std::string head = newLabel("stream_elements"), body = newLabel("stream_element");
+        std::string done = newLabel("stream_elements_done");
+        jump(head);
+        label(head);
+        std::string index = newTemp(), more = newTemp();
+        line(index + " =l loadl " + cursor);
+        line(more + " =w cultl " + index + ", " + count);
+        branch(Value {more, 'w'}, body, done);
+        label(body);
+        Value cell = arrayRow(array, type);
+        std::string offset = newTemp();
+        line(offset + " =l mul " + index + ", " + stride);
+        cell.name = newTemp();
+        line(cell.name + " =l add " + array.name + ", " + offset);
+        emitStreamComponents(stream, reading, cell, type->element);
+        std::string next = newTemp();
+        line(next + " =l add " + index + ", 1");
+        line("storel " + next + ", " + cursor);
+        jump(head);
+        label(done);
+        return;
+    }
+    if (type->kind == TypeKind::Record) {
+        Type* record = baseType(type);
+        if (reading && !skipDiscriminants && hasDefaultDiscriminants(record)) {
+            Value decoded = emitStreamRecordInput(stream, record);
+            Symbol temporary;
+            temporary.type = record;
+            temporary.owner = m_context->symbol;
+            m_context->locals[&temporary] = decoded.name;
+            IdentifierExpr value;
+            value.type = record;
+            value.symbol = &temporary;
+            assignInto(object, type, &value, false, constrained);
+            m_context->locals.erase(&temporary);
+            return;
+        }
+        if (record->tagged && record->parentType != nullptr) {
+            emitStreamComponents(stream, reading, object, record->parentType);
+        }
+        for (const FieldInfo& field : record->fields) {
+            if (record->tagged && record->parentType != nullptr && field.index < record->parentFieldCount) { continue; }
+            if (field.isDiscriminant && (skipDiscriminants || !hasDefaultDiscriminants(record))) { continue; }
+            std::string done;
+            if (field.variant >= 0) {
+                std::string active = newLabel("stream_variant");
+                done = newLabel("stream_variant_done");
+                branch(variantCondition(object, record, field.variant), active, done);
+                label(active);
+            }
+            emitStreamComponents(stream, reading, fieldAddress(object, record, field), field.type, false, constrained);
+            if (!done.empty()) { jump(done); label(done); }
+        }
+        return;
+    }
+    Symbol* operation = reading ? m_sema.streamRead() : m_sema.streamWrite();
+    Type storage = streamStorageType(type);
+    Value slot {allocTypeScratch(&storage), 'l'};
+    if (!reading) {
+        Value value = loadFrom(object, type);
+        emitStreamScalarCheck(value, type, storage);
+        storeInto(slot, value, &storage);
+    }
+    emitCallInstruction(std::string("call $__ada_stream_value_") + (reading ? "read" : "write")
+        + "(l " + stream.name + ", w " + std::to_string(operation != nullptr ? operation->dispatchSlot : reading ? 0 : 1)
+        + ", l " + slot.name + ", l " + std::to_string(typeSize(&storage)) + ")", CallEffects::CheckException);
+    if (reading) {
+        Value value = loadFrom(slot, &storage);
+        emitRangeCheck(value, type, {});
+        storeInto(object, value, type);
+    }
+}
+
 Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    int attribute = name == "read" ? 0 : name == "write" ? 1 : name == "input" ? 2 : 3;
     Value stream = emitExpr(expr->arguments.front().get());
+    checkNotNull(stream);
+    if (Symbol* operation = streamAttribute(prefixType, attribute)) {
+        if (name == "input") { return emitStreamCall(operation, stream, nullptr, prefixType); }
+        Expr* item = expr->arguments[1].get();
+        return emitStreamCall(operation, stream, nullptr, item->type, "1", item);
+    }
+    if (prefixType->classRoot != nullptr) {
+        Type* root = rootType(prefixType->classRoot);
+        Value item {"0", 'l'};
+        Value tag {newTemp(), 'l'};
+        if (name == "input") {
+            emitCallInstruction(tag.name + " =l call $__ada_stream_input_tag(l " + stream.name
+                + ", w 0, l " + typeTag(root).name + ")", CallEffects::CheckException);
+        } else {
+            item = emitExpr(expr->arguments[1].get());
+            line(tag.name + " =l loadl " + item.name);
+            if (name == "output") {
+                emitCallInstruction("call $__ada_stream_external_tag(l " + stream.name
+                    + ", w 1, l " + tag.name + ", l " + typeTag(root).name + ")", CallEffects::CheckException);
+            }
+        }
+        Value result {newTemp(), 'l'};
+        emitCallInstruction(result.name + " =l call $__ada_stream_tag_call(l " + stream.name
+            + ", w " + (stream.accessLevel.empty() ? "0" : stream.accessLevel)
+            + ", l " + tag.name + ", w " + std::to_string(attribute) + ", l " + item.name
+            + ", l " + m_context->temporaryFinalizationChain + ", l " + storageArena(true, true) + ")", CallEffects::CheckException);
+        if (name == "input") { emitRecordConstraintCheck(result, prefixType); return result; }
+        return Value {"0", 'w'};
+    }
+    auto transfer = [&](bool reading, const std::string& address, const std::string& size) {
+        Symbol* operation = reading ? m_sema.streamRead() : m_sema.streamWrite();
+        emitCallInstruction(std::string("call $__ada_stream_value_") + (reading ? "read" : "write")
+            + "(l " + stream.name + ", w " + std::to_string(operation != nullptr ? operation->dispatchSlot : reading ? 0 : 1)
+            + ", l " + address + ", l " + size + ")", CallEffects::CheckException);
+    };
 
     if (isScalar(prefixType)) {
-        long long size = typeSize(prefixType);
-        Value slot {allocScratch(size, typeAlignment(prefixType)), 'l'};
         bool reading = name == "read" || name == "input";
+        Type storage = streamAttribute(prefixType, reading ? 0 : 1) != nullptr
+            ? *prefixType : streamStorageType(prefixType);
+        long long size = typeSize(&storage);
+        Value slot {allocTypeScratch(&storage), 'l'};
         Value destination;
         Type* targetType = prefixType;
         if (name == "read") {
@@ -571,12 +865,16 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             targetType = item->type;
         } else if (!reading) {
             Value value = emitExpr(expr->arguments[1].get());
-            storeInto(slot, value, prefixType);
+            emitStreamScalarCheck(value, prefixType, storage);
+            storeInto(slot, value, &storage);
         }
-        emitCallInstruction(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write")
-            + "(l " + stream.name + ", l " + slot.name + ", l " + std::to_string(size) + ")", CallEffects::CheckException);
+        if (Symbol* operation = streamAttribute(prefixType, reading ? 0 : 1)) {
+            emitStreamCall(operation, stream, &slot, prefixType);
+        } else {
+            transfer(reading, slot.name, std::to_string(size));
+        }
         if (reading) {
-            Value value = loadFrom(slot, prefixType);
+            Value value = loadFrom(slot, &storage);
             emitRangeCheck(value, targetType, expr->location);
             if (name == "input") { return value; }
             storeInto(destination, value, targetType);
@@ -584,17 +882,32 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         return Value {"0", 'w'};
     }
 
+    auto initializeResult = [&](const Value& object, Type* type) {
+        bool saved = m_context->initializingTemporary;
+        m_context->initializingTemporary = true;
+        prepareControlledObject(object, type);
+        emitDefaultInit(object, type);
+        m_context->initializingTemporary = saved;
+    };
     if (name == "input") {
+        if (prefixType->kind == TypeKind::Record && baseType(prefixType)->discriminantCount > 0
+            && !hasDefaultDiscriminants(baseType(prefixType))) {
+            Value result = emitStreamRecordInput(stream, prefixType);
+            emitRecordConstraintCheck(result, prefixType);
+            return result;
+        }
         if (prefixType->kind == TypeKind::Array) {
             Type* resultType = expr->type;
             Value result;
             for (int dimension = 0; dimension < resultType->arrayRank; ++dimension) {
-                std::string pair = allocScratch(16), lastSlot = newTemp();
-                line(lastSlot + " =l add " + pair + ", 8");
-                emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + pair + ", l 16)", CallEffects::CheckException);
-                std::string first = newTemp(), last = newTemp();
-                line(first + " =l loadl " + pair);
-                line(last + " =l loadl " + lastSlot);
+                Type* axis = resultType;
+                for (int i = 0; i < dimension; ++i) { axis = axis->element; }
+                Type* index = m_sema.typeTable().scalarBaseType(axis->index);
+                Value firstSlot {allocTypeScratch(index), 'l'}, lastSlot {allocTypeScratch(index), 'l'};
+                emitStreamComponents(stream, true, firstSlot, index);
+                emitStreamComponents(stream, true, lastSlot, index);
+                std::string first = wideBound(loadFrom(firstSlot, index)).name;
+                std::string last = wideBound(loadFrom(lastSlot, index)).name;
                 if (dimension == 0) { result.first = first; result.last = last; }
                 else { result.innerBounds.push_back({first, last}); }
             }
@@ -615,24 +928,15 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             result.type = 'l';
             emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true)
                 + ", l 1, l 1, l " + allocationSize + ")", CallEffects::CheckException);
-            emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + result.name + ", l " + bytes + ")", CallEffects::CheckException);
+            initializeResult(result, resultType);
+            emitStreamComponents(stream, true, result, resultType);
             return result;
         }
 
-        std::string slot = allocTypeScratch(prefixType);
-        std::string streamSize = hasRuntimeLayout(prefixType) ? runtimeSize(prefixType)
-            : std::to_string(prefixType->kind == TypeKind::Array ? typeLayoutSize(prefixType) : typeSize(prefixType));
-        emitCallInstruction("call $__ada_stream_read(l " + stream.name + ", l " + slot + ", l " + streamSize + ")", CallEffects::CheckException);
-
-        Value address { slot, 'l' };
-        if (isComposite(prefixType)) {
-            return withBounds(address, prefixType, nullptr);
-        }
-        Value value = loadFrom(address, prefixType);
-        if (prefixType->kind == TypeKind::Fixed || !prefixType->enumCodes.empty()) {
-            emitRangeCheck(value, prefixType, expr->location);
-        }
-        return value;
+        Value result {allocTypeScratch(prefixType), 'l'};
+        initializeResult(result, prefixType);
+        emitStreamComponents(stream, true, result, prefixType);
+        return withBounds(result, prefixType, nullptr);
     }
 
     Expr* item = expr->arguments[1].get();
@@ -652,24 +956,21 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
         storeInto(address, value, type);
     }
 
-    // An array occupies as many bytes as it currently holds, which the type
-    // alone does not say.
-    std::string size = type->kind == TypeKind::Array ? "" : runtimeSize(type);
     Type* array = baseType(type);
     if (array != nullptr && array->kind == TypeKind::Array) {
         if (!address.hasBounds()) {
             address = withBounds(address, type, nullptr);
         }
-        Value length = lengthOf(address, type);
-        std::string bytes = newTemp();
-        emitCallInstruction(bytes + " =l call $__ada_array_size(l " + address.first + ", l " + address.last
-             + ", l " + arrayElementSize(address, type) + ")", CallEffects::CheckException);
-        size = bytes;
-
         if (name == "output") {
             for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
-                emitCallInstruction("call $__ada_stream_write_bounds(l " + stream.name + ", l " + address.axisFirst(dimension)
-                    + ", l " + address.axisLast(dimension) + ")", CallEffects::CheckException);
+                Type* axis = type;
+                for (int i = 0; i < dimension; ++i) { axis = axis->element; }
+                Type* index = m_sema.typeTable().scalarBaseType(axis->index);
+                Value slot {allocTypeScratch(index), 'l'};
+                storeInto(slot, Value {address.axisFirst(dimension), 'l'}, index);
+                emitStreamComponents(stream, false, slot, index);
+                storeInto(slot, Value {address.axisLast(dimension), 'l'}, index);
+                emitStreamComponents(stream, false, slot, index);
             }
         }
     }
@@ -677,19 +978,18 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
     std::vector<StorageCopyBack> storageCopies;
     if (type->kind == TypeKind::Record) {
         address = adaptCompositeStorage(address, type, prefixType, reading ? ParameterMode::InOut : ParameterMode::In, storageCopies);
-        size = runtimeSize(prefixType);
     }
-    Value destination = address;
-    if (reading && (type->kind == TypeKind::Fixed || !type->enumCodes.empty())) {
-        address = Value { allocScratch(typeSize(type)), 'l' };
+    if (name == "output" && prefixType->kind == TypeKind::Record
+        && !hasDefaultDiscriminants(baseType(prefixType))) {
+        Type* record = baseType(prefixType);
+        for (int i = 0; i < record->discriminantCount; ++i) {
+            const FieldInfo& field = discriminantField(record, i);
+            emitStreamComponents(stream, false, fieldAddress(address, record, field), field.type);
+        }
     }
-    emitCallInstruction(std::string("call ") + (reading ? "$__ada_stream_read" : "$__ada_stream_write") + "(l " + stream.name
-         + ", l " + address.name + ", l " + size + ")", CallEffects::CheckException);
-    if (reading && (type->kind == TypeKind::Fixed || !type->enumCodes.empty())) {
-        Value value = loadFrom(address, type);
-        emitRangeCheck(value, type, expr->location);
-        storeInto(destination, value, type);
-    }
+    std::string constrained = reading && prefixType->kind == TypeKind::Record
+        ? recordConstrained(item, &address).name : "1";
+    emitStreamComponents(stream, reading, address, prefixType, false, constrained);
     emitStorageCopyBacks(storageCopies);
     return Value { "0", 'w' };
 }

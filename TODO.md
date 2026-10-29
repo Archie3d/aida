@@ -335,8 +335,8 @@ checks.
 - [x] Runtime discriminant constraints and discriminant-dependent components
   (`runtimediscriminants`, `discriminantcomponents`, `discriminantcleanup`,
   `discriminanttasking`, ACATS C37211A/C37108B). Dependent controlled/task/
-  protected arrays, tagged composites, access-subtype constraints and raw
-  managed record streams diagnosed. [Limits](docs/runtime-discriminants.md).
+  protected arrays and access-subtype constraints retain diagnostics; tagged
+  composites and managed component streaming landed in their later milestones. [Limits](docs/runtime-discriminants.md).
 - [x] Controlled components in variant records, with partial-failure cleanup
   (`controlledvariants`, `controlledvariantlimited`; ACATS C760007 PASS,
   C761012 XFAIL for new derived tagged discriminants). Task/protected variants
@@ -356,8 +356,8 @@ formals, protected callback types and foreign ABI work retain their later owners
 - [x] General access types: `aliased`, `access all`, `'Access`,
   access-to-constant, accessibility and checked named conversions
   (`generalaccess*`). Dependent-component checks are conservative; limited
-  current instances are completed in 6f; ACATS C3A0013 remains a compile
-  XFAIL for Phase 8 range-attribute array declarations. [Contract](docs/general-access.md).
+  current instances are completed in 6f; ACATS C3A0013 now PASS after the Phase 7
+  stream-array Range syntax prerequisite. [Contract](docs/general-access.md).
 - [x] Anonymous access definitions in object, component, discriminant,
   parameter, result, extended-return and renaming contexts, with master-ancestry
   checks, coextensions, protected callbacks and controlling access dispatch
@@ -556,7 +556,7 @@ full-tasking restrictions retain their later roadmap owners.
   `taggeddependent`, `taggedcontrolled`, `taggedinstances`, `privatedelayed`,
   legality controls and the promoted `runtimecomponentlate` execution test).
   ACATS C3A0009/C761012 and baseline C3A0007/C432001/C432004/C760009 PASS
-  unchanged; C3A0013 now retains only its P8 range-declaration syntax XFAIL.
+  unchanged; C3A0013 now PASS after the Phase 7 Range syntax prerequisite.
   Baseline: 60 PASS, 18 compile rejections, eight harness blockers, 20 ungraded
   B observations. Full suite 1,092/1,092; 17 focused compiler ASan/UBSan
   checks, seven whole/per-unit scenarios with the ASan/UBSan C runtime, and
@@ -675,8 +675,8 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   the required prerequisites. `genericattribute*` runs whole/per-unit/
   determinism with four workers; unchanged CC1302A executes as PASS. CC3601A
   remains a compile XFAIL for grouped formal objects (Phase 8). Anonymous
-  universal profiles cannot match named formals; standard stream profiles await
-  the Phase 7 stream-type model.
+  universal profiles cannot match named formals; standard stream profiles were added in
+  the Phase 7 streaming milestone.
   [Contract](docs/generic-types.md#attribute-subprogram-actuals).
 - [x] **Enumeration-literal subprogram actuals.** Identifier and character
   literals, including case-sensitive expanded names such as `Pkg.'A'`, bind
@@ -871,11 +871,23 @@ Ada 2005 additions and track annex packages separately.
   Host regression repairs: filesystem-clamped timestamp fixtures, ordinary and
   extended Windows CWD spellings, and driver Windows stack-page probes for large
   generated frames (`driver.windows_stack_probes`, `windowsstackframes`).
-  Native Windows confirmation/cross-host validation remain Phase 8 work;
+  Native MSYS2 and GCC Linux CI checks were confirmed by the user;
+  the broader cross-host audit remains Phase 8 work;
   Calendar children retain the later item below.
-- [ ] Type-aware streaming: components, bounds and discriminants, user-defined
-  stream attributes and a real stream abstraction. Streams mostly copy object
-  representation today. Then add controlled and tag-aware class-wide streaming.
+- [x] Type-aware streaming: root-class file/custom stream dispatch, component
+  order, typed bounds/discriminants, Stream_Size, user attributes, renamings and
+  generic actuals; controlled Input and tag-aware class-wide dispatch/results.
+  Unbounded strings and all twelve container families stream logical values.
+  `streammemory`, `streamrecords`, `streamclasswide`, `streamsizes` cover
+  whole/per-unit/determinism; `streamcontainers` covers all families and
+  indefinite keys/elements; `streamerrors` and `runtime.stream_dispatch` cover
+  legality, callback ABI/errors, static links and four concurrent streams.
+  Unchanged CDD1001/CDD2B01 PASS; the Range index prerequisite also promotes
+  unchanged C3A0013 to PASS. Full suite: 1,511/1,511 checks. Focused compiler/
+  C-runtime ASan/UBSan pass; Windows/MinGW C dispatch cross-compiles.
+  QBE-generated Ada accesses remain uninstrumented. Native Windows execution
+  remains user-verified separately. Format changes, access-discriminant limits,
+  upstream blockers and remaining I/O work: [stream contract](docs/streaming.md).
 - [ ] `Ada.Exceptions`: expanded names (now uppercase defining identifiers),
   wide names, occurrence streaming and occurrence-valued function results.
 - [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
@@ -927,7 +939,7 @@ Ada 2005 additions and track annex packages separately.
   - [x] Record-component and declaration syntax recovery after missing
     delimiters (`recordrecovery*`, with timeouts).
 - [ ] Complete discrete-range syntax using range attributes in array type
-  definitions, including `array (Commuters'Range) of Natural` in C3A0013.
+  definitions beyond the `array (Object'Range)` form now covered by C3A0013.
   Include subtype range-attribute constraints (C35003A), subtype-mark discrete
   ranges in index constraints/aggregate choices (C36104A/B, C37002A), and
   function-call/qualified-expression array bounds (C43204A).

@@ -11,8 +11,7 @@ package Ada.Streams.Stream_IO is
 
     type File_Mode is (In_File, Out_File, Append_File);
 
-    -- The current stream ABI uses an opaque address owned by the C runtime.
-    type Stream_Access is new System.Address;
+    type Stream_Access is access all Root_Stream_Type'Class;
 
     subtype Count is Integer range 0 .. 2147483647;
     subtype Positive_Count is Integer range 1 .. 2147483647;
@@ -57,7 +56,7 @@ package Ada.Streams.Stream_IO is
     pragma Import (C, End_Of_File, "__ada_file_end_of_file");
 
     function Stream (File : in File_Type) return Stream_Access;
-    pragma Import (C, Stream, "__ada_stream_of");
+    pragma Import (C, Stream, "__ada_file_stream_view");
 
     procedure Read (File : in File_Type;
                     Item : out Stream_Element_Array;
@@ -88,6 +87,16 @@ private
     -- The C runtime owns the file object; Ada stores only its opaque address.
     -- The wrapper starts out null so Is_Open can inspect an unopened file.
     type File_Handle is new System.Address;
+
+    -- ABI: tag pointer followed by one AdaFile pointer, owned by its file slot.
+    type File_Stream is new Root_Stream_Type with record
+        Handle : System.Address;
+    end record;
+    overriding procedure Read (Stream : in out File_Stream;
+                               Item : out Stream_Element_Array;
+                               Last : out Stream_Element_Offset);
+    overriding procedure Write (Stream : in out File_Stream;
+                                Item : Stream_Element_Array);
 
     type File_Type is
     record

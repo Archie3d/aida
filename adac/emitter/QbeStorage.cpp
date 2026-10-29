@@ -329,6 +329,10 @@ Value QbeEmitter::recordConstrained(Expr* object, const Value* evaluated)
     Symbol* symbol = object->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(object)->symbol
         : object->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(object)->symbol : nullptr;
     if (symbol != nullptr) {
+        auto streamConstraint = m_context->streamConstraints.find(symbol);
+        if (streamConstraint != m_context->streamConstraints.end()) {
+            return Value {streamConstraint->second, 'w'};
+        }
         if (symbol->sharedAlias != nullptr) {
             return recordConstrained(symbol->sharedAlias, evaluated);
         }

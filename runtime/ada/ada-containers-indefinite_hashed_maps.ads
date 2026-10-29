@@ -1,5 +1,6 @@
 -- Ada 2005 container implementation; ownership and cursor machinery is shared.
 with Ada.Finalization;
+with Ada.Streams;
 with Ada.Containers.Storage;
 generic
     type Key_Type (<>) is private;
@@ -58,6 +59,12 @@ private
     type Map is tagged record
         Data : Storage.Store;
     end record;
+    procedure Read_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out Map);
+    procedure Write_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : Map);
+    for Map'Read use Read_Container;
+    for Map'Write use Write_Container;
     No_Element : constant Cursor := (Ptr => null);
     Empty_Map : constant Map :=
         (Data => (Ada.Finalization.Controlled with Data => null));

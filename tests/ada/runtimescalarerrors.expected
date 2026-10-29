@@ -3,4 +3,4 @@ runtimescalarerrors.adb:7:25: error: the bounds of an integer type must be stati
 runtimescalarerrors.adb:8:27: error: the bounds of an integer type must be static
 runtimescalarerrors.adb:15:14: error: choices have to be static
 runtimescalarerrors.adb:19:21: error: choices have to be static
-runtimescalarerrors.adb:22:21: error: 'Output' expects a stream access
+runtimescalarerrors.adb:22:21: error: 'Output' expects access to Ada.Streams.Root_Stream_Type'Class

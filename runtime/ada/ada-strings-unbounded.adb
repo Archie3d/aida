@@ -2,6 +2,18 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
 with Ada.Unchecked_Deallocation;
 package body Ada.Strings.Unbounded is
+    procedure Read_Unbounded (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out Unbounded_String) is
+    begin
+        Set_Unbounded_String (Item, String'Input (Stream));
+    end Read_Unbounded;
+
+    procedure Write_Unbounded (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : Unbounded_String) is
+    begin
+        String'Output (Stream, To_String (Item));
+    end Write_Unbounded;
+
     procedure Release is new Ada.Unchecked_Deallocation (String, String_Access);
 
     procedure Free (X : in out String_Access) is

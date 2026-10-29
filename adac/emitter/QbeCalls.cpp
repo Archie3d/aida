@@ -648,6 +648,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         arguments.push_back(std::string(1, formalClass) + " " + value.name);
     }
 
+    if (subprogram->runtimeSymbol == "$__ada_file_stream_view" && m_sema.fileStreamType() != nullptr) {
+        arguments.push_back("l " + typeTag(m_sema.fileStreamType()).name);
+    }
     std::string argumentList;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (i > 0) {

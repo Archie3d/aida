@@ -12,4 +12,3 @@ discriminantcomponenterrors.adb:18:26: error: duplicate discriminant constraint 
 discriminantcomponenterrors.adb:18:9: error: a discriminant constraint requires exactly one value for each discriminant
 discriminantcomponenterrors.adb:18:5: error: an object of 'Pair' has to fix its discriminants, as in 'X : Pair (...)'
 discriminantcomponenterrors.adb:30:5: error: record layout exceeds signed 64-bit storage capacity
-discriminantcomponenterrors.adb:37:11: error: discriminant-dependent record streaming requires component-wise stream support

@@ -32,7 +32,9 @@ begin
     Text'Output (Channel, A);
     String'Output (Channel, String'(7 .. 8 => 'z'));
     Open_Array'Output (Channel, Open_Array'(1 .. 3 => 0));
-    Wide_Array'Output (Channel, Wide_Array'(5_000_000_000 .. 5_000_000_001 => 0));
+    -- A second mismatched shape, using Fixed's Integer bound stream format.
+    Integer'Write (Channel, 0);
+    Integer'Write (Channel, 2);
     Ada.Streams.Stream_IO.Close (File);
     Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, "runtimecomponentstreams.tmp");
     Channel := Ada.Streams.Stream_IO.Stream (File);

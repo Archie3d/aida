@@ -1,5 +1,6 @@
 -- Byte strings; mapping-function overloads remain a Phase 7 library item.
 with Ada.Finalization;
+with Ada.Streams;
 with Ada.Strings.Maps;
 package Ada.Strings.Unbounded is
     type Unbounded_String is private;
@@ -90,6 +91,12 @@ private
     type Unbounded_String is record
         Value : Storage;
     end record;
+    procedure Read_Unbounded (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out Unbounded_String);
+    procedure Write_Unbounded (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : Unbounded_String);
+    for Unbounded_String'Read use Read_Unbounded;
+    for Unbounded_String'Write use Write_Unbounded;
     Null_Unbounded_String : constant Unbounded_String :=
         (Value => (Ada.Finalization.Controlled with Data => null));
 end Ada.Strings.Unbounded;

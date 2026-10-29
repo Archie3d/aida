@@ -219,8 +219,8 @@ C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mir
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights
 and disclaimer. It covers general access to allocated/aliased objects and
 implicitly aliased tagged formals/limited current instances. Private extensions and limited current-instance Access are supported in Phase
-6f. Its remaining pinned compile XFAIL is `array (Object'Range)` index-range
-syntax (P8); it is not an upstream execution pass. Local `taggedinstances`
+6f. Array `Object'Range` index definitions landed with stream-array aliasing
+coverage in Phase 7; C3A0013 now executes unchanged as PASS. Local `taggedinstances`
 covers self access, inherited defaults, dispatch and allocator accessibility.
 Git blob: `b23d4ee11514f0cf96d3a20ca7de30cd0c5efcc6`.
 SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
@@ -825,3 +825,21 @@ which preserve the spelling of the names they construct.
 | `tests/cxa/cxah001.a` | `dc0f1624f0a671400a00f152bf0c376fd6cc827e` | `922fdbbfbfa966b9b7766e7dedbcd6b0c6a43f2be094fc4a753532a88274cac1` |
 | `tests/cxa/cxah002.a` | `c5b6b44968c0fc6ce6e68cf60370430c5b99440e` | `fcd1b3381218a721403593521fec030980e2cb6749999c1163dd8b79cd06d92f` |
 | `tests/cxa/cxag001.a` | `f6856d71970fbe12b3c72cd8fd6200a10b110cda` | `3ee9f6f032fdfa78da62e3825e7ae5913fc2a5ecdecdd57690fa1b20a1bce376` |
+
+## Type-aware streams (Phase 7)
+
+Unchanged CDD1001 and CDD2B01/FDD2B00 come from the pinned
+[ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5).
+They execute as PASS, checking aliased Stream_Element_Array components and
+confirming elementary Stream_Size clauses. REPORT gained the identity Ident_Char
+adapter while assessing the related CDD2001 case. CDD2001 currently raises
+Constraint_Error at a dependent-component aggregate comparison and is not counted
+as a pass; CDD2A01/02 retain conversion-view assignment and derived aggregate/type
+gaps. The [stream contract](../../docs/streaming.md) records local evidence.
+The Range syntax needed by CDD1001 also promotes unchanged C3A0013 to PASS.
+
+| Upstream source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cd/cdd1001.a | `3e16f5d4f97db832e1a454fe1dc96db1f771a9d1` | `84bb6c419f5abe0840fadad4978d0391f869da422e767db20f5e9e9b060e5b46` |
+| tests/cd/cdd2b01.a | `340d9a7c042979aeb8b43dd699eaf0b1d44e9808` | `af0463bc543ba0d3680b1b929857ee8d5984e49b95d02dd744117ee4908dcbf0` |
+| support/fdd2b00.a | `1a1835609e611ee678e0b1cf3230974846f09597` | `d36ddc94faa38c464d2680e94341ba3a28ab93c49a20e9090b00be50e0cd0ac0` |

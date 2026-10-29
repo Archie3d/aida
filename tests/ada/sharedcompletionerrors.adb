@@ -1,4 +1,5 @@
 with System;
+with Ada.Streams;
 procedure SharedCompletionErrors is
     value : Integer := 0;
     alias : Integer renames value;
@@ -26,7 +27,7 @@ procedure SharedCompletionErrors is
     end record;
     procedure Nested_Escape (r : Pointer_Record);
     pragma Import (C, Nested_Escape, "unsafe_nested_pointer");
-    type Stream_Pointer is access Integer;
+    type Stream_Pointer is access all Ada.Streams.Root_Stream_Type'Class;
     stream : Stream_Pointer := null;
 begin
     Integer'Write (stream, alias);

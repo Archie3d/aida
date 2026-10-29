@@ -132,6 +132,7 @@ private:
         long long frameSize = 8;
         std::unordered_map<Symbol*, std::string> locals;
         std::unordered_map<Symbol*, Value> bounds;
+        std::unordered_map<Symbol*, std::string> streamConstraints;
         std::unordered_map<const AttributeExpr*, Value> rangePrefixes;
         std::vector<std::string> handlerLabels;
         std::unordered_map<std::string, StorageCheckpoint> handlerStorage;
@@ -361,6 +362,14 @@ private:
     // Attributes (QbeAttributes.cpp).
     Value emitAttribute(AttributeExpr* expr);
     Value emitStreamAttribute(AttributeExpr* expr);
+    Value emitStreamCall(Symbol* operation, const Value& stream, const Value* item, Type* type,
+                         const std::string& constrained = "1", Expr* actual = nullptr);
+    Type streamStorageType(Type* type);
+    void emitStreamScalarCheck(const Value& value, Type* type, const Type& storage);
+    void emitStreamWrappers(Type* type);
+    Value emitStreamRecordInput(const Value& stream, Type* type);
+    void emitStreamComponents(const Value& stream, bool reading, Value object, Type* type,
+                              bool skipDiscriminants = false, const std::string& constrained = "1");
     std::string widenToDouble(const Value& value);
     static int defaultAft(const Type* type);
 
@@ -382,6 +391,7 @@ private:
     std::unordered_map<const Type*, std::string> m_enumTables;
     std::unordered_map<const Type*, std::string> m_enumCodeTables;
     std::unordered_map<Type*, bool> m_emittedTags;
+    std::vector<Type*> m_streamWrapperTypes;
     std::unordered_map<Type*, bool> m_emittedCollections;
     std::unordered_map<Type*, bool> m_initializedCollections;
     FunctionContext* m_context = nullptr;

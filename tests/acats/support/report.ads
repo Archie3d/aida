@@ -5,6 +5,7 @@ package Report is
     procedure Failed (Description : String);
     procedure Result;
     function Ident_Str (Value : String) return String;
+    function Ident_Char (Value : Character) return Character;
     function Ident_Int (Value : Integer) return Integer;
     function Ident_Bool (Value : Boolean) return Boolean;
     function Equal (Left, Right : Integer) return Boolean;

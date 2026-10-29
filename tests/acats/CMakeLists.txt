@@ -74,8 +74,8 @@ add_acats_test(cd4051a)
 add_acats_test(cd1c03h)
 add_acats_test(cd4031a REJECTION "bit-packed record components are not yet supported")
 
-# Limited current instances/private extensions are supported; range syntax remains Phase 8.
-add_acats_test(c3a0013 REJECTION "expected ')' after array index list")
+# Limited current instances/private extensions and array index Range prefixes.
+add_acats_test(c3a0013)
 
 # Anonymous access parameter conversion, forwarding, dereference and renaming.
 add_acats_test(c460001)
@@ -225,3 +225,7 @@ if(UNIX OR MINGW)
 endif()
 add_acats_test(c96006a)
 add_acats_test(c96007a)
+
+# Stream array aliasing and elementary Stream_Size clauses.
+add_acats_test(cdd1001)
+add_acats_test(cdd2b01 SOURCES fdd2b00.ada cdd2b01.ada)

@@ -62,6 +62,7 @@ void QbeEmitter::beginUnit(const std::string& key)
     m_enumTables.clear();
     m_enumCodeTables.clear();
     m_emittedTags.clear();
+    m_streamWrapperTypes.clear();
     m_emittedCollections.clear();
     m_initializedCollections.clear();
     m_pendingSubprograms.clear();
@@ -75,6 +76,8 @@ void QbeEmitter::beginUnit(const std::string& key)
 
 void QbeEmitter::writeUnit(std::ostream& out)
 {
+    // Local type declarations must first assign tag/layout frame offsets.
+    for (Type* type : m_streamWrapperTypes) { emitStreamWrappers(type); }
     out << m_data.str() << "\n";
     for (const std::string& function : m_functions) {
         out << function << "\n";

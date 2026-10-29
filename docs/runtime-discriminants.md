@@ -73,10 +73,9 @@ No new mutable C global or QBE modification is required.
 
 `Size` describes the wrapper representation, including descriptors and padding;
 it does not count separately allocated payload. Array component Size describes
-its payload as before. Existing raw record/array streaming is explicitly
-rejected for composites containing these managed records, to avoid serializing
-pointers. Streaming a component through its ordinary array type remains
-available; general component-wise record streams remain Phase 7 work.
+its payload as before. [Component-wise streaming](streaming.md) now serializes discriminants and
+active components without copying ownership descriptors or pointers. Input owns
+its temporary storage and constrained Read checks before changing discriminants.
 
 ## Remaining limits and evidence
 

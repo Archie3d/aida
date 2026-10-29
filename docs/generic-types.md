@@ -421,9 +421,8 @@ Attributes with anonymous universal profiles (`Pos`, `Val`, `Mod`, decimal
 `Round`) cannot conform to a named subprogram profile; this is the same
 restriction described for renamings in RM 8.5.4(10). Attribute values such as
 First/Last/Size are not parameterless function actuals. Other currently
-unsupported scalar functions retain diagnostics. Standard stream-attribute
-actuals await Phase 7's Root_Stream_Type/class-wide stream profile model; the
-current opaque stream-address ABI is not substituted for that profile.
+unsupported scalar functions retain diagnostics. Standard [stream-attribute actuals](streaming.md) now use the root-class access
+profile and support Read, Write, Input and Output.
 
 ## Enumeration-literal subprogram actuals
 

@@ -3,4 +3,4 @@ runtimearraytypeerrors.adb:6:29: error: an index constraint requires an unconstr
 runtimearraytypeerrors.adb:7:27: error: index constraint count must match the array rank
 runtimearraytypeerrors.adb:14:28: error: array index bounds have an incompatible type
 runtimearraytypeerrors.adb:15:37: error: array index bounds have an incompatible type
-runtimearraytypeerrors.adb:18:18: error: 'Output' expects a stream access
+runtimearraytypeerrors.adb:18:18: error: 'Output' expects access to Ada.Streams.Root_Stream_Type'Class

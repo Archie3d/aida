@@ -114,6 +114,35 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
         m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' has an anonymous universal profile that cannot match a named subprogram profile");
         return nullptr;
     }
+    if (name == "read" || name == "write" || name == "input" || name == "output") {
+        if (m_streamRootType == nullptr) {
+            m_diagnostics.error(attribute->location, "stream attribute profiles require Ada.Streams");
+            return nullptr;
+        }
+        attribute->prefixType = type;
+        Type* itemType = isScalar(type) ? m_types.scalarBaseType(type) : rootType(type);
+        Type* channel = m_types.create(TypeKind::Access, "stream parameter");
+        channel->target = classWideType(m_streamRootType);
+        channel->anonymousAccess = channel->accessParameter = channel->generalAccess = true;
+        channel->excludesNull = true;
+        Symbol* profile = m_symbolTable.createSymbol(SymbolKind::Subprogram, "$attribute_" + name, attribute->name);
+        profile->location = attribute->location;
+        profile->hasBody = profile->intrinsicRenaming = true;
+        profile->genericIntrinsic = "attribute:" + name;
+        profile->intrinsicPrefix = type;
+        profile->returnType = name == "input" ? itemType : nullptr;
+        Symbol* stream = m_symbolTable.createSymbol(SymbolKind::Parameter, "stream", "Stream");
+        stream->type = channel;
+        profile->parameters.push_back(stream);
+        if (name != "input") {
+            Symbol* item = m_symbolTable.createSymbol(SymbolKind::Parameter, "item", "Item");
+            item->type = itemType;
+            item->mode = name == "read" ? ParameterMode::Out : ParameterMode::In;
+            item->byReference = name == "read" || isComposite(itemType);
+            profile->parameters.push_back(item);
+        }
+        return profile;
+    }
     bool scalar = isDiscrete(type) || isReal(type) || type->kind == TypeKind::Fixed;
     if (!scalar || (name != "image" && name != "value" && name != "succ" && name != "pred"
         && name != "min" && name != "max")) {
@@ -541,6 +570,15 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
     }
 
+    Type* streamContext = nullptr;
+    if ((name == "read" || name == "write" || name == "input" || name == "output")
+        && m_streamRootType != nullptr) {
+        streamContext = m_types.create(TypeKind::Access, "stream parameter");
+        streamContext->target = classWideType(m_streamRootType);
+        streamContext->anonymousAccess = true;
+        streamContext->accessParameter = true;
+        streamContext->generalAccess = true;
+    }
     for (const ExprPtr& argument : expr->arguments) {
         // An aggregate waits for the stream attributes below, which know the
         // type it is meant to have.
@@ -548,6 +586,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             bool contextual = expr->lower == "min" || expr->lower == "max" || expr->lower == "image" || expr->lower == "pos"
                 || expr->lower == "succ" || expr->lower == "pred";
             Type* context = contextual ? prefixType : nullptr;
+            if (streamContext != nullptr && argument == expr->arguments.front()) { context = streamContext; }
             if ((discreteFunction || adjacent || name == "min" || name == "max") && name != "val") {
                 context = m_types.scalarBaseType(prefixType);
             }
@@ -717,7 +756,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
-        if (name != "base" && name != "size" && name != "address"
+        if (name != "base" && name != "size" && name != "stream_size" && name != "address"
             && name != "image" && name != "value" && name != "succ" && name != "pred"
             && name != "min" && name != "max" && name != "machine_radix"
             && name != "read" && name != "write" && name != "input" && name != "output") {
@@ -749,29 +788,16 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "read" || name == "write" || name == "input" || name == "output") {
-        if (hasIncompleteParts(base)) {
-            m_deferredProtectedUses.push_back({base, expr->location});
-        }
-        if (hasProtected(base)) {
-            m_diagnostics.error(expr->location, "protected objects do not support streaming");
+        int attribute = name == "read" ? 0 : name == "write" ? 1 : name == "input" ? 2 : 3;
+        if (!streamAvailable(base, attribute)) {
+            m_diagnostics.error(expr->location, "stream attribute is unavailable for this type (limited parts or access discriminants)");
             return nullptr;
         }
-        if (hasTasks(base)) {
-            m_diagnostics.error(expr->location, "types containing tasks do not support streaming yet");
+        if (name == "input" && base->abstract && base->classRoot == nullptr) {
+            m_diagnostics.error(expr->location, "an abstract type's Input cannot be called");
             return nullptr;
         }
-        if (base != nullptr && base->classRoot != nullptr) {
-            m_diagnostics.error(expr->location, "class-wide streaming requires tag-aware stream support");
-            return nullptr;
-        }
-        if (hasDependentStorage(base)) {
-            m_diagnostics.error(expr->location, "discriminant-dependent record streaming requires component-wise stream support");
-            return nullptr;
-        }
-        if (needsFinalization(base)) {
-            m_diagnostics.error(expr->location, "controlled streaming is not yet supported");
-            return nullptr;
-        }
+        rootType(base)->streamsFrozen = true;
         bool reads = name == "read" || name == "input";
         bool yieldsValue = name == "input";
         std::size_t wanted = yieldsValue ? 1u : 2u;
@@ -786,9 +812,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                                     + (yieldsValue ? "a stream" : "a stream and an item"));
             return nullptr;
         }
-        if (expr->arguments[0]->type == nullptr
-            || baseType(expr->arguments[0]->type)->kind != TypeKind::Access) {
-            m_diagnostics.error(expr->arguments[0]->location, "'" + expr->name + "' expects a stream access");
+        Type* stream = baseType(expr->arguments[0]->type);
+        Type* target = stream != nullptr && stream->kind == TypeKind::Access ? stream->target : nullptr;
+        Type* streamRoot = target == nullptr ? nullptr
+            : rootType(target->classRoot != nullptr ? target->classRoot : target);
+        if (streamRoot == nullptr || m_streamRootType == nullptr
+            || !isTaggedAncestor(m_streamRootType, streamRoot)) {
+            m_diagnostics.error(expr->arguments[0]->location, "'" + expr->name + "' expects access to Ada.Streams.Root_Stream_Type'Class");
             return nullptr;
         }
         if (yieldsValue) {
@@ -1058,6 +1088,17 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    if (name == "stream_size") {
+        if (!prefixIsType || !isScalar(prefixType) || !expr->arguments.empty()) {
+            m_diagnostics.error(expr->location, "Stream_Size requires an elementary subtype mark and no arguments");
+            return nullptr;
+        }
+        expr->type = m_types.universalInteger();
+        expr->isStatic = true;
+        expr->staticValue = streamSizeBits(prefixType);
+        rootType(prefixType)->streamsFrozen = true;
+        return expr->type;
+    }
     if (name == "alignment") {
         if (prefixType == nullptr || !representationVisible(prefixType) || prefixType->isIncomplete
             || prefixType->classRoot != nullptr || !expr->arguments.empty()) {

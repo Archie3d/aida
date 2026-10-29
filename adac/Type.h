@@ -2,6 +2,7 @@
 
 #include "Interface.h"
 
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
@@ -245,6 +246,11 @@ struct Type
     std::vector<FieldInfo> fields;
 
     // Access types.
+    int streamSize = -1;
+    bool streamSizeSpecified = false;
+    bool streamsFrozen = false;
+    std::array<Symbol*, 4> streamAttributes{}; // Read, Write, Input, Output.
+
     Type* target = nullptr;
     std::string accessIdentity;
     bool excludesNull = false;
@@ -279,6 +285,9 @@ struct Type
 };
 
 // True when an object of this type, or one holding it, must be cleared.
+int streamSizeBits(Type* type);
+Symbol* streamAttribute(Type* type, int attribute);
+bool streamAvailable(Type* type, int attribute);
 bool hasRuntimeLayout(const Type* type);
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);

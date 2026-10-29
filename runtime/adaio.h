@@ -16,6 +16,13 @@
 #define ADA_MODE_INOUT 3
 #define ADA_MODE_ANY (-1)
 
+struct AdaTag;
+typedef struct AdaFileStream
+{
+    struct AdaTag* tag;
+    struct AdaFile* file;
+} AdaFileStream;
+
 typedef struct AdaFile
 {
     FILE* stream;
@@ -27,6 +34,7 @@ typedef struct AdaFile
     unsigned users; /* Table lock: pins include callers waiting on mutex. */
     int mutexReady;
     struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
+    AdaFileStream streamView; /* A stable tagged stream view for this pool slot. */
 } AdaFile;
 
 /* Ada File_Type wraps an opaque System.Address-derived handle containing an
@@ -107,6 +115,11 @@ int __ada_direct_size(AdaFileRef handle, int size);
 /* Stream_IO addresses the file by byte.  A Stream_Access is the file itself,
    which is all a stream needs to be without tagged types to build one on. */
 AdaFile* __ada_stream_of(AdaFileRef handle);
+AdaFileStream* __ada_file_stream_view(AdaFileRef handle, struct AdaTag* tag);
+void __ada_file_stream_elements_read(AdaFile* stream, void* item, int length, int first, int* last);
+void __ada_file_stream_elements_write(AdaFile* stream, const void* item, int length);
+void __ada_stream_value_read(void* stream, int slot, void* item, int64_t size);
+void __ada_stream_value_write(void* stream, int slot, const void* item, int64_t size);
 void __ada_stream_read(AdaFile* stream, void* item, int64_t size);
 void __ada_stream_write(AdaFile* stream, const void* item, int64_t size);
 

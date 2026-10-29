@@ -66,18 +66,13 @@ Subtype and object Size use captured runtime sizes, with checked multiplication
 by eight and contextual integer narrowing. Object prefixes are evaluated once.
 Static Size clauses still require a complete static layout.
 
-Array Read/Write transfer contiguous payload without bounds. Array Output/Input
-transfer two signed 64-bit bounds per dimension before the payload, including
-constrained arrays. Input returns the type's first subtype; a constrained
-subtype prefix does not constrain an otherwise unconstrained result. Index-base,
-subtype, shape and storage checks occur before allocating the input buffer.
-Record streams retain the existing raw representation format, now using the
-runtime record size. General component-wise, controlled, tagged and portable
-streaming remains Phase 7 work.
-
-This corrects the former omission of bounds for constrained array Output/Input;
-regenerate streams written with that old format. The existing unconstrained
-rank-one bound format and internal array call/result descriptor ABI are unchanged.
+[Type-aware streams](streaming.md) now visit array elements and record components
+in canonical order, using each component's attributes. Output/Input include
+array bounds in the index base type's stream format and record discriminants as
+required. Input checks incoming bounds and allocates owned result storage.
+Record padding, tags and descriptor pointers are excluded. Earlier streams using
+raw record payloads or 64-bit Integer bounds must be regenerated; the internal
+array call/result descriptor ABI is unchanged.
 
 ## Limits and validation
 

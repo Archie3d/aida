@@ -142,11 +142,9 @@ releases whole containers allocated by other tasks. The containers do not add
 synchronization for concurrent access to the same object; callers must supply
 it. No mutable C globals or new foreign ABI are introduced.
 
-Streaming remains the later Phase 7 stream milestone. Container stream attribute
-calls currently diagnose controlled streaming rather than serializing pointers.
-Package categorization, Preelaborable_Initialization and wide character types
-retain their separate Phase 7 owners; these packages do not claim full library
-conformance or complete implementation-advice compliance.
+[Logical streaming](streaming.md) now writes container lengths, keys and element
+values through their attributes, and rebuilds owned containers on Read. Internal
+links, allocation records and storage headers are not serialized.
 
 ## Validation
 

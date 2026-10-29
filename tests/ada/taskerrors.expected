@@ -9,4 +9,4 @@ taskerrors.adb:8:5: error: task 'Missing' has no body
 taskerrors.adb:30:5: error: objects containing tasks cannot be assigned
 taskerrors.adb:31:5: error: objects containing tasks cannot be assigned
 taskerrors.adb:32:13: error: types containing tasks have no predefined equality
-taskerrors.adb:35:11: error: types containing tasks do not support streaming yet
+taskerrors.adb:35:11: error: stream attribute is unavailable for this type (limited parts or access discriminants)

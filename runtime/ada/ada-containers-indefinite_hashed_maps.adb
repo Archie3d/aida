@@ -1,5 +1,49 @@
 -- Ada 2005 container implementation; ownership and cursor machinery is shared.
 package body Ada.Containers.Indefinite_Hashed_Maps is
+    procedure Read_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out Map) is
+        Temporary : Map;
+        Count : Count_Type;
+    begin
+        Storage.Check_Cursors (Item.Data);
+        Storage.Check_Elements (Item.Data);
+        Storage.Ensure (Item.Data);
+        Storage.Lock (Item.Data, True);
+        begin
+            Count := Count_Type'Input (Stream);
+            for I in 1 .. Count loop
+                declare
+                    Key_Value : Key_Type := Key_Type'Input (Stream);
+                    Element : Element_Type := Element_Type'Input (Stream);
+                begin
+                    Insert (Temporary, Key_Value, Element);
+                end;
+            end loop;
+        exception
+            when others => Storage.Unlock (Item.Data, True); raise;
+        end;
+        Storage.Unlock (Item.Data, True);
+        Move (Item, Temporary);
+    end Read_Container;
+
+    procedure Write_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : Map) is
+        Position : Cursor := First (Item);
+    begin
+        Storage.Lock (Item.Data, True);
+        begin
+            Count_Type'Write (Stream, Length (Item));
+            while Has_Element (Position) loop
+                Key_Type'Output (Stream, Key (Position));
+                Element_Type'Output (Stream, Element (Position));
+                Next (Position);
+            end loop;
+        exception
+            when others => Storage.Unlock (Item.Data, True); raise;
+        end;
+        Storage.Unlock (Item.Data, True);
+    end Write_Container;
+
     use type Storage.Position;
     use type Storage.Element_Access;
 

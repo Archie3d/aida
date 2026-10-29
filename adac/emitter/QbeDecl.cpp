@@ -107,7 +107,13 @@ void QbeEmitter::emitTypeTag(Type* type)
            << (needsFinalization(type) ? type->tagName + ".parts" : "0")
            << ", l " << hasLimitedParts(type) << ", l 0, l " << type->interfaces.size()
            << ", l " << (type->interfaces.empty() ? "0" : type->tagName + ".interfaces")
-           << ", l " << static_cast<int>(type->interfaceKind) << " }\n";
+           << ", l " << static_cast<int>(type->interfaceKind);
+    bool streams = !type->abstract && !hasAccessDiscriminants(type);
+    for (int i = 0; i < 4; ++i) {
+        m_data << ", l " << (streams && streamAvailable(type, i) ? type->tagName + ".stream" + std::to_string(i) : "0") << ", l 0";
+    }
+    m_data << " }\n";
+    if (streams) { m_streamWrapperTypes.push_back(type); }
     m_data << "export data " << type->tagName << ".slots = align 8 { ";
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {

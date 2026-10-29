@@ -1,5 +1,6 @@
 -- Ada 2005 container implementation; ownership and cursor machinery is shared.
 with Ada.Finalization;
+with Ada.Streams;
 with Ada.Containers.Storage;
 generic
     type Element_Type (<>) is private;
@@ -72,6 +73,12 @@ private
     type List is tagged record
         Data : Storage.Store;
     end record;
+    procedure Read_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                              Item : out List);
+    procedure Write_Container (Stream : access Ada.Streams.Root_Stream_Type'Class;
+                               Item : List);
+    for List'Read use Read_Container;
+    for List'Write use Write_Container;
     No_Element : constant Cursor := (Ptr => null);
     Empty_List : constant List :=
         (Data => (Ada.Finalization.Controlled with Data => null));

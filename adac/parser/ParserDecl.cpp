@@ -485,7 +485,14 @@ DeclPtr Parser::parseRepresentationClause()
 
     const Token& attribute = expect(TokenKind::Identifier, "in representation clause");
     decl->attribute = attribute.lower;
-    if (decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "machine_radix") {
+    if (decl->attribute == "class") {
+        decl->classWide = true;
+        expect(TokenKind::Tick, "after class-wide representation prefix");
+        decl->attribute = expect(TokenKind::Identifier, "as class-wide attribute").lower;
+    }
+    if (decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "stream_size" && decl->attribute != "machine_radix"
+        && decl->attribute != "read" && decl->attribute != "write"
+        && decl->attribute != "input" && decl->attribute != "output") {
         m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text
             + "'; only 'Alignment, 'Size, 'Small and decimal 'Machine_Radix clauses are supported");
         skipToSemicolon();

@@ -10,4 +10,4 @@ genericattributeerrors.adb:24:9: error: attribute default does not match the gen
 genericattributeerrors.adb:29:61: error: an attribute subprogram actual requires a visible subtype mark
 genericattributeerrors.adb:33:51: error: attribute 'Mod' has an anonymous universal profile that cannot match a named subprogram profile
 genericattributeerrors.adb:35:52: error: attribute 'Round' has an anonymous universal profile that cannot match a named subprogram profile
-genericattributeerrors.adb:36:53: error: attribute 'Input' does not denote a supported attribute subprogram
+genericattributeerrors.adb:36:53: error: stream attribute profiles require Ada.Streams

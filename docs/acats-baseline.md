@@ -95,8 +95,8 @@ and C760009 to PASS. C760011 now reaches REPORT.Ident_Char (P8); C761010 gets
 past unknown-discriminant views and exposes access-subtype and dependent
 controlled-array restrictions. The cohort is now 60 PASS, 18 compile rejections,
 eight harness blockers and 20 ungraded B observations. Strict-selection
-C3A0009 and C761012 also pass unchanged; C3A0013 retains only the P8
-range-attribute array-declaration XFAIL. See the
+C3A0009 and C761012 also pass unchanged; C3A0013 now executes as PASS
+after the Phase 7 range-attribute array-declaration prerequisite. See the
 [tagged/private-view contract](tagged-discriminants.md).
 
 The next 6f overriding/null/access-result milestone retains all 106 exact

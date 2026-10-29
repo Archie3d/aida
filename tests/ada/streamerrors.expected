@@ -1,0 +1,7 @@
+streamerrors.adb:5:5: error: stream attribute subprogram has an incompatible profile
+streamerrors.adb:7:5: error: Stream_Size requires an unfrozen elementary first subtype, a single static 8, 16, 32 or 64 bit specification, and a native floating point width
+streamerrors.adb:9:5: error: Stream_Size requires an unfrozen elementary first subtype, a single static 8, 16, 32 or 64 bit specification, and a native floating point width
+streamerrors.adb:13:5: error: a stream attribute cannot be specified after its type is frozen
+streamerrors.adb:24:20: error: 'Write' expects access to Ada.Streams.Root_Stream_Type'Class
+streamerrors.adb:25:17: error: stream attribute is unavailable for this type (limited parts or access discriminants)
+streamerrors.adb:27:51: error: an abstract type's Input cannot be called

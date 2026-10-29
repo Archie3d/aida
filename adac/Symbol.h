@@ -86,6 +86,7 @@ struct Symbol
     Type* returnType = nullptr;
     BuiltinKind builtin = BuiltinKind::None;
     bool hasBody = false;
+    bool streamWrapper = false;
     bool abstract = false;
     bool nullProcedure = false;
     bool taskBody = false;

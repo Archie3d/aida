@@ -152,6 +152,12 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
                 conforms = false;
             }
         }
+        if (attribute->lower == "read" || attribute->lower == "write"
+            || attribute->lower == "input" || attribute->lower == "output") {
+            Symbol* profile = attributeSubprogram(attribute, scope);
+            conforms = profile != nullptr && matches(profile);
+            if (conforms) { attributeType = profile->intrinsicPrefix; }
+        }
         if (!conforms) {
             attributeType = nullptr;
         }
@@ -290,9 +296,11 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     if (completion == nullptr && attributeType != nullptr) {
         const std::string& attribute = static_cast<AttributeExpr*>(name)->lower;
         Type* scalar = m_types.scalarBaseType(attributeType);
-        alias->parameters.front()->type = attribute == "value" ? m_types.stringType() : scalar;
-        alias->parameters.front()->byReference = attribute == "value";
-        alias->returnType = attribute == "image" ? m_types.stringType() : scalar;
+        if (attribute != "read" && attribute != "write" && attribute != "input" && attribute != "output") {
+            alias->parameters.front()->type = attribute == "value" ? m_types.stringType() : scalar;
+            alias->parameters.front()->byReference = attribute == "value";
+            alias->returnType = attribute == "image" ? m_types.stringType() : scalar;
+        }
     }
     if (completion == nullptr && enumeration) {
         alias->returnType = chosen->type;

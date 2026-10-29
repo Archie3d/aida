@@ -56,9 +56,9 @@ in whole/separate modes and determinism checks. The four-worker case shares
 borrowed array views across collections. Runtime ASan/UBSan and TSan checks
 instrument C runtime operations; generated Ada loads/stores are not instrumented.
 
-Unchanged ACATS C3A0013 retains a pinned compile XFAIL for a range attribute as
-an array type index range (P8); private extensions and limited current-instance
-Access are supported in Phase 6f. It is not an executable pass. C3A0014 in the selected GCC
+Unchanged ACATS C3A0013 executes as PASS after the Phase 7 range-attribute array
+index prerequisite; private extensions and limited current-instance Access were
+supported in Phase 6f. C3A0014 in the selected GCC
 mirror tests the superseded Ada 95 rule that
 aliased default-discriminated objects are constrained, so it is inapplicable to
 this Ada 2005 behavior. C3A0015 requires custom storage pools.

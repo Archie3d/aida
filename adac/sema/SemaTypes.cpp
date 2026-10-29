@@ -216,6 +216,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         int publicParentFieldCount = completing->publicParentFieldCount;
         bool controlled = completing->controlled;
         std::string tagName = completing->tagName;
+        auto streamAttributes = completing->streamAttributes;
         auto slots = std::move(completing->dispatchSlots);
         Type* classWide = completing->classWide;
         auto primitives = std::move(completing->primitives);
@@ -223,6 +224,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->primitives = std::move(primitives);
         completing->dispatchSlots = std::move(slots);
         completing->classWide = classWide;
+        completing->streamAttributes = streamAttributes;
         completing->privateTo = privateTo;
         completing->privateDiscriminantCount = privateDiscriminantCount;
         completing->isLimited = isLimited;
@@ -653,6 +655,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (parent == nullptr) {
             return;
         }
+        rootType(parent)->streamsFrozen = true;
         if (parent->isIncomplete && (!parent->tagged || parent->privateTo == nullptr)) {
             m_diagnostics.error(decl->location, parent->privateTo == nullptr
                 ? "a derivation parent must be completely defined"
@@ -764,7 +767,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool privateExtension = type->privateExtension;
         Type* privateAncestor = type->privateAncestor;
         int publicParentFieldCount = type->publicParentFieldCount;
+        auto streamAttributes = type->streamAttributes;
         *type = *built;
+        type->streamAttributes = streamAttributes;
+        type->streamsFrozen = false;
+        type->streamSizeSpecified = false;
         type->interfaceKind = InterfaceKind::None;
         if (parent->interfaceKind != InterfaceKind::None) {
             type->isLimited = definition->isLimited;
@@ -1325,7 +1332,10 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             if (hasTasks(info.type)) {
                 m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");
             }
+            bool savedStreamDefault = m_streamDefault;
+            m_streamDefault = true;
             Type* valueType = analyzeExpr(field.defaultValue.get(), isDiscriminant ? scope : componentScope, info.type);
+            m_streamDefault = savedStreamDefault;
             if (hasLimitedParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");
             }
@@ -1521,6 +1531,76 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     if (symbol == nullptr || symbol->kind != SymbolKind::TypeName || symbol->type == nullptr
         || std::find(localSymbols.begin(), localSymbols.end(), symbol) == localSymbols.end()) {
         m_diagnostics.error(decl->location, "'" + decl->name + "' is not a type declared here");
+        return;
+    }
+    Type* streamType = symbol->type;
+    if (decl->classWide) {
+        if (!streamType->tagged || (decl->attribute != "read" && decl->attribute != "write"
+            && decl->attribute != "input" && decl->attribute != "output")) {
+            m_diagnostics.error(decl->location, "a class-wide clause requires a tagged type and a stream attribute");
+            return;
+        }
+        streamType = classWideType(streamType);
+    }
+    if (decl->attribute == "stream_size") {
+        Type* type = symbol->type;
+        long long bits = 0;
+        Type* expression = analyzeExpr(decl->value.get(), scope, nullptr);
+        if (type->isSubtype || !isScalar(type) || type->streamsFrozen || type->streamSizeSpecified
+            || expression == nullptr || (expression->kind != TypeKind::Integer && expression->kind != TypeKind::UniversalInteger) || !foldStatic(decl->value.get(), bits)
+            || (bits != 8 && bits != 16 && bits != 32 && bits != 64)
+            || (type->kind == TypeKind::Float && bits != typeSize(type) * 8)
+            || (type->kind == TypeKind::Access && bits != 64)) {
+            m_diagnostics.error(decl->location, "Stream_Size requires an unfrozen elementary first subtype, a single static 8, 16, 32 or 64 bit specification, and a native floating point width");
+            return;
+        }
+        type->streamSize = static_cast<int>(bits);
+        type->streamSizeSpecified = true;
+        return;
+    }
+    if (decl->attribute == "read" || decl->attribute == "write"
+        || decl->attribute == "input" || decl->attribute == "output") {
+        Type* type = streamType;
+        int attribute = decl->attribute == "read" ? 0 : decl->attribute == "write" ? 1
+            : decl->attribute == "input" ? 2 : 3;
+        bool input = attribute == 2;
+        if (type->streamsFrozen) {
+            m_diagnostics.error(decl->location, "a stream attribute cannot be specified after its type is frozen");
+            return;
+        }
+        if (type->isSubtype || type->streamAttributes[attribute] != nullptr) {
+            m_diagnostics.error(decl->location, "stream attribute requires a first subtype and may only be specified once");
+            return;
+        }
+        Symbol* operation = nullptr;
+        for (Symbol* candidate : expressionNames(decl->value.get(), scope)) {
+            if (candidate->kind != SymbolKind::Subprogram || candidate->parameters.size() != (input ? 1u : 2u)) { continue; }
+            Type* stream = candidate->parameters[0]->type;
+            Type* target = stream != nullptr && stream->kind == TypeKind::Access ? stream->target : nullptr;
+            bool valid = stream != nullptr && stream->anonymousAccess && target != nullptr
+                && target->classRoot == m_streamRootType && candidate->parameters[0]->mode == ParameterMode::In;
+            Type* itemType = isScalar(type) && type->kind != TypeKind::Access ? m_types.scalarBaseType(type) : type;
+            valid = valid && !stream->accessConstant;
+            if (input) {
+                valid = valid && SemaSupport::staticallyMatches(candidate->returnType, itemType);
+            } else {
+                valid = valid && candidate->returnType == nullptr
+                    && SemaSupport::staticallyMatches(candidate->parameters[1]->type, itemType)
+                    && candidate->parameters[1]->mode == (attribute == 0 ? ParameterMode::Out : ParameterMode::In);
+            }
+            if (!valid || candidate->abstract || (type->interfaceKind != InterfaceKind::None && !candidate->nullProcedure)) { continue; }
+            if (operation != nullptr) {
+                m_diagnostics.error(decl->location, "ambiguous stream attribute subprogram");
+                return;
+            }
+            operation = candidate;
+        }
+        if (operation == nullptr) {
+            m_diagnostics.error(decl->location, "stream attribute subprogram has an incompatible profile");
+            return;
+        }
+        type->streamAttributes[attribute] = operation;
+        noteReference(operation);
         return;
     }
     if (decl->attribute == "record") {

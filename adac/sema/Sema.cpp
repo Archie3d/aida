@@ -162,10 +162,20 @@ Symbol* Sema::addTypeTo(Scope* scope, Type* type)
 // They are picked up as the Ada source declaring them is analysed.
 void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 {
+    if (m_namePrefix == std::vector<std::string>{"ada", "streams", "stream_io"} && package->scope != nullptr) {
+        m_fileStreamType = typeIn(package->scope, "file_stream");
+    }
     if (m_namePrefix.size() != 2 || m_namePrefix[0] != "ada" || package->scope == nullptr) {
         return;
     }
 
+    if (m_namePrefix[1] == "streams") {
+        m_streamRootType = typeIn(package->scope, "root_stream_type");
+        for (Symbol* operation : m_streamRootType->dispatchSlots) {
+            if (operation->name == "read") { m_streamRead = operation; }
+            if (operation->name == "write") { m_streamWrite = operation; }
+        }
+    }
     if (m_namePrefix[1] == "real_time") {
         m_realTimeType = typeIn(package->scope, "time");
     }

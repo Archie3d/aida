@@ -47,6 +47,7 @@ typedef struct AdaTag
     int64_t interfaceCount;
     AdaInterfaceBinding* interfaces;
     int64_t interfaceKind;
+    AdaDispatchEntry streams[4]; // Read, Write, Input, Output.
 } AdaTag;
 
 
@@ -241,6 +242,11 @@ void __ada_array_result_cleanup(AdaTaskContext* context, void* descriptor);
    metadata survives its master for tag queries; object escape checks protect
    the captured frames. Tagged results transfer a heap copy to the caller. */
 void __ada_tag_register(void* tag);
+extern const AdaException __ada_exc_tag_error;
+void* __ada_stream_tag_call(void* stream, int level, AdaTag* tag, int attribute,
+    void* item, void* owner, void* arena);
+void __ada_stream_external_tag(void* stream, int slot, const AdaTag* tag, const AdaTag* root);
+AdaTag* __ada_stream_input_tag(void* stream, int slot, AdaTag* root);
 void* __ada_tag_create(const void* templateTag, void* parent, void* master);
 void* __ada_tag_create_layout(const void* templateTag, void* parent, void* master, int64_t size, const int64_t* layout);
 void* __ada_tag_create_full(const void* templateTag, void* parent, void* master, int64_t size,

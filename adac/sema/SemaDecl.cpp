@@ -57,6 +57,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                     if (symbol->type->isIncomplete && symbol->type->privateTo == nullptr) {
                         m_diagnostics.error(decl->location, "an incomplete type must be completed before an intervening body");
                     }
+                    if (!symbol->type->isIncomplete) { rootType(symbol->type)->streamsFrozen = true; }
                     if (symbol->type->tagged) { rootType(symbol->type)->dispatchFrozen = true; }
                 }
             }
@@ -226,6 +227,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 
     if (hasTasks(type) && !m_packages.empty()) {
         m_packages.back()->containsTasks = true;
+    }
+    if (type != nullptr && !type->isIncomplete && !(decl->isConstant && decl->initializer == nullptr)) {
+        rootType(type)->streamsFrozen = true;
     }
     if (type != nullptr && type->tagged && type->classRoot == nullptr) {
         rootType(type)->dispatchFrozen = true;

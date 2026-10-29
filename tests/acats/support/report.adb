@@ -34,6 +34,11 @@ package body Report is
         return Value;
     end Ident_Str;
 
+    function Ident_Char (Value : Character) return Character is
+    begin
+        return Value;
+    end Ident_Char;
+
     function Ident_Int (Value : Integer) return Integer is
     begin
         return Value;
