@@ -17,6 +17,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/adalock.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adathread.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adatime.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/adacalendar.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adaprotected.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adamaster.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c
@@ -27,6 +28,12 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/adareal.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adarealvalue.c
 )
+
+if(WIN32)
+    target_sources(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/adahost-windows.c)
+else()
+    target_sources(${TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/adahost.c)
+endif()
 
 target_include_directories(${TARGET}
     PRIVATE

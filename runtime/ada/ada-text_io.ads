@@ -105,6 +105,9 @@ package Ada.Text_IO is
     function End_Of_Line return Boolean;
     pragma Import (C, End_Of_Line, "__ada_end_of_line");
 
+    procedure Get (Item : out String);
+    pragma Import (C, Get, "__ada_get_string");
+
     procedure Get (Item : out Character);
     pragma Import (C, Get, "__ada_get");
 
@@ -131,6 +134,9 @@ package Ada.Text_IO is
 
     function End_Of_Line (File : in File_Type) return Boolean;
     pragma Import (C, End_Of_Line, "__ada_text_end_of_line");
+
+    procedure Get (File : in File_Type; Item : out String);
+    pragma Import (C, Get, "__ada_text_get_string");
 
     procedure Get (File : in File_Type; Item : out Character);
     pragma Import (C, Get, "__ada_text_get");

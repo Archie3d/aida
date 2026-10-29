@@ -627,12 +627,12 @@ static void readCharacter(AdaFile* file, char* item)
 {
     int c;
 
-    /* Get skips over line boundaries, which is what Ada asks of it. */
+    /* Get skips over line and page boundaries. */
     do {
         c = fgetc(file->stream);
-    } while (c == '\n');
+    } while (c == '\n' || c == '\f');
     if (c == EOF) {
-        __ada_raise(ADA_END_ERROR);
+        __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
         *item = ' ';
         return;
     }
@@ -645,6 +645,29 @@ static void __ada_text_getImpl(AdaFileRef handle, char* item)
 
     if (file != 0) {
         readCharacter(file, item);
+    }
+}
+
+/* RM A.10.7: a null string performs no Get operations, including file
+   validation. Nonempty strings share one file pin/lock for the full read. */
+static void __ada_text_get_stringImpl(AdaFileRef handle, char* item, int length)
+{
+    if (length == 0) {
+        return;
+    }
+    if (length < 0) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
+    if (file == NULL) {
+        return;
+    }
+    for (int i = 0; i < length; ++i) {
+        readCharacter(file, item + i);
+        if (__ada_exception != NULL) {
+            return;
+        }
     }
 }
 
@@ -1011,6 +1034,11 @@ static int __ada_end_of_lineImpl(void)
 static void __ada_getImpl(char* item)
 {
     __ada_text_getImpl(__ada_current_inputImpl(), item);
+}
+
+static void __ada_get_stringImpl(char* item, int length)
+{
+    __ada_text_get_stringImpl(__ada_current_inputImpl(), item, length);
 }
 
 static void __ada_get_lineImpl(char* item, int length, int* last)

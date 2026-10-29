@@ -34,8 +34,16 @@ static void* readInput(void* unused)
         char value = 0;
         __ada_stream_read(input, &value, 1);
         CHECK(value == '7');
-    } else {
+    } else if (profile == 2) {
         CHECK(__ada_fixed_get(&input, 0, 0, 100, 0) == 7);
+    } else {
+        char value[2] = {0};
+        if (profile == 3) {
+            __ada_get_string(value, sizeof value);
+        } else {
+            __ada_text_get_string(&input, value, sizeof value);
+        }
+        CHECK(memcmp(value, "7 ", sizeof value) == 0);
     }
     CHECK(__ada_exception == NULL);
     __ada_task_context_bind(previous);
@@ -82,7 +90,7 @@ static void waitForPins(unsigned count)
 
 int main(void)
 {
-    for (profile = 0; profile < 3; ++profile) {
+    for (profile = 0; profile < 5; ++profile) {
         for (resetFile = 0; resetFile < 2; ++resetFile) {
             int ends[2];
 #if defined(_WIN32)

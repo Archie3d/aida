@@ -71,7 +71,7 @@ Type* Sema::prefixedPrefixType(SelectedExpr* expr, Symbol* operation, Scope* sco
     if (expr->isDereference || operation->kind != SymbolKind::Subprogram || operation->parameters.empty()) { return nullptr; }
     Type* formal = operation->parameters.front()->type;
     if (formal->kind == TypeKind::Access) {
-        if (!formal->anonymousAccess || !formal->accessParameter) { return nullptr; }
+        if (!formal->anonymousAccess || !formal->accessParameter || formal->target == nullptr) { return nullptr; }
         formal = formal->target;
     }
     if (!formal->tagged) { return nullptr; }

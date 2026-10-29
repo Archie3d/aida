@@ -169,6 +169,9 @@ void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
     if (m_namePrefix[1] == "real_time") {
         m_realTimeType = typeIn(package->scope, "time");
     }
+    if (m_namePrefix[1] == "calendar") {
+        m_calendarTimeType = typeIn(package->scope, "time");
+    }
     if (m_namePrefix[1] == "text_io") {
         m_textFileType = typeIn(package->scope, "file_type");
         m_fieldType = typeIn(package->scope, "field");

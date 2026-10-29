@@ -8,6 +8,8 @@ package Report is
     function Ident_Int (Value : Integer) return Integer;
     function Ident_Bool (Value : Boolean) return Boolean;
     function Equal (Left, Right : Integer) return Boolean;
+    subtype File_Num is Integer range 1 .. 5;
+    function Legal_File_Name (X : File_Num := 1; Nam : String := "") return String;
     procedure Comment (Description : String);
     procedure Not_Applicable (Description : String);
 end Report;

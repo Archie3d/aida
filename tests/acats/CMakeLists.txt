@@ -216,3 +216,12 @@ foreach(container_number 01 02 03 04 05 06)
     add_acats_test(cxaia${container_number}
         SOURCES fxaia00.ada cxaia${container_number}.ada)
 endforeach()
+
+# Phase 7 host environment and the base Calendar prerequisite.
+if(UNIX OR MINGW)
+    add_acats_test(cxah001)
+    add_acats_test(cxah002)
+    add_acats_test(cxag001)
+endif()
+add_acats_test(c96006a)
+add_acats_test(c96007a)

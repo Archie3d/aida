@@ -629,6 +629,7 @@ struct DelayStmt : Stmt
     }
 
     bool until = false;
+    bool calendar = false;
     ExprPtr expression;
 };
 

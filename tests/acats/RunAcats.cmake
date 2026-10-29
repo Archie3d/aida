@@ -16,6 +16,10 @@ endif()
 if(NAME STREQUAL "c354002" OR NAME STREQUAL "c761002" OR NAME STREQUAL "cc60001")
     list(APPEND extra_support "${ROOT}/support/tctouch.ads" "${ROOT}/support/tctouch.adb")
 endif()
+if(NAME STREQUAL "cxah001" OR NAME STREQUAL "cxah002" OR NAME STREQUAL "cxag001")
+    list(APPEND extra_support "${ROOT}/support/impdef.ads" "${ROOT}/support/impdef.adb")
+    set(host_environment "${CMAKE_COMMAND}" -E env --unset=AIDA_ACATS_WRITE AIDA_ACATS_READ=host-test)
+endif()
 set(test_sources "${ROOT}/upstream/${NAME}.ada")
 if(DEFINED SOURCE_LIST AND NOT SOURCE_LIST STREQUAL "")
     string(REPLACE "|" ";" source_names "${SOURCE_LIST}")
@@ -55,7 +59,7 @@ if(NOT status STREQUAL "0")
 endif()
 
 execute_process(
-    COMMAND "${program}"
+    COMMAND ${host_environment} "${program}"
     WORKING_DIRECTORY "${work}"
     TIMEOUT 10
     RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors

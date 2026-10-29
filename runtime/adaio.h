@@ -130,6 +130,7 @@ void __ada_text_new_line(AdaFileRef handle, int spacing);
 void __ada_text_skip_line(AdaFileRef handle, int spacing);
 int __ada_text_end_of_line(AdaFileRef handle);
 void __ada_text_get(AdaFileRef handle, char* item);
+void __ada_text_get_string(AdaFileRef handle, char* item, int length);
 void __ada_text_get_line(AdaFileRef handle, char* item, int length, int* last);
 void __ada_text_get_float(AdaFileRef handle, void* item, int size);
 
@@ -150,6 +151,7 @@ void __ada_skip_line(int spacing);
 int __ada_end_of_file(void);
 int __ada_end_of_line(void);
 void __ada_get(char* item);
+void __ada_get_string(char* item, int length);
 void __ada_get_line(char* item, int length, int* last);
 void __ada_get_float(void* item, int size);
 void __ada_get_integer(void* item, int size, int low, int high);

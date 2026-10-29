@@ -71,7 +71,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Delay: {
         auto* delay = static_cast<DelayStmt*>(statement);
         Value value = emitExpr(delay->expression.get());
-        emitCallInstruction(std::string("call $__ada_delay_") + (delay->until ? "until" : "relative")
+        emitCallInstruction(std::string("call $__ada_") + (delay->calendar ? "calendar_delay_until" : delay->until ? "delay_until" : "delay_relative")
             + "(l %.taskContext, l " + value.name + ")", CallEffects::CheckException);
         break;
     }

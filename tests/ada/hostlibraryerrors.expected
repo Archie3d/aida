@@ -1,0 +1,5 @@
+hostlibraryerrors.adb:7:30: error: a numeric literal cannot denote a private type outside its defining package
+hostlibraryerrors.adb:9:5: error: 'Search_Type' is limited private, so a value of it cannot be assigned outside 'Directories'
+hostlibraryerrors.adb:9:5: error: limited controlled objects cannot be assigned
+hostlibraryerrors.adb:10:5: error: 'Directory_Entry_Type' is limited private, so a value of it cannot be assigned outside 'Directories'
+hostlibraryerrors.adb:10:5: error: limited controlled objects cannot be assigned

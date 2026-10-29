@@ -83,7 +83,7 @@ TCTouch adapter records and validates its Touch/Validate traces.
 | c35507a.ada | `0a67765603fe62285e1cadd6d3994392dc3f5b66` | `dbd2ad559f2b315b4ec5fa9eabb853afd2d88292dd2826a78d9cf7f27be42456` |
 
 `support/report.*` is a local adapter implementing only TEST, FAILED, RESULT,
-IDENT_INT, IDENT_STR, IDENT_BOOL, EQUAL, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official
+IDENT_INT, IDENT_STR, IDENT_BOOL, EQUAL, LEGAL_FILE_NAME, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official
 REPORT implementation. `support/tctouch.*` supplies local Assert/Assert_Not assertions for C354002 and Touch/Validate traces for C761002. Identity functions return their argument through an
 ordinary separately compiled function; no cross-unit optimization is used.
 FAILED records failure and prints its description; RESULT raises Program_Error
@@ -795,3 +795,33 @@ Archive SHA-256: `3ec0c44583327bddbeb4d2ba744eaafd468615c61892944cbe57744ef8bf6d
 | `CXAIA05.A` | `cxaia05.ada` | `d81090751200004d4ed163ba3adb10a27f900c7b351de288d506729801d065d8` |
 | `CXAIA06.A` | `cxaia06.ada` | `9ba4832171002bb34f9f295210f94a6894ffcebe632b871fae66d9a56ef633ee` |
 | `FXAIA00.A` | `fxaia00.ada` | `a039b83ba42305ca63bfcf6792ec57be454dac2fdd423af16e04957cf08060e9` |
+
+## Phase 7 host services and Calendar
+
+CXAH001/CXAH002 (A.17, Ada 2005 APIs) and C96006A/C96007A (9.6, inherited
+Calendar requirements) are unchanged executable PASS cases from the same
+[simonjwright ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5),
+retrieved from the pinned local archive on 2026-10-29. Their rights notices remain
+intact. The local Impdef adapter defines only two host variable names for these
+cases; RunAcats sets the readable variable and unsets the writable variable in
+the test process. CXAG001 now passes unchanged as an executable C-test, using
+Text_IO.Get(File, String) and REPORT.Legal_File_Name. The filename adapter exposes
+File_Num = 1 .. 5 and the X/Nam defaults: it uses the conventional X/Y/Z/V/W
+prefix and characters 3 .. 7 of the current test name (or explicit Nam).
+Test stores the first seven test-name characters, padding short names with '_'.
+The local Impdef adapter supplies a POSIX directory name and case-sensitive
+filename comparison.
+It does not claim the full Impdef protocol. Calendar tests use
+the standard J.1 compatibility package. Calendar children remain unimplemented.
+The host-service cases are registered on MinGW too; native Windows execution
+has not yet been validated. The Impdef names are portable simple ASCII names;
+the adapter's case-sensitive comparison suffices for these unchanged scenarios,
+which preserve the spelling of the names they construct.
+
+| Upstream path | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/c9/c96006a.ada` | `0f6448bd2f953b97446199507561c670f12366a1` | `bbe069cb5fbb886baf1a337f9c2c8e143207995b0919782c7050d41131c8e0d0` |
+| `tests/c9/c96007a.ada` | `15ac5e9b7ed3e4298358f7ee660b4ddd90a39c87` | `8eebe380c976385592d832af937b381fae6508e53dabdd80f7b81bb675fd2b4f` |
+| `tests/cxa/cxah001.a` | `dc0f1624f0a671400a00f152bf0c376fd6cc827e` | `922fdbbfbfa966b9b7766e7dedbcd6b0c6a43f2be094fc4a753532a88274cac1` |
+| `tests/cxa/cxah002.a` | `c5b6b44968c0fc6ce6e68cf60370430c5b99440e` | `fcd1b3381218a721403593521fec030980e2cb6749999c1163dd8b79cd06d92f` |
+| `tests/cxa/cxag001.a` | `f6856d71970fbe12b3c72cd8fd6200a10b110cda` | `3ee9f6f032fdfa78da62e3825e7ae5913fc2a5ecdecdd57690fa1b20a1bce376` |

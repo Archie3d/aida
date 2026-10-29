@@ -662,9 +662,11 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { "0", 'w' };
     }
 
-    if (subprogram->runtimeSymbol == "$__ada_file_name") {
+    if (subprogram->runtimeSymbol == "$__ada_file_name"
+        || (subprogram->runtimeSymbol.starts_with("$__ada_host_") && isUnconstrainedArray(subprogram->returnType))) {
         std::string descriptor = allocScratch(adaArrayResultSize(1));
-        emitCallInstruction("call $__ada_file_name(l " + descriptor + ", " + argumentList + ")", CallEffects::CheckException);
+        emitCallInstruction("call " + subprogram->runtimeSymbol + "(l " + descriptor
+            + (argumentList.empty() ? "" : ", " + argumentList) + ")", CallEffects::CheckException);
         Value result = consumeArrayResult(descriptor, 1, true);
         copyBack();
         return result;

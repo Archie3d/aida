@@ -133,7 +133,8 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
 - Unbounded byte strings and Ada 2005 container families with cursors, callbacks and sorting ([API and limits](docs/library-collections.md))
-- Text and stream I/O
+- UTC `Ada.Calendar`, directory operations/searches and environment variables ([host behavior](docs/host-library.md))
+- Text and stream I/O, including fixed-length string input
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
   subunits ([limits](docs/subunits.md))
@@ -152,7 +153,7 @@ Not supported yet:
 - Wide character types and their string literals
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
-- Container streaming, package categorization enforcement and `Ada.Calendar`
+- Container streaming, package categorization enforcement and `Ada.Calendar` child packages
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).

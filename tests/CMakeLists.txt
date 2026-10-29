@@ -1844,3 +1844,67 @@ foreach(container_case containerfamilies containercursors containersorting conta
 endforeach()
 
 add_ada_error_test(containererrors SOURCES containererrors.adb)
+
+# Phase 7 host services and their Calendar prerequisite.
+set(host_cases calendarlibrary)
+if(UNIX OR MINGW)
+    list(APPEND host_cases environmentvariables directorieslibrary hostlibrarytasking)
+endif()
+foreach(host_case IN LISTS host_cases)
+    add_ada_test(${host_case} SOURCES ${host_case}.adb)
+    add_determinism_test(${host_case} SOURCE ${host_case}.adb)
+    add_test(NAME runtime.${host_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${host_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${host_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${host_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${host_case} runtime.${host_case}_modes
+        determinism.${host_case} PROPERTIES TIMEOUT 120)
+endforeach()
+
+add_ada_error_test(hostlibraryerrors SOURCES hostlibraryerrors.adb)
+
+if(UNIX)
+    add_executable(host_library_runtime_test HostLibraryRuntimeTest.c)
+    target_link_libraries(host_library_runtime_test PRIVATE adart Threads::Threads)
+    add_test(NAME runtime.host_library COMMAND host_library_runtime_test)
+    set_tests_properties(runtime.host_library PROPERTIES TIMEOUT 30)
+endif()
+
+# String Get: shifted/sliced bounds, terminators, null reads and task use.
+add_ada_test(textgetstrings SOURCES textgetstrings.adb)
+add_determinism_test(textgetstrings SOURCE textgetstrings.adb)
+add_test(NAME runtime.textgetstrings_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/textgetstrings.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/textgetstrings.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/textgetstrings-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.textgetstrings determinism.textgetstrings
+    runtime.textgetstrings_modes PROPERTIES TIMEOUT 90)
+add_ada_test(reportfilenames SOURCES ../acats/support/report.ads
+    ../acats/support/report.adb reportfilenames.adb)
+add_executable(string_get_runtime_test StringGetRuntimeTest.c)
+target_link_libraries(string_get_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.string_get COMMAND string_get_runtime_test)
+set_tests_properties(runtime.string_get PROPERTIES TIMEOUT 30)
+
+if(WIN32)
+    add_executable(windows_host_library_test WindowsHostLibraryTest.c)
+    target_link_libraries(windows_host_library_test PRIVATE adart Threads::Threads)
+    add_test(NAME runtime.windows_host_library COMMAND windows_host_library_test)
+    set_tests_properties(runtime.windows_host_library PROPERTIES TIMEOUT 60)
+endif()

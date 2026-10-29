@@ -855,8 +855,21 @@ Ada 2005 additions and track annex packages separately.
   CXAI001–CXAI006/CXAIA01–CXAIA06 PASS. Streaming and categorization retain
   their later Phase 7 owners; Ada 2012 extensions remain outside the target.
   [API, ownership and limits](docs/library-collections.md).
-- [ ] `Ada.Directories` and `Ada.Environment_Variables`, with documented host
-  behavior and error handling.
+- [x] `Ada.Directories` and `Ada.Environment_Variables`, with the base
+  `Ada.Calendar` prerequisite, UTC microsecond time, checked host operations,
+  limited controlled search snapshots and callbacks (`calendarlibrary`,
+  `environmentvariables`, `directorieslibrary`, `hostlibrarytasking`,
+  `hostlibraryerrors`, `runtime.host_library`). Whole/per-unit/determinism and
+  four-task coverage; unchanged CXAH001/CXAH002/C96006A/C96007A PASS.
+  Unchanged CXAG001 also PASS after adding REPORT filename support and Text_IO
+  string Get. Focused compiler/C-runtime ASan/UBSan and C-runtime TSan pass
+  (generated Ada accesses remain uninstrumented).
+  Host contracts, forms/patterns, ownership, concurrency and portability
+  limits: [host library](docs/host-library.md). Win32 adapters implement native
+  environment, drive/UNC paths, handle metadata and reparse-safe deletion;
+  MinGW tests are enabled, including `runtime.windows_host_library`.
+  Native Windows execution/cross-host validation remain Phase 8 work;
+  Calendar children retain the later item below.
 - [ ] Type-aware streaming: components, bounds and discriminants, user-defined
   stream attributes and a real stream abstraction. Streams mostly copy object
   representation today. Then add controlled and tag-aware class-wide streaming.
@@ -868,9 +881,16 @@ Ada 2005 additions and track annex packages separately.
   Text_IO, Sequential_IO, Direct_IO and Stream_IO now expose limited private
   views over opaque addresses (`iofileprivacyerrors`, `filesnapshots`);
   complete the file-object scope-finalization/lifetime audit for these packages.
+  - [x] Explicit-file and current-input String Get: arbitrary bounds/slices,
+    no operations for null strings, line/page skipping, EOF/device errors and
+    file locking across the read (`textgetstrings`, `runtime.string_get`,
+    `runtime.blocking_io`; whole/per-unit/determinism and four-task use).
+    REPORT.Legal_File_Name enables unchanged CXAG001 to PASS; broader Text_IO
+    and REPORT protocol coverage remain open. Full suite: 1,489/1,489 checks;
+    focused compiler/C-runtime ASan/UBSan and C-runtime TSan pass.
 - [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
-  arithmetic, formatting and time-zone child packages. The base package has no
-  Phase 5–6 prerequisites and may be pulled forward.
+  arithmetic, formatting and time-zone child packages. The base package landed
+  with Directories above; the child packages remain open.
 - [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
   Ada 2005 rules and `Preelaborable_Initialization`.
 - [ ] `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and `Wide_Wide_String`,
