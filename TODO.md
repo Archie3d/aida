@@ -843,9 +843,18 @@ Ada 2005 additions and track annex packages separately.
   Full suite: 1,425/1,425 checks; focused compiler/C-runtime ASan/UBSan and
   C-runtime TSan pass (generated Ada accesses remain uninstrumented).
   [API, ownership and limits](docs/library-collections.md).
-- [ ] Complete the Ada 2005 container families: definite and indefinite vectors,
-  lists, hashed/ordered maps and sets, plus sorting utilities. Test cursors,
-  tampering checks, copying, finalization and generic contract interactions.
+- [x] Complete the Ada 2005 container families: definite and indefinite vectors,
+  lists, hashed/ordered maps and sets, plus sorting utilities. Shared controlled
+  ownership, indexed vectors, linked lists, hash buckets and AVL trees support
+  cursors, callback tampering checks, key projections, set algebra, copy/failure
+  cleanup and mutable definite elements (`container*`). Whole/per-unit and
+  deterministic execution includes four-task cross-owner deallocation and
+  structural AVL invariants. Full suite: 1,465/1,465 checks; focused compiler/
+  C-runtime ASan/UBSan and C-runtime TSan pass (generated Ada accesses remain
+  uninstrumented). All twelve unchanged 3.1DD Amendment cases
+  CXAI001–CXAI006/CXAIA01–CXAIA06 PASS. Streaming and categorization retain
+  their later Phase 7 owners; Ada 2012 extensions remain outside the target.
+  [API, ownership and limits](docs/library-collections.md).
 - [ ] `Ada.Directories` and `Ada.Environment_Variables`, with documented host
   behavior and error handling.
 - [ ] Type-aware streaming: components, bounds and discriminants, user-defined

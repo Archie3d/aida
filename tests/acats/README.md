@@ -763,3 +763,35 @@ supported API and remaining restrictions.
 | cxa4011.ada | `05388a04ba7767c3ac407b45c80880fd218878e6` | `4a25d9ca6bce4007b1e1d962da6cf69bb977cd83f4c6806242b5a51f170edb1b` |
 | cxa4031.ada | `91bc68ce6e719667cec4767036678271ce018fa0` | `909b2f15c55c4ab683d32da516fd99ba97fd5b335755f4e23e84094ebc33258d` |
 | cxa4032.ada | `031d01c6cb79be32a4b418a0842c9a6345241564` | `4e2f2c1659783bee6ac13cdd83b49dd512177762a4e0ac000f09e46185c4a61e` |
+
+## Phase 7 container families
+
+The twelve executable PASS cases CXAI001–CXAI006 and CXAIA01–CXAIA06,
+plus the unchanged FXAIA00 foundation, come from the official Ada 2005
+[ACATS 3.1DD modification archive](http://www.ada-auth.org/acats-files/3.1/mods/MOD_3_1DD.ZIP),
+retrieved 2026-10-28. These are the upstream Amendment versions with Ada
+2012-only operations already disabled by their authors; the newer 4.x versions
+were not substituted or edited. They exercise all twelve families, including
+sorting, generic key views and standard operations. The shared foundation is
+passed explicitly to the offline harness. Files retain their unlimited-rights
+grants and disclaimers; byte content, including original CRLF line endings, is
+preserved. Only local names change from uppercase `.A` to lowercase `.ada`.
+The existing backfill observations are unchanged.
+
+Archive SHA-256: `3ec0c44583327bddbeb4d2ba744eaafd468615c61892944cbe57744ef8bf6dff`.
+
+| Archive member | Local file | SHA-256 |
+| --- | --- | --- |
+| `CXAI001.A` | `cxai001.ada` | `e7b064f5e85f40826795ef521aaf9990a4c7dd3d772e1c738e1895414bd591b8` |
+| `CXAI002.A` | `cxai002.ada` | `10acf4e79524e5c36c5616c56855f50f6ea0b6b9d0d3aa623f0310aeb18255ff` |
+| `CXAI003.A` | `cxai003.ada` | `aa8273ff7c97d94652537802bcb1b575fd99ad2bf8e8bf6ae8affe902e4bb08d` |
+| `CXAI004.A` | `cxai004.ada` | `00bdb9bec7dd9fc73ad8422dfe5e6e643d3b04c40f760c3937fbc1ca0ba93f69` |
+| `CXAI005.A` | `cxai005.ada` | `2c1d1e8d2db78ad2b76a17c50dd20e533dc0dbc5539a3839cb37c86d9c49813e` |
+| `CXAI006.A` | `cxai006.ada` | `c4db3c0fa84c3db1d84a01e1a2638aca0a72830d6394a91e604e89baef1fef4d` |
+| `CXAIA01.A` | `cxaia01.ada` | `7e568b7e7803f85883566560a0fd9dbe08722878fa572a16e3b401ae56e72da7` |
+| `CXAIA02.A` | `cxaia02.ada` | `c989e724b82907a42e7ea1bbae7b0eb14563041d3db3a179f3ae271de5744346` |
+| `CXAIA03.A` | `cxaia03.ada` | `57663b4b2a7d16cc85837534bd1e8898b1682f022116a7143d6390a304e8466f` |
+| `CXAIA04.A` | `cxaia04.ada` | `e8e9c3b9c1495ea2a825fc76e8e6eb95069e3c7d57ab03357388ff321fe15146` |
+| `CXAIA05.A` | `cxaia05.ada` | `d81090751200004d4ed163ba3adb10a27f900c7b351de288d506729801d065d8` |
+| `CXAIA06.A` | `cxaia06.ada` | `9ba4832171002bb34f9f295210f94a6894ffcebe632b871fae66d9a56ef633ee` |
+| `FXAIA00.A` | `fxaia00.ada` | `a039b83ba42305ca63bfcf6792ec57be454dac2fdd423af16e04957cf08060e9` |

@@ -1,0 +1,5 @@
+containererrors.adb:6:65: error: 'Ada.Containers.Doubly_Linked_Lists' expects a type of a fixed size, and 'String' is not one
+containererrors.adb:7:66: error: 'Ada.Containers.Ordered_Maps' expects a type of a fixed size, and 'String' is not one
+containererrors.adb:9:57: error: 'Ada.Containers.Ordered_Sets' expects a nonlimited type, and 'Limited_Item' is not one
+containererrors.adb:14:18: error: no visible subprogram matches this call
+containererrors.adb:15:17: error: controlled streaming is not yet supported

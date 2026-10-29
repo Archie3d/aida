@@ -207,3 +207,12 @@ add_acats_test(cxa4010)
 add_acats_test(cxa4011)
 add_acats_test(cxa4031)
 add_acats_test(cxa4032 REJECTION "cannot find the unit 'Ada.Strings.Maps.Constants'")
+
+# Unchanged Ada 2005 Amendment cases from official ACATS 3.1DD.
+foreach(container_number 001 002 003 004 005 006)
+    add_acats_test(cxai${container_number})
+endforeach()
+foreach(container_number 01 02 03 04 05 06)
+    add_acats_test(cxaia${container_number}
+        SOURCES fxaia00.ada cxaia${container_number}.ada)
+endforeach()

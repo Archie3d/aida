@@ -1,0 +1,80 @@
+-- Shared implementation machinery; not a language-defined container API.
+with Ada.Finalization;
+generic
+    type Key_Type (<>) is private;
+    type Element_Type (<>) is private;
+    type Key_Box (<>) is private;
+    type Element_Box (<>) is private;
+    with function Box_Key (Value : Key_Type) return Key_Box;
+    with function Box_Element (Value : Element_Type) return Element_Box;
+    Indexed : Boolean := False;
+    Hashed : Boolean := False;
+    Ordered : Boolean := False;
+package Ada.Containers.Storage is
+    type Key_Access is access Key_Box;
+    type Element_Access is access Element_Box;
+    type Node;
+    type Position is access Node;
+    type State;
+    type State_Access is access State;
+    type Table is array (Count_Type range <>) of Position;
+    type Table_Access is access Table;
+    type Node is record
+        Key : Key_Access := null;
+        Item : Element_Access := null;
+        Owner : State_Access := null;
+        Prev : Position := null;
+        Next : Position := null;
+        Chain : Position := null;
+        Hash : Hash_Type := 0;
+        Index : Count_Type := 0;
+        Left : Position := null;
+        Right : Position := null;
+        Parent : Position := null;
+        Height : Natural := 1;
+    end record;
+    type State is record
+        Root : Position := null;
+        First : Position := null;
+        Last : Position := null;
+        Used : Count_Type := 0;
+        Allocated : Count_Type := 0;
+        Slots : Table_Access := null;
+        Cursors_Busy : Natural := 0;
+        Elements_Busy : Natural := 0;
+    end record;
+    type Store is new Ada.Finalization.Controlled with record
+        Data : State_Access := null;
+    end record;
+    overriding procedure Adjust (Object : in out Store);
+    overriding procedure Finalize (Object : in out Store);
+    function Length (Object : Store) return Count_Type;
+    function Capacity (Object : Store) return Count_Type;
+    function Root (Object : Store) return Position;
+    function First (Object : Store) return Position;
+    function Last (Object : Store) return Position;
+    function At_Index (Object : Store; Index : Count_Type) return Position;
+    procedure Check_Owner (Object : Store; Item : Position; Allow_Null : Boolean := False);
+    procedure Check_Cursors (Object : Store);
+    procedure Check_Elements (Object : Store);
+    procedure Lock (Object : Store; Elements : Boolean := False);
+    procedure Unlock (Object : Store; Elements : Boolean := False);
+    procedure Lock (Item : Position; Elements : Boolean := False);
+    procedure Unlock (Item : Position; Elements : Boolean := False);
+    procedure Ensure (Object : in out Store);
+    procedure Reserve (Object : in out Store; Size : Count_Type);
+    -- An unlinked node owns all constructed components until insertion.
+    function Create (Item : Element_Type) return Position;
+    procedure Set_Key (Item : Position; Key : Key_Type);
+    procedure Replace (Item : Position; Value : Element_Type);
+    procedure Destroy (Item : in out Position);
+    procedure Link (Object : in out Store; Before : Position; Item : Position);
+    procedure Unlink (Object : in out Store; Item : Position);
+    procedure Delete (Object : in out Store; Item : in out Position);
+    procedure Clear (Object : in out Store);
+    procedure Move (Target : in out Store; Source : in out Store);
+    procedure Swap_Items (Left, Right : Position);
+    procedure Swap_Links (Object : in out Store; Left, Right : Position);
+    procedure Reverse_Links (Object : in out Store);
+    function Hash_First (Object : Store; Hash : Hash_Type) return Position;
+end Ada.Containers.Storage;

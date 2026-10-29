@@ -1820,3 +1820,27 @@ foreach(collection_case unboundedstrings basicvectors vectorlifetime librarycoll
         PROPERTIES TIMEOUT 90)
 endforeach()
 add_ada_error_test(librarycollectionerrors SOURCES librarycollectionerrors.adb)
+
+# Phase 7: Ada 2005 container families and sorting utilities.
+foreach(container_case containerfamilies containercursors containersorting containersets
+        containerlifetime containertasking containergenerics containerdiscriminants containerstorage)
+    add_ada_test(${container_case} SOURCES ${container_case}.adb)
+    add_determinism_test(${container_case} SOURCE ${container_case}.adb)
+    add_test(NAME runtime.${container_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${container_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${container_case}.expected
+            -DCOMMAND_TIMEOUT=60
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${container_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${container_case} runtime.${container_case}_modes
+        determinism.${container_case} PROPERTIES TIMEOUT 180)
+endforeach()
+
+add_ada_error_test(containererrors SOURCES containererrors.adb)
