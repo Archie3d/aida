@@ -85,6 +85,17 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
             }
         }
     }
+    for (const UnitRecord& unit : units) {
+        for (const UnitPartRecord& part : unit.parts) {
+            if (part.category != 0) {
+                for (const auto& [key, other] : parts) {
+                    if (other->category == 0 && positions.at(key) < positions.at(part.key)) {
+                        return "preelaborated part '" + part.key + "' must precede ordinary parts";
+                    }
+                }
+            }
+        }
+    }
     return {};
 }
 

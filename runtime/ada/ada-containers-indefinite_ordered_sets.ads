@@ -7,9 +7,12 @@ generic
     with function "<" (Left, Right : Element_Type) return Boolean is <>;
     with function "=" (Left, Right : Element_Type) return Boolean is <>;
 package Ada.Containers.Indefinite_Ordered_Sets is
+    pragma Preelaborate;
     function Equivalent_Elements (Left, Right : Element_Type) return Boolean;
     type Set is tagged private;
+    pragma Preelaborable_Initialization (Set);
     type Cursor is private;
+    pragma Preelaborable_Initialization (Cursor);
     No_Element : constant Cursor;
     function "=" (Left, Right : Set) return Boolean;
     function Equivalent_Sets (Left, Right : Set) return Boolean;

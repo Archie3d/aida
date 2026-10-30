@@ -6,6 +6,7 @@ target_sources(${TARGET}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Ast.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Categorization.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Binder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/UnitManifest.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Diagnostics.cpp

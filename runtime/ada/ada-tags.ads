@@ -1,4 +1,5 @@
 package Ada.Tags is
+    pragma Preelaborate;
     type Tag is private;
     No_Tag : constant Tag;
     Tag_Error : exception;

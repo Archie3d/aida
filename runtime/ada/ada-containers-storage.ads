@@ -11,6 +11,7 @@ generic
     Hashed : Boolean := False;
     Ordered : Boolean := False;
 package Ada.Containers.Storage is
+    pragma Preelaborate;
     type Key_Access is access Key_Box;
     type Element_Access is access Element_Box;
     type Node;

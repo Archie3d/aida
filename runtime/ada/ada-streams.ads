@@ -3,6 +3,7 @@
 -- and read back from.
 
 package Ada.Streams is
+    pragma Pure;
 
     type Stream_Element is range 0 .. 255;
     for Stream_Element'Size use 8;
@@ -14,6 +15,7 @@ package Ada.Streams is
     type Stream_Element_Array is array (Stream_Element_Offset range <>) of aliased Stream_Element;
 
     type Root_Stream_Type is abstract tagged limited private;
+    pragma Preelaborable_Initialization (Root_Stream_Type);
     procedure Read (Stream : in out Root_Stream_Type;
                     Item : out Stream_Element_Array;
                     Last : out Stream_Element_Offset) is abstract;

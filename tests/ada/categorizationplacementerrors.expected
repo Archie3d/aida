@@ -1,0 +1,1 @@
+categorizationplacementerrors.adb:3:20: error: categorization pragma requires the start of a library package specification or a library unit declaration

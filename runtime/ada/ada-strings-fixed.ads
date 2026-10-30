@@ -1,5 +1,6 @@
 with Ada.Strings.Maps;
 package Ada.Strings.Fixed is
+    pragma Preelaborate;
     procedure Move (Source : String; Target : out String; Drop : Truncation := Error;
                    Justify : Alignment := Left; Pad : Character := Space);
     function Index (Source, Pattern : String; From : Positive;

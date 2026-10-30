@@ -259,6 +259,10 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
+    if (access->zeroStorage && !m_genericInstanceBody) {
+        m_diagnostics.error(expr->location, "an allocator cannot use an access type with Storage_Size zero");
+        return access;
+    }
     if (expr->subtype->rangeLow || expr->subtype->digits || expr->subtype->delta) {
         Type* mark = resolveTypeName(expr->subtype->lower, scope, expr->subtype->location);
         if (mark != nullptr && isScalar(mark)) {

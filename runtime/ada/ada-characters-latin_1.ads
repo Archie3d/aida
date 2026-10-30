@@ -1,5 +1,6 @@
 -- ISO 8859-1 values use numeric notation independent of source encoding.
 package Ada.Characters.Latin_1 is
+    pragma Pure;
     NUL : constant Character := Character'Val (0);
     SOH : constant Character := Character'Val (1);
     STX : constant Character := Character'Val (2);

@@ -8,9 +8,12 @@ generic
     with function "<" (Left, Right : Key_Type) return Boolean is <>;
     with function "=" (Left, Right : Element_Type) return Boolean is <>;
 package Ada.Containers.Ordered_Maps is
+    pragma Preelaborate;
     function Equivalent_Keys (Left, Right : Key_Type) return Boolean;
     type Map is tagged private;
+    pragma Preelaborable_Initialization (Map);
     type Cursor is private;
+    pragma Preelaborable_Initialization (Cursor);
     No_Element : constant Cursor;
     function "=" (Left, Right : Map) return Boolean;
     function Length (Container : Map) return Count_Type;

@@ -1,6 +1,8 @@
 -- RM A.4.2 character sets and mappings.
 package Ada.Strings.Maps is
+    pragma Pure;
     type Character_Set is private;
+    pragma Preelaborable_Initialization (Character_Set);
     Null_Set : constant Character_Set;
     type Character_Range is record
         Low : Character;
@@ -26,6 +28,7 @@ package Ada.Strings.Maps is
     function "<=" (Left, Right : Character_Set) return Boolean;
 
     type Character_Mapping is private;
+    pragma Preelaborable_Initialization (Character_Mapping);
     Identity : constant Character_Mapping;
     function Value (Map : Character_Mapping; Element : Character) return Character;
     function To_Mapping (From, To : Character_Sequence) return Character_Mapping;

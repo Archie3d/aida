@@ -1,1 +1,1 @@
-lencheck.ada:37:11: error: unsupported or unknown pragma 'PACK'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
+lencheck.ada:37:11: error: unsupported or unknown pragma 'PACK'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Preelaborable_Initialization, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize

@@ -2,9 +2,12 @@ with System;
 with Ada.Streams;
 
 package Ada.Exceptions is
+    pragma Preelaborate;
     type Exception_Id is private;
+    pragma Preelaborable_Initialization (Exception_Id);
     Null_Id : constant Exception_Id;
     type Exception_Occurrence is limited private;
+    pragma Preelaborable_Initialization (Exception_Occurrence);
     type Exception_Occurrence_Access is access all Exception_Occurrence;
     Null_Occurrence : constant Exception_Occurrence;
 
@@ -42,7 +45,7 @@ private
     Null_Id : constant Exception_Id := null;
     type Trace_Addresses is array (1 .. 64) of System.Address;
     type Exception_Occurrence is record
-        Identity : Exception_Id := Null_Id;
+        Identity : Exception_Id := null;
         Message_Data : System.Address := null;
         Message_Length : Integer := 0;
         -- The procedure preserves up to 200 bytes without allocating; the
@@ -54,5 +57,5 @@ private
         Owned_Message : System.Address := null;
     end record;
     Null_Occurrence : constant Exception_Occurrence :=
-        (Null_Id, null, 0, (others => Character'Val (0)), null, 0, (others => null), null);
+        (null, null, 0, (others => Character'Val (0)), null, 0, (others => null), null);
 end Ada.Exceptions;

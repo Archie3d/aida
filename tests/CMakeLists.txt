@@ -2000,3 +2000,30 @@ add_executable(calendar_runtime_test CalendarRuntimeTest.c)
 target_link_libraries(calendar_runtime_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.calendar_library COMMAND calendar_runtime_test)
 set_tests_properties(runtime.calendar_library PROPERTIES TIMEOUT 30)
+
+# Ada 2005 package categorization and initialization contracts.
+add_ada_test(categorization SOURCES categorization.adb)
+add_determinism_test(categorization SOURCE categorization.adb)
+foreach(category_error categorizationerrors preelaborableerrors preelaborableactualerrors categorizationplacementerrors)
+    add_ada_error_test(${category_error} SOURCES ${category_error}.adb)
+endforeach()
+add_ada_error_test(preelaborablegenericerrors SOURCES preelaborablegenericerrors.adb)
+add_test(NAME semantics.categorization
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckCategorization.cmake)
+set_tests_properties(semantics.categorization PROPERTIES TIMEOUT 60)
+add_test(NAME runtime.categorization_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=$<TARGET_FILE:qbe>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/categorization.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/categorization.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/categorization-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.categorization_modes PROPERTIES TIMEOUT 60)

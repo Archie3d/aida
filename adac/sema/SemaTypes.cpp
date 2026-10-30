@@ -215,8 +215,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* privateAncestor = completing->privateAncestor;
         int publicParentFieldCount = completing->publicParentFieldCount;
         bool controlled = completing->controlled;
+        bool preelaborableInitialization = completing->preelaborableInitialization;
         std::string tagName = completing->tagName;
         auto streamAttributes = completing->streamAttributes;
+        bool visibleStreamReadWrite = completing->visibleStreamReadWrite;
         auto slots = std::move(completing->dispatchSlots);
         Type* classWide = completing->classWide;
         auto primitives = std::move(completing->primitives);
@@ -225,7 +227,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->dispatchSlots = std::move(slots);
         completing->classWide = classWide;
         completing->streamAttributes = streamAttributes;
+        completing->visibleStreamReadWrite = visibleStreamReadWrite;
         completing->privateTo = privateTo;
+        completing->preelaborableInitialization = preelaborableInitialization;
         completing->privateDiscriminantCount = privateDiscriminantCount;
         completing->isLimited = isLimited;
         completing->tagged = tagged;
@@ -759,6 +763,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         auto primitives = std::move(type->primitives);
         Type* classWide = type->classWide;
         Symbol* privateTo = type->privateTo;
+        bool preelaborableInitialization = type->preelaborableInitialization;
         int privateDiscriminantCount = type->privateDiscriminantCount;
         bool isLimited = type->isLimited;
         bool privateViewTagged = type->privateViewTagged;
@@ -768,8 +773,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         Type* privateAncestor = type->privateAncestor;
         int publicParentFieldCount = type->publicParentFieldCount;
         auto streamAttributes = type->streamAttributes;
+        bool visibleStreamReadWrite = type->visibleStreamReadWrite;
         *type = *built;
         type->streamAttributes = streamAttributes;
+        type->visibleStreamReadWrite = visibleStreamReadWrite;
         type->streamsFrozen = false;
         type->streamSizeSpecified = false;
         type->interfaceKind = InterfaceKind::None;
@@ -782,6 +789,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->recordRepresentationSpecified = false;
         if (completing != nullptr) {
             type->privateTo = privateTo;
+            type->preelaborableInitialization = preelaborableInitialization;
             type->privateDiscriminantCount = privateDiscriminantCount;
             type->privateViewTagged = privateViewTagged;
             type->privateViewAbstract = privateViewAbstract;
@@ -1550,6 +1558,21 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             return;
         }
         streamType = classWideType(streamType);
+    }
+    if (decl->attribute == "storage_size") {
+        Type* type = symbol->type;
+        long long size = -1;
+        Type* expression = analyzeExpr(decl->value.get(), scope, m_types.integerType());
+        if (expression == nullptr || (expression->kind != TypeKind::Integer && expression->kind != TypeKind::UniversalInteger)
+            || type->kind != TypeKind::Access || type->isSubtype || type->anonymousAccess
+            || type->accessProfile != nullptr || type->storageSizeSpecified || type->streamsFrozen
+            || !foldStatic(decl->value.get(), size) || size != 0) {
+            m_diagnostics.error(decl->location, "Storage_Size currently requires an unfrozen access-to-object first subtype and a single static zero specification");
+        } else {
+            type->zeroStorage = true;
+            type->storageSizeSpecified = true;
+        }
+        return;
     }
     if (decl->attribute == "stream_size") {
         Type* type = symbol->type;

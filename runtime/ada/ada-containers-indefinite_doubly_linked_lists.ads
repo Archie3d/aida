@@ -6,8 +6,11 @@ generic
     type Element_Type (<>) is private;
     with function "=" (Left, Right : Element_Type) return Boolean is <>;
 package Ada.Containers.Indefinite_Doubly_Linked_Lists is
+    pragma Preelaborate;
     type List is tagged private;
+    pragma Preelaborable_Initialization (List);
     type Cursor is private;
+    pragma Preelaborable_Initialization (Cursor);
     No_Element : constant Cursor;
     function "=" (Left, Right : List) return Boolean;
     function Length (Container : List) return Count_Type;

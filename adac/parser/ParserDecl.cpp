@@ -207,8 +207,7 @@ DeclPtr Parser::parseUseClause()
     return decl;
 }
 
-// Keep Import and shared-variable pragmas for analysis. Inline, Pure and
-// Preelaborate are explicitly accepted as advisory only. Keep unsupported
+// Keep semantic pragmas for analysis. Inline is advisory. Keep unsupported
 // requirements on representation, checks or execution visible as diagnostics.
 DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
 {
@@ -305,7 +304,10 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         skipToSemicolon();
         return nullptr;
     }
-    if (name.lower == "inline" || name.lower == "pure" || name.lower == "preelaborate") {
+    if (name.lower == "pure" || name.lower == "preelaborate") {
+        fail("categorization pragma requires the start of a library package specification or a library unit declaration");
+    }
+    if (name.lower == "inline") {
         if (match(TokenKind::LeftParen)) {
             do {
                 if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
@@ -321,17 +323,17 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         expect(TokenKind::Semicolon, "after pragma");
         return nullptr;
     }
-    if (name.lower == "controlled") {
-        if (!allowShared) { fail("pragma Controlled is only allowed in a declarative part or package specification"); }
+    if (name.lower == "controlled" || name.lower == "preelaborable_initialization") {
+        if (!allowShared) { fail("pragma " + name.text + " is only allowed in a declarative part or package specification"); }
         auto pragma = std::make_unique<PragmaDecl>();
         pragma->location = location;
         pragma->name = name.text;
         pragma->lower = name.lower;
-        expect(TokenKind::LeftParen, "after pragma Controlled");
-        const Token& entity = expect(TokenKind::Identifier, "as Controlled type name");
+        expect(TokenKind::LeftParen, name.lower == "controlled" ? "after pragma Controlled" : "after pragma Preelaborable_Initialization");
+        const Token& entity = expect(TokenKind::Identifier, name.lower == "controlled" ? "as Controlled type name" : "as Preelaborable_Initialization type name");
         pragma->entity = entity.text;
         pragma->entityLower = entity.lower;
-        expect(TokenKind::RightParen, "after Controlled type name");
+        expect(TokenKind::RightParen, name.lower == "controlled" ? "after Controlled type name" : "after Preelaborable_Initialization type name");
         expect(TokenKind::Semicolon, "after pragma");
         return pragma;
     }
@@ -372,7 +374,7 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
     }
     if (name.lower != "import") {
         m_diagnostics.error(name.location, "unsupported or unknown pragma '" + name.text
-            + "'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize");
+            + "'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Preelaborable_Initialization, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize");
         skipToSemicolon();
         return nullptr;
     }
@@ -490,7 +492,7 @@ DeclPtr Parser::parseRepresentationClause()
         expect(TokenKind::Tick, "after class-wide representation prefix");
         decl->attribute = expect(TokenKind::Identifier, "as class-wide attribute").lower;
     }
-    if (decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "stream_size" && decl->attribute != "machine_radix"
+    if (decl->attribute != "storage_size" && decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "stream_size" && decl->attribute != "machine_radix"
         && decl->attribute != "read" && decl->attribute != "write"
         && decl->attribute != "input" && decl->attribute != "output") {
         m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text

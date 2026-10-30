@@ -215,6 +215,11 @@ Type* Sema::resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope)
     type->accessDiscriminant = indication->accessDiscriminant;
     type->generalAccess = true;
     type->accessConstant = definition->accessConstant;
+    if (!type->accessConstant && !type->accessParameter && !type->accessDiscriminant && m_accessibilityLevel == 0) {
+        for (Symbol* package : m_packages) {
+            if (package->packageDeclaration != nullptr && package->packageDeclaration->category == 2) { type->zeroStorage = true; }
+        }
+    }
     type->accessProtected = definition->accessProtected;
     type->accessScope = scope;
     type->declarationScope = scope;

@@ -1,0 +1,1 @@
+preelaborableactualerrors.adb:4:66: error: generic actual type must have preelaborable initialization

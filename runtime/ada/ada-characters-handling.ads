@@ -1,5 +1,6 @@
 -- Character/String portion of RM A.3.2; wide conversions are not supported.
 package Ada.Characters.Handling is
+    pragma Pure;
     function Is_Control (Item : Character) return Boolean;
     function Is_Graphic (Item : Character) return Boolean;
     function Is_Letter (Item : Character) return Boolean;

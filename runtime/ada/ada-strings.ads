@@ -1,5 +1,6 @@
 -- Character-based string support (RM A.4.1).
 package Ada.Strings is
+    pragma Pure;
     Space : constant Character := ' ';
     Length_Error, Pattern_Error, Index_Error, Translation_Error : exception;
     type Alignment is (Left, Right, Center);

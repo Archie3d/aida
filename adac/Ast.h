@@ -822,6 +822,7 @@ struct Decl : Node
     std::vector<Type*> scalarConstraints; // Elaborated once with this declaration.
     std::vector<Type*> discriminantConstraints;
     bool elaborateBody = false;
+    int category = 0; // 0: ordinary, 1: Preelaborate, 2: Pure.
 };
 
 struct ObjectDecl : Decl
@@ -838,6 +839,8 @@ struct ObjectDecl : Decl
     bool aliased = false;
     SubtypeIndicationPtr subtype;
     ExprPtr initializer;
+    bool preelaborableCreation = true;
+    bool pureDefaultCreation = true;
     bool isRenaming = false; // initializer names the object whose address is saved.
     std::vector<Symbol*> symbols;
 
@@ -1061,6 +1064,7 @@ struct GenericFormal
     bool boxDefault = false;
     bool nullDefault = false;
     bool limited = false;
+    bool preelaborableInitialization = false;
     bool synchronized = false;
     bool unknownDiscriminants = false;
     bool abstract = false;
@@ -1230,6 +1234,7 @@ struct CompilationUnit
     // Declaration identity, independent of the source/object filename.
     std::string partKey;
     bool isSpec = false;
+    int category = 0;
 
     // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;

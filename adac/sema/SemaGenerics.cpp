@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "Categorization.h"
 
 #include "Parser.h"
 #include "SemaSupport.h"
@@ -525,6 +526,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 DeclList declarations = parser.parseDeclarations();
                 if (declarations.size() == 1 && declarations.front()->kind == DeclKind::Type) {
                     type = analyzeFormalPrivateType(static_cast<TypeDecl*>(declarations.front().get()), formal, bindings, decl->symbol);
+                    if (type != nullptr) { type->preelaborableInitialization = formal.preelaborableInitialization; }
                     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
                     symbol->type = type;
                     symbol->location = formal.location;
@@ -547,7 +549,10 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                             typeDecl->declaredType->formalDerived = true;
                         }
                     }
-                    if (typeDecl->declaredType != nullptr) { typeDecl->declaredType->genericFormal = true; }
+                    if (typeDecl->declaredType != nullptr) {
+                        typeDecl->declaredType->genericFormal = true;
+                        typeDecl->declaredType->preelaborableInitialization = formal.preelaborableInitialization;
+                    }
                     contract->profiles.push_back(std::move(declarations.front()));
                 }
                 continue;
@@ -569,6 +574,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 : formal.typeClass == FormalTypeClass::Discrete ? TypeKind::Enumeration : TypeKind::Record;
             type = m_types.create(kind, formal.name);
             type->genericFormal = true;
+            type->preelaborableInitialization = formal.preelaborableInitialization;
             type->low = std::numeric_limits<int>::min();
             type->high = std::numeric_limits<int>::max();
             if (formal.typeClass == FormalTypeClass::ModularType) {
@@ -635,6 +641,11 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     DeclList declarations = parser.parseDeclarations();
     for (const DeclPtr& unit : declarations) {
         renameUnit(unit.get(), contract->unitName, contract->unitName, decl->lower);
+    }
+    for (const DeclPtr& unit : declarations) {
+        // A template is checked under its own category. Ordinary instances do
+        // not inherit a library-unit pragma (RM 10.1.5(7.1)).
+        if (unit->kind == DeclKind::PackageSpecification) { unit->category = decl->category; }
     }
     analyzeDeclarativePart(declarations, bindings);
     for (DeclPtr& unit : declarations) {
@@ -1601,6 +1612,11 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
             return false;
         }
         if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
+        Symbol* owner = type->privateTo != nullptr && scope->privateVisible(type->privateTo) ? type->privateTo : nullptr;
+        if (formal.preelaborableInitialization && !hasPreelaborableInitialization(type, owner, nullptr, scope)) {
+            m_diagnostics.error(actual->location, "generic actual type must have preelaborable initialization");
+            return false;
+        }
         bool indefiniteDeallocation = generic->generic->lower == "ada.unchecked_deallocation"
             && formal.lower == "object";
         if (!indefiniteDeallocation && !acceptsFormalType(formal, type, decl->genericName, actual->location)) {
@@ -1850,6 +1866,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     DeclList expansion = parser.parseDeclarations();
     for (const DeclPtr& unit : expansion) {
         renameUnit(unit.get(), instanceDisplay, instanceName, generic->generic->lower);
+        if (unit->kind == DeclKind::PackageSpecification) { unit->category = decl->category; }
     }
 
     auto* savedReplay = m_replayContract;
@@ -1991,6 +2008,9 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     for (DeclPtr& unit : expansion) {
         decl->expansion.push_back(std::move(unit));
     }
+    if (decl->category != 0) {
+        m_categorizedRegions.push_back({ &decl->expansion, nullptr, decl->category, nullptr });
+    }
     if (decl->symbol == nullptr) {
         m_diagnostics.error(decl->location, "generic '" + decl->genericName + "' produced no instance");
     }
@@ -2090,6 +2110,12 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     }
     if (m_diagnostics.hasErrors()) {
         return;
+    }
+    for (const CategorizedRegion& region : m_categorizedRegions) {
+        if (region.declarations != nullptr) {
+            checkCategorizedDeclarations(*region.declarations, region.category, m_diagnostics, region.owner);
+        }
+        if (region.statements != nullptr) { checkCategorizedStatements(*region.statements, m_diagnostics, region.owner); }
     }
     for (const auto& owned : m_symbolTable.symbols()) {
         Symbol* symbol = owned.get();

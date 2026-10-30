@@ -8,8 +8,11 @@ generic
     with function Equivalent_Elements (Left, Right : Element_Type) return Boolean;
     with function "=" (Left, Right : Element_Type) return Boolean is <>;
 package Ada.Containers.Indefinite_Hashed_Sets is
+    pragma Preelaborate;
     type Set is tagged private;
+    pragma Preelaborable_Initialization (Set);
     type Cursor is private;
+    pragma Preelaborable_Initialization (Cursor);
     No_Element : constant Cursor;
     function "=" (Left, Right : Set) return Boolean;
     function Equivalent_Sets (Left, Right : Set) return Boolean;

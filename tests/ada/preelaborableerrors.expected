@@ -1,0 +1,3 @@
+preelaborableerrors.adb:3:5: error: Preelaborable_Initialization requires a private or entry-free protected first subtype declared in the same visible package part
+preelaborableerrors.adb:5:9: error: full view does not have the promised preelaborable initialization
+preelaborableerrors.adb:7:9: error: full view does not have the promised preelaborable initialization

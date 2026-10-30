@@ -101,6 +101,16 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
                 while (check(TokenKind::KwPragma) && peek(1).lower != "elaborate"
                     && peek(1).lower != "elaborate_all" && peek(1).lower != "assertion_policy"
                     && peek(1).lower != "suppress" && peek(1).lower != "unsuppress") {
+                    if (peek(1).lower == "pure" || peek(1).lower == "preelaborate") {
+                        std::string name;
+                        if (decl->kind == DeclKind::GenericInstantiation) { name = static_cast<GenericInstantiationDecl*>(decl.get())->lower; }
+                        else if (decl->kind == DeclKind::SubprogramDeclaration) { name = static_cast<SubprogramDecl*>(decl.get())->spec.lower; }
+                        else if (decl->kind == DeclKind::GenericDeclaration && !static_cast<GenericDecl*>(decl.get())->isPackage) {
+                            name = static_cast<GenericDecl*>(decl.get())->lower;
+                        } else { fail("categorization pragma after a library unit requires a subprogram declaration or generic instantiation"); }
+                        parseCategory(*decl, name, false);
+                        continue;
+                    }
                     if (peek(1).lower != "elaborate_body") {
                         DeclPtr pragma = parsePragma(true);
                         if (pragma != nullptr && static_cast<PragmaDecl*>(pragma.get())->lower == "assert") {

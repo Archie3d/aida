@@ -77,8 +77,9 @@ they are not evidence of complete Ada 2005 coverage. Phase 8 tracks the gaps.
 Complete. Constructs whose meaning was dropped now get diagnostics; later
 phases replace each rejection as they implement it.
 
-- [x] **Pragmas.** `Import` implemented; `Inline`, `Pure`, `Preelaborate`
-  advisory; others rejected (`pragmas`, `pragma*errors`). Elaboration,
+- [x] **Pragmas.** `Import` implemented; `Inline` advisory; `Pure` and
+  `Preelaborate` enforced in Phase 7; other pragmas initially rejected
+  (`pragmas`, `pragma*errors`). Elaboration,
   `Atomic` and `Volatile` pragmas were added in Phases 3–4.
   Assertion/check policies and No_Return were added in Phase 6h.
 - [x] **Representation clauses.** Only validated `'Size` clauses accepted
@@ -944,8 +945,16 @@ Ada 2005 additions and track annex packages separately.
   ASan/UBSan and C-runtime TSan pass (generated Ada accesses uninstrumented).
   Host choices, expanded elapsed hours and portability limits:
   [calendar contract](docs/calendar.md).
-- [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
-  Ada 2005 rules and `Preelaborable_Initialization`.
+- [x] Enforcement of package categorization (`Pure`, `Preelaborate`), including
+  Ada 2005 rules and `Preelaborable_Initialization`. Checks cover declaration/body
+  dependencies, elaboration and binder order, private/protected initialization
+  promises, formal actual matching and delayed generic bodies. Ada 2005 access
+  types/zero pools and private-view external streaming are checked. Predefined
+  categories and applicable initialization promises are in the Ada specs.
+  `categorization`, whole/per-unit/determinism, `semantics.categorization`,
+  `categorization*errors`, `preelaborable*errors` and unchanged CA21001 cover the
+  increment. See [contract](docs/package-categorization.md) for the original
+  Ada 2005 generic/limited-view rules and remaining Annex C/E/Phase 8 boundaries.
 - [ ] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and
   `Wide_Wide_String` facilities: basic Standard types/storage/contextual literals
   landed for exception names; required I/O, string/character facilities and

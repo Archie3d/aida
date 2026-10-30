@@ -2,7 +2,9 @@ with Ada.Finalization;
 with Ada.Streams;
 with Ada.Strings.Maps;
 package Ada.Strings.Unbounded is
+    pragma Preelaborate;
     type Unbounded_String is private;
+    pragma Preelaborable_Initialization (Unbounded_String);
     Null_Unbounded_String : constant Unbounded_String;
     function Length (Source : Unbounded_String) return Natural;
     type String_Access is access all String;

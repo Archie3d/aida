@@ -47,6 +47,24 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             continue;
         }
 
+        if (check(TokenKind::KwPragma)) {
+            DeclPtr pragma = parsePragma(true);
+            auto* initialization = pragma != nullptr ? static_cast<PragmaDecl*>(pragma.get()) : nullptr;
+            if (initialization == nullptr || initialization->lower != "preelaborable_initialization") {
+                fail("only Preelaborable_Initialization is supported in a generic formal part");
+            }
+            GenericFormal* target = nullptr;
+            for (auto& formal : decl->formals) {
+                if (formal.lower == initialization->entityLower) { target = &formal; }
+            }
+            if (target == nullptr || target->kind != GenericFormalKind::TypeFormal
+                || (target->typeClass != FormalTypeClass::Any && target->typeClass != FormalTypeClass::DerivedType)) {
+                fail("Preelaborable_Initialization requires a preceding formal private or derived type");
+            }
+            if (target->preelaborableInitialization) { fail("duplicate Preelaborable_Initialization pragma"); }
+            target->preelaborableInitialization = true;
+            continue;
+        }
         GenericFormal formal;
         formal.location = current().location;
         std::size_t formalStart = m_position;
@@ -313,6 +331,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
         fail("a generic declaration must name a unit");
     }
     decl->elaborateBody = unit->elaborateBody;
+    decl->category = unit->category;
     switch (unit->kind) {
     case DeclKind::PackageSpecification:
         if (!static_cast<PackageSpecDecl*>(unit.get())->renamesLower.empty()) {
@@ -380,6 +399,16 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 decl->tokens.erase(decl->tokens.begin() + i, decl->tokens.begin() + end + 1);
                 break;
             }
+        }
+    }
+    if (decl->category != 0) {
+        for (std::size_t i = 0; i + 1 < decl->tokens.size(); ++i) {
+            if (decl->tokens[i].kind != TokenKind::KwPragma
+                || (decl->tokens[i + 1].lower != "pure" && decl->tokens[i + 1].lower != "preelaborate")) { continue; }
+            std::size_t end = i;
+            while (end < decl->tokens.size() && decl->tokens[end].kind != TokenKind::Semicolon) { ++end; }
+            decl->tokens.erase(decl->tokens.begin() + i, decl->tokens.begin() + end + 1);
+            break;
         }
     }
     decl->tokens.push_back(m_tokens.back());   // The end of file the parser stops on.

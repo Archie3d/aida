@@ -1,5 +1,6 @@
 -- Mathematical constants and the exception shared by the numerics children.
 package Ada.Numerics is
+    pragma Pure;
     Argument_Error : exception;
     -- Keep exact literal fractions within the compiler's 127-bit capacity;
     -- these retain more precision than the supported floating-point types.

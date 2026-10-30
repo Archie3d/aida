@@ -965,6 +965,12 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 
 Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
+    if (rootType(expr->type)->zeroStorage) {
+        Symbol storageError;
+        storageError.exceptionObject = "$__ada_exc_storage_error";
+        emitRaise(&storageError, expr->location);
+        return Value { "0", 'l' };
+    }
     if (!hasAccessDiscriminants(expr->designated)) { return emitAllocatorValue(expr); }
     Value collection = collectionFor(expr->type);
     std::string pending = newTemp();

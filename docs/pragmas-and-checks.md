@@ -83,8 +83,8 @@ type's master still occur. See RM
 Inline remains advisory. Existing
 Import/Convention, elaboration and Atomic/Volatile support is unchanged.
 
-Pure/Preelaborate remain advisory until Phase 7 categorization enforcement,
-which also owns Preelaborable_Initialization. Phase 8 owns packing and the
+Pure/Preelaborate and Preelaborable_Initialization are enforced by
+[Phase 7 categorization checks](package-categorization.md). Phase 8 owns packing and the
 remaining representation/legality inventory; Phase 9 owns concurrent policy
 pragmas, including task Storage_Size. The implementation-defined supported
 restriction set for Restrictions is empty; every restriction pragma is

@@ -13,6 +13,7 @@ struct UnitPartRecord
     std::vector<std::string> dependencies;
     bool elaborateBody = false;
     std::vector<std::string> limitedDependencies;
+    int category = 0;
 };
 
 struct UnitRecord

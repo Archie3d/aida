@@ -43,6 +43,15 @@ private:
     std::unordered_map<const TypeDecl*, Type*> m_limitedCompletions;
     std::vector<Type*> m_limitedTypes;
 
+    struct CategorizedRegion
+    {
+        const DeclList* declarations;
+        const StmtList* statements;
+        int category;
+        Symbol* owner;
+    };
+    std::vector<CategorizedRegion> m_categorizedRegions;
+
     // Sema.cpp
     void setupStandardScope();
     Symbol* addException(Scope* scope, const std::string& displayName);

@@ -56,7 +56,9 @@ DeclPtr Parser::parsePackage(bool library)
         return parseGenericInstantiation(location, spec->name, spec->lower, true);
     }
     while (library && check(TokenKind::KwPragma)) {
-        if (peek(1).lower == "elaborate_body") {
+        if (peek(1).lower == "pure" || peek(1).lower == "preelaborate") {
+            parseCategory(*spec, spec->lower, true);
+        } else if (peek(1).lower == "elaborate_body") {
             parseElaborateBody(*spec, spec->lower, true);
         } else {
             DeclPtr pragma = parsePragma(true);
@@ -100,4 +102,30 @@ void Parser::parseElaborateBody(Decl& decl, const std::string& name, bool inside
     }
     expect(TokenKind::Semicolon, "after Elaborate_Body");
     decl.elaborateBody = true;
+}
+
+void Parser::parseCategory(Decl& decl, const std::string& name, bool inside)
+{
+    SourceLocation location = current().location;
+    advance();
+    const Token& pragma = advance();
+    if (decl.category != 0) {
+        m_diagnostics.error(location, "a library unit may have only one categorization pragma");
+    }
+    decl.category = pragma.lower == "pure" ? 2 : 1;
+    if (match(TokenKind::LeftParen)) {
+        if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+            if (advance().lower != "library_unit") { fail("expected Library_Unit pragma argument"); }
+            advance();
+        }
+        std::string lower;
+        if (inside) { lower = expect(TokenKind::Identifier, "as library unit name").lower; }
+        else { parseCompoundName(lower); }
+        std::string expected = inside ? name.substr(name.find_last_of('.') + 1) : name;
+        if (lower != expected) { fail("categorization pragma must name its own library unit"); }
+        expect(TokenKind::RightParen, "after library unit name");
+    } else if (!inside) {
+        fail("categorization pragma after a library unit requires its name");
+    }
+    expect(TokenKind::Semicolon, "after categorization pragma");
 }

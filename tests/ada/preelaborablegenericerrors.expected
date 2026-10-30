@@ -1,0 +1,3 @@
+preelaborablegenericerrors.adb:2:5: error: declaration performs an action forbidden during preelaboration
+preelaborablegenericerrors.adb:3:5: error: declaration performs an action forbidden during preelaboration
+preelaborablegenericerrors.adb:4:5: error: declaration performs an action forbidden during preelaboration

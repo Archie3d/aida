@@ -6,6 +6,7 @@ generic
     type Float_Type is digits <>;
 
 package Ada.Numerics.Generic_Elementary_Functions is
+    pragma Pure;
     function Sqrt (X : Float_Type'Base) return Float_Type'Base;
     function Log (X : Float_Type'Base) return Float_Type'Base;
     function Exp (X : Float_Type'Base) return Float_Type'Base;

@@ -1,0 +1,6 @@
+categorizationerrors.adb:3:5: error: a pure library unit cannot elaborate a variable declaration
+categorizationerrors.adb:4:5: error: a named access-to-variable type in a pure unit requires Storage_Size zero
+categorizationerrors.adb:6:5: error: declaration performs an action forbidden during preelaboration
+categorizationerrors.adb:10:5: error: declaration performs an action forbidden during preelaboration
+categorizationerrors.adb:18:5: error: a pure library unit cannot elaborate a variable declaration
+categorizationerrors.adb:20:5: error: preelaborated package elaboration permits only null statements

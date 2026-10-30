@@ -210,6 +210,7 @@ struct Type
     // Contract-only fixed-point types have no scale or bounds until instantiation.
     bool formalFixed = false;
     bool genericFormal = false;
+    bool preelaborableInitialization = false;
     bool synchronizedFormal = false;
     bool formalDerived = false; // Retains the copied primitive contract through generic replay.
     struct Expr* delta = nullptr;
@@ -251,6 +252,7 @@ struct Type
     bool exceptionOccurrence = false;
     bool fileHandle = false; // Ada.IO_Handles: runtime-owned resource, borrowed on copy.
     bool streamsFrozen = false;
+    bool visibleStreamReadWrite = false;
     std::array<Symbol*, 4> streamAttributes{}; // Read, Write, Input, Output.
 
     Type* target = nullptr;
@@ -261,6 +263,8 @@ struct Type
     bool accessDiscriminant = false;
     bool generalAccess = false;
     bool accessConstant = false;
+    bool zeroStorage = false;
+    bool storageSizeSpecified = false;
     bool accessProtected = false;
     bool accessConventionC = false;
     bool accessConventionFrozen = false;

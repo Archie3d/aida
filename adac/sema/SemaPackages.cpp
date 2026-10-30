@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "Categorization.h"
 #include "SemaSupport.h"
 
 #include <algorithm>
@@ -109,6 +110,13 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             m_diagnostics.error(type->location, "an incomplete declaration in the visible part requires a completion in the same visible part");
         }
     }
+    for (const DeclPtr& item : decl->publicPart) {
+        if (item->kind != DeclKind::Type) { continue; }
+        Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
+        if (type != nullptr) {
+            type->visibleStreamReadWrite = streamAttribute(type, 0) != nullptr && streamAttribute(type, 1) != nullptr;
+        }
+    }
     m_inVisiblePart = false;
     bool savedPrivateRegion = symbol->scope->m_privateRegion;
     symbol->scope->m_privateRegion = true;
@@ -182,6 +190,23 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
         }
     }
 
+    for (const DeclPtr& item : decl->publicPart) {
+        if (item->kind != DeclKind::Type) { continue; }
+        Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
+        if (decl->category == 2 && type != nullptr && type->privateTo == symbol
+            && (streamAvailable(type, 0) || streamAvailable(type, 1)
+                || streamAvailable(type, 2) || streamAvailable(type, 3)) && !supportsExternalStreaming(type)) {
+            m_diagnostics.error(item->location, "a partial view in a pure library unit with available stream attributes must support external streaming");
+        }
+        if (type != nullptr && type->preelaborableInitialization
+            && !hasPreelaborableInitialization(type, symbol, type)) {
+            m_diagnostics.error(item->location, "full view does not have the promised preelaborable initialization");
+        }
+    }
+    if (decl->category != 0 && m_recordContract == nullptr && m_replayContract == nullptr) {
+        m_categorizedRegions.push_back({ &decl->publicPart, nullptr, decl->category, symbol });
+        m_categorizedRegions.push_back({ &decl->privatePart, nullptr, decl->category, symbol });
+    }
     adoptLibraryUnit(decl, symbol);
 
     for (std::size_t i = 0; i < pushed; ++i) {
@@ -264,6 +289,17 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     }
     analyzeBodyStatements(decl->body, decl->handlers, bodyScope, decl->lower, symbol);
     m_currentSubprogram = savedSubprogram;
+    int category = symbol->packageDeclaration != nullptr ? symbol->packageDeclaration->category : 0;
+    // In Ada 2005 a generic declaration establishes a template; it does not
+    // elaborate the variables/access pools in a future instance. Its body
+    // still obeys the explicit assume-the-worst preelaboration rule.
+    if (m_recordContract != nullptr && category == 2) { category = 1; }
+    if (category != 0 && (m_recordContract != nullptr || m_replayContract == nullptr)) {
+        m_categorizedRegions.push_back({ &decl->declarations, &decl->body, category, symbol });
+        for (const auto& handler : decl->handlers) {
+            m_categorizedRegions.push_back({ nullptr, &handler.body, category, symbol });
+        }
+    }
     m_packages.pop_back();
     m_handlerDepth = savedHandlerDepth;
 

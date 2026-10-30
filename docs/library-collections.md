@@ -30,7 +30,8 @@ The length constructor fills its unspecified characters with NUL.
 Storage is proportional to the string length. Append allocates a new value;
 there is no amortized append-capacity guarantee. Length is limited by Natural,
 addressable storage and the existing signed-32-bit string-result ABI. Wide strings
-and categorization enforcement retain their separate owners.
+retain their separate owners. Categorization and private initialization promises
+are checked by [the Phase 7 categorization implementation](package-categorization.md).
 
 ## Ada.Containers families
 

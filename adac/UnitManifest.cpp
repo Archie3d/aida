@@ -42,6 +42,7 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
         }
         for (const UnitPartRecord& part : unit.parts) {
             out << "part " << part.key << "\n";
+            if (part.category != 0) { out << "category " << part.category << "\n"; }
             if (part.elaborateBody) {
                 out << "immediate-body " << part.key << "\n";
             }
@@ -103,6 +104,9 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
             units.back().withKeys.push_back(rest);
         } else if (keyword == "part") {
             units.back().parts.push_back(UnitPartRecord { rest, {} });
+        } else if (keyword == "category" && !units.back().parts.empty()
+            && units.back().parts.back().category == 0 && (rest == "1" || rest == "2")) {
+            units.back().parts.back().category = rest == "2" ? 2 : 1;
         } else if (keyword == "immediate-body" && !units.back().parts.empty()
             && rest == units.back().parts.back().key && !units.back().parts.back().elaborateBody) {
             units.back().parts.back().elaborateBody = true;

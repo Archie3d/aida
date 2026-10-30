@@ -9,3 +9,4 @@ generic
     type Name is private;
 
 procedure Ada.Unchecked_Deallocation (X : in out Name);
+pragma Pure (Ada.Unchecked_Deallocation);

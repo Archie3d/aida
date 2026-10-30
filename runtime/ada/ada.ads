@@ -3,5 +3,6 @@
 -- as Ada.Text_IO rather than Text_IO.
 
 package Ada is
+    pragma Pure;
 
 end Ada;

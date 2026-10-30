@@ -68,6 +68,7 @@ private:
 
     // Packages (ParserPackages.cpp).
     DeclPtr parsePackage(bool library = false);
+    void parseCategory(Decl& decl, const std::string& name, bool inside);
     void parseElaborateBody(Decl& decl, const std::string& name, bool inside = false);
 
     // Generics (ParserGenerics.cpp).

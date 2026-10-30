@@ -1,5 +1,6 @@
 with Ada.Strings.Maps;
 package Ada.Strings.Bounded is
+    pragma Preelaborate;
     generic
         Max : Positive;
     package Generic_Bounded_Length is

@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "Categorization.h"
 #include "Parser.h"
 #include "SemaSupport.h"
 
@@ -131,9 +132,24 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
     decl->arrayConstraints.clear();
     decl->constraintOrder.clear();
     switch (decl->kind) {
-    case DeclKind::Object:
-        analyzeObjectDecl(static_cast<ObjectDecl*>(decl), scope);
+    case DeclKind::Object: {
+        auto* object = static_cast<ObjectDecl*>(decl);
+        analyzeObjectDecl(object, scope);
+        for (const Symbol* symbol : object->symbols) {
+            Type* type = symbol->type;
+            if (object->initializer == nullptr && !object->isRenaming && !object->awaitsValue) {
+                object->preelaborableCreation = object->preelaborableCreation
+                    && hasPreelaborableInitialization(type, nullptr, nullptr, scope);
+            }
+            // A later completion must not make an earlier opaque view legal.
+            if (type != nullptr && type->isIncomplete && type->privateTo != nullptr) {
+                object->preelaborableCreation = object->preelaborableCreation && type->preelaborableInitialization;
+            }
+            if (object->initializer == nullptr && type != nullptr && type->privateTo != nullptr
+                && !scope->privateVisible(type->privateTo)) { object->pureDefaultCreation = false; }
+        }
         break;
+    }
     case DeclKind::Number:
         analyzeNumberDecl(static_cast<NumberDecl*>(decl), scope);
         break;
@@ -996,6 +1012,22 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
 // overloads of a subprogram can each name the routine that carries them out.
 void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 {
+    if (decl->lower == "preelaborable_initialization") {
+        Symbol* symbol = lookupName(decl->entityLower, scope);
+        Type* type = symbol != nullptr && symbol->kind == SymbolKind::TypeName ? symbol->type : nullptr;
+        bool privateType = type != nullptr && type->privateTo != nullptr;
+        bool protectedType = type != nullptr && type->protectedScope != nullptr;
+        if (!m_inVisiblePart || scope != m_packageSpecScope || type == nullptr || type->isSubtype
+            || type->declarationScope != scope || (!privateType && !protectedType)
+            || type->interfaceKind != InterfaceKind::None) {
+            m_diagnostics.error(decl->location, "Preelaborable_Initialization requires a private or entry-free protected first subtype declared in the same visible package part");
+        } else if (type->preelaborableInitialization) {
+            m_diagnostics.error(decl->location, "duplicate Preelaborable_Initialization pragma");
+        } else {
+            type->preelaborableInitialization = true;
+        }
+        return;
+    }
     if (decl->lower == "suppress" || decl->lower == "unsuppress") {
         if (decl->lower == "suppress") { m_suppressedChecks |= decl->checkMask; }
         else { m_suppressedChecks &= ~decl->checkMask; }

@@ -3,6 +3,7 @@
 -- raises these by number, and the numbers follow the order of declaration.
 
 package Ada.IO_Exceptions is
+    pragma Pure;
 
     Status_Error : exception;
     Mode_Error   : exception;

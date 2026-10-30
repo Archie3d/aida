@@ -612,6 +612,28 @@ bool UnitLoader::orderUnits()
             }
         }
     }
+    // Categorization belongs to the declaration and applies to every part of
+    // the library unit, including context clauses added by expanded subunits.
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        std::string key = fileKey(declarationName(*unit->units.front()));
+        auto specification = m_parts.find(key + ".spec");
+        Decl* declaration = specification == m_parts.end() ? unit->units.front().get()
+            : specification->second->units.front().get();
+        unit->category = declaration->category;
+    }
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        if (unit->category == 0) { continue; }
+        std::vector<CompilationUnit*> semantic = dependencies[unit];
+        for (const std::string& key : unit->limitedDependencies) { semantic.push_back(m_parts.at(key)); }
+        for (CompilationUnit* dependency : semantic) {
+            if (dependency->category < unit->category) {
+                m_diagnostics.error(unit->units.front()->location,
+                    std::string(unit->category == 2 ? "pure" : "preelaborated")
+                    + " library unit cannot depend on '" + dependency->partKey + "' with a weaker categorization");
+            }
+        }
+    }
+    if (m_diagnostics.hasErrors()) { return false; }
     // Keep semantic dependencies immutable while computing Elaborate_All's
     // closure: pragma ordering edges are not semantic dependence edges.
     const auto semanticDependencies = dependencies;
@@ -622,6 +644,15 @@ bool UnitLoader::orderUnits()
             client->dependencies.push_back(partKey(*prerequisite));
         }
     };
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        if (unit->category != 0) { continue; }
+        for (CompilationUnit* prerequisite : m_discoveredUnits) {
+            if (prerequisite->category != 0
+                && std::find(dependencies[unit].begin(), dependencies[unit].end(), prerequisite) == dependencies[unit].end()) {
+                dependencies[unit].push_back(prerequisite);
+            }
+        }
+    }
     auto bodyOf = [&](CompilationUnit* unit) -> CompilationUnit* {
         std::string key = fileKey(declarationName(*unit->units.front()));
         auto found = m_parts.find(key + ".body");

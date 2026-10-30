@@ -1,5 +1,6 @@
 -- Host argv bytes are exposed unchanged. Status codes are portable 0 .. 255.
 package Ada.Command_Line is
+    pragma Preelaborate;
     function Argument_Count return Natural;
     pragma Import (C, Argument_Count, "__ada_argument_count");
     function Argument (Number : Positive) return String;

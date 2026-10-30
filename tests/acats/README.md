@@ -898,3 +898,16 @@ focused Ada tests and exhaustive C runtime checks in the
 | --- | --- | --- |
 | `C9/C96008A.ADA` | `c96008a.ada` | `3ab2401602539a4fc5e693dbde2fc3b583013155c511cdeffa4dd29356c36e17` |
 | `C9/C96008B.ADA` | `c96008b.ada` | `68b41ab56335d0f0b53229f5b179438e801ea23753d4ab9cd1554ade01c78dc6` |
+
+## Package categorization (Phase 7)
+
+CA21001 was extracted unchanged from `CA/CA21001.A` in the official
+[ACATS 3.1 archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP)
+on 2026-10-30. The archive SHA-256 is
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`;
+the stored source SHA-256 is `0a65b3dabb0484153eca15cbdbbdc9b4490817c5d9aad9ab2143b188fc12c271`.
+It checks that package subunits inside a preelaborated subprogram may execute
+ordinary initialization and statements. This executable C-test uses the local
+Report adapter; the pinned 129-case backfill cohort is unchanged. The official
+BA21A02/BA21A03 objectives were reviewed when writing local legality controls;
+these B-tests are not graded by this harness and no passing claim is made.
