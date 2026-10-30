@@ -134,6 +134,7 @@ Supported:
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
 - Unbounded byte strings and Ada 2005 container families with cursors, callbacks and sorting ([API and limits](docs/library-collections.md))
 - UTC `Ada.Calendar`, directory operations/searches and environment variables ([host behavior](docs/host-library.md))
+- Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
 - Text I/O and type-aware streams, including custom and class-wide attributes ([streaming](docs/streaming.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package

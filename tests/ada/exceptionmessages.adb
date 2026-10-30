@@ -27,8 +27,8 @@ procedure Exceptionmessages is
     exception
         when E : Original =>
             Check (Exception_Identity (E) = Original'Identity);
-            Check (Exception_Name (E) = "ORIGINAL");
-            Check (Exception_Information (E) (1 .. 23) = "ORIGINAL: owned message");
+            Check (Exception_Name (E) = "EXCEPTIONMESSAGES.ORIGINAL");
+            Check (Exception_Information (E) (1 .. 41) = "EXCEPTIONMESSAGES.ORIGINAL: owned message");
             declare
                 procedure Captured is
                 begin
@@ -54,7 +54,7 @@ procedure Exceptionmessages is
     end Failed_Message;
 begin
     Check (Original'Identity = Alias_Error'Identity);
-    Check (Exception_Name (Original'Identity) = "ORIGINAL");
+    Check (Exception_Name (Original'Identity) = "EXCEPTIONMESSAGES.ORIGINAL");
     Check (Exception_Identity (Empty) = Null_Id);
     Check (Exception_Identity (Null_Occurrence) = Null_Id);
     Reraise_Occurrence (Null_Occurrence);
@@ -109,7 +109,7 @@ begin
     exception
         when E : Original =>
             Check (Exception_Message (E) = "");
-            Check (Exception_Information (E) (1 .. 8) = "ORIGINAL");
+            Check (Exception_Information (E) (1 .. 26) = "EXCEPTIONMESSAGES.ORIGINAL");
     end;
     begin
         raise Original;

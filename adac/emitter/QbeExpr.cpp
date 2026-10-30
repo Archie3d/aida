@@ -107,7 +107,17 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     }
     case ExprKind::StringLiteral: {
         auto* literal = static_cast<StringLiteralExpr*>(expr);
-        return Value { stringData(literal->value), 'l', "1", std::to_string(literal->value.size()) };
+        long long width = typeSize(expr->type->element);
+        std::string data;
+        if (width == 1) { data = stringData(literal->value); }
+        else {
+            data = "$." + m_unitTag + ".wide." + std::to_string(m_dataCounter++);
+            m_data << "data " << data << " = align " << (width < 4 ? 4 : width) << " { ";
+            const char* storage = width == 2 ? "h " : width == 4 ? "w " : "l ";
+            for (unsigned char character : literal->value) { m_data << storage << int(character) << ", "; }
+            m_data << storage << "0 }\n";
+        }
+        return Value {data, 'l', "1", std::to_string(literal->value.size())};
     }
     case ExprKind::Null:
         return Value { "0", 'l' };
@@ -731,7 +741,7 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         walkControlled(object, designated, false, [&](const Value& part, Type* partType) {
             if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
-                 + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
+                 + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
         }, false);
         std::string savedTaskCollection = m_context->taskCollection;
         std::string savedTaskGroup = m_context->taskGroup;
@@ -837,6 +847,11 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
 // scalar components without defaults retain their unspecified initial value.
 void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 {
+    if (type->exceptionOccurrence) {
+        emitCallInstruction("call $__ada_occurrence_initialize(l " + destination.name + ")", CallEffects::DeferredCheck);
+        activateControlledObject(destination, type);
+        return;
+    }
     Value address = destination;
     address.declaredLayout = true;
     Type* base = baseType(type);

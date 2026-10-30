@@ -21,14 +21,14 @@ const AdaException __ada_exc_program_error = { "PROGRAM_ERROR" };
 const AdaException __ada_exc_storage_error = { "STORAGE_ERROR" };
 const AdaException __ada_exc_numeric_error = { "NUMERIC_ERROR" };
 const AdaException __ada_exc_tasking_error = { "TASKING_ERROR" };
-const AdaException __ada_exc_status_error = { "STATUS_ERROR" };
-const AdaException __ada_exc_mode_error = { "MODE_ERROR" };
-const AdaException __ada_exc_name_error = { "NAME_ERROR" };
-const AdaException __ada_exc_use_error = { "USE_ERROR" };
-const AdaException __ada_exc_device_error = { "DEVICE_ERROR" };
-const AdaException __ada_exc_end_error = { "END_ERROR" };
-const AdaException __ada_exc_data_error = { "DATA_ERROR" };
-const AdaException __ada_exc_layout_error = { "LAYOUT_ERROR" };
+const AdaException __ada_exc_status_error = { "ADA.IO_EXCEPTIONS.STATUS_ERROR" };
+const AdaException __ada_exc_mode_error = { "ADA.IO_EXCEPTIONS.MODE_ERROR" };
+const AdaException __ada_exc_name_error = { "ADA.IO_EXCEPTIONS.NAME_ERROR" };
+const AdaException __ada_exc_use_error = { "ADA.IO_EXCEPTIONS.USE_ERROR" };
+const AdaException __ada_exc_device_error = { "ADA.IO_EXCEPTIONS.DEVICE_ERROR" };
+const AdaException __ada_exc_end_error = { "ADA.IO_EXCEPTIONS.END_ERROR" };
+const AdaException __ada_exc_data_error = { "ADA.IO_EXCEPTIONS.DATA_ERROR" };
+const AdaException __ada_exc_layout_error = { "ADA.IO_EXCEPTIONS.LAYOUT_ERROR" };
 
 /* C TLS stays inside the runtime: generated QBE never refers to a TLS symbol. */
 AdaTaskContext __ada_main_context = {
@@ -237,6 +237,7 @@ void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner)
         }
         memcpy(copy, context->pendingMessage, (size_t)length);
     }
+    target->ownedMessage = NULL;
     target->identity = identity;
     target->message = copy;
     target->length = length;
@@ -312,6 +313,8 @@ void __ada_save_occurrence(AdaExceptionOccurrence* target, const AdaExceptionOcc
     if (length != 0) {
         memmove(target->savedMessage, source->message, (size_t)length);
     }
+    free(target->ownedMessage);
+    target->ownedMessage = NULL;
     target->identity = source->identity;
     target->length = length;
     target->message = length == 0 ? NULL : target->savedMessage;
@@ -327,6 +330,7 @@ AdaExceptionOccurrence* __ada_save_occurrence_new(const AdaExceptionOccurrence* 
     if (result == NULL) {
         return NULL;
     }
+    result->ownedMessage = NULL;
     result->identity = source->identity;
     result->length = length;
     copyTrace(result, source);

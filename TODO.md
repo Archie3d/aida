@@ -888,8 +888,20 @@ Ada 2005 additions and track annex packages separately.
   QBE-generated Ada accesses remain uninstrumented. Native Windows execution
   remains user-verified separately. Format changes, access-discriminant limits,
   upstream blockers and remaining I/O work: [stream contract](docs/streaming.md).
-- [ ] `Ada.Exceptions`: expanded names (now uppercase defining identifiers),
-  wide names, occurrence streaming and occurrence-valued function results.
+- [x] `Ada.Exceptions`: uppercase expanded names and aliases, wide/wide-wide
+  name overloads, logical occurrence streams across partitions, and limited
+  occurrence-valued function/allocator results with owned-message cleanup.
+  Standard wide scalar/string storage is the prerequisite; Unicode identifiers,
+  wide text attributes/I/O and full wide facilities retain their later owner.
+  `exceptionlibrary`/`exceptionlibrarytasking` cover whole/per-unit/determinism,
+  5,000-character/NUL messages and four tasks. `runtime.exception_library` and
+  `runtime.exception_partitions` cover registry/ownership and separate processes.
+  Unchanged CB41001/CB41003/CB41004 PASS; CB41002 retains a task-entry blocker.
+  Full suite: 1,522/1,522 checks; focused compiler/C-runtime ASan/UBSan and
+  C-runtime TSan pass (generated Ada accesses remain uninstrumented).
+  C code cross-compiles for
+  Windows/MinGW. ABI rebuild, format and remaining wide limits:
+  [exception contract](docs/exceptions-library.md).
 - [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
   access-to-subprogram support now permits.
 - [ ] Remaining `Text_IO` and numeric input grammar cases. File objects in
@@ -908,9 +920,11 @@ Ada 2005 additions and track annex packages separately.
   with Directories above; the child packages remain open.
 - [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
   Ada 2005 rules and `Preelaborable_Initialization`.
-- [ ] `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and `Wide_Wide_String`,
-  their required I/O, string and character facilities, and Ada 2005 identifier
-  character rules with a documented source encoding policy.
+- [ ] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and
+  `Wide_Wide_String` facilities: basic Standard types/storage/contextual literals
+  landed for exception names; required I/O, string/character facilities and
+  complete overload resolution remain open, along with Ada 2005 identifier
+  character rules and a documented source encoding policy.
 - [ ] A foreign ABI and ownership contract for imported controlled results.
   Include guarded foreign callbacks for imported No_Return procedures (their
   'Access is currently diagnosed; direct calls are guarded).

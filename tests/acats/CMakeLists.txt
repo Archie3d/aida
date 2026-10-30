@@ -229,3 +229,8 @@ add_acats_test(c96007a)
 # Stream array aliasing and elementary Stream_Size clauses.
 add_acats_test(cdd1001)
 add_acats_test(cdd2b01 SOURCES fdd2b00.ada cdd2b01.ada)
+
+# Exception identity, saving/reraising, and null-occurrence contracts.
+add_acats_test(cb41001)
+add_acats_test(cb41003)
+add_acats_test(cb41004)

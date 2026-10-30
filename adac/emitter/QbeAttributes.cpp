@@ -933,8 +933,22 @@ Value QbeEmitter::emitStreamAttribute(AttributeExpr* expr)
             return result;
         }
 
-        Value result {allocTypeScratch(prefixType), 'l'};
-        initializeResult(result, prefixType);
+        bool providedOccurrence = prefixType->exceptionOccurrence
+            && (!m_context->resultTarget.empty() || !m_context->resultDescriptor.empty());
+        std::string target = !m_context->resultTarget.empty() ? m_context->resultTarget : m_context->resultDescriptor;
+        if (providedOccurrence) {
+            m_context->resultTarget.clear();
+            m_context->resultDescriptor.clear();
+            m_context->resultProvided.clear();
+            m_context->resultTargetOwner.clear();
+            m_context->resultTargetArena.clear();
+        }
+        Value result {providedOccurrence ? target : allocTypeScratch(prefixType), 'l'};
+        if (!providedOccurrence) { initializeResult(result, prefixType); }
+        else {
+            emitCallInstruction("call $__ada_occurrence_initialize(l " + result.name + ")", CallEffects::DeferredCheck);
+            activateControlledObject(result, prefixType);
+        }
         emitStreamComponents(stream, true, result, prefixType);
         return withBounds(result, prefixType, nullptr);
     }

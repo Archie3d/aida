@@ -1037,6 +1037,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
+    if ((name == "image" || name == "value" || name == "width") && m_types.isCharacter(prefixType) && typeSize(prefixType) > 1) {
+        m_diagnostics.error(expr->location, "wide character text attributes await the wide-character library milestone");
+        return nullptr;
+    }
     if (name == "image") {
         if (expr->arguments.size() != 1) {
             m_diagnostics.error(expr->location, "'Image takes exactly one argument");

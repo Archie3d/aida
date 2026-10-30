@@ -1,6 +1,11 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
 
+std::string QbeEmitter::finalizerName(Type* type)
+{
+    return type->exceptionOccurrence ? "$__ada_occurrence_release" : rootType(type)->tagName + ".finalize";
+}
+
 void QbeEmitter::initializeCollection(Type* type)
 {
     if (!needsCollection(type) || type->accessParameter || type->accessDiscriminant || type->parentType != nullptr || m_initializedCollections.contains(type)) {
@@ -259,9 +264,12 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     if (!constructed) {
         initializeDependentStorage(destination, type);
         walkControlled(destination, type, false, [&](const Value& part, Type* partType) {
+            if (partType->exceptionOccurrence) {
+                emitCallInstruction("call $__ada_occurrence_initialize(l " + part.name + ")", CallEffects::DeferredCheck);
+            }
             if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
             emitCallInstruction("call $__ada_finalization_reserve(l %.resultOwner, l %.resultArena, l " + part.name
-                 + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
+                 + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
         }, false);
     }
     std::string savedOwner = m_context->constructionOwner;
@@ -351,7 +359,7 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     if (m_context->initializingStorage && type->tagged) {
         line("storel " + typeTag(type).name + ", " + object.name);
     }
-    if (type->protectedScope != nullptr) {
+    if (type->exceptionOccurrence || type->protectedScope != nullptr) {
         action(object, type);
         return;
     }
@@ -413,22 +421,25 @@ void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool l
 {
     initializeDependentStorage(object, type);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
+        if (partType->exceptionOccurrence) {
+            emitCallInstruction("call $__ada_occurrence_initialize(l " + part.name + ")", CallEffects::DeferredCheck);
+        }
         if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
         if (library) {
-            emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
+            emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
             return;
         }
         bool temporary = m_context->initializingTemporary;
         std::string owner = temporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
         emitCallInstruction("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)
-             + ", l " + part.name + ", l " + rootType(partType)->tagName + ".finalize)", CallEffects::CheckException);
+             + ", l " + part.name + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
     }, false);
 }
 
 void QbeEmitter::activateControlledObject(const Value& object, Type* type)
 {
-    if (type->controlled || type->dependentStorage || type->protectedScope != nullptr) {
-        emitCallInstruction("call $__ada_controlled_activate(l " + object.name + ", l " + rootType(type)->tagName + ".finalize)", CallEffects::CheckException);
+    if (type->exceptionOccurrence || type->controlled || type->dependentStorage || type->protectedScope != nullptr) {
+        emitCallInstruction("call $__ada_controlled_activate(l " + object.name + ", l " + finalizerName(type) + ")", CallEffects::CheckException);
     }
 }
 
@@ -437,6 +448,7 @@ void QbeEmitter::adjustControlledObject(const Value& object, Type* type, const s
     std::string failure = allocScratch(4);
     line("storew 0, " + failure);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
+        if (partType->exceptionOccurrence) { activateControlledObject(part, partType); return; }
         if (partType->dependentStorage) {
             line("storel 0, " + dependentArena(part, partType));
             activateControlledObject(part, partType);
@@ -586,7 +598,7 @@ void QbeEmitter::emitControlledParts(Type* type)
     m_context = &context;
     auto visit = [&](const Value& part, Type* partType) {
         Type* root = rootType(partType);
-        emitCallInstruction("call %visit(l " + part.name + ", l " + root->tagName + ".finalize, l "
+        emitCallInstruction("call %visit(l " + part.name + ", l " + finalizerName(root) + ", l "
              + (root->isLimited ? "0" : root->tagName + ".adjust") + ", l %context)", CallEffects::CheckException);
     };
     std::string reserve = newLabel("partsreserve");

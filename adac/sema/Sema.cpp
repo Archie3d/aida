@@ -47,6 +47,10 @@ void Sema::setupStandardScope()
     addType(m_types.positiveType());
     addType(m_types.booleanType());
     addType(m_types.characterType());
+    addType(m_types.wideCharacterType());
+    addType(m_types.wideWideCharacterType());
+    addType(m_types.wideStringType());
+    addType(m_types.wideWideStringType());
     addType(m_types.floatType());
     addType(m_types.longFloatType());
     addType(m_types.stringType());
@@ -92,8 +96,11 @@ void Sema::setupStandardScope()
     // 200 inline saved-message bytes, padded to pointer alignment. Keep
     // Ada.Exceptions and adart.h in sync.
     // The saved-message area is followed by the origin, trace count, and
-    // 32 pairs of static routine/location pointers (752 bytes in total).
-    m_exceptionOccurrenceType->byteSize = 752;
+    // 32 pairs of static routine/location pointers, then an owned-message
+    // pointer for streamed occurrences (760 bytes in total).
+    m_exceptionOccurrenceType->byteSize = 760;
+    m_exceptionOccurrenceType->exceptionOccurrence = true;
+    m_exceptionOccurrenceType->limitedRecord = true;
     m_exceptionOccurrenceType->isLimited = true;
     m_exceptionOccurrenceType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.exceptions", "Ada.Exceptions");

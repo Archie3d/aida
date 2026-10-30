@@ -313,9 +313,6 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         if (hasTasks(designated)) {
             m_diagnostics.error(expr->location, "allocators containing tasks cannot have explicit initializers yet");
         }
-        if (baseType(designated) == m_exceptionOccurrenceType) {
-            m_diagnostics.error(expr->value->location, "an exception occurrence cannot be copied by an allocator");
-        }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
         if (!hasProtected(designated) && hasLimitedParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
@@ -812,6 +809,9 @@ bool Sema::buildsLimitedResult(Expr* expression) const
     }
     if (expression->kind == ExprKind::Qualified) {
         return buildsLimitedResult(static_cast<QualifiedExpr*>(expression)->operand.get());
+    }
+    if (expression->kind == ExprKind::Attribute) {
+        return static_cast<AttributeExpr*>(expression)->lower == "input";
     }
     if (expression->kind == ExprKind::Aggregate) {
         return true;

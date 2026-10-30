@@ -1,10 +1,11 @@
 with System;
+with Ada.Streams;
 
 package Ada.Exceptions is
     type Exception_Id is private;
     Null_Id : constant Exception_Id;
     type Exception_Occurrence is limited private;
-    type Exception_Occurrence_Access is access Exception_Occurrence;
+    type Exception_Occurrence_Access is access all Exception_Occurrence;
     Null_Occurrence : constant Exception_Occurrence;
 
     function Exception_Identity (X : Exception_Occurrence) return Exception_Id;
@@ -12,17 +13,30 @@ package Ada.Exceptions is
     function Exception_Name (Id : Exception_Id) return String;
     pragma Import (C, Exception_Name, "__ada_exception_name");
     function Exception_Name (X : Exception_Occurrence) return String;
+    function Wide_Exception_Name (Id : Exception_Id) return Wide_String;
+    function Wide_Exception_Name (X : Exception_Occurrence) return Wide_String;
+    function Wide_Wide_Exception_Name (Id : Exception_Id) return Wide_Wide_String;
+    function Wide_Wide_Exception_Name (X : Exception_Occurrence) return Wide_Wide_String;
     function Exception_Message (X : Exception_Occurrence) return String;
     function Exception_Information (X : Exception_Occurrence) return String;
 
     procedure Raise_Exception (E : Exception_Id; Message : String := "");
     pragma Import (C, Raise_Exception, "__ada_raise_message");
+    pragma No_Return (Raise_Exception);
     procedure Reraise_Occurrence (X : Exception_Occurrence);
     pragma Import (C, Reraise_Occurrence, "__ada_reraise");
     procedure Save_Occurrence (Target : out Exception_Occurrence; Source : Exception_Occurrence);
     pragma Import (C, Save_Occurrence, "__ada_save_occurrence");
     function Save_Occurrence (Source : Exception_Occurrence) return Exception_Occurrence_Access;
     pragma Import (C, Save_Occurrence, "__ada_save_occurrence_new");
+    procedure Read_Exception_Occurrence
+        (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+         Item : out Exception_Occurrence);
+    procedure Write_Exception_Occurrence
+        (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+         Item : Exception_Occurrence);
+    for Exception_Occurrence'Read use Read_Exception_Occurrence;
+    for Exception_Occurrence'Write use Write_Exception_Occurrence;
 private
     type Exception_Id is access Integer;
     Null_Id : constant Exception_Id := null;
@@ -37,7 +51,8 @@ private
         Origin : System.Address := null;
         Trace_Count : Integer := 0;
         Trace_Data : Trace_Addresses := (others => null);
+        Owned_Message : System.Address := null;
     end record;
     Null_Occurrence : constant Exception_Occurrence :=
-        (Null_Id, null, 0, (others => Character'Val (0)), null, 0, (others => null));
+        (Null_Id, null, 0, (others => Character'Val (0)), null, 0, (others => null), null);
 end Ada.Exceptions;

@@ -843,3 +843,19 @@ The Range syntax needed by CDD1001 also promotes unchanged C3A0013 to PASS.
 | tests/cd/cdd1001.a | `3e16f5d4f97db832e1a454fe1dc96db1f771a9d1` | `84bb6c419f5abe0840fadad4978d0391f869da422e767db20f5e9e9b060e5b46` |
 | tests/cd/cdd2b01.a | `340d9a7c042979aeb8b43dd699eaf0b1d44e9808` | `af0463bc543ba0d3680b1b929857ee8d5984e49b95d02dd744117ee4908dcbf0` |
 | support/fdd2b00.a | `1a1835609e611ee678e0b1cf3230974846f09597` | `d36ddc94faa38c464d2680e94341ba3a28ab93c49a20e9090b00be50e0cd0ac0` |
+
+## Ada.Exceptions (Phase 7)
+
+Unchanged CB41001, CB41003 and CB41004 come from the pinned
+[ACATS snapshot](https://github.com/simonjwright/ACATS/tree/2785c30c1f8577d97ac7b3043882f6818781e9c5)
+and execute as PASS. They check identity, raising/reraising, saving and null
+identity/occurrence contracts. CB41002 was assessed but its task-entry syntax
+remains unsupported; it is not counted as a pass. Local wide-name, limited-result,
+streaming/partition and four-task coverage is recorded in the
+[exception contract](../../docs/exceptions-library.md).
+
+| Upstream source | Git blob | SHA-256 |
+| --- | --- | --- |
+| tests/cb/cb41001.a | `95ad868feaf3e937847566f16a153e0f593363cd` | `1fb2222e1d4356c9f7e837dcc0cc7a7405e71b515c752d5940c9d00920ef35da` |
+| tests/cb/cb41003.a | `aee0b094ce5394e5640ad59e5c86433667e6dd03` | `56ac200b58bc40dca2b46b42bd755601478ea846980c85deb3d8e2d7fd3ca6ef` |
+| tests/cb/cb41004.a | `10a300f140f57ddf9b474bc7619fd5b9c4915d41` | `5e34b1822ba8eeb712865ec19c4d9f85d2a3896f94d348d2bf750c14bb22bb60` |

@@ -444,6 +444,8 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& destination
         if (target->controlled) {
             line("storel " + typeTag(target).name + ", " + address.name);
             activateControlledObject(address, target);
+        } else if (target->exceptionOccurrence) {
+            activateControlledObject(address, target);
         }
         return;
     }

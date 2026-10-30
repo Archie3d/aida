@@ -128,6 +128,9 @@ void QbeEmitter::emitElaboration(const LibraryUnit& unit)
             || hasControlledObjects(part->units)) {
             initializeFinalization();
         }
+        for (Symbol* exception : m_sema.exceptionsIn(part)) {
+            emitCallInstruction("call $__ada_exception_register(l " + exception->exceptionObject + ")", CallEffects::CheckException);
+        }
         emitElaborationDeclarations(part->units);
         finishFunction("export function $" + elaborationName(part->partKey) + "()");
         m_context = saved;

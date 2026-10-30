@@ -248,6 +248,7 @@ struct Type
     // Access types.
     int streamSize = -1;
     bool streamSizeSpecified = false;
+    bool exceptionOccurrence = false;
     bool streamsFrozen = false;
     std::array<Symbol*, 4> streamAttributes{}; // Read, Write, Input, Output.
 
@@ -368,6 +369,10 @@ public:
     Type* positiveType() const { return m_positive; }
     Type* booleanType() const { return m_boolean; }
     Type* characterType() const { return m_character; }
+    Type* wideCharacterType() const { return m_wideCharacter; }
+    Type* wideWideCharacterType() const { return m_wideWideCharacter; }
+    Type* wideStringType() const { return m_wideString; }
+    Type* wideWideStringType() const { return m_wideWideString; }
     Type* floatType() const { return m_float; }
     Type* longFloatType() const { return m_longFloat; }
     Type* stringType() const { return m_string; }
@@ -388,6 +393,10 @@ private:
     Type* m_positive = nullptr;
     Type* m_boolean = nullptr;
     Type* m_character = nullptr;
+    Type* m_wideCharacter = nullptr;
+    Type* m_wideWideCharacter = nullptr;
+    Type* m_wideString = nullptr;
+    Type* m_wideWideString = nullptr;
     Type* m_float = nullptr;
     Type* m_longFloat = nullptr;
     Type* m_string = nullptr;

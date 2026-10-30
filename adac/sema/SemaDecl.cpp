@@ -289,9 +289,6 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         if (hasTasks(type)) {
             m_diagnostics.error(decl->location, "objects containing tasks cannot be copied or explicitly initialized yet");
         }
-        if (baseType(type) == m_exceptionOccurrenceType && !withinPackage(type->privateTo)) {
-            m_diagnostics.error(decl->initializer->location, "an exception occurrence cannot be copied by initialization");
-        }
         Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
         if (!hasProtected(type) && (hasLimitedParts(type) || hasLimitedParts(valueType))
             && !buildsLimitedResult(decl->initializer.get())) {
@@ -983,6 +980,9 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
             symbol->exceptionObject = "$__ada_exc_" + decl->namesLower[i];
         } else {
             symbol->exceptionObject = "$ada_exc." + mangle(decl->namesLower[i]);
+            symbol->displayName.clear();
+            for (const std::string& prefix : m_namePrefix) { symbol->displayName += prefix + "."; }
+            symbol->displayName += decl->names[i];
             m_unitExceptions[m_currentUnit].push_back(symbol);
         }
         symbol->location = decl->location;

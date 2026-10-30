@@ -618,9 +618,6 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             break;
         }
         if (returnStatement->value) {
-            if (baseType(expected) == m_exceptionOccurrenceType) {
-                m_diagnostics.error(returnStatement->location, "exception occurrence results are not yet supported");
-            }
             Type* valueType = analyzeExpr(returnStatement->value.get(), scope, expected);
             if ((hasLimitedParts(expected) || hasLimitedParts(valueType))
                 && !buildsLimitedResult(returnStatement->value.get())) {

@@ -1058,6 +1058,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 && type->boundExpressions.empty()))) {
         m_diagnostics.error(decl->location, "a private view without discriminants requires a definite full view");
     }
+    if (type == m_exceptionOccurrenceType) {
+        type->exceptionOccurrence = true;
+        type->limitedRecord = true;
+    }
     type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedParts(type) || hasTasks(type) || hasProtected(type);
     if (type->isLimited && std::any_of(type->interfaces.begin(), type->interfaces.end(),

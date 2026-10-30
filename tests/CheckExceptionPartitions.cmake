@@ -1,0 +1,20 @@
+foreach(required ADA SOURCES WORKDIR)
+    if(NOT DEFINED ${required})
+        message(FATAL_ERROR "CheckExceptionPartitions requires ${required}")
+    endif()
+endforeach()
+file(MAKE_DIRECTORY "${WORKDIR}")
+foreach(role producer consumer)
+    set(program "${WORKDIR}/exception${role}${CMAKE_EXECUTABLE_SUFFIX}")
+    execute_process(COMMAND "${ADA}" -o "${program}"
+        "${SOURCES}/ada/exception_partition.ads" "${SOURCES}/ada/exception${role}.adb"
+        RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
+    if(NOT status STREQUAL "0")
+        message(FATAL_ERROR "${role} compilation failed (${status}):\n${output}${errors}")
+    endif()
+    execute_process(COMMAND "${program}" WORKING_DIRECTORY "${WORKDIR}"
+        RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
+    if(NOT status STREQUAL "0" OR NOT output STREQUAL "" OR NOT errors STREQUAL "")
+        message(FATAL_ERROR "${role} failed (${status}):\n${output}${errors}")
+    endif()
+endforeach()

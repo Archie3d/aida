@@ -200,7 +200,15 @@ typedef struct AdaExceptionOccurrence
     const char* origin;
     int32_t traceCount;
     AdaTraceEntry trace[ADA_TRACE_CAPACITY];
+    char* ownedMessage;
 } AdaExceptionOccurrence;
+
+void __ada_occurrence_initialize(AdaExceptionOccurrence* occurrence);
+void __ada_occurrence_release(AdaExceptionOccurrence* occurrence);
+void __ada_occurrence_restore(AdaExceptionOccurrence* target, const AdaException* identity,
+    const char* message, int length);
+void __ada_exception_register(const AdaException* identity);
+const AdaException* __ada_exception_from_name(const char* name, int length);
 
 void __ada_raise_message(const AdaException* exception, const char* message, int length);
 void __ada_exception_capture(AdaExceptionOccurrence* target, void** owner);

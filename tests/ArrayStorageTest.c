@@ -158,7 +158,7 @@ int main(void)
 
     /* The occurrence ABI and both message owners must agree with generated
        code, including allocation failure while entering or leaving a handler. */
-    CHECK(sizeof(AdaExceptionOccurrence) == 752);
+    CHECK(sizeof(AdaExceptionOccurrence) == 760);
     CHECK(sizeof(AdaTraceFrame) == 24);
     CHECK(offsetof(AdaExceptionOccurrence, origin) == 224);
     CHECK(offsetof(AdaExceptionOccurrence, trace) == 240);

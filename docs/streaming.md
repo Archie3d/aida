@@ -48,6 +48,9 @@ Stream attributes can be renamed and supplied as generic subprogram actuals
 with their standard root-class access profiles. Intrinsic attribute 'Access
 retains the compiler's existing intrinsic-subprogram restriction.
 
+[Exception occurrences](exceptions-library.md) now stream names and messages
+with owned reconstruction and limited Input results.
+
 Unbounded strings and all twelve container families provide logical Read/Write
 routines. Containers stream Count_Type length followed by element Output values
 (and key Output values for maps), preserving indefinite bounds. Reads build a

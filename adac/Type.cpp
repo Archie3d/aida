@@ -357,6 +357,15 @@ TypeTable::TypeTable()
     m_character->low = 0;
     m_character->high = 255;
 
+    m_wideCharacter = create(TypeKind::Enumeration, "Wide_Character");
+    m_wideCharacter->low = 0;
+    m_wideCharacter->high = 65535;
+    m_wideCharacter->byteSize = 2;
+    m_wideWideCharacter = create(TypeKind::Enumeration, "Wide_Wide_Character");
+    m_wideWideCharacter->low = 0;
+    m_wideWideCharacter->high = 2147483647;
+    m_wideWideCharacter->byteSize = 4;
+
     m_float = create(TypeKind::Float, "Float");
     m_float->digits = 6;
 
@@ -376,6 +385,14 @@ TypeTable::TypeTable()
     m_string->constrained = false;
     m_string->indexLow = 1;
     m_string->indexHigh = 0;
+    m_wideString = create(TypeKind::Array, "Wide_String");
+    *m_wideString = *m_string;
+    m_wideString->name = "Wide_String";
+    m_wideString->element = m_wideCharacter;
+    m_wideWideString = create(TypeKind::Array, "Wide_Wide_String");
+    *m_wideWideString = *m_string;
+    m_wideWideString->name = "Wide_Wide_String";
+    m_wideWideString->element = m_wideWideCharacter;
 }
 
 Type* TypeTable::create(TypeKind kind, const std::string& name)
@@ -452,6 +469,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->privateTo = parent->privateTo;
     subtype->isLimited = parent->isLimited;
     subtype->limitedRecord = parent->limitedRecord;
+    subtype->exceptionOccurrence = parent->exceptionOccurrence;
     subtype->taskBody = parent->taskBody;
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
@@ -647,14 +665,13 @@ bool TypeTable::isCharacter(const Type* type) const
     while (type != nullptr && type->parentType != nullptr) {
         type = type->parentType;
     }
-    return type == m_character;
+    return type == m_character || type == m_wideCharacter || type == m_wideWideCharacter;
 }
 
 bool TypeTable::isString(const Type* type) const
 {
     const Type* root = rootType(const_cast<Type*>(type));
-    return root != nullptr && root->kind == TypeKind::Array && isCharacter(root->element)
-        && typeSize(root->element) == 1;
+    return root != nullptr && root->kind == TypeKind::Array && isCharacter(root->element);
 }
 
 // The base subtype keeps type identity and representation, but drops the
@@ -697,7 +714,7 @@ bool needsFinalization(const Type* type)
     if (type == nullptr) {
         return false;
     }
-    if (type->protectedScope != nullptr || type->dependentStorage || type->controlled || type->classRoot != nullptr) {
+    if (type->exceptionOccurrence || type->protectedScope != nullptr || type->dependentStorage || type->controlled || type->classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {
