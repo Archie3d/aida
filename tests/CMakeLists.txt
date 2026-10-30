@@ -1834,8 +1834,9 @@ add_test(NAME runtime.pragmaimport_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.pragmaimport_modes PROPERTIES TIMEOUT 60)
 
-# Phase 7: controlled Ada library collections, in whole/per-unit modes.
-foreach(collection_case unboundedstrings basicvectors vectorlifetime librarycollectiontasking)
+# Phase 7: string mappings and controlled Ada library collections.
+foreach(collection_case stringmappingtasking stringmappingcallbacks
+    unboundedstrings basicvectors vectorlifetime librarycollectiontasking)
     add_ada_test(${collection_case} SOURCES ${collection_case}.adb)
     add_determinism_test(${collection_case} SOURCE ${collection_case}.adb)
     add_test(NAME runtime.${collection_case}_modes
@@ -1855,6 +1856,7 @@ foreach(collection_case unboundedstrings basicvectors vectorlifetime librarycoll
         PROPERTIES TIMEOUT 90)
 endforeach()
 add_ada_error_test(librarycollectionerrors SOURCES librarycollectionerrors.adb)
+add_ada_error_test(stringmappingerrors SOURCES stringmappingerrors.adb)
 
 # Phase 7: Ada 2005 container families and sorting utilities.
 foreach(container_case containerfamilies containercursors containersorting containersets

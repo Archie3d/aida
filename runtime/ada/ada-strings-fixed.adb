@@ -1,5 +1,6 @@
 with Ada.Strings.Maps;
 package body Ada.Strings.Fixed is
+    use type Maps.Character_Mapping_Function;
     -- Work with lengths and offsets, so valid strings ending at Integer'Last
     -- never require an unrepresentable one-past-the-end index.
     function segment (source : String; offset, length : Natural) return String is
@@ -16,6 +17,18 @@ package body Ada.Strings.Fixed is
     begin
         for j in 0 .. pattern'Length - 1 loop
             if Maps.Value (mapping, source (source'First + (offset + j))) /=
+                pattern (pattern'First + j) then
+                return False;
+            end if;
+        end loop;
+        return True;
+    end matches;
+
+    function matches (source, pattern : String; offset : Natural;
+                      mapping : Maps.Character_Mapping_Function) return Boolean is
+    begin
+        for j in 0 .. pattern'Length - 1 loop
+            if mapping.all (source (source'First + (offset + j))) /=
                 pattern (pattern'First + j) then
                 return False;
             end if;
@@ -97,9 +110,63 @@ package body Ada.Strings.Fixed is
         return 0;
     end Index;
 
+    function Index (Source, Pattern : String; From : Positive;
+                    Going : Direction := Forward; Mapping : Maps.Character_Mapping_Function) return Natural is
+        lowOffset : Natural := 0;
+        highOffset : Integer;
+    begin
+        if Mapping = null then
+            raise Constraint_Error;
+        end if;
+        if Pattern'Length = 0 then
+            raise Pattern_Error;
+        end if;
+        if Source'Length = 0 then
+            return 0;
+        end if;
+        if From < Source'First or From > Source'Last then
+            raise Index_Error;
+        end if;
+        if Going = Forward then
+            lowOffset := From - Source'First;
+            highOffset := Source'Length - Pattern'Length;
+            for i in lowOffset .. highOffset loop
+                if matches (Source, Pattern, i, Mapping) then
+                    return Source'First + i;
+                end if;
+            end loop;
+        else
+            highOffset := (From - Source'First) - (Pattern'Length - 1);
+            for i in reverse 0 .. highOffset loop
+                if matches (Source, Pattern, i, Mapping) then
+                    return Source'First + i;
+                end if;
+            end loop;
+        end if;
+        return 0;
+    end Index;
+
     function Index (Source, Pattern : String; Going : Direction := Forward;
                     Mapping : Maps.Character_Mapping := Maps.Identity) return Natural is
     begin
+        if Source'Length = 0 then
+            if Pattern'Length = 0 then
+                raise Pattern_Error;
+            end if;
+            return 0;
+        end if;
+        if Going = Forward then
+            return Index (Source, Pattern, Source'First, Going, Mapping);
+        end if;
+        return Index (Source, Pattern, Source'Last, Going, Mapping);
+    end Index;
+
+    function Index (Source, Pattern : String; Going : Direction := Forward;
+                    Mapping : Maps.Character_Mapping_Function) return Natural is
+    begin
+        if Mapping = null then
+            raise Constraint_Error;
+        end if;
         if Source'Length = 0 then
             if Pattern'Length = 0 then
                 raise Pattern_Error;
@@ -179,6 +246,28 @@ package body Ada.Strings.Fixed is
         return result;
     end Count;
 
+    function Count (Source, Pattern : String;
+                    Mapping : Maps.Character_Mapping_Function) return Natural is
+        offset : Natural := 0;
+        result : Natural := 0;
+    begin
+        if Mapping = null then
+            raise Constraint_Error;
+        end if;
+        if Pattern'Length = 0 then
+            raise Pattern_Error;
+        end if;
+        while offset <= Source'Length - Pattern'Length loop
+            if matches (Source, Pattern, offset, Mapping) then
+                result := result + 1;
+                offset := offset + Pattern'Length;
+            else
+                offset := offset + 1;
+            end if;
+        end loop;
+        return result;
+    end Count;
+
     function Count (Source : String; Set : Maps.Character_Set) return Natural is
         result : Natural := 0;
     begin
@@ -221,8 +310,28 @@ package body Ada.Strings.Fixed is
         return result;
     end Translate;
 
+    function Translate (Source : String; Mapping : Maps.Character_Mapping_Function) return String is
+        result : String (1 .. Source'Length);
+    begin
+        if Mapping = null then
+            raise Constraint_Error;
+        end if;
+        for i in result'Range loop
+            result (i) := Mapping.all (Source (Source'First + (i - 1)));
+        end loop;
+        return result;
+    end Translate;
+
     procedure Translate (Source : in out String; Mapping : Maps.Character_Mapping) is
     begin
+        Source := Translate (Source, Mapping);
+    end Translate;
+
+    procedure Translate (Source : in out String; Mapping : Maps.Character_Mapping_Function) is
+    begin
+        if Mapping = null then
+            raise Constraint_Error;
+        end if;
         Source := Translate (Source, Mapping);
     end Translate;
 

@@ -94,6 +94,10 @@ if (condition) {
 double __ada_numerics_sqrt(double x);
 ```
 
+- Make sure the code remains readable.
+- Don't redefine same constants in different parts of the code - try to reuse the definitions.
+- Keep the code style uniform across the entire code base.
+
 # Instructions
 - `qbe` folder is a QBE backend - an external project, you can read it but you must not modify it.
 - Start with a simple top level Ada program definitions.

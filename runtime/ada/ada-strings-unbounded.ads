@@ -1,4 +1,3 @@
--- Byte strings; mapping-function overloads remain a Phase 7 library item.
 with Ada.Finalization;
 with Ada.Streams;
 with Ada.Strings.Maps;
@@ -45,8 +44,13 @@ package Ada.Strings.Unbounded is
     function Index (Source : Unbounded_String; Pattern : String; From : Positive;
         Going : Direction := Forward;
                     Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Index (Source : Unbounded_String; Pattern : String; From : Positive;
+        Going : Direction := Forward;
+                    Mapping : Maps.Character_Mapping_Function) return Natural;
     function Index (Source : Unbounded_String; Pattern : String; Going : Direction := Forward;
                     Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Index (Source : Unbounded_String; Pattern : String; Going : Direction := Forward;
+                    Mapping : Maps.Character_Mapping_Function) return Natural;
     function Index (Source : Unbounded_String; Set : Maps.Character_Set; From : Positive;
                     Test : Membership := Inside; Going : Direction := Forward) return Natural;
     function Index (Source : Unbounded_String; Set : Maps.Character_Set;
@@ -60,9 +64,13 @@ package Ada.Strings.Unbounded is
                           Test : Membership; First : out Positive; Last : out Natural);
     function Count (Source : Unbounded_String; Pattern : String;
         Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Count (Source : Unbounded_String; Pattern : String;
+        Mapping : Maps.Character_Mapping_Function) return Natural;
     function Count (Source : Unbounded_String; Set : Maps.Character_Set) return Natural;
     function Translate (Source : Unbounded_String; Mapping : Maps.Character_Mapping) return Unbounded_String;
+    function Translate (Source : Unbounded_String; Mapping : Maps.Character_Mapping_Function) return Unbounded_String;
     procedure Translate (Source : in out Unbounded_String; Mapping : Maps.Character_Mapping);
+    procedure Translate (Source : in out Unbounded_String; Mapping : Maps.Character_Mapping_Function);
     function Replace_Slice (Source : Unbounded_String; Low : Positive; High : Natural; By : String) return Unbounded_String;
     procedure Replace_Slice (Source : in out Unbounded_String; Low : Positive; High : Natural; By : String);
     function Insert (Source : Unbounded_String; Before : Positive; New_Item : String) return Unbounded_String;

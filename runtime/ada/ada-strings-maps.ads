@@ -1,4 +1,4 @@
--- RM A.4.2, excluding access-to-subprogram Character_Mapping_Function.
+-- RM A.4.2 character sets and mappings.
 package Ada.Strings.Maps is
     type Character_Set is private;
     Null_Set : constant Character_Set;
@@ -31,6 +31,8 @@ package Ada.Strings.Maps is
     function To_Mapping (From, To : Character_Sequence) return Character_Mapping;
     function To_Domain (Map : Character_Mapping) return Character_Sequence;
     function To_Range (Map : Character_Mapping) return Character_Sequence;
+    type Character_Mapping_Function is
+        access function (From : Character) return Character;
 private
     type SetBits is array (Character) of Boolean;
     type Character_Set is record

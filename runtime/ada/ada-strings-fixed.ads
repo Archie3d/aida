@@ -1,12 +1,15 @@
--- RM A.4.3 value-mapping overloads; mapping callbacks are not supported.
 with Ada.Strings.Maps;
 package Ada.Strings.Fixed is
     procedure Move (Source : String; Target : out String; Drop : Truncation := Error;
                    Justify : Alignment := Left; Pad : Character := Space);
     function Index (Source, Pattern : String; From : Positive;
                     Going : Direction := Forward; Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Index (Source, Pattern : String; From : Positive;
+                    Going : Direction := Forward; Mapping : Maps.Character_Mapping_Function) return Natural;
     function Index (Source, Pattern : String; Going : Direction := Forward;
                     Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Index (Source, Pattern : String; Going : Direction := Forward;
+                    Mapping : Maps.Character_Mapping_Function) return Natural;
     function Index (Source : String; Set : Maps.Character_Set; From : Positive;
                     Test : Membership := Inside; Going : Direction := Forward) return Natural;
     function Index (Source : String; Set : Maps.Character_Set;
@@ -15,13 +18,17 @@ package Ada.Strings.Fixed is
     function Index_Non_Blank (Source : String; Going : Direction := Forward) return Natural;
     function Count (Source, Pattern : String;
                     Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+    function Count (Source, Pattern : String;
+                    Mapping : Maps.Character_Mapping_Function) return Natural;
     function Count (Source : String; Set : Maps.Character_Set) return Natural;
     procedure Find_Token (Source : String; Set : Maps.Character_Set; From : Positive;
                           Test : Membership; First : out Positive; Last : out Natural);
     procedure Find_Token (Source : String; Set : Maps.Character_Set;
                           Test : Membership; First : out Positive; Last : out Natural);
     function Translate (Source : String; Mapping : Maps.Character_Mapping) return String;
+    function Translate (Source : String; Mapping : Maps.Character_Mapping_Function) return String;
     procedure Translate (Source : in out String; Mapping : Maps.Character_Mapping);
+    procedure Translate (Source : in out String; Mapping : Maps.Character_Mapping_Function);
     function Insert (Source : String; Before : Positive; New_Item : String) return String;
     function Replace_Slice (Source : String; Low : Positive; High : Natural; By : String) return String;
     function Overwrite (Source : String; Position : Positive; New_Item : String) return String;

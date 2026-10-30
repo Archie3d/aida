@@ -120,10 +120,11 @@ the feature follow-up. Missing units listed below are representative, not exhaus
 | A.3.1–A.3.2 | Ada.Characters; Ada.Characters.Handling | Byte-character classification/conversion; wide facilities missing | `characterhandling` | P7 wide types |
 | A.3.3 | Ada.Characters.Latin_1 | Latin-1 constants | `characterhandling` | P7 wide types |
 | A.4.1 | Ada.Strings | String-operation declarations/exceptions | `fixedstrings` | P7 strings |
-| A.4.2 | Ada.Strings.Maps | Mapping/set subset; callback operations incomplete; Constants child missing | `stringmaps` | P7 Maps.Constants |
-| A.4.3 | Ada.Strings.Fixed | Fixed strings; byte components only | `fixedstrings` | P7 strings |
-| A.4.4 | Ada.Strings.Bounded | Bounded strings; byte components only | `boundedstrings` | P7 strings |
-| A.4.5 | Ada.Strings.Unbounded | Controlled Ada implementation, byte strings and mapping-value operations; mapping callbacks/wide facilities/categorization remain open ([contract](library-collections.md)) | `unboundedstrings`, `librarycollectiontasking`, whole/per-unit/determinism; CXA4010/CXA4011/CXA4031 PASS; CXA4032 compile XFAIL (Maps.Constants), CXA4030 deferred (callbacks) | P7 first library item complete for documented subset; later P7 items |
+| A.4.2 | Ada.Strings.Maps | Byte-character sets, mappings and Character_Mapping_Function; categorization enforcement pending | `stringmaps`, `stringmappingcallbacks`, `stringmappingerrors` | P7 mapping item complete; P7 categorization |
+| A.4.3 | Ada.Strings.Fixed | Fixed strings; byte components only | `fixedstrings`, `stringmappingcallbacks`, `stringmappingtasking` | P7 mapping item complete |
+| A.4.4 | Ada.Strings.Bounded | Bounded strings; byte components only | `boundedstrings`, `stringmappingcallbacks`, `stringmappingtasking` | P7 mapping item complete |
+| A.4.5 | Ada.Strings.Unbounded | Controlled Ada implementation, byte strings, value and callback mapping operations; wide facilities/categorization remain open ([contract](library-collections.md)) | `unboundedstrings`, `librarycollectiontasking`, `stringmappingcallbacks`, `stringmappingtasking`, whole/per-unit/determinism; CXA4010/CXA4011/CXA4030/CXA4031/CXA4032 PASS | P7 strings and mapping complete for documented subset; later P7 items |
+| A.4.6 | Ada.Strings.Maps.Constants | All eleven Latin-1 sets and three mappings, static elaboration; Pure enforcement pending | `stringmappingcallbacks` (all 256 characters), CXA4032 PASS | P7 mapping item complete; P7 categorization |
 | A.5 | Ada.Numerics | Root constants/exceptions | `numerics` | P8 |
 | A.5.1 | Ada.Numerics.Generic_Elementary_Functions; Ada.Numerics.Elementary_Functions; Ada.Numerics.Long_Elementary_Functions | Host numeric functions; core arithmetic model documented, full library/Annex G accuracy audit remains | `runtime.numerics_precision` | P5 Real edge cases complete; P8 |
 | A.7 | Ada.IO_Exceptions | I/O exception declarations | `textfiles`, `seqio`, `directio` | P8 |

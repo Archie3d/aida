@@ -748,19 +748,19 @@ pragmas retain their Phase 7/8/9 owners; see the [contract](../../docs/pragmas-a
 CXA4010, CXA4011, CXA4031 and CXA4032 were retrieved unchanged on 2026-10-28
 from the same GCC releases/gcc-14 mirror, under `tests/cxa/` with `.a` suffixes.
 They retain their unlimited-rights grants and disclaimers; local `.ada` filenames
-let the existing offline harness load them. The first three execute as PASS.
-CXA4032 compile-XFAILs specifically at its missing `Ada.Strings.Maps.Constants`
-dependency, whose implementation is a later Phase 7 item. Its exact diagnostic
-is pinned; it must become an executable test when that dependency is available.
-CXA4030 (mapping-function overloads) remains deferred with the later mapping
-callback item. These are additional cases; the 129-case backfill baseline is
-unchanged. The [library contract](../../docs/library-collections.md) records the
-supported API and remaining restrictions.
+let the existing offline harness load them. All four execute as PASS; CXA4032
+was promoted from its missing-Maps.Constants compile XFAIL on 2026-10-30.
+CXA4030 was retrieved unchanged on 2026-10-30 from the same mirror and directory
+and now executes as PASS with mapping-function overloads. These are additional
+cases; the 129-case backfill baseline is unchanged. The
+[library contract](../../docs/library-collections.md) records the supported API
+and remaining restrictions.
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
 | cxa4010.ada | `8646b12b5e48755331ec2b8c009a67bee3d03b0d` | `ed0b5f2fa0d9904dc4aa9f1e5236ecfd5fbfbba3bb829ce4c63da650a58dc1e1` |
 | cxa4011.ada | `05388a04ba7767c3ac407b45c80880fd218878e6` | `4a25d9ca6bce4007b1e1d962da6cf69bb977cd83f4c6806242b5a51f170edb1b` |
+| cxa4030.ada | `475d00899211454450ccaab5e15dc48f702629e0` | `8006fef5e19b82e357fb9821b4972a5a0da5de10a8836380992f4cd0be14b898` |
 | cxa4031.ada | `91bc68ce6e719667cec4767036678271ce018fa0` | `909b2f15c55c4ab683d32da516fd99ba97fd5b335755f4e23e84094ebc33258d` |
 | cxa4032.ada | `031d01c6cb79be32a4b418a0842c9a6345241564` | `4e2f2c1659783bee6ac13cdd83b49dd512177762a4e0ac000f09e46185c4a61e` |
 

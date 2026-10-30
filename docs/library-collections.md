@@ -18,7 +18,7 @@ concurrent access to the same object.
 
 The package supplies conversions (including the length constructor),
 `Set_Unbounded_String`, `String_Access`/`Free`, append/concatenation, element and
-slice operations, comparisons, search/count/token operations, mapping-value
+slice operations, comparisons, search/count/token operations, value and callback
 translation, replacement/insertion/overwrite/deletion, trimming, head/tail and
 repetition. `To_String` normalizes its lower bound to 1; `Slice` preserves Low.
 Public string indices and lengths use Positive/Natural. Bad element/slice
@@ -29,9 +29,8 @@ The length constructor fills its unspecified characters with NUL.
 
 Storage is proportional to the string length. Append allocates a new value;
 there is no amortized append-capacity guarantee. Length is limited by Natural,
-addressable storage and the existing signed-32-bit string-result ABI. Mapping
-function overloads remain with the later Phase 7 mapping-callback item;
-wide strings and categorization enforcement retain their separate owners.
+addressable storage and the existing signed-32-bit string-result ABI. Wide strings
+and categorization enforcement retain their separate owners.
 
 ## Ada.Containers families
 
@@ -160,11 +159,32 @@ the four-worker test also passes whole/per-unit with the C runtime under TSan.
 QBE-generated Ada memory accesses are not sanitizer-instrumented, and host
 LeakSanitizer support is unavailable.
 
-Unchanged ACATS CXA4010, CXA4011 and CXA4031 execute successfully. CXA4032 is a
-pinned compile XFAIL at the missing Maps.Constants dependency, owned by its later
-Phase 7 item; its executable behavior remains untested. Mapping-function case
-CXA4030 is deferred with mapping callbacks. The baseline backfill observations
-remain separate from these added cases.
+Unchanged ACATS CXA4010, CXA4011, CXA4030, CXA4031 and CXA4032 execute
+successfully. CXA4032 now runs with Maps.Constants; CXA4030 exercises mapping
+callbacks. The baseline backfill observations remain separate from these cases.
+
+`Ada.Strings.Maps.Constants` supplies all eleven Latin-1 character sets and
+three mappings from Ada 2005 [A.4.6](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-4-6.html).
+Static private aggregates need no package body or calls during elaboration.
+`Character_Mapping_Function` and all five callback overloads (two Index,
+Count, function/procedure Translate) are available in Fixed, Bounded and
+Unbounded. Search maps source characters only, compares them to the unchanged
+pattern, and invokes callbacks as needed without constructing an eager mapping.
+Null mappings raise Constraint_Error, including on empty sources; callback
+exceptions propagate. Translation constructs a replacement before assignment,
+so callback failures preserve the original destination. Normal access-type
+profile and accessibility rules apply: library-level mapping types cannot
+capture deeper nested subprograms.
+
+`stringmappingcallbacks` compares every constant against Characters.Handling
+for all 256 characters and checks the callback overloads, nonoverlapping counts,
+forward/backward searches, shifted and Integer'Last bounds, null mappings and
+exception preservation. `stringmappingtasking` uses four independent workers;
+both execute whole/per-unit and pass deterministic emission checks.
+`stringmappingerrors` pins the nested-callback accessibility rejection.
+Focused whole/per-unit checks also pass with the C runtime under ASan/UBSan
+(callbacks and four tasks) and TSan (four tasks). Generated Ada code is not
+sanitizer-instrumented; host LeakSanitizer remains unavailable.
 
 The complete container increment adds `containerfamilies`, `containercursors`,
 `containersorting`, `containersets`, `containerlifetime`, `containertasking`,

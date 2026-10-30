@@ -1,4 +1,3 @@
--- RM A.4.4 value-mapping subset. Max must be a static positive actual.
 with Ada.Strings.Maps;
 package Ada.Strings.Bounded is
     generic
@@ -57,8 +56,13 @@ package Ada.Strings.Bounded is
         function Index (Source : Bounded_String; Pattern : String; From : Positive;
             Going : Direction := Forward;
                         Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+        function Index (Source : Bounded_String; Pattern : String; From : Positive;
+            Going : Direction := Forward;
+                        Mapping : Maps.Character_Mapping_Function) return Natural;
         function Index (Source : Bounded_String; Pattern : String; Going : Direction := Forward;
                         Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+        function Index (Source : Bounded_String; Pattern : String; Going : Direction := Forward;
+                        Mapping : Maps.Character_Mapping_Function) return Natural;
         function Index (Source : Bounded_String; Set : Maps.Character_Set; From : Positive;
                         Test : Membership := Inside; Going : Direction := Forward) return Natural;
         function Index (Source : Bounded_String; Set : Maps.Character_Set;
@@ -72,9 +76,13 @@ package Ada.Strings.Bounded is
                               Test : Membership; First : out Positive; Last : out Natural);
         function Count (Source : Bounded_String; Pattern : String;
             Mapping : Maps.Character_Mapping := Maps.Identity) return Natural;
+        function Count (Source : Bounded_String; Pattern : String;
+            Mapping : Maps.Character_Mapping_Function) return Natural;
         function Count (Source : Bounded_String; Set : Maps.Character_Set) return Natural;
         function Translate (Source : Bounded_String; Mapping : Maps.Character_Mapping) return Bounded_String;
+        function Translate (Source : Bounded_String; Mapping : Maps.Character_Mapping_Function) return Bounded_String;
         procedure Translate (Source : in out Bounded_String; Mapping : Maps.Character_Mapping);
+        procedure Translate (Source : in out Bounded_String; Mapping : Maps.Character_Mapping_Function);
         function Replace_Slice (Source : Bounded_String; Low : Positive; High : Natural; By : String;
             Drop : Truncation := Error) return Bounded_String;
         procedure Replace_Slice (Source : in out Bounded_String; Low : Positive; High : Natural; By : String;

@@ -902,8 +902,17 @@ Ada 2005 additions and track annex packages separately.
   C code cross-compiles for
   Windows/MinGW. ABI rebuild, format and remaining wide limits:
   [exception contract](docs/exceptions-library.md).
-- [ ] `Ada.Strings.Maps.Constants` and mapping-function callbacks, which
-  access-to-subprogram support now permits.
+- [x] `Ada.Strings.Maps.Constants` and mapping-function callbacks: all eleven
+  Latin-1 sets and three maps, and Index/Count/Translate overloads for Fixed,
+  Bounded and Unbounded. Full-character comparisons, lazy search callbacks,
+  null mappings, exception preservation, bounds near Integer'Last and four-task
+  use pass whole/per-unit/determinism (`stringmappingcallbacks`,
+  `stringmappingtasking`, `stringmappingerrors`). Unchanged CXA4030 and CXA4032
+  PASS; the latter is promoted from its missing-Constants compile XFAIL.
+  Full suite: 1,530/1,530 checks; focused C-runtime ASan/UBSan and TSan
+  pass (generated Ada accesses remain uninstrumented). Categorization and wide
+  facilities retain their later owners.
+  [API and validation](docs/library-collections.md).
 - [ ] Remaining `Text_IO` and numeric input grammar cases. File objects in
   Text_IO, Sequential_IO, Direct_IO and Stream_IO now expose limited private
   views over opaque addresses (`iofileprivacyerrors`, `filesnapshots`);

@@ -263,8 +263,21 @@ package body Ada.Strings.Bounded is
             return Fixed.Index (To_String (Source), Pattern, From, Going, Mapping);
         end Index;
 
+        function Index (Source : Bounded_String; Pattern : String; From : Positive;
+            Going : Direction := Forward;
+                        Mapping : Maps.Character_Mapping_Function) return Natural is
+        begin
+            return Fixed.Index (To_String (Source), Pattern, From, Going, Mapping);
+        end Index;
+
         function Index (Source : Bounded_String; Pattern : String; Going : Direction := Forward;
                         Mapping : Maps.Character_Mapping := Maps.Identity) return Natural is
+        begin
+            return Fixed.Index (To_String (Source), Pattern, Going, Mapping);
+        end Index;
+
+        function Index (Source : Bounded_String; Pattern : String; Going : Direction := Forward;
+                        Mapping : Maps.Character_Mapping_Function) return Natural is
         begin
             return Fixed.Index (To_String (Source), Pattern, Going, Mapping);
         end Index;
@@ -310,6 +323,12 @@ package body Ada.Strings.Bounded is
             return Fixed.Count (To_String (Source), Pattern, Mapping);
         end Count;
 
+        function Count (Source : Bounded_String; Pattern : String;
+            Mapping : Maps.Character_Mapping_Function) return Natural is
+        begin
+            return Fixed.Count (To_String (Source), Pattern, Mapping);
+        end Count;
+
         function Count (Source : Bounded_String; Set : Maps.Character_Set) return Natural is
         begin
             return Fixed.Count (To_String (Source), Set);
@@ -321,7 +340,18 @@ package body Ada.Strings.Bounded is
             return To_Bounded_String (Fixed.Translate (To_String (Source), Mapping));
         end Translate;
 
+        function Translate (Source : Bounded_String;
+            Mapping : Maps.Character_Mapping_Function) return Bounded_String is
+        begin
+            return To_Bounded_String (Fixed.Translate (To_String (Source), Mapping));
+        end Translate;
+
         procedure Translate (Source : in out Bounded_String; Mapping : Maps.Character_Mapping) is
+        begin
+            Source := Translate (Source, Mapping);
+        end Translate;
+
+        procedure Translate (Source : in out Bounded_String; Mapping : Maps.Character_Mapping_Function) is
         begin
             Source := Translate (Source, Mapping);
         end Translate;
