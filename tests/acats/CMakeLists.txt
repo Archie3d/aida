@@ -241,3 +241,7 @@ add_acats_test(ce3704a)
 add_acats_test(ce3804a)
 add_acats_test(ce3904a)
 add_acats_test(ce3402a)
+
+# Calendar civil composition/decomposition and midnight normalization.
+add_acats_test(c96008a)
+add_acats_test(c96008b)

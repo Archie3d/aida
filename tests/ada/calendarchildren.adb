@@ -1,0 +1,90 @@
+with Ada.Calendar;
+with Ada.Calendar.Arithmetic;
+with Ada.Calendar.Formatting;
+with Ada.Calendar.Time_Zones;
+with Ada.Text_IO;
+procedure CalendarChildren is
+    package C renames Ada.Calendar;
+    package A renames Ada.Calendar.Arithmetic;
+    package F renames Ada.Calendar.Formatting;
+    package Z renames Ada.Calendar.Time_Zones;
+    use type C.Time;
+    use type A.Day_Count;
+    use type F.Day_Name;
+    use type Z.Time_Offset;
+    checks : Natural := 0;
+    procedure check (ok : Boolean) is
+    begin
+        checks := checks + 1;
+        if not ok then
+            raise Program_Error with Integer'Image (checks);
+        end if;
+    end check;
+    early : C.Time := C.Time_Of (1901, 1, 1);
+    late : C.Time := C.Time_Of (2399, 12, 31, 86399.75);
+    date : C.Time := F.Time_Of (2000, 2, 29, 23, 59, 59, 0.25);
+    days : A.Day_Count;
+    seconds : Duration;
+    leaps : A.Leap_Seconds_Count;
+    year : C.Year_Number;
+    month : C.Month_Number;
+    day : C.Day_Number;
+    hour : F.Hour_Number;
+    minute : F.Minute_Number;
+    second : F.Second_Number;
+    sub : F.Second_Duration;
+    daySeconds : C.Day_Duration;
+    leap : Boolean;
+begin
+    check (Z.UTC_Time_Offset (date) = 0 and Z.UTC_Time_Offset = 0);
+    check (F.Day_of_Week (early) = F.Tuesday);
+    check (F.Day_of_Week (C.Time_Of (1970, 1, 1)) = F.Thursday);
+    check (F.Day_of_Week (date) = F.Tuesday);
+    A.Difference (late, early, days, seconds, leaps);
+    check (days = 182255 and seconds = 86399.75 and leaps = 0);
+    check (A."-" (late, early) = days);
+    check (A."+" (early, days) + seconds = late);
+    check (A."+" (days, early) = A."-" (late, A.Day_Count (0)) - seconds);
+    A.Difference (early, late, days, seconds, leaps);
+    check (days = -182255 and seconds = -86399.75 and leaps = 0);
+    A.Difference (date + 0.25, date, days, seconds, leaps);
+    check (days = 0 and seconds = 0.25 and leaps = 0);
+    check (F.Image (date) = "2000-02-29 23:59:59");
+    check (F.Image (date, True) = "2000-02-29 23:59:59.25");
+    check (F.Image (date, True, 330) = "2000-03-01 05:29:59.25");
+    check (F.Value ("2000-03-01 05:29:59.25", 330) = date);
+    check (F.Time_Of (2000, 3, 1, Seconds => 0.0, Time_Zone => 60) = C.Time_Of (2000, 2, 29, 82800.0));
+    check (F.Time_Of (2000, 2, 29, 23, 59, 59, 1.0) = C.Time_Of (2000, 3, 1));
+    check (F.Time_Of (2399, 12, 31, Seconds => 86400.0, Time_Zone => 60) = C.Time_Of (2399, 12, 31, 82800.0));
+    check (F.Year (date, 330) = 2000 and F.Month (date, 330) = 3 and F.Day (date, 330) = 1);
+    check (F.Hour (date, 330) = 5 and F.Minute (date, 330) = 29);
+    check (F.Second (date) = 59 and F.Sub_Second (date) = 0.25);
+    F.Split (date, year, month, day, hour, minute, second, sub, leap, -60);
+    check (year = 2000 and month = 2 and day = 29 and hour = 22 and minute = 59 and second = 59 and sub = 0.25 and not leap);
+    F.Split (date, year, month, day, hour, minute, second, sub, 60);
+    check (day = 1 and month = 3 and hour = 0 and minute = 59);
+    F.Split (date, year, month, day, daySeconds, leap);
+    check (daySeconds = 86399.25 and not leap);
+    F.Split (86399.75, hour, minute, second, sub);
+    check (hour = 23 and minute = 59 and second = 59 and sub = 0.75);
+    check (F.Seconds_Of (23, 59, 59, 1.0) = 86400.0);
+    check (F.Seconds_Of (1, 2) = 3720.0);
+    check (F.Image (Duration'(3723.75), True) = "01:02:03.75");
+    check (F.Image (Duration'(-3723.75)) = "-01:02:03");
+    check (F.Value ("-01:02:03.75") = Duration'(-3723.75));
+    check (F.Image (Duration'(360000.0)) = "100:00:00");
+    check (F.Value ("100:00:00") = Duration'(360000.0));
+    check (F.Value (F.Image (Duration'First, True)) = Duration'First);
+    for fraction in 0 .. 99 loop
+        date := F.Time_Of (2000, 1, 1, 0, 0, 0, Duration (fraction) / 100);
+        check (F.Value (F.Image (date, True)) = date);
+    end loop;
+    declare
+        text : String (Integer'Last - 21 .. Integer'Last) := "2000-02-29 23:59:59.25";
+        elapsed : String (7 .. 17) := "01:02:03.75";
+    begin
+        check (F.Image (F.Value (Date => text), True) = text);
+        check (F.Value (Elapsed_Time => elapsed) = Duration'(3723.75));
+    end;
+    Ada.Text_IO.Put_Line ("calendarchildren: passed");
+end CalendarChildren;

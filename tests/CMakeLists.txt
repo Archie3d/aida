@@ -1885,7 +1885,7 @@ endforeach()
 add_ada_error_test(containererrors SOURCES containererrors.adb)
 
 # Phase 7 host services and their Calendar prerequisite.
-set(host_cases calendarlibrary)
+set(host_cases calendarlibrary calendarchildren calendarchecks calendartasking)
 if(UNIX OR MINGW)
     list(APPEND host_cases environmentvariables directorieslibrary hostlibrarytasking)
 endif()
@@ -1995,3 +1995,8 @@ add_executable(text_io_library_test TextIoLibraryTest.c)
 target_link_libraries(text_io_library_test PRIVATE adart)
 add_test(NAME runtime.text_io_library COMMAND text_io_library_test)
 set_tests_properties(runtime.text_io_library PROPERTIES TIMEOUT 15)
+
+add_executable(calendar_runtime_test CalendarRuntimeTest.c)
+target_link_libraries(calendar_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.calendar_library COMMAND calendar_runtime_test)
+set_tests_properties(runtime.calendar_library PROPERTIES TIMEOUT 30)

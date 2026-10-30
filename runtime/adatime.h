@@ -5,6 +5,8 @@
 
 typedef struct AdaTaskContext AdaTaskContext;
 
+#define ADA_DURATION_SCALE (INT64_C(1) << 30)
+
 /* Duration is a count of 2**(-30) seconds. Real_Time uses signed nanoseconds
    on the monotonic clock's unspecified epoch; no wall-clock synchronization. */
 int64_t __ada_real_clock(void);

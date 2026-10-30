@@ -4,7 +4,6 @@
 #include "../common/Fixed.h"
 
 #define NANOSECONDS INT64_C(1000000000)
-#define DURATION_SCALE (INT64_C(1) << 30)
 
 int64_t __ada_real_clock(void)
 {
@@ -27,7 +26,7 @@ int64_t __ada_real_tick(void)
 int64_t __ada_real_to_duration(int64_t span)
 {
     long long value = 0;
-    if (!fixedRound((__int128)span * DURATION_SCALE, NANOSECONDS, &value)) {
+    if (!fixedRound((__int128)span * ADA_DURATION_SCALE, NANOSECONDS, &value)) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
     }
     return value;
@@ -36,7 +35,7 @@ int64_t __ada_real_to_duration(int64_t span)
 int64_t __ada_real_to_span(int64_t duration)
 {
     long long value = 0;
-    if (!fixedRound((__int128)duration * NANOSECONDS, DURATION_SCALE, &value)) {
+    if (!fixedRound((__int128)duration * NANOSECONDS, ADA_DURATION_SCALE, &value)) {
         __ada_raise(ADA_CONSTRAINT_ERROR);
     }
     return value;
@@ -91,7 +90,7 @@ void __ada_delay_relative(AdaTaskContext* context, int64_t duration)
         return;
     }
     // Round positive intervals upward so conversion cannot shorten a delay.
-    __int128 nanoseconds = ((__int128)duration * NANOSECONDS + DURATION_SCALE - 1) / DURATION_SCALE;
+    __int128 nanoseconds = ((__int128)duration * NANOSECONDS + ADA_DURATION_SCALE - 1) / ADA_DURATION_SCALE;
     __int128 deadline = now + nanoseconds;
     if (deadline > INT64_MAX) {
         __ada_raise(ADA_CONSTRAINT_ERROR);

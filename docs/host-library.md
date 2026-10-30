@@ -3,9 +3,9 @@
 Ada 2005 references: [9.6 Calendar](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-9-6.html),
 [A.16 Directories](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-16.html),
 [A.17 Environment_Variables](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-17.html).
-This increment implements the base Calendar prerequisite and the Ada 2005
-Directories and Environment_Variables APIs. Calendar's arithmetic, formatting
-and time-zone child packages remain open in Phase 7. The later two-argument
+The base Calendar and Ada 2005 Directories and Environment_Variables APIs share
+these host contracts. Calendar's arithmetic, formatting and time-zone children
+are covered by the [calendar contract](calendar.md). The later two-argument
 Environment_Variables.Value overload is outside the Ada 2005 target.
 
 ## Calendar

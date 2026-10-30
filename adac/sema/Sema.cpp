@@ -111,6 +111,17 @@ void Sema::setupStandardScope()
     m_taskIdType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.task_identification", "Ada.Task_Identification");
 
+    // Obsolescent System.Tick follows Calendar's microsecond resolution,
+    // rounded to Duration's existing 2**(-30) representation (1074 ticks).
+    Symbol* tick = m_symbolTable.createSymbol(SymbolKind::Number, "tick", "Tick");
+    tick->type = m_types.durationType();
+    tick->isConstant = true;
+    tick->hasStaticValue = true;
+    tick->staticValue = 1074;
+    tick->exactReal = ExactReal::make(tick->staticValue, (__int128)1 << tick->type->fixedScale);
+    tick->staticReal = tick->exactReal.real();
+    system->scope->add(tick);
+
     Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
     storageUnit->type = m_types.universalInteger();
     storageUnit->exactReal = ExactReal::make(8);

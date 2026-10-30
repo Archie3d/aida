@@ -931,9 +931,19 @@ Ada 2005 additions and track annex packages separately.
     bounds/slices, null reads, line/page skipping, EOF/device errors and file
     locking (`textgetstrings`, `runtime.string_get`, `runtime.blocking_io`).
     REPORT.Legal_File_Name enables unchanged CXAG001 to PASS.
-- [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
-  arithmetic, formatting and time-zone child packages. The base package landed
-  with Directories above; the child packages remain open.
+- [x] `Ada.Calendar` children: Arithmetic supports full-range day differences
+  and checked day operations; Formatting supplies weekday/HMS access, all Split/
+  Time_Of profiles and strict date/elapsed images and values; Time_Zones exposes
+  the base Calendar's UTC choice. Microsecond Time and Duration's scale remain
+  unchanged. Leap-second requests raise Time_Error; reports are zero/False.
+  `calendarchildren`, `calendarchecks`, `calendartasking` cover whole/per-unit/
+  determinism and four tasks. `runtime.calendar_library` covers every supported
+  Gregorian date and minute offset, boundaries and concurrent callers.
+  Obsolescent System.Tick enables unchanged C96008A; C96008B also PASS alongside
+  C96006A/C96007A. Full suite: 1,562/1,562 checks; focused compiler/C-runtime
+  ASan/UBSan and C-runtime TSan pass (generated Ada accesses uninstrumented).
+  Host choices, expanded elapsed hours and portability limits:
+  [calendar contract](docs/calendar.md).
 - [ ] Enforcement of package categorization (`Pure`, `Preelaborate`), including
   Ada 2005 rules and `Preelaborable_Initialization`.
 - [ ] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and

@@ -133,7 +133,7 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
 - Byte-string mapping constants and callbacks; unbounded strings and Ada 2005 container families with cursors, callbacks and sorting ([API and limits](docs/library-collections.md))
-- UTC `Ada.Calendar`, directory operations/searches and environment variables ([host behavior](docs/host-library.md))
+- UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))
 - Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
 - Byte Text_IO, numeric input, string adapters and scoped file cleanup ([contract](docs/text-io.md)); type-aware streams ([streaming](docs/streaming.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))

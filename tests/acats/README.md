@@ -879,3 +879,22 @@ and Enumeration_IO's final token and subsequent EOF.
 | ce3904a.ada | `7fe900b6d666746ee15d95a41b790f398190e61e` | `556e27abda0735c49d14e859289de8ee2d8860fd2b27fc18097b123845ed995a` |
 
 [Text I/O contract, validation and remaining limits](../../docs/text-io.md).
+
+## Phase 7 Calendar children
+
+C96008A and C96008B were extracted unchanged on 2026-10-30 from the official
+[ACATS 3.1 complete archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP),
+using `C9/C96008A.ADA` and `C9/C96008B.ADA`. Archive SHA-256:
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`.
+Original CRLF bytes and rights
+grants/disclaimers are preserved. Both execute as PASS: they cover Calendar
+composition/decomposition, named profiles/defaults, Clock/System.Tick and
+midnight normalization. Existing C96006A/C96007A still execute; the 129-case
+backfill baseline remains separate. Child-package coverage comes from the
+focused Ada tests and exhaustive C runtime checks in the
+[calendar contract](../../docs/calendar.md).
+
+| Archive member | Local file | SHA-256 |
+| --- | --- | --- |
+| `C9/C96008A.ADA` | `c96008a.ada` | `3ab2401602539a4fc5e693dbde2fc3b583013155c511cdeffa4dd29356c36e17` |
+| `C9/C96008B.ADA` | `c96008b.ada` | `68b41ab56335d0f0b53229f5b179438e801ea23753d4ab9cd1554ade01c78dc6` |

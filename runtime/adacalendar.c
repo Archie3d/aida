@@ -8,7 +8,6 @@
 
 #define MICROSECONDS INT64_C(1000000)
 #define DAY_SECONDS INT64_C(86400)
-#define DURATION_SCALE (INT64_C(1) << 30)
 
 /* Proleptic Gregorian days relative to 1970-01-01. */
 static int64_t daysFromCivil(int year, int month, int day)
@@ -37,11 +36,11 @@ int64_t __ada_calendar_clock(void)
     return validTime(value) ? (int64_t)value : INT64_MIN;
 }
 
-int64_t __ada_calendar_compose(int year, int month, int day, int64_t seconds)
+int64_t __ada_calendar_compose_zone(int year, int month, int day, int64_t seconds, int offset)
 {
     static const int kMonthDays[] = {31,28,31,30,31,30,31,31,30,31,30,31};
     if (year < 1901 || year > 2399 || month < 1 || month > 12 || day < 1
-        || seconds < 0 || seconds > DAY_SECONDS * DURATION_SCALE) {
+        || seconds < 0 || seconds > DAY_SECONDS * ADA_DURATION_SCALE || offset < -1680 || offset > 1680) {
         return INT64_MIN;
     }
     int leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
@@ -49,17 +48,23 @@ int64_t __ada_calendar_compose(int year, int month, int day, int64_t seconds)
         return INT64_MIN;
     }
     long long micros;
-    fixedRound((__int128)seconds * MICROSECONDS, DURATION_SCALE, &micros);
-    __int128 value = (__int128)daysFromCivil(year, month, day) * DAY_SECONDS * MICROSECONDS + micros;
+    fixedRound((__int128)seconds * MICROSECONDS, ADA_DURATION_SCALE, &micros);
+    __int128 value = (__int128)daysFromCivil(year, month, day) * DAY_SECONDS * MICROSECONDS + micros
+        - (__int128)offset * 60 * MICROSECONDS;
     return validTime(value) ? (int64_t)value : INT64_MIN;
 }
 
-void __ada_calendar_split(int64_t date, int* year, int* month, int* day, int64_t* seconds, int* valid)
+int64_t __ada_calendar_compose(int year, int month, int day, int64_t seconds)
+{
+    return __ada_calendar_compose_zone(year, month, day, seconds, 0);
+}
+
+void __ada_calendar_split_zone(int64_t date, int offset, int* year, int* month, int* day, int64_t* seconds, int* valid)
 {
     *valid = 0;
-    if (!validTime(date)) {
-        return;
-    }
+    if (!validTime(date) || offset < -1680 || offset > 1680) { return; }
+    date += (int64_t)offset * 60 * MICROSECONDS;
+    if (!validTime(date)) { return; }
     int64_t days = date / (DAY_SECONDS * MICROSECONDS);
     int64_t rest = date % (DAY_SECONDS * MICROSECONDS);
     if (rest < 0) {
@@ -77,15 +82,21 @@ void __ada_calendar_split(int64_t date, int* year, int* month, int* day, int64_t
     *month = (int)mp + (mp < 10 ? 3 : -9);
     *year = y + (*month <= 2);
     long long ticks;
-    fixedRound((__int128)rest * DURATION_SCALE, MICROSECONDS, &ticks);
+    fixedRound((__int128)rest * ADA_DURATION_SCALE, MICROSECONDS, &ticks);
     *seconds = ticks;
     *valid = 1;
 }
 
+void __ada_calendar_split(int64_t date, int* year, int* month, int* day, int64_t* seconds, int* valid)
+{
+    __ada_calendar_split_zone(date, 0, year, month, day, seconds, valid);
+}
+
 int64_t __ada_calendar_add(int64_t date, int64_t span, int subtract)
 {
+    if (!validTime(date)) { return INT64_MIN; }
     long long micros;
-    fixedRound((__int128)span * MICROSECONDS, DURATION_SCALE, &micros);
+    fixedRound((__int128)span * MICROSECONDS, ADA_DURATION_SCALE, &micros);
     __int128 value = (__int128)date + (subtract ? -(__int128)micros : micros);
     return validTime(value) ? (int64_t)value : INT64_MIN;
 }
@@ -93,10 +104,61 @@ int64_t __ada_calendar_add(int64_t date, int64_t span, int subtract)
 void __ada_calendar_difference(int64_t left, int64_t right, int64_t* span, int* valid)
 {
     long long ticks;
-    *valid = fixedRound(((__int128)left - right) * DURATION_SCALE, MICROSECONDS, &ticks);
+    *valid = validTime(left) && validTime(right)
+        && fixedRound(((__int128)left - right) * ADA_DURATION_SCALE, MICROSECONDS, &ticks);
     if (*valid) {
         *span = ticks;
     }
+}
+
+/* Calendar day arithmetic does not pass the entire interval through Duration:
+   the calendar's full range is wider than Duration can represent. */
+int64_t __ada_calendar_add_days(int64_t date, int64_t days, int subtract)
+{
+    if (!validTime(date)) { return INT64_MIN; }
+    __int128 delta = (__int128)days * DAY_SECONDS * MICROSECONDS;
+    __int128 result = (__int128)date + (subtract ? -delta : delta);
+    return validTime(result) ? (int64_t)result : INT64_MIN;
+}
+
+void __ada_calendar_day_difference(int64_t left, int64_t right, int* days, int64_t* seconds, int* valid)
+{
+    *valid = 0;
+    if (!validTime(left) || !validTime(right)) { return; }
+    int64_t delta = left - right;
+    int64_t daySize = DAY_SECONDS * MICROSECONDS;
+    *days = (int)(delta / daySize);
+    long long ticks;
+    *valid = fixedRound((__int128)(delta % daySize) * ADA_DURATION_SCALE, MICROSECONDS, &ticks);
+    if (*valid) { *seconds = ticks; }
+}
+
+int __ada_calendar_weekday(int64_t date)
+{
+    if (!validTime(date)) { return -1; }
+    int64_t daySize = DAY_SECONDS * MICROSECONDS;
+    int64_t days = date / daySize - (date % daySize < 0);
+    return (int)(((days + 3) % 7 + 7) % 7);
+}
+
+int __ada_calendar_centiseconds(int64_t date)
+{
+    int64_t fraction = date % MICROSECONDS;
+    if (fraction < 0) { fraction += MICROSECONDS; }
+    return (int)(fraction / (MICROSECONDS / 100));
+}
+
+/* A negative Duration's magnitude can exceed Duration'Last by one tick.
+   Extract its printable parts without negating it in signed 64-bit storage. */
+void __ada_calendar_elapsed_parts(int64_t span, int* hours, int* minutes, int* seconds, int* hundredths, int* negative)
+{
+    __int128 magnitude = span < 0 ? -(__int128)span : span;
+    int64_t whole = (int64_t)(magnitude / ADA_DURATION_SCALE);
+    *hours = (int)(whole / 3600);
+    *minutes = (int)(whole / 60 % 60);
+    *seconds = (int)(whole % 60);
+    *hundredths = (int)(magnitude % ADA_DURATION_SCALE * 100 / ADA_DURATION_SCALE);
+    *negative = span < 0;
 }
 
 void __ada_calendar_delay_until(AdaTaskContext* context, int64_t deadline)
@@ -116,7 +178,7 @@ void __ada_calendar_delay_until(AdaTaskContext* context, int64_t deadline)
         if (micros > 100000) {
             micros = 100000;
         }
-        int64_t ticks = (int64_t)(((__int128)micros * DURATION_SCALE + MICROSECONDS - 1) / MICROSECONDS);
+        int64_t ticks = (int64_t)(((__int128)micros * ADA_DURATION_SCALE + MICROSECONDS - 1) / MICROSECONDS);
         __ada_delay_relative(context, ticks);
         if (context->exception != NULL) {
             return;
