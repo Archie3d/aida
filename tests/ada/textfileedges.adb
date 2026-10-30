@@ -1,4 +1,4 @@
--- Line reads handle empty, split and unterminated lines with input redirection.
+-- Full buffers leave the terminator for the next line read.
 with Ada.Text_IO; use Ada.Text_IO;
 procedure TextFileEdges is
     procedure Check (Condition : Boolean) is
@@ -30,6 +30,8 @@ begin
     Check (Last = 3 and Buffer = "abc");
     Get_Line (Buffer, Last);
     Check (Last = 3 and Buffer = "def");
+    Get_Line (Buffer, Last);
+    Check (Last = 0);
     Get_Line (Buffer, Last);
     Check (Last = 2 and Buffer (1 .. Last) = "xy");
     Check (End_Of_File);

@@ -26,6 +26,7 @@ typedef struct AdaFileStream
 typedef struct AdaFile
 {
     FILE* stream;
+    struct AdaFile** owner; // Address of the owning File_Type; snapshots borrow.
     int mode;
     int isOpen;
     int isStandard; /* The standard files are never closed or deleted. */
@@ -34,6 +35,12 @@ typedef struct AdaFile
     unsigned users; /* Table lock: pins include callers waiting on mutex. */
     int mutexReady;
     struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
+    int text;
+    int pageTerminated;
+    int pending[4];
+    int pendingCount;
+    uint64_t column, line, page;
+    int lineLength, pageLength;
     AdaFileStream streamView; /* A stable tagged stream view for this pool slot. */
 } AdaFile;
 
@@ -47,6 +54,10 @@ typedef AdaFile** AdaFileRef;
    File_Type variables must be changed through runtime entry points, not raw
    concurrent C stores. Stack-allocated C AdaFile records must start zeroed
    and have their lazily initialized mutex destroyed after the last use. */
+int __ada_text_peek(AdaFile* file, int offset);
+int __ada_text_take(AdaFile* file);
+char* __ada_io_read_token(AdaFile* file, int width, int kind, int* length);
+int __ada_io_token_length(const char* text, int length, int kind);
 void __ada_io_begin(AdaFileRef handle);
 void __ada_io_end(void);
 void __ada_io_lock(void);
@@ -59,6 +70,7 @@ AdaFile* __ada_file_checked(AdaFileRef handle, int requiredMode);
 
 void __ada_file_open(AdaFileRef handle, int mode, const char* name, int length, int create);
 void __ada_file_close(AdaFileRef handle);
+void __ada_file_finalize(AdaFileRef handle);
 void __ada_file_delete(AdaFileRef handle);
 /* One whitespace delimited word, which is as much as the run time can make of
    input without knowing the Ada type it is being read into. */
@@ -134,6 +146,8 @@ void __ada_stream_set_index(AdaFileRef handle, int index);
 int __ada_stream_index(AdaFileRef handle);
 int __ada_stream_size(AdaFileRef handle);
 
+void __ada_text_write_field(AdaFile* file, const char* text, int length);
+void __ada_text_write_chars(AdaFile* file, const char* text, int length);
 void __ada_text_put(AdaFileRef handle, const char* item, int length);
 void __ada_text_put_line(AdaFileRef handle, const char* item, int length);
 void __ada_text_put_character(AdaFileRef handle, int item);
@@ -173,5 +187,47 @@ void __ada_get_enum(void* item, int size, const char** names, int count);
 
 long long __ada_text_get_modular(AdaFileRef handle, long long last, int width);
 long long __ada_get_modular(long long last, int width);
+
+/* Additional text operations and byte-file constructors. */
+void __ada_text_scan(void* descriptor, AdaFileRef handle, int width, int kind);
+void __ada_scan(void* descriptor, int width, int kind);
+AdaFileRef __ada_current_error(void);
+void __ada_set_error(AdaFileRef handle);
+void __ada_text_flush(AdaFileRef handle);
+void __ada_flush(void);
+void __ada_text_set_line_length(AdaFileRef handle, int to);
+void __ada_set_line_length(int to);
+void __ada_text_set_page_length(AdaFileRef handle, int to);
+void __ada_set_page_length(int to);
+int __ada_text_line_length(AdaFileRef handle);
+int __ada_line_length(void);
+int __ada_text_page_length(AdaFileRef handle);
+int __ada_page_length(void);
+void __ada_text_new_page(AdaFileRef handle);
+void __ada_new_page(void);
+void __ada_text_skip_page(AdaFileRef handle);
+void __ada_skip_page(void);
+int __ada_text_end_of_page(AdaFileRef handle);
+int __ada_end_of_page(void);
+void __ada_text_set_col(AdaFileRef handle, int to);
+void __ada_set_col(int to);
+void __ada_text_set_line(AdaFileRef handle, int to);
+void __ada_set_line(int to);
+int __ada_text_col(AdaFileRef handle);
+int __ada_col(void);
+int __ada_text_line_number(AdaFileRef handle);
+int __ada_line_number(void);
+int __ada_text_page(AdaFileRef handle);
+int __ada_page(void);
+void __ada_text_look_ahead(AdaFileRef handle, char* item, int* end);
+void __ada_look_ahead(char* item, int* end);
+void __ada_text_get_immediate(AdaFileRef handle, char* item);
+void __ada_get_immediate(char* item);
+void __ada_text_get_available(AdaFileRef handle, char* item, int* available);
+void __ada_get_available(char* item, int* available);
+void __ada_text_line(void* descriptor, AdaFileRef handle);
+void __ada_line(void* descriptor);
+void __ada_binary_create(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
+void __ada_binary_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
 
 #endif

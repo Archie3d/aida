@@ -819,7 +819,7 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
     if (base == nullptr) {
         return false;
     }
-    if (base->kind == TypeKind::Access || base->taskBody != nullptr || base->protectedScope != nullptr) {
+    if (base->fileHandle || base->kind == TypeKind::Access || base->taskBody != nullptr || base->protectedScope != nullptr) {
         return true;
     }
     if (base->kind == TypeKind::Array) {
@@ -847,6 +847,11 @@ bool QbeEmitter::hasComponentDefaults(Type* type)
 // scalar components without defaults retain their unspecified initial value.
 void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 {
+    if (type->fileHandle) {
+        line("storel 0, " + destination.name);
+        activateControlledObject(destination, type);
+        return;
+    }
     if (type->exceptionOccurrence) {
         emitCallInstruction("call $__ada_occurrence_initialize(l " + destination.name + ")", CallEffects::DeferredCheck);
         activateControlledObject(destination, type);

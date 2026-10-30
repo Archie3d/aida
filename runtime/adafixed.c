@@ -249,7 +249,7 @@ static void fixedPut(AdaFileRef handle, long long value, int bits, int fore, int
     if (file == NULL) { return; }
     char* text = formatFixed(value, bits, fore, aft, exponent, 0, NULL, 0);
     if (text != NULL) {
-        if (fputs(text, file->stream) == EOF) { __ada_raise(ADA_DEVICE_ERROR); }
+        __ada_text_write_field(file, text, (int)strlen(text));
         free(text);
     }
 }
@@ -276,67 +276,17 @@ long long __ada_fixed_get_string(const char* from, int length, int bits, long lo
     return result;
 }
 
-/* A lexical scanner stops before a character that belongs to the following
-   item. Unlike a whitespace-token reader it leaves punctuation and adjacent
-   signed numbers in the input. Bad digit groups remain intact for validation. */
-static int numericCharacter(int c, int position, int* hashes, int* exponent, int* point, int previous)
-{
-    if (c >= '0' && c <= '9') { return 1; }
-    if (c == '+' || c == '-') { return position == 0 || (*exponent && (previous == 'E' || previous == 'e')); }
-    if (c == '_') { return 1; }
-    if (c == '.') {
-        if (*exponent || *point || *hashes == 2) { return 0; }
-        *point = 1;
-        return 1;
-    }
-    if (c == '#' || c == ':') {
-        if (*hashes >= 2 || *exponent || (*hashes == 0 && *point)) { return 0; }
-        ++*hashes;
-        return 1;
-    }
-    if (*hashes == 1 && digitValue(c) >= 10) { return 1; }
-    if ((c == 'e' || c == 'E') && !*exponent) { *exponent = 1; return 1; }
-    return 0;
-}
-
+/* Fixed, decimal, integer and floating input share token boundaries. */
 static long long fixedGet(AdaFileRef handle, int bits, long long low, long long high, int width)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     if (file == NULL) { return 0; }
-    int c = fgetc(file->stream);
-    if (width == 0) {
-        while (c != EOF && isspace((unsigned char)c)) { c = fgetc(file->stream); }
-    }
-    if (c == EOF) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); return 0; }
-    char* text = NULL;
-    int size = 0, capacity = 0, hashes = 0, exponent = 0, point = 0, previous = 0;
-    while (c != EOF) {
-        if (width != 0) {
-            if (size == width || c == '\n' || c == '\r' || c == '\f') { break; }
-        } else if (!numericCharacter(c, size, &hashes, &exponent, &point, previous)) { break; }
-        if (size == capacity) {
-            int newCapacity = capacity == 0 ? 64 : (capacity <= INT_MAX / 2 ? capacity * 2 : INT_MAX);
-            if (newCapacity == capacity) { __ada_raise(ADA_STORAGE_ERROR); break; }
-            char* grown = realloc(text, (size_t)newCapacity);
-            if (grown == NULL) { __ada_raise(ADA_STORAGE_ERROR); break; }
-            text = grown;
-            capacity = newCapacity;
-        }
-        text[size++] = (char)c;
-        previous = c;
-        c = fgetc(file->stream);
-    }
-    if (c != EOF) { ungetc(c, file->stream); }
+    int length, last = 0;
+    char* text = __ada_io_read_token(file, width, 1, &length);
     long long result = 0;
-    int last = 0;
-    if (__ada_exception == NULL) {
-        if (!parseFixed(text, size, bits, low, high, 1, &last, &result)) {
-            if (__ada_exception == NULL) { __ada_raise(ADA_DATA_ERROR); }
-        }
-        else {
-            while (last < size && (text[last] == ' ' || text[last] == '\t')) { ++last; }
-            if (last != size) { __ada_raise(ADA_DATA_ERROR); }
-        }
+    if (__ada_exception == NULL && !parseFixed(text, length, bits, low, high, 0, &last, &result)
+        && __ada_exception == NULL) {
+        __ada_raise(ADA_DATA_ERROR);
     }
     free(text);
     return result;

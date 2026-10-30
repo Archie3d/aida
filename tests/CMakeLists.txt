@@ -1834,8 +1834,9 @@ add_test(NAME runtime.pragmaimport_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.pragmaimport_modes PROPERTIES TIMEOUT 60)
 
-# Phase 7: string mappings and controlled Ada library collections.
-foreach(collection_case stringmappingtasking stringmappingcallbacks
+# Phase 7: predefined I/O, string mappings and controlled Ada collections.
+foreach(collection_case iofilelifetime textinputgrammar textiolibrary iolibrarytasking textstringio
+    stringmappingtasking stringmappingcallbacks
     unboundedstrings basicvectors vectorlifetime librarycollectiontasking)
     add_ada_test(${collection_case} SOURCES ${collection_case}.adb)
     add_determinism_test(${collection_case} SOURCE ${collection_case}.adb)
@@ -1989,3 +1990,8 @@ add_test(NAME runtime.exception_partitions
         -DWORKDIR=${ADA_TEST_WORK_DIR}/exception-partitions
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckExceptionPartitions.cmake)
 set_tests_properties(runtime.exception_partitions PROPERTIES TIMEOUT 60)
+
+add_executable(text_io_library_test TextIoLibraryTest.c)
+target_link_libraries(text_io_library_test PRIVATE adart)
+add_test(NAME runtime.text_io_library COMMAND text_io_library_test)
+set_tests_properties(runtime.text_io_library PROPERTIES TIMEOUT 15)

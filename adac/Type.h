@@ -249,6 +249,7 @@ struct Type
     int streamSize = -1;
     bool streamSizeSpecified = false;
     bool exceptionOccurrence = false;
+    bool fileHandle = false; // Ada.IO_Handles: runtime-owned resource, borrowed on copy.
     bool streamsFrozen = false;
     std::array<Symbol*, 4> streamAttributes{}; // Read, Write, Input, Output.
 
@@ -292,6 +293,7 @@ bool streamAvailable(Type* type, int attribute);
 bool hasRuntimeLayout(const Type* type);
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
+bool isFileHandleView(const Type* type);
 bool needsCollection(const Type* type);
 bool hasAccessDiscriminants(const Type* type);
 Type* controllingParameterType(Type* type);

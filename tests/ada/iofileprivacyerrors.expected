@@ -3,13 +3,17 @@ iofileprivacyerrors.adb:13:18: error: 'sequential.file_handle' is not declared
 iofileprivacyerrors.adb:14:21: error: 'direct.file_handle' is not declared
 iofileprivacyerrors.adb:15:21: error: 'ada.streams.stream_io.file_handle' is not declared
 iofileprivacyerrors.adb:17:5: error: 'File_Type' is limited private, so a value of it cannot be assigned outside 'Text_IO'
+iofileprivacyerrors.adb:17:5: error: limited controlled objects cannot be assigned
 iofileprivacyerrors.adb:18:5: error: 'File_Type' is limited private, so a value of it cannot be assigned outside 'Sequential'
+iofileprivacyerrors.adb:18:5: error: limited controlled objects cannot be assigned
 iofileprivacyerrors.adb:19:5: error: 'File_Type' is limited private, so a value of it cannot be assigned outside 'Direct'
+iofileprivacyerrors.adb:19:5: error: limited controlled objects cannot be assigned
 iofileprivacyerrors.adb:20:5: error: 'File_Type' is limited private, so a value of it cannot be assigned outside 'Stream_IO'
-iofileprivacyerrors.adb:21:15: error: 'File_Type' is limited private, so 'Text_IO' has to be the one to say what this operator means
-iofileprivacyerrors.adb:22:14: error: 'File_Type' is limited private, so 'Sequential' has to be the one to say what this operator means
-iofileprivacyerrors.adb:23:17: error: 'File_Type' is limited private, so 'Direct' has to be the one to say what this operator means
-iofileprivacyerrors.adb:24:17: error: 'File_Type' is limited private, so 'Stream_IO' has to be the one to say what this operator means
+iofileprivacyerrors.adb:20:5: error: limited controlled objects cannot be assigned
+iofileprivacyerrors.adb:21:15: error: a limited controlled type has no predefined equality
+iofileprivacyerrors.adb:22:14: error: a limited controlled type has no predefined equality
+iofileprivacyerrors.adb:23:17: error: a limited controlled type has no predefined equality
+iofileprivacyerrors.adb:24:17: error: a limited controlled type has no predefined equality
 iofileprivacyerrors.adb:25:11: error: component 'Handle' is not visible through this type view
 iofileprivacyerrors.adb:26:10: error: component 'Handle' is not visible through this type view
 iofileprivacyerrors.adb:27:13: error: component 'Handle' is not visible through this type view

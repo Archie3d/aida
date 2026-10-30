@@ -1,0 +1,12 @@
+data $.ada_io_handles.str.0 = { b "ada-io_handles (spec elaboration)" 0 }
+data $.ada_io_handles.str.1 = { b "<unknown>" 0 }
+
+export function $ada_elab.ada_io_handles_spec() {
+@start
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_io_handles.str.0, l $.ada_io_handles.str.1)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+}
+

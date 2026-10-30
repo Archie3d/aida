@@ -235,3 +235,9 @@ add_acats_test(cdd2b01 SOURCES fdd2b00.ada cdd2b01.ada)
 add_acats_test(cb41001)
 add_acats_test(cb41003)
 add_acats_test(cb41004)
+
+# Text_IO input grammar and file/line operations.
+add_acats_test(ce3704a)
+add_acats_test(ce3804a)
+add_acats_test(ce3904a)
+add_acats_test(ce3402a)

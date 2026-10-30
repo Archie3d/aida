@@ -14,16 +14,36 @@ export function w $main(w %argc, l %argv) {
     %.t3 =w cnel %.t2, 0
     jnz %.t3, @shutdown, @elaborated.1
 @elaborated.1
-    call $ada_elab.ada_text_io_spec()
+    call $ada_elab.ada_io_handles_spec()
     %.t4 =l loadl %.taskContext
     %.t5 =w cnel %.t4, 0
     jnz %.t5, @shutdown, @elaborated.2
 @elaborated.2
-    call $ada_elab.hello_body()
+    call $ada_elab.ada_text_io_spec()
     %.t6 =l loadl %.taskContext
     %.t7 =w cnel %.t6, 0
     jnz %.t7, @shutdown, @elaborated.3
 @elaborated.3
+    call $ada_elab.ada_text_io_scanning_spec()
+    %.t8 =l loadl %.taskContext
+    %.t9 =w cnel %.t8, 0
+    jnz %.t9, @shutdown, @elaborated.4
+@elaborated.4
+    call $ada_elab.ada_text_io_scanning_body()
+    %.t10 =l loadl %.taskContext
+    %.t11 =w cnel %.t10, 0
+    jnz %.t11, @shutdown, @elaborated.5
+@elaborated.5
+    call $ada_elab.ada_text_io_body()
+    %.t12 =l loadl %.taskContext
+    %.t13 =w cnel %.t12, 0
+    jnz %.t13, @shutdown, @elaborated.6
+@elaborated.6
+    call $ada_elab.hello_body()
+    %.t14 =l loadl %.taskContext
+    %.t15 =w cnel %.t14, 0
+    jnz %.t15, @shutdown, @elaborated.7
+@elaborated.7
     call $__ada_library_activate()
     %.activationException =l loadl %.taskContext
     %.activationFailed =w cnel %.activationException, 0
@@ -33,12 +53,12 @@ export function w $main(w %argc, l %argv) {
     jmp @shutdown
 @shutdown
     call $__ada_library_finalize()
-    %.t8 =l loadl %.taskContext
-    %.t9 =w cnel %.t8, 0
-    jnz %.t9, @unhandled, @done
+    %.t16 =l loadl %.taskContext
+    %.t17 =w cnel %.t16, 0
+    jnz %.t17, @unhandled, @done
 @unhandled
-    %.t10 =l loadl %.taskContext
-    call $__ada_unhandled(l %.t10)
+    %.t18 =l loadl %.taskContext
+    call $__ada_unhandled(l %.t18)
     ret 1
 @done
     %.exitStatus =w call $__ada_get_exit_status()

@@ -859,3 +859,23 @@ streaming/partition and four-task coverage is recorded in the
 | tests/cb/cb41001.a | `95ad868feaf3e937847566f16a153e0f593363cd` | `1fb2222e1d4356c9f7e837dcc0cc7a7405e71b515c752d5940c9d00920ef35da` |
 | tests/cb/cb41003.a | `aee0b094ce5394e5640ad59e5c86433667e6dd03` | `56ac200b58bc40dca2b46b42bd755601478ea846980c85deb3d8e2d7fd3ca6ef` |
 | tests/cb/cb41004.a | `10a300f140f57ddf9b474bc7619fd5b9c4915d41` | `5e34b1822ba8eeb712865ec19c4d9f85d2a3896f94d348d2bf750c14bb22bb60` |
+
+## Phase 7 Text_IO and file lifetime
+
+CE3402A, CE3704A, CE3804A and CE3904A were retrieved unchanged on 2026-10-30
+from the GCC `releases/gcc-14` mirror under `gcc/testsuite/ada/acats/tests/ce/`.
+They retain their original source bytes, rights grants and disclaimers. They
+execute as PASS using the Ada 2005 J.1 `Text_IO` compatibility renaming and the
+standard nested I/O generics, without source edits or extra context clauses.
+These added cases leave the 129-case backfill baseline separate. They cover
+New_Line's input-mode error, Integer_IO default/explicit input, Float_IO signs,
+and Enumeration_IO's final token and subsequent EOF.
+
+| File | Upstream git blob | SHA-256 |
+| --- | --- | --- |
+| ce3402a.ada | `18773f848a287d20aad75624f7545d2cde0b04a2` | `6615c1c9787c0c9b7259557db18070b8ea8b0b1451ec88ee2b8101d8b962c154` |
+| ce3704a.ada | `f2325c04ba4a86ba272fd45cc986a4f23b402fb1` | `4f958f715cbf7b6bb7a08d9dea391878616e1e67f483183b78ebe1a5f828fc3f` |
+| ce3804a.ada | `c05a1ff1af1d4fdffe57995baeb3646841945f42` | `b1bb8a15cd334849faef6d283e06a9a8e423219a2118eca4ba34e870ef3f070b` |
+| ce3904a.ada | `7fe900b6d666746ee15d95a41b790f398190e61e` | `556e27abda0735c49d14e859289de8ee2d8860fd2b27fc18097b123845ed995a` |
+
+[Text I/O contract, validation and remaining limits](../../docs/text-io.md).

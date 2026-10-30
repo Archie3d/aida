@@ -3,6 +3,7 @@
 -- where one sits.
 
 with Ada.IO_Exceptions;
+with Ada.IO_Handles;
 with System;
 
 generic
@@ -80,7 +81,7 @@ private
 
     -- The C runtime owns the file object; Ada stores only its opaque address.
     -- The wrapper starts out null so Is_Open can inspect an unopened file.
-    type File_Handle is new System.Address;
+    subtype File_Handle is Ada.IO_Handles.File_Handle;
 
     type File_Type is
     record

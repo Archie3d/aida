@@ -5,6 +5,7 @@ procedure DirectoriesLibrary is
     use Ada.Directories;
     use type Ada.Calendar.Time;
     Root : constant String := "aida_phase7_directories";
+    kTextSize : constant File_Size := 7; -- "hello", LF and page terminator.
     Count : Natural := 0;
     State : Search_Type;
     Item : Directory_Entry_Type;
@@ -20,7 +21,7 @@ procedure DirectoriesLibrary is
     begin
         Check (Kind (Directory_Entry) = Ordinary_File);
         Check (Simple_Name (Directory_Entry) = "renamed.txt");
-        Check (Size (Directory_Entry) = 6);
+        Check (Size (Directory_Entry) = kTextSize);
         Count := Count + 1;
     end Visit;
 begin
@@ -40,9 +41,9 @@ begin
     Ada.Text_IO.Create (File, Name => Root & "/hello.txt");
     Ada.Text_IO.Put_Line (File, "hello");
     Ada.Text_IO.Close (File);
-    Check (Exists (Root & "/hello.txt") and Size (Root & "/hello.txt") = 6);
+    Check (Exists (Root & "/hello.txt") and Size (Root & "/hello.txt") = kTextSize);
     Copy_File (Root & "/hello.txt", Root & "/copy.txt");
-    Check (Size (Root & "/copy.txt") = 6);
+    Check (Size (Root & "/copy.txt") = kTextSize);
     Rename (Root & "/copy.txt", Root & "/renamed.txt");
     Check (not Exists (Root & "/copy.txt"));
     Caught := False;
@@ -51,7 +52,7 @@ begin
     exception
         when Use_Error => Caught := True;
     end;
-    Check (Caught and Size (Root & "/renamed.txt") = 6);
+    Check (Caught and Size (Root & "/renamed.txt") = kTextSize);
     Caught := False;
     begin
         Rename (Root & "/hello.txt", Root & "/missing/new.txt");
@@ -65,7 +66,7 @@ begin
     exception
         when Use_Error => Caught := True;
     end;
-    Check (Caught and Size (Root & "/hello.txt") = 6);
+    Check (Caught and Size (Root & "/hello.txt") = kTextSize);
     Check (Ada.Calendar.Year (Modification_Time (Root & "/hello.txt")) >= 2020);
     Check (Simple_Name (Root & "/hello.txt") = "hello.txt");
     Check (Base_Name (Root & "/hello.txt") = "hello");
@@ -78,11 +79,11 @@ begin
     Start_Search (State, Root, "*.txt", (Ordinary_File => True, others => False));
     Check (More_Entries (State));
     Get_Next_Entry (State, Item);
-    Check (Kind (Item) = Ordinary_File and Size (Item) = 6);
+    Check (Kind (Item) = Ordinary_File and Size (Item) = kTextSize);
     Check (Modification_Time (Item) <= Ada.Calendar.Clock);
     End_Search (State);
     End_Search (State);
-    Check (not More_Entries (State) and Size (Item) = 6);
+    Check (not More_Entries (State) and Size (Item) = kTextSize);
     Search (Root, "renamed.?xt", Process => Visit'Access);
     Check (Count = 1);
     Start_Search (State, Root, "", (others => False));

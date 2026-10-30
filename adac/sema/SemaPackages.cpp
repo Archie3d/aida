@@ -151,7 +151,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             }
             if (operation->pendingControlledResult) {
                 Type* result = operation->returnType;
-                if (needsFinalization(result) && operation->builtin == BuiltinKind::Runtime) {
+                if (needsFinalization(result) && !isFileHandleView(result) && operation->builtin == BuiltinKind::Runtime) {
                     m_diagnostics.error(operation->location, "imported controlled function results are not yet supported");
                 }
                 operation->pendingControlledResult = false;

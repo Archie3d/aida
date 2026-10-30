@@ -165,7 +165,25 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         return emitCall(&renamed, inheritedControllingType);
     }
     if (subprogram->builtin == BuiltinKind::Runtime) {
+        // File queries return borrowed handle snapshots rather than constructing
+        // an owning limited result through the Ada result-buffer ABI.
+        std::string fileTarget;
+        if (isFileHandleView(subprogram->returnType)) {
+            fileTarget = std::move(m_context->resultTarget);
+            m_context->resultTarget.clear();
+            if (fileTarget.empty()) { fileTarget = std::move(m_context->resultDescriptor); }
+            m_context->resultDescriptor.clear();
+            m_context->resultProvided.clear();
+            m_context->resultTargetOwner.clear();
+            m_context->resultTargetArena.clear();
+        }
         Value result = emitRuntimeCall(expr, subprogram);
+        if (!fileTarget.empty()) {
+            emitExceptionCheck();
+            Value target {fileTarget, 'l'};
+            copyControlledObject(target, result, subprogram->returnType, true);
+            result = target;
+        }
         if (subprogram->canRaise) {
             emitExceptionCheck();
         }
@@ -665,7 +683,11 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { "0", 'w' };
     }
 
-    if (subprogram->runtimeSymbol == "$__ada_file_name"
+    if (subprogram->runtimeSymbol == "$__ada_text_scan"
+        || subprogram->runtimeSymbol == "$__ada_scan"
+        || subprogram->runtimeSymbol == "$__ada_text_line"
+        || subprogram->runtimeSymbol == "$__ada_line"
+        || subprogram->runtimeSymbol == "$__ada_file_name"
         || (subprogram->runtimeSymbol.starts_with("$__ada_host_") && isUnconstrainedArray(subprogram->returnType))) {
         std::string descriptor = allocScratch(adaArrayResultSize(1));
         emitCallInstruction("call " + subprogram->runtimeSymbol + "(l " + descriptor

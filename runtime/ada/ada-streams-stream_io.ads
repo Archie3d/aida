@@ -3,6 +3,7 @@
 -- package is what opens one and says where in it to work.
 
 with Ada.IO_Exceptions;
+with Ada.IO_Handles;
 with System;
 
 package Ada.Streams.Stream_IO is
@@ -20,13 +21,13 @@ package Ada.Streams.Stream_IO is
                       Mode : in File_Mode := Out_File;
                       Name : in String := "";
                       Form : in String := "");
-    pragma Import (C, Create, "__ada_create");
+    pragma Import (C, Create, "__ada_binary_create");
 
     procedure Open (File : in out File_Type;
                     Mode : in File_Mode;
                     Name : in String;
                     Form : in String := "");
-    pragma Import (C, Open, "__ada_open");
+    pragma Import (C, Open, "__ada_binary_open");
 
     procedure Close (File : in out File_Type);
     pragma Import (C, Close, "__ada_file_close");
@@ -86,7 +87,7 @@ private
 
     -- The C runtime owns the file object; Ada stores only its opaque address.
     -- The wrapper starts out null so Is_Open can inspect an unopened file.
-    type File_Handle is new System.Address;
+    subtype File_Handle is Ada.IO_Handles.File_Handle;
 
     -- ABI: tag pointer followed by one AdaFile pointer, owned by its file slot.
     type File_Stream is new Root_Stream_Type with record

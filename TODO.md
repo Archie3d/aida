@@ -913,17 +913,24 @@ Ada 2005 additions and track annex packages separately.
   pass (generated Ada accesses remain uninstrumented). Categorization and wide
   facilities retain their later owners.
   [API and validation](docs/library-collections.md).
-- [ ] Remaining `Text_IO` and numeric input grammar cases. File objects in
-  Text_IO, Sequential_IO, Direct_IO and Stream_IO now expose limited private
-  views over opaque addresses (`iofileprivacyerrors`, `filesnapshots`);
-  complete the file-object scope-finalization/lifetime audit for these packages.
-  - [x] Explicit-file and current-input String Get: arbitrary bounds/slices,
-    no operations for null strings, line/page skipping, EOF/device errors and
-    file locking across the read (`textgetstrings`, `runtime.string_get`,
-    `runtime.blocking_io`; whole/per-unit/determinism and four-task use).
-    REPORT.Legal_File_Name enables unchanged CXAG001 to PASS; broader Text_IO
-    and REPORT protocol coverage remain open. Full suite: 1,489/1,489 checks;
-    focused compiler/C-runtime ASan/UBSan and C-runtime TSan pass.
+- [x] Narrow `Text_IO` and numeric input: nested numeric/enumeration generics,
+  shared growing lexer, Width and string Get/Put, long numeric instances,
+  current error/Flush, layout/positions, lookahead/immediate input, String-valued
+  Get_Line and bounded/unbounded adapters. All four file families finalize through
+  scopes/collections, with borrowed current/standard snapshots and limited-result
+  adaptation (`textinputgrammar`, `textiolibrary`, `textstringio`, `iofilelifetime`,
+  `iolibrarytasking`, `runtime.text_io_library`; whole/per-unit/determinism and
+  four tasks). Unchanged CE3402A/CE3704A/CE3804A/CE3904A PASS. Existing text and
+  host fixtures reflect final page termination. Wide I/O retains its later item;
+  floating output rounding/locale, cross-host terminals and remaining Stream_IO
+  operations retain the Phase 8 environment audit. C-runtime ASan/UBSan and TSan
+  and focused compiler ASan/UBSan pass (generated Ada accesses uninstrumented).
+  Full suite: 1,550/1,550 checks.
+  [Host representation, ownership, API and limits](docs/text-io.md).
+  - [x] Explicit-file and current-input String Get previously supplied arbitrary
+    bounds/slices, null reads, line/page skipping, EOF/device errors and file
+    locking (`textgetstrings`, `runtime.string_get`, `runtime.blocking_io`).
+    REPORT.Legal_File_Name enables unchanged CXAG001 to PASS.
 - [ ] `Ada.Calendar`, on the Phase 4 `Duration`, followed by Ada 2005 calendar
   arithmetic, formatting and time-zone child packages. The base package landed
   with Directories above; the child packages remain open.

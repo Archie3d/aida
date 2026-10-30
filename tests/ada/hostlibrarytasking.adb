@@ -6,6 +6,7 @@ procedure HostLibraryTasking is
     package D renames Ada.Directories;
     use type D.File_Size;
     package Env renames Ada.Environment_Variables;
+    kEmptyTextSize : constant D.File_Size := 2; -- Empty page: LF and form feed.
     Root : constant String := "aida_phase7_tasks";
     protected Results is
         procedure Reserve (Index : out Positive);
@@ -64,7 +65,7 @@ procedure HostLibraryTasking is
                     begin
                         D.Start_Search (State, Name, "*");
                         D.Get_Next_Entry (State, Item);
-                        if D.Size (Item) /= 0 or else not Env.Exists ("AIDA_PHASE7_SHARED")
+                        if D.Size (Item) /= kEmptyTextSize or else not Env.Exists ("AIDA_PHASE7_SHARED")
                             or else Env.Value ("AIDA_PHASE7_SHARED") & Env.Value ("AIDA_PHASE7_SHARED") /= "sharedshared"
                             or else Ada.Calendar.Year (D.Modification_Time (Item)) < 2020 then
                             raise Program_Error;

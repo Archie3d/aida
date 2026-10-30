@@ -3,6 +3,7 @@
 -- how wide an element is and where one sits is settled here.
 
 with Ada.IO_Exceptions;
+with Ada.IO_Handles;
 with System;
 
 generic
@@ -12,19 +13,19 @@ package Ada.Sequential_IO is
 
     type File_Type is limited private;
 
-    type File_Mode is (In_File, Out_File);
+    type File_Mode is (In_File, Out_File, Append_File);
 
     procedure Create (File : in out File_Type;
                       Mode : in File_Mode := Out_File;
                       Name : in String := "";
                       Form : in String := "");
-    pragma Import (C, Create, "__ada_create");
+    pragma Import (C, Create, "__ada_binary_create");
 
     procedure Open (File : in out File_Type;
                     Mode : in File_Mode;
                     Name : in String;
                     Form : in String := "");
-    pragma Import (C, Open, "__ada_open");
+    pragma Import (C, Open, "__ada_binary_open");
 
     procedure Close (File : in out File_Type);
     pragma Import (C, Close, "__ada_file_close");
@@ -69,7 +70,7 @@ private
 
     -- The C runtime owns the file object; Ada stores only its opaque address.
     -- The wrapper starts out null so Is_Open can inspect an unopened file.
-    type File_Handle is new System.Address;
+    subtype File_Handle is Ada.IO_Handles.File_Handle;
 
     type File_Type is
     record

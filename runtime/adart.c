@@ -3,7 +3,7 @@
 #include "adart.h"
 
 #include "adaio.h"
-#include "adamodulartext.h"
+#include "adaiotoken.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -556,14 +556,15 @@ static long long valueInteger(const char* text, int length, long long low, long 
         goto invalid;
     }
     unsigned base = 10;
-    if (i < stop && text[i] == '#') {
+    if (i < stop && (text[i] == '#' || text[i] == ':')) {
+        char delimiter = text[i];
         if (value < 2 || value > 16) {
             goto invalid;
         }
         base = (unsigned)value;
         ++i;
         if (!readValueNumeral(text, stop, &i, base, limit, &value)
-            || i == stop || text[i] != '#') {
+            || i == stop || text[i] != delimiter) {
             goto invalid;
         }
         ++i;
@@ -631,7 +632,7 @@ int __ada_modular_token(const char* text, int length)
     int state = 0;
     int position = 0;
     while (position < length) {
-        state = modularTokenState(state, (unsigned char)text[position]);
+        state = ioTokenState(state, (unsigned char)text[position], 0);
         if (state < 0) { break; }
         ++position;
     }
@@ -834,53 +835,35 @@ int __ada_string_compare(const char* left, int leftLength, const char* right, in
    for plain decimal notation. */
 void __ada_format_float(char* buffer, int size, double value, int fore, int aft, int exponent)
 {
-    char digits[64];
-    char sign;
-    int power;
-    int written;
-    int i;
-
-    if (fore < 1) {
-        fore = 1;
-    }
-    if (aft < 1) {
-        aft = 1;
-    }
-
-    if (exponent <= 0) {
-        snprintf(buffer, size, "%*.*f", fore + 1 + aft, aft, value);
+    if (size <= 0) { return; }
+    buffer[0] = '\0';
+    if (fore < 0 || aft < 0 || exponent < 0 || aft > INT_MAX - 32 || fore > INT_MAX - aft - 2) {
+        __ada_raise(ADA_LAYOUT_ERROR);
         return;
     }
-
-    sign = value < 0.0 ? '-' : ' ';
-    snprintf(digits, sizeof digits, "%.*e", aft, value < 0.0 ? -value : value);
-
-    /* Split the mantissa from the exponent that printf produced. */
-    {
-        char* marker = strchr(digits, 'e');
-        power = marker != 0 ? (int)strtol(marker + 1, 0, 10) : 0;
-        if (marker != 0) {
-            *marker = '\0';
-        }
-    }
-
-    /* Ada counts the sign as part of the exponent field. */
-    written = snprintf(buffer, size, "%*c%sE%c", fore - 1, sign, digits, power < 0 ? '-' : '+');
-    if (written < 0 || written >= size) {
+    if (aft < 1) { aft = 1; }
+    if (exponent == 0) {
+        snprintf(buffer, (size_t)size, "%*.*f", fore + 1 + aft, aft, value);
         return;
     }
-    power = power < 0 ? -power : power;
-    int digitCount = snprintf(digits, sizeof digits, "%d", power);
-    int padding = exponent - 1 - digitCount;
-    /* Preserve the formatted prefix when the exponent field does not fit,
-       without asking printf to produce an arbitrarily large padded field. */
-    while (padding > 0 && written < size - 1) {
-        buffer[written++] = '0';
-        --padding;
-    }
-    for (i = 0; i < digitCount && written < size - 1; ++i) {
-        buffer[written++] = digits[i];
-    }
+    char* digits = malloc((size_t)aft + 32);
+    if (digits == NULL) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    int negative = signbit(value);
+    snprintf(digits, (size_t)aft + 32, "%.*e", aft, negative ? -value : value);
+    char* marker = strchr(digits, 'e');
+    int power = marker != NULL ? (int)strtol(marker + 1, NULL, 10) : 0;
+    if (marker != NULL) { *marker = '\0'; }
+    int padding = fore - (negative ? 2 : 1);
+    if (padding < 0) { padding = 0; }
+    int written = snprintf(buffer, (size_t)size, "%*s%s%sE%c", padding, "", negative ? "-" : "", digits, power < 0 ? '-' : '+');
+    free(digits);
+    if (written < 0 || written >= size) { return; }
+    char exponentText[16];
+    int digitCount = snprintf(exponentText, sizeof exponentText, "%d", power < 0 ? -power : power);
+    padding = exponent - 1 - digitCount;
+    if (padding < 0) { padding = 0; }
+    while (padding > 0 && written < size - 1) { buffer[written++] = '0'; --padding; }
+    for (int i = 0; i < digitCount && written < size - 1; ++i) { buffer[written++] = exponentText[i]; }
     buffer[written] = '\0';
 }
 

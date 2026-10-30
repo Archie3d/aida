@@ -1164,7 +1164,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         return;
     }
     target->builtin = BuiltinKind::Runtime;
-    if (needsFinalization(target->returnType)) {
+    if (needsFinalization(target->returnType) && !isFileHandleView(target->returnType)) {
         m_diagnostics.error(decl->location, "imported controlled function results are not yet supported");
     }
     target->runtimeSymbol = "$" + decl->linkName;

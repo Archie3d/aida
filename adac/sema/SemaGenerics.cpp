@@ -1645,15 +1645,6 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
                 return false;
             }
         }
-        // Enumeration_IO cannot yet enumerate Character spellings. This
-        // library limitation must not reject Character as a general formal.
-        if (generic->generic->lower == "ada.text_io.enumeration_io"
-            && baseType(type)->kind == TypeKind::Enumeration && baseType(type)->literals.empty()) {
-            m_diagnostics.error(actual->location, "'" + type->name
-                + "' names its literals by their spelling, so use Text_IO.Put on one instead of instantiating '"
-                + decl->genericName + "'");
-            return false;
-        }
         Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::TypeName, formal.lower, formal.name);
         symbol->type = type;
         symbol->location = formal.location;

@@ -470,6 +470,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->isLimited = parent->isLimited;
     subtype->limitedRecord = parent->limitedRecord;
     subtype->exceptionOccurrence = parent->exceptionOccurrence;
+    subtype->fileHandle = parent->fileHandle;
     subtype->taskBody = parent->taskBody;
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
@@ -709,12 +710,18 @@ Type* TypeTable::scalarBaseType(Type* type)
     return result;
 }
 
+bool isFileHandleView(const Type* type)
+{
+    return type != nullptr && type->kind == TypeKind::Record && type->fields.size() == 1
+        && type->fields.front().type->fileHandle && typeSize(type) == 8;
+}
+
 bool needsFinalization(const Type* type)
 {
     if (type == nullptr) {
         return false;
     }
-    if (type->exceptionOccurrence || type->protectedScope != nullptr || type->dependentStorage || type->controlled || type->classRoot != nullptr) {
+    if (type->fileHandle || type->exceptionOccurrence || type->protectedScope != nullptr || type->dependentStorage || type->controlled || type->classRoot != nullptr) {
         return true;
     }
     if (type->kind == TypeKind::Array) {

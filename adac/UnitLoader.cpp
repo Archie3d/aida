@@ -225,6 +225,19 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
     // Publish every item before following any edge, including forward
     // references within a bundle and references from other explicit sources.
     for (auto& unit : units) {
+        // Numeric I/O generics belong to Text_IO itself (RM A.10.1).
+        // Accept AIDA's historical child-style with clauses for source compatibility.
+        for (WithClause& clause : unit->withClauses) {
+            for (std::size_t i = 0; i < clause.namesLower.size(); ++i) {
+                const std::string& name = clause.namesLower[i];
+                if (name == "ada.text_io.integer_io" || name == "ada.text_io.modular_io"
+                    || name == "ada.text_io.float_io" || name == "ada.text_io.fixed_io"
+                    || name == "ada.text_io.decimal_io" || name == "ada.text_io.enumeration_io") {
+                    clause.namesLower[i] = "ada.text_io";
+                    clause.names[i] = "Ada.Text_IO";
+                }
+            }
+        }
         unit->fileName = path;
         unit->unitKey = key;
         const Decl& decl = *unit->units.front();

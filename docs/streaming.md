@@ -11,8 +11,9 @@ of a value raises `End_Error`.
 stream adapter. The adapter is owned by the runtime file slot and holds its
 tag and file handle. Calls use the ordinary locked file operations. Closing
 a file invalidates its stream aliases (RM A.12.1); the adapter is not an
-independently owned file. The existing file-object scope-finalization audit,
-positioned Read/Write overloads, Flush and Set_Mode remain library work.
+independently owned file. File objects now close through scope/collection
+finalization ([file contract](text-io.md)); positioned Read/Write overloads,
+Flush and Set_Mode remain with the Phase 8 predefined-environment inventory.
 
 ## Values and attributes
 
@@ -73,8 +74,8 @@ can provide explicit attributes. Class-wide hooks for those types are unavailabl
 Earlier compiler restrictions on type declarations, dependent controlled arrays,
 shared scalar escaping and intrinsic subprogram Access still apply. Sequential_IO
 and Direct_IO retain their separate element-representation implementations.
-General file lifetime work and the full predefined-environment audit retain their
-later roadmap items.
+File ownership and cleanup are covered by the [file contract](text-io.md). The
+full predefined-environment audit remains Phase 8 work.
 
 ## Evidence
 

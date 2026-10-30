@@ -1,11 +1,286 @@
-data $.ada_text_io.str.0 = { b "ada-text_io (spec elaboration)" 0 }
-data $.ada_text_io.str.1 = { b "<unknown>" 0 }
+export data $ada__text_io__file_access__collection = align 8 { l 0 }
+export data $ada__text_io__unbounded = align 4 { z 4 }
+export data $ada__text_io__integer_io__generic.elaborated = align 4 { w 0 }
+export data $ada__text_io__modular_io__generic.elaborated = align 4 { w 0 }
+export data $ada__text_io__float_io__generic.elaborated = align 4 { w 0 }
+export data $ada__text_io__fixed_io__generic.elaborated = align 4 { w 0 }
+export data $ada__text_io__decimal_io__generic.elaborated = align 4 { w 0 }
+export data $ada__text_io__enumeration_io__generic.elaborated = align 4 { w 0 }
+data $.ada_text_io.str.0 = { b "ada-text_io.ads:13:5" 0 }
+data $.ada_text_io.str.1 = { b "ada-text_io.ads:16:5" 0 }
+data $.ada_text_io.str.2 = { b "ada-text_io (spec elaboration)" 0 }
+data $.ada_text_io.str.3 = { b "<unknown>" 0 }
+data $.ada_text_io.str.4 = { b "ada-text_io (body elaboration)" 0 }
+export data $ada__text_io__get_line__2.elaborated = align 4 { w 0 }
+export data $ada__text_io__get_line__2.access = align 8 { l $ada__text_io__get_line__2, l 0 }
+data $.ada_text_io.str.5 = { b "ada-text_io.ads:150:5" 0 }
+data $.ada_text_io.str.6 = { b "ada-text_io.adb:6:9" 0 }
+data $.ada_text_io.str.7 = { b "ada-text_io.adb:8:19" 0 }
+data $.ada_text_io.str.8 = { b "ada-text_io.adb:8:9" 0 }
+data $.ada_text_io.str.9 = { b "ada-text_io.adb:9:29" 0 }
+data $.ada_text_io.str.10 = { b "ada-text_io.adb:9:34" 0 }
+data $.ada_text_io.str.11 = { b "ada-text_io.adb:9:9" 0 }
+data $.ada_text_io.str.12 = { b "Get_Line" 0 }
+export data $ada__text_io__get_line.elaborated = align 4 { w 0 }
+export data $ada__text_io__get_line.access = align 8 { l $ada__text_io__get_line, l 0 }
+data $.ada_text_io.str.13 = { b "ada-text_io.ads:120:5" 0 }
+data $.ada_text_io.str.14 = { b "ada-text_io.adb:13:19" 0 }
+data $.ada_text_io.str.15 = { b "ada-text_io.adb:13:18" 0 }
+data $.ada_text_io.str.16 = { b "ada-text_io.adb:13:9" 0 }
 
 export function $ada_elab.ada_text_io_spec() {
 @start
+    %.t0 =l alloc8 8
+    %.t1 =l alloc8 8
+    storel 0, %.t0
+    storel 0, %.t1
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
-    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.0, l $.ada_text_io.str.1)
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.2, l $.ada_text_io.str.3)
+    storel $.ada_text_io.str.0, %.traceLocation
+    %.t2 =l call $__ada_collection_create(l 0, l 0)
+    %.t3 =l loadl %.taskContext
+    %.t4 =w cnel %.t3, 0
+    jnz %.t4, @propagate.0, @nothrow.1
+@nothrow.1
+    storel %.t2, $ada__text_io__file_access__collection
+    %.t5 =w csgew 0, 0
+    %.t6 =w cslew 0, 2147483647
+    %.t7 =w and %.t5, %.t6
+    jnz %.t7, @inrange.2, @outofrange.3
+@outofrange.3
+    storel $.ada_text_io.str.1, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.0
+@inrange.2
+    storew 0, $ada__text_io__unbounded
+    call $__ada_finalize_to(l %.t1, l 0)
+    call $__ada_finalize_to(l %.t0, l 0)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+@propagate.0
+    call $__ada_finalize_to(l %.t1, l 0)
+    call $__ada_finalize_to(l %.t0, l 0)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+}
+
+export function $ada_elab.ada_text_io_body() {
+@start
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.4, l $.ada_text_io.str.3)
+    storew 1, $ada__text_io__get_line__2.elaborated
+    storew 1, $ada__text_io__get_line.elaborated
+    storew 1, $ada__text_io__integer_io__generic.elaborated
+    storew 1, $ada__text_io__modular_io__generic.elaborated
+    storew 1, $ada__text_io__float_io__generic.elaborated
+    storew 1, $ada__text_io__fixed_io__generic.elaborated
+    storew 1, $ada__text_io__decimal_io__generic.elaborated
+    storew 1, $ada__text_io__enumeration_io__generic.elaborated
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+}
+
+export function $ada__text_io__get_line__2(l %p.file, l %p.item, l %p.item.first, l %p.item.last, l %p.item.length, l %p.item.stride, l %p.last) {
+@start
+    %.t8 =l alloc8 8
+    %.t9 =l alloc8 8
+    storel 0, %.t8
+    storel 0, %.t9
+    %v.count.16 =l alloc4 4
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.12, l $.ada_text_io.str.5)
+    %.master =l alloc8 8
+    call $__ada_master_enter(l %.taskContext, l %.master, w 0)
+    %.t10 =w loadw $ada__text_io__get_line__2.elaborated
+    jnz %.t10, @elaborated.6, @unelaborated.7
+@unelaborated.7
+    storel $.ada_text_io.str.5, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t11 =l loadl %.taskContext
+    %.t12 =w cnel %.t11, 0
+    jnz %.t12, @propagate.5, @nothrow.8
+@nothrow.8
+    jmp @elaborated.6
+@elaborated.6
+    %.t15 =l loadl %.t9
+    storel $.ada_text_io.str.6, %.traceLocation
+    call $__ada_finalize_to(l %.t9, l %.t15)
+    %.t17 =l loadl %.taskContext
+    %.t18 =w cnel %.t17, 0
+    jnz %.t18, @propagate.5, @nothrow.9
+@nothrow.9
+    call $__ada_master_activate(l %.taskContext, l %.master)
+    %.t19 =l loadl %.taskContext
+    %.t20 =w cnel %.t19, 0
+    jnz %.t20, @propagate.5, @nothrow.10
+@nothrow.10
+    %.t24 =l loadl %.t8
+    %.t25 =l loadl %.t9
+    storel $.ada_text_io.str.7, %.traceLocation
+    %.t26 =w call $__ada_array_narrow(l %p.item.length)
+    %.t27 =l loadl %.taskContext
+    %.t28 =w cnel %.t27, 0
+    jnz %.t28, @propagate.5, @nothrow.11
+@nothrow.11
+    storel $.ada_text_io.str.7, %.traceLocation
+    call $__ada_text_get_line(l %p.file, l %p.item, w %.t26, l %v.count.16)
+    %.t29 =l loadl %.taskContext
+    %.t30 =w cnel %.t29, 0
+    jnz %.t30, @propagate.5, @nothrow.12
+@nothrow.12
+    storel $.ada_text_io.str.8, %.traceLocation
+    call $__ada_finalize_to(l %.t9, l %.t25)
+    storel $.ada_text_io.str.8, %.traceLocation
+    call $__ada_finalize_to(l %.t8, l %.t24)
+    %.t31 =l loadl %.taskContext
+    %.t32 =w cnel %.t31, 0
+    jnz %.t32, @propagate.5, @nothrow.13
+@nothrow.13
+    %.t35 =l loadl %.t8
+    %.t36 =l loadl %.t9
+    %.t37 =w copy %p.item.first
+    %.t38 =l extsw %.t37
+    %.t39 =l extsw 1
+    %.t40 =l sub %.t38, %.t39
+    %.t41 =w csltl %.t40, -2147483648
+    %.t42 =w csgtl %.t40, 2147483647
+    %.t43 =w or %.t41, %.t42
+    jnz %.t43, @arithmeticbad.14, @arithmeticok.15
+@arithmeticbad.14
+    storel $.ada_text_io.str.9, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.5
+@arithmeticok.15
+    %.t44 =w copy %.t40
+    %.t45 =w loadsw %v.count.16
+    %.t46 =l extsw %.t44
+    %.t47 =l extsw %.t45
+    %.t48 =l add %.t46, %.t47
+    %.t49 =w csltl %.t48, -2147483648
+    %.t50 =w csgtl %.t48, 2147483647
+    %.t51 =w or %.t49, %.t50
+    jnz %.t51, @arithmeticbad.16, @arithmeticok.17
+@arithmeticbad.16
+    storel $.ada_text_io.str.10, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.5
+@arithmeticok.17
+    %.t52 =w copy %.t48
+    %.t53 =w csgew %.t52, 0
+    %.t54 =w cslew %.t52, 2147483647
+    %.t55 =w and %.t53, %.t54
+    jnz %.t55, @inrange.18, @outofrange.19
+@outofrange.19
+    storel $.ada_text_io.str.11, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.5
+@inrange.18
+    storew %.t52, %p.last
+    storel $.ada_text_io.str.11, %.traceLocation
+    call $__ada_finalize_to(l %.t9, l %.t36)
+    storel $.ada_text_io.str.11, %.traceLocation
+    call $__ada_finalize_to(l %.t8, l %.t35)
+    %.t56 =l loadl %.taskContext
+    %.t57 =w cnel %.t56, 0
+    jnz %.t57, @propagate.5, @nothrow.20
+@nothrow.20
+    call $__ada_master_await(l %.taskContext, l %.master)
+    call $__ada_finalize_to(l %.t9, l 0)
+    call $__ada_finalize_to(l %.t8, l 0)
+    call $__ada_master_leave(l %.taskContext, l %.master)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+@propagate.5
+    call $__ada_master_await(l %.taskContext, l %.master)
+    call $__ada_finalize_to(l %.t9, l 0)
+    call $__ada_finalize_to(l %.t8, l 0)
+    call $__ada_master_leave(l %.taskContext, l %.master)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+}
+
+export function $ada__text_io__get_line(l %p.item, l %p.item.first, l %p.item.last, l %p.item.length, l %p.item.stride, l %p.last) {
+@start
+    %.t58 =l alloc8 8
+    %.t59 =l alloc8 8
+    storel 0, %.t58
+    storel 0, %.t59
+    %.t78 =l alloc4 4
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.12, l $.ada_text_io.str.13)
+    %.master =l alloc8 8
+    call $__ada_master_enter(l %.taskContext, l %.master, w 0)
+    %.t60 =w loadw $ada__text_io__get_line.elaborated
+    jnz %.t60, @elaborated.22, @unelaborated.23
+@unelaborated.23
+    storel $.ada_text_io.str.13, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t61 =l loadl %.taskContext
+    %.t62 =w cnel %.t61, 0
+    jnz %.t62, @propagate.21, @nothrow.24
+@nothrow.24
+    jmp @elaborated.22
+@elaborated.22
+    %.t65 =l loadl %.t59
+    storel $.ada_text_io.str.13, %.traceLocation
+    call $__ada_finalize_to(l %.t59, l %.t65)
+    %.t66 =l loadl %.taskContext
+    %.t67 =w cnel %.t66, 0
+    jnz %.t67, @propagate.21, @nothrow.25
+@nothrow.25
+    call $__ada_master_activate(l %.taskContext, l %.master)
+    %.t68 =l loadl %.taskContext
+    %.t69 =w cnel %.t68, 0
+    jnz %.t69, @propagate.21, @nothrow.26
+@nothrow.26
+    %.t73 =l loadl %.t58
+    %.t74 =l loadl %.t59
+    storel $.ada_text_io.str.14, %.traceLocation
+    %.t75 =l call $__ada_current_input()
+    %.t76 =l loadl %.taskContext
+    %.t77 =w cnel %.t76, 0
+    jnz %.t77, @propagate.21, @nothrow.27
+@nothrow.27
+    storel $.ada_text_io.str.15, %.traceLocation
+    call $ada__text_io__get_line__2(l %.t75, l %p.item, l %p.item.first, l %p.item.last, l %p.item.length, l %p.item.stride, l %.t78)
+    %.t79 =l loadl %.taskContext
+    %.t80 =w cnel %.t79, 0
+    jnz %.t80, @propagate.21, @nothrow.28
+@nothrow.28
+    %.t81 =w loadsw %.t78
+    %.t82 =w csgew %.t81, 0
+    %.t83 =w cslew %.t81, 2147483647
+    %.t84 =w and %.t82, %.t83
+    jnz %.t84, @inrange.29, @outofrange.30
+@outofrange.30
+    storel $.ada_text_io.str.15, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.21
+@inrange.29
+    storew %.t81, %p.last
+    storel $.ada_text_io.str.16, %.traceLocation
+    call $__ada_finalize_to(l %.t59, l %.t74)
+    storel $.ada_text_io.str.16, %.traceLocation
+    call $__ada_finalize_to(l %.t58, l %.t73)
+    %.t85 =l loadl %.taskContext
+    %.t86 =w cnel %.t85, 0
+    jnz %.t86, @propagate.21, @nothrow.31
+@nothrow.31
+    call $__ada_master_await(l %.taskContext, l %.master)
+    call $__ada_finalize_to(l %.t59, l 0)
+    call $__ada_finalize_to(l %.t58, l 0)
+    call $__ada_master_leave(l %.taskContext, l %.master)
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+@propagate.21
+    call $__ada_master_await(l %.taskContext, l %.master)
+    call $__ada_finalize_to(l %.t59, l 0)
+    call $__ada_finalize_to(l %.t58, l 0)
+    call $__ada_master_leave(l %.taskContext, l %.master)
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 }

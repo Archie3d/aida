@@ -11,6 +11,20 @@ with Ada.Text_IO;
 
 package Ada.Text_IO.Scanning is
 
+    procedure Put_Field (File : File_Type; Text : String);
+    pragma Import (C, Put_Field, "__ada_text_put_field");
+    procedure Put_Field (Text : String);
+    pragma Import (C, Put_Field, "__ada_put_field");
+
+    -- Kind 0: integer, 1: real, 2: enumeration. File tokens have no size cap.
+    function Token (File : File_Type; Width : Field; Kind : Integer) return String;
+    pragma Import (C, Token, "__ada_text_scan");
+    function Token (Width : Field; Kind : Integer) return String;
+    pragma Import (C, Token, "__ada_scan");
+    function Token_Length (Text : String; Kind : Integer) return Natural;
+    pragma Import (C, Token_Length, "__ada_io_token_length");
+    function Normalized (Text : String) return String;
+
     -- The next run of non blank characters, with the blanks before it skipped.
     -- Raises End_Error if the input has nothing left.
     procedure Get_Word (Item : out String; Last : out Natural);

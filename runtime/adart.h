@@ -156,6 +156,7 @@ typedef struct AdaTaskContext
     struct AdaMasterState* sharedMasters;
     struct AdaAccessLevel* sharedAccessLevels;
     unsigned int nextAccessLevel;
+    struct AdaFile* currentErrorFile; // Environment-owned selection, protected by the I/O table lock.
 } AdaTaskContext;
 
 /* Internal balanced regions. These never deliver abort or replace a pending

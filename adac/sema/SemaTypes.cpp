@@ -1062,6 +1062,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->exceptionOccurrence = true;
         type->limitedRecord = true;
     }
+    if (m_namePrefix.size() == 2 && m_namePrefix[0] == "ada" && m_namePrefix[1] == "io_handles"
+        && decl->lower == "file_handle") {
+        type->fileHandle = true;
+        type->needsZeroInit = true;
+    }
     type->abstract = definition->abstract;
     type->isLimited = type->isLimited || definition->isLimited || hasLimitedParts(type) || hasTasks(type) || hasProtected(type);
     if (type->isLimited && std::any_of(type->interfaces.begin(), type->interfaces.end(),
