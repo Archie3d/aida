@@ -247,3 +247,5 @@ add_acats_test(c96008a)
 add_acats_test(c96008b)
 
 add_acats_test(ca21001)
+
+add_acats_test(cxa3004)

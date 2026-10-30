@@ -261,16 +261,16 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         }
         first = false;
         char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
-        signature += std::string(1, type) + " %p." + parameter->name;
-        if (parameter->type->accessParameter) { signature += ", w %p." + parameter->name + ".accessLevel"; }
+        signature += std::string(1, type) + " %p." + Unicode::linkerIdentifier(parameter->name);
+        if (parameter->type->accessParameter) { signature += ", w %p." + Unicode::linkerIdentifier(parameter->name) + ".accessLevel"; }
         if (needsConstrainedParameter(parameter)) {
-            signature += ", w %p." + parameter->name + ".constrained";
+            signature += ", w %p." + Unicode::linkerIdentifier(parameter->name) + ".constrained";
         }
         if (isUnconstrainedArray(parameter->type)) {
             for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
                 std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
                 for (const char* field : { "first", "last", "length", "stride" }) {
-                    signature += ", l %p." + parameter->name + "." + field + suffix;
+                    signature += ", l %p." + Unicode::linkerIdentifier(parameter->name) + "." + field + suffix;
                 }
             }
         }
@@ -278,7 +278,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     signature += ")";
 
     for (Symbol* parameter : symbol->parameters) {
-        std::string incoming = "%p." + parameter->name;
+        std::string incoming = "%p." + Unicode::linkerIdentifier(parameter->name);
         if (needsConstrainedParameter(parameter)) {
             context.hasFrame = true;
             parameter->constrainedOffset = reserveFrame(4, 4);
@@ -338,7 +338,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
             }
             continue;
         }
-        std::string slot = "%v." + parameter->name + "." + std::to_string(m_tempCounter++);
+        std::string slot = "%v." + Unicode::linkerIdentifier(parameter->name) + "." + std::to_string(m_tempCounter++);
         long long size = typeSize(parameter->type);
         context.prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " "
                          << (size < 1 ? 1 : size) << "\n";

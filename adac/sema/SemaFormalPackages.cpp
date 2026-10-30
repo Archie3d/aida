@@ -60,11 +60,11 @@ bool staticString(Expr* expression, std::string& value, int depth = 0)
 {
     if (expression == nullptr || depth > 64 || expression->staticFailure != StaticFailure::None) { return false; }
     if (expression->kind == ExprKind::StringLiteral) {
-        value = static_cast<StringLiteralExpr*>(expression)->value;
+        value = Unicode::utf8(static_cast<StringLiteralExpr*>(expression)->value);
         return true;
     }
     if (expression->kind == ExprKind::CharacterLiteral) {
-        value.assign(1, static_cast<CharacterLiteralExpr*>(expression)->value);
+        value = Unicode::encode(static_cast<CharacterLiteralExpr*>(expression)->value);
         return true;
     }
     Type* type = expression->type;

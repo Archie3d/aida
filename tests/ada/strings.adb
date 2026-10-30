@@ -76,10 +76,10 @@ begin
     if Greeting /= Line (1 .. 5) then
         Put_Line ("unexpected");
     end if;
-    if "abc" < "abd" then
+    if String'("abc") < "abd" then
         Put_Line ("less");
     end if;
-    if "abc" < "abcd" then
+    if String'("abc") < "abcd" then
         Put_Line ("prefix is less");
     end if;
 

@@ -1,0 +1,2 @@
+wideambiguityerrors.adb:7:18: error: ambiguous subprogram call
+wideambiguityerrors.adb:8:17: error: ambiguous subprogram call

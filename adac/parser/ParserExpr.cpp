@@ -193,13 +193,13 @@ ExprPtr Parser::parsePrimary()
         }
         auto expr = std::make_unique<StringLiteralExpr>();
         expr->location = location;
-        expr->value = advance().text;
+        expr->value = Unicode::characters(advance().text);
         return parseNameSuffixes(std::move(expr));
     }
     case TokenKind::CharacterLiteral: {
         auto expr = std::make_unique<CharacterLiteralExpr>();
         expr->location = location;
-        expr->value = advance().text[0];
+        expr->value = static_cast<uint32_t>(advance().intValue);
         return expr;
     }
     case TokenKind::KwNull: {

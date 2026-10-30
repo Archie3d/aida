@@ -71,7 +71,7 @@ void QbeEmitter::emitTypeTag(Type* type)
     for (char& character : name) {
         character = static_cast<char>(std::toupper(static_cast<unsigned char>(character)));
     }
-    std::string expanded = stringData(name);
+    std::string expanded = stringData(type->expandedName.empty() ? name : type->expandedName);
     for (std::size_t i = 0; i < type->interfaces.size(); ++i) {
         Type* interfaceType = type->interfaces[i];
         m_data << "export data " << type->tagName << ".imap." << i << " = align 8 { ";
@@ -600,7 +600,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                     long long alignment = typeAlignment(symbol->type);
                     symbol->frameOffset = reserveFrame(size, alignment);
                 } else {
-                    std::string slot = "%v." + symbol->name + "." + std::to_string(m_tempCounter++);
+                    std::string slot = "%v." + Unicode::linkerIdentifier(symbol->name) + "." + std::to_string(m_tempCounter++);
                     if (size > kArrayStackLimit) {
                         emitCallInstruction(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
                              + ", l 1, l 1, l " + std::to_string(size) + ")", CallEffects::CheckException);

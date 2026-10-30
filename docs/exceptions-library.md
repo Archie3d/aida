@@ -13,10 +13,11 @@ Constraint_Error, as for Exception_Name. Their results use Standard
 Wide_Character/Wide_String (16-bit elements) and
 Wide_Wide_Character/Wide_Wide_String (32-bit elements). Contextual literals,
 array storage, comparisons and character position/value operations support the
-name APIs. This prerequisite does not complete the later wide-library milestone:
-Unicode identifier/source encoding rules, wide I/O and the full wide-character
-facilities remain open. Wide character Image/Value/Width currently diagnose that
-gap. Current exception identifiers use the existing ASCII spelling rules.
+name APIs. The [wide foundation](wide-foundation.md) adds UTF-8 source identifiers,
+Unicode uppercase names, scalar text attributes and character conversions.
+Wide exception names decode UTF-8 into character elements; a supplementary
+character uses the documented escape in a Wide_String result. Wide I/O and the
+wide string-library families remain open.
 
 ## Occurrence ownership and results
 

@@ -40,14 +40,14 @@ package body Ada.Exceptions is
         return Exception_Name (Exception_Identity (X));
     end Exception_Name;
 
+    function Decode_Wide_Name (Name : String) return Wide_String;
+    pragma Import (C, Decode_Wide_Name, "__ada_utf8_wide");
+    function Decode_Wide_Wide_Name (Name : String) return Wide_Wide_String;
+    pragma Import (C, Decode_Wide_Wide_Name, "__ada_utf8_wide_wide");
+
     function Wide_Exception_Name (Id : Exception_Id) return Wide_String is
-        Name : constant String := Exception_Name (Id);
-        Result : Wide_String (1 .. Name'Length);
     begin
-        for I in Name'Range loop
-            Result (I) := Wide_Character'Val (Character'Pos (Name (I)));
-        end loop;
-        return Result;
+        return Decode_Wide_Name (Exception_Name (Id));
     end Wide_Exception_Name;
 
     function Wide_Exception_Name (X : Exception_Occurrence) return Wide_String is
@@ -56,13 +56,8 @@ package body Ada.Exceptions is
     end Wide_Exception_Name;
 
     function Wide_Wide_Exception_Name (Id : Exception_Id) return Wide_Wide_String is
-        Name : constant String := Exception_Name (Id);
-        Result : Wide_Wide_String (1 .. Name'Length);
     begin
-        for I in Name'Range loop
-            Result (I) := Wide_Wide_Character'Val (Character'Pos (Name (I)));
-        end loop;
-        return Result;
+        return Decode_Wide_Wide_Name (Exception_Name (Id));
     end Wide_Wide_Exception_Name;
 
     function Wide_Wide_Exception_Name (X : Exception_Occurrence) return Wide_Wide_String is

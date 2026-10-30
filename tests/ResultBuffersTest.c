@@ -77,7 +77,9 @@ static void checkImages(void)
         CHECK(strcmp(results[2][i], expected) == 0);
         snprintf(expected, sizeof expected, " %d.000", i);
         CHECK(strcmp(results[3][i], expected) == 0);
-        CHECK(lengths[4][i] == 3 && results[4][i][1] == i && results[4][i][2] == '\'');
+        static const char* const kControls[] = { "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+            "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI" };
+        CHECK(lengths[4][i] == (int)strlen(kControls[i]) && strcmp(results[4][i], kControls[i]) == 0);
         CHECK(strcmp(results[5][i], "MIXED_CASE_ENUMERATION_LITERAL_LONGER_THAN_SIXTY_FOUR_CHARACTERS_WITHOUT_ANY_TRUNCATION") == 0);
         for (int kind = 0; kind < 6; ++kind) {
             CHECK(results[kind][i][lengths[kind][i]] == '\0');

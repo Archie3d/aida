@@ -683,7 +683,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { "0", 'w' };
     }
 
-    if (subprogram->runtimeSymbol == "$__ada_text_scan"
+    if (subprogram->runtimeSymbol == "$__ada_utf8_wide"
+        || subprogram->runtimeSymbol == "$__ada_utf8_wide_wide"
+        || subprogram->runtimeSymbol == "$__ada_text_scan"
         || subprogram->runtimeSymbol == "$__ada_scan"
         || subprogram->runtimeSymbol == "$__ada_text_line"
         || subprogram->runtimeSymbol == "$__ada_line"

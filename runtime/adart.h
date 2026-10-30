@@ -326,6 +326,15 @@ int __ada_image_long_integer(char* buffer, int capacity, long long value);
 int __ada_enum_code(int position, const int32_t* codes, int count);
 int __ada_enum_position(int code, const int32_t* codes, int count);
 int __ada_image_enum(char* buffer, int capacity, int value, const char** names, int count);
+int __ada_identifier_equal(const char* left, int leftLength, const char* right, int rightLength, int fold);
+int __ada_wide_character_image(void* buffer, int capacity, int value, int width);
+int __ada_wide_character_value(const void* text, int length, int width, int maximum);
+int __ada_width_enum_text(int low, int high, const char** names, int count, int width);
+int __ada_wide_character_width(int low, int high, int width);
+int __ada_image_widen(void* destination, int capacity, const char* text, int length, int width);
+void __ada_wide_to_utf8(void* result, const void* text, int length, int width);
+void __ada_utf8_wide(void* result, const char* text, int length);
+void __ada_utf8_wide_wide(void* result, const char* text, int length);
 int __ada_image_character(char* buffer, int capacity, int value);
 
 /* 'Value, which reads back what 'Image wrote.  Surrounding blanks are ignored,

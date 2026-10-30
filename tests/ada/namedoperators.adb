@@ -102,7 +102,7 @@ begin
     Check ("AND" (Right => True, Left => True));
     Check ("<" (Right => B, Left => A));
     Check ("=" (Right => B, Left => 5));
-    Check ("&" (Right => "b", Left => "a") = "ab");
+    Check ("&" (Right => "b", Left => "a") = String'("ab"));
     Check ("+" (Right => Word'(10), Left => M) = 4);
     Check ("+" (Right => 2.0, Left => R) = 5.0);
     Check ("*" (Right => 2, Left => F) = 6.0);

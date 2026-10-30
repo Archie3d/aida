@@ -58,8 +58,14 @@ begin
     check (colourValue = Green and last = 6);
     C.Get ("'A'!", characterValue, last);
     check (characterValue = 'A' and last = 3);
-    C.Get ("'" & Character'Val (9) & "'", characterValue, last);
-    check (characterValue = Character'Val (9) and last = 3);
+    C.Get ("HT", characterValue, last);
+    check (characterValue = Character'Val (9) and last = 2);
+    begin
+        C.Get ("'" & Character'Val (9) & "'", characterValue, last);
+        raise Program_Error;
+    exception
+        when Data_Error => null;
+    end;
     I.Put (outText, -42);
     check (outText = "     -42");
     R.Put (outText, 1.25, Aft => 2, Exp => 0);

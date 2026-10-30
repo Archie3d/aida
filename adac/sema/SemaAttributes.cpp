@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "../../common/CharacterText.h"
 #include "SemaSupport.h"
 
 #include <algorithm>
@@ -34,7 +35,7 @@ double floatHighBound(const Type* type)
 // Ada's T'Width: the length of the longest image the type can produce.  For an
 // enumeration that is its longest literal, and for a number its widest run of
 // digits plus the column the sign or its blank occupies.
-long long widthOf(const Type* type)
+long long widthOf(const Type* type, int textWidth)
 {
     if (type->low > type->high) {
         return 0;
@@ -49,11 +50,17 @@ long long widthOf(const Type* type)
         // Character names its values by their spelling, so its widest image is
         // one character between two quotes.
         if (base->literals.empty()) {
-            return 3;
+            return adaCharacterWidth(static_cast<int>(type->low), static_cast<int>(type->high), textWidth);
         }
         std::size_t longest = 0;
         for (long long i = type->low; i <= type->high && i < static_cast<long long>(base->literals.size()); ++i) {
-            longest = std::max(longest, base->literals[static_cast<std::size_t>(i)].size());
+            const std::string& name = base->literals[static_cast<std::size_t>(i)];
+            std::size_t width = name.size();
+            if (textWidth != 1) {
+                width = 0;
+                for (uint32_t code : Unicode::characters(name)) { width += textWidth == 2 && code > 65535 ? 12 : 1; }
+            }
+            longest = std::max(longest, width);
         }
         return static_cast<long long>(longest);
     }
@@ -193,6 +200,13 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 
 Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
 {
+    for (const std::string prefix : { "wide_wide_", "wide_" }) {
+        if (expr->lower == prefix + "image" || expr->lower == prefix + "value" || expr->lower == prefix + "width") {
+            expr->textWidth = prefix == "wide_" ? 2 : 4;
+            expr->lower.erase(0, prefix.size());
+            break;
+        }
+    }
     if (expr->lower == "access" || expr->lower == "unchecked_access" || expr->lower == "address") {
         auto names = expressionNames(expr->prefix.get(), scope);
         if (!names.empty() && std::all_of(names.begin(), names.end(), [](Symbol* symbol) {
@@ -586,6 +600,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             bool contextual = expr->lower == "min" || expr->lower == "max" || expr->lower == "image" || expr->lower == "pos"
                 || expr->lower == "succ" || expr->lower == "pred";
             Type* context = contextual ? prefixType : nullptr;
+            if (name == "value") { context = expr->textWidth == 2 ? m_types.wideStringType()
+                : expr->textWidth == 4 ? m_types.wideWideStringType() : m_types.stringType(); }
             if (streamContext != nullptr && argument == expr->arguments.front()) { context = streamContext; }
             if ((discreteFunction || adjacent || name == "min" || name == "max") && name != "val") {
                 context = m_types.scalarBaseType(prefixType);
@@ -1037,10 +1053,6 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    if ((name == "image" || name == "value" || name == "width") && m_types.isCharacter(prefixType) && typeSize(prefixType) > 1) {
-        m_diagnostics.error(expr->location, "wide character text attributes await the wide-character library milestone");
-        return nullptr;
-    }
     if (name == "image") {
         if (expr->arguments.size() != 1) {
             m_diagnostics.error(expr->location, "'Image takes exactly one argument");
@@ -1051,7 +1063,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             && (!prefixIsType || !typesCompatible(prefixType, expr->arguments.front()->type))) {
             m_diagnostics.error(expr->location, "fixed-point 'Image requires an argument of the prefix type");
         }
-        expr->type = m_types.stringType();
+        expr->type = expr->textWidth == 2 ? m_types.wideStringType()
+            : expr->textWidth == 4 ? m_types.wideWideStringType() : m_types.stringType();
         return expr->type;
     }
 
@@ -1170,7 +1183,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             expr->isStatic = false;
             return expr->type;
         }
-        expr->staticValue = widthOf(prefixType);
+        expr->staticValue = widthOf(prefixType, expr->textWidth);
         return expr->type;
     }
 
@@ -1185,7 +1198,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         Type* argumentType = expr->arguments.front()->type;
-        if (argumentType != nullptr && !typesCompatible(m_types.stringType(), argumentType)) {
+        if (argumentType != nullptr && !typesCompatible(expr->textWidth == 2 ? m_types.wideStringType()
+            : expr->textWidth == 4 ? m_types.wideWideStringType() : m_types.stringType(), argumentType)) {
             m_diagnostics.error(expr->location, "'Value reads its value from a string");
         }
         if (base != nullptr && (base->kind == TypeKind::Fixed || base->kind == TypeKind::Float) && !prefixIsType) {

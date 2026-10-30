@@ -266,7 +266,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
             if (value->kind == ExprKind::Identifier) {
                 defaultLower = static_cast<IdentifierExpr*>(value)->lower;
             } else if (value->kind == ExprKind::StringLiteral) {
-                defaultLower = operatorSymbol(static_cast<StringLiteralExpr*>(value)->value);
+                defaultLower = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(value)->value));
             }
             formal.defaultUsesFormal = std::find(preceding.begin(), preceding.end(), defaultLower) != preceding.end();
             formal.defaultCandidates = value->kind == ExprKind::StringLiteral
@@ -308,7 +308,7 @@ std::string Sema::nameContractKey(Expr* expr)
     } else if (expr->kind == ExprKind::Selected) {
         name = static_cast<SelectedExpr*>(expr)->selectorLower;
     } else if (expr->kind == ExprKind::CharacterLiteral) {
-        name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
+        name = "'" + Unicode::encode(static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
     }
     return contractKey(expr->location) + ":" + std::to_string(static_cast<int>(expr->kind)) + ":" + name;
 }
@@ -1115,7 +1115,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         const auto& candidates = formal.defaultUsesFormal
             ? bindings->lookupLocal(formal.defaultValue->kind == ExprKind::Identifier
                 ? static_cast<IdentifierExpr*>(formal.defaultValue.get())->lower
-                : operatorSymbol(static_cast<StringLiteralExpr*>(formal.defaultValue.get())->value))
+                : operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(formal.defaultValue.get())->value)))
             : formal.defaultCandidates;
         for (Symbol* candidate : candidates) {
             defaults->add(candidate);
@@ -1195,7 +1195,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
 
     std::string operation;
     if (actual->kind == ExprKind::StringLiteral) {
-        operation = operatorSymbol(static_cast<StringLiteralExpr*>(actual)->value);
+        operation = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(actual)->value));
     } else if (actual->kind == ExprKind::Identifier) {
         operation = operatorSymbol(static_cast<IdentifierExpr*>(actual)->lower);
     }

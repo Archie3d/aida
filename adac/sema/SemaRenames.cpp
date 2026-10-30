@@ -58,7 +58,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     std::vector<Symbol*> candidates = expressionNames(name, scope);
     std::string operation;
     if (name->kind == ExprKind::StringLiteral) {
-        operation = operatorSymbol(static_cast<StringLiteralExpr*>(name)->value);
+        operation = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(name)->value));
         candidates = contractNames(name, scope->lookup(operation));
     }
     Symbol* chosen = nullptr;

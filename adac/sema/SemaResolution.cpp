@@ -108,7 +108,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
         return {};
     }
     if (expr->kind == ExprKind::CharacterLiteral) {
-        std::string name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
+        std::string name = "'" + Unicode::encode(static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
         return contractNames(expr, scope->lookup(name));
     }
     if (expr->kind == ExprKind::Identifier) {
@@ -256,8 +256,16 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         add(m_types.universalReal());
         break;
     case ExprKind::CharacterLiteral: {
-        add(m_types.isCharacter(expected) && representationVisible(expected) ? expected : m_types.characterType());
-        std::string name = "'" + std::string(1, static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
+        uint32_t code = static_cast<CharacterLiteralExpr*>(expr)->value;
+        if (m_types.isCharacter(expected) && representationVisible(expected)) {
+            Type* base = m_types.scalarBaseType(expected);
+            if (code >= base->low && code <= base->high) { add(expected); }
+        } else {
+            for (Type* type : { m_types.characterType(), m_types.wideCharacterType(), m_types.wideWideCharacterType() }) {
+                if (code <= type->high) { add(type); }
+            }
+        }
+        std::string name = "'" + Unicode::encode(static_cast<CharacterLiteralExpr*>(expr)->value) + "'";
         for (Symbol* literal : scope->lookup(name)) {
             if (literal->kind == SymbolKind::EnumerationLiteral && representationVisible(literal->type)) {
                 add(literal->type);
@@ -265,10 +273,23 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         }
         break;
     }
-    case ExprKind::StringLiteral:
-        add(m_types.isString(expected) && representationVisible(expected)
-            && representationVisible(expected->element) ? expected : m_types.stringType());
+    case ExprKind::StringLiteral: {
+        auto fits = [&](Type* type) {
+            for (uint32_t code : static_cast<StringLiteralExpr*>(expr)->value) {
+                Type* element = m_types.scalarBaseType(type->element);
+                if (code < element->low || code > element->high) { return false; }
+            }
+            return true;
+        };
+        if (m_types.isString(expected) && representationVisible(expected) && representationVisible(expected->element)) {
+            if (fits(expected)) { add(expected); }
+        } else {
+            for (Type* type : { m_types.stringType(), m_types.wideStringType(), m_types.wideWideStringType() }) {
+                if (fits(type)) { add(type); }
+            }
+        }
         break;
+    }
     case ExprKind::Box:
         break;
     case ExprKind::Null:
@@ -542,8 +563,9 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
             }
         } else if (name == "small" || name == "delta") {
             add(m_types.universalReal());
-        } else if (name == "image") {
-            add(m_types.stringType());
+        } else if (name == "image" || name == "wide_image" || name == "wide_wide_image") {
+            add(name == "wide_image" || attribute->textWidth == 2 ? m_types.wideStringType()
+                : name == "wide_wide_image" || attribute->textWidth == 4 ? m_types.wideWideStringType() : m_types.stringType());
         } else if (name == "address") {
             add(m_addressType);
         } else if (name == "tag") {
@@ -575,7 +597,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         } else if (name == "modulus" || name == "pos" || name == "length" || name == "size"
             || name == "alignment" || name == "position" || name == "first_bit" || name == "last_bit") {
             add(m_types.universalInteger());
-        } else if (name == "scale" || name == "width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
+        } else if (name == "scale" || name == "width" || name == "wide_width" || name == "wide_wide_width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
             add(m_types.integerType());
         } else {
             for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
@@ -609,7 +631,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     }
                 } else if (name == "min" || name == "max" || name == "mod" || name == "round" || name == "base" || name == "val" || name == "succ" || name == "pred") {
                     add(m_types.scalarBaseType(prefix));
-                } else if (name == "first" || name == "last" || name == "value" || name == "input") {
+                } else if (name == "first" || name == "last" || name == "value" || name == "wide_value" || name == "wide_wide_value" || name == "input") {
                     add(prefix);
                 }
             }

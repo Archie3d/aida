@@ -17,6 +17,8 @@ private:
     char peek(int offset = 0) const;
     bool atEnd() const { return m_position >= m_source.size(); }
     char advance();
+    uint32_t peekCode(std::size_t offset = 0) const;
+    uint32_t advanceCode();
     void skipSpacingAndComments();
 
     Token makeToken(TokenKind kind, const SourceLocation& location, std::string text) const;

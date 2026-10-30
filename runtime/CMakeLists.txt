@@ -21,6 +21,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/adaprotected.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adamaster.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adart.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/adawide.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adatags.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adaio.c
         ${CMAKE_CURRENT_SOURCE_DIR}/adastream.c

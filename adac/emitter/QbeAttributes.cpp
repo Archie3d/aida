@@ -27,13 +27,12 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         Value result {newTemp(), 'w'};
         if (prefixType->kind == TypeKind::Enumeration) {
             if (prefixType->literals.empty()) {
-                std::string nonNull = newTemp();
-                line(nonNull + " =w csgew " + bounds.last + ", " + bounds.first);
-                line(result.name + " =w mul " + nonNull + ", 3");
+                emitCallInstruction(result.name + " =w call $__ada_wide_character_width(w " + bounds.first
+                    + ", w " + bounds.last + ", w " + std::to_string(expr->textWidth) + ")", CallEffects::CheckException);
             } else {
-                emitCallInstruction(result.name + " =w call $__ada_width_enum(w " + bounds.first
+                emitCallInstruction(result.name + " =w call $__ada_width_enum_text(w " + bounds.first
                     + ", w " + bounds.last + ", l " + enumTableFor(prefixType) + ", w "
-                    + std::to_string(prefixType->literals.size()) + ")", CallEffects::CheckException);
+                    + std::to_string(prefixType->literals.size()) + ", w " + std::to_string(expr->textWidth) + ")", CallEffects::CheckException);
             }
         } else {
             if (bounds.type == 'w') {
@@ -345,6 +344,13 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                 capacity = std::max(capacity, (long long)literal.size() + 1);
             }
         }
+        if (base != nullptr && base->kind == TypeKind::Enumeration && base->literals.empty()) {
+            std::string buffer = allocScratch(capacity * expr->textWidth);
+            std::string length = newTemp();
+            emitCallInstruction(length + " =w call $__ada_wide_character_image(l " + buffer + ", w " + std::to_string(capacity)
+                + ", w " + value.name + ", w " + std::to_string(expr->textWidth) + ")", CallEffects::CheckException);
+            return Value { buffer, 'l', "1", wideBound(Value { length, 'w' }).name };
+        }
         std::string buffer = allocScratch(capacity);
         std::string length = newTemp();
         std::string destination = "l " + buffer + ", w " + std::to_string(capacity) + ", ";
@@ -368,6 +374,13 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
                  + destination + (value.type == 'l' ? "l " : "w ") + value.name + ")", CallEffects::DeferredCheck);
         }
         emitExceptionCheck();
+        if (expr->textWidth > 1) {
+            std::string wide = allocScratch(capacity * 3 * expr->textWidth);
+            std::string count = newTemp();
+            emitCallInstruction(count + " =w call $__ada_image_widen(l " + wide + ", w " + std::to_string(capacity * 3)
+                + ", l " + buffer + ", w " + length + ", w " + std::to_string(expr->textWidth) + ")", CallEffects::CheckException);
+            return Value { wide, 'l', "1", wideBound(Value { count, 'w' }).name };
+        }
         return Value { buffer, 'l', "1", wideBound(Value { length, 'w' }).name };
     }
 
@@ -466,6 +479,20 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "value") {
         Value text = emitExpr(expr->arguments.front().get());
         Value length = narrowArrayLength(lengthOf(text, expr->arguments.front()->type));
+        Type* characterBase = baseType(prefixType);
+        if (characterBase != nullptr && characterBase->kind == TypeKind::Enumeration && characterBase->literals.empty()) {
+            Value result { newTemp(), 'w' };
+            emitCallInstruction(result.name + " =w call $__ada_wide_character_value(l " + text.name + ", w " + length.name
+                + ", w " + std::to_string(expr->textWidth) + ", w " + std::to_string(static_cast<long long>(characterBase->high)) + ")", CallEffects::CheckException);
+            return result;
+        }
+        if (expr->textWidth > 1) {
+            std::string descriptor = allocScratch(adaArrayResultSize(1));
+            emitCallInstruction("call $__ada_wide_to_utf8(l " + descriptor + ", l " + text.name + ", w " + length.name
+                + ", w " + std::to_string(expr->textWidth) + ")", CallEffects::CheckException);
+            text = consumeArrayResult(descriptor, 1, true);
+            length = narrowArrayLength(lengthOf(text, m_sema.typeTable().stringType()));
+        }
         // RM 3.5: Value returns S'Base, even when S has runtime bounds.
         Value bounds = scalarBounds(expr->type);
         Type* base = baseType(prefixType);

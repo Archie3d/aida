@@ -139,10 +139,15 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         expr->type = expected != nullptr && m_types.isCharacter(expected) && representationVisible(expected)
             ? expected : m_types.characterType();
         expr->isStatic = true;
-        expr->staticValue = static_cast<unsigned char>(literal->value);
+        expr->staticValue = literal->value;
+        Type* characterBase = m_types.scalarBaseType(expr->type);
+        if ((expected == nullptr || m_types.isCharacter(expected)) && m_types.isCharacter(expr->type)
+            && (literal->value < characterBase->low || literal->value > characterBase->high)) {
+            m_diagnostics.error(expr->location, "character literal is outside the expected character subtype range");
+        }
         if (expected != nullptr && expected->kind == TypeKind::Enumeration
             && !expected->literals.empty() && representationVisible(expected)) {
-            std::string name = "'" + std::string(1, literal->value) + "'";
+            std::string name = "'" + Unicode::encode(literal->value) + "'";
             auto found = std::find(expected->literals.begin(), expected->literals.end(), name);
             if (found == expected->literals.end()) {
                 m_diagnostics.error(expr->location, "character literal " + name + " is not declared by '" + expected->name + "'");
@@ -157,7 +162,7 @@ Type* Sema::analyzeExprValue(Expr* expr, Scope* scope, Type* expected)
         auto* literal = static_cast<StringLiteralExpr*>(expr);
         Type* parent = m_types.isString(expected) && representationVisible(expected)
             && representationVisible(expected->element) ? expected : m_types.stringType();
-        for (unsigned char character : literal->value) {
+        for (uint32_t character : literal->value) {
             if (character < parent->element->low || character > parent->element->high) {
                 m_diagnostics.error(expr->location, "string literal element is outside the component subtype range");
                 break;

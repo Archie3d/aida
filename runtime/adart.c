@@ -462,7 +462,9 @@ int __ada_image_enum(char* buffer, int capacity, int value, const char** names, 
         return 0;
     }
     for (size_t i = 0; i < length; ++i) {
-        buffer[i] = name[0] == '\'' ? name[i] : (char)toupper((unsigned char)name[i]);
+        char ch = name[i];
+        buffer[i] = name[0] != '\'' && ch >= 'a' && ch <= 'z'
+            ? (char)(ch - 'a' + 'A') : ch;
     }
     buffer[length] = '\0';
     return (int)length;
@@ -470,15 +472,7 @@ int __ada_image_enum(char* buffer, int capacity, int value, const char** names, 
 
 int __ada_image_character(char* buffer, int capacity, int value)
 {
-    if (capacity < 4) {
-        __ada_raise(ADA_STORAGE_ERROR);
-        return 0;
-    }
-    buffer[0] = '\'';
-    buffer[1] = (char)value;
-    buffer[2] = '\'';
-    buffer[3] = '\0';
-    return 3;
+    return __ada_wide_character_image(buffer, capacity, value, 1);
 }
 
 /* 'Value ignores the blanks around what it is given, so both ends are trimmed
@@ -778,15 +772,8 @@ int __ada_value_enum(const char* text, int length, const char** names, int count
     trim(text, length, &start, &stop);
     for (i = 0; i < count; ++i) {
         const char* name = names[i];
-        int j;
-
-        for (j = 0; j < stop - start && name[j] != '\0'; ++j) {
-            if (name[0] == '\'' ? text[start + j] != name[j]
-                : tolower((unsigned char)text[start + j]) != tolower((unsigned char)name[j])) {
-                break;
-            }
-        }
-        if (j == stop - start && name[j] == '\0') {
+        size_t nameLength = strlen(name);
+        if (nameLength <= INT_MAX && __ada_identifier_equal(text + start, stop - start, name, (int)nameLength, name[0] != '\'')) {
             return i;
         }
     }
@@ -799,15 +786,7 @@ int __ada_value_enum(const char* text, int length, const char** names, int count
    the way __ada_image_character writes it. */
 int __ada_value_character(const char* text, int length)
 {
-    int start;
-    int stop;
-
-    trim(text, length, &start, &stop);
-    if (stop - start != 3 || text[start] != '\'' || text[stop - 1] != '\'') {
-        __ada_raise(ADA_CONSTRAINT_ERROR);
-        return 0;
-    }
-    return (unsigned char)text[start + 1];
+    return __ada_wide_character_value(text, length, 1, 255);
 }
 
 /* Arrays compare element by element; a prefix is smaller than what extends it. */

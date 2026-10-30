@@ -2027,3 +2027,33 @@ add_test(NAME runtime.categorization_modes
         -DWORKDIR=${ADA_TEST_WORK_DIR}/categorization-modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.categorization_modes PROPERTIES TIMEOUT 60)
+
+# Unicode source and the first wide-library foundation increment.
+add_ada_test(widefoundation SOURCES widefoundation.adb)
+add_determinism_test(widefoundation SOURCE widefoundation.adb)
+add_ada_error_test(wideambiguityerrors SOURCES wideambiguityerrors.adb)
+add_test(NAME runtime.widefoundation_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=$<TARGET_FILE:qbe>
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/widefoundation.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/widefoundation.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/widefoundation-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+add_executable(wide_runtime_test WideRuntimeTest.c)
+target_link_libraries(wide_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.wide_characters COMMAND wide_runtime_test)
+set_tests_properties(runtime.wide_characters PROPERTIES TIMEOUT 30)
+add_ada_test(unicodeunitbundle SOURCES unicodeunitbundle.adb)
+add_determinism_test(unicodeunitbundle SOURCE unicodeunitbundle.adb)
+add_test(NAME semantics.unicode_source
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnicodeSource.cmake)
+set_tests_properties(semantics.unicode_source PROPERTIES TIMEOUT 30)

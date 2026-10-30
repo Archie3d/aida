@@ -1,6 +1,8 @@
 #include "Lexer.h"
 #include "ExactReal.h"
+#include "Unicode.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cctype>
 #include <climits>
@@ -121,12 +123,7 @@ int digitValue(char c)
 
 std::string toLower(const std::string& text)
 {
-    std::string result;
-    result.reserve(text.size());
-    for (char c : text) {
-        result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
-    }
-    return result;
+    return Unicode::identifier(text);
 }
 
 Lexer::Lexer(std::string source, int file, Diagnostics& diagnostics)
@@ -134,6 +131,39 @@ Lexer::Lexer(std::string source, int file, Diagnostics& diagnostics)
     , m_diagnostics(diagnostics)
     , m_file(file)
 {
+    int line = 1, column = 1;
+    for (std::size_t position = m_source.starts_with("\xEF\xBB\xBF") ? 3 : 0; position < m_source.size();) {
+        uint32_t code;
+        std::size_t count;
+        if (!Unicode::decode(m_source, position, code, count)) {
+            m_diagnostics.error({ line, column, file }, "invalid UTF-8 source sequence");
+        } else if ((code & 0xFFFF) >= 0xFFFE) {
+            m_diagnostics.error({ line, column, file }, "FFFE and FFFF positions are forbidden in Ada source");
+        }
+        position += count;
+        if (code == '\n' || code == 0x85 || code == 0x2028 || code == 0x2029) { ++line; column = 1; }
+        else { ++column; }
+    }
+    if (m_source.starts_with("\xEF\xBB\xBF")) { m_position = 3; }
+}
+
+uint32_t Lexer::peekCode(std::size_t offset) const
+{
+    uint32_t code;
+    std::size_t count;
+    Unicode::decode(m_source, m_position + offset, code, count);
+    return code;
+}
+
+uint32_t Lexer::advanceCode()
+{
+    uint32_t code;
+    std::size_t count;
+    Unicode::decode(m_source, m_position, code, count);
+    m_position += count;
+    if (code == '\n' || code == 0x85 || code == 0x2028 || code == 0x2029) { ++m_line; m_column = 1; }
+    else { ++m_column; }
+    return code;
 }
 
 char Lexer::peek(int offset) const
@@ -161,11 +191,11 @@ void Lexer::skipSpacingAndComments()
 {
     while (!atEnd()) {
         char c = peek();
-        if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v') {
-            advance();
+        if ((Unicode::properties(peekCode()) & Unicode::kSpace) || peekCode() == 0x85 || peekCode() == 0x2028 || peekCode() == 0x2029 || c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v') {
+            advanceCode();
         } else if (c == '-' && peek(1) == '-') {
-            while (!atEnd() && peek() != '\n') {
-                advance();
+            while (!atEnd() && peekCode() != '\n' && peekCode() != 0x85 && peekCode() != 0x2028 && peekCode() != 0x2029) {
+                advanceCode();
             }
         } else {
             break;
@@ -187,17 +217,25 @@ Token Lexer::lexIdentifierOrKeyword()
 {
     SourceLocation location = here();
     std::string text;
-    while (!atEnd() && (isLetter(peek()) || isDigit(peek()) || peek() == '_')) {
-        text.push_back(advance());
+    bool connector = false;
+    bool badConnector = false;
+    while (!atEnd() && (Unicode::properties(peekCode()) & (Unicode::kIdentifierStart | Unicode::kIdentifierExtend))) {
+        uint32_t code = advanceCode();
+        text += Unicode::encode(code);
+        unsigned flags = Unicode::properties(code);
+        if (flags & Unicode::kFormat) { continue; }
+        if (flags & Unicode::kConnector) { badConnector |= connector; connector = true; }
+        else { connector = false; }
     }
-
-    if (text.back() == '_' || text.find("__") != std::string::npos) {
+    if (connector || badConnector) {
         m_diagnostics.error(location, "an identifier cannot end with an underscore or contain consecutive underscores");
     }
-
     std::string lower = toLower(text);
     auto it = keywordTable().find(lower);
     TokenKind kind = it != keywordTable().end() ? it->second : TokenKind::Identifier;
+    if (kind != TokenKind::Identifier && std::any_of(text.begin(), text.end(), [](unsigned char c) { return c >= 128; })) {
+        m_diagnostics.error(location, "a Unicode identifier cannot normalize to a reserved word");
+    }
     return makeToken(kind, location, std::move(text));
 }
 
@@ -416,11 +454,11 @@ Token Lexer::lexStringLiteral()
 
     std::string value;
     while (true) {
-        if (atEnd() || peek() == '\n') {
+        if (atEnd() || peekCode() == '\n' || peekCode() == 0x85 || peekCode() == 0x2028 || peekCode() == 0x2029) {
             m_diagnostics.error(location, "unterminated string literal");
             break;
         }
-        char c = advance();
+        uint32_t c = advanceCode();
         if (c == '"') {
             if (peek() == '"') {
                 advance();
@@ -429,7 +467,10 @@ Token Lexer::lexStringLiteral()
             }
             break;
         }
-        value.push_back(c);
+        if (!(Unicode::properties(c) & Unicode::kGraphic)) {
+            m_diagnostics.error(location, "a string literal requires graphic characters");
+        }
+        value += Unicode::encode(c);
     }
 
     Token token;
@@ -444,7 +485,8 @@ Token Lexer::lexCharacterLiteral()
 {
     SourceLocation location = here();
     advance();  // Opening tick.
-    char value = advance();
+    uint32_t value = advanceCode();
+    if (!(Unicode::properties(value) & Unicode::kGraphic)) { m_diagnostics.error(location, "a character literal requires a graphic character"); }
     if (peek() == '\'') {
         advance();
     } else {
@@ -454,15 +496,18 @@ Token Lexer::lexCharacterLiteral()
     Token token;
     token.kind = TokenKind::CharacterLiteral;
     token.location = location;
-    token.text = std::string(1, value);
+    token.text = Unicode::encode(value);
     token.lower = token.text;
-    token.intValue = static_cast<unsigned char>(value);
+    token.intValue = value;
     return token;
 }
 
 bool Lexer::tickStartsCharacterLiteral(const Token* previous) const
 {
-    if (peek(2) != '\'') {
+    uint32_t code;
+    std::size_t count;
+    Unicode::decode(m_source, m_position + 1, code, count);
+    if (m_position + 1 + count >= m_source.size() || m_source[m_position + 1 + count] != '\'') {
         return false;
     }
     if (previous == nullptr) {
@@ -496,7 +541,7 @@ std::vector<Token> Lexer::tokenize()
         SourceLocation location = here();
         char c = peek();
 
-        if (isLetter(c)) {
+        if (Unicode::properties(peekCode()) & Unicode::kIdentifierStart) {
             tokens.push_back(lexIdentifierOrKeyword());
             continue;
         }
@@ -519,6 +564,11 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
+        if (static_cast<unsigned char>(c) >= 128) {
+            advanceCode();
+            m_diagnostics.error(location, "unexpected Unicode character outside a literal or identifier");
+            continue;
+        }
         advance();
         char next = peek();
         switch (c) {

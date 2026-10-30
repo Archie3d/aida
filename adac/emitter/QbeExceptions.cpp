@@ -12,12 +12,7 @@ namespace
 
 std::string upperCase(const std::string& text)
 {
-    std::string result;
-    result.reserve(text.size());
-    for (char c : text) {
-        result.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
-    }
-    return result;
+    return Unicode::identifier(text, false);
 }
 
 }

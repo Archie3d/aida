@@ -911,3 +911,14 @@ ordinary initialization and statements. This executable C-test uses the local
 Report adapter; the pinned 129-case backfill cohort is unchanged. The official
 BA21A02/BA21A03 objectives were reviewed when writing local legality controls;
 these B-tests are not graded by this harness and no passing claim is made.
+
+## Wide-character conversion foundation (Phase 7)
+
+CXA3004 is stored unchanged from `CXA/CXA3004.A` in the official
+[ACATS 3.1 archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP).
+It exercises the J.14 wide conversions through Ada.Characters.Handling.
+Retrieved 2026-10-30; archive SHA-256
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`;
+source SHA-256 `c6dcac7438acb9471b2f13ad56374e493694b1fca3552f670ed7b8e5b70a35f6`.
+The pinned backfill cohort is unchanged. This case does not cover wide text I/O
+or the wide string-library families, which remain later substeps.

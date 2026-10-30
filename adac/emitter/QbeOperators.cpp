@@ -349,7 +349,11 @@ Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const V
         const char* op = operation == ModularAdd ? "add" : operation == ModularSubtract ? "sub" : "mul";
         if (type == 'w') {
             // Every product of two signed words fits in a signed long.
-            std::string result = instruction('l', op, widen(left), widen(right));
+            // Sequence IR emission explicitly: C++ call arguments can be
+            // evaluated in either order by the host compiler.
+            std::string leftWide = widen(left);
+            std::string rightWide = widen(right);
+            std::string result = instruction('l', op, leftWide, rightWide);
             std::string below = instruction('w', "csltl", result, low);
             std::string above = instruction('w', "csgtl", result, "2147483647");
             check(instruction('w', "or", below, above));
@@ -364,8 +368,9 @@ Value QbeEmitter::emitIntegerOperation(int operation, const Value& left, const V
             std::string bWord = newTemp();
             line(aWord + " =l extsw " + left.name);
             line(bWord + " =l extsw " + right.name);
-            std::string fits = instruction('w', "and", instruction('w', "ceql", left.name, aWord),
-                                           instruction('w', "ceql", right.name, bWord));
+            std::string leftFits = instruction('w', "ceql", left.name, aWord);
+            std::string rightFits = instruction('w', "ceql", right.name, bWord);
+            std::string fits = instruction('w', "and", leftFits, rightFits);
             std::string multiply = newLabel("mulfit");
             std::string wide = newLabel("mulwide");
             branch(Value { fits, 'w' }, multiply, wide);

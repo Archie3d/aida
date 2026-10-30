@@ -100,7 +100,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
     case ExprKind::IntegerLiteral:
         return constantValue(static_cast<IntegerLiteralExpr*>(expr)->value, qbeClass(expr->type));
     case ExprKind::CharacterLiteral:
-        return constantValue(static_cast<unsigned char>(static_cast<CharacterLiteralExpr*>(expr)->value), 'w');
+        return constantValue(static_cast<CharacterLiteralExpr*>(expr)->value, 'w');
     case ExprKind::RealLiteral: {
         char type = qbeClass(expr->type);
         return Value { realLiteral(static_cast<RealLiteralExpr*>(expr)->value, type), type };
@@ -109,12 +109,16 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         auto* literal = static_cast<StringLiteralExpr*>(expr);
         long long width = typeSize(expr->type->element);
         std::string data;
-        if (width == 1) { data = stringData(literal->value); }
+        if (width == 1) {
+            std::string bytes;
+            for (uint32_t character : literal->value) { bytes += static_cast<char>(character); }
+            data = stringData(bytes);
+        }
         else {
             data = "$." + m_unitTag + ".wide." + std::to_string(m_dataCounter++);
             m_data << "data " << data << " = align " << (width < 4 ? 4 : width) << " { ";
             const char* storage = width == 2 ? "h " : width == 4 ? "w " : "l ";
-            for (unsigned char character : literal->value) { m_data << storage << int(character) << ", "; }
+            for (uint32_t character : literal->value) { m_data << storage << int(character) << ", "; }
             m_data << storage << "0 }\n";
         }
         return Value {data, 'l', "1", std::to_string(literal->value.size())};

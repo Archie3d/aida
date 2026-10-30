@@ -113,6 +113,7 @@ struct Type
     std::vector<Symbol*> dispatchSlots;
     int parentFieldCount = 0;
     std::string tagName;
+    std::string expandedName;
     Scope* declarationScope = nullptr;
     std::vector<Symbol*> primitives;
     Type* scalarBase = nullptr;

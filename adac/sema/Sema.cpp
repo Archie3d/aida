@@ -389,7 +389,7 @@ std::string Sema::mangle(const std::string& name) const
             return std::string("operator_power");
         }
         if (operatorSymbol(part).empty()) {
-            return part;
+            return Unicode::linkerIdentifier(part);
         }
         std::string encoded = "operator";
         for (unsigned char c : part) {

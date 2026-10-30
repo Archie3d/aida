@@ -5,6 +5,7 @@
 #include "Interface.h"
 #include "Token.h"
 #include "ExactReal.h"
+#include "Unicode.h"
 
 #include <memory>
 #include <string>
@@ -176,7 +177,7 @@ struct StringLiteralExpr : Expr
     {
     }
 
-    std::string value;
+    std::u32string value;
 };
 
 struct CharacterLiteralExpr : Expr
@@ -186,7 +187,7 @@ struct CharacterLiteralExpr : Expr
     {
     }
 
-    char value = '\0';
+    uint32_t value = 0;
 };
 
 struct NullExpr : Expr
@@ -281,6 +282,7 @@ struct AttributeExpr : Expr
     std::string lower;
     std::vector<ExprPtr> arguments;
     Type* prefixType = nullptr;
+    int textWidth = 1; // Image/Value/Width family element size.
     // The two lowered bounds of 'Range share one prefix evaluation.
     // The first bound points to itself; the last points to the first.
     AttributeExpr* rangeFirst = nullptr;

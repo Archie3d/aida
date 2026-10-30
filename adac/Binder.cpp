@@ -1,5 +1,7 @@
 #include "Binder.h"
+#include "Unicode.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -101,6 +103,9 @@ std::string validateElaborationOrder(const std::vector<UnitRecord>& units,
 
 std::string unitTag(const std::string& key)
 {
+    if (std::any_of(key.begin(), key.end(), [](unsigned char c) { return c >= 128; })) {
+        return Unicode::linkerIdentifier(key);
+    }
     std::string tag;
     for (char c : key) {
         bool usable = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';

@@ -56,7 +56,8 @@ Signed integer and floating input reuse the existing exact value parsers;
 floating values round directly to the instantiated binary format. Modular
 input retains the base range rule, and fixed/decimal input uses the existing
 exact scaled parser. Enumeration input recognizes identifiers or quoted
-character literals without consuming following punctuation. Enumeration output
+graphic character literals without consuming following punctuation. Control
+characters use names such as HT; quoted controls raise Data_Error. Enumeration output
 preserves the case of quoted characters. Floating output supports large Aft
 fields and signed zero; its host printf rounding/locale behavior retains the
 Phase 8 floating-format audit (in particular decimal halfway rounding).

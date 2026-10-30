@@ -134,7 +134,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             if (variable->isUplevel) {
                 variable->frameOffset = reserveFrame(size, 1);
             } else {
-                std::string slot = "%v." + variable->name + "." + std::to_string(m_tempCounter++);
+                std::string slot = "%v." + Unicode::linkerIdentifier(variable->name) + "." + std::to_string(m_tempCounter++);
                 m_context->prologue << "    " << slot << " =l " << (size <= 4 ? "alloc4" : "alloc8") << " " << size
                                     << "\n";
                 m_context->locals[variable] = slot;

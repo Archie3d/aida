@@ -127,15 +127,13 @@ std::string Sema::describeValue(Type* type, __int128 value) const
     }
     if (base->literals.empty()) {
         // Character, which names its values by their spelling.
-        return std::string("'") + static_cast<char>(value) + "'";
+        return "'" + Unicode::encode(static_cast<uint32_t>(value)) + "'";
     }
     if (value < 0 || value >= static_cast<long long>(base->literals.size())) {
         return value > LLONG_MAX ? std::to_string(static_cast<unsigned long long>(value)) : scalarText(value);
     }
 
     std::string name = base->literals[static_cast<std::size_t>(value)];
-    for (char& c : name) {
-        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    }
+    if (!name.starts_with("'")) { name = Unicode::identifier(name, false); }
     return name;
 }

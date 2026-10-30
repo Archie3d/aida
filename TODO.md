@@ -956,10 +956,21 @@ Ada 2005 additions and track annex packages separately.
   increment. See [contract](docs/package-categorization.md) for the original
   Ada 2005 generic/limited-view rules and remaining Annex C/E/Phase 8 boundaries.
 - [ ] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and
-  `Wide_Wide_String` facilities: basic Standard types/storage/contextual literals
-  landed for exception names; required I/O, string/character facilities and
-  complete overload resolution remain open, along with Ada 2005 identifier
-  character rules and a documented source encoding policy.
+  `Wide_Wide_String` facilities (see [foundation contract](docs/wide-foundation.md)):
+  - [x] UTF-8 source policy, pinned Unicode 4.0 identifier categories/casing,
+    format/connector rules, wide code-point literals, standard wide overload
+    resolution, QBE name escaping and Unicode expanded/exception names.
+  - [x] Scalar Image/Value/Width families with native wide results, named control
+    images, documented unrepresentable-character spelling and owned conversions.
+  - [x] Ada.Characters.Conversions and J.14 Characters.Handling compatibility
+    functions; whole/per-unit/determinism, four-thread C checks, malformed-source
+    controls and unchanged CXA3004 coverage.
+  - [ ] Wide_Text_IO and Wide_Wide_Text_IO, required nested generic I/O packages,
+    standard numeric I/O instances, encoding/position semantics and file lifetime.
+  - [ ] Wide/Wide_Wide string maps/constants, fixed/bounded/unbounded string
+    facilities and required text-I/O children, with callbacks and categorization.
+  - [ ] Remaining wide attribute-subprogram profiles and the final wide-library
+    overload/legality/ACATS audit across those families.
 - [ ] A foreign ABI and ownership contract for imported controlled results.
   Include guarded foreign callbacks for imported No_Return procedures (their
   'Access is currently diagnosed; direct calls are guarded).

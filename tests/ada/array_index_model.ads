@@ -7,7 +7,7 @@ package Array_Index_Model is
     type Explicit_Ranges is array (Index range -1 .. 1, Choice range First .. Last) of Integer;
     type Bare_Subtypes is array (Row, Choice, Boolean) of Integer;
     type Boxed_Subtypes is array (Row range <>, Choice range <>, Boolean range <>) of Integer;
-    type Raw_Ranges is array (1 .. 2, 'A' .. 'B') of Integer;
+    type Raw_Ranges is array (1 .. 2, Character'('A') .. 'B') of Integer;
     type Mixed_Notations is array (Row, Choice range First .. Last) of Integer;
     Limit : Integer := 2;
     type Dynamic is array (1 .. Limit, Boolean) of Integer;

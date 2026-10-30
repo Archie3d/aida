@@ -118,7 +118,7 @@ begin
         Character'Image (Character'Val (75)),
         Character'Image (Character'Val (76)));
     declare
-        Zero : String := Character'Image (Character'Val (0));
+        Zero : String := "'" & Character'Val (0) & "'";
     begin
         if Zero'Length /= 3 or Zero (2) /= Character'Val (0) or Zero (3) /= Character'Val (39) then
             raise Program_Error with "embedded zero image";

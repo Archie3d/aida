@@ -217,6 +217,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool controlled = completing->controlled;
         bool preelaborableInitialization = completing->preelaborableInitialization;
         std::string tagName = completing->tagName;
+        std::string expandedName = completing->expandedName;
         auto streamAttributes = completing->streamAttributes;
         bool visibleStreamReadWrite = completing->visibleStreamReadWrite;
         auto slots = std::move(completing->dispatchSlots);
@@ -241,6 +242,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->publicParentFieldCount = publicParentFieldCount;
         completing->controlled = controlled;
         completing->tagName = tagName;
+        completing->expandedName = expandedName;
         return completing;
     };
 
@@ -290,6 +292,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = "$" + mangle(decl->lower) + "__protected";
         std::size_t ordinal = ++m_tagNames[name];
         type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        std::string expanded;
+        for (const std::string& part : m_namePrefix) { expanded += part + "."; }
+        expanded += decl->lower;
+        type->expandedName = std::any_of(expanded.begin(), expanded.end(), [](unsigned char c) { return c >= 128; })
+            ? Unicode::identifier(expanded, false) : std::string();
         layoutRecord(decl, definition, type, scope);
         for (const FieldInfo& field : type->fields) {
             if (needsFinalization(field.type) || hasTasks(field.type)) {
@@ -1103,6 +1110,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         std::string name = "$" + mangle(decl->lower) + "__tag";
         std::size_t ordinal = ++m_tagNames[name];
         type->tagName = name + (ordinal > 1 ? "__" + std::to_string(ordinal) : "");
+        std::string expanded;
+        for (const std::string& part : m_namePrefix) { expanded += part + "."; }
+        expanded += decl->lower;
+        type->expandedName = std::any_of(expanded.begin(), expanded.end(), [](unsigned char c) { return c >= 128; })
+            ? Unicode::identifier(expanded, false) : std::string();
     }
     if (type->kind == TypeKind::Record || type->kind == TypeKind::Array) {
         type->accessIdentity = mangle(decl->lower) + ":"
