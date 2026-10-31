@@ -970,10 +970,19 @@ Ada 2005 additions and track annex packages separately.
     lifetime. Both widths run whole/per-unit/determinism checks; unchanged
     CXAB001 and four-thread C tests cover files, malformed/partial UTF-8 and
     borrowed results. See [contract](docs/wide-text-io.md).
-  - [ ] Wide/Wide_Wide string maps/constants, fixed/bounded/unbounded string
+  - [x] Wide/Wide_Wide string maps/constants, fixed/bounded/unbounded string
     facilities and required text-I/O children, with callbacks and categorization.
-  - [ ] Remaining wide attribute-subprogram profiles and the final wide-library
-    overload/legality/ACATS audit across those families.
+    Shared sparse intervals/pairs cover the complete 16/31-bit domains without
+    dense tables; constants preserve Latin-1 semantics. Both widths run adapted
+    regressions and native Unicode/boundary/stream/category checks whole/per-unit/
+    deterministically, including four tasks. Unchanged CXA4012–CXA4023,
+    CXA4025/CXA4029/CXA4033/CXA4034 PASS (REPORT adds Ident_Wide_Char).
+    Full run: 1,661/1,661 checks, plus two added category rejection checks.
+    Focused compiler/C-runtime ASan/UBSan and C-runtime TSan pass; generated
+    Ada accesses remain uninstrumented.
+    [Ownership, API, complexity and limits](docs/wide-strings.md).
+  - [ ] Remaining wide attribute-subprogram profiles, hash children and the final
+    wide-library overload/legality/ACATS audit across those families.
 - [ ] A foreign ABI and ownership contract for imported controlled results.
   Include guarded foreign callbacks for imported No_Return procedures (their
   'Access is currently diagnosed; direct calls are guarded).

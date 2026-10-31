@@ -2138,3 +2138,32 @@ add_executable(wide_text_io_test WideTextIoTest.c)
 target_link_libraries(wide_text_io_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.wide_text_io COMMAND wide_text_io_test)
 set_tests_properties(runtime.wide_text_io PROPERTIES TIMEOUT 30)
+
+# Ada 2005 A.4.7/A.4.8 native wide string families and A.11 adapters.
+foreach(width wide widewide)
+    foreach(family stringmaps fixedstrings fixedstringchecks boundedstrings
+            unboundedstrings stringmappingcallbacks stringmappingtasking textstringio stringlimits)
+        set(name ${width}${family})
+        add_ada_test(${name} SOURCES ${name}.adb)
+        add_determinism_test(${name} SOURCE ${name}.adb)
+        ada_test_fixture(source_path "${name}.adb")
+        ada_test_fixture(expected_path "${name}.expected")
+        add_test(NAME runtime.${name}_modes
+            COMMAND ${CMAKE_COMMAND}
+                -DADA=$<TARGET_FILE:ada>
+                -DADAC=$<TARGET_FILE:adac>
+                -DQBE=$<TARGET_FILE:qbe>
+                -DCC=${CMAKE_C_COMPILER}
+                -DRUNTIME=$<TARGET_FILE:adart>
+                -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+                -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+                -DSOURCE=${source_path}
+                -DEXPECTED=${expected_path}
+                -DWORKDIR=${ADA_TEST_WORK_DIR}/${name}-modes
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+        set_tests_properties(ada.${name} determinism.${name} runtime.${name}_modes
+            PROPERTIES TIMEOUT 180)
+    endforeach()
+    add_ada_error_test(${width}stringmappingerrors SOURCES ${width}stringmappingerrors.adb)
+    add_ada_error_test(${width}stringcategoryerrors SOURCES ${width}stringcategoryerrors.ads)
+endforeach()

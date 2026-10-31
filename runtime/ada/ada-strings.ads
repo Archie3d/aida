@@ -2,6 +2,8 @@
 package Ada.Strings is
     pragma Pure;
     Space : constant Character := ' ';
+    Wide_Space : constant Wide_Character := ' ';
+    Wide_Wide_Space : constant Wide_Wide_Character := ' ';
     Length_Error, Pattern_Error, Index_Error, Translation_Error : exception;
     type Alignment is (Left, Right, Center);
     type Truncation is (Left, Right, Error);

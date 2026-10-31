@@ -252,3 +252,21 @@ add_acats_test(cxa3004)
 
 # Unchanged wide character/string external text operations.
 add_acats_test(cxab001)
+
+# Wide string maps, fixed/bounded/unbounded operations and mapping callbacks.
+add_acats_test(cxa4012)
+add_acats_test(cxa4013)
+add_acats_test(cxa4014)
+add_acats_test(cxa4015)
+add_acats_test(cxa4016)
+add_acats_test(cxa4017)
+add_acats_test(cxa4018)
+add_acats_test(cxa4019)
+add_acats_test(cxa4020)
+add_acats_test(cxa4021)
+add_acats_test(cxa4022)
+add_acats_test(cxa4023)
+add_acats_test(cxa4025)
+add_acats_test(cxa4029)
+add_acats_test(cxa4033)
+add_acats_test(cxa4034)

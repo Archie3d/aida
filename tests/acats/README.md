@@ -933,3 +933,34 @@ source SHA-256 `3e1ce7fb49e83eb1cfe62fd66b5e30c69d091be6df2280d1c7c0e026c09a6492
 It executes as PASS using the local Report adapter, covering wide character and
 string external I/O, reset/append/open/close and deletion. Its original rights
 and disclaimer are preserved; the pinned backfill cohort is unchanged.
+
+## Wide string families (Phase 7)
+
+CXA4012–CXA4023, CXA4025, CXA4029, CXA4033 and CXA4034 are stored unchanged
+from `CXA/<name>.A` in the official
+[ACATS 3.1 archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP).
+Extracted 2026-10-31; archive SHA-256
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`.
+All sixteen execute as PASS, covering wide maps/constants, fixed/bounded/
+unbounded operations, mapping callbacks, truncation and slice errors. The local
+REPORT adapter adds the identity function Ident_Wide_Char for CXA4034. Original
+rights/disclaimers and the pinned baseline cohort are unchanged.
+
+| Source | SHA-256 |
+| --- | --- |
+| CXA4012 | `62a0bde94ae2269c6dfc89f633dfef9ff3923a60a028783ea9bc0519e1bf3c2a` |
+| CXA4013 | `9b083855d92d8561b7da570011a4d6256ec1658251b2624b653a9f54ceadbe8b` |
+| CXA4014 | `40b439836b51ba8ca9b0b45afbb67a529998307d38c0889031a7045d9dcbc7ab` |
+| CXA4015 | `1b08aee0bca50fdbd70293ab96f9fcfd95c5da91f539586e998cd520a388257a` |
+| CXA4016 | `27ff344708653173d8d287a61fb860d19040d5ea4b9aff1acea04d7ef86bde35` |
+| CXA4017 | `cb967745bfe94a32af1b17f83973f6122697b60bb3c978bc0a0706a198758798` |
+| CXA4018 | `c75e70ab46bfb2212c8ddaa24647d4c55760d80f710025fca4ee5b407939c0c5` |
+| CXA4019 | `0cfabe2853873ce42c543a58b8cbead13dc6916445fd6b609fdfe40906915b08` |
+| CXA4020 | `4bc9af58e2dcc9e8b575a504eeaed48bd3b4a9d00d7c52478ec0a6d1573155ea` |
+| CXA4021 | `d78329fd759216a9718b0c5f1e64ccd2155f321d37eea63b97580f2e65362324` |
+| CXA4022 | `81acb82e5501eb3d7c331ff1dd37314c31a0f13929925122875574ad18c88952` |
+| CXA4023 | `9d2ec0168d4194a4a106a6754386e58f14e33998f24030f038dc4ea41b44dfac` |
+| CXA4025 | `5c447a3ceb72691d97e8a75e87b1dbff89e1e2b08e96d7ff48dff07c65d129a8` |
+| CXA4029 | `ab2cafc19a2bf07213eb8d5e46b31926cfab0fd325ad8bc47dd0c606a2238ccb` |
+| CXA4033 | `627cf15de401e977e31b49c606a634bfa9f459db572b4d772792b0b032f20a5c` |
+| CXA4034 | `fdad471a74e85593d562a9a121c0df5e2290954e2a07fc6f2470e06bf78f07f8` |

@@ -136,11 +136,12 @@ Supported:
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
-- Byte-string mapping constants and callbacks; unbounded strings and Ada 2005 container families with cursors, callbacks and sorting ([API and limits](docs/library-collections.md))
+- Narrow/wide string maps, constants, callbacks and fixed/bounded/unbounded facilities
+  ([wide strings](docs/wide-strings.md)); Ada 2005 containers with cursors, callbacks and sorting ([limits](docs/library-collections.md))
 - UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))
 - Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
 - Narrow and wide text I/O, nested numeric/enumeration generics and scoped file cleanup
-  ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); narrow string adapters
+  ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); bounded/unbounded string adapters
   and type-aware streams ([streaming](docs/streaming.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
@@ -160,8 +161,7 @@ Not supported yet:
 - Concurrent interface implementations, task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
-- Wide string/map libraries, their bounded/unbounded I/O children and remaining
-  wide attribute-subprogram profiles
+- Remaining wide attribute-subprogram profiles, hash children and final wide-library audit
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
 

@@ -2,7 +2,9 @@
 
 This increment supplies Unicode source, contextual wide literals, scalar text
 attributes, and Ada.Characters.Conversions. The overall wide-library roadmap
-item remains open for the wide string/map families and their I/O children.
+item remains open for the remaining attribute profiles and final library audit.
+The [wide string/map families and their I/O children](wide-strings.md) are now
+implemented.
 Wide_Text_IO/Wide_Wide_Text_IO and their numeric instances are now implemented
 in the [wide text-I/O increment](wide-text-io.md). This is
 not a claim of complete predefined-library conformance.

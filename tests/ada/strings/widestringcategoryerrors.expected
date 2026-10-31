@@ -1,0 +1,1 @@
+widestringcategoryerrors.ads:2:1: error: pure library unit cannot depend on 'ada-strings-wide_maps.spec' with a weaker categorization
