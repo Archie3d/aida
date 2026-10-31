@@ -136,7 +136,7 @@ Supported:
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and byte-addressable record clauses ([limits](docs/representation-clauses.md))
-- Narrow/wide string maps, constants, callbacks and fixed/bounded/unbounded facilities
+- Narrow/wide string maps, constants, callbacks, hashing and fixed/bounded/unbounded facilities
   ([wide strings](docs/wide-strings.md)); Ada 2005 containers with cursors, callbacks and sorting ([limits](docs/library-collections.md))
 - UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))
 - Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
@@ -161,7 +161,6 @@ Not supported yet:
 - Concurrent interface implementations, task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
-- Remaining wide attribute-subprogram profiles, hash children and final wide-library audit
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
 

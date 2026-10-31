@@ -98,6 +98,27 @@ void __ada_wide_to_utf8(void* result, const void* text, int length, int width)
     int64_t count = 0;
     for (int i = 0; i < length; ++i) {
         uint32_t code = adaTextRead(text, i, width);
+        // Wide_Image spells supplementary identifier characters as twelve
+        // ASCII cells. Wide_Value must undo that spelling before name lookup.
+        if (width == 2 && code == '[' && length - i >= 12
+            && adaTextRead(text, i + 1, width) == '"'
+            && adaTextRead(text, i + 10, width) == '"'
+            && adaTextRead(text, i + 11, width) == ']') {
+            uint32_t escaped = 0;
+            int valid = 1;
+            for (int j = 2; j < 10; ++j) {
+                uint32_t cell = adaTextRead(text, i + j, width);
+                int digit = cell >= '0' && cell <= '9' ? (int)(cell - '0')
+                    : cell >= 'A' && cell <= 'F' ? (int)(cell - 'A' + 10)
+                    : cell >= 'a' && cell <= 'f' ? (int)(cell - 'a' + 10) : -1;
+                if (digit < 0) { valid = 0; break; }
+                escaped = (escaped << 4) | (unsigned)digit;
+            }
+            if (valid && escaped > 65535 && escaped <= 0x10FFFF) {
+                code = escaped;
+                i += 11;
+            }
+        }
         if (code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { free(bytes); __ada_raise(ADA_CONSTRAINT_ERROR); return; }
         count += adaUtf8Encode(bytes + count, code);
     }

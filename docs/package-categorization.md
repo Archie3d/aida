@@ -104,3 +104,9 @@ library subprogram. Existing string/container ACATS cases continue to exercise
 the newly categorized predefined implementations. No B-test grading or Annex E
 conformance is claimed. Annex C.4's additional no-runtime-elaboration-code
 requirements and the broader Phase 8 freezing/representation audit remain separate.
+
+The [wide-library audit](wide-library-audit.md) adds Pure root/fixed string
+hashes and Preelaborate bounded/unbounded hashes. The three A.4.9/A.4.7/A.4.8
+mandated fixed hash renamings retain their specified Pure category despite
+their Preelaborate parents; the loader's exception is confined to those exact
+renamings and implicit parent edges. Other dependencies retain the normal rules.

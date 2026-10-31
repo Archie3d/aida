@@ -1,0 +1,11 @@
+wideprofileerrors.adb:7:42: error: no matching actual for generic formal 'Encode'
+wideprofileerrors.adb:8:44: error: no matching actual for generic formal 'Encode'
+wideprofileerrors.adb:9:56: error: attribute 'Wide_Width' does not denote a supported attribute subprogram
+wideprofileerrors.adb:10:76: error: no subprogram matches the renaming profile
+wideprofileerrors.adb:11:72: error: no subprogram matches the renaming profile
+wideprofileerrors.adb:12:94: error: no subprogram matches the renaming profile
+wideprofileerrors.adb:13:77: error: attribute 'Wide_Width' does not denote a supported attribute subprogram
+wideprofileerrors.adb:13:77: error: no subprogram matches the renaming profile
+wideprofileerrors.adb:16:36: error: 'Access of intrinsic subprograms is not allowed
+wideprofileerrors.adb:20:85: error: attribute 'Wide_Image' does not denote a supported attribute subprogram
+wideprofileerrors.adb:20:85: error: no subprogram matches the renaming profile

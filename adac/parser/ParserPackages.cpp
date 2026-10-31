@@ -122,7 +122,9 @@ void Parser::parseCategory(Decl& decl, const std::string& name, bool inside)
         if (inside) { lower = expect(TokenKind::Identifier, "as library unit name").lower; }
         else { parseCompoundName(lower); }
         std::string expected = inside ? name.substr(name.find_last_of('.') + 1) : name;
-        if (lower != expected) { fail("categorization pragma must name its own library unit"); }
+        if (lower != expected && (inside || lower != name.substr(name.find_last_of('.') + 1))) {
+            fail("categorization pragma must name its own library unit");
+        }
         expect(TokenKind::RightParen, "after library unit name");
     } else if (!inside) {
         fail("categorization pragma after a library unit requires its name");

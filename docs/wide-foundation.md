@@ -2,7 +2,7 @@
 
 This increment supplies Unicode source, contextual wide literals, scalar text
 attributes, and Ada.Characters.Conversions. The overall wide-library roadmap
-item remains open for the remaining attribute profiles and final library audit.
+item is completed for the documented subset by the [final audit](wide-library-audit.md).
 The [wide string/map families and their I/O children](wide-strings.md) are now
 implemented.
 Wide_Text_IO/Wide_Wide_Text_IO and their numeric instances are now implemented
@@ -98,9 +98,9 @@ characters in a UTF-8 name widened to Wide_String use the twelve-cell escape
 `["0001F600"]`; Wide_Wide_String keeps the actual code point. Wide exception
 names decode the UTF-8 identifier rather than widening its individual bytes.
 
-Attribute subprogram profiles beyond the existing Image/Value/Succ/Pred/Min/Max
-adapter set, the remaining wide predefined libraries, and the broader Phase 8
-privacy/freezing/overload audit remain separate obligations.
+The [final audit](wide-library-audit.md) adds the wide Image/Value subprogram
+profiles and hash libraries. Broader Phase 8 privacy/freezing/overload and
+predefined-environment coverage remain separate obligations.
 
 ## Validation
 

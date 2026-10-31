@@ -2167,3 +2167,30 @@ foreach(width wide widewide)
     add_ada_error_test(${width}stringmappingerrors SOURCES ${width}stringmappingerrors.adb)
     add_ada_error_test(${width}stringcategoryerrors SOURCES ${width}stringcategoryerrors.ads)
 endforeach()
+
+# Final wide-library audit: intrinsic profiles, native hashes and their callers.
+foreach(name wideattributes wideoverloads widehashes widewidehashes stringhashes)
+    add_ada_test(${name} SOURCES ${name}.adb)
+    add_determinism_test(${name} SOURCE ${name}.adb)
+    ada_test_fixture(source_path "${name}.adb")
+    ada_test_fixture(expected_path "${name}.expected")
+    add_test(NAME runtime.${name}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=$<TARGET_FILE:qbe>
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${source_path}
+            -DEXPECTED=${expected_path}
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${name}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${name} determinism.${name} runtime.${name}_modes
+        PROPERTIES TIMEOUT 180)
+endforeach()
+add_ada_error_test(wideprofileerrors SOURCES wideprofileerrors.adb)
+add_ada_error_test(widehashcategoryerrors SOURCES widehashcategoryerrors.ads)
+# A similarly named alias to another target does not get the predefined exception.
+add_ada_error_test(widehashparenterrors SOURCES strings/hashparenterrors/ada-strings-wide_fixed-wide_hash.ads)

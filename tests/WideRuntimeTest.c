@@ -48,6 +48,9 @@ static void exercise(void)
     __ada_wide_to_utf8(&result, words, 2, 4);
     CHECK(result.length == 5 && memcmp(result.data, "A\xF0\x9F\x98\x80", 5) == 0);
     free(result.data);
+    __ada_wide_to_utf8(&result, wide, 13, 2);
+    CHECK(result.length == 5 && memcmp(result.data, "A\xF0\x9F\x98\x80", 5) == 0);
+    free(result.data);
     CHECK(__ada_exception == NULL);
     __ada_wide_character_value("'\t'", 3, 1, 255);
     CHECK(__ada_exception == ADA_CONSTRAINT_ERROR);

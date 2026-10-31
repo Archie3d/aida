@@ -150,8 +150,12 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
         }
         return profile;
     }
+    bool image = name == "image" || name == "wide_image" || name == "wide_wide_image";
+    bool value = name == "value" || name == "wide_value" || name == "wide_wide_value";
+    Type* textType = name.starts_with("wide_wide_") ? m_types.wideWideStringType()
+        : name.starts_with("wide_") ? m_types.wideStringType() : m_types.stringType();
     bool scalar = isDiscrete(type) || isReal(type) || type->kind == TypeKind::Fixed;
-    if (!scalar || (name != "image" && name != "value" && name != "succ" && name != "pred"
+    if (!scalar || (!image && !value && name != "succ" && name != "pred"
         && name != "min" && name != "max")) {
         m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' does not denote a supported attribute subprogram");
         return nullptr;
@@ -164,12 +168,12 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
     profile->intrinsicRenaming = true;
     profile->genericIntrinsic = "attribute:" + name;
     profile->intrinsicPrefix = baseType(type);
-    profile->returnType = name == "image" ? m_types.stringType() : base;
+    profile->returnType = image ? textType : base;
     std::size_t count = name == "min" || name == "max" ? 2 : 1;
     for (std::size_t i = 0; i < count; ++i) {
         std::string parameterName = count == 1 ? "arg" : i == 0 ? "left" : "right";
         Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, parameterName, parameterName);
-        parameter->type = name == "value" ? m_types.stringType() : base;
+        parameter->type = value ? textType : base;
         parameter->mode = ParameterMode::In;
         parameter->byReference = isComposite(parameter->type);
         profile->parameters.push_back(parameter);

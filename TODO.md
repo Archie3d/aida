@@ -955,7 +955,7 @@ Ada 2005 additions and track annex packages separately.
   `categorization*errors`, `preelaborable*errors` and unchanged CA21001 cover the
   increment. See [contract](docs/package-categorization.md) for the original
   Ada 2005 generic/limited-view rules and remaining Annex C/E/Phase 8 boundaries.
-- [ ] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and
+- [x] Complete `Wide_Character`, `Wide_String`, `Wide_Wide_Character` and
   `Wide_Wide_String` facilities (see [foundation contract](docs/wide-foundation.md)):
   - [x] UTF-8 source policy, pinned Unicode 4.0 identifier categories/casing,
     format/connector rules, wide code-point literals, standard wide overload
@@ -981,8 +981,18 @@ Ada 2005 additions and track annex packages separately.
     Focused compiler/C-runtime ASan/UBSan and C-runtime TSan pass; generated
     Ada accesses remain uninstrumented.
     [Ownership, API, complexity and limits](docs/wide-strings.md).
-  - [ ] Remaining wide attribute-subprogram profiles, hash children and the final
-    wide-library overload/legality/ACATS audit across those families.
+  - [x] Remaining wide attribute-subprogram profiles, hash children and the final
+    wide-library overload/legality/ACATS audit across those families. Shared
+    intrinsic profiles handle native Image/Value renamings/completions and generic
+    actuals/defaults; supplementary enumeration escapes round-trip through Value.
+    Pure wide roots and all narrow/wide hash views use one full-position algorithm.
+    Whole/per-unit/determinism and four-task checks cover overloads, base profiles,
+    high character bits, container hash callers, categories and rejections.
+    Unchanged C354003 PASS alongside the existing wide ACATS selection.
+    Full run: 1,678/1,678 checks; three added overload checks and the predefined
+    hash-parent rejection also pass. Focused compiler/C-runtime ASan/UBSan and
+    C-runtime TSan pass (generated Ada accesses uninstrumented).
+    [Final inventory, hash contract and remaining Phase 8 owners](docs/wide-library-audit.md).
 - [ ] A foreign ABI and ownership contract for imported controlled results.
   Include guarded foreign callbacks for imported No_Return procedures (their
   'Access is currently diagnosed; direct calls are guarded).

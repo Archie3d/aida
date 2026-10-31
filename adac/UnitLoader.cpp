@@ -72,6 +72,40 @@ std::string declarationName(const Decl& decl)
     }
 }
 
+std::string selectedName(const Expr* expression)
+{
+    if (expression == nullptr) { return {}; }
+    if (expression->kind == ExprKind::Identifier) {
+        return static_cast<const IdentifierExpr*>(expression)->lower;
+    }
+    if (expression->kind == ExprKind::Selected) {
+        const auto* selected = static_cast<const SelectedExpr*>(expression);
+        if (!selected->isDereference) {
+            return selectedName(selected->prefix.get()) + "." + selected->selectorLower;
+        }
+    }
+    return {};
+}
+
+bool predefinedHashParent(const Decl& declaration, const std::string& dependency)
+{
+    // A.4.9 explicitly makes Fixed.Hash a Pure renaming even though Fixed is
+    // Preelaborate; A.4.7/8 prescribe the same for both wide families. Only the
+    // mandated renaming's implicit parent edge gets this library exception.
+    if (declaration.kind != DeclKind::SubprogramDeclaration) { return false; }
+    const auto& subprogram = static_cast<const SubprogramDecl&>(declaration);
+    for (const std::string prefix : { "", "wide_", "wide_wide_" }) {
+        std::string parent = "ada.strings." + prefix + "fixed";
+        std::string hash = prefix + "hash";
+        if (subprogram.spec.lower == parent + "." + hash
+            && dependency == fileKey(parent) + ".spec"
+            && selectedName(subprogram.renamedName.get()) == "ada.strings." + hash) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool isOptionalCompletion(const Decl& decl)
 {
     return (decl.kind == DeclKind::SubprogramDeclaration
@@ -626,7 +660,8 @@ bool UnitLoader::orderUnits()
         std::vector<CompilationUnit*> semantic = dependencies[unit];
         for (const std::string& key : unit->limitedDependencies) { semantic.push_back(m_parts.at(key)); }
         for (CompilationUnit* dependency : semantic) {
-            if (dependency->category < unit->category) {
+            if (dependency->category < unit->category
+                && !predefinedHashParent(*unit->units.front(), dependency->partKey)) {
                 m_diagnostics.error(unit->units.front()->location,
                     std::string(unit->category == 2 ? "pure" : "preelaborated")
                     + " library unit cannot depend on '" + dependency->partKey + "' with a weaker categorization");

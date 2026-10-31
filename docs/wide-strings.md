@@ -5,7 +5,8 @@ unbounded string packages and their text-I/O adapters from Ada 2005
 [A.4.7](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-4-7.html),
 [A.4.8](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-4-8.html)
 and [A.11](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-11.html).
-This does not complete the overall wide-library audit.
+The [final Phase 7 audit](wide-library-audit.md) now closes the overall
+wide-string roadmap item for the documented Ada 2005 subset.
 
 ## API and character semantics
 
@@ -65,10 +66,10 @@ Storage remains bounded by Natural, address space and the existing array/result
 ABI. Materializing a set's sequence requires one element per member; a complete
 31-bit domain cannot fit a Natural-length string and raises Storage_Error.
 Set construction and mapping construction use straightforward sorting/searches,
-without a logarithmic-time or amortized-growth guarantee. Hash child functions,
-remaining attribute-subprogram profiles and the final cross-family overload,
-legality and ACATS audit retain the next wide-roadmap substep; generic children
-of generic parents retain the existing Phase 8 loader prerequisite.
+without a logarithmic-time or amortized-growth guarantee. Hash functions and
+the remaining attribute-subprogram profiles are now implemented and covered by
+the [final audit](wide-library-audit.md); general generic children of generic
+parents retain the existing Phase 8 loader prerequisite.
 
 ## Validation
 

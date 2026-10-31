@@ -127,39 +127,13 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     Type* attributeType = nullptr;
+    Symbol* attributeProfile = nullptr;
     if (chosen == nullptr && name->kind == ExprKind::Attribute) {
         auto* attribute = static_cast<AttributeExpr*>(name);
-        for (Symbol* prefix : expressionNames(attribute->prefix.get(), scope)) {
-            if (prefix->kind == SymbolKind::TypeName) {
-                attributeType = prefix->type;
-                break;
-            }
-        }
-        bool conforms = attributeType != nullptr && attribute->arguments.empty() && spec.isFunction
-            && types.size() == 1 && spec.parameters.front().mode == ParameterMode::In;
-        if (conforms) {
-            const std::string& operation = attribute->lower;
-            if (operation == "succ" || operation == "pred") {
-                conforms = isDiscrete(attributeType) && baseType(types[0]) == baseType(attributeType)
-                    && baseType(result) == baseType(attributeType);
-            } else if (operation == "image") {
-                conforms = (isDiscrete(attributeType) || isReal(attributeType)) && baseType(types[0]) == baseType(attributeType)
-                    && baseType(result) == baseType(m_types.stringType());
-            } else if (operation == "value") {
-                conforms = (isDiscrete(attributeType) || isReal(attributeType)) && baseType(types[0]) == baseType(m_types.stringType())
-                    && baseType(result) == baseType(attributeType);
-            } else {
-                conforms = false;
-            }
-        }
-        if (attribute->lower == "read" || attribute->lower == "write"
-            || attribute->lower == "input" || attribute->lower == "output") {
-            Symbol* profile = attributeSubprogram(attribute, scope);
-            conforms = profile != nullptr && matches(profile);
-            if (conforms) { attributeType = profile->intrinsicPrefix; }
-        }
-        if (!conforms) {
-            attributeType = nullptr;
+        Symbol* profile = attributeSubprogram(attribute, scope);
+        if (profile != nullptr && matches(profile)) {
+            attributeType = profile->intrinsicPrefix;
+            attributeProfile = profile;
         }
     }
     if (chosen == nullptr && !intrinsic && attributeType == nullptr) {
@@ -294,12 +268,10 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     if (completion == nullptr && attributeType != nullptr) {
-        const std::string& attribute = static_cast<AttributeExpr*>(name)->lower;
-        Type* scalar = m_types.scalarBaseType(attributeType);
-        if (attribute != "read" && attribute != "write" && attribute != "input" && attribute != "output") {
-            alias->parameters.front()->type = attribute == "value" ? m_types.stringType() : scalar;
-            alias->parameters.front()->byReference = attribute == "value";
-            alias->returnType = attribute == "image" ? m_types.stringType() : scalar;
+        alias->returnType = attributeProfile->returnType;
+        for (std::size_t i = 0; i < types.size(); ++i) {
+            alias->parameters[i]->type = attributeProfile->parameters[i]->type;
+            alias->parameters[i]->byReference = attributeProfile->parameters[i]->byReference;
         }
     }
     if (completion == nullptr && enumeration) {
@@ -356,8 +328,10 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     Symbol* saved = m_currentSubprogram;
     m_currentSubprogram = alias;
     ExprPtr implementation;
+    std::string attributeIntrinsic;
     if (attributeType != nullptr) {
         auto* attribute = static_cast<AttributeExpr*>(name);
+        attributeIntrinsic = "attribute:" + attribute->lower;
         for (ExprPtr& operand : operands) {
             analyzeExpr(operand.get(), operandsScope);
             attribute->arguments.push_back(std::move(operand));
@@ -416,7 +390,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     if (completion == nullptr) {
         alias->genericActualEntity = enumeration ? chosen : nullptr;
         alias->genericIntrinsic = intrinsic ? operation : attributeType != nullptr
-            ? "attribute:" + static_cast<AttributeExpr*>(name)->lower : std::string();
+            ? attributeIntrinsic : std::string();
         alias->intrinsicPrefix = attributeType != nullptr ? baseType(attributeType) : nullptr;
     }
     if (implementation == nullptr) {

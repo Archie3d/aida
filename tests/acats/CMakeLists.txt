@@ -270,3 +270,6 @@ add_acats_test(cxa4025)
 add_acats_test(cxa4029)
 add_acats_test(cxa4033)
 add_acats_test(cxa4034)
+
+# Wide_Image and Wide_Value of modular types, including the 64-bit modulus.
+add_acats_test(c354003)

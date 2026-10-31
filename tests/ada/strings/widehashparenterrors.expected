@@ -1,0 +1,1 @@
+ada-strings-wide_fixed-wide_hash.ads:3:1: error: pure library unit cannot depend on 'ada-strings-wide_fixed.spec' with a weaker categorization

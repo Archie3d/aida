@@ -964,3 +964,17 @@ rights/disclaimers and the pinned baseline cohort are unchanged.
 | CXA4029 | `ab2cafc19a2bf07213eb8d5e46b31926cfab0fd325ad8bc47dd0c606a2238ccb` |
 | CXA4033 | `627cf15de401e977e31b49c606a634bfa9f459db572b4d772792b0b032f20a5c` |
 | CXA4034 | `fdad471a74e85593d562a9a121c0df5e2290954e2a07fc6f2470e06bf78f07f8` |
+
+## Final wide-library audit (Phase 7)
+
+C354003 is stored unchanged from `C3/C354003.A` in the official
+[ACATS 3.1 archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP).
+Extracted 2026-10-31; archive SHA-256
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`;
+source SHA-256
+`db1f3dea335999174616cb59f3260b4907946ec6c8fb9e3edc00b5b1a38ee192`.
+It executes as PASS for Wide_Image/Wide_Value of modular types, including the
+maximum supported binary modulus. No REPORT changes are needed. Earlier wide
+string/I/O/conversion cases remain selected and the baseline cohort is unchanged.
+The pinned archive has no dedicated string-hash case; bounds, native widths,
+wrappers, categorization and container/hash callers have project regressions.

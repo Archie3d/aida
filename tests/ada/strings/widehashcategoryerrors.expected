@@ -1,0 +1,2 @@
+widehashcategoryerrors.ads:3:1: error: pure library unit cannot depend on 'ada-strings-wide_unbounded-wide_hash.spec' with a weaker categorization
+widehashcategoryerrors.ads:3:1: error: pure library unit cannot depend on 'ada-strings-wide_wide_unbounded-wide_wide_hash.spec' with a weaker categorization
