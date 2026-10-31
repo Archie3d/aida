@@ -3,13 +3,15 @@ if(UNIX AND NOT APPLE)
     set(NUMERICS_SEPARATE_LIBM ON)
 endif()
 foreach(bits IN ITEMS 32 64)
+    ada_test_fixture(source_path "numerics${bits}.adb")
+    ada_test_fixture(expected_path "numerics${bits}.expected")
     add_test(NAME ada.numerics${bits}
         COMMAND ${CMAKE_COMMAND}
             -DADA=$<TARGET_FILE:ada>
             -DCC=${CMAKE_C_COMPILER}
             -DRUNTIME=$<TARGET_FILE:adart>
-            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics${bits}.adb
-            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics${bits}.expected
+            -DSOURCE=${source_path}
+            -DEXPECTED=${expected_path}
             -DWORKDIR=${ADA_TEST_WORK_DIR}/numerics${bits}
             -DBITS=${bits}
             -DSEPARATE_LIBM=${NUMERICS_SEPARATE_LIBM}

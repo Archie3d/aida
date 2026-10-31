@@ -1,9 +1,14 @@
+include(${CMAKE_CURRENT_LIST_DIR}/TestFixtures.cmake)
+ada_test_fixture(prefixed_source "tagged/prefixedcalls.adb")
+get_filename_component(prefixed_directory "${prefixed_source}" DIRECTORY)
+
 file(MAKE_DIRECTORY "${WORKDIR}")
 function(reject name source diagnostic)
     set(work "${WORKDIR}/${name}")
     file(MAKE_DIRECTORY "${work}" "${work}/units")
     file(WRITE "${work}/${name}.ads" "${source}")
-    execute_process(COMMAND "${ADAC}" -I "${SOURCES}" -D "${work}/units" "${work}/${name}.ads"
+    execute_process(COMMAND "${ADAC}" -I "${SOURCES}" -I "${prefixed_directory}"
+        -D "${work}/units" "${work}/${name}.ads"
         RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 20)
     string(FIND "${errors}" "${diagnostic}" found)
     if(NOT status STREQUAL "1" OR found EQUAL -1)

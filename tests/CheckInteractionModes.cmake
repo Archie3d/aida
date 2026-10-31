@@ -1,3 +1,5 @@
+include(${CMAKE_CURRENT_LIST_DIR}/TestFixtures.cmake)
+
 # Execute the cross-unit ownership case in both driver modes. The ordinary
 # ada tests use separate compilation; determinism tests compare each unit's IR.
 set(work "${WORKDIR}/interaction-modes")
@@ -16,10 +18,12 @@ function(run)
     set(actual "${output}" PARENT_SCOPE)
 endfunction()
 foreach(name interactioncalls interactionownership)
-    run("${ADA}" -S -o "${work}/${name}.s" "${FIXTURES}/${name}.adb")
+    ada_test_fixture(source "${name}.adb")
+    ada_test_fixture(expectation "${name}.expected")
+    run("${ADA}" -S -o "${work}/${name}.s" "${source}")
     run("${CC}" -pthread "${work}/${name}.s" "${RUNTIME}" ${math_library} -o "${work}/${name}")
     run("${work}/${name}")
-    file(READ "${FIXTURES}/${name}.expected" expected)
+    file(READ "${expectation}" expected)
     if(NOT actual STREQUAL expected)
         message(FATAL_ERROR "${name}: expected '${expected}', got '${actual}'")
     endif()

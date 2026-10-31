@@ -76,7 +76,7 @@ The repository consists of the following components:
 - `qbe/`: bundled QBE backend, translating its IR to native assembly.
 - `runtime/`: C runtime plus predefined Ada packages (in `runtime/ada/`).
 - `common/`: shared C-compatible utilities and data.
-- `tests/`: compiler and runtime regressions.
+- `tests/`: compiler and runtime regressions ([Ada fixture guide](tests/ada/README.md)).
 
 The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly -> system assembler/linker, with the AIDA runtime linked into the executable.
 The [lowering decision](docs/lowering-decision.md) retains direct QBE emission

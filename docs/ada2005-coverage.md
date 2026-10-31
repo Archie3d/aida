@@ -10,7 +10,8 @@ Classification: **Core** = Ada 2005 core (including inherited Ada 95 rules);
 **Extension** = behavior outside the language target; **Annex** = selected
 Specialized Needs Annex facilities, without annex/profile compliance claims.
 `—` in ACATS means no selected upstream test yet, even if regressions pass.
-Regression names are CTest names or source-name prefixes under `tests/ada/`;
+Regression names are CTest names or source-name prefixes in the feature folders
+under `tests/ada/` ([guide](../tests/ada/README.md));
 expand prefixes with `ctest --test-dir build -N`. Phase 8 must refine broad
 rows into individual legality/dynamic requirements and add missing units.
 The [completed-feature ACATS backfill](acats-baseline.md) records 106 independent

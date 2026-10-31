@@ -7,7 +7,7 @@ file(MAKE_DIRECTORY "${WORKDIR}")
 foreach(role producer consumer)
     set(program "${WORKDIR}/exception${role}${CMAKE_EXECUTABLE_SUFFIX}")
     execute_process(COMMAND "${ADA}" -o "${program}"
-        "${SOURCES}/ada/exception_partition.ads" "${SOURCES}/ada/exception${role}.adb"
+        "${SOURCES}/ada/exceptions/exception_partition.ads" "${SOURCES}/ada/exceptions/exception${role}.adb"
         RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
     if(NOT status STREQUAL "0")
         message(FATAL_ERROR "${role} compilation failed (${status}):\n${output}${errors}")

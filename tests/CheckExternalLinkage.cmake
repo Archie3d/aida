@@ -33,7 +33,7 @@ foreach(mode objects archives mixed)
     else()
         set(inputs "Helper input.o" "Middle library.a" "Tail library.a")
     endif()
-    run("${ADA}" -o "${mode}" "${SOURCES}/ada/externallink.adb" ${inputs})
+    run("${ADA}" -o "${mode}" "${SOURCES}/ada/driver/externallink.adb" ${inputs})
     run("${WORKDIR}/${mode}${EXE_SUFFIX}")
     if(NOT actual STREQUAL "external linkage passed\n")
         message(FATAL_ERROR "Unexpected ${mode} output: ${actual}")
@@ -41,7 +41,7 @@ foreach(mode objects archives mixed)
 endforeach()
 
 # External inputs before/after the source must not select the main or stem.
-run("${ADA}" "Helper input.o" "${SOURCES}/ada/externallink.adb"
+run("${ADA}" "Helper input.o" "${SOURCES}/ada/driver/externallink.adb"
     "Middle library.a" "Tail library.a")
 run("${WORKDIR}/externallink${EXE_SUFFIX}")
 if(NOT actual STREQUAL "external linkage passed\n")
@@ -49,7 +49,7 @@ if(NOT actual STREQUAL "external linkage passed\n")
 endif()
 
 # Ada sources with archive extensions (as in upstream ACATS) remain usable.
-configure_file("${SOURCES}/ada/externallink.adb" "${WORKDIR}/externallink.a" COPYONLY)
+configure_file("${SOURCES}/ada/driver/externallink.adb" "${WORKDIR}/externallink.a" COPYONLY)
 run("${ADA}" -o explicit --source "${WORKDIR}/externallink.a"
     "Helper input.o" "Middle library.a" "Tail library.a")
 run("${WORKDIR}/explicit${EXE_SUFFIX}")
@@ -62,7 +62,7 @@ reject("missing file name after '--source'" --source)
 file(WRITE "${WORKDIR}/replacement.c"
     "int __ada_test_external_tail(void) { return 39; }\n")
 run("${CC}" -c "replacement.c" -o "Tail input.o")
-run("${ADA}" -o objects "${SOURCES}/ada/externallink.adb"
+run("${ADA}" -o objects "${SOURCES}/ada/driver/externallink.adb"
     "Helper input.o" "Middle input.o" "Tail input.o")
 execute_process(COMMAND "${WORKDIR}/objects${EXE_SUFFIX}" RESULT_VARIABLE status TIMEOUT 10
     OUTPUT_QUIET ERROR_QUIET)
@@ -75,13 +75,13 @@ reject("at least one Ada source is required" "Helper library.a")
 foreach(stage -S --emit-ir)
     foreach(input "Helper input.o" "Helper library.a")
         reject("inputs require executable output" ${stage}
-            "${SOURCES}/ada/externallink.adb" "${input}")
+            "${SOURCES}/ada/driver/externallink.adb" "${input}")
     endforeach()
 endforeach()
 
 # A missing linker input must propagate the linker's failure.
 execute_process(COMMAND "${ADA}" -o "${WORKDIR}/missing"
-    "${SOURCES}/ada/externallink.adb" "${WORKDIR}/missing.o"
+    "${SOURCES}/ada/driver/externallink.adb" "${WORKDIR}/missing.o"
     WORKING_DIRECTORY "${WORKDIR}" RESULT_VARIABLE status
     OUTPUT_QUIET ERROR_QUIET TIMEOUT 30)
 if(NOT status EQUAL 1)

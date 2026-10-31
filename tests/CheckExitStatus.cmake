@@ -3,8 +3,8 @@ execute_process(
     COMMAND "${CMAKE_COMMAND}"
         -DNAME=exitfailure
         -DADA=${ADA}
-        -DSOURCES=${CMAKE_CURRENT_LIST_DIR}/ada/exitfailure.adb
-        -DEXPECTED=${CMAKE_CURRENT_LIST_DIR}/ada/exitfailure.expected
+        -DSOURCES=${CMAKE_CURRENT_LIST_DIR}/ada/driver/exitfailure.adb
+        -DEXPECTED=${CMAKE_CURRENT_LIST_DIR}/ada/driver/exitfailure.expected
         -DWORKDIR=${WORKDIR}
         -P ${CMAKE_CURRENT_LIST_DIR}/RunAdaTest.cmake
     RESULT_VARIABLE status
