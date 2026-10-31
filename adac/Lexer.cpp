@@ -8,6 +8,7 @@
 #include <climits>
 #include <cmath>
 #include <cstdlib>
+#include <cstdint>
 #include <unordered_map>
 #include <utility>
 
