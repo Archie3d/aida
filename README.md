@@ -107,7 +107,8 @@ Supported:
   or all boxed (`range <>`) ([descriptor ABI](docs/array-descriptors.md))
 - Runtime-sized array components and allocators, Size and array streams ([limits](docs/runtime-composites.md))
 - One-dimensional concatenation with scalar, composite, private and controlled components
-- Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md))
+- Checked record and array aggregates, sliding, inferred bounds and `<>` defaults ([limits](docs/aggregate-defaults.md));
+  aggregate overload resolution respects private views
 - Nested variants, default and runtime discriminants and per-object array components ([limits](docs/runtime-discriminants.md))
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints

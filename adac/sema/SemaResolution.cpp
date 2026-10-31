@@ -299,7 +299,10 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         break;
     case ExprKind::Aggregate: {
         auto* aggregate = static_cast<AggregateExpr*>(expr);
-        if (expected != nullptr && (expected->kind == TypeKind::Array || expected->kind == TypeKind::Record)) {
+        // A private full view cannot supply an aggregate's expected type
+        // outside the region where its representation is visible (RM 4.3).
+        if (expected != nullptr && representationVisible(expected)
+            && (expected->kind == TypeKind::Array || expected->kind == TypeKind::Record)) {
             if (aggregate->ancestor != nullptr) {
                 for (Type* ancestor : expressionTypes(aggregate->ancestor.get(), scope)) {
                     if (isTaggedAncestor(ancestor, expected) && rootType(ancestor) != rootType(expected)) {

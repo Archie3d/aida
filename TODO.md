@@ -447,6 +447,11 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
+- [x] **Aggregate overload resolution and private views.** Hidden record/array
+  full views no longer compete with visible aggregate types, fixing unqualified
+  record aggregates passed to vector Append/Prepend/Insert. Package-body full
+  views remain usable and two visible record types remain ambiguous
+  (`vectoraggregates`, `privateaggregateresolution`, `aggregateoverloaderrors`).
 - [x] **Constrained class-wide views and tagged variants.** C390010 now PASS
   unchanged. Preserve captured discriminant constraints through `'Class` and
   subtype aliases, check access/value boundaries, and select independent parent/

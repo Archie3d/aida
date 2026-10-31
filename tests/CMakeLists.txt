@@ -830,6 +830,9 @@ add_ada_error_test(elaborationblockerrors SOURCES elaboration/elaborationblocker
 add_ada_test(elaborationblockfailure SOURCES elaboration/elaborationblockfailure.adb
     EXIT_CODE 1 STDERR elaboration/elaborationblockfailure.stderr)
 
+add_ada_test(privateaggregateresolution SOURCES types/privateaggregateresolution.adb)
+add_determinism_test(privateaggregateresolution SOURCE types/privateaggregateresolution.adb)
+add_ada_error_test(aggregateoverloaderrors SOURCES types/aggregateoverloaderrors.adb)
 add_ada_test(aggregateaudit SOURCES arrays/aggregateaudit.adb)
 add_determinism_test(aggregateaudit SOURCE arrays/aggregateaudit.adb)
 add_ada_test(aggregateauditchecks SOURCES arrays/aggregateauditchecks.adb)
@@ -1885,7 +1888,7 @@ set_tests_properties(runtime.pragmaimport_modes PROPERTIES TIMEOUT 60)
 # Phase 7: predefined I/O, string mappings and controlled Ada collections.
 foreach(collection_case iofilelifetime textinputgrammar textiolibrary iolibrarytasking textstringio
     stringmappingtasking stringmappingcallbacks
-    unboundedstrings basicvectors vectorlifetime librarycollectiontasking)
+    unboundedstrings basicvectors vectoraggregates vectorlifetime librarycollectiontasking)
     add_ada_test(${collection_case} SOURCES ${collection_case}.adb)
     add_determinism_test(${collection_case} SOURCE ${collection_case}.adb)
     ada_test_fixture(source_path "${collection_case}.adb")
