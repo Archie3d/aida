@@ -181,6 +181,20 @@ add_ada_test(checks SOURCES types/checks.adb)
 add_ada_test(strings SOURCES strings/strings.adb)
 add_ada_test(ranges SOURCES types/ranges.adb)
 add_ada_test(floats SOURCES numerics/floats.adb)
+add_ada_test(windowsfloatparameters SOURCES numerics/windowsfloatparameters.adb)
+add_executable(windows_float_abi_test WindowsFloatAbiTest.cpp ../adac/WindowsAbi.cpp)
+add_test(NAME semantics.windows_float_abi COMMAND windows_float_abi_test)
+find_program(WINDOWS_FLOAT_CLANG NAMES clang)
+add_test(NAME semantics.windows_float_assembly
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DLOWER=$<TARGET_FILE:windows_float_abi_test>
+        -DCLANG=${WINDOWS_FLOAT_CLANG}
+        -DSOURCES=${CMAKE_CURRENT_SOURCE_DIR}/ada/numerics
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/windows-float-abi
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckWindowsFloatAbi.cmake)
+set_tests_properties(semantics.windows_float_assembly PROPERTIES TIMEOUT 90)
 add_ada_test(bases SOURCES types/bases.adb)
 add_ada_test(textfiles SOURCES io/textfiles.adb)
 add_ada_test(generics SOURCES generics/generics.adb)
@@ -227,6 +241,7 @@ function(add_determinism_test name)
 endfunction()
 
 add_determinism_test(sizeclauses SOURCE representation/sizeclauses.adb)
+add_determinism_test(windowsfloatparameters SOURCE numerics/windowsfloatparameters.adb)
 add_determinism_test(staticarithmetic SOURCE numerics/staticarithmetic.adb)
 set_tests_properties(ada.staticarithmetic error.staticarithmeticerrors
     determinism.staticarithmetic PROPERTIES TIMEOUT 10)

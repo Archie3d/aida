@@ -2,6 +2,7 @@
 #include "QbeSupport.h"
 
 #include "Binder.h"
+#include "WindowsAbi.h"
 
 #include <algorithm>
 #include <cctype>
@@ -468,7 +469,12 @@ void QbeEmitter::finishFunction(const std::string& signature)
         }
     }
 
+#ifdef _WIN32
+    WindowsParameters incoming = lowerWindowsParameters(signature);
+    std::string text = incoming.signature + " {\n@start\n" + incoming.prologue;
+#else
     std::string text = signature + " {\n@start\n";
+#endif
     if (context.hasFrame) {
         text += "    " + context.frameTemp + " =l alloc8 " + std::to_string(context.frameSize) + "\n";
         if (context.symbol != nullptr && context.symbol->level > 0) {

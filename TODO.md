@@ -448,6 +448,11 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
+- [x] **Windows floating stack parameters.** Receive scalar floating arguments
+  beyond the four register slots through integer bit carriers, then cast back
+  in the callee. This avoids QBE's stack-parameter misclassification without
+  changing the Windows ABI or `qbe/` (`windowsfloatparameters`,
+  `semantics.windows_float_*`; cross-assembled floats and attribute/task tests).
 - [x] **Floating attributes.** Ada 2005 A.5.3 rounding, decomposition/scaling,
   remainder/adjacent/copy-sign/leading-part, machine/model functions and
   representation/model properties for binary32/64. Checked static folding,

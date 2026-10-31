@@ -9,6 +9,7 @@ target_sources(${TARGET}
         ${CMAKE_CURRENT_SOURCE_DIR}/Categorization.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Binder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/UnitManifest.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/WindowsAbi.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Diagnostics.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Token.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Lexer.cpp

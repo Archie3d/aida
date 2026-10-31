@@ -30,6 +30,15 @@ that environment, including in worker tasks. Other modes, flushing subnormals,
 excess intermediate precision and a configurable floating environment are outside
 this model.
 
+On Windows x64, generated functions receive scalar floating parameters after
+argument slot four as integer bit carriers and cast them back in the entry
+block. The stack layout and caller ABI are unchanged. This avoids the bundled
+QBE Windows lowering's integer classification of stack-passed scalar floats;
+QBE sources remain unchanged. `windowsfloatparameters` checks mixed precision,
+hidden static links and zero signs. `semantics.windows_float_assembly` lowers
+`floats` and the floating-attribute/tasking fixtures for amd64_win and, when
+Clang is available, cross-assembles them to Windows objects on other hosts.
+
 ## Operations and checks
 
 Generated, nonstatic `+`, `-`, `*` and `/` call precision-specific runtime helpers.
