@@ -2057,3 +2057,28 @@ add_test(NAME semantics.unicode_source
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnicodeSource.cmake)
 set_tests_properties(semantics.unicode_source PROPERTIES TIMEOUT 30)
+
+# Ada 2005 A.11 wide text: native arrays over the shared file runtime.
+foreach(name wideiolibrary widewideiolibrary)
+    add_ada_test(${name} SOURCES ${name}.adb)
+    add_determinism_test(${name} SOURCE ${name}.adb)
+    add_test(NAME runtime.${name}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=$<TARGET_FILE:qbe>
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${name}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${name}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${name}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${name}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+
+add_executable(wide_text_io_test WideTextIoTest.c)
+target_link_libraries(wide_text_io_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.wide_text_io COMMAND wide_text_io_test)
+set_tests_properties(runtime.wide_text_io PROPERTIES TIMEOUT 30)

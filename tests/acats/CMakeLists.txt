@@ -249,3 +249,6 @@ add_acats_test(c96008b)
 add_acats_test(ca21001)
 
 add_acats_test(cxa3004)
+
+# Unchanged wide character/string external text operations.
+add_acats_test(cxab001)

@@ -168,10 +168,16 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         // File queries return borrowed handle snapshots rather than constructing
         // an owning limited result through the Ada result-buffer ABI.
         std::string fileTarget;
+        std::string fileProvided;
+        std::string fileOwner;
+        std::string fileArena;
         if (isFileHandleView(subprogram->returnType)) {
             fileTarget = std::move(m_context->resultTarget);
             m_context->resultTarget.clear();
             if (fileTarget.empty()) { fileTarget = std::move(m_context->resultDescriptor); }
+            fileProvided = std::move(m_context->resultProvided);
+            fileOwner = std::move(m_context->resultTargetOwner);
+            fileArena = std::move(m_context->resultTargetArena);
             m_context->resultDescriptor.clear();
             m_context->resultProvided.clear();
             m_context->resultTargetOwner.clear();
@@ -181,6 +187,21 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         if (!fileTarget.empty()) {
             emitExceptionCheck();
             Value target {fileTarget, 'l'};
+            // Forwarded scratch results have no registration yet. Honor the
+            // caller's provided-storage flag, just as an Ada constructor does.
+            // Keep cleanup active: this variable may later open its own file.
+            if (!fileProvided.empty() && fileProvided != "1") {
+                std::string reserve = newLabel("fileresultreserve");
+                std::string ready = newLabel("fileresultready");
+                branch(Value {fileProvided, 'w'}, ready, reserve);
+                label(reserve);
+                if (fileOwner.empty()) { fileOwner = m_context->temporaryFinalizationChain; }
+                if (fileArena.empty()) { fileArena = storageArena(true, true); }
+                emitCallInstruction("call $__ada_finalization_reserve(l " + fileOwner + ", l " + fileArena
+                    + ", l " + fileTarget + ", l $__ada_file_finalize)", CallEffects::CheckException);
+                jump(ready);
+                label(ready);
+            }
             copyControlledObject(target, result, subprogram->returnType, true);
             result = target;
         }
@@ -683,7 +704,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         return Value { "0", 'w' };
     }
 
-    if (subprogram->runtimeSymbol == "$__ada_utf8_wide"
+    if (subprogram->runtimeSymbol == "$__ada_wtext_line"
+        || subprogram->runtimeSymbol == "$__ada_wtext_scan"
+        || subprogram->runtimeSymbol == "$__ada_utf8_wide"
         || subprogram->runtimeSymbol == "$__ada_utf8_wide_wide"
         || subprogram->runtimeSymbol == "$__ada_text_scan"
         || subprogram->runtimeSymbol == "$__ada_scan"

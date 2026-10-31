@@ -965,8 +965,11 @@ Ada 2005 additions and track annex packages separately.
   - [x] Ada.Characters.Conversions and J.14 Characters.Handling compatibility
     functions; whole/per-unit/determinism, four-thread C checks, malformed-source
     controls and unchanged CXA3004 coverage.
-  - [ ] Wide_Text_IO and Wide_Wide_Text_IO, required nested generic I/O packages,
-    standard numeric I/O instances, encoding/position semantics and file lifetime.
+  - [x] Wide_Text_IO and Wide_Wide_Text_IO, six nested generic I/O packages,
+    standard numeric I/O instances, strict UTF-8/character positions and file
+    lifetime. Both widths run whole/per-unit/determinism checks; unchanged
+    CXAB001 and four-thread C tests cover files, malformed/partial UTF-8 and
+    borrowed results. See [contract](docs/wide-text-io.md).
   - [ ] Wide/Wide_Wide string maps/constants, fixed/bounded/unbounded string
     facilities and required text-I/O children, with callbacks and categorization.
   - [ ] Remaining wide attribute-subprogram profiles and the final wide-library

@@ -922,3 +922,14 @@ Retrieved 2026-10-30; archive SHA-256
 source SHA-256 `c6dcac7438acb9471b2f13ad56374e493694b1fca3552f670ed7b8e5b70a35f6`.
 The pinned backfill cohort is unchanged. This case does not cover wide text I/O
 or the wide string-library families, which remain later substeps.
+
+## Wide text I/O (Phase 7)
+
+CXAB001 is stored unchanged from `CXA/CXAB001.A` in the official
+[ACATS 3.1 archive](http://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP).
+Extracted 2026-10-31; archive SHA-256
+`db2b3a069dda64ac0b5f8f6efd72e762c16f6b9a16f3c7987db562f10b335c1c`;
+source SHA-256 `3e1ce7fb49e83eb1cfe62fd66b5e30c69d091be6df2280d1c7c0e026c09a6492`.
+It executes as PASS using the local Report adapter, covering wide character and
+string external I/O, reset/append/open/close and deletion. Its original rights
+and disclaimer are preserved; the pinned backfill cohort is unchanged.

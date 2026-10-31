@@ -36,6 +36,9 @@ typedef struct AdaFile
     int mutexReady;
     struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
     int text;
+    int textWidth; /* Native character width; wide external text is UTF-8. */
+    unsigned char utf8Pending[4];
+    int utf8Count;
     int pageTerminated;
     int pending[4];
     int pendingCount;
@@ -229,5 +232,23 @@ void __ada_text_line(void* descriptor, AdaFileRef handle);
 void __ada_line(void* descriptor);
 void __ada_binary_create(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
 void __ada_binary_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
+
+/* A.11 native wide-text adapters; widths are 2 and 4 bytes. */
+AdaFileRef __ada_wtext_selected(int width, int which, int current);
+void __ada_wtext_select(AdaFileRef handle, int width, int which);
+void __ada_wtext_create(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength, int width);
+void __ada_wtext_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength, int width);
+void __ada_wtext_write(AdaFileRef handle, const void* text, int length, int width, int operation);
+void __ada_wtext_put_character(AdaFileRef handle, int item, int width);
+void __ada_wtext_read_character(AdaFileRef handle, void* item, int width, int operation, int* available);
+void __ada_wtext_read_text(AdaFileRef handle, void* item, int length, int width, int line, int* last);
+void __ada_wtext_read_line(AdaFileRef handle, void* item, int length, int* last, int width);
+void __ada_wtext_line(void* descriptor, AdaFileRef handle, int width);
+void __ada_wtext_scan(void* descriptor, AdaFileRef handle, int field, int kind, int width);
+int __ada_wtext_token_length(const void* text, int length, int kind, int width);
+int __ada_wtext_lower(int code);
+void __ada_wtext_float_string(void* to, int length, double item, int aft, int exponent, int width);
+void __ada_wtext_fixed_put_string(void* to, int length, long long value, int bits, int aft, int exponent, int width);
+long long __ada_wtext_fixed_get_string(const void* from, int length, int bits, long long low, long long high, int* last, int width);
 
 #endif

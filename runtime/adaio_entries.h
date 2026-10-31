@@ -126,3 +126,15 @@ ADA_IO_VOID(__ada_binary_open, (AdaFileRef handle, int mode, const char* name, i
 
 ADA_IO_VOID(__ada_text_put_field, (AdaFileRef handle, const char* text, int length), (handle, text, length), handle, 0)
 ADA_IO_VOID(__ada_put_field, (const char* text, int length), (text, length), &currentOutputHandle, 0)
+
+ADA_IO_VALUE(AdaFileRef, __ada_wtext_selected, (int width, int which, int current), (width, which, current), NULL, 1)
+ADA_IO_VOID(__ada_wtext_select, (AdaFileRef handle, int width, int which), (handle, width, which), handle, 1)
+ADA_IO_VOID(__ada_wtext_create, (AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength, int width), (handle, mode, name, length, form, formLength, width), handle, 1)
+ADA_IO_VOID(__ada_wtext_open, (AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength, int width), (handle, mode, name, length, form, formLength, width), handle, 1)
+ADA_IO_VOID(__ada_wtext_write, (AdaFileRef handle, const void* text, int length, int width, int operation), (handle, text, length, width, operation), handle, 0)
+ADA_IO_VOID(__ada_wtext_put_character, (AdaFileRef handle, int item, int width), (handle, item, width), handle, 0)
+ADA_IO_VOID(__ada_wtext_read_character, (AdaFileRef handle, void* item, int width, int operation, int* available), (handle, item, width, operation, available), handle, 0)
+ADA_IO_VOID(__ada_wtext_read_text, (AdaFileRef handle, void* item, int length, int width, int line, int* last), (handle, item, length, width, line, last), handle, 0)
+ADA_IO_VOID(__ada_wtext_read_line, (AdaFileRef handle, void* item, int length, int* last, int width), (handle, item, length, last, width), handle, 0)
+ADA_IO_VOID(__ada_wtext_line, (void* descriptor, AdaFileRef handle, int width), (descriptor, handle, width), handle, 0)
+ADA_IO_VOID(__ada_wtext_scan, (void* descriptor, AdaFileRef handle, int field, int kind, int width), (descriptor, handle, field, kind, width), handle, 0)

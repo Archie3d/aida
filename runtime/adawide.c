@@ -1,56 +1,11 @@
 #include "adart.h"
+#include "adaunicode.h"
 #include "../common/CharacterText.h"
 
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-static uint32_t readCharacter(const void* text, int index, int width)
-{
-    if (width == 1) { return ((const unsigned char*)text)[index]; }
-    if (width == 2) { uint16_t value; memcpy(&value, (const char*)text + (size_t)index * 2, 2); return value; }
-    uint32_t value; memcpy(&value, (const char*)text + (size_t)index * 4, 4); return value;
-}
-
-static void writeCharacter(void* text, int index, int width, uint32_t value)
-{
-    if (width == 1) { ((unsigned char*)text)[index] = (unsigned char)value; }
-    else if (width == 2) { uint16_t cell = (uint16_t)value; memcpy((char*)text + (size_t)index * 2, &cell, 2); }
-    else { memcpy((char*)text + (size_t)index * 4, &value, 4); }
-}
-
-static int decode(const char* text, int length, int* position, uint32_t* value)
-{
-    if (*position >= length) { return 0; }
-    unsigned first = (unsigned char)text[*position];
-    unsigned count = first < 128 ? 1 : first >= 0xC2 && first <= 0xDF ? 2
-        : first >= 0xE0 && first <= 0xEF ? 3 : first >= 0xF0 && first <= 0xF4 ? 4 : 0;
-    if (count == 0 || count > (unsigned)(length - *position)) { return 0; }
-    uint32_t code = first & (count == 1 ? 127 : (1u << (7 - count)) - 1);
-    for (unsigned i = 1; i < count; ++i) {
-        unsigned byte = (unsigned char)text[*position + (int)i];
-        if ((byte & 0xC0) != 0x80) { return 0; }
-        code = (code << 6) | (byte & 63);
-    }
-    if ((count == 2 && code < 128) || (count == 3 && code < 0x800) || (count == 4 && code < 0x10000)
-        || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { return 0; }
-    *value = code;
-    *position += (int)count;
-    return 1;
-}
-
-static int encode(char* buffer, uint32_t code)
-{
-    if (code < 128) { buffer[0] = (char)code; return 1; }
-    if (code < 0x800) { buffer[0] = (char)(0xC0 | (code >> 6)); buffer[1] = (char)(0x80 | (code & 63)); return 2; }
-    if (code < 0x10000) {
-        buffer[0] = (char)(0xE0 | (code >> 12)); buffer[1] = (char)(0x80 | ((code >> 6) & 63));
-        buffer[2] = (char)(0x80 | (code & 63)); return 3;
-    }
-    buffer[0] = (char)(0xF0 | (code >> 18)); buffer[1] = (char)(0x80 | ((code >> 12) & 63));
-    buffer[2] = (char)(0x80 | ((code >> 6) & 63)); buffer[3] = (char)(0x80 | (code & 63)); return 4;
-}
 
 int __ada_wide_character_image(void* buffer, int capacity, int value, int width)
 {
@@ -65,28 +20,28 @@ int __ada_wide_character_image(void* buffer, int capacity, int value, int width)
     int length = name != NULL ? (int)strlen(name) : 3;
     if (capacity <= length) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
     if (name != NULL) {
-        for (int i = 0; i < length; ++i) { writeCharacter(buffer, i, width, (unsigned char)name[i]); }
+        for (int i = 0; i < length; ++i) { adaTextWrite(buffer, i, width, (unsigned char)name[i]); }
     } else {
-        writeCharacter(buffer, 0, width, '\''); writeCharacter(buffer, 1, width, code); writeCharacter(buffer, 2, width, '\'');
+        adaTextWrite(buffer, 0, width, '\''); adaTextWrite(buffer, 1, width, code); adaTextWrite(buffer, 2, width, '\'');
     }
-    writeCharacter(buffer, length, width, 0);
+    adaTextWrite(buffer, length, width, 0);
     return length;
 }
 
 int __ada_wide_character_value(const void* text, int length, int width, int maximum)
 {
     int start = 0, stop = length;
-    while (start < stop && readCharacter(text, start, width) == ' ') { ++start; }
-    while (stop > start && readCharacter(text, stop - 1, width) == ' ') { --stop; }
-    if (stop - start == 3 && readCharacter(text, start, width) == '\'' && readCharacter(text, stop - 1, width) == '\'') {
-        uint32_t value = readCharacter(text, start + 1, width);
+    while (start < stop && adaTextRead(text, start, width) == ' ') { ++start; }
+    while (stop > start && adaTextRead(text, stop - 1, width) == ' ') { --stop; }
+    if (stop - start == 3 && adaTextRead(text, start, width) == '\'' && adaTextRead(text, stop - 1, width) == '\'') {
+        uint32_t value = adaTextRead(text, start + 1, width);
         if (value <= (uint32_t)maximum && (adaUnicodeProperties(value) & 32) && (value & 0xFFFF) < 0xFFFE) { return (int)value; }
     }
     char name[32];
     if (stop - start < (int)sizeof name) {
         int count = stop - start;
         for (int i = 0; i < count; ++i) {
-            uint32_t code = readCharacter(text, start + i, width);
+            uint32_t code = adaTextRead(text, start + i, width);
             if (code > 127) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
             name[i] = code >= 'a' && code <= 'z' ? (char)(code - ('a' - 'A')) : (char)code;
         }
@@ -121,16 +76,16 @@ int __ada_image_widen(void* destination, int capacity, const char* text, int len
     int position = 0, count = 0;
     while (position < length) {
         uint32_t code;
-        if (!decode(text, length, &position, &code)) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+        if (!adaUtf8Decode(text, length, &position, &code)) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
         if (width == 2 && code > 65535) {
             char escape[16];
             snprintf(escape, sizeof escape, "[\"%08X\"]", code);
             if (capacity - count < 12) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
-            for (int i = 0; i < 12; ++i) { writeCharacter(destination, count++, width, (unsigned char)escape[i]); }
+            for (int i = 0; i < 12; ++i) { adaTextWrite(destination, count++, width, (unsigned char)escape[i]); }
             continue;
         }
         if (count >= capacity) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
-        writeCharacter(destination, count++, width, code);
+        adaTextWrite(destination, count++, width, code);
     }
     return count;
 }
@@ -142,9 +97,9 @@ void __ada_wide_to_utf8(void* result, const void* text, int length, int width)
     if (bytes == NULL) { __ada_raise(ADA_STORAGE_ERROR); return; }
     int64_t count = 0;
     for (int i = 0; i < length; ++i) {
-        uint32_t code = readCharacter(text, i, width);
+        uint32_t code = adaTextRead(text, i, width);
         if (code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { free(bytes); __ada_raise(ADA_CONSTRAINT_ERROR); return; }
-        count += encode(bytes + count, code);
+        count += adaUtf8Encode(bytes + count, code);
     }
     if (count > INT_MAX) { free(bytes); __ada_raise(ADA_STORAGE_ERROR); return; }
     __ada_array_result(result, bytes, 1, count, 1);
@@ -176,7 +131,7 @@ int __ada_width_enum_text(int low, int high, const char** names, int count, int 
         int position = 0, length = 0;
         while (position < (int)bytes) {
             uint32_t code;
-            if (!decode(names[i], (int)bytes, &position, &code)) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+            if (!adaUtf8Decode(names[i], (int)bytes, &position, &code)) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
             length += width == 2 && code > 65535 ? 12 : 1;
         }
         if (length > result) { result = length; }
@@ -201,7 +156,7 @@ static int nextCharacter(UnicodeCursor* cursor, uint32_t* value)
         if (cursor->next < cursor->count) { *value = cursor->pending[cursor->next++]; return 1; }
         if (cursor->position >= cursor->length) { return 0; }
         uint32_t code;
-        if (!decode(cursor->text, cursor->length, &cursor->position, &code)) {
+        if (!adaUtf8Decode(cursor->text, cursor->length, &cursor->position, &code)) {
             code = (unsigned char)cursor->text[cursor->position++]; // Character-valued Latin-1 input.
         }
         if (!cursor->fold) { *value = code; return 1; }
@@ -226,7 +181,7 @@ int __ada_identifier_equal(const char* left, int leftLength, const char* right, 
         int position = 0, first = 1, connector = 0;
         while (position < leftLength) {
             uint32_t code;
-            if (!decode(left, leftLength, &position, &code)) { code = (unsigned char)left[position++]; }
+            if (!adaUtf8Decode(left, leftLength, &position, &code)) { code = (unsigned char)left[position++]; }
             unsigned flags = adaUnicodeProperties(code);
             if (first && !(flags & 1)) { return 0; }
             first = 0;

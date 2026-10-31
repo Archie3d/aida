@@ -11,6 +11,7 @@ import sys
 source, special, output = map(pathlib.Path, sys.argv[1:])
 properties = []
 upper = {}
+lower = {}
 pending = None
 for line in source.read_text().splitlines():
     fields = line.split(';')
@@ -28,6 +29,8 @@ for line in source.read_text().splitlines():
         low = pending if fields[1].endswith(', Last>') else code
         properties.append((low, code, flags))
         pending = None
+    if fields[13]:
+        lower[code] = int(fields[13], 16)
     if fields[12]:
         upper[code] = [int(fields[12], 16)]
 for line in special.read_text().splitlines():
@@ -73,5 +76,10 @@ for code, mapping in sorted(upper.items()):
     assert len(mapping) <= 3
     values = mapping + [0] * (3 - len(mapping))
     text += f'    {{ 0x{code:X}, {{ ' + ', '.join(f'0x{x:X}' for x in values) + f' }}, {len(mapping)} }},\n'
+text += '};\n'
+text += '\ntypedef struct\n{\n    uint32_t code;\n    uint32_t lower;\n} AdaUnicodeLowerCase;\n\n'
+text += 'static const AdaUnicodeLowerCase kAdaUnicodeLower[] = {\n'
+for code, mapped in sorted(lower.items()):
+    text += f'    {{ 0x{code:X}, 0x{mapped:X} }},\n'
 text += '};\n'
 output.write_text(text)

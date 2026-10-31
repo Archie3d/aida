@@ -34,7 +34,7 @@ with Ada.Text_IO;
 
 procedure Hello is
 begin
-   Ada.Text_IO.Put_Line ("Hello, Ada!");
+    Ada.Text_IO.Put_Line ("Hello, Ada!");
 end Hello;
 ```
 
@@ -70,11 +70,12 @@ dependencies (`ada -v` shows the toolchain's link command).
 ## Architecture
 
 The repository consists of the following components:
+
 - `ada/`: driver, dependency scanning, binding, toolchain invocation, and cache.
 - `adac/`: C++ frontend: lexer, parser, semantic analysis, and QBE IR emitter.
 - `qbe/`: bundled QBE backend, translating its IR to native assembly.
 - `runtime/`: C runtime plus predefined Ada packages (in `runtime/ada/`).
-- `common/`: shared compiler utilities;
+- `common/`: shared C-compatible utilities and data.
 - `tests/`: compiler and runtime regressions.
 
 The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly -> system assembler/linker, with the AIDA runtime linked into the executable.
@@ -89,6 +90,7 @@ AIDA targets Ada 2005 and currently implements a substantial subset. Full
 conformance and Specialized Needs Annex support are not claimed.
 
 Supported:
+
 - Library and nested packages, procedures, functions
 - Extended returns, limited records and build-in-place results ([limits](docs/returns.md))
 - Package elaboration blocks with local storage, captures and scoped cleanup
@@ -110,7 +112,9 @@ Supported:
 - Array conversions and writable parameter views (identical component subtypes required)
 - Derived-type conversions and inherited profiles with checked constraints
 - Scalar `'Value` uses the base range; receiving contexts check subtype constraints
-- Derived Boolean operations and byte-character literals and strings
+- Derived Boolean operations; Latin-1, Wide and Wide_Wide character/string literals,
+  UTF-8 source and Unicode identifiers, scalar text attributes and character conversions
+  ([contract](docs/wide-foundation.md))
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,
@@ -135,14 +139,19 @@ Supported:
 - Byte-string mapping constants and callbacks; unbounded strings and Ada 2005 container families with cursors, callbacks and sorting ([API and limits](docs/library-collections.md))
 - UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))
 - Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
-- Byte Text_IO, numeric input, string adapters and scoped file cleanup ([contract](docs/text-io.md)); type-aware streams ([streaming](docs/streaming.md))
+- Narrow and wide text I/O, nested numeric/enumeration generics and scoped file cleanup
+  ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); narrow string adapters
+  and type-aware streams ([streaming](docs/streaming.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
   subunits ([limits](docs/subunits.md))
 - Elaboration checks and `Elaborate`, `Elaborate_All`, `Elaborate_Body` pragmas
+- `Pure`, `Preelaborate` and `Preelaborable_Initialization` enforcement
+  ([contract](docs/package-categorization.md))
 - Assertions, check policies and `No_Return` ([contract](docs/pragmas-and-checks.md))
 
 Not supported yet:
+
 - Task entries, entry families, select/requeue, abort, and task/protected discriminants
 - Aggregates, function results, tagged and variant records containing task or
   protected objects
@@ -151,10 +160,10 @@ Not supported yet:
 - Concurrent interface implementations, task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
-- Wide character types and their string literals
+- Wide string/map libraries, their bounded/unbounded I/O children and remaining
+  wide attribute-subprogram profiles
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
-- Package categorization enforcement and `Ada.Calendar` child packages
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).

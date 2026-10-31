@@ -3,8 +3,8 @@
 The narrow-character `Ada.Text_IO` API follows Ada 2005
 [A.10.1–A.10.12](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-10-1.html).
 This is the supported byte-string library, not a claim of complete predefined
-library conformance. Wide I/O and the broader predefined-environment audit
-retain their Phase 7 and Phase 8 owners.
+library conformance. [Wide I/O](wide-text-io.md) now uses the same file layer;
+wide string adapters and the broader environment audit retain their roadmap owners.
 
 ## API and text representation
 
