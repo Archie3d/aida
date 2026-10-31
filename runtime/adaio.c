@@ -20,6 +20,7 @@
 #else
 #include <poll.h>
 #include <termios.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 #include <limits.h>
@@ -132,15 +133,99 @@ static int wideReadCode(AdaFile* file);
 static void wideDetach(AdaFile* file);
 static int wideSelected(AdaFile* file);
 
+/* Polling the OS handle cannot observe stdio read-ahead. In particular,
+   UCRT's _IONBF fgetc still fills a two-byte buffer. Keep all text-pipe input
+   (ordinary, immediate and stream views) on exact, unbuffered OS reads. */
+static int pipeInput(AdaFile* file)
+{
+    if (!file->text) { return 0; }
+    if (file->pipeInput == 0) {
+#ifdef _WIN32
+        HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file->stream));
+        file->pipeInput = GetFileType(handle) == FILE_TYPE_PIPE ? 1 : -1;
+#else
+        struct stat status;
+        file->pipeInput = fstat(fileno(file->stream), &status) == 0 && S_ISFIFO(status.st_mode) ? 1 : -1;
+#endif
+    }
+    return file->pipeInput == 1;
+}
+
+static int inputError(AdaFile* file)
+{
+    return file->inputError || ferror(file->stream);
+}
+
+static int inputEnd(AdaFile* file)
+{
+    return file->inputEnd || feof(file->stream);
+}
+
+static size_t inputBytes(AdaFile* file, void* destination, size_t length)
+{
+    if (!pipeInput(file)) { return fread(destination, 1, length, file->stream); }
+    unsigned char* bytes = destination;
+    size_t used = 0;
+    if (length != 0 && file->byteLookahead != 0) {
+        bytes[used++] = (unsigned char)(file->byteLookahead - 1);
+        file->byteLookahead = 0;
+    }
+    while (used < length) {
+#ifdef _WIN32
+        DWORD count = 0;
+        DWORD request = length - used > MAXDWORD ? MAXDWORD : (DWORD)(length - used);
+        HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file->stream));
+        BOOL success = ReadFile(handle, bytes + used, request, &count, NULL);
+        if (!success) {
+            DWORD error = GetLastError();
+            if (error == ERROR_BROKEN_PIPE) { file->inputEnd = 1; break; }
+            // Message-mode pipes can return a valid partial message.
+            if (error != ERROR_MORE_DATA || count == 0) { file->inputError = 1; break; }
+        }
+#else
+        size_t request = length - used > (size_t)SSIZE_MAX ? (size_t)SSIZE_MAX : length - used;
+        ssize_t count;
+        do { count = read(fileno(file->stream), bytes + used, request); } while (count < 0 && errno == EINTR);
+        if (count < 0) { file->inputError = 1; break; }
+#endif
+        if (count == 0) { file->inputEnd = 1; break; }
+        used += (size_t)count;
+    }
+    return used;
+}
+
+static int inputByte(AdaFile* file)
+{
+    if (!pipeInput(file)) { return fgetc(file->stream); }
+    unsigned char byte;
+    return inputBytes(file, &byte, 1) == 1 ? byte : EOF;
+}
+
+static void unreadByte(AdaFile* file, int byte)
+{
+    if (!pipeInput(file)) { ungetc(byte, file->stream); return; }
+    if (byte != EOF) {
+        file->byteLookahead = (unsigned char)byte + 1;
+        file->inputEnd = 0;
+    }
+}
+
+static void resetInput(AdaFile* file)
+{
+    file->pendingCount = file->utf8Count = 0;
+    file->pipeInput = file->byteLookahead = 0;
+    file->inputEnd = file->inputError = 0;
+}
+
 /* Logical text lookahead has its own queue: ISO C promises only one byte of
    ungetc, while the Ada end-of-page/file predicates need several characters. */
 int __ada_text_peek(AdaFile* file, int offset)
 {
     while (file->pendingCount <= offset) {
-        int c = file->textWidth > 1 ? wideReadCode(file) : fgetc(file->stream);
+        int c = file->textWidth > 1 ? wideReadCode(file) : inputByte(file);
         if (file->text && c == '\r') {
-            int next = fgetc(file->stream);
-            if (next != '\n' && next != EOF) { ungetc(next, file->stream); }
+            int next = inputByte(file);
+            if (next != '\n' && next != EOF) { unreadByte(file, next); }
             c = '\n';
         }
         file->pending[file->pendingCount++] = c;
@@ -153,7 +238,7 @@ int __ada_text_take(AdaFile* file)
 {
     int c = __ada_text_peek(file, 0);
     if (c == EOF) {
-        if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+        if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
         return EOF;
     }
     --file->pendingCount;
@@ -188,7 +273,7 @@ char* __ada_io_read_token(AdaFile* file, int width, int kind, int* length)
         }
     }
     if (c == EOF) {
-        if (__ada_exception == NULL) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
+        if (__ada_exception == NULL) { __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
         return NULL;
     }
     int capacity = 64, state = 0;
@@ -214,7 +299,7 @@ char* __ada_io_read_token(AdaFile* file, int width, int kind, int* length)
         text[(*length)++] = file->textWidth > 1 && code > 127 ? '?' : (char)code;
         c = __ada_text_peek(file, 0);
     }
-    if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+    if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
     return text;
 }
 
@@ -251,6 +336,7 @@ static void closeEverything(void)
 
 static void openStandard(AdaFile* file, FILE* stream, int mode)
 {
+    resetInput(file);
     file->self = file;
     file->stream = stream;
     if (mode == ADA_MODE_IN) { setvbuf(stream, NULL, _IONBF, 0); }
@@ -458,8 +544,7 @@ static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, i
     file->owner = handle;
     file->text = 0;
     file->textWidth = 1;
-    file->pendingCount = 0;
-    file->utf8Count = 0;
+    resetInput(file);
     file->column = file->line = file->page = 1;
     file->pageTerminated = 0;
     file->lineLength = file->pageLength = 0;
@@ -578,8 +663,7 @@ static void __ada_file_resetImpl(AdaFileRef handle, int mode)
         textNewPage(file);
         __ada_io_lock();
     }
-    file->pendingCount = 0;
-    file->utf8Count = 0;
+    resetInput(file);
     file->column = file->line = file->page = 1;
     file->pageTerminated = 0;
     file->lineLength = file->pageLength = 0;
@@ -657,10 +741,10 @@ static int __ada_file_end_of_fileImpl(AdaFileRef handle)
             if (c == '\f') { c = __ada_text_peek(file, 2); }
         }
     } else {
-        c = fgetc(file->stream);
-        if (c != EOF) { ungetc(c, file->stream); }
+        c = inputByte(file);
+        if (c != EOF) { unreadByte(file, c); }
     }
-    if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+    if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
     return c == EOF;
 }
 
@@ -834,7 +918,7 @@ static void __ada_text_skip_lineImpl(AdaFileRef handle, int spacing)
 static int atEndOfLine(AdaFile* file)
 {
     int c = __ada_text_peek(file, 0);
-    if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+    if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
     return c == EOF || c == '\n' || c == '\f';
 }
 
@@ -873,7 +957,7 @@ static void readLine(AdaFile* file, char* item, int length, int* last)
     while (count < length) {
         int c = __ada_text_peek(file, 0);
         if (c == EOF) {
-            if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+            if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
             else if (count == 0) { __ada_raise(ADA_END_ERROR); }
             break;
         }
@@ -908,9 +992,18 @@ static void storeInteger(void* item, int size, long value)
 static void readInteger(AdaFile* file, void* item, int size, int low, int high)
 {
     long value = 0;
+    if (pipeInput(file)) {
+        int length;
+        char* text = __ada_io_read_token(file, 0, 0, &length);
+        if (__ada_exception == NULL) { value = __ada_value_integer(text, length, low, high); }
+        free(text);
+        if (__ada_exception == ADA_CONSTRAINT_ERROR) { __ada_raise(ADA_DATA_ERROR); }
+        storeInteger(item, size, __ada_exception == NULL ? value : 0);
+        return;
+    }
 
     if (fscanf(file->stream, "%ld", &value) != 1) {
-        __ada_raise(feof(file->stream) ? ADA_END_ERROR : ADA_DATA_ERROR);
+        __ada_raise(inputEnd(file) ? ADA_END_ERROR : ADA_DATA_ERROR);
         storeInteger(item, size, 0);
         return;
     }
@@ -948,7 +1041,7 @@ static void __ada_text_get_wordImpl(AdaFileRef handle, char* item, int length, i
     }
 
     do {
-        c = fgetc(file->stream);
+        c = inputByte(file);
     } while (c == ' ' || c == '\t' || c == '\n' || c == '\r');
 
     if (c == EOF) {
@@ -959,10 +1052,10 @@ static void __ada_text_get_wordImpl(AdaFileRef handle, char* item, int length, i
         if (written < length) {
             item[written++] = (char)c;
         }
-        c = fgetc(file->stream);
+        c = inputByte(file);
     }
     if (c != EOF) {
-        ungetc(c, file->stream);
+        unreadByte(file, c);
     }
     *last = written;
 }
@@ -1014,9 +1107,17 @@ static void storeReal(void* item, int size, double value)
 static void readReal(AdaFile* file, void* item, int size)
 {
     double value = 0.0;
+    if (pipeInput(file)) {
+        int length;
+        char* text = __ada_io_read_token(file, 0, 1, &length);
+        if (__ada_exception == NULL) { value = __ada_real_value(text, length); }
+        free(text);
+        storeReal(item, size, __ada_exception == NULL ? value : 0.0);
+        return;
+    }
 
     if (fscanf(file->stream, "%lf", &value) != 1) {
-        __ada_raise(feof(file->stream) ? ADA_END_ERROR : ADA_DATA_ERROR);
+        __ada_raise(inputEnd(file) ? ADA_END_ERROR : ADA_DATA_ERROR);
         storeReal(item, size, 0.0);
         return;
     }
@@ -1067,7 +1168,7 @@ static void readEnum(AdaFile* file, void* item, int size, const char** names, in
     int i;
 
     do {
-        c = fgetc(file->stream);
+        c = inputByte(file);
     } while (c == ' ' || c == '\t' || c == '\n' || c == '\r');
 
     if (c == EOF) {
@@ -1079,10 +1180,10 @@ static void readEnum(AdaFile* file, void* item, int size, const char** names, in
         if (length < (int)sizeof word - 1) {
             word[length++] = (char)tolower(c);
         }
-        c = fgetc(file->stream);
+        c = inputByte(file);
     }
     if (c != EOF) {
-        ungetc(c, file->stream);
+        unreadByte(file, c);
     }
     word[length] = '\0';
 
@@ -1195,8 +1296,8 @@ static void __ada_read_elementImpl(AdaFileRef handle, void* item, int size)
     if (file == 0) {
         return;
     }
-    if (fread(item, 1, (size_t)size, file->stream) != (size_t)size) {
-        __ada_raise(ADA_END_ERROR);
+    if (inputBytes(file, item, (size_t)size) != (size_t)size) {
+        __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
     }
 }
 
@@ -1292,8 +1393,8 @@ static void __ada_direct_read_atImpl(AdaFileRef handle, void* item, int size, in
         __ada_raise(ADA_END_ERROR);
         return;
     }
-    if (fread(item, 1, (size_t)size, file->stream) != (size_t)size) {
-        __ada_raise(ADA_END_ERROR);
+    if (inputBytes(file, item, (size_t)size) != (size_t)size) {
+        __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
     }
 }
 
@@ -1406,8 +1507,8 @@ static void __ada_stream_readImpl(AdaFile* stream, void* item, int64_t size)
         return;
     }
     if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
-    if (fread(item, 1, (size_t)size, stream->stream) != (size_t)size) {
-        __ada_raise(ADA_END_ERROR);
+    if (inputBytes(stream, item, (size_t)size) != (size_t)size) {
+        __ada_raise(inputError(stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
     }
 }
 
@@ -1477,9 +1578,9 @@ static void __ada_stream_elements_readImpl(AdaFileRef handle, void* item, int le
         *last = 0;
         return;
     }
-    got = fread(item, 1, (size_t)length, file->stream);
+    got = inputBytes(file, item, (size_t)length);
     *last = (int)((long long)first + (long long)got - 1);
-    if (ferror(file->stream)) {
+    if (inputError(file)) {
         __ada_raise(ADA_DEVICE_ERROR);
     }
 }
@@ -1599,7 +1700,7 @@ static int __ada_text_end_of_pageImpl(AdaFileRef handle)
     if (file == NULL) { return 1; }
     int c = __ada_text_peek(file, 0);
     if (c == '\n') { c = __ada_text_peek(file, 1); }
-    if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+    if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
     return c == EOF || c == '\f';
 }
 
@@ -1654,6 +1755,12 @@ static void __ada_text_look_aheadImpl(AdaFileRef handle, char* item, int* end)
 static void textImmediate(AdaFile* file, char* item, int* available, int wait)
 {
     *available = 0;
+    if (file->pendingCount == 0 && file->byteLookahead != 0) {
+        *item = (char)(file->byteLookahead - 1);
+        file->byteLookahead = 0;
+        *available = 1;
+        return;
+    }
 #ifdef _WIN32
     if (file->pendingCount == 0 && _isatty(_fileno(file->stream))) {
         if (!wait && !_kbhit()) { return; }
@@ -1700,12 +1807,12 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
             --file->pendingCount;
             memmove(file->pending, file->pending + 1, (size_t)file->pendingCount * sizeof(int));
         }
-    } else { c = fgetc(file->stream); }
+    } else { c = inputByte(file); }
 #ifndef _WIN32
     if (terminal && tcsetattr(fileno(file->stream), TCSANOW, &saved) != 0) { __ada_raise(ADA_DEVICE_ERROR); }
 #endif
     if (c == EOF) {
-        if (__ada_exception == NULL) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
+        if (__ada_exception == NULL) { __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
         return;
     }
     *item = (char)c;
@@ -1745,7 +1852,7 @@ static void __ada_text_lineImpl(void* descriptor, AdaFileRef handle)
     }
     if (__ada_exception == NULL) {
         if (c == EOF) {
-            if (ferror(file->stream)) { __ada_raise(ADA_DEVICE_ERROR); }
+            if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
             else if (length == 0) { __ada_raise(ADA_END_ERROR); }
         } else { skipLines(file, 1); }
     }
@@ -1901,7 +2008,7 @@ static void __ada_lineImpl(void* descriptor)
 static int wideReadCode(AdaFile* file)
 {
     if (file->utf8Count == 0) {
-        int first = fgetc(file->stream);
+        int first = inputByte(file);
         if (first == EOF) { return EOF; }
         file->utf8Pending[file->utf8Count++] = (unsigned char)first;
     }
@@ -1909,7 +2016,7 @@ static int wideReadCode(AdaFile* file)
     int count = first < 128 ? 1 : first >= 0xC2 && first <= 0xDF ? 2
         : first >= 0xE0 && first <= 0xEF ? 3 : first >= 0xF0 && first <= 0xF4 ? 4 : 0;
     while (file->utf8Count < count) {
-        int next = fgetc(file->stream);
+        int next = inputByte(file);
         if (next == EOF) { break; }
         file->utf8Pending[file->utf8Count++] = (unsigned char)next;
     }
@@ -1918,7 +2025,7 @@ static int wideReadCode(AdaFile* file)
     int valid = count != 0 && adaUtf8Decode((const char*)file->utf8Pending, file->utf8Count, &position, &code);
     file->utf8Count = 0;
     if (!valid || (file->textWidth == 2 && code > 65535)) {
-        __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_DATA_ERROR);
+        __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_DATA_ERROR);
         return EOF;
     }
     return (int)code;
@@ -2044,7 +2151,7 @@ static void __ada_wtext_read_characterImpl(AdaFileRef handle, void* item, int wi
             while (code == '\n' || code == '\f') { __ada_text_take(file); code = __ada_text_peek(file, 0); }
         }
         if (code == EOF) {
-            if (__ada_exception == NULL) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
+            if (__ada_exception == NULL) { __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
             return;
         }
         if (operation == 0) { __ada_text_take(file); }
@@ -2067,7 +2174,7 @@ static void __ada_wtext_read_textImpl(AdaFileRef handle, void* item, int length,
         if (line) {
             int code = __ada_text_peek(file, 0);
             if (code == EOF) {
-                if (__ada_exception == NULL && *last == 0) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
+                if (__ada_exception == NULL && *last == 0) { __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
                 break;
             }
             if (code == '\n' || code == '\f') { skipLines(file, 1); break; }
@@ -2150,7 +2257,7 @@ static void wideReadResult(void* descriptor, AdaFileRef handle, int width, int f
         code = __ada_text_peek(file, 0);
     }
     if (__ada_exception == NULL) {
-        if (code == EOF && length == 0) { __ada_raise(ferror(file->stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
+        if (code == EOF && length == 0) { __ada_raise(inputError(file) ? ADA_DEVICE_ERROR : ADA_END_ERROR); }
         else if (line && code != EOF) { skipLines(file, 1); }
     }
     if (__ada_exception == NULL) { __ada_array_result(descriptor, text, 1, length, width); }

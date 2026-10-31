@@ -39,6 +39,9 @@ typedef struct AdaFile
     int textWidth; /* Native character width; wide external text is UTF-8. */
     unsigned char utf8Pending[4];
     int utf8Count;
+    int pipeInput; /* 0 unknown, 1 text pipe, -1 other: protected by file mutex. */
+    int byteLookahead; /* Raw pipe byte plus one; zero means empty. */
+    int inputEnd, inputError; /* Raw pipe input has no stdio EOF/error flags. */
     int pageTerminated;
     int pending[4];
     int pendingCount;

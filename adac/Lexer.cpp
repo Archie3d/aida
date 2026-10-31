@@ -454,7 +454,7 @@ Token Lexer::lexStringLiteral()
 
     std::string value;
     while (true) {
-        if (atEnd() || peekCode() == '\n' || peekCode() == 0x85 || peekCode() == 0x2028 || peekCode() == 0x2029) {
+        if (atEnd() || peekCode() == '\r' || peekCode() == '\n' || peekCode() == 0x85 || peekCode() == 0x2028 || peekCode() == 0x2029) {
             m_diagnostics.error(location, "unterminated string literal");
             break;
         }

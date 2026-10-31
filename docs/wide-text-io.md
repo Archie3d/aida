@@ -38,8 +38,14 @@ character. This choice does not change the separate UTF-8 source-file policy.
 Get_Immediate returns control characters without CRLF normalization and does
 not change logical positions. Its Available form polls for a complete character;
 an incomplete UTF-8 sequence is retained in the file until another immediate or
-ordinary read completes it. EOF in such a sequence is Data_Error. The existing
-POSIX terminal and Windows console/pipe mechanisms supply external bytes;
+ordinary read completes it. EOF in such a sequence is Data_Error. Text pipes
+use exact OS byte reads for ordinary/immediate input, numeric parsing and stream
+views, with raw byte pushback and EOF/error state under the file mutex. This
+prevents [UCRT's two-byte `_IONBF` read-ahead](https://github.com/huangqinjin/ucrt/blob/master/stdio/setvbuf.cpp)
+from hiding input bytes from PeekNamedPipe. POSIX uses the same pipe path so
+regressions can model read-ahead using a deliberately buffered FILE. Regular
+files retain stdio reads. The existing POSIX terminal and Windows console
+mechanisms supply terminal bytes;
 terminal encoding configuration and native Windows terminal execution remain
 part of the cross-host audit.
 
@@ -79,7 +85,11 @@ open/close and deletion; provenance is in tests/acats/README.md.
 `runtime.wide_text_io` checks exact UTF-8 file bytes, invalid encodings and
 unrepresentable values, partial nonblocking pipe reads, ordinary-read recovery,
 character positions, field failure atomicity, selection cleanup and four-thread
-file ownership. Existing narrow I/O and borrowed-result regressions remain in
+file ownership. Its pipe cases run with both unbuffered stdio and a two-byte
+stdio buffer, covering ordinary/immediate/stream transitions, CR followed by
+UTF-8 and EOF in a partial character. `runtime.text_io_library` also checks
+consecutive immediate bytes and numeric-to-immediate transitions in both modes.
+Existing narrow I/O and borrowed-result regressions remain in
 the full suite. Sanitizer checks cover the compiler and C runtime; generated
 QBE memory accesses are uninstrumented.
 

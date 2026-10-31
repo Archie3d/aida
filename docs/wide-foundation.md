@@ -33,13 +33,18 @@ canonical normalization is performed. Consequently precomposed and decomposed
 spellings remain distinct unless the specified uppercase/format transformations
 make them equal. This defines the implementation-dependent semantics allowed
 by RM 2.1(4.1). LF, NEL, LINE SEPARATOR and PARAGRAPH SEPARATOR advance source
-line numbers; CRLF is accepted. Diagnostic columns count decoded characters.
+line numbers; CRLF is accepted. Unterminated string recovery gives identical
+diagnostics for LF and CRLF files (`semantics.string_line_endings`), while
+embedded nongraphic controls remain rejected. Diagnostic columns count decoded
+characters.
 Unicode separator spaces delimit tokens. Literal contents must be graphic
 characters under the Ada 2005 definition; control values use Val or names.
 
 ASCII source-unit stems retain their existing lowercase naming rule. Non-ASCII
 characters in canonical unit stems use the same uppercase/format transformations
 as name lookup. Explicit sources and bundles do not require filename guessing.
+The unit loader converts UTF-8 paths explicitly to native filesystem paths,
+including UTF-16 file opens on Windows, independently of the active code page.
 Linker symbols, local QBE names and elaboration identities escape non-ASCII
 bytes with a reserved dotted prefix; distinct Unicode names cannot collapse to
 the same underscore spelling. Expanded tagged and exception names retain the

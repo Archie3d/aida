@@ -31,7 +31,7 @@ static void initialize(AdaFile* file, FILE* stream)
     setvbuf(stream, NULL, _IONBF, 0);
 }
 
-static void immediateInput(void)
+static void immediateInput(int buffered)
 {
     int descriptors[2];
 #ifdef _WIN32
@@ -42,6 +42,8 @@ static void immediateInput(void)
     AdaFile file;
     initialize(&file, IO_FDOPEN(descriptors[0], "rb"));
     CHECK(file.stream != NULL);
+    char readAhead[2];
+    if (buffered) { CHECK(setvbuf(file.stream, readAhead, _IOFBF, sizeof readAhead) == 0); }
     AdaFile* handle = &file;
     char item = '?';
     int available = -1;
@@ -51,6 +53,23 @@ static void immediateInput(void)
     __ada_text_get_available(&handle, &item, &available);
     CHECK(__ada_exception == NULL && available == 1 && item == '\r');
     CHECK(file.column == 1 && file.line == 1 && file.page == 1);
+    CHECK(IO_WRITE(descriptors[1], "AB", 2) == 2);
+    __ada_text_get_available(&handle, &item, &available);
+    CHECK(__ada_exception == NULL && available == 1 && item == 'A');
+    __ada_text_get_available(&handle, &item, &available);
+    CHECK(__ada_exception == NULL && available == 1 && item == 'B');
+    CHECK(file.column == 1 && file.line == 1 && file.page == 1);
+    CHECK(IO_WRITE(descriptors[1], "7 2.5!", 6) == 6);
+    int integer = 0;
+    __ada_text_get_integer(&handle, &integer, sizeof integer, 0, 9);
+    CHECK(__ada_exception == NULL && integer == 7);
+    __ada_text_get_available(&handle, &item, &available);
+    CHECK(__ada_exception == NULL && available == 1 && item == ' ');
+    double real = 0.0;
+    __ada_text_get_float(&handle, &real, sizeof real);
+    CHECK(__ada_exception == NULL && real == 2.5);
+    __ada_text_get_available(&handle, &item, &available);
+    CHECK(__ada_exception == NULL && available == 1 && item == '!');
     IO_CLOSE(descriptors[1]);
     __ada_text_get_available(&handle, &item, &available);
     CHECK(__ada_exception == ADA_END_ERROR);
@@ -105,7 +124,8 @@ static void ownerAndBorrow(void)
 
 int main(void)
 {
-    immediateInput();
+    immediateInput(0);
+    immediateInput(1);
     lineAndPosition();
     ownerAndBorrow();
     return 0;

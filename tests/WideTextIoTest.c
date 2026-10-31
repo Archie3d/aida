@@ -88,7 +88,7 @@ static void roundTrip(int width)
     CHECK(__ada_exception == NULL && owner == NULL);
 }
 
-static void immediate(void)
+static void immediate(int buffered)
 {
     int descriptors[2];
 #ifdef _WIN32
@@ -99,6 +99,9 @@ static void immediate(void)
     AdaFile file;
     initialize(&file, IO_FDOPEN(descriptors[0], "rb"), 4);
     CHECK(file.stream != NULL);
+    // Model UCRT's two-byte _IONBF read-ahead on every host.
+    char readAhead[2];
+    if (buffered) { CHECK(setvbuf(file.stream, readAhead, _IOFBF, sizeof readAhead) == 0); }
     AdaFile* handle = &file;
     uint32_t cell = 0;
     int ready;
@@ -119,7 +122,38 @@ static void immediate(void)
     CHECK(IO_WRITE(descriptors[1], "\xA9\n", 2) == 2);
     __ada_wtext_read_character(&handle, &cell, 4, 0, &ready);
     CHECK(__ada_exception == NULL && ready && cell == 0x3A9 && file.column == 2);
+    // Switch back to immediate input after an ordinary character read.
+    __ada_wtext_read_character(&handle, &cell, 4, 2, &ready);
+    CHECK(__ada_exception == NULL && ready && cell == '\n' && file.column == 2);
+    CHECK(IO_WRITE(descriptors[1], "A\xC3", 2) == 2);
+    __ada_wtext_read_character(&handle, &cell, 4, 0, &ready);
+    CHECK(__ada_exception == NULL && ready && cell == 'A' && file.column == 3);
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == NULL && !ready && file.utf8Count == 1);
+    CHECK(IO_WRITE(descriptors[1], "\xA9", 1) == 1);
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == NULL && ready && cell == 0xE9 && file.column == 3);
+    // A stream view must not hide the following byte in a stdio buffer.
+    CHECK(IO_WRITE(descriptors[1], "UV", 2) == 2);
+    char raw = 0;
+    __ada_stream_read(&file, &raw, 1);
+    CHECK(__ada_exception == NULL && raw == 'U');
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == NULL && ready && cell == 'V' && file.column == 3);
+    // Normal CR handling must retain the first byte of the following UTF-8.
+    CHECK(IO_WRITE(descriptors[1], "\r\xCE\xA9", 3) == 3);
+    __ada_wtext_read_character(&handle, &cell, 4, 0, &ready);
+    CHECK(__ada_exception == NULL && ready && cell == 0x3A9 && file.column == 2 && file.line == 2);
+    CHECK(IO_WRITE(descriptors[1], "\xF0\x9F", 2) == 2);
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == NULL && !ready && file.utf8Count == 2);
     IO_CLOSE(descriptors[1]);
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == ADA_DATA_ERROR && !ready && file.utf8Count == 0);
+    __ada_exception = NULL;
+    __ada_wtext_read_character(&handle, &cell, 4, 3, &ready);
+    CHECK(__ada_exception == ADA_END_ERROR && !ready);
+    __ada_exception = NULL;
     fclose(file.stream);
     __ada_mutex_destroy(&file.mutex);
 }
@@ -176,7 +210,8 @@ static void* worker(void* unused)
 
 int main(void)
 {
-    immediate();
+    immediate(0);
+    immediate(1);
     errorsAndLayout();
     pthread_t threads[4];
     for (int i = 0; i < 4; ++i) { CHECK(pthread_create(&threads[i], NULL, worker, NULL) == 0); }

@@ -40,4 +40,9 @@ compile("procedure Probe is Café : Integer := 1; CAFÉ : Integer := 2; begin C
 file(WRITE "${work}/Α.ads" "package Α is Value : constant Integer := 42; end Α;\n")
 compile("with α; procedure Probe is X : Integer := Α.Value; begin null; end Probe;" "")
 
+# Both specification and body discovery must use native Unicode file opens.
+file(WRITE "${work}/Γ.ads" "package Γ is procedure Touch; end Γ;\n")
+file(WRITE "${work}/Γ.adb" "package body Γ is procedure Touch is begin null; end Touch; end Γ;\n")
+compile("with γ; procedure Probe is begin Γ.Touch; end Probe;" "")
+
 compile("procedure Probe is begin if \"a\" = \"b\" then null; end if; end Probe;" "ambiguous operator")

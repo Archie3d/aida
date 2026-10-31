@@ -13,6 +13,19 @@
 namespace
 {
 
+// Source paths and unit names use UTF-8 internally, independent of the host
+// locale. On Windows, filesystem paths hold UTF-16 and streams use wide opens.
+std::filesystem::path nativePath(const std::string& path)
+{
+    return std::filesystem::path(std::u8string(path.begin(), path.end()));
+}
+
+std::string pathUtf8(const std::filesystem::path& path)
+{
+    auto bytes = path.u8string();
+    return std::string(bytes.begin(), bytes.end());
+}
+
 // The file a unit lives in: Ada.Text_IO.Integer_IO is ada-text_io-integer_io.
 std::string fileKey(const std::string& unitName)
 {
@@ -48,8 +61,8 @@ std::string parentOf(const std::string& unitName)
 std::string sourceIdentity(const std::string& path)
 {
     std::error_code error;
-    auto canonical = std::filesystem::weakly_canonical(path, error);
-    return error ? path : canonical.string();
+    auto canonical = std::filesystem::weakly_canonical(nativePath(path), error);
+    return error ? path : pathUtf8(canonical);
 }
 
 std::string declarationName(const Decl& decl)
@@ -202,7 +215,7 @@ void UnitLoader::addSearchPath(const std::string& directory)
 
 bool UnitLoader::readFile(const std::string& path, std::string& contents) const
 {
-    std::ifstream input(path, std::ios::binary);
+    std::ifstream input(nativePath(path), std::ios::binary);
     if (!input) {
         return false;
     }
@@ -220,7 +233,7 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
     }
     for (const std::string& directory : m_searchPaths) {
         std::string candidate = directory + "/" + key + extension;
-        std::ifstream probe(candidate, std::ios::binary);
+        std::ifstream probe(nativePath(candidate), std::ios::binary);
         if (probe) {
             return candidate;
         }
@@ -231,7 +244,7 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
 bool UnitLoader::addSource(const std::string& path)
 {
     addSearchPath(directoryOf(path));
-    std::string file = toLower(std::filesystem::path(path).filename().string());
+    std::string file = toLower(pathUtf8(nativePath(path).filename()));
     auto [entry, inserted] = m_explicitPaths.emplace(file, path);
     if (!inserted && sourceIdentity(entry->second) != sourceIdentity(path)) {
         m_diagnostics.error(SourceLocation {}, "conflicting explicit sources for '" + file
@@ -244,7 +257,7 @@ bool UnitLoader::addSource(const std::string& path)
             m_diagnostics.error(SourceLocation {}, "cannot read '" + path + "'");
             return false;
         }
-        parseInto(path, contents, toLower(std::filesystem::path(path).stem().string()));
+        parseInto(path, contents, toLower(pathUtf8(nativePath(path).stem())));
     }
     return true;
 }
@@ -354,7 +367,7 @@ std::string UnitLoader::sourceKey(const std::string& path) const
 {
     auto found = m_sources.find(sourceIdentity(path));
     return found != m_sources.end() && !found->second.empty()
-        ? found->second.front()->unitKey : toLower(std::filesystem::path(path).stem().string());
+        ? found->second.front()->unitKey : toLower(pathUtf8(nativePath(path).stem()));
 }
 
 bool UnitLoader::loadSource(const std::string& path)
@@ -370,7 +383,7 @@ bool UnitLoader::loadSource(const std::string& path)
             m_diagnostics.error(SourceLocation {}, "cannot read '" + path + "'");
             return false;
         }
-        parseInto(path, contents, toLower(std::filesystem::path(path).stem().string()));
+        parseInto(path, contents, toLower(pathUtf8(nativePath(path).stem())));
     }
     // Copy pointers: recursive discovery can grow the source table.
     auto source = m_sources.at(identity);
@@ -384,7 +397,7 @@ bool UnitLoader::loadSource(const std::string& path)
         std::string name = declarationName(decl);
         std::string key = fileKey(name);
         if (!unit->isSpec || isOptionalCompletion(decl)
-            || toLower(std::filesystem::path(path).extension().string()) != ".ads") {
+            || toLower(pathUtf8(nativePath(path).extension())) != ".ads") {
             auto spec = m_parts.find(key + ".spec");
             std::string specPath = spec == m_parts.end() || spec->second == unit
                 ? findUnit(key, ".ads") : spec->second->fileName;

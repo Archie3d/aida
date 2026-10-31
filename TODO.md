@@ -448,6 +448,19 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
+- [x] **Windows Unicode source paths.** Convert UTF-8 unit filenames and search
+  paths to native filesystem paths for file opens and canonical identities,
+  preserving UTF-8 stems independently of the Windows code page
+  (`semantics.unicode_source`; Unicode specification and body filenames).
+- [x] **CRLF string-literal recovery.** Stop an unterminated string before CR
+  as well as LF, avoiding an extra graphic-character error on Windows
+  (`stringliteralerrors`, `semantics.string_line_endings`; exact LF/CRLF
+  diagnostics and rejection of embedded control characters).
+- [x] **Immediate text-pipe input.** Bypass stdio read-ahead for text pipes
+  in ordinary, immediate, numeric and stream reads, retaining per-file byte
+  pushback and EOF/error state. This fixes UCRT's two-byte `_IONBF` buffering
+  hiding a UTF-8 continuation from PeekNamedPipe (`runtime.wide_text_io`,
+  `runtime.text_io_library`; two-byte-buffer reproducer and read-mode switching).
 - [x] **Windows floating stack parameters.** Receive scalar floating arguments
   beyond the four register slots through integer bit carriers, then cast back
   in the callee. This avoids QBE's stack-parameter misclassification without

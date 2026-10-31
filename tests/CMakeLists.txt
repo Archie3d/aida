@@ -400,6 +400,14 @@ add_ada_error_test(returnusageerrors SOURCES subprograms/returnusageerrors.adb)
 add_ada_error_test(limitedprivateerrors SOURCES units/limitedprivateerrors.adb)
 add_ada_error_test(declarationerrors SOURCES syntax/declarationerrors.adb)
 add_ada_error_test(stringliteralerrors SOURCES strings/stringliteralerrors.adb)
+add_test(NAME semantics.string_line_endings
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/strings/stringliteralerrors.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/strings/stringliteralerrors.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckStringLineEndings.cmake)
+set_tests_properties(semantics.string_line_endings PROPERTIES TIMEOUT 45)
 add_ada_error_test(delimitererrors SOURCES syntax/delimitererrors.adb)
 add_ada_test(valuebased SOURCES numerics/valuebased.adb)
 add_ada_test(streamrawedges SOURCES io/streamrawedges.adb)
@@ -2102,6 +2110,7 @@ add_test(NAME runtime.categorization_modes
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/elaboration/categorization.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/elaboration/categorization.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/categorization-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.categorization_modes PROPERTIES TIMEOUT 60)
 
