@@ -1,0 +1,20 @@
+floatattributeerrors.adb:13:44: error: constraint check fails in static expression
+floatattributeerrors.adb:14:39: error: constraint check fails in static expression
+floatattributeerrors.adb:15:48: error: constraint check fails in static expression
+floatattributeerrors.adb:16:59: error: static expression exceeds supported exact evaluation limits (127-bit magnitude)
+floatattributeerrors.adb:18:68: error: attribute 'Exponent' has an anonymous universal profile that cannot match a named subprogram profile
+floatattributeerrors.adb:18:68: error: no subprogram matches the renaming profile
+floatattributeerrors.adb:20:11: error: attribute 'Floor' requires a visible floating-point subtype mark
+floatattributeerrors.adb:21:17: error: attribute 'Floor' requires a visible floating-point subtype mark
+floatattributeerrors.adb:22:21: error: attribute 'Floor' requires a visible floating-point subtype mark
+floatattributeerrors.adb:23:15: error: attribute 'Floor' takes exactly 1 argument
+floatattributeerrors.adb:24:15: error: attribute 'Floor' takes exactly 1 argument
+floatattributeerrors.adb:25:23: error: attribute 'Floor' requires an argument of the prefix type
+floatattributeerrors.adb:26:23: error: attribute 'Floor' requires an argument of the prefix type
+floatattributeerrors.adb:27:28: error: attribute 'Compose' requires an integer second argument
+floatattributeerrors.adb:28:15: error: attribute 'Scaling' takes exactly 2 arguments
+floatattributeerrors.adb:29:33: error: attribute 'Leading_Part' requires an integer second argument
+floatattributeerrors.adb:30:26: error: attribute 'Exponent' requires an argument of the prefix type
+floatattributeerrors.adb:31:15: error: attribute 'Machine_Mantissa' takes exactly 0 arguments
+floatattributeerrors.adb:32:11: error: attribute 'Denorm' requires a visible floating-point subtype mark
+floatattributeerrors.adb:33:17: error: attribute 'Signed_Zeros' requires a visible floating-point subtype mark

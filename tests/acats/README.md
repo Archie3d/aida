@@ -25,6 +25,10 @@ C45504A, C45503A and C45611A come from `c4/`, retrieved 2026-10-22.
 C35507A comes from `c3/c35507a.ada`, retrieved 2026-10-23.
 C36203A comes from [GCC releases/gcc-15 c3/c36203a.ada](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c36203a.ada),
 retrieved 2026-10-23.
+CXA5015 comes unchanged from `CXA/CXA5015.A` in the official
+[Ada 2005 ACATS 3.1 archive](https://www.ada-auth.org/acats-files/3.1/ACATS31.ZIP),
+using the locally cached archive. It checks representation-oriented floating
+attributes and requires only the existing REPORT adapter.
 Test files retain their grant of unlimited rights and disclaimer; Length_Check
 retains its explicit public-domain authorization. The git blob IDs and SHA-256 digests below pin the exact content;
 GCC's release branch itself may change. No download is needed at build/test time.
@@ -76,6 +80,7 @@ TCTouch adapter records and validates its Touch/Validate traces.
 | c52005a.ada | `2c70049c8080ca53f3e5d4fe070915500da5287d` | `927e5fd3db80dfd38fd59619ca65b354893844d64b276a2dfe9c2870626d32bf` |
 | c53007a.ada | `bda27b9193b984cd0fd06535e665601e8d910092` | `67662c243b822ba47286d4e52488a6457027afb417a36761f1b56d34f84bfe22` |
 | c45347a.ada | `a93ae875ee3a81f23184bfed6be18718a534e7bc` | `757bfceb3d64a4dacd7bc5e0c731ed947769bafcac7db17d3c759f053ed62bc4` |
+| cxa5015.ada | `0d0f49d0baf527cde4186c97da94d6a5125fd2b7` | `8b506039bb6d18afb147ab51475cd21dee2a86ce57baadf8d1fecb8c9a68b26c` |
 | c45523a.ada | `ff78eaba756f3d6e2f65475f84281f372a4a6b70` | `60ce8ce3b865cc3651bbef9f79a91586c5ab14aea61015cf6fe9a4380184fe45` |
 | c49022a.ada | `d0cfa9d9769d40e1d23ae7f37aae5f71d5791886` | `aaa5fc8afb6ca2d7e77d8d361184f1a727ac53fa78e6914b55ed74c17ca585cb` |
 | c59002a.ada | `5210719729379dd00b93c9c304f4aa9abea519e2` | `b8f6fb43975a783abce7384a620acee1278e43d4b75e4d8ff0ad646ea548c9a9` |

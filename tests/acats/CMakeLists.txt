@@ -28,6 +28,7 @@ add_acats_test(c52005a)
 add_acats_test(c53007a)
 add_acats_test(c49022a)
 add_acats_test(c45523a)
+add_acats_test(cxa5015)
 add_acats_test(c45347a)
 # Transfers from exception handlers to enclosing statement sequences.
 add_acats_test(c59002a)

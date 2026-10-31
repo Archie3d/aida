@@ -11,6 +11,7 @@
 #include "../common/Modular.h"
 #include "../common/Fixed.h"
 #include "../common/Real.h"
+#include "../common/FloatAttributes.h"
 #include "../common/Array.h"
 
 typedef struct AdaDispatchEntry
@@ -358,6 +359,9 @@ float __ada_real_operation_f32(RealOperation operation, float left, float right)
 double __ada_real_operation(RealOperation operation, double left, double right);
 float __ada_value_real_f32(const char* text, int length);
 double __ada_value_real(const char* text, int length);
+float __ada_float_attribute_f32(FloatAttribute operation, float x, float y, int64_t n);
+double __ada_float_attribute(FloatAttribute operation, double x, double y, int64_t n);
+int64_t __ada_float_exponent(double x);
 float __ada_real_power_f32(float left, int exponent);
 double __ada_real_power(double left, int exponent);
 int __ada_value_enum(const char* text, int length, const char** names, int count);

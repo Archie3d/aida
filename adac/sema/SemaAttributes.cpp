@@ -1,6 +1,7 @@
 #include "Sema.h"
 #include "../../common/CharacterText.h"
 #include "SemaSupport.h"
+#include "../../common/FloatAttributes.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -117,7 +118,9 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
         return nullptr;
     }
     const std::string& name = attribute->lower;
-    if (name == "pos" || name == "val" || name == "mod" || name == "round") {
+    const FloatAttributeInfo* floating = floatAttributeInfo(name.c_str());
+    if (name == "pos" || name == "val" || name == "mod" || name == "round"
+        || (floating != nullptr && (floating->integerArgument || floating->operation == FloatExponent))) {
         m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' has an anonymous universal profile that cannot match a named subprogram profile");
         return nullptr;
     }
@@ -155,7 +158,8 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
     Type* textType = name.starts_with("wide_wide_") ? m_types.wideWideStringType()
         : name.starts_with("wide_") ? m_types.wideStringType() : m_types.stringType();
     bool scalar = isDiscrete(type) || isReal(type) || type->kind == TypeKind::Fixed;
-    if (!scalar || (!image && !value && name != "succ" && name != "pred"
+    bool floatFunction = floating != nullptr && floating->arguments > 0 && type->kind == TypeKind::Float;
+    if (!scalar || (!floatFunction && !image && !value && name != "succ" && name != "pred"
         && name != "min" && name != "max")) {
         m_diagnostics.error(attribute->location, "attribute '" + attribute->name + "' does not denote a supported attribute subprogram");
         return nullptr;
@@ -169,7 +173,7 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
     profile->genericIntrinsic = "attribute:" + name;
     profile->intrinsicPrefix = baseType(type);
     profile->returnType = image ? textType : base;
-    std::size_t count = name == "min" || name == "max" ? 2 : 1;
+    std::size_t count = floatFunction ? floating->arguments : name == "min" || name == "max" ? 2 : 1;
     for (std::size_t i = 0; i < count; ++i) {
         std::string parameterName = count == 1 ? "arg" : i == 0 ? "left" : "right";
         Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter, parameterName, parameterName);
@@ -552,6 +556,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     const std::string& name = expr->lower;
+    if (floatAttributeInfo(name.c_str()) != nullptr
+        && !(name == "machine_radix" && prefixType != nullptr && prefixType->kind == TypeKind::Fixed)) {
+        return analyzeFloatAttribute(expr, scope, prefixType, prefixIsType);
+    }
     if (name == "machine_overflows" || name == "machine_rounds") {
         if (!prefixIsType || prefixType == nullptr || (prefixType->kind != TypeKind::Float && prefixType->kind != TypeKind::Fixed)
             || !representationVisible(prefixType) || !expr->arguments.empty()) {

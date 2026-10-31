@@ -1,5 +1,6 @@
 #include "Sema.h"
 #include "SemaSupport.h"
+#include "../../common/FloatAttributes.h"
 
 #include <algorithm>
 
@@ -562,6 +563,15 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
                     if (matchesAccessProfile(candidate, expected)) {
                         add(expected);
                     }
+                }
+            }
+        } else if (const FloatAttributeInfo* info = floatAttributeInfo(name.c_str()); info != nullptr) {
+            if (info->result == FloatIntegerResult) { add(m_types.universalInteger()); }
+            else if (info->result == FloatRealResult) { add(m_types.universalReal()); }
+            else if (info->result == FloatBooleanResult) { add(m_types.booleanType()); }
+            else {
+                for (Type* prefix : expressionTypes(attribute->prefix.get(), scope)) {
+                    if (prefix->kind == TypeKind::Float) { add(m_types.scalarBaseType(prefix)); }
                 }
             }
         } else if (name == "small" || name == "delta") {

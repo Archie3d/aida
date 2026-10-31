@@ -297,6 +297,7 @@ private:
     Type* analyzeCall(CallExpr* expr, Scope* scope, Type* expected);
 
     // SemaAttributes.cpp
+    Type* analyzeFloatAttribute(AttributeExpr* expr, Scope* scope, Type* prefix, bool prefixIsType);
     Type* analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected = nullptr);
     Type* resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope);
     bool compatibleAnonymousAccess(Type* target, Type* source) const;

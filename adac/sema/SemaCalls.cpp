@@ -379,7 +379,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
                     expr->exactReal = ExactReal::make(value);
                 }
             } else if (isReal(expr->type)) {
-                expr->staticReal = exact.real(typeSize(expr->type) == 4 ? 24 : 53);
+                expr->staticReal = exact.numerator == 0 ? std::copysign(0.0, operand->staticReal)
+                    : exact.real(typeSize(expr->type) == 4 ? 24 : 53);
                 if (!std::isfinite(expr->staticReal) || (expr->type->hasRealRange
                     && (expr->staticReal < expr->type->lowReal || expr->staticReal > expr->type->highReal))) {
                     expr->staticFailure = StaticFailure::Check;

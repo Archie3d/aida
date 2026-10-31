@@ -1,5 +1,6 @@
 #include "QbeEmitter.h"
 #include "QbeSupport.h"
+#include "../../common/FloatAttributes.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -13,6 +14,67 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (const FloatAttributeInfo* info = floatAttributeInfo(name.c_str()); info != nullptr
+        && prefixType != nullptr && prefixType->kind == TypeKind::Float) {
+        bool narrow = typeSize(prefixType) == 4;
+        if (info->arguments == 0) {
+            double value = floatAttributeProperty(info->operation, narrow);
+            return info->result == FloatRealResult
+                ? Value {QbeSupport::realLiteral(value, qbeClass(expr->type)), qbeClass(expr->type)}
+                : constantValue(static_cast<long long>(value), qbeClass(expr->type));
+        }
+        auto convert = [&](Value value, char type) {
+            if (value.type == type) { return value; }
+            Value result {newTemp(), type};
+            std::string instruction = value.type == 's' && type == 'd' ? "exts"
+                : value.type == 'd' && type == 's' ? "truncd"
+                : value.type == 'w' && type == 'l' ? "extsw" : "copy";
+            line(result.name + " =" + type + " " + instruction + " " + value.name);
+            return result;
+        };
+        char precision = narrow ? 's' : 'd';
+        Value x = convert(emitExpr(expr->arguments[0].get()), precision);
+        Value result {newTemp(), qbeClass(expr->type)};
+        if (info->operation == FloatExponent) {
+            x = convert(x, 'd');
+            Value exponent {newTemp(), 'l'};
+            emitCallInstruction(exponent.name + " =l call $__ada_float_exponent(d " + x.name + ")", CallEffects::CheckException);
+            return convert(exponent, result.type);
+        }
+        Value y {QbeSupport::realLiteral(0.0, precision), precision};
+        Value n {"0", 'l'};
+        if (info->arguments == 2) {
+            Expr* argument = expr->arguments[1].get();
+            bool wideCount = info->integerArgument && argument->isStatic && argument->exactReal.valid
+                && argument->exactReal.denominator == 1
+                && (argument->exactReal.numerator < INT64_MIN || argument->exactReal.numerator > INT64_MAX);
+            Value second = wideCount
+                ? Value {std::to_string(argument->exactReal.numerator < 0 ? INT64_MIN : INT64_MAX), 'l'}
+                : emitExpr(argument);
+            if (info->integerArgument) {
+                n = convert(second, 'l');
+                if (expr->arguments[1]->type->modulus > static_cast<__int128>(INT64_MAX)) {
+                    // The unsigned upper half denotes a large positive count,
+                    // never a negative scaling exponent or radix digit count.
+                    std::string high = newTemp(), keep = newTemp(), low = newTemp(), cap = newTemp();
+                    line(high + " =l sar " + n.name + ", 63");
+                    line(keep + " =l xor " + high + ", -1");
+                    line(low + " =l and " + n.name + ", " + keep);
+                    line(cap + " =l and " + high + ", " + std::to_string(INT64_MAX));
+                    n = Value {newTemp(), 'l'};
+                    line(n.name + " =l or " + low + ", " + cap);
+                }
+            } else {
+                y = convert(second, precision);
+            }
+        }
+        std::string helper = narrow ? "__ada_float_attribute_f32" : "__ada_float_attribute";
+        result.type = precision;
+        emitCallInstruction(result.name + " =" + precision + " call $" + helper + "(w "
+            + std::to_string(info->operation) + ", " + precision + " " + x.name + ", "
+            + precision + " " + y.name + ", l " + n.name + ")", CallEffects::CheckException);
+        return result;
+    }
     if (name == "definite") {
         return constantValue(expr->staticValue, 'w');
     }

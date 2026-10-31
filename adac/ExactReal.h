@@ -103,6 +103,25 @@ struct ExactReal
         return { numerator / factor, denominator / factor, true };
     }
 
+    // Recover a machine value exactly when it fits the rational capacity.
+    static ExactReal binary(double value)
+    {
+        if (!std::isfinite(value)) { return {}; }
+        if (value == 0.0) { return make(0); }
+        int exponent = 0;
+        double fraction = std::frexp(value, &exponent);
+        __int128 numerator = static_cast<long long>(std::ldexp(fraction, 53));
+        exponent -= 53;
+        while (exponent < 0 && numerator % 2 == 0) {
+            numerator /= 2;
+            ++exponent;
+        }
+        if (exponent < -126 || exponent > 126) { return {}; }
+        if (exponent < 0) { return make(numerator, (__int128)1 << -exponent); }
+        __int128 scaled;
+        return __builtin_mul_overflow(numerator, (__int128)1 << exponent, &scaled) ? ExactReal{} : make(scaled);
+    }
+
     static ExactReal operation(char op, ExactReal left, ExactReal right)
     {
         if (!left.valid || !right.valid) {

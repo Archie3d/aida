@@ -231,8 +231,9 @@ determinism tests and instrumented C run-time checks.
 - [x] **Real edge cases.** Checked binary32/64 arithmetic and Integer-exponent
   powers; zero divisors, nonfinite results and narrowing overflow raise
   `Constraint_Error` (`realedges`, `realtasking`, `realedgeerrors`,
-  `runtime.real_arithmetic`, ACATS C45523A). Static-capacity, model-attribute
-  and Annex G restrictions: [floating model](docs/floating-point.md).
+  `runtime.real_arithmetic`, ACATS C45523A). Static-capacity and Annex G
+  restrictions (A.5.3 attributes added in 6f-prelude):
+  [floating model](docs/floating-point.md).
 - [x] **Floating-point `'Value`.** Locale-independent decimal/based parsing,
   rounded once to binary32/64 (`realvalue*`, `runtime.real_value`).
   [Contract](docs/floating-point.md#floating-value).
@@ -447,6 +448,14 @@ Repair correctness and legality gaps exposed by the
 supported subset; documented private-extension, generic-formal, library and
 full-tasking restrictions retain their later roadmap owners.
 
+- [x] **Floating attributes.** Ada 2005 A.5.3 rounding, decomposition/scaling,
+  remainder/adjacent/copy-sign/leading-part, machine/model functions and
+  representation/model properties for binary32/64. Checked static folding,
+  base-type profiles, generic actuals/renamings, signed zeros and task-local
+  exceptions (`floatattributes`, `floatattributetasking`, `floatattributeerrors`,
+  `runtime.float_attributes`; unchanged CXA5015 PASS). Bounded static arithmetic,
+  J.5 obsolescent attributes and Annex G remain Phase 8 gaps.
+  [Contract](docs/floating-point.md#floating-attributes).
 - [x] **Aggregate overload resolution and private views.** Hidden record/array
   full views no longer compete with visible aggregate types, fixing unqualified
   record aggregates passed to vector Append/Prepend/Insert. Package-body full

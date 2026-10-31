@@ -152,7 +152,7 @@ bool Sema::foldWideInteger(Expr* expr, __int128& value, StaticFailure& failure) 
             } else {
                 auto machine = [](Expr* operand) {
                     return operand->isStatic && operand->staticFailure == StaticFailure::None
-                        && operand->type != nullptr && operand->type->kind == TypeKind::Float
+                        && operand->type != nullptr && isReal(operand->type)
                         && !operand->exactReal.valid && std::isfinite(operand->staticReal);
                 };
                 if (!exactLeft && !exactRight && machine(binary->left.get()) && machine(binary->right.get())) {
@@ -399,7 +399,9 @@ void Sema::validateStatic(Expr* expr, bool enclosingStatic, Type* expected)
         ? expected : expr->type;
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
         && isReal(target) && expr->exactReal.valid) {
-        expr->staticReal = expr->exactReal.real(typeSize(target) == 4 ? 24 : 53);
+        if (expr->exactReal.numerator != 0) {
+            expr->staticReal = expr->exactReal.real(typeSize(target) == 4 ? 24 : 53);
+        }
     }
     if (expr->isStatic && expr->staticFailure == StaticFailure::None && !enclosingStatic
         && target != nullptr && target->kind == TypeKind::Integer) {
@@ -549,6 +551,21 @@ void Sema::noteStaticValue(Expr* expr)
             expr->exactReal = exact;
             expr->isStatic = true;
             expr->staticReal = exact.real();
+            if (exact.numerator == 0 && expr->kind == ExprKind::Unary) {
+                auto* unary = static_cast<UnaryExpr*>(expr);
+                double zero = unary->operand->staticReal;
+                expr->staticReal = unary->op == UnaryOp::Negate ? -zero
+                    : unary->op == UnaryOp::Abs ? std::fabs(zero) : zero;
+            } else if (exact.numerator == 0 && expr->kind == ExprKind::Binary) {
+                auto* binary = static_cast<BinaryExpr*>(expr);
+                double a = binary->left->staticReal, b = binary->right->staticReal;
+                double zero = binary->op == BinaryOp::Add ? a + b
+                    : binary->op == BinaryOp::Subtract ? a - b
+                    : binary->op == BinaryOp::Multiply ? a * b
+                    : binary->op == BinaryOp::Divide && b != 0.0 ? a / b
+                    : binary->op == BinaryOp::Power && binary->right->staticValue % 2 != 0 ? a : 0.0;
+                expr->staticReal = std::copysign(0.0, zero);
+            }
         } else if (expr->kind == ExprKind::Binary) {
             auto* binary = static_cast<BinaryExpr*>(expr);
             if (!binary->operatorCall && binary->left->isStatic && binary->right->isStatic) {
@@ -603,21 +620,10 @@ bool Sema::exactValue(Expr* expr, ExactReal& value) const
     if (expr->kind == ExprKind::RealLiteral) {
         return false;
     }
-    if (expr->type != nullptr && expr->type->kind == TypeKind::Float && expr->isStatic) {
+    if (expr->type != nullptr && isReal(expr->type) && expr->isStatic) {
         double binary = typeSize(expr->type) == 4 ? static_cast<double>(static_cast<float>(expr->staticReal))
                                                  : expr->staticReal;
-        if (!std::isfinite(binary)) {
-            return false;
-        }
-        int exponent = 0;
-        double fraction = std::frexp(binary, &exponent);
-        __int128 numerator = static_cast<long long>(std::ldexp(fraction, 53));
-        exponent -= 53;
-        if (exponent < -126 || exponent > 73) {
-            return false;
-        }
-        value = exponent >= 0 ? ExactReal::make(numerator * ((__int128)1 << exponent))
-                              : ExactReal::make(numerator, (__int128)1 << -exponent);
+        value = ExactReal::binary(binary);
         return value.valid;
     }
     if (expr->isStatic && isDiscrete(expr->type)) {

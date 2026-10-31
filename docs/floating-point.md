@@ -6,7 +6,7 @@ binary64. The language baseline is Ada 2005
 [4.5.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-5-5.html)
 and [4.5.6](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-5-6.html).
 This documents the implemented subset and its host requirements; it does not
-claim complete floating-point attributes, Annex G accuracy or full conformance.
+claim Annex G accuracy or full conformance.
 
 | Property | Float / types requesting 1–6 decimal digits | Long_Float / types requesting 7–15 digits |
 | --- | --- | --- |
@@ -42,9 +42,9 @@ exception flags are not used as shared runtime state.
 
 Underflow is allowed: a result can become a subnormal or round to zero without
 an Ada exception. Precision diminishes in the subnormal interval; no claim is
-made that it is a full-precision safe range. Basic zero signs can follow native
-IEEE operations, but a language-level signed-zero guarantee and Signed_Zeros
-attribute are not implemented; exact static zero does not retain a sign.
+made that it is a full-precision safe range. `Denorm` and `Signed_Zeros` are True.
+Floating attribute results and materialized static zeros preserve their specified
+IEEE signs, including Copy_Sign and Adjacent's equal-zero case.
 
 Float value boundaries now check the finite machine base range even for an
 unconstrained subtype. Constrained subtypes retain their narrower range checks.
@@ -55,8 +55,68 @@ model; arithmetic helpers and normal checked scalar boundaries reject them.
 This is not a general validity check on every raw memory load or comparison.
 
 `T'Machine_Overflows` and `T'Machine_Rounds` are static Boolean attributes for a
-visible floating subtype mark, with no arguments. Both are True. Other missing
-model attributes continue to receive unsupported-attribute diagnostics.
+visible floating subtype mark, with no arguments. Both are True.
+
+## Floating attributes
+
+The Ada 2005 [RM A.5.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-5-3.html)
+attributes accept a visible floating subtype mark, including derived types,
+constrained/null subtypes, generic formal types and `T'Base`. Function operands
+and results use the base type; receiving constraints are checked by assignment,
+qualification and parameter passing. Each operand is evaluated once.
+
+- `Floor`, `Ceiling`, `Truncation`, `Rounding`, `Unbiased_Rounding` and
+  `Machine_Rounding` return floating integral values. Rounding breaks ties away
+  from zero; Unbiased_Rounding and this implementation's Machine_Rounding use
+  ties to even, independently of the host rounding mode.
+- `Exponent`, `Fraction`, `Compose` and `Scaling` use radix two. Exponent returns
+  universal_integer; Compose/Scaling take a universal_integer second argument.
+  Scaling overflow raises Constraint_Error; underflow may produce subnormals or
+  signed zero. Integer counts are saturated internally beyond signed 64-bit
+  range without changing these operations' results/checks.
+- `Remainder` uses the nearest exact quotient with even ties; a zero divisor
+  raises Constraint_Error. An exact static residual that is not a machine
+  number yields zero, as specified by A.5.3. `Adjacent` selects the adjacent
+  machine number in the exact direction of its second argument and returns its
+  first argument when they compare equal.
+  `Copy_Sign` copies the second argument's sign, including negative zero.
+- `Leading_Part` truncates to the requested positive number of radix digits;
+  zero or negative counts raise Constraint_Error. `Machine` rounds to the
+  prefix's binary precision. With Annex G unsupported, `Model` is defined to
+  use the same machine rounding, retaining representable subnormals.
+- `Machine_Radix`, `Machine_Mantissa`, `Machine_Emin`, `Machine_Emax`,
+  `Model_Mantissa` and `Model_Emin` return universal_integer. The model uses the
+  full machine precision and minimum normal exponent: 24/-125 for binary32,
+  53/-1021 for binary64. Machine_Emax is 128 or 1024.
+  `Model_Epsilon` is `2**(1-Model_Mantissa)` and `Model_Small` is
+  `2**(Model_Emin-1)`. `Safe_First`/`Safe_Last` are the symmetric finite machine
+  endpoints; these four attributes return universal_real.
+
+Attribute functions with all-floating profiles also support renamings and
+formal-subprogram actuals. Exponent and the functions with universal_integer
+parameters cannot match a named subprogram profile, and receive the existing
+anonymous-universal-profile diagnostic.
+
+Static scalar prefixes and static operands are folded. Mathematical rounding,
+fraction/exponent, scaling, remainder, copy-sign and leading-part computations
+use checked exact rationals; Machine/Model/Adjacent use the declared binary
+precision. The existing 127-bit rational capacity limit still applies to static
+calculations, with an explicit diagnostic when exceeded. Machine-valued
+properties/constants can be materialized across the binary exponent range;
+this does not provide arbitrary-precision static arithmetic. Nonstatic subtype
+prefixes and generic formal types do not acquire staticness from cached values.
+Obsolescent Ada 83 attributes in J.5 remain outside this increment.
+
+`floatattributes` and `floatattributetasking` exercise Float, Long_Float and a
+derived type, exact static rounding, properties, subnormals, signed zeros,
+subtype constraints, unsigned 64-bit counts, generic actuals/renamings, exception
+paths and single evaluation. Whole/per-unit builds and deterministic IR are
+checked. `floatattributeerrors` covers illegal prefixes, profiles, arity, operand
+types and evaluated static checks, with a skipped-short-circuit legal control.
+`runtime.float_attributes` checks rounding tables, exponent endpoints,
+nonfinite C inputs, extreme counts and four native task contexts.
+Unmodified Ada 2005 ACATS CXA5015 passes the representation-oriented attribute
+checks; Annex G accuracy and the wider conformance audit remain open.
 
 ## Integer exponentiation of a real
 

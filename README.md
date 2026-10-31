@@ -101,7 +101,8 @@ Supported:
 - Decimal fixed point with 1–18 digits, exact scaling, Round and Decimal_IO ([limits](docs/decimal-fixed-point.md))
 - Modular types through `2 ** 64`, modular generics, `'Mod` and `Modular_IO` ([limits](docs/modular-types.md))
 - Exact bounded named-number arithmetic ([limits](docs/static-arithmetic.md))
-- Checked binary32/64 arithmetic, integer powers and floating `'Value` ([floating model](docs/floating-point.md))
+- Checked binary32/64 arithmetic, integer powers, floating `'Value` and Ada 2005
+  floating attributes, including rounding and machine/model properties ([floating model](docs/floating-point.md))
 - Arrays with 64-bit bounds, lengths and byte strides, anonymous object declarations,
   library runtime bounds and generic objects; indices must be all constrained
   or all boxed (`range <>`) ([descriptor ABI](docs/array-descriptors.md))

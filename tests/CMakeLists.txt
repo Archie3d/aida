@@ -1103,7 +1103,7 @@ add_ada_error_test(taskidentityerrors SOURCES tasks/taskidentityerrors.adb)
 
 # Numeric and array boundaries in whole/separate compilation, deterministic
 # IR, and several independent Ada task contexts.
-foreach(boundary_case realedges realtasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking)
+foreach(boundary_case realedges realtasking floatattributes floatattributetasking realvalue realvaluetasking derivedscalaroperations arraydescriptors arraydescriptortasking concatenation concattasking)
     add_ada_test(${boundary_case} SOURCES ${boundary_case}.adb)
     add_determinism_test(${boundary_case} SOURCE ${boundary_case}.adb)
     ada_test_fixture(source_path "${boundary_case}.adb")
@@ -1124,6 +1124,11 @@ foreach(boundary_case realedges realtasking realvalue realvaluetasking derivedsc
     set_tests_properties(ada.${boundary_case} determinism.${boundary_case}
         runtime.${boundary_case}_modes PROPERTIES TIMEOUT 60)
 endforeach()
+add_ada_error_test(floatattributeerrors SOURCES numerics/floatattributeerrors.adb)
+add_executable(float_attributes_test FloatAttributesTest.c)
+target_link_libraries(float_attributes_test PRIVATE adart)
+add_test(NAME runtime.float_attributes COMMAND float_attributes_test)
+set_tests_properties(runtime.float_attributes PROPERTIES TIMEOUT 20)
 add_ada_error_test(realedgeerrors SOURCES numerics/realedgeerrors.adb)
 set_tests_properties(error.realedgeerrors PROPERTIES TIMEOUT 10)
 add_executable(real_arithmetic_test RealArithmeticTest.c)

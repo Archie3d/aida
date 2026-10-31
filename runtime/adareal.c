@@ -129,3 +129,42 @@ double __ada_real_power(double left, int exponent)
     return result;
 }
 
+
+float __ada_float_attribute_f32(FloatAttribute operation, float x, float y, int64_t n)
+{
+    if (!isfinite(x) || !isfinite(y)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0.0f;
+    }
+    float result = (float)floatAttributeValue(operation, x, y, n, 1);
+    if (!isfinite(result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0.0f;
+    }
+    return result;
+}
+
+double __ada_float_attribute(FloatAttribute operation, double x, double y, int64_t n)
+{
+    if (!isfinite(x) || !isfinite(y)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0.0;
+    }
+    double result = floatAttributeValue(operation, x, y, n, 0);
+    if (!isfinite(result)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0.0;
+    }
+    return result;
+}
+
+int64_t __ada_float_exponent(double x)
+{
+    if (!isfinite(x)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return 0;
+    }
+    int exponent = 0;
+    frexp(x, &exponent);
+    return exponent;
+}
