@@ -7,8 +7,7 @@ struct Expr;
 struct Type;
 
 // Helpers shared by the semantic analyzer implementation.
-namespace SemaSupport
-{
+namespace SemaSupport {
 
 int objectView(Expr* expr);
 bool conformingExpressions(const Expr* left, const Expr* right);
@@ -18,4 +17,4 @@ bool isUniversal(const Type* type);
 void adaptUniversal(Expr* expr, Type* type);
 std::vector<std::string> splitDottedName(const std::string& name);
 
-}
+} // namespace SemaSupport

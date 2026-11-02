@@ -3,8 +3,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace
-{
+namespace {
 
 // Every line is a keyword and the rest of the line, which keeps paths with
 // spaces in them intact.
@@ -16,7 +15,7 @@ bool split(const std::string& line, std::string& keyword, std::string& rest)
     return !keyword.empty();
 }
 
-}
+} // namespace
 
 bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations)
 {

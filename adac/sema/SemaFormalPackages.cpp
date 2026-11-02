@@ -4,8 +4,7 @@
 
 #include <algorithm>
 
-namespace
-{
+namespace {
 
 Symbol* parameterBinding(Scope* scope, const GenericFormal& parameter)
 {
@@ -106,7 +105,7 @@ bool staticString(Expr* expression, std::string& value, int depth = 0)
     return false;
 }
 
-}
+} // namespace
 
 void Sema::applyGenericUses(GenericDecl* generic, std::size_t beforeFormal, Scope* scope, DeclList& owned)
 {

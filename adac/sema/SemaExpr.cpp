@@ -8,8 +8,7 @@
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
 
-namespace
-{
+namespace {
 
 bool isCharacterLiteralExpression(const Expr* expr)
 {
@@ -25,7 +24,7 @@ bool isCharacterLiteralExpression(const Expr* expr)
     return false;
 }
 
-}
+} // namespace
 
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {

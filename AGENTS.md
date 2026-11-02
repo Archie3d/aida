@@ -89,6 +89,23 @@ if (condition) {
 }
 ```
 
+- Namespace open bracket should be on the same line.
+- Namespace closing bracket must follow by the comment `// namespace <Name>`.
+- There should be no additional indentation inside the `namespace { ... }`.
+
+```cpp
+namespace Base {
+namespace Inner {
+
+class Item
+{
+};
+
+} // namespace Inner
+} // namespace Base
+```
+
+
 - Ada runtime C exports must use `__ada_` prefix:
 ```c
 double __ada_numerics_sqrt(double x);

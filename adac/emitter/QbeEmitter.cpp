@@ -2,8 +2,7 @@
 
 #include "Binder.h"
 
-namespace
-{
+namespace {
 
 // Encodes an Ada string as a QBE data body, keeping printable runs quoted.
 std::string encodeString(const std::string& text)
@@ -44,7 +43,7 @@ std::string encodeString(const std::string& text)
     return result;
 }
 
-}
+} // namespace
 
 QbeEmitter::QbeEmitter(Sema& sema, Diagnostics& diagnostics)
     : m_sema(sema)

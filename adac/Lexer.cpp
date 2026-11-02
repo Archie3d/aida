@@ -11,8 +11,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace
-{
+namespace {
 
 const std::unordered_map<std::string, TokenKind>& keywordTable()
 {
@@ -119,7 +118,7 @@ int digitValue(char c)
     return c - 'A' + 10;
 }
 
-}
+} // namespace
 
 std::string toLower(const std::string& text)
 {

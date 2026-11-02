@@ -33,8 +33,7 @@
 #define ADA_INSTALL_LIBDIR "lib"
 #endif
 
-namespace
-{
+namespace {
 
 void printUsage()
 {
@@ -259,7 +258,7 @@ std::string libraryBesideExecutable(const std::string& executablePath)
     return directoryExists(candidate) ? candidate : std::string();
 }
 
-}
+} // namespace
 
 int main(int argc, char** argv)
 {

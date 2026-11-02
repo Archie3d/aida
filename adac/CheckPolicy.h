@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace CheckPolicy
-{
+namespace CheckPolicy {
 
 constexpr uint32_t kAccess = 1u << 0;
 constexpr uint32_t kDiscriminant = 1u << 1;
@@ -32,7 +31,7 @@ inline uint32_t namedCheck(const std::string& name)
     return 0;
 }
 
-}
+} // namespace CheckPolicy
 
 class ScopedCheckPolicy
 {

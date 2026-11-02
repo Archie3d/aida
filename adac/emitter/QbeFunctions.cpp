@@ -9,8 +9,7 @@
 
 using QbeSupport::isUnconstrainedArray;
 
-namespace
-{
+namespace {
 
 bool hasControlledObjects(DeclList& declarations);
 bool hasControlledObjects(StmtList& statements);
@@ -112,7 +111,7 @@ bool hasControlledObjects(StmtList& statements)
     return false;
 }
 
-}
+} // namespace
 
 void QbeEmitter::emitElaboration(const LibraryUnit& unit)
 {

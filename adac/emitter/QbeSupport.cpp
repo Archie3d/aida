@@ -5,8 +5,7 @@
 #include <cctype>
 #include <cstdio>
 
-namespace QbeSupport
-{
+namespace QbeSupport {
 
 Value constantValue(long long value, char type)
 {
@@ -79,4 +78,4 @@ const char* comparisonInstruction(BinaryOp op, char type, bool isUnsigned)
     }
 }
 
-}
+} // namespace QbeSupport

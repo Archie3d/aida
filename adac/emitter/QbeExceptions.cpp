@@ -7,15 +7,14 @@
 using QbeSupport::realLiteral;
 using QbeSupport::comparisonInstruction;
 
-namespace
-{
+namespace {
 
 std::string upperCase(const std::string& text)
 {
     return Unicode::identifier(text, false);
 }
 
-}
+} // namespace
 
 // The unit declaring an exception is the one holding the object that stands
 // for it, so a handler anywhere in the program compares against one address.

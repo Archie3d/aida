@@ -9,8 +9,7 @@
 
 using SemaSupport::staticallyMatches;
 
-namespace
-{
+namespace {
 
 // Renames the unit a generic was written as to the name of the instance, so
 // that its symbols and the names the emitter gives them are its own.
@@ -222,7 +221,7 @@ Symbol* declaredSymbol(Decl* decl)
     }
 }
 
-}
+} // namespace
 
 void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
 {

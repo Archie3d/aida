@@ -4,8 +4,7 @@
 #include "Ast.h"
 #include "Type.h"
 
-namespace SemaSupport
-{
+namespace SemaSupport {
 
 bool conformingExpressions(const Expr* left, const Expr* right)
 {
@@ -359,4 +358,4 @@ int objectView(Expr* expr)
     return 0;
 }
 
-}
+} // namespace SemaSupport

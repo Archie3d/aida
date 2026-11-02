@@ -4,8 +4,7 @@
 
 #include <cmath>
 
-namespace
-{
+namespace {
 
 ExactReal scaleExact(ExactReal value, long long exponent)
 {
@@ -66,7 +65,7 @@ int normalizedExponent(ExactReal value)
     return exponent;
 }
 
-}
+} // namespace
 
 Type* Sema::analyzeFloatAttribute(AttributeExpr* expr, Scope* scope, Type* prefix, bool prefixIsType)
 {

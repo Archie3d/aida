@@ -3,8 +3,7 @@
 
 #include <unordered_set>
 
-namespace
-{
+namespace {
 
 bool constraints(const Type* type, Symbol* owner);
 
@@ -127,7 +126,7 @@ bool constraints(const Type* type, Symbol* owner)
     return true;
 }
 
-}
+} // namespace
 
 bool hasPreelaborableInitialization(Type* type, Symbol* owner, Type* fullType, Scope* viewScope)
 {
@@ -246,8 +245,7 @@ bool supportsExternalStreaming(Type* type)
     return true;
 }
 
-namespace
-{
+namespace {
 
 bool pureInitialization(Type* type, Symbol* owner)
 {
@@ -260,7 +258,7 @@ bool pureInitialization(Type* type, Symbol* owner)
     return true;
 }
 
-}
+} // namespace
 
 bool pureExpression(const Expr* expression, Symbol* owner)
 {

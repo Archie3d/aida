@@ -4,8 +4,7 @@
 
 #include <utility>
 
-namespace
-{
+namespace {
 
 // Flatten names that can denote a subtype, including the Base attribute.
 std::string typeMarkName(Expr* expr)
@@ -43,7 +42,7 @@ bool isAttributeName(TokenKind kind)
     }
 }
 
-}
+} // namespace
 
 std::vector<std::string> Parser::parseIdentifierList(std::vector<std::string>& lowered)
 {

@@ -4,8 +4,7 @@
 #include <cctype>
 #include <filesystem>
 
-namespace
-{
+namespace {
 
 struct ObjectAccessView
 {
@@ -102,7 +101,7 @@ bool matchingStorage(Type* target, Type* source)
     return typeSize(target) == typeSize(source) && typeAlignment(source) >= typeAlignment(target);
 }
 
-}
+} // namespace
 
 Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expected)
 {

@@ -7,8 +7,7 @@ struct Type;
 enum class BinaryOp;
 
 // Helpers shared by the QBE emitter implementation.
-namespace QbeSupport
-{
+namespace QbeSupport {
 
 Value constantValue(long long value, char type);
 std::string realLiteral(double value, char type);
@@ -17,4 +16,4 @@ bool isUnconstrainedArray(const Type* type);
 bool isLiteralOperand(const std::string& operand);
 const char* comparisonInstruction(BinaryOp op, char type, bool isUnsigned = false);
 
-}
+} // namespace QbeSupport

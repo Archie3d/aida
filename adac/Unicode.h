@@ -6,8 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace Unicode
-{
+namespace Unicode {
 
 constexpr unsigned kIdentifierStart = 1;
 constexpr unsigned kIdentifierExtend = 2;
@@ -123,4 +122,4 @@ inline std::string identifier(std::string_view text, bool canonical = true)
     return result;
 }
 
-}
+} // namespace Unicode

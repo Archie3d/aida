@@ -10,8 +10,7 @@
 #include <sstream>
 #include <utility>
 
-namespace
-{
+namespace {
 
 // Source paths and unit names use UTF-8 internally, independent of the host
 // locale. On Windows, filesystem paths hold UTF-16 and streams use wide opens.
@@ -193,7 +192,7 @@ bool declaresGeneric(const DeclList& declarations)
     return false;
 }
 
-}
+} // namespace
 
 UnitLoader::UnitLoader(Diagnostics& diagnostics)
     : m_diagnostics(diagnostics)

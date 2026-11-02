@@ -11,8 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace
-{
+namespace {
 
 enum class Stage
 {
@@ -61,7 +60,7 @@ bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::
         && record.irDigest == digestOfFile(directory + "/" + unit.key + ".ssa");
 }
 
-}
+} // namespace
 
 int main(int argc, char** argv)
 {

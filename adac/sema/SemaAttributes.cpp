@@ -12,8 +12,7 @@
 using SemaSupport::adaptUniversal;
 using SemaSupport::objectView;
 
-namespace
-{
+namespace {
 
 // Without an explicit range a floating point type spans what its machine
 // representation can hold.
@@ -86,7 +85,7 @@ int digitsOf(const Type* type)
     return 6;
 }
 
-}
+} // namespace
 
 Type* Sema::attributeSubtypeMark(Expr* prefix, Scope* scope)
 {

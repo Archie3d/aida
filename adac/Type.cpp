@@ -886,8 +886,7 @@ bool hasSharedParts(const Type* type)
     return false;
 }
 
-namespace
-{
+namespace {
 
 bool hasSharedAccessParts(const Type* type, std::unordered_set<const Type*>& visited)
 {
@@ -910,7 +909,7 @@ bool hasSharedAccessParts(const Type* type, std::unordered_set<const Type*>& vis
     return false;
 }
 
-}
+} // namespace
 
 bool hasSharedAccessParts(const Type* type)
 {

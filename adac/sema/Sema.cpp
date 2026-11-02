@@ -5,8 +5,7 @@
 
 #include <algorithm>
 
-namespace
-{
+namespace {
 
 Type* typeIn(Scope* scope, const std::string& name)
 {
@@ -18,7 +17,7 @@ Type* typeIn(Scope* scope, const std::string& name)
     return nullptr;
 }
 
-}
+} // namespace
 
 Sema::Sema(Diagnostics& diagnostics)
     : m_diagnostics(diagnostics)

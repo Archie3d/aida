@@ -7,8 +7,7 @@
 #include <iterator>
 #include <limits>
 
-namespace
-{
+namespace {
 
 constexpr uint64_t kPageSize = 4096;
 
@@ -54,7 +53,7 @@ uint64_t stackAllocation(std::string_view text)
     return text.empty() || text.front() == '#' ? bytes : 0;
 }
 
-}
+} // namespace
 
 std::string probeWindowsStack(std::string_view assembly)
 {

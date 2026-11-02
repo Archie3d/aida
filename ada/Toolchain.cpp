@@ -12,8 +12,7 @@
 #   include <sys/wait.h>
 #endif
 
-namespace
-{
+namespace {
 
 #ifdef _WIN32
 
@@ -162,7 +161,7 @@ void adoptProgram(const std::string& directory, const char* name, std::string& p
     }
 }
 
-}
+} // namespace
 
 void Toolchain::locateFrom(const std::string& executablePath)
 {
