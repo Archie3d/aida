@@ -146,7 +146,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             field.type = resolveSubtypeIndication(discriminant.subtype.get(), scope);
             field.isDiscriminant = true;
             field.defaultValue = discriminant.defaultValue.get();
-            if (discriminant.defaultValue != nullptr) { analyzeExpr(discriminant.defaultValue.get(), scope, field.type); }
+            if (discriminant.defaultValue != nullptr) {
+                analyzeLayoutDefault(discriminant.defaultValue.get(), scope, field.type, field.defaultLayoutTypes);
+            }
             placeholder->fields.push_back(field);
         }
         decl->declaredType = placeholder;
@@ -167,7 +169,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             const auto& after = decl->discriminants[i];
             Type* beforeType = discriminantField(completing, static_cast<int>(i)).type;
             Type* afterType = resolveSubtypeIndication(after.subtype.get(), scope);
-            if (after.defaultValue != nullptr) { analyzeExpr(after.defaultValue.get(), scope, afterType); }
+            if (after.defaultValue != nullptr) {
+                std::vector<Type*> layoutTypes;
+                analyzeLayoutDefault(after.defaultValue.get(), scope, afterType, layoutTypes);
+            }
             conforms = before.lower == after.lower && SemaSupport::staticallyMatches(beforeType, afterType)
                 && before.subtype->nullExclusion == after.subtype->nullExclusion
                 && SemaSupport::conformingExpressions(before.defaultValue.get(), after.defaultValue.get());
@@ -975,7 +980,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             field.defaultValue = discriminant.defaultValue.get();
             if (discriminant.defaultValue) {
                 if (definition->tagged) { m_diagnostics.error(discriminant.location, "a tagged type cannot have defaulted discriminants"); }
-                analyzeExpr(discriminant.defaultValue.get(), scope, field.type);
+                analyzeLayoutDefault(discriminant.defaultValue.get(), scope, field.type, field.defaultLayoutTypes);
             }
             type->fields.push_back(field);
         }
@@ -1363,7 +1368,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             }
             bool savedStreamDefault = m_streamDefault;
             m_streamDefault = true;
-            Type* valueType = analyzeExpr(field.defaultValue.get(), isDiscriminant ? scope : componentScope, info.type);
+            Type* valueType = analyzeLayoutDefault(field.defaultValue.get(), isDiscriminant ? scope : componentScope,
+                info.type, info.defaultLayoutTypes);
             m_streamDefault = savedStreamDefault;
             if (hasLimitedParts(info.type) && !buildsLimitedResult(field.defaultValue.get())) {
                 m_diagnostics.error(field.location, "limited controlled components cannot be copied");
@@ -1440,6 +1446,9 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
                 m_diagnostics.error(decl->location, "record layout exceeds signed 64-bit storage capacity");
             }
         }
+        // A selection of the current instance can settle its layout before
+        // all defaults have been analyzed. Revisit the completed field list.
+        if (m_frozenRecordLayouts.erase(type) != 0) { freezeRecordLayout(type); }
     };
     if (definition->variant == nullptr) {
         finish();

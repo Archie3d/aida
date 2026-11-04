@@ -11,6 +11,9 @@ package Freezing_Layout is
     function Explicit_Value (Value : Integer := Chosen) return Integer;
     pragma Import (C, Explicit_Value, "abs");
     Explicit_Result : constant Integer := Explicit_Value (-7);
+    type Defaulted (Count : Integer := Chosen) is record
+        Total : Integer := Chosen;
+    end record;
 private
     Slot : constant := 4;
     for Item use record

@@ -139,7 +139,7 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and record clauses, including packed and
   unaligned discrete fields and changed layouts on plain untagged derived
-  records. Untagged record clauses can follow unused parameter defaults and
+  records. Untagged record clauses can follow deferred defaults and
   appear in the private part of the same package specification
   ([limits](docs/representation-clauses.md))
 - Narrow/wide string maps, constants, callbacks, hashing and fixed/bounded/unbounded facilities

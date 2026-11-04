@@ -717,7 +717,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
                 if (spec.parameters[i].defaultValue != nullptr) {
                     std::vector<Type*> layoutTypes;
-                    analyzeParameterDefault(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i], layoutTypes);
+                    analyzeLayoutDefault(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i], layoutTypes);
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
                     if (candidate->controllingType != nullptr
@@ -804,7 +804,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             }
             Symbol* savedSubprogram = m_currentSubprogram;
             m_currentSubprogram = symbol;
-            Type* defaultType = analyzeParameterDefault(declaration.defaultValue.get(), profileScope,
+            Type* defaultType = analyzeLayoutDefault(declaration.defaultValue.get(), profileScope,
                 parameterTypes[i], parameter->defaultLayoutTypes);
             m_currentSubprogram = savedSubprogram;
             if (!typesCompatible(parameterTypes[i], defaultType)) {

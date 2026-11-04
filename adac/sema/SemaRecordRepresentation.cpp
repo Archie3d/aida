@@ -34,6 +34,7 @@ void Sema::freezeRecordLayout(Type* type)
         freezeRecordLayout(type->parentType);
         for (const FieldInfo& field : type->fields) {
             freezeRecordLayout(field.type);
+            for (Type* dependency : field.defaultLayoutTypes) { freezeRecordLayout(dependency); }
         }
     }
 }

@@ -13,3 +13,5 @@ recordfreezingerrors.adb:71:5: error: a record representation clause must preced
 recordfreezingerrors.adb:89:5: error: a record representation clause must precede freezing of the record layout
 recordfreezingerrors.adb:99:5: error: a record representation clause must precede freezing of the record layout
 recordfreezingerrors.adb:104:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:116:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:125:5: error: a record representation clause must precede freezing of the record layout

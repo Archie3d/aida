@@ -17,13 +17,15 @@ procedure RecordFreezing is
         Public_Item : Item_View := Make;
         Pointer : Item_Pointer := new Item'(Make);
         Data : View := (True, 33);
+        Defaults : Defaulted;
     begin
         if Public_Item.First'Position /= 4 or else Public_Item.Second'Position /= 0
             or else Public_Item.First /= 10 or else Pointer.Second /= 20
             or else Item_View'Size /= 128 or else Item'Alignment /= 8
             or else not Data.Head or else Data.Head'First_Bit /= 1
             or else Data.Tail /= 33 or else View'Size /= 128
-            or else Explicit_Result /= 7 or else Chosen /= 30 then
+            or else Explicit_Result /= 7 or else Chosen /= 30
+            or else Defaults.Count /= 30 or else Defaults.Total /= 30 then
             raise Program_Error;
         end if;
     end Check;

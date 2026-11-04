@@ -102,6 +102,44 @@ procedure RecordFreezingErrors is
     type Nullable_Callback is access function return Null_Result;
     Null_Callback : Nullable_Callback := null;
     for Null_Result use record end record;
+
+    type Component_Source is record
+        Value : Integer;
+    end record;
+    function Make_Component return Component_Source;
+    function Read_Component (Item : Component_Source) return Integer;
+    type Component_Default (N : Integer := 1) is record
+        Copy : Integer := Component_Default.N;
+        Count : Integer := Read_Component (Make_Component);
+    end record;
+    Early_Component : Component_Default;
+    for Component_Source use record end record;
+
+    type Discriminant_Source is record
+        Value : Integer;
+    end record;
+    function Make_Discriminant return Discriminant_Source;
+    function Read_Discriminant (Item : Discriminant_Source) return Integer;
+    type Discriminant_Default (Count : Integer := Read_Discriminant (Make_Discriminant)) is null record;
+    Early_Discriminant : Discriminant_Default;
+    for Discriminant_Source use record end record;
+
+    function Make_Component return Component_Source is
+    begin
+        return (Value => 1);
+    end Make_Component;
+    function Read_Component (Item : Component_Source) return Integer is
+    begin
+        return Item.Value;
+    end Read_Component;
+    function Make_Discriminant return Discriminant_Source is
+    begin
+        return (Value => 1);
+    end Make_Discriminant;
+    function Read_Discriminant (Item : Discriminant_Source) return Integer is
+    begin
+        return Item.Value;
+    end Read_Discriminant;
 begin
     null;
 end RecordFreezingErrors;

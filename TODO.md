@@ -1062,9 +1062,13 @@ Ada 2005 additions and track annex packages separately.
     calls, subprogram Access, access-to-subprogram type freezing and applicable
     declaration boundaries. `recordfreezing` covers nested defaults and
     explicit actuals. `recordfreezingerrors` covers early uses.
-  - [ ] Complete the general freezing audit, including component defaults,
-    per-object expressions, eager layout captures, tagged entities, generic
-    contracts and nonrecord representation items. Broader unaligned component
+  - [x] Defer nonstatic record layout dependencies of component and
+    discriminant defaults until the containing type freezes. Revisit defaults
+    after layout completion when a current-instance reference froze a partial
+    field list. Covered by `recordfreezing` and `recordfreezingerrors`.
+  - [ ] Complete the general freezing audit, including per-object expressions,
+    eager layout captures, tagged entities, generic contracts and nonrecord
+    representation items. Broader unaligned component
     categories, nondefault bit order and Pack retain separate gaps in the matrix.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.

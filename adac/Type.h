@@ -37,6 +37,7 @@ struct FieldInfo
     // What the component declaration gives it, used when an object of the
     // record is made without a value of its own.
     struct Expr* defaultValue = nullptr;
+    std::vector<Type*> defaultLayoutTypes;
 
     // A leading component named in the discriminant part. Only whole-object
     // assignment to an unconstrained variable may change it.

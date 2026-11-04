@@ -26,7 +26,7 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 } // namespace
 
-Type* Sema::analyzeParameterDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes)
+Type* Sema::analyzeLayoutDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes)
 {
     auto* saved = std::exchange(m_defaultLayoutTypes, &layoutTypes);
     Type* result = analyzeExpr(expr, scope, expected);

@@ -217,7 +217,7 @@ private:
     void freezeRecordLayout(Type* type);
     void noteRecordLayoutUse(Type* type);
     void noteCallableLayoutUse(const Symbol* operation);
-    Type* analyzeParameterDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes);
+    Type* analyzeLayoutDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes);
     void freezeDeclaredRecordLayouts(const DeclList& declarations);
     void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type);
     void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);

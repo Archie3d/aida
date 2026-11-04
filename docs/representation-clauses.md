@@ -281,11 +281,17 @@ default's dependencies pending. Calls and subprogram Access also freeze record
 layouts in the callable profile. The profile is followed when an
 access-to-subprogram type freezes and at applicable declaration boundaries.
 
+Nonstatic component and discriminant defaults likewise record dependencies.
+Freezing the containing record type settles those dependencies, including
+ones inherited from an ancestor or reached through a call's parameter default.
+When a current-instance selection settles the layout during type analysis,
+the completed field list is revisited to include later defaults.
+
 This is a record layout subset of Ada freezing. Static layout queries,
 component selections and allocators still settle their layouts during
-analysis, including inside parameter defaults. Component defaults and
-per-object expressions retain conservative checks. General tagged, callable
-and generic freezing rules and nonrecord representation items remain open.
+analysis, including inside defaults. Per-object expressions retain
+conservative checks. General tagged, callable and generic freezing rules and
+nonrecord representation items remain open.
 [Ada 2005 RM §13.14](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-14.html)
 
 ### Remaining record restrictions
@@ -382,4 +388,6 @@ views, function results and allocations in whole/separate compilation and
 deterministic IR, with four concurrent callers. `recordfreezingerrors` pins
 the freeze checks for earlier layout uses and intervening bodies. The same
 fixtures cover nested parameter defaults, explicit actuals, subprogram Access,
-callback profiles and nested package boundaries.
+callback profiles and nested package boundaries. They also cover deferred
+component and discriminant defaults, freezing at object creation, and a
+current-instance selection followed by a later default.
