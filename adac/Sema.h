@@ -157,6 +157,7 @@ private:
     std::vector<std::pair<Symbol*, SourceLocation>> m_noReturnAccesses;
     std::unordered_set<Type*> m_storageControlledTypes;
     std::unordered_set<Type*> m_frozenRecordLayouts;
+    std::vector<Type*>* m_defaultLayoutTypes = nullptr;
     uint32_t activeCheckPermissions() const;
     bool m_assertionsEnabled = true;
     uint32_t m_suppressedChecks = 0;
@@ -214,6 +215,9 @@ private:
     void layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope);
     void reportIncompleteTypes(DeclList& declarations);
     void freezeRecordLayout(Type* type);
+    void noteRecordLayoutUse(Type* type);
+    void noteCallableLayoutUse(const Symbol* operation);
+    Type* analyzeParameterDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes);
     void freezeDeclaredRecordLayouts(const DeclList& declarations);
     void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type);
     void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);

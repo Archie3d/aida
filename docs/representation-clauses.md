@@ -274,9 +274,18 @@ layouts eagerly, a record used as a field, array element or parent is treated
 as frozen when the containing or derived type is declared. A subtype-specific
 Size also settles its base layout.
 
-This is a record layout subset of Ada freezing. Deferred defaults can still
-freeze conservatively. General callable, tagged and generic freezing rules and
-nonrecord representation items retain separate follow-up work.
+Ordinary parameter defaults record the layouts needed by nonstatic value
+expressions and by their calls. An omitted actual activates those dependencies,
+including defaults used by nested calls. Explicit actuals leave the unused
+default's dependencies pending. Calls and subprogram Access also freeze record
+layouts in the callable profile. The profile is followed when an
+access-to-subprogram type freezes and at applicable declaration boundaries.
+
+This is a record layout subset of Ada freezing. Static layout queries,
+component selections and allocators still settle their layouts during
+analysis, including inside parameter defaults. Component defaults and
+per-object expressions retain conservative checks. General tagged, callable
+and generic freezing rules and nonrecord representation items remain open.
 [Ada 2005 RM §13.14](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-14.html)
 
 ### Remaining record restrictions
@@ -371,4 +380,6 @@ Unchanged CD1009N passes placement in visible and private package parts.
 `recordfreezing` covers nonadjacent placement, Size and Alignment, subtype
 views, function results and allocations in whole/separate compilation and
 deterministic IR, with four concurrent callers. `recordfreezingerrors` pins
-the freeze checks for earlier layout uses and intervening bodies.
+the freeze checks for earlier layout uses and intervening bodies. The same
+fixtures cover nested parameter defaults, explicit actuals, subprogram Access,
+callback profiles and nested package boundaries.

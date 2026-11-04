@@ -22,7 +22,8 @@ procedure RecordFreezing is
             or else Public_Item.First /= 10 or else Pointer.Second /= 20
             or else Item_View'Size /= 128 or else Item'Alignment /= 8
             or else not Data.Head or else Data.Head'First_Bit /= 1
-            or else Data.Tail /= 33 or else View'Size /= 128 then
+            or else Data.Tail /= 33 or else View'Size /= 128
+            or else Explicit_Result /= 7 or else Chosen /= 30 then
             raise Program_Error;
         end if;
     end Check;

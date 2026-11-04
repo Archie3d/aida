@@ -394,6 +394,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             chosen->addressTaken = true;
             implementation->addressTaken = true;
         }
+        noteCallableLayoutUse(accessView);
         expr->accessSubprogram = chosen;
         expr->accessSubprogramView = accessView;
         recordContractName(expr->prefix.get(), accessView);

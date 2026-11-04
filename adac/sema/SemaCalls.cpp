@@ -554,6 +554,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         for (std::size_t p = 0; p < chosen->parameters.size(); ++p) {
             if (expr->resolvedArguments[p] == nullptr) {
                 expr->resolvedArguments[p] = chosen->parameters[p]->defaultExpr;
+                for (Type* type : chosen->parameters[p]->defaultLayoutTypes) { noteRecordLayoutUse(type); }
                 if (chosen->controllingType != nullptr && chosen->controllingType->abstract
                     && controllingParameterType(chosen->parameters[p]->type) == chosen->controllingType) {
                     m_abstractDefaultCalls.push_back(expr);

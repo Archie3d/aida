@@ -139,8 +139,9 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and record clauses, including packed and
   unaligned discrete fields and changed layouts on plain untagged derived
-  records. Unfrozen untagged records also accept clauses in the private part
-  of the same package specification ([limits](docs/representation-clauses.md))
+  records. Untagged record clauses can follow unused parameter defaults and
+  appear in the private part of the same package specification
+  ([limits](docs/representation-clauses.md))
 - Narrow/wide string maps, constants, callbacks, hashing and fixed/bounded/unbounded facilities
   ([wide strings](docs/wide-strings.md)); Ada 2005 containers with cursors, callbacks and sorting ([limits](docs/library-collections.md))
 - UTC `Ada.Calendar` with arithmetic, formatting and timezone children ([contract](docs/calendar.md)); directories and environment variables ([host behavior](docs/host-library.md))

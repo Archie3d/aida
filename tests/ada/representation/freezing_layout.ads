@@ -4,7 +4,13 @@ package Freezing_Layout is
     end record;
     subtype Item_View is Item;
     type Item_Pointer is access Item;
+    type Factory is access function return Item_View;
     function Make return Item_View;
+    function Sum (Value : Item_View := Make) return Integer;
+    function Chosen (Value : Integer := Sum) return Integer;
+    function Explicit_Value (Value : Integer := Chosen) return Integer;
+    pragma Import (C, Explicit_Value, "abs");
+    Explicit_Result : constant Integer := Explicit_Value (-7);
 private
     Slot : constant := 4;
     for Item use record

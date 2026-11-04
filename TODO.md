@@ -1057,10 +1057,15 @@ Ada 2005 additions and track annex packages separately.
     layouts, with record Size and Alignment and checks for earlier layout use.
     `recordfreezing` and `recordfreezingerrors` cover both build modes,
     deterministic IR and four tasks. Unchanged CD1009N passes.
-  - [ ] Complete the general freezing audit, including deferred defaults,
-    tagged/callable entities, generic contracts and nonrecord representation
-    items. Broader unaligned component categories, nondefault bit order and
-    Pack retain separate gaps in the matrix.
+  - [x] Defer record layout dependencies of ordinary parameter defaults until
+    a call uses them. Freeze record layouts referenced by callable profiles at
+    calls, subprogram Access, access-to-subprogram type freezing and applicable
+    declaration boundaries. `recordfreezing` covers nested defaults and
+    explicit actuals. `recordfreezingerrors` covers early uses.
+  - [ ] Complete the general freezing audit, including component defaults,
+    per-object expressions, eager layout captures, tagged entities, generic
+    contracts and nonrecord representation items. Broader unaligned component
+    categories, nondefault bit order and Pack retain separate gaps in the matrix.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada

@@ -26,6 +26,14 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 } // namespace
 
+Type* Sema::analyzeParameterDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes)
+{
+    auto* saved = std::exchange(m_defaultLayoutTypes, &layoutTypes);
+    Type* result = analyzeExpr(expr, scope, expected);
+    m_defaultLayoutTypes = saved;
+    return result;
+}
+
 Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
 {
     // Replay conservatively retains checks: declaration and instance permissions
@@ -40,11 +48,16 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         noteStaticValue(expr);
         Symbol* named = expr->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(expr)->symbol
             : expr->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expr)->symbol : nullptr;
-        if (named == nullptr || named->kind != SymbolKind::TypeName) { freezeRecordLayout(result); }
+        if (named == nullptr || named->kind != SymbolKind::TypeName) {
+            if (expr->isStatic) { freezeRecordLayout(result); }
+            else { noteRecordLayoutUse(result); }
+        }
         if (expr->kind == ExprKind::Call) {
-            Symbol* operation = static_cast<CallExpr*>(expr)->subprogram;
-            if (operation != nullptr) {
-                for (const Symbol* parameter : operation->parameters) { freezeRecordLayout(parameter->type); }
+            noteCallableLayoutUse(static_cast<CallExpr*>(expr)->subprogram);
+        } else if (named != nullptr && named->kind == SymbolKind::Subprogram) {
+            noteCallableLayoutUse(named);
+            for (const Symbol* parameter : named->parameters) {
+                for (Type* type : parameter->defaultLayoutTypes) { noteRecordLayoutUse(type); }
             }
         }
     }

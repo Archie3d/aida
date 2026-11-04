@@ -62,6 +62,8 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                     freezeRecordLayout(symbol->type);
                     if (!symbol->type->isIncomplete) { rootType(symbol->type)->streamsFrozen = true; }
                     if (symbol->type->tagged) { rootType(symbol->type)->dispatchFrozen = true; }
+                } else if (symbol->kind == SymbolKind::Subprogram && symbol->declarationScope == scope) {
+                    noteCallableLayoutUse(symbol.get());
                 }
             }
         }
@@ -714,7 +716,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     && parameter->mode == spec.parameters[i].mode
                     && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
                 if (spec.parameters[i].defaultValue != nullptr) {
-                    analyzeExpr(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i]);
+                    std::vector<Type*> layoutTypes;
+                    analyzeParameterDefault(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i], layoutTypes);
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
                     if (candidate->controllingType != nullptr
@@ -801,7 +804,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             }
             Symbol* savedSubprogram = m_currentSubprogram;
             m_currentSubprogram = symbol;
-            Type* defaultType = analyzeExpr(declaration.defaultValue.get(), profileScope, parameterTypes[i]);
+            Type* defaultType = analyzeParameterDefault(declaration.defaultValue.get(), profileScope,
+                parameterTypes[i], parameter->defaultLayoutTypes);
             m_currentSubprogram = savedSubprogram;
             if (!typesCompatible(parameterTypes[i], defaultType)) {
                 m_diagnostics.error(declaration.defaultValue->location, "the default expression has an incompatible type");

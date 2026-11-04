@@ -18,18 +18,41 @@ bool repackableFields(const Type* type)
 
 void Sema::freezeRecordLayout(Type* type)
 {
-    if (!isComposite(type) || type->isIncomplete || !m_frozenRecordLayouts.insert(type).second) { return; }
+    if (type == nullptr || type->isIncomplete || (!isComposite(type) && type->accessProfile == nullptr)
+        || !m_frozenRecordLayouts.insert(type).second) {
+        return;
+    }
     Type* base = baseType(type);
     if (base != type) {
         freezeRecordLayout(base);
     } else if (type->kind == TypeKind::Array) {
         freezeRecordLayout(type->element);
+    } else if (type->accessProfile != nullptr) {
+        freezeRecordLayout(type->accessProfile->returnType);
+        for (const Symbol* parameter : type->accessProfile->parameters) { freezeRecordLayout(parameter->type); }
     } else {
         freezeRecordLayout(type->parentType);
         for (const FieldInfo& field : type->fields) {
             freezeRecordLayout(field.type);
         }
     }
+}
+
+void Sema::noteRecordLayoutUse(Type* type)
+{
+    if (m_defaultLayoutTypes == nullptr) {
+        freezeRecordLayout(type);
+    } else if (type != nullptr && (isComposite(type) || type->accessProfile != nullptr)
+        && std::find(m_defaultLayoutTypes->begin(), m_defaultLayoutTypes->end(), type) == m_defaultLayoutTypes->end()) {
+        m_defaultLayoutTypes->push_back(type);
+    }
+}
+
+void Sema::noteCallableLayoutUse(const Symbol* operation)
+{
+    if (operation == nullptr) { return; }
+    noteRecordLayoutUse(operation->returnType);
+    for (const Symbol* parameter : operation->parameters) { noteRecordLayoutUse(parameter->type); }
 }
 
 void Sema::freezeDeclaredRecordLayouts(const DeclList& declarations)
@@ -39,6 +62,10 @@ void Sema::freezeDeclaredRecordLayouts(const DeclList& declarations)
             freezeRecordLayout(static_cast<TypeDecl*>(decl.get())->declaredType);
         } else if (decl->kind == DeclKind::Subtype) {
             freezeRecordLayout(static_cast<SubtypeDecl*>(decl.get())->declaredType);
+        } else if (decl->kind == DeclKind::SubprogramDeclaration) {
+            noteCallableLayoutUse(static_cast<SubprogramDecl*>(decl.get())->symbol);
+        } else if (decl->kind == DeclKind::SubprogramBody) {
+            noteCallableLayoutUse(static_cast<SubprogramBody*>(decl.get())->symbol);
         }
     }
 }

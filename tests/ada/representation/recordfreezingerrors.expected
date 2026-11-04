@@ -9,3 +9,7 @@ recordfreezingerrors.adb:46:5: error: a record representation clause must preced
 recordfreezingerrors.adb:52:5: error: a record Size clause must precede freezing of the record layout
 recordfreezingerrors.adb:53:5: error: a record Alignment clause must precede freezing of the record layout
 recordfreezingerrors.adb:62:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:71:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:89:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:99:5: error: a record representation clause must precede freezing of the record layout
+recordfreezingerrors.adb:104:5: error: a record representation clause must precede freezing of the record layout

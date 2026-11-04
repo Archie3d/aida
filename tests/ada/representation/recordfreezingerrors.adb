@@ -60,6 +60,48 @@ procedure RecordFreezingErrors is
     end record;
     for Other'Size use Target'Size;
     for Target use record end record;
+
+    type Default_Result is record
+        Value : Integer;
+    end record;
+    function Build return Default_Result;
+    function Score (Value : Default_Result) return Integer;
+    function With_Default (Value : Integer := Score (Build)) return Integer;
+    Before_Clause : Integer := With_Default;
+    for Default_Result use record end record;
+    function Build return Default_Result is
+    begin
+        return (Value => 1);
+    end Build;
+    function Score (Value : Default_Result) return Integer is
+    begin
+        return Value.Value;
+    end Score;
+    function With_Default (Value : Integer) return Integer is
+    begin
+        return Value;
+    end With_Default;
+
+    type Callback_Result is null record;
+    function Create return Callback_Result;
+    type Constructor is access function return Callback_Result;
+    Callback : Constructor := Create'Access;
+    for Callback_Result use record end record;
+    function Create return Callback_Result is
+    begin
+        return (null record);
+    end Create;
+
+    type Profile_Item is null record;
+    package Profile is
+        procedure Consume (Item : Profile_Item) is null;
+    end Profile;
+    for Profile_Item use record end record;
+
+    type Null_Result is null record;
+    type Nullable_Callback is access function return Null_Result;
+    Null_Callback : Nullable_Callback := null;
+    for Null_Result use record end record;
 begin
     null;
 end RecordFreezingErrors;
