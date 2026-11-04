@@ -972,7 +972,7 @@ Ada 2005 additions and track annex packages separately.
   `calendarchildren`, `calendarchecks`, `calendartasking` cover whole/per-unit/
   determinism and four tasks. `runtime.calendar_library` covers every supported
   Gregorian date and minute offset, boundaries and concurrent callers.
-  Obsolescent System.Tick enables unchanged C96008A; C96008B also PASS alongside
+  System.Tick enables unchanged C96008A; C96008B also PASS alongside
   C96006A/C96007A. Full suite: 1,562/1,562 checks; focused compiler/C-runtime
   ASan/UBSan and C-runtime TSan pass (generated Ada accesses uninstrumented).
   Host choices, expanded elapsed hours and portability limits:
@@ -1037,12 +1037,11 @@ Ada 2005 additions and track annex packages separately.
 
 - [x] Establish Ada 2005 as the language target without claiming full
   conformance; README.md tracks the subset, this roadmap the progress.
-- [ ] Maintain an Ada 2005 coverage matrix (skeleton from the Phase 5 prelude)
-  by RM clause and predefined unit:
-  implemented behavior, restrictions, missing legality/runtime checks, regression
-  and ACATS coverage, and owning roadmap item. Include completed features in the
-  gap review; classify core requirements, implementation-defined choices,
-  extensions and selected Specialized Needs Annex facilities separately.
+- [x] Establish and reconcile the [Ada 2005 coverage matrix](docs/ada2005-coverage.md)
+  by RM clause and predefined unit. Record supported subsets, known legality
+  and runtime gaps, local regressions, ACATS observations and roadmap owners.
+  The matrix separates core requirements, implementation choices, extensions
+  and selected annex facilities. Maintain it with each increment.
 - [ ] Extend record representation support beyond the Phase 6c byte subset:
   bit-packed and unaligned fields, changed layouts on untagged derived types
   with representation-aware conversions/inherited operations, general freezing
@@ -1093,6 +1092,11 @@ Ada 2005 additions and track annex packages separately.
     20 B observations remain ungraded, including accepted B36002A.
     Only observed C passes join the regular ACATS label.
     [Baseline and follow-up order](docs/acats-baseline.md).
+- [ ] Audit the predefined environment against the matrix. Cover missing
+  core units and API gaps, including random-number generators, storage and
+  address facilities, dispatching constructors, text stream children and
+  remaining Stream_IO operations. Check concurrent calls and record host
+  formatting, terminal behavior and implementation-defined choices.
 - [ ] Add B-test grading for expected error locations, allowed diagnostic
   groups, recovery and legal controls. Rejection for an unrelated unsupported
   construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol
