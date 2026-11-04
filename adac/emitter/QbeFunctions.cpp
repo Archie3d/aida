@@ -111,6 +111,34 @@ bool hasControlledObjects(StmtList& statements)
     return false;
 }
 
+std::string incomingParameters(const Symbol* symbol, bool adaConvention)
+{
+    std::string parameters;
+    for (Symbol* parameter : symbol->parameters) {
+        if (!parameters.empty()) {
+            parameters += ", ";
+        }
+        char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
+        std::string name = "%p." + Unicode::linkerIdentifier(parameter->name);
+        parameters += std::string(1, type) + " " + name;
+        if (adaConvention && parameter->type->accessParameter) {
+            parameters += ", w " + name + ".accessLevel";
+        }
+        if (adaConvention && needsConstrainedParameter(parameter)) {
+            parameters += ", w " + name + ".constrained";
+        }
+        if (adaConvention && isUnconstrainedArray(parameter->type)) {
+            for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
+                std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
+                for (const char* field : { "first", "last", "length", "stride" }) {
+                    parameters += ", l " + name + "." + field + suffix;
+                }
+            }
+        }
+    }
+    return parameters;
+}
+
 } // namespace
 
 void QbeEmitter::emitElaboration(const LibraryUnit& unit)
@@ -144,9 +172,12 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         switch (decl->kind) {
-        case DeclKind::SubprogramDeclaration:
-            emitSubprogramsIn(static_cast<SubprogramDecl*>(decl.get())->renamingExpansion);
+        case DeclKind::SubprogramDeclaration: {
+            auto* declaration = static_cast<SubprogramDecl*>(decl.get());
+            emitImportGuard(declaration->symbol);
+            emitSubprogramsIn(declaration->renamingExpansion);
             break;
+        }
         case DeclKind::Type:
             emitInheritedAccessEntries(static_cast<TypeDecl*>(decl.get())->declaredType);
             emitSubprogramsIn(static_cast<TypeDecl*>(decl.get())->protectedDeclarations);
@@ -175,6 +206,46 @@ void QbeEmitter::emitSubprogramsIn(DeclList& declarations)
             break;
         }
     }
+}
+
+void QbeEmitter::emitImportGuard(Symbol* symbol)
+{
+    if (symbol == nullptr || importedNoReturnView(symbol) != symbol
+        || (symbol->level > 0 && !symbol->addressTaken) || !m_emittedAccessEntries.insert(symbol).second) {
+        return;
+    }
+    Symbol* imported = symbol;
+    while (imported->renamedSubprogram != nullptr) {
+        imported = imported->renamedSubprogram;
+    }
+    if (!imported->importAda && std::any_of(imported->parameters.begin(), imported->parameters.end(),
+        [](Symbol* parameter) {
+            Type* type = parameter->type;
+            return !isScalar(type) || type->anonymousAccess
+                || (type->accessProfile != nullptr && !type->accessConventionC);
+        })) {
+        return;
+    }
+
+    std::string entry = symbol->qbeName + ".import_guard";
+    if (symbol->level == 0 && imported->importAda) {
+        m_data << "export data " << symbol->qbeName << ".import_access = align 8 { l " << entry << ", l 0 }\n";
+    }
+
+    // Both entry points forward the original ABI, including writable pointers
+    // and Ada metadata. An existing exception wins over a normal-return error.
+    FunctionContext context;
+    context.symbol = symbol;
+    context.traceName = symbol->displayName;
+    context.sourceLocation = symbol->location;
+    context.propagateLabel = newLabel("propagate");
+    FunctionContext* saved = m_context;
+    m_context = &context;
+    std::string parameters = incomingParameters(imported, imported->importAda);
+    emitCallInstruction("call " + imported->runtimeSymbol + "(" + parameters + ")", CallEffects::CheckException);
+    finishFunction(std::string(symbol->level == 0 ? "export function " : "function ")
+        + entry + "(" + parameters + ")");
+    m_context = saved;
 }
 
 void QbeEmitter::emitSubprogram(SubprogramBody* body)
@@ -255,25 +326,9 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
             context.locals[receiver] = "%.protectedObject";
         }
     }
-    for (Symbol* parameter : symbol->parameters) {
-        if (!first) {
-            signature += ", ";
-        }
-        first = false;
-        char type = parameter->byReference ? 'l' : qbeClass(parameter->type);
-        signature += std::string(1, type) + " %p." + Unicode::linkerIdentifier(parameter->name);
-        if (parameter->type->accessParameter) { signature += ", w %p." + Unicode::linkerIdentifier(parameter->name) + ".accessLevel"; }
-        if (needsConstrainedParameter(parameter)) {
-            signature += ", w %p." + Unicode::linkerIdentifier(parameter->name) + ".constrained";
-        }
-        if (isUnconstrainedArray(parameter->type)) {
-            for (int dimension = 0; dimension < parameter->type->arrayRank; ++dimension) {
-                std::string suffix = dimension == 0 ? "" : std::to_string(dimension);
-                for (const char* field : { "first", "last", "length", "stride" }) {
-                    signature += ", l %p." + Unicode::linkerIdentifier(parameter->name) + "." + field + suffix;
-                }
-            }
-        }
+    std::string parameters = incomingParameters(symbol, true);
+    if (!parameters.empty()) {
+        signature += (first ? "" : ", ") + parameters;
     }
     signature += ")";
 

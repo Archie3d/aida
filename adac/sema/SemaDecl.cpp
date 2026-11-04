@@ -1196,8 +1196,8 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         return;
     }
     target->builtin = BuiltinKind::Runtime;
-    if (needsFinalization(target->returnType) && !isFileHandleView(target->returnType)) {
-        m_diagnostics.error(decl->location, "imported controlled function results are not yet supported");
+    if (!decl->conventionAda && needsFinalization(target->returnType) && !isFileHandleView(target->returnType)) {
+        m_diagnostics.error(decl->location, "controlled function results require an Ada-convention import");
     }
     target->runtimeSymbol = "$" + decl->linkName;
     target->importAda = decl->conventionAda;

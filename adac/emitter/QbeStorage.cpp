@@ -634,7 +634,7 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
     line(entry + " =l add " + table + ", " + std::to_string(primitive->dispatchSlot * 16));
     line(code + " =l loadl " + entry);
     std::string arguments;
-    if (implementation->level > 0) {
+    if (implementation->level > 0 && !isAdaImport(implementation)) {
         std::string linkSlot = newTemp();
         std::string link = newTemp();
         line(linkSlot + " =l add " + entry + ", 8");

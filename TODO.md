@@ -840,12 +840,12 @@ of checkboxes nor an unrelated ACATS rejection measures language completeness.
   in whole/per-unit builds (`pragma*`, `semantics.pragmapolicies`, C651001).
   List/Page/Optimize and noncollecting Controlled are validated. Check omission is optional
   and conservative across package/generic/subunit and C-runtime boundaries.
-  Imported No_Return 'Access remains diagnosed pending Phase 7 foreign adapters;
-  categorization remains Phase 7, packing/representation and the wider pragma
-  audit Phase 8, concurrent policies Phase 9. [Contract](docs/pragmas-and-checks.md).
+  Phase 7 supplies imported No_Return 'Access guards and categorization;
+  Phase 8 covers packing, representation and the wider pragma audit.
+  Phase 9 covers concurrent policies. [Contract](docs/pragmas-and-checks.md).
   The implementation-defined Restrictions set is empty; unsupported restrictions
   diagnose. Task Storage_Size remains with the existing Phase 9 item.
-  No_Return renamings of ordinarily returning targets diagnose 'Access until
+  No_Return renamings of ordinarily returning Ada bodies diagnose 'Access until
   the Phase 8 callable-completeness audit supplies guard adapters.
   Validation: 1,408/1,408 tests, all 129 baseline observations unchanged, and
   focused compiler/C-runtime ASan/UBSan checks passed.
@@ -1025,9 +1025,13 @@ Ada 2005 additions and track annex packages separately.
     hash-parent rejection also pass. Focused compiler/C-runtime ASan/UBSan and
     C-runtime TSan pass (generated Ada accesses uninstrumented).
     [Final inventory, hash contract and remaining Phase 8 owners](docs/wide-library-audit.md).
-- [ ] A foreign ABI and ownership contract for imported controlled results.
-  Include guarded foreign callbacks for imported No_Return procedures (their
-  'Access is currently diagnosed; direct calls are guarded).
+- [x] A [foreign ABI and ownership contract](docs/foreign-results.md) for
+  imported controlled results. Ada-convention imports share caller-owned
+  result storage, finalization and exception propagation with ordinary Ada
+  calls. C-convention controlled results are diagnosed. Imported No_Return
+  procedures have guarded Ada and native C callbacks. Whole/per-unit and
+  determinism tests cover dispatch, array bounds, limited build-in-place
+  forwarding, rollback, callback identity and exception preservation.
 
 ## Phase 8 — Tooling and validation (alongside the phases above)
 

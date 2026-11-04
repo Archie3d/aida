@@ -2132,8 +2132,8 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
                 ? implementation->renamedSubprogram : implementation->inheritedFrom;
             noReturn = noReturn || implementation->noReturn;
         }
-        if (implementation->builtin == BuiltinKind::Runtime && noReturn) {
-            m_diagnostics.error(location, "'Access of imported No_Return procedures is not yet supported");
+        if (Symbol* guarded = importedNoReturnView(symbol)) {
+            guarded->addressTaken = true;
         } else if (noReturn && !implementation->noReturn) {
             m_diagnostics.error(location, "'Access of a No_Return renaming without a No_Return target is not yet supported");
         }

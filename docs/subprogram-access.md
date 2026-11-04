@@ -38,7 +38,9 @@ Ada imports use the AIDA Ada calling convention, including array descriptors,
 hidden result/ownership arguments and anonymous-access metadata. Both direct
 and indirect calls use that convention. The imported body must use the same
 AIDA ABI; this does not establish compatibility with another Ada compiler.
-Imported controlled results retain their existing diagnostic.
+Controlled results use the
+[foreign result ownership contract](foreign-results.md), which also covers
+guarded imported No_Return callbacks.
 
 A named access-to-subprogram type can specify `pragma Convention (C, Type_Name)`
 (or explicitly `Ada`). Specify it once, before the type is used in a subtype,

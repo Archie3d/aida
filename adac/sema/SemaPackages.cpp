@@ -159,8 +159,9 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             }
             if (operation->pendingControlledResult) {
                 Type* result = operation->returnType;
-                if (needsFinalization(result) && !isFileHandleView(result) && operation->builtin == BuiltinKind::Runtime) {
-                    m_diagnostics.error(operation->location, "imported controlled function results are not yet supported");
+                if (operation->builtin == BuiltinKind::Runtime && !operation->importAda
+                    && needsFinalization(result) && !isFileHandleView(result)) {
+                    m_diagnostics.error(operation->location, "controlled function results require an Ada-convention import");
                 }
                 operation->pendingControlledResult = false;
             }

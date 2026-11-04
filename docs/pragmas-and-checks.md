@@ -63,12 +63,10 @@ that completion failure. Explicit exceptions retain their original identity.
 Direct, renamed, generic, dispatching and indirect Ada calls use this behavior.
 Imported procedures also receive a guard at direct calls, including bare calls
 without an argument list. Taking 'Access of an imported No_Return procedure
-is diagnosed: a foreign callback guard adapter remains part of the foreign
-ABI work in Phase 7. Taking 'Access of a No_Return renaming of an ordinarily
-returning target also requires a guard adapter and is diagnosed pending the
-Phase 8 callable-completeness audit. Direct calls through that renaming are
-guarded, without changing calls to its target. Ordinary imported callbacks
-retain their existing support.
+uses a [foreign callback guard](foreign-results.md). A No_Return renaming
+of an ordinarily returning Ada body still diagnoses 'Access pending the
+Phase 8 callable-completeness audit. Direct calls through that renaming
+are guarded.
 
 ## Advisory pragmas and remaining owners
 
@@ -97,13 +95,13 @@ The completion checkbox does not move these existing roadmap obligations.
 `pragmapolicies`, `pragmaignore`, `pragmalibrary_main`, `pragmaunitbundle`,
 `pragmanoreturn`, `pragmasuppressed` and `pragmaunsuppressed` run whole-program,
 per-unit and determinism checks. Policy/library and nonreturning scenarios
-include four workers. `runtime.pragmaimport_modes` links a returning foreign
-procedure to check the required failure in both compilation modes.
+include four workers. `runtime.pragmaimport_modes` checks direct and indirect
+foreign guards, including native C callback invocation.
 `semantics.pragmapolicies` inspects emitted IR for omission and restoration
 of range/null checks, using only valid executions in suppressed regions.
 Six focused legality fixtures reject bad arguments, placement, ignored but
 ill-typed assertions, invalid nonreturning declarations, invalid Controlled
-types and foreign 'Access.
+types and unsupported No_Return renaming 'Access.
 Unchanged upstream C651001 executes with the full successful REPORT protocol.
 The pinned CB42001–CB42003 assertion sources use Ada 2012 local policies and
 are excluded from this Ada 2005 selection; no assertion-specific upstream

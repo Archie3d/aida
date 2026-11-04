@@ -75,9 +75,10 @@ address; unopened, failed-open, closed and borrowed handles are harmless.
 Standard/current file results are borrowed snapshots. Selection changes do not
 change a saved snapshot, and disposing of a snapshot does not close its owner.
 The compiler adapts these imported borrowed results to Ada limited-result
-storage, including forwarding through an Ada function. This exception does not
-add a general ownership ABI for imported controlled results. Stream access
-values remain borrowed adapters and become invalid when their file closes.
+storage, including forwarding through an Ada function. The separate
+[foreign result ownership contract](foreign-results.md) covers owning
+Ada-convention imports. Stream access values are borrowed adapters and become
+invalid when their file closes.
 Explicit Close/Delete detach the owner's handle even when called through a
 borrowed view. Reusing a file requires the normal synchronization and lifetime
 rules; borrowed handles do not extend an owner's lifetime.

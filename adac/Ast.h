@@ -288,6 +288,7 @@ struct AttributeExpr : Expr
     AttributeExpr* rangeFirst = nullptr;
     Symbol* exceptionSymbol = nullptr;
     Symbol* accessSubprogram = nullptr;
+    Symbol* accessSubprogramView = nullptr; // The named view can add No_Return.
     Type* prefixedAccessType = nullptr; // Implicit Access retains the receiver's dynamic view.
     Symbol* accessObject = nullptr;
     bool objectAccess = false;

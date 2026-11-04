@@ -186,6 +186,23 @@ struct Symbol
     bool usesFinalization = false;
 };
 
+inline bool isAdaImport(const Symbol* symbol)
+{
+    return symbol->builtin == BuiltinKind::Runtime && symbol->importAda;
+}
+
+// Prefer the imported entity's guard when all its views already share it.
+inline Symbol* importedNoReturnView(Symbol* symbol)
+{
+    Symbol* guarded = nullptr;
+    while (symbol != nullptr) {
+        if (symbol->noReturn) { guarded = symbol; }
+        if (symbol->builtin == BuiltinKind::Runtime) { return guarded; }
+        symbol = symbol->renamedSubprogram;
+    }
+    return nullptr;
+}
+
 inline bool needsConstrainedParameter(const Symbol* parameter)
 {
     return parameter->mode != ParameterMode::In && hasDefaultDiscriminants(parameter->type)

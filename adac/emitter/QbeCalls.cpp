@@ -80,21 +80,6 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         emitRangeCheck(result, imported.returnType, expr->location);
         return result;
     }
-    if (subprogram->builtin == BuiltinKind::Runtime && subprogram->importAda) {
-        Symbol imported = *subprogram;
-        imported.builtin = BuiltinKind::None;
-        imported.qbeName = subprogram->runtimeSymbol;
-        imported.level = 0;
-        imported.owner = nullptr;
-        imported.requiresBody = false;
-        CallExpr call;
-        call.location = expr->location;
-        call.form = CallForm::Subprogram;
-        call.subprogram = &imported;
-        call.type = expr->type;
-        call.resolvedArguments = expr->resolvedArguments;
-        return emitCall(&call, inheritedControllingType);
-    }
     if (!expr->dispatching && subprogram->inheritedFrom != nullptr && subprogram->renamedSubprogram == nullptr) {
         CallExpr inherited;
         inherited.location = expr->location;
@@ -164,7 +149,8 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         }
         return emitCall(&renamed, inheritedControllingType);
     }
-    if (subprogram->builtin == BuiltinKind::Runtime) {
+    bool adaImport = isAdaImport(subprogram);
+    if (subprogram->builtin == BuiltinKind::Runtime && !adaImport) {
         // File queries return borrowed handle snapshots rather than constructing
         // an owning limited result through the Ada result-buffer ABI.
         std::string fileTarget;
@@ -245,7 +231,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         && subprogram->parameters.size() == 2
         && rootType(subprogram->parameters[0]->type) == subprogram->controllingType
         && rootType(subprogram->parameters[1]->type) == subprogram->controllingType;
-    std::string callee = subprogram->qbeName;
+    std::string callee = adaImport ? subprogram->runtimeSymbol : subprogram->qbeName;
     std::string indirectLink;
     if (expr->indirect) {
         Value descriptor = emitExpr(expr->callee.get());
@@ -323,7 +309,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     if (accessResult) {
         arguments.push_back("w " + (m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel));
     }
-    if (subprogram->level > 0 && !expr->dispatching) {
+    if (subprogram->level > 0 && !adaImport && !expr->dispatching) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
     }

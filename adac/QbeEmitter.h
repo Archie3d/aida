@@ -197,6 +197,7 @@ private:
     void emitElaboration(const LibraryUnit& unit);
     void emitSubprogramsIn(DeclList& declarations);
     void emitSubprogram(SubprogramBody* body);
+    void emitImportGuard(Symbol* symbol);
     void emitInheritedAccessEntries(Type* type);
     void initializeAccessDescriptor(Symbol* symbol);
     std::unordered_set<Symbol*> m_emittedAccessEntries;

@@ -128,7 +128,8 @@ void QbeEmitter::emitTypeTag(Type* type)
             m_data << ", ";
         }
         first = false;
-        m_data << "l " << (abstract || slot->qbeName.empty() ? "0" : slot->qbeName) << ", l 0";
+        const std::string& entry = isAdaImport(slot) ? slot->runtimeSymbol : slot->qbeName;
+        m_data << "l " << (abstract || entry.empty() ? "0" : entry) << ", l 0";
     }
     if (first) {
         m_data << "l 0";
@@ -508,6 +509,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
             break;
         case DeclKind::SubprogramDeclaration: {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());
+            emitImportGuard(renaming->symbol);
             if (!renaming->renamingExpansion.empty()) {
                 emitLocalDeclarations(renaming->renamingExpansion);
                 if (renaming->callbackBinding != nullptr) {
@@ -944,7 +946,7 @@ void QbeEmitter::initializeTypeTag(Type* type)
             implementation = implementation->inheritedFrom != nullptr
                 ? implementation->inheritedFrom : implementation->renamedSubprogram;
         }
-        if (!implementation->abstract && implementation->level > 0) {
+        if (!implementation->abstract && !isAdaImport(implementation) && implementation->level > 0) {
             std::string linkSlot = newTemp();
             Value link = staticLinkFor(implementation->level - 1);
             line(linkSlot + " =l add " + table + ", " + std::to_string(i * 16 + 8));
@@ -992,6 +994,7 @@ void QbeEmitter::emitClassWideObject(ObjectDecl* object, Symbol* symbol)
 void QbeEmitter::initializeAccessDescriptor(Symbol* symbol)
 {
     if (symbol == nullptr || !symbol->addressTaken || symbol->renamedAccess != nullptr
+        || importedNoReturnView(symbol) == symbol
         || symbol->builtin != BuiltinKind::None || symbol->level == 0 || symbol->descriptorOffset >= 0) { return; }
     symbol->descriptorOffset = reserveFrame(16);
     std::string descriptor = newTemp(), linkSlot = newTemp();

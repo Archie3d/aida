@@ -395,7 +395,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             implementation->addressTaken = true;
         }
         expr->accessSubprogram = chosen;
-        recordContractName(expr->prefix.get(), chosen);
+        expr->accessSubprogramView = accessView;
+        recordContractName(expr->prefix.get(), accessView);
         expr->type = expected;
         return expr->type;
     }

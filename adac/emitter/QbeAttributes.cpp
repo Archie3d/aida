@@ -227,9 +227,15 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             return loadFrom(addressOf(binding), binding->type);
         }
         if (subprogram->builtin == BuiltinKind::Runtime) {
-            std::string descriptor = subprogram->qbeName + ".import_access";
-            if (m_importedAccessDescriptors.insert(subprogram).second) {
-                m_data << "data " << descriptor << " = align 8 { l " << subprogram->runtimeSymbol << ", l 0 }\n";
+            Symbol* guarded = importedNoReturnView(expr->accessSubprogramView);
+            Symbol* entry = guarded != nullptr ? guarded : subprogram;
+            if (guarded != nullptr && guarded->level == 0 && !expr->type->accessConventionC) {
+                return Value {guarded->qbeName + ".import_access", 'l'};
+            }
+            std::string descriptor = entry->qbeName + ".import_access." + m_unitTag;
+            if (m_importedAccessDescriptors.insert(entry).second) {
+                std::string code = guarded != nullptr ? guarded->qbeName + ".import_guard" : subprogram->runtimeSymbol;
+                m_data << "data " << descriptor << " = align 8 { l " << code << ", l 0 }\n";
             }
             if (expr->type->accessConventionC) {
                 Value code {newTemp(), 'l'};
