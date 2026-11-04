@@ -779,6 +779,12 @@ Value QbeEmitter::emitStreamCall(Symbol* operation, const Value& stream, const V
     m_context->locals.erase(&value);
     m_context->bounds.erase(&value);
     m_context->streamConstraints.erase(&value);
+    if (needsRecordRepack(type, operation->returnType)) {
+        Value converted {allocTypeScratch(type), 'l'};
+        repackRecord(converted, type, result, operation->returnType);
+        emitRecordConstraintCheck(converted, type);
+        return converted;
+    }
     return result;
 }
 

@@ -1048,8 +1048,11 @@ Ada 2005 additions and track annex packages separately.
     clauses. Bit-level overlap checks, signed and mapped values, inherited
     placement, storage attributes, scalar copy-back and streams
     (`recordbits` and `recordrepresentationerrors`). Unchanged CD4031A passes.
-  - [ ] Changed layouts on untagged derived types, with representation-aware
-    conversions and inherited operations (CD4051B/CD1C04E).
+  - [x] Changed layouts on untagged derived records with plain fixed storage.
+    Conversions, inherited calls and streams repack fields across layouts.
+    Whole/separate/determinism and four-task coverage in `recordrepack`.
+    Unchanged CD4051B and CD1C04E pass. Managed, aliased, shared and dependent
+    fields and inherited anonymous access profiles retain diagnostics.
   - [ ] General freezing and nonadjacent/private-part clauses (CD1009N).
     Broader unaligned component categories, nondefault bit order and Pack
     retain separate coverage gaps in the matrix.

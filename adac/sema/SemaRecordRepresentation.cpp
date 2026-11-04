@@ -3,6 +3,19 @@
 #include <algorithm>
 #include <cstdint>
 
+namespace {
+
+bool repackableFields(const Type* type)
+{
+    if (type->kind == TypeKind::Array) { return repackableFields(type->element); }
+    return std::all_of(type->fields.begin(), type->fields.end(), [](const FieldInfo& field) {
+        return !field.aliased && !field.dependentBounds && !hasPrivateOrTaggedParts(field.type)
+            && repackableFields(field.type);
+    });
+}
+
+} // namespace
+
 void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType)
 {
     if (type->kind != TypeKind::Record || type->isSubtype || type->isIncomplete
@@ -170,12 +183,33 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
         field.representationSize = static_cast<long long>(bytes);
         extent = std::max(extent, static_cast<long long>(end));
     }
+    bool changed = type->parentType != nullptr
+        && !std::equal(proposed.fields.begin(), proposed.fields.end(), type->fields.begin(), sameFieldPlacement);
+    if (changed) {
+        if (hasLimitedParts(type) || needsFinalization(type) || hasSharedParts(type) || !repackableFields(type)) {
+            error(decl->location, "changing inherited record layouts requires nonlimited, unmanaged fields without aliases, shared storage or dependent bounds");
+        }
+        auto designatesRecord = [&](const Type* profileType) {
+            return profileType != nullptr && profileType->kind == TypeKind::Access && profileType->anonymousAccess
+                && rootType(profileType->target) == type;
+        };
+        for (const Symbol* primitive : type->primitives) {
+            if (primitive->inheritedFrom == nullptr) { continue; }
+            if (designatesRecord(primitive->returnType)
+                || std::any_of(primitive->parameters.begin(), primitive->parameters.end(), [&](const Symbol* parameter) {
+                    return designatesRecord(parameter->type);
+                })) {
+                error(decl->location, "changing inherited record layouts with inherited anonymous access profiles is not supported");
+                break;
+            }
+        }
+    }
     // Unspecified components follow all explicit slots. This also keeps common
     // components clear of every variant arm without guessing an active variant.
     for (FieldInfo& field : proposed.fields) {
         if (specified[field.index]) { continue; }
-        if (type->parentType == nullptr) {
-            long long fieldAlignment = typeAlignment(field.type);
+        if (type->parentType == nullptr || changed) {
+            long long fieldAlignment = field.bitWidth != 0 ? 1 : typeAlignment(field.type);
             __int128 offset = (static_cast<__int128>(extent) + fieldAlignment - 1) / fieldAlignment * fieldAlignment;
             __int128 end = offset + fieldStorageSize(field);
             if (end > INT64_MAX) {
@@ -203,11 +237,6 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
                 error(decl->location, "component storage overlaps for '" + first.displayName + "' and '" + second.displayName + "'");
             }
         }
-        if (type->parentType != nullptr && (first.offset != type->fields[i].offset
-            || first.bitOffset != type->fields[i].bitOffset || first.bitWidth != type->fields[i].bitWidth
-            || fieldStorageSize(first) != fieldStorageSize(type->fields[i]) || first.inlineDependent != type->fields[i].inlineDependent)) {
-            error(decl->location, "changing inherited record component layouts is not yet supported");
-        }
     }
     Type natural = proposed;
     natural.alignment = 0;
@@ -227,6 +256,7 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
     type->alignment = proposed.alignment;
     type->alignmentSpecified = proposed.alignmentSpecified;
     type->recordRepresentationSpecified = true;
+    type->changedRecordPlacement = type->changedRecordPlacement || changed;
     m_types.refreshRecordSubtypes(type);
     m_types.refreshStorageRepresentation(type);
 }

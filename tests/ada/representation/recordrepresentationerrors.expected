@@ -15,8 +15,7 @@ recordrepresentationerrors.adb:64:5: error: a record representation clause requi
 recordrepresentationerrors.adb:66:5: error: a record representation clause requires a complete, visible, untagged record first subtype without task or protected parts
 recordrepresentationerrors.adb:71:9: error: component storage is smaller than its required representation
 recordrepresentationerrors.adb:76:5: error: record representation clauses with declaration-sized runtime components are not yet supported
-recordrepresentationerrors.adb:81:5: error: changing inherited record component layouts is not yet supported
-recordrepresentationerrors.adb:81:5: error: changing inherited record component layouts is not yet supported
+recordrepresentationerrors.adb:81:5: error: changing inherited record layouts requires nonlimited, unmanaged fields without aliases, shared storage or dependent bounds
 recordrepresentationerrors.adb:88:5: error: composite Size must cover its components and be a multiple of its alignment
 recordrepresentationerrors.adb:93:5: error: a record mod clause supports alignments 1, 2, 4 and 8 no smaller than natural alignment
 recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Parent_Field' and 'Common'
@@ -33,3 +32,5 @@ recordrepresentationerrors.adb:153:5: error: a type used by a packed or unaligne
 recordrepresentationerrors.adb:160:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
 recordrepresentationerrors.adb:167:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
 recordrepresentationerrors.adb:173:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
+recordrepresentationerrors.adb:181:9: error: changing inherited record layouts with inherited anonymous access profiles is not supported
+recordrepresentationerrors.adb:194:5: error: a component type used by a record with changed inherited layout cannot be Atomic or Volatile

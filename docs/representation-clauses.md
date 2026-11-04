@@ -169,9 +169,9 @@ alignment violations and overlapping components that can coexist produce
 diagnostics. Distinct alternatives of the same variant part may overlay;
 nested alternatives inherit their enclosing exclusions. Common components and
 a nested variant's parent components must remain distinct. Omitted components
-are placed after all specified slots, in declaration order; a confirming clause
-on a derived type preserves inherited positions. Derivation and subtype aliases
-inherit settled layouts, including narrowed scalar fields.
+are placed after all specified slots, in declaration order. Derivation and
+subtype aliases inherit settled layouts, including narrowed scalar fields.
+A confirming clause on a derived type preserves inherited positions.
 
 Clauses must belong to the adjacent representation group after the type
 specification. Component placement is settled before the group's Size and
@@ -231,13 +231,36 @@ function results, array elements and allocations therefore retain independent
 values without descriptor ownership or a new runtime allocator. Controlled
 components elsewhere in the record keep their existing lifetime registrations.
 
+### Changed layouts on untagged derived records
+
+An adjacent clause can move inherited fields and change their storage widths
+within the same component-clause rules. When a clause changes placement,
+omitted fields follow the specified slots in declaration order. A confirming
+clause retains omitted fields at their inherited positions.
+
+Value conversions between related types copy fields into the target layout,
+even when the two records occupy the same number of bytes. Conversion reads
+the active variant from the source discriminant and checks target discriminant
+constraints on the converted value. Inherited defaults and aggregate boxes read
+discriminants from the actual layout and storage width. Inherited operations
+receive storage in the parent layout when necessary. Writable actuals are evaluated once, and
+copy-back converts to the actual layout after normal return. Inherited
+results, including custom stream Input results, are converted to the caller's
+layout. An inherited custom Read uses the same writable argument adaptation.
+
+This subset covers nonlimited, unmanaged, fixed-layout records, including
+ordinary discriminants and variants. Aliased components, shared components,
+private or tagged subcomponents, and dependent component bounds retain
+diagnostics. Inherited anonymous access profiles also retain a diagnostic
+because a pointer would require a shared view across layouts.
+
 ### Remaining record restrictions
 
-Changed inherited layouts, tagged/task/protected placement, declaration-sized
-runtime layouts, nondefault bit order, Pack, general freezing and nonadjacent
-clauses remain open. Dependent arrays of controlled/task/protected elements
-retain their existing restriction. Phase 8 tracks derived layout conversion and
-freezing. The Phase 6f tagged Size subset is linked above.
+Tagged/task/protected placement, declaration-sized runtime layouts, nondefault
+bit order, Pack, general freezing and nonadjacent clauses remain open.
+Dependent arrays of controlled/task/protected elements retain their existing
+restriction. Phase 8 tracks freezing and nonadjacent clauses. The Phase 6f
+tagged Size subset is linked above.
 
 ## Evidence
 
@@ -312,3 +335,10 @@ Focused compiler/C-runtime ASan/UBSan and C-runtime ThreadSanitizer checks
 pass. These runs instrument the compiler and C runtime as applicable, while
 the generated QBE accesses execute as native assembly. Upstream provenance is
 in `tests/acats/README.md`.
+
+Unchanged CD4051B and CD1C04E pass reordered and replaced inherited placements.
+`recordrepack` covers equal-size swaps, partial clauses, sibling conversions,
+multi-level inherited results, inherited `in`, `in out` and `out` operations,
+packed variant transitions, inherited defaults and boxed components, constrained
+and exceptional calls, and inherited stream operations. It runs whole/separate and deterministically, with four
+tasks executing the call and conversion checks.

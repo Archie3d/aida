@@ -85,10 +85,17 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         inherited.location = expr->location;
         inherited.form = CallForm::Subprogram;
         inherited.subprogram = subprogram->inheritedFrom;
-        inherited.type = expr->type;
+        inherited.type = expr->type != nullptr && expr->type->kind == TypeKind::Record && !expr->type->tagged
+            ? inherited.subprogram->returnType : expr->type;
         inherited.resolvedArguments = expr->resolvedArguments;
         Value result = emitCall(&inherited, inheritedControllingType != nullptr
             ? inheritedControllingType : subprogram->controllingType);
+        if (needsRecordRepack(expr->type, inherited.subprogram->returnType)) {
+            Value converted {allocTypeScratch(expr->type), 'l'};
+            repackRecord(converted, expr->type, result, inherited.subprogram->returnType);
+            emitRecordConstraintCheck(converted, expr->type);
+            return converted;
+        }
         if (isComposite(expr->type) && !expr->type->tagged
             && (expr->type->kind != TypeKind::Array || expr->type->constrained)
             && typeSize(expr->type) != typeSize(inherited.subprogram->returnType)
@@ -400,9 +407,6 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             Value value = !controllingValues[i].name.empty() ? controllingValues[i]
                 : argument->type->kind == TypeKind::Array ? emitArrayArgument(argument, parameter->mode, arrayCopies)
                 : isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
-            if (parameter->type->kind == TypeKind::Record) {
-                emitRecordConstraintCheck(value, parameter->type);
-            }
             if (parameter->type->kind == TypeKind::Array
                 && (parameter->type->constrained || parameter->type->boundsSymbol != nullptr)) {
                 Value target = withBounds(Value {}, parameter->type, nullptr);
@@ -415,11 +419,11 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                 && argument->tagIndeterminate) {
                 checkControllingTag(value);
             }
-            value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies);
+            bool constrainedParameter = needsConstrainedParameter(parameter);
+            std::string constrained = constrainedParameter ? recordConstrained(argument, &value).name : "1";
+            value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies, constrained);
             arguments.push_back("l " + value.name);
-            if (needsConstrainedParameter(parameter)) {
-                arguments.push_back("w " + recordConstrained(argument, &value).name);
-            }
+            if (constrainedParameter) { arguments.push_back("w " + constrained); }
             if (isUnconstrainedArray(parameter->type)) {
                 if (!value.hasBounds()) {
                     value = withBounds(value, argument->type, nullptr);
@@ -658,10 +662,9 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         }
         if (parameter->byReference) {
             Value address = isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
-            if (parameter->type->kind == TypeKind::Record) {
-                emitRecordConstraintCheck(address, parameter->type);
-            }
-            address = adaptCompositeStorage(address, argument->type, formal, parameter->mode, storageCopies);
+            std::string constrained = needsRecordRepack(formal, argument->type)
+                ? recordConstrained(argument, &address).name : "1";
+            address = adaptCompositeStorage(address, argument->type, formal, parameter->mode, storageCopies, constrained);
             arguments.push_back("l " + address.name);
             continue;
         }

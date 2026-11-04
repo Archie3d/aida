@@ -75,7 +75,7 @@ procedure RecordRepresentationErrors is
     end record;
     for Captured use record end record;
     type Parent is record
-        A, B : Integer;
+        A, B : aliased Integer;
     end record;
     type Child is new Parent;
     for Child use record
@@ -172,6 +172,26 @@ procedure RecordRepresentationErrors is
     for Too_Wide use record
         Value at 0 range 0 .. 64;
     end record;
+    package Indirect is
+        type Plain is record
+            Value : Integer;
+        end record;
+        procedure Observe (Anchor : Plain; Item : access Plain) is null;
+        type Moved is new Plain;
+        for Moved use record
+            Value at 4 range 0 .. 31;
+        end record;
+    end Indirect;
+    type Element is new Integer;
+    type Aggregate_Part is array (1 .. 2) of Element;
+    type Array_Parent is record
+        Values : Aggregate_Part;
+    end record;
+    type Moved_Array is new Array_Parent;
+    for Moved_Array use record
+        Values at 4 range 0 .. 63;
+    end record;
+    pragma Atomic (Element);
 begin
     null;
 end RecordRepresentationErrors;

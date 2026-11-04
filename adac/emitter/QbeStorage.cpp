@@ -129,7 +129,7 @@ Value QbeEmitter::staticLinkFor(int targetLevel)
 Value QbeEmitter::addressOf(Symbol* symbol)
 {
     if (symbol->currentInstance != nullptr) {
-        Value object = m_context->discriminantObjects.at(symbol->currentInstance);
+        Value object = m_context->discriminantObjects.at(symbol->currentInstance).address;
         if (object.accessLevel.empty()) {
             object.accessLevel = m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel;
         }
@@ -137,7 +137,12 @@ Value QbeEmitter::addressOf(Symbol* symbol)
     }
     if (symbol->discriminantRecord != nullptr) {
         Type* record = symbol->discriminantRecord;
-        return fieldAddress(m_context->discriminantObjects.at(record), record, record->fields[symbol->discriminantIndex]);
+        const auto& object = m_context->discriminantObjects.at(record);
+        if (needsRecordRepack(record, object.layout)) { record = object.layout; }
+        const FieldInfo& field = record->fields[symbol->discriminantIndex];
+        Value address = fieldAddress(object.address, record, field);
+        address.scalarStorageType = field.type;
+        return address;
     }
     Value address;
     if (symbol->isGlobal) {
@@ -257,6 +262,7 @@ void QbeEmitter::storeBitField(const Value& address, const Value& value, Type* t
 
 Value QbeEmitter::loadFrom(const Value& address, Type* type)
 {
+    if (address.scalarStorageType != nullptr) { type = address.scalarStorageType; }
     if (address.bitWidth != 0) { return loadBitField(address, type); }
     char resultType = qbeClass(type);
     std::string temp = newTemp();
@@ -792,28 +798,84 @@ Value QbeEmitter::enumPosition(const Value& code, Type* type)
     return Value { result, 'w' };
 }
 
-Value QbeEmitter::adaptCompositeStorage(Value actual, Type* actualType, Type* formal, ParameterMode mode,
-                                       std::vector<StorageCopyBack>& copies)
+void QbeEmitter::repackRecord(const Value& destination, Type* target, const Value& source, Type* sourceType)
 {
-    if (!isComposite(formal) || (formal->kind == TypeKind::Array && !formal->constrained)
+    target = baseType(target);
+    sourceType = baseType(sourceType);
+    for (const FieldInfo& field : target->fields) {
+        const FieldInfo& original = sourceType->fields[field.index];
+        std::string done;
+        if (original.variant >= 0) {
+            std::string active = newLabel("repackactive");
+            done = newLabel("repacknext");
+            branch(variantCondition(source, sourceType, original.variant), active, done);
+            label(active);
+        }
+        Value from = fieldAddress(source, sourceType, original);
+        Value to = fieldAddress(destination, target, field);
+        if (isComposite(field.type)) {
+            copyInto(to, from, field.type);
+        } else {
+            storeInto(to, loadFrom(from, original.type), field.type);
+        }
+        if (!done.empty()) {
+            jump(done);
+            label(done);
+        }
+    }
+}
+
+namespace {
+
+bool recordOutNeedsValue(const Type* type)
+{
+    if (type->kind == TypeKind::Access || type->discriminantCount != 0) { return true; }
+    if (type->kind == TypeKind::Array) { return recordOutNeedsValue(type->element); }
+    return std::any_of(type->fields.begin(), type->fields.end(), [](const FieldInfo& field) {
+        return field.defaultValue != nullptr || recordOutNeedsValue(field.type);
+    });
+}
+
+} // namespace
+
+Value QbeEmitter::adaptCompositeStorage(Value actual, Type* actualType, Type* formal, ParameterMode mode,
+                                       std::vector<StorageCopyBack>& copies, const std::string& constrained)
+{
+    bool repack = needsRecordRepack(formal, actualType);
+    if (!repack && formal->kind == TypeKind::Record) { emitRecordConstraintCheck(actual, formal); }
+    if (!repack && (!isComposite(formal) || (formal->kind == TypeKind::Array && !formal->constrained)
         || typeSize(formal) == typeSize(actualType)
-        || (typeSize(formal) == typeLayoutSize(formal) && typeSize(actualType) == typeLayoutSize(actualType))) {
+        || (typeSize(formal) == typeLayoutSize(formal) && typeSize(actualType) == typeLayoutSize(actualType)))) {
         return actual;
     }
     if (formal->kind == TypeKind::Array) {
         checkArrayShape(withBounds(Value {}, formal, nullptr), formal, actual, actualType);
     }
     Value temporary = withBounds(Value {allocTypeScratch(formal), 'l'}, formal, nullptr);
-    copyInto(temporary, actual, formal);
-    if (mode != ParameterMode::In) { copies.push_back({actual, temporary, actualType}); }
+    if (repack) {
+        if (mode != ParameterMode::Out || recordOutNeedsValue(formal)) {
+            repackRecord(temporary, formal, actual, actualType);
+        }
+        emitRecordConstraintCheck(temporary, formal);
+    } else {
+        copyInto(temporary, actual, formal);
+    }
+    if (mode != ParameterMode::In) { copies.push_back({actual, temporary, actualType, formal, constrained}); }
     return temporary;
 }
 
 void QbeEmitter::emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies)
 {
     for (const auto& copy : copies) {
-        if (copy.type->kind == TypeKind::Record) { emitRecordConstraintCheck(copy.temporary, copy.type); }
-        copyInto(copy.actual, copy.temporary, copy.type);
+        if (needsRecordRepack(copy.type, copy.temporaryType)) {
+            Value converted {allocTypeScratch(copy.type), 'l'};
+            repackRecord(converted, copy.type, copy.temporary, copy.temporaryType);
+            checkRecordAssignment(copy.actual, converted, copy.type, false, copy.constrained);
+            copyInto(copy.actual, converted, copy.type);
+        } else {
+            if (copy.type->kind == TypeKind::Record) { emitRecordConstraintCheck(copy.temporary, copy.type); }
+            copyInto(copy.actual, copy.temporary, copy.type);
+        }
     }
 }
 

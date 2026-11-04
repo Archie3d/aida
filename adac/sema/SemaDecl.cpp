@@ -1135,25 +1135,35 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
             return;
         }
         if (typeName) {
+            auto derivesFrom = [&](Type* used) {
+                for (used = rootType(used); used != nullptr; used = used->parentType) {
+                    if (used == type) { return true; }
+                }
+                return false;
+            };
+            auto containsType = [&](auto&& self, Type* used) -> bool {
+                if (used->kind == TypeKind::Array) { return self(self, used->element); }
+                if (used->kind != TypeKind::Record) { return derivesFrom(used); }
+                return std::any_of(used->fields.begin(), used->fields.end(), [&](const FieldInfo& field) {
+                    return self(self, field.type);
+                });
+            };
             for (const auto& symbol : m_symbolTable.symbols()) {
                 if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
                     && symbol->type->kind == TypeKind::Record) {
                     for (const FieldInfo& field : symbol->type->fields) {
-                        if (field.bitWidth == 0) { continue; }
-                        Type* component = rootType(field.type);
-                        while (component != nullptr && component != type) { component = component->parentType; }
-                        if (component == type) {
+                        if (field.bitWidth != 0 && derivesFrom(field.type)) {
                             m_diagnostics.error(decl->location, "a type used by a packed or unaligned component cannot be Atomic or Volatile");
                             return;
                         }
                     }
-                }
-                Type* used = rootType(symbol->type);
-                while (used != nullptr && used != type) {
-                    used = used->parentType;
+                    if (baseType(symbol->type)->changedRecordPlacement && containsType(containsType, symbol->type)) {
+                        m_diagnostics.error(decl->location, "a component type used by a record with changed inherited layout cannot be Atomic or Volatile");
+                        return;
+                    }
                 }
                 if ((symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter)
-                    && used == type) {
+                    && derivesFrom(symbol->type)) {
                     m_diagnostics.error(decl->location, "shared type pragma must precede objects and parameter profiles using the type");
                     return;
                 }

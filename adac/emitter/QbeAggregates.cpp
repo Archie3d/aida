@@ -383,7 +383,7 @@ void QbeEmitter::emitAggregateInto(AggregateExpr* expr, const Value& destination
     if (target->kind == TypeKind::Record) {
         auto savedObjects = m_context->discriminantObjects;
         for (Type* walk = baseType(target); walk != nullptr; walk = walk->parentType) {
-            m_context->discriminantObjects[baseType(walk)] = address;
+            m_context->discriminantObjects[baseType(walk)] = {address, baseType(target)};
         }
         if (target->dependentStorage) { activateControlledObject(address, target); }
         if (target->tagged) { line("storel " + typeTag(target).name + ", " + address.name); }

@@ -75,6 +75,9 @@ add_acats_test(cd4051a)
 add_acats_test(cd1c03h)
 # Bit-packed discriminant and mutually exclusive component slots.
 add_acats_test(cd4031a)
+# Changed storage order and overridden inherited component slots.
+add_acats_test(cd4051b)
+add_acats_test(cd1c04e)
 
 # Limited current instances/private extensions and array index Range prefixes.
 add_acats_test(c3a0013)

@@ -187,6 +187,26 @@ long long fieldStorageSize(const FieldInfo& field)
     return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) + (field.storageType != nullptr ? 8 : 0) : typeSize(field.type);
 }
 
+bool sameFieldPlacement(const FieldInfo& left, const FieldInfo& right)
+{
+    return left.offset == right.offset && left.bitOffset == right.bitOffset && left.bitWidth == right.bitWidth
+        && left.inlineDependent == right.inlineDependent && fieldStorageSize(left) == fieldStorageSize(right)
+        && typeSize(left.type) == typeSize(right.type);
+}
+
+bool needsRecordRepack(Type* target, Type* source)
+{
+    target = baseType(target);
+    source = baseType(source);
+    if (target == nullptr || source == nullptr || target == source || target->kind != TypeKind::Record
+        || source->kind != TypeKind::Record || target->tagged || source->tagged
+        || (!target->changedRecordPlacement && !source->changedRecordPlacement)
+        || target->fields.size() != source->fields.size()) {
+        return false;
+    }
+    return !std::equal(target->fields.begin(), target->fields.end(), source->fields.begin(), sameFieldPlacement);
+}
+
 bool variantsExclusive(const Type* type, int left, int right)
 {
     for (int a = left; a >= 0; a = type->variants[a].parent) {

@@ -101,7 +101,7 @@ Value QbeEmitter::dependentFieldBounds(const Value& object, Type* type, const Fi
     auto savedObjects = m_context->discriminantObjects;
     // Derived records retain the original discriminant expressions.
     for (Type* walk = baseType(type); walk != nullptr; walk = walk->parentType) {
-        m_context->discriminantObjects[baseType(walk)] = object;
+        m_context->discriminantObjects[baseType(walk)] = {object, baseType(type)};
     }
     Value view;
     Type* axis = field.type;

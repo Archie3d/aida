@@ -283,6 +283,12 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 label(good);
             }
             if (expr->type->kind == TypeKind::Record && !expr->type->tagged) {
+                if (needsRecordRepack(expr->type, operand->type)) {
+                    Value converted {allocTypeScratch(expr->type), 'l'};
+                    repackRecord(converted, expr->type, value, operand->type);
+                    emitRecordConstraintCheck(converted, expr->type);
+                    return converted;
+                }
                 emitRecordConstraintCheck(value, expr->type);
                 if (typeSize(expr->type) != typeSize(operand->type)
                     && (typeSize(expr->type) != typeLayoutSize(expr->type) || typeSize(operand->type) != typeLayoutSize(operand->type))) {
@@ -903,7 +909,7 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
     }
     auto savedObjects = m_context->discriminantObjects;
     for (Type* walk = base; walk != nullptr; walk = walk->parentType) {
-        m_context->discriminantObjects[baseType(walk)] = address;
+        m_context->discriminantObjects[baseType(walk)] = {address, base};
     }
     if (base->dependentStorage) { activateControlledObject(address, type); }
     std::vector<const FieldInfo*> initializationOrder;

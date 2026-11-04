@@ -161,6 +161,7 @@ struct Type
     int discriminantStart = 0;
     Type* parentSubtype = nullptr;
     bool recordRepresentationSpecified = false;
+    bool changedRecordPlacement = false;
     int variantOn = -1;
     std::vector<VariantInfo> variants;
 
@@ -314,6 +315,8 @@ bool hasIncompleteParts(const Type* type);
 bool hasLimitedControlledParts(const Type* type);
 bool hasLimitedParts(const Type* type);
 long long fieldStorageSize(const FieldInfo& field);
+bool sameFieldPlacement(const FieldInfo& left, const FieldInfo& right);
+bool needsRecordRepack(Type* target, Type* source);
 bool variantsExclusive(const Type* type, int left, int right);
 
 // The type identity at the root of a subtype chain.

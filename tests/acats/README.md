@@ -210,16 +210,20 @@ passes unchanged after the Phase 8 packed discrete-field increment. It checks
 overlapping variant components and their inherited storage-place attributes.
 All three files were retrieved on 2026-10-24 and retain their original
 rights/disclaimers.
-CD4051B/CD1C04E were assessed and deferred because they change a derived record's
-inherited layout; that extension and representation-aware conversions remain
-Phase 8. CD1009N additionally requires representation items across a package's
-visible/private boundary; the current conservative adjacency rule rejects it.
+The Phase 8 derived-layout increment adds unchanged
+[CD4051B](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd4051b.ada)
+and [CD1C04E](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd1c04e.ada).
+Both pass and were retrieved on 2026-11-04. CD1009N requires representation
+items across a package's visible/private boundary. The current adjacency
+rule rejects that placement.
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
 | cd4051a.ada | `746f82bcd095abc314be330f366f4adf20585d48` | `ce7a16a8cc4ad1adb791fc931ece34101f406dc9c5159bfd106c3756e23e8adb` |
 | cd1c03h.ada | `ad84e9196110dfbfdee090794c679ae0b8dfd83d` | `b0ae09307d146d6cec4e3b5b7d0f9fcbb986e5d60c014f68477b0cb5652f4ef6` |
 | cd4031a.ada | `936088d6502a611b2a04e5f289743f7668948d0a` | `c32e432ec7e5aafd7c5f541ac1140cc82df7595029c5a62e54571bd264e1db55` |
+| cd4051b.ada | `1cd440f44f94d084d8025b01f0d0b9ed52dc38ca` | `9f418832de9b82bc7a462b89dd1e258b19da8050c8da12f65af544e4e71c49bc` |
+| cd1c04e.ada | `21c7a7eef6a25bee707488d896bb52a45212711c` | `35d85523fc537252193a22d1f6a1b62fac3adde0e29c59cc9a033eaa279a7686` |
 
 C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a0013.a),
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights

@@ -46,6 +46,7 @@ struct Value
     bool declaredLayout = false; // Destination under construction; its tag may name an ancestor.
     bool shared = false; // This value denotes shared scalar storage.
 
+    Type* scalarStorageType = nullptr; // Physical type of a discriminant used by an inherited expression.
     int bitOffset = 0;
     int bitWidth = 0;
 
@@ -82,7 +83,12 @@ private:
     struct FunctionContext
     {
         std::unordered_map<Type*, Value> discriminantBounds;
-        std::unordered_map<Type*, Value> discriminantObjects;
+        struct DiscriminantObject
+        {
+            Value address;
+            Type* layout;
+        };
+        std::unordered_map<Type*, DiscriminantObject> discriminantObjects;
         Symbol* symbol = nullptr;
         std::ostringstream prologue;
         std::ostringstream body;
@@ -274,9 +280,12 @@ private:
         Value actual;
         Value temporary;
         Type* type;
+        Type* temporaryType;
+        std::string constrained;
     };
+    void repackRecord(const Value& destination, Type* target, const Value& source, Type* sourceType);
     Value adaptCompositeStorage(Value actual, Type* actualType, Type* formal, ParameterMode mode,
-                                std::vector<StorageCopyBack>& copies);
+                                std::vector<StorageCopyBack>& copies, const std::string& constrained = "1");
     void emitStorageCopyBacks(const std::vector<StorageCopyBack>& copies);
     void copyInto(const Value& destination, const Value& source, Type* type);
     void assignInto(const Value& address, Type* type, Expr* value, bool initialize = false,
