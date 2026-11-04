@@ -127,6 +127,10 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         return nullptr;
     }
     if (!checkCompleteView(source, expr->location, ("object " + attribute).c_str())) { return nullptr; }
+    if (const FieldInfo* field = objectField(expr->prefix.get()); field != nullptr && field->bitWidth != 0) {
+        m_diagnostics.error(expr->location, "object " + attribute + " of a packed or unaligned component is not supported");
+        return nullptr;
+    }
     ObjectAccessView view = accessView(expr->prefix.get());
     if (!view.aliased || SemaSupport::objectView(expr->prefix.get()) == 0) {
         m_diagnostics.error(expr->location, "object " + attribute + " requires an aliased object view");

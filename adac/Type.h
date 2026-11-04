@@ -45,6 +45,10 @@ struct FieldInfo
     // An explicit slot includes any reserved trailing bytes. Dependent arrays
     // use inline payload storage in represented records instead of a view slot.
     long long representationSize = -1;
+    // Packed and unaligned scalar slots use byte-wise access. The bit
+    // offset is relative to offset, and width zero denotes ordinary storage.
+    int bitOffset = 0;
+    int bitWidth = 0;
     bool inlineDependent = false;
     Type* storageType = nullptr; // Per-component ownership for tagged dependent arrays.
     bool dependentBounds = false; // This field stores an object-owned array view.

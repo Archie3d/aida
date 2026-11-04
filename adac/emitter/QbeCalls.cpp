@@ -636,9 +636,10 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             continue;
         }
 
+        const FieldInfo* component = objectField(argument);
         if (parameter->byReference && isScalar(formal)
             && (formal->excludesNull || sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->enumCodes.empty()
-                || typeSize(formal) != typeSize(argument->type))) {
+                || typeSize(formal) != typeSize(argument->type) || (component != nullptr && component->bitWidth != 0))) {
             Value temporary { allocTypeScratch(formal), 'l' };
             Value actual;
             if (parameter->mode != ParameterMode::In) {

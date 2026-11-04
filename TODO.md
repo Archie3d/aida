@@ -346,9 +346,9 @@ checks.
 - [x] Record representation clauses: byte-addressable positions, narrowed
   scalars, variant overlays, bounded dependent arrays (`recordrepresentation`,
   `recorddependent`, `recordcontrolled`, `recordrepresentationerrors`; ACATS
-  CD4051A/CD1C03H PASS, CD4031A packing XFAIL). Bit packing, unaligned fields,
-  changed inherited layouts and general freezing are Phase 8; tagged layouts
-  6f. [Contract](docs/representation-clauses.md).
+  CD4051A/CD1C03H PASS). Phase 8 adds packed and unaligned discrete fields
+  and tracks changed inherited layouts and general freezing. Tagged layouts
+  have a separate Phase 6f subset. [Contract](docs/representation-clauses.md).
 
 ### 6d. Access types
 
@@ -1042,11 +1042,17 @@ Ada 2005 additions and track annex packages separately.
   and runtime gaps, local regressions, ACATS observations and roadmap owners.
   The matrix separates core requirements, implementation choices, extensions
   and selected annex facilities. Maintain it with each increment.
-- [ ] Extend record representation support beyond the Phase 6c byte subset:
-  bit-packed and unaligned fields, changed layouts on untagged derived types
-  with representation-aware conversions/inherited operations, general freezing
-  and nonadjacent/private-part clauses. Track CD4031A (packing XFAIL), CD4051B
-  and CD1C04E (changed derived layouts) as applicable upstream cases.
+- [ ] Extend record representation support beyond the Phase 6c byte subset.
+  [Contract](docs/representation-clauses.md#packed-and-unaligned-discrete-components).
+  - [x] Packed and unaligned discrete components in adjacent untagged record
+    clauses. Bit-level overlap checks, signed and mapped values, inherited
+    placement, storage attributes, scalar copy-back and streams
+    (`recordbits` and `recordrepresentationerrors`). Unchanged CD4031A passes.
+  - [ ] Changed layouts on untagged derived types, with representation-aware
+    conversions and inherited operations (CD4051B/CD1C04E).
+  - [ ] General freezing and nonadjacent/private-part clauses (CD1009N).
+    Broader unaligned component categories, nondefault bit order and Pack
+    retain separate coverage gaps in the matrix.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada

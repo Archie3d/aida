@@ -234,3 +234,30 @@ inline int sharedObjectKind(const Expr* expr)
     }
     return sharedTypeKind(expr->type);
 }
+
+
+// Component placement is known for a selected name and for reference views
+// (renamings and generic in out objects) of that name.
+inline const FieldInfo* objectField(const Expr* expr)
+{
+    if (expr == nullptr) { return nullptr; }
+    if (expr->kind == ExprKind::Identifier) {
+        const Symbol* symbol = static_cast<const IdentifierExpr*>(expr)->symbol;
+        if (symbol == nullptr) { return nullptr; }
+        if (symbol->discriminantRecord != nullptr) {
+            return &symbol->discriminantRecord->fields[symbol->discriminantIndex];
+        }
+        return objectField(symbol->sharedAlias);
+    }
+    if (expr->kind == ExprKind::Selected) {
+        const auto* selected = static_cast<const SelectedExpr*>(expr);
+        if (selected->fieldIndex >= 0) {
+            Type* record = selected->prefix->type;
+            if (record != nullptr && record->kind == TypeKind::Access) { record = record->target; }
+            record = selected->recordType != nullptr ? selected->recordType : baseType(record);
+            if (record != nullptr) { return &record->fields[selected->fieldIndex]; }
+        }
+        return selected->symbol != nullptr ? objectField(selected->symbol->sharedAlias) : nullptr;
+    }
+    return nullptr;
+}

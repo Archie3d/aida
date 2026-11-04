@@ -5,9 +5,9 @@ recordrepresentationerrors.adb:23:14: error: a record representation expression 
 recordrepresentationerrors.adb:29:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
 recordrepresentationerrors.adb:30:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
 recordrepresentationerrors.adb:31:9: error: component positions and first bits must be nonnegative, and last bit must be at least first bit minus one
-recordrepresentationerrors.adb:37:9: error: bit-packed record components are not yet supported; component storage must be byte-aligned
+recordrepresentationerrors.adb:37:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
 recordrepresentationerrors.adb:43:9: error: component storage is smaller than its required representation
-recordrepresentationerrors.adb:49:9: error: a record component position must respect its natural alignment
+recordrepresentationerrors.adb:49:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
 recordrepresentationerrors.adb:55:9: error: record component storage exceeds signed 64-bit capacity
 recordrepresentationerrors.adb:59:5: error: duplicate record representation clause
 recordrepresentationerrors.adb:62:5: error: a record representation clause must be adjacent to its type declaration, before representation use
@@ -26,3 +26,10 @@ recordrepresentationerrors.adb:108:5: error: component storage overlaps for 'Oth
 recordrepresentationerrors.adb:117:34: error: a storage-place attribute requires a visible record component and no arguments
 recordrepresentationerrors.adb:118:38: error: a storage-place attribute requires a visible record component and no arguments
 recordrepresentationerrors.adb:123:43: error: storage-place attributes of discontiguous dependent array components are not yet supported
+recordrepresentationerrors.adb:127:5: error: component storage overlaps for 'B' and 'A'
+recordrepresentationerrors.adb:138:52: error: 'Address of a packed or unaligned component is not supported
+recordrepresentationerrors.adb:145:55: error: object 'Access of a packed or unaligned component is not supported
+recordrepresentationerrors.adb:153:5: error: a type used by a packed or unaligned component cannot be Atomic or Volatile
+recordrepresentationerrors.adb:160:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
+recordrepresentationerrors.adb:167:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
+recordrepresentationerrors.adb:173:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits

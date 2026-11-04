@@ -73,7 +73,8 @@ add_acats_test(c761012)
 # Byte-addressable record placement and inherited storage attributes.
 add_acats_test(cd4051a)
 add_acats_test(cd1c03h)
-add_acats_test(cd4031a REJECTION "bit-packed record components are not yet supported")
+# Bit-packed discriminant and mutually exclusive component slots.
+add_acats_test(cd4031a)
 
 # Limited current instances/private extensions and array index Range prefixes.
 add_acats_test(c3a0013)

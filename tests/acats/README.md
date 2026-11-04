@@ -206,9 +206,10 @@ Record representation selection (2026-10-24): unchanged
 and [CD1C03H](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd1c03h.ada)
 pass record placement and inherited component positions/sizes (RM 13.5.1–13.5.2).
 [CD4031A](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd4031a.ada)
-checks overlapping variants with bit-packed fields; it is an exact compile
-XFAIL for unsupported bit storage, not an upstream executable pass. All three
-files were retrieved on 2026-10-24 and retain their original rights/disclaimers.
+passes unchanged after the Phase 8 packed discrete-field increment. It checks
+overlapping variant components and their inherited storage-place attributes.
+All three files were retrieved on 2026-10-24 and retain their original
+rights/disclaimers.
 CD4051B/CD1C04E were assessed and deferred because they change a derived record's
 inherited layout; that extension and representation-aware conversions remain
 Phase 8. CD1009N additionally requires representation items across a package's

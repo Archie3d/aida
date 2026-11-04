@@ -2,6 +2,8 @@
 #include "QbeSupport.h"
 #include "../sema/SemaSupport.h"
 
+#include <algorithm>
+
 using QbeSupport::isUnconstrainedArray;
 using QbeSupport::isLiteralOperand;
 
@@ -172,12 +174,90 @@ Value QbeEmitter::addressOf(Symbol* symbol)
         line(pointer + " =l loadl " + address.name);
         address.name = pointer;
     }
+    if (const FieldInfo* field = objectField(symbol->sharedAlias)) {
+        address.bitOffset = field->bitOffset;
+        address.bitWidth = field->bitWidth;
+    }
     address.shared = sharedSymbolKind(symbol) != 0;
     return withBounds(address, symbol->type, symbol);
 }
 
+Value QbeEmitter::loadBitField(const Value& address, Type* type)
+{
+    std::string raw = "0";
+    int bit = address.bitOffset;
+    for (int consumed = 0; consumed < address.bitWidth;) {
+        int count = std::min(8 - bit % 8, address.bitWidth - consumed);
+        std::string slot = address.name;
+        if (bit >= 8) {
+            slot = newTemp();
+            line(slot + " =l add " + address.name + ", " + std::to_string(bit / 8));
+        }
+        std::string byte = newTemp(), chunk = newTemp(), placed = newTemp(), combined = newTemp();
+        line(byte + " =l loadub " + slot);
+        line(chunk + " =l shr " + byte + ", " + std::to_string(bit % 8));
+        std::string masked = newTemp();
+        line(masked + " =l and " + chunk + ", " + std::to_string((1 << count) - 1));
+        line(placed + " =l shl " + masked + ", " + std::to_string(consumed));
+        line(combined + " =l or " + raw + ", " + placed);
+        raw = combined;
+        bit += count;
+        consumed += count;
+    }
+    if (address.bitWidth < 64 && scalarStorageSigned(type)) {
+        std::string shifted = newTemp();
+        std::string extended = newTemp();
+        std::string shift = std::to_string(64 - address.bitWidth);
+        line(shifted + " =l shl " + raw + ", " + shift);
+        line(extended + " =l sar " + shifted + ", " + shift);
+        raw = extended;
+    }
+    if (qbeClass(type) == 'w') {
+        std::string word = newTemp();
+        line(word + " =w copy " + raw);
+        return enumPosition(Value {word, 'w'}, type);
+    }
+    return Value {raw, 'l'};
+}
+
+void QbeEmitter::storeBitField(const Value& address, const Value& value, Type* type)
+{
+    std::string raw = value.name;
+    if (value.type == 'w') {
+        raw = newTemp();
+        line(raw + " =l " + (scalarStorageSigned(type) ? "extsw " : "extuw ") + value.name);
+    }
+    int bit = address.bitOffset;
+    for (int consumed = 0; consumed < address.bitWidth;) {
+        int shift = bit % 8;
+        int count = std::min(8 - shift, address.bitWidth - consumed);
+        int mask = (1 << count) - 1;
+        std::string slot = address.name;
+        if (bit >= 8) {
+            slot = newTemp();
+            line(slot + " =l add " + address.name + ", " + std::to_string(bit / 8));
+        }
+        std::string chunk = newTemp();
+        line(chunk + " =l shr " + raw + ", " + std::to_string(consumed));
+        if (count != 8) {
+            std::string masked = newTemp(), placed = newTemp();
+            std::string previous = newTemp(), preserved = newTemp(), combined = newTemp();
+            line(masked + " =w and " + chunk + ", " + std::to_string(mask));
+            line(placed + " =w shl " + masked + ", " + std::to_string(shift));
+            line(previous + " =w loadub " + slot);
+            line(preserved + " =w and " + previous + ", " + std::to_string(255 ^ (mask << shift)));
+            line(combined + " =w or " + preserved + ", " + placed);
+            chunk = combined;
+        }
+        line("storeb " + chunk + ", " + slot);
+        bit += count;
+        consumed += count;
+    }
+}
+
 Value QbeEmitter::loadFrom(const Value& address, Type* type)
 {
+    if (address.bitWidth != 0) { return loadBitField(address, type); }
     char resultType = qbeClass(type);
     std::string temp = newTemp();
     if (address.shared || sharedTypeKind(type) != 0) {
@@ -230,6 +310,10 @@ Value QbeEmitter::loadFrom(const Value& address, Type* type)
 void QbeEmitter::storeInto(const Value& address, const Value& position, Type* type)
 {
     Value value = enumCode(position, type);
+    if (address.bitWidth != 0) {
+        storeBitField(address, value, type);
+        return;
+    }
     if (type->kind == TypeKind::Access && (type->accessParameter || type->accessDiscriminant)) {
         std::string slot = newTemp();
         line(slot + " =l add " + address.name + ", 8");
@@ -389,14 +473,8 @@ void QbeEmitter::checkRecordAssignment(const Value& address, const Value& source
             continue;
         }
         const FieldInfo& field = discriminantField(record, which);
-        if (!known) {
-            std::string targetSlot = newTemp();
-            line(targetSlot + " =l add " + address.name + ", " + fieldOffset(record, field));
-            expected = loadFrom(Value { targetSlot, 'l' }, field.type);
-        }
-        std::string slot = newTemp();
-        line(slot + " =l add " + source.name + ", " + fieldOffset(record, field));
-        Value discriminant = loadFrom(Value { slot, 'l' }, field.type);
+        if (!known) { expected = loadFrom(fieldAddress(address, record, field), field.type); }
+        Value discriminant = loadFrom(fieldAddress(source, record, field), field.type);
         std::string same = newTemp();
         line(same + " =w ceq" + std::string(1, discriminant.type) + " "
              + discriminant.name + ", " + expected.name);

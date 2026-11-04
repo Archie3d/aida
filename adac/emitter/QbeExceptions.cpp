@@ -219,13 +219,7 @@ Value QbeEmitter::variantCondition(const Value& address, Type* record, int varia
 {
     const VariantInfo& alternative = record->variants[variant];
     const FieldInfo& discriminant = record->fields[alternative.discriminant];
-    Value slot = address;
-    if (discriminant.offset != 0) {
-        std::string moved = newTemp();
-        line(moved + " =l add " + address.name + ", " + std::to_string(discriminant.offset));
-        slot = Value { moved, 'l' };
-    }
-    Value value = loadFrom(slot, discriminant.type);
+    Value value = loadFrom(fieldAddress(address, record, discriminant), discriminant.type);
     std::string matched = newTemp();
     line(matched + " =w copy 0");
     for (std::size_t i = 0; i < record->variants.size(); ++i) {
@@ -320,9 +314,7 @@ Value QbeEmitter::recordConstraintMatches(const Value& value, Type* type)
             continue;
         }
         const FieldInfo& field = discriminantField(baseType(type), i);
-        std::string slot = newTemp();
-        line(slot + " =l add " + value.name + ", " + fieldOffset(type, field));
-        Value actual = loadFrom(Value { slot, 'l' }, field.type);
+        Value actual = loadFrom(fieldAddress(value, type, field), field.type);
         std::string same = newTemp();
         line(same + " =w ceq" + actual.type + " " + actual.name + ", " + expected.name);
         std::string combined = newTemp();

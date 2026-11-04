@@ -496,12 +496,15 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         record = baseType(record);
         if (component->checkedVariant >= 0) { checkVariant(object, record, component->checkedVariant); }
         const FieldInfo& field = record->fields[component->fieldIndex];
-        if (name == "first_bit") { return constantValue(0, qbeClass(expr->type)); }
+        if (name == "first_bit") { return constantValue(field.bitOffset, qbeClass(expr->type)); }
         if (name == "position") {
             Value address = fieldStorage(object, record, field);
             std::string offset = newTemp();
             line(offset + " =l sub " + address.name + ", " + object.name);
             return result(offset);
+        }
+        if (field.bitWidth != 0) {
+            return constantValue(field.bitOffset + field.bitWidth - 1, qbeClass(expr->type));
         }
         std::string bytes = field.representationSize >= 0 ? std::to_string(field.representationSize)
             : objectBytes(fieldAddress(object, record, field), field.type);
@@ -517,7 +520,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         } else {
             emitExpr(expr->prefix.get());
         }
-        return Value { std::to_string(typeAlignment(prefixType)), qbeClass(expr->type) };
+        const FieldInfo* field = expr->alignmentObjectView ? objectField(expr->prefix.get()) : nullptr;
+        return constantValue(field != nullptr && field->bitWidth != 0 ? 1 : typeAlignment(prefixType),
+                             qbeClass(expr->type));
     }
     if (name == "stream_size") { return constantValue(streamSizeBits(prefixType), 'l'); }
     if (name == "size") {
@@ -820,6 +825,13 @@ void QbeEmitter::emitStreamComponents(const Value& stream, bool reading, Value o
                                       bool skipDiscriminants, const std::string& constrained)
 {
     if (Symbol* operation = streamAttribute(type, reading ? 0 : 1)) {
+        if (object.bitWidth != 0) {
+            Value slot {allocTypeScratch(type), 'l'};
+            if (!reading) { storeInto(slot, loadFrom(object, type), type); }
+            emitStreamCall(operation, stream, &slot, type, constrained);
+            if (reading) { storeInto(object, loadFrom(slot, type), type); }
+            return;
+        }
         emitStreamCall(operation, stream, &object, type, constrained);
         return;
     }

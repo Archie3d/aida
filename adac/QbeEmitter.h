@@ -46,6 +46,9 @@ struct Value
     bool declaredLayout = false; // Destination under construction; its tag may name an ancestor.
     bool shared = false; // This value denotes shared scalar storage.
 
+    int bitOffset = 0;
+    int bitWidth = 0;
+
     bool hasBounds() const { return !first.empty() && !last.empty(); }
 };
 
@@ -262,6 +265,8 @@ private:
     void emitControlledParts(Type* type);
     Value staticLinkFor(int targetLevel);
     Value addressOf(Symbol* symbol);
+    Value loadBitField(const Value& address, Type* type);
+    void storeBitField(const Value& address, const Value& value, Type* type);
     Value loadFrom(const Value& address, Type* type);
     void storeInto(const Value& address, const Value& value, Type* type);
     struct StorageCopyBack

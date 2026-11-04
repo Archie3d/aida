@@ -1136,6 +1136,18 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         }
         if (typeName) {
             for (const auto& symbol : m_symbolTable.symbols()) {
+                if (symbol->kind == SymbolKind::TypeName && symbol->type != nullptr
+                    && symbol->type->kind == TypeKind::Record) {
+                    for (const FieldInfo& field : symbol->type->fields) {
+                        if (field.bitWidth == 0) { continue; }
+                        Type* component = rootType(field.type);
+                        while (component != nullptr && component != type) { component = component->parentType; }
+                        if (component == type) {
+                            m_diagnostics.error(decl->location, "a type used by a packed or unaligned component cannot be Atomic or Volatile");
+                            return;
+                        }
+                    }
+                }
                 Type* used = rootType(symbol->type);
                 while (used != nullptr && used != type) {
                     used = used->parentType;

@@ -116,45 +116,54 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
             continue;
         }
         __int128 width = static_cast<__int128>(last) - first + 1;
-        if (first % 8 != 0 || width % 8 != 0) {
-            error(clause.location, "bit-packed record components are not yet supported; component storage must be byte-aligned");
-            continue;
-        }
         __int128 offset = static_cast<__int128>(position) + first / 8;
-        __int128 bytes = width / 8;
+        int bitOffset = static_cast<int>(first % 8);
+        __int128 bytes = width == 0 ? 0 : (bitOffset + width + 7) / 8;
         __int128 end = offset + bytes;
         if (end > INT64_MAX || offset > INT64_MAX) {
             error(clause.location, "record component storage exceeds signed 64-bit capacity");
             continue;
         }
-        long long required = fieldStorageSize(field);
-        if (bytes < required && (field.type->kind == TypeKind::Integer || field.type->kind == TypeKind::Enumeration)
+        field.bitOffset = 0;
+        field.bitWidth = 0;
+        long long required = field.inlineDependent ? fieldStorageSize(field) : typeSize(field.type);
+        bool wholeBytes = bitOffset == 0 && width % 8 == 0;
+        bool staticDiscrete = isDiscrete(field.type) && field.type->scalarBoundsSymbol == nullptr;
+        __int128 low = field.type->low, high = field.type->high;
+        if (!field.type->enumCodes.empty() && low >= 0 && high >= low
+            && high < static_cast<long long>(field.type->enumCodes.size())) {
+            low = field.type->enumCodes[static_cast<std::size_t>(low)];
+            high = field.type->enumCodes[static_cast<std::size_t>(high)];
+        }
+        auto fits = [&](bool signedStorage) {
+            __int128 storageLow = signedStorage ? -(static_cast<__int128>(1) << (width - 1)) : 0;
+            __int128 storageHigh = (static_cast<__int128>(1) << (width - signedStorage)) - 1;
+            return low <= high && low >= storageLow && high <= storageHigh;
+        };
+        if (wholeBytes && bytes < required && staticDiscrete
             && (bytes == 1 || bytes == 2 || bytes == 4 || bytes == 8)
             && !(field.type->kind == TypeKind::Enumeration && bytes == 8)
-            && field.type->scalarBoundsSymbol == nullptr) {
-            __int128 low = field.type->low, high = field.type->high;
-            if (!field.type->enumCodes.empty() && low >= 0 && high >= low
-                && high < static_cast<long long>(field.type->enumCodes.size())) {
-                low = field.type->enumCodes[static_cast<std::size_t>(low)];
-                high = field.type->enumCodes[static_cast<std::size_t>(high)];
-            }
-            int bits = static_cast<int>(width);
-            __int128 storageLow = low < 0 ? -(static_cast<__int128>(1) << (bits - 1)) : 0;
-            __int128 storageHigh = (static_cast<__int128>(1) << (bits - (low < 0 || bits == 32 ? 1 : 0))) - 1;
-            if (low <= high && low >= storageLow && high <= storageHigh && field.type->alignment <= bytes) {
-                Type* storage = m_types.makeSubtype(anonymousTypeName(), field.type, field.type->low, field.type->high);
-                storage->byteSize = static_cast<long long>(bytes);
-                storage->specifiedSize = storage->byteSize;
-                field.type = storage;
-                required = fieldStorageSize(field);
-            }
+            && field.type->alignment <= bytes && offset % bytes == 0
+            && fits(low < 0 || width == 32)) {
+            Type* storage = m_types.makeSubtype(anonymousTypeName(), field.type, field.type->low, field.type->high);
+            storage->byteSize = static_cast<long long>(bytes);
+            storage->specifiedSize = storage->byteSize;
+            field.type = storage;
+            required = storage->byteSize;
         }
-        if (bytes < required) {
+        if (!wholeBytes || offset % typeAlignment(field.type) != 0 || (bytes < required && staticDiscrete)) {
+            if (!staticDiscrete || field.aliased || sharedTypeKind(field.type) != 0 || width < 1 || width > 64) {
+                error(clause.location, "packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits");
+                continue;
+            }
+            if (!fits(low < 0)) {
+                error(clause.location, "component storage is smaller than its required representation");
+                continue;
+            }
+            field.bitOffset = bitOffset;
+            field.bitWidth = static_cast<int>(width);
+        } else if (bytes < required) {
             error(clause.location, "component storage is smaller than its required representation");
-            continue;
-        }
-        if (offset % typeAlignment(field.type) != 0) {
-            error(clause.location, "a record component position must respect its natural alignment");
             continue;
         }
         field.offset = static_cast<long long>(offset);
@@ -177,18 +186,25 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
             extent = static_cast<long long>(end);
         }
     }
+    auto firstBit = [](const FieldInfo& field) {
+        return static_cast<__int128>(field.offset) * 8 + field.bitOffset;
+    };
+    auto bitWidth = [](const FieldInfo& field) -> __int128 {
+        return field.bitWidth != 0 ? field.bitWidth : static_cast<__int128>(fieldStorageSize(field)) * 8;
+    };
     for (std::size_t i = 0; i < proposed.fields.size(); ++i) {
         const FieldInfo& first = proposed.fields[i];
         for (std::size_t j = 0; j < i; ++j) {
             const FieldInfo& second = proposed.fields[j];
             if (!variantsExclusive(type, first.variant, second.variant)
-                && fieldStorageSize(first) > 0 && fieldStorageSize(second) > 0
-                && static_cast<__int128>(first.offset) < static_cast<__int128>(second.offset) + fieldStorageSize(second)
-                && static_cast<__int128>(second.offset) < static_cast<__int128>(first.offset) + fieldStorageSize(first)) {
+                && bitWidth(first) > 0 && bitWidth(second) > 0
+                && firstBit(first) < firstBit(second) + bitWidth(second)
+                && firstBit(second) < firstBit(first) + bitWidth(first)) {
                 error(decl->location, "component storage overlaps for '" + first.displayName + "' and '" + second.displayName + "'");
             }
         }
         if (type->parentType != nullptr && (first.offset != type->fields[i].offset
+            || first.bitOffset != type->fields[i].bitOffset || first.bitWidth != type->fields[i].bitWidth
             || fieldStorageSize(first) != fieldStorageSize(type->fields[i]) || first.inlineDependent != type->fields[i].inlineDependent)) {
             error(decl->location, "changing inherited record component layouts is not yet supported");
         }

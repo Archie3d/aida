@@ -80,6 +80,8 @@ Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo&
     Value address = fieldStorage(object, type, field);
     address.accessLevel = object.accessLevel;
     address.declaredLayout = object.declaredLayout;
+    address.bitOffset = field.bitOffset;
+    address.bitWidth = field.bitWidth;
     if (field.inlineDependent) {
         Value view = dependentFieldBounds(object, type, field);
         view.name = address.name;

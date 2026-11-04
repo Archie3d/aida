@@ -236,7 +236,7 @@ long long typeAlignment(const Type* type)
     case TypeKind::Record: {
         long long alignment = type->tagged || type->dependentStorage || type->protectedScope != nullptr ? 8 : 1;
         for (const FieldInfo& field : type->fields) {
-            long long fieldAlignment = typeAlignment(field.type);
+            long long fieldAlignment = field.bitWidth != 0 ? 1 : typeAlignment(field.type);
             if (fieldAlignment > alignment) {
                 alignment = fieldAlignment;
             }

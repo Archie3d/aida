@@ -1524,7 +1524,7 @@ add_ada_error_test(discriminantcomponenterrors SOURCES types/discriminantcompone
 
 set_tests_properties(error.discriminantcomponenterrors PROPERTIES TIMEOUT 10)
 
-foreach(record_case recordrepresentation recorddependent)
+foreach(record_case recordrepresentation recorddependent recordbits)
     add_determinism_test(${record_case} SOURCE ${record_case}.adb)
     ada_test_fixture(source_path "${record_case}.adb")
     ada_test_fixture(expected_path "${record_case}.expected")

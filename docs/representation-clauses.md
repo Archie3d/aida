@@ -3,8 +3,10 @@
 Ada 2005 RM 13.1 and [13.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-3.html)
 and [13.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-4.html)
 are the baseline. Phase 5 implements byte-addressable Size, alignment and
-enumeration mapping; Phase 6c adds byte-addressable record component clauses,
-including variants and bounded discriminant-dependent arrays.
+enumeration mapping. Phase 6c adds byte-addressable record component clauses,
+including variants and bounded discriminant-dependent arrays. Phase 8 adds
+packed and unaligned discrete slots under
+[RM 13.5.1–13.5.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-5-1.html).
 
 ## Alignment subset
 
@@ -152,14 +154,15 @@ end record;
 
 Position and bit bounds must be static integers. Position and first bit must
 be nonnegative; last bit may be first bit minus one for empty storage. Offsets,
-extents and final alignment padding are checked for overflow. The current
-subset requires whole bytes and natural component alignment. A nonzero first
-bit that is a byte multiple is normalized into the byte position. Integer and
+extents and final alignment padding are checked for overflow. A first bit that
+is a byte multiple is normalized into the byte position. Naturally aligned
+integer and
 enumeration components can use smaller 8/16/32/64-bit storage when supported by
 the existing scalar load/store model and all subtype values fit (enumerations
 stop at 32 bits). Their arithmetic and scalar call ABI retain the original type.
-Other components require at least their existing storage size. A larger slot
-reserves trailing bytes without changing the value's load/store format.
+Ordinary slots for other components require at least their existing storage
+size and natural alignment. A larger ordinary slot reserves trailing bytes
+without changing the value's load/store format.
 
 Repeated/unknown component names, duplicate clauses, insufficient storage,
 alignment violations and overlapping components that can coexist produce
@@ -178,11 +181,36 @@ form supports 1/2/4/8 alignment without weakening component alignment.
 
 `Position`, `First_Bit` and `Last_Bit` accept selected record components without
 arguments and evaluate their enclosing object once. They report normalized
-byte position, zero first bit and the specified slot's last bit. Without a
+byte position and the first and last bits relative to that byte. Without a
 component clause, the existing component layout is reported. A scalar
 component's Size reports its reserved slot. Array component Size continues to
 report the actual per-object payload extent. Storage-place queries for
 separately allocated dependent array payloads are explicitly diagnosed.
+
+### Packed and unaligned discrete components
+
+Adjacent clauses on untagged records can place nonaliased, nonshared integer,
+modular and enumeration fields with static bounds in slots of 1 to 64 bits.
+This includes discriminants, fields spanning several bytes, and byte-aligned
+fields at offsets that do not satisfy the scalar's ordinary alignment. The
+slot must hold every subtype value, using enumeration representation codes
+when present. Signed fields use two's complement. Bit zero is the low bit of
+the first byte, with significance increasing through successive bytes.
+
+Coexisting components may share a byte when their bit intervals are disjoint.
+Writes preserve bits outside the slot, and variant exclusions still allow the
+same bits to be reused by different alternatives. Components sharing a byte
+require synchronization for concurrent updates to the same object. The packed
+or unaligned component has byte alignment and reports the slot width for
+`Size`. Its enclosing record still honours the alignment of ordinary
+components and any explicit record alignment.
+
+Scalar reads and writes, renamings, generic `in out` views and scalar call
+copy-back access the slot through byte operations. Streams keep the normal
+component format and use these operations when reading or writing the object.
+Address, Access and Unchecked_Access on these fields are diagnosed. Aliased/shared fields,
+nonstatic scalar bounds and packed or unaligned nondiscrete fields remain
+outside this subset.
 
 ### Discriminant-dependent arrays
 
@@ -205,13 +233,11 @@ components elsewhere in the record keep their existing lifetime registrations.
 
 ### Remaining record restrictions
 
-Bit-packed or unaligned fields, changing an inherited record layout, tagged,
-task/protected representations, declaration-sized runtime layouts, general
-freezing and clauses separated from their type declaration remain diagnosed.
-Dependent arrays of controlled/task/protected elements retain their existing
-restriction. Extending byte storage, derived layout conversion and freezing is
-tracked in Phase 8; tagged component placement and Alignment remain restricted
-(the Phase 6f tagged Size subset is linked above).
+Changed inherited layouts, tagged/task/protected placement, declaration-sized
+runtime layouts, nondefault bit order, Pack, general freezing and nonadjacent
+clauses remain open. Dependent arrays of controlled/task/protected elements
+retain their existing restriction. Phase 8 tracks derived layout conversion and
+freezing. The Phase 6f tagged Size subset is linked above.
 
 ## Evidence
 
@@ -276,5 +302,13 @@ the three execution regressions pass whole/separate with an ASan/UBSan runtime
 and C observer. The four-task placement test also passes whole/separate with
 a ThreadSanitizer runtime. QBE-generated memory accesses remain uninstrumented.
 Unchanged ACATS CD4051A and CD1C03H pass placement and inherited storage-place
-requirements. CD4031A is an exact compile XFAIL for bit-packed variant fields,
-not an executable conformance pass. Provenance is in `tests/acats/README.md`.
+requirements. Unchanged CD4031A passes packed variant overlap and inherited
+storage-place checks. `recordbits` covers exact physical bytes, cross-byte
+signed and unsigned access, mapped enumeration values, imported copy-back,
+renaming, generic views, custom streams and four tasks. It runs whole/separate
+with deterministic IR. The rejection test covers overlapping bit intervals,
+invalid widths, dynamic bounds, aliased/shared fields and address escapes.
+Focused compiler/C-runtime ASan/UBSan and C-runtime ThreadSanitizer checks
+pass. These runs instrument the compiler and C runtime as applicable, while
+the generated QBE accesses execute as native assembly. Upstream provenance is
+in `tests/acats/README.md`.
