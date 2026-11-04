@@ -38,6 +38,15 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     if (result != nullptr && errors == m_diagnostics.errorCount()) {
         checkAnonymousAccess(expr, expected, result);
         noteStaticValue(expr);
+        Symbol* named = expr->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(expr)->symbol
+            : expr->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expr)->symbol : nullptr;
+        if (named == nullptr || named->kind != SymbolKind::TypeName) { freezeRecordLayout(result); }
+        if (expr->kind == ExprKind::Call) {
+            Symbol* operation = static_cast<CallExpr*>(expr)->subprogram;
+            if (operation != nullptr) {
+                for (const Symbol* parameter : operation->parameters) { freezeRecordLayout(parameter->type); }
+            }
+        }
     }
     --m_expressionDepth;
     if (m_expressionDepth == 0 && errors == m_diagnostics.errorCount()) {
@@ -307,6 +316,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     }
 
     expr->designated = designated;
+    freezeRecordLayout(designated);
     if (baseType(designated)->discriminantCount > 0 && !hasKnownDiscriminants(designated)
         && !hasDefaultDiscriminants(designated) && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "an allocator for an indefinite record requires a constraint or initializer");

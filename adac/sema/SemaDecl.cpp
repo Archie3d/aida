@@ -42,7 +42,8 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
             // including when those items textually precede the record clause.
             for (std::size_t j = i + 1; j < declarations.size() && declarations[j]->kind == DeclKind::Representation; ++j) {
                 auto* clause = static_cast<RepresentationDecl*>(declarations[j].get());
-                if (clause->attribute == "record" && clause->lower == type->lower) {
+                if (clause->lower != type->lower) { break; }
+                if (clause->attribute == "record") {
                     analyzeRepresentation(clause, scope, type->declaredType);
                     settledRecordClauses.insert(clause);
                 }
@@ -58,6 +59,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                     if (symbol->type->isIncomplete && symbol->type->privateTo == nullptr) {
                         m_diagnostics.error(decl->location, "an incomplete type must be completed before an intervening body");
                     }
+                    freezeRecordLayout(symbol->type);
                     if (!symbol->type->isIncomplete) { rootType(symbol->type)->streamsFrozen = true; }
                     if (symbol->type->tagged) { rootType(symbol->type)->dispatchFrozen = true; }
                 }
@@ -78,6 +80,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
     }
     if (reportIncomplete) {
         reportIncompleteTypes(declarations);
+        freezeDeclaredRecordLayouts(declarations);
     }
 }
 
@@ -160,6 +163,12 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
             break;
         }
         analyzeTypeDecl(typeDecl, scope);
+        Type* declared = typeDecl->declaredType;
+        if (declared != nullptr && !declared->isIncomplete) {
+            freezeRecordLayout(declared->parentType);
+            if (declared->kind == TypeKind::Array) { freezeRecordLayout(declared->element); }
+            for (const FieldInfo& field : declared->fields) { freezeRecordLayout(field.type); }
+        }
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr) {
             analyzeProtected(typeDecl, scope);
         }
@@ -245,6 +254,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         m_packages.back()->containsTasks = true;
     }
     if (type != nullptr && !type->isIncomplete && !(decl->isConstant && decl->initializer == nullptr)) {
+        freezeRecordLayout(type);
         rootType(type)->streamsFrozen = true;
     }
     if (type != nullptr && type->tagged && type->classRoot == nullptr) {

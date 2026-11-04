@@ -1611,6 +1611,7 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
             return false;
         }
         if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
+        freezeRecordLayout(type);
         Symbol* owner = type->privateTo != nullptr && scope->privateVisible(type->privateTo) ? type->privateTo : nullptr;
         if (formal.preelaborableInitialization && !hasPreelaborableInitialization(type, owner, nullptr, scope)) {
             m_diagnostics.error(actual->location, "generic actual type must have preelaborable initialization");

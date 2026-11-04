@@ -16,7 +16,34 @@ bool repackableFields(const Type* type)
 
 } // namespace
 
-void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType)
+void Sema::freezeRecordLayout(Type* type)
+{
+    if (!isComposite(type) || type->isIncomplete || !m_frozenRecordLayouts.insert(type).second) { return; }
+    Type* base = baseType(type);
+    if (base != type) {
+        freezeRecordLayout(base);
+    } else if (type->kind == TypeKind::Array) {
+        freezeRecordLayout(type->element);
+    } else {
+        freezeRecordLayout(type->parentType);
+        for (const FieldInfo& field : type->fields) {
+            freezeRecordLayout(field.type);
+        }
+    }
+}
+
+void Sema::freezeDeclaredRecordLayouts(const DeclList& declarations)
+{
+    for (const DeclPtr& decl : declarations) {
+        if (decl->kind == DeclKind::Type) {
+            freezeRecordLayout(static_cast<TypeDecl*>(decl.get())->declaredType);
+        } else if (decl->kind == DeclKind::Subtype) {
+            freezeRecordLayout(static_cast<SubtypeDecl*>(decl.get())->declaredType);
+        }
+    }
+}
+
+void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type)
 {
     if (type->kind != TypeKind::Record || type->isSubtype || type->isIncomplete
         || !representationVisible(type) || type->tagged || hasTasks(type) || hasProtected(type)) {
@@ -28,8 +55,8 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
         m_diagnostics.error(decl->location, "duplicate record representation clause");
         return;
     }
-    if (type != precedingType) {
-        m_diagnostics.error(decl->location, "a record representation clause must be adjacent to its type declaration, before representation use");
+    if (m_frozenRecordLayouts.contains(type)) {
+        m_diagnostics.error(decl->location, "a record representation clause must precede freezing of the record layout");
         return;
     }
     if (type->layoutSymbol != nullptr) {

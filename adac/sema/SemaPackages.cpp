@@ -122,6 +122,8 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     symbol->scope->m_privateRegion = true;
     symbol->scope->m_publicChildPart = false;
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
+    freezeDeclaredRecordLayouts(decl->publicPart);
+    freezeDeclaredRecordLayouts(decl->privatePart);
     symbol->scope->m_privateRegion = savedPrivateRegion;
     for (const DeclPtr& item : decl->privatePart) {
         if (item->kind != DeclKind::Type) { continue; }

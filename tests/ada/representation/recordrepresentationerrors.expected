@@ -10,7 +10,7 @@ recordrepresentationerrors.adb:43:9: error: component storage is smaller than it
 recordrepresentationerrors.adb:49:9: error: packed or unaligned components require nonaliased, nonshared discrete subtypes with static bounds and 1 to 64 bits
 recordrepresentationerrors.adb:55:9: error: record component storage exceeds signed 64-bit capacity
 recordrepresentationerrors.adb:59:5: error: duplicate record representation clause
-recordrepresentationerrors.adb:62:5: error: a record representation clause must be adjacent to its type declaration, before representation use
+recordrepresentationerrors.adb:62:5: error: a record representation clause must precede freezing of the record layout
 recordrepresentationerrors.adb:64:5: error: a record representation clause requires a complete, visible, untagged record first subtype without task or protected parts
 recordrepresentationerrors.adb:66:5: error: a record representation clause requires a complete, visible, untagged record first subtype without task or protected parts
 recordrepresentationerrors.adb:71:9: error: component storage is smaller than its required representation

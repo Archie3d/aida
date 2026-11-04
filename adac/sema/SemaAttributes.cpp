@@ -1108,6 +1108,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "a storage-place attribute requires a visible record component and no arguments");
             return nullptr;
         }
+        freezeRecordLayout(record);
         const FieldInfo& field = record->fields[component->fieldIndex];
         if (field.dependentBounds && !field.inlineDependent) {
             m_diagnostics.error(expr->location, "storage-place attributes of discontiguous dependent array components are not yet supported");
@@ -1133,6 +1134,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (name == "alignment") {
+        freezeRecordLayout(prefixType);
         if (prefixType == nullptr || !representationVisible(prefixType) || prefixType->isIncomplete
             || prefixType->classRoot != nullptr || !expr->arguments.empty()) {
             m_diagnostics.error(expr->location, "'Alignment requires a complete, visible specific subtype or object and no arguments");
@@ -1146,6 +1148,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "size") {
+        freezeRecordLayout(prefixType);
         expr->sizeTypePrefix = prefixIsType;
         if (prefixType == nullptr) {
             m_diagnostics.error(expr->location, "'Size requires a type or an object");

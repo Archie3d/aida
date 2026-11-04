@@ -17,10 +17,10 @@ promise; allocation still uses the natural alignment. Positive requests cannot
 weaken natural alignment. Values above eight, non-power-of-two values, duplicate
 clauses and unsupported targets produce diagnostics.
 
-Representation items must form an adjacent group after the type declaration,
-before any declaration can capture its layout. This conservative restriction
-stands in for general Ada freezing. Alignment clauses on later subtype declarations or individual objects are
-unsupported, as are tagged/task/protected representations.
+Alignment clauses for untagged records follow the record layout freezing
+rules below. Other Alignment clauses still require an adjacent group before
+layout use. Alignment clauses on named subtypes or individual objects remain
+unsupported, as do tagged/task/protected Alignment clauses.
 
 The layout helper propagates alignment to subtypes and derived types, array
 components, record field offsets, local/captured/global objects and allocations.
@@ -96,9 +96,9 @@ AIDA also permits `subtype Byte is Long_Integer range -128 .. 127;` followed
 by `for Byte'Size use 8;`. **This syntax is an AIDA extension:** Ada 2005
 RM 13.3(48) permits specification on first subtypes. It was already accepted
 for confirming sizes; the extension now changes named-subtype storage too.
-Changing clauses must be adjacent to their type/subtype declaration, before
-other declarations capture the layout. The parent type and sibling subtypes
-retain their storage. General Ada freezing remains unimplemented.
+Size clauses for untagged records follow the record layout freezing rules
+below. Other size-changing clauses retain the adjacency requirement. A
+subtype-specific Size preserves parent and sibling storage.
 
 Storage width and arithmetic width are separate. Byte above occupies one byte,
 but its expressions, arithmetic checks and scalar Ada ABI retain Long_Integer's
@@ -173,11 +173,11 @@ are placed after all specified slots, in declaration order. Derivation and
 subtype aliases inherit settled layouts, including narrowed scalar fields.
 A confirming clause on a derived type preserves inherited positions.
 
-Clauses must belong to the adjacent representation group after the type
-specification. Component placement is settled before the group's Size and
-Alignment items, so either textual order works. Size must cover the final
-layout; existing alignment constraints still apply. The obsolescent `at mod N;`
-form supports 1/2/4/8 alignment without weakening component alignment.
+Component placement is settled before Size and Alignment within the same
+representation group immediately after the type declaration. Elsewhere,
+items are processed in source order. Size must cover the final layout and
+respect its alignment. The obsolescent `at mod N;` form supports 1/2/4/8
+alignment without weakening component alignment.
 
 `Position`, `First_Bit` and `Last_Bit` accept selected record components without
 arguments and evaluate their enclosing object once. They report normalized
@@ -233,7 +233,7 @@ components elsewhere in the record keep their existing lifetime registrations.
 
 ### Changed layouts on untagged derived records
 
-An adjacent clause can move inherited fields and change their storage widths
+A record clause can move inherited fields and change their storage widths
 within the same component-clause rules. When a clause changes placement,
 omitted fields follow the specified slots in declaration order. A confirming
 clause retains omitted fields at their inherited positions.
@@ -252,15 +252,39 @@ This subset covers nonlimited, unmanaged, fixed-layout records, including
 ordinary discriminants and variants. Aliased components, shared components,
 private or tagged subcomponents, and dependent component bounds retain
 diagnostics. Inherited anonymous access profiles also retain a diagnostic
-because a pointer would require a shared view across layouts.
+because a pointer would require a shared view across layouts. AIDA also permits
+repacking derived types whose parents have user-defined primitives, as an
+extension to Ada 2005 RM 13.1(10).
+[Ada 2005 RM §13.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-1.html)
+
+### Record layout freezing
+
+A record placement, Size or Alignment clause can follow intervening
+declarations in the same declarative part, including in the private part of
+the package specification that declares the record. Subtype marks in plain
+subtype, access type and callable profile declarations leave the layout open.
+A fresh record subtype can have its own Size even when its base type is frozen.
+
+A clause must precede layout use. The front end tracks object creation,
+allocators, component selection, layout attributes, resolved calls and generic
+type actuals. It also settles preceding layouts at body boundaries and settles
+package layouts after the private part. Freezing propagates through record
+components, array elements and ancestors. Because AIDA computes dependent
+layouts eagerly, a record used as a field, array element or parent is treated
+as frozen when the containing or derived type is declared. A subtype-specific
+Size also settles its base layout.
+
+This is a record layout subset of Ada freezing. Deferred defaults can still
+freeze conservatively. General callable, tagged and generic freezing rules and
+nonrecord representation items retain separate follow-up work.
+[Ada 2005 RM §13.14](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-14.html)
 
 ### Remaining record restrictions
 
 Tagged/task/protected placement, declaration-sized runtime layouts, nondefault
-bit order, Pack, general freezing and nonadjacent clauses remain open.
-Dependent arrays of controlled/task/protected elements retain their existing
-restriction. Phase 8 tracks freezing and nonadjacent clauses. The Phase 6f
-tagged Size subset is linked above.
+bit order and Pack remain open. Dependent arrays of controlled/task/protected
+elements retain their existing restriction. The Phase 6f tagged Size subset is
+linked above.
 
 ## Evidence
 
@@ -342,3 +366,9 @@ multi-level inherited results, inherited `in`, `in out` and `out` operations,
 packed variant transitions, inherited defaults and boxed components, constrained
 and exceptional calls, and inherited stream operations. It runs whole/separate and deterministically, with four
 tasks executing the call and conversion checks.
+
+Unchanged CD1009N passes placement in visible and private package parts.
+`recordfreezing` covers nonadjacent placement, Size and Alignment, subtype
+views, function results and allocations in whole/separate compilation and
+deterministic IR, with four concurrent callers. `recordfreezingerrors` pins
+the freeze checks for earlier layout uses and intervening bodies.

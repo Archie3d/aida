@@ -1053,9 +1053,14 @@ Ada 2005 additions and track annex packages separately.
     Whole/separate/determinism and four-task coverage in `recordrepack`.
     Unchanged CD4051B and CD1C04E pass. Managed, aliased, shared and dependent
     fields and inherited anonymous access profiles retain diagnostics.
-  - [ ] General freezing and nonadjacent/private-part clauses (CD1009N).
-    Broader unaligned component categories, nondefault bit order and Pack
-    retain separate coverage gaps in the matrix.
+  - [x] Nonadjacent and private-part clauses for unfrozen untagged record
+    layouts, with record Size and Alignment and checks for earlier layout use.
+    `recordfreezing` and `recordfreezingerrors` cover both build modes,
+    deterministic IR and four tasks. Unchanged CD1009N passes.
+  - [ ] Complete the general freezing audit, including deferred defaults,
+    tagged/callable entities, generic contracts and nonrecord representation
+    items. Broader unaligned component categories, nondefault bit order and
+    Pack retain separate gaps in the matrix.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada

@@ -213,9 +213,10 @@ rights/disclaimers.
 The Phase 8 derived-layout increment adds unchanged
 [CD4051B](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd4051b.ada)
 and [CD1C04E](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd1c04e.ada).
-Both pass and were retrieved on 2026-11-04. CD1009N requires representation
-items across a package's visible/private boundary. The current adjacency
-rule rejects that placement.
+Both pass and were retrieved on 2026-11-04. The record freezing increment
+adds unchanged CD1009N, which passes placement across a package specification's
+visible/private boundary. The file was retrieved on 2026-11-04.
+[CD1009N source](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/cd/cd1009n.ada)
 
 | File | Upstream git blob | SHA-256 |
 | --- | --- | --- |
@@ -224,6 +225,7 @@ rule rejects that placement.
 | cd4031a.ada | `936088d6502a611b2a04e5f289743f7668948d0a` | `c32e432ec7e5aafd7c5f541ac1140cc82df7595029c5a62e54571bd264e1db55` |
 | cd4051b.ada | `1cd440f44f94d084d8025b01f0d0b9ed52dc38ca` | `9f418832de9b82bc7a462b89dd1e258b19da8050c8da12f65af544e4e71c49bc` |
 | cd1c04e.ada | `21c7a7eef6a25bee707488d896bb52a45212711c` | `35d85523fc537252193a22d1f6a1b62fac3adde0e29c59cc9a033eaa279a7686` |
+| cd1009n.ada | `9ebcaa106a749d62c9789d5b07b387ba0fc942b9` | `c7ff509cee279dcd5d3b0181919a59318c047d3970cc73e8b185c8cf2fafae67` |
 
 C3A0013 comes from [GCC releases/gcc-15 c3/c3a0013.a](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c3a0013.a),
 retrieved 2026-10-24 and stored as `c3a0013.ada` unchanged, including rights

@@ -156,6 +156,7 @@ private:
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnRenamings;
     std::vector<std::pair<Symbol*, SourceLocation>> m_noReturnAccesses;
     std::unordered_set<Type*> m_storageControlledTypes;
+    std::unordered_set<Type*> m_frozenRecordLayouts;
     uint32_t activeCheckPermissions() const;
     bool m_assertionsEnabled = true;
     uint32_t m_suppressedChecks = 0;
@@ -212,7 +213,9 @@ private:
     void analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope);
     void layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope);
     void reportIncompleteTypes(DeclList& declarations);
-    void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);
+    void freezeRecordLayout(Type* type);
+    void freezeDeclaredRecordLayouts(const DeclList& declarations);
+    void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type);
     void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);
     void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,

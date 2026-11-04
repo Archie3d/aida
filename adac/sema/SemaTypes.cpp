@@ -1648,7 +1648,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         return;
     }
     if (decl->attribute == "record") {
-        analyzeRecordRepresentation(decl, scope, symbol->type, precedingType);
+        analyzeRecordRepresentation(decl, scope, symbol->type);
         return;
     }
     if (decl->attribute == "enumeration") {
@@ -1666,7 +1666,11 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             m_diagnostics.error(decl->location, "duplicate Alignment clause");
             return;
         }
-        if (type != precedingType || type->scalarBase != nullptr) {
+        if (type->kind == TypeKind::Record && m_frozenRecordLayouts.contains(type)) {
+            m_diagnostics.error(decl->location, "a record Alignment clause must precede freezing of the record layout");
+            return;
+        }
+        if (type->kind != TypeKind::Record && (type != precedingType || type->scalarBase != nullptr)) {
             m_diagnostics.error(decl->location, "an Alignment clause must be adjacent to its type declaration, before representation use");
             return;
         }
@@ -1743,6 +1747,11 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "a size clause requires a complete, visible representation");
         return;
     }
+    bool untaggedRecord = type->kind == TypeKind::Record && !type->tagged;
+    if (untaggedRecord && m_frozenRecordLayouts.contains(type)) {
+        m_diagnostics.error(decl->location, "a record Size clause must precede freezing of the record layout");
+        return;
+    }
     Type* valueType = analyzeExpr(decl->value.get(), scope, nullptr);
     if (valueType == nullptr) {
         return;
@@ -1777,7 +1786,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
                 m_diagnostics.error(decl->location, "a tagged subtype Size clause cannot change its type layout");
                 return;
             }
-            if (type != precedingType) {
+            if (!untaggedRecord && type != precedingType) {
                 m_diagnostics.error(decl->location, "a size-changing clause must be adjacent to its type or subtype declaration, before representation use");
                 return;
             }
@@ -1797,6 +1806,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         }
         type->specifiedSize = bytes;
         m_types.refreshStorageRepresentation(type);
+        if (untaggedRecord && type->isSubtype) { freezeRecordLayout(baseType(type)); }
         return;
     }
     if (bytes != typeSize(type) && type->isSubtype
