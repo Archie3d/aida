@@ -1206,16 +1206,23 @@ Ada 2005 additions and track annex packages separately.
     `storageelements` / `storageelementerrors` cover whole/separate/deterministic
     compilation, four workers, slices/aliases, foreign bytes and failure paths;
     `runtime.storage_elements` checks 80,224 boundary/random pairs on four threads.
-    Unchanged CD30002 now reaches object-alignment/stride-padding limits; CD70001
-    remains blocked by the next address-conversion child. Neither counts as PASS.
+    Unchanged CD30002 retains object-alignment/stride-padding limits and is not
+    PASS; CD70001 now passes after the following address-conversion increment.
     Release 1,809/1,809; 19 focused ASan/UBSan checks pass; 145 backfill
     outcomes unchanged. [Choices, limits and evidence](docs/storage-elements.md).
-  - [ ] **System.Address_To_Access_Conversions (13.7.2).** Implement the generic
-    Object_Pointer view and To_Pointer/To_Address operations. Preserve null and
-    address identity, designated-type/alignment rules and documented restrictions
-    for unconstrained objects. Cover aliased objects/components, conversions,
-    generic instances and lifetime boundaries; conversion must not manufacture
-    ownership or extend an object's lifetime.
+  - [x] **System.Address_To_Access_Conversions (13.7.2).** Source generic,
+    distinct access-all Object_Pointer types and intrinsic conversion profiles.
+    Aligned thin-pointer/null identity without conversion ownership or lifetime
+    extension; ordinary instance allocators/deallocation remain functional.
+    Definite fixed-layout scalar, private, limited/controlled record and constrained
+    array actuals supported; runtime layouts, discriminants, class-wide and
+    task/protected parts have explicit permitted instantiation restrictions.
+    `addressconversions`, profile/legality errors and native four-thread controls
+    cover whole/separate/deterministic builds, aliases, foreign storage and cleanup.
+    Unchanged CD70001/CD72A01 execute as PASS with unchanged official FD72A00;
+    CD72A02 remains blocked by Phase 9 syntax. Release 1,818/1,818 and 12 focused
+    ASan/UBSan checks pass; all 145 backfill outcomes unchanged.
+    [Contract, choices and evidence](docs/address-conversions.md).
   - [ ] **Ada.Storage_IO (A.9).** Implement the generic profile, Buffer_Size,
     Buffer_Type and Read/Write using Storage_Elements. Cover buffer extent and
     representation, scalar/composite round trips, padding/invalid-data policy,

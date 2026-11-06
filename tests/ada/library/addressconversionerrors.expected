@@ -1,0 +1,13 @@
+addressconversionerrors.adb:5:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:9:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:11:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:14:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:20:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:30:5: error: Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts
+addressconversionerrors.adb:33:39: error: 'Access of intrinsic subprograms is not allowed
+addressconversionerrors.adb:34:45: error: 'Access of intrinsic subprograms is not allowed
+addressconversionerrors.adb:36:32: error: 'Access of intrinsic subprograms is not allowed
+addressconversionerrors.adb:37:69: error: no subprogram matches the renaming profile
+addressconversionerrors.adb:41:5: error: the assigned value has an incompatible type
+addressconversionerrors.adb:42:23: error: no visible subprogram matches this call
+addressconversionerrors.adb:43:23: error: no visible subprogram matches this call

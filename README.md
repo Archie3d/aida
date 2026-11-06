@@ -118,7 +118,8 @@ Supported:
   UTF-8 source and Unicode identifiers, scalar text attributes and character conversions
   ([contract](docs/wide-foundation.md))
 - `Standard.ASCII` and `System` configuration, numeric, address, bit-order and priority declarations ([choices](docs/standard-system.md));
-  `System.Storage_Elements` byte storage, address arithmetic and integer conversions ([contract](docs/storage-elements.md))
+  `System.Storage_Elements` byte storage and address arithmetic ([contract](docs/storage-elements.md));
+  `Address_To_Access_Conversions` for definite fixed-layout objects ([limits](docs/address-conversions.md))
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,

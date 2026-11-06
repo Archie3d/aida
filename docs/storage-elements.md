@@ -93,15 +93,15 @@ unchanged Ada 95 cases from pinned ACATS revision
   explicit local Impdef alignment adapter, it still rejects four object Alignment
   clauses and one scalar alignment requiring stride padding. It is not a pass
   or a target/linker-alignment validation.
-- CD70001 covers System and Storage_Elements, but its unused with clause for
-  System.Address_To_Access_Conversions still blocks compilation. No placeholder
-  predefined package is supplied; this is the next implementation item.
+- CD70001 now executes unchanged as PASS after
+  [Address_To_Access_Conversions](address-conversions.md) supplies its previously
+  missing child dependency; it joins the regular ACATS label.
 
 Sources retain their original bytes and rights notices. The separate
 [assessment manifest](../tests/acats/storage_elements/manifest.json) records
 SHA-256/Git-blob hashes, exact diagnostics and outcomes. The
-`baseline.storage_elements_acats` control checks those observations; neither
-rejection is in the ACATS PASS label. Re-run it after implementing the remaining
+`baseline.storage_elements_acats` control checks remaining rejection observations
+and source hashes; executable PASS cases are checked separately under ACATS. Re-run it after implementing the remaining
 prerequisites rather than retaining obsolete rejection guards.
 
 Final validation: Release 1,809/1,809 CTest checks pass. Nineteen distinct focused

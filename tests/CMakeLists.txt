@@ -2432,6 +2432,29 @@ add_test(NAME runtime.storageelements_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.storageelements determinism.storageelements
     runtime.storageelements_modes PROPERTIES TIMEOUT 120)
+add_ada_error_test(addressconversionprofileerrors SOURCES library/bad_address_conversion.ads library/addressconversionprofileerrors.adb)
+add_ada_error_test(addressconversionerrors SOURCES library/addressconversionerrors.adb)
+add_ada_test(addressconversions SOURCES library/addressconversions.adb)
+add_determinism_test(addressconversions SOURCE library/addressconversions.adb)
+add_test(NAME runtime.addressconversions_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/addressconversions.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/addressconversions.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/addressconversions-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.addressconversions determinism.addressconversions
+    runtime.addressconversions_modes PROPERTIES TIMEOUT 120)
+add_executable(address_conversions_test AddressConversionsTest.c)
+target_link_libraries(address_conversions_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.address_conversions COMMAND address_conversions_test)
+set_tests_properties(runtime.address_conversions PROPERTIES TIMEOUT 30)
 add_executable(storage_elements_test StorageElementsTest.c)
 target_link_libraries(storage_elements_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.storage_elements COMMAND storage_elements_test)

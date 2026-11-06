@@ -1892,6 +1892,32 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
     }
 
     applyGenericUses(generic->generic, formals.size(), bindings, decl->formalTypes);
+    if (generic->generic->lower == "system.address_to_access_conversions") {
+        Symbol* object = lookupName("object", bindings);
+        Type* type = object != nullptr ? object->type : nullptr;
+        auto fixedLayout = [&](auto&& self, Type* view) -> bool {
+            if (view == nullptr) { return false; }
+            if (view->genericFormal) { return true; } // Recheck the concrete instance.
+            if (view->classRoot != nullptr || view->isIncomplete || hasRuntimeLayout(view)
+                || view->dependentStorage || hasTasks(view) || hasProtected(view)
+                || (view->kind == TypeKind::Record && view->discriminantCount != 0)) { return false; }
+            if (view->kind == TypeKind::Array) {
+                return view->boundsSymbol == nullptr && view->boundExpressions.empty() && self(self, view->element);
+            }
+            if (view->kind == TypeKind::Record) {
+                for (const FieldInfo& field : view->fields) {
+                    if (!self(self, field.type)) { return false; }
+                }
+            }
+            return true;
+        };
+        if (!fixedLayout(fixedLayout, type)) {
+            m_diagnostics.error(decl->location,
+                "Address_To_Access_Conversions currently requires a definite fixed-layout object type without class-wide, discriminated, task or protected parts");
+            return false;
+        }
+    }
+
     // The predefined deallocator uses a private formal in its source until
     // general formal access types are implemented. Preserve its actual access
     // contract rather than accepting arbitrary private types as pointers.
@@ -2073,6 +2099,31 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                 symbol->instanceTemplate = generic;
                 symbol->instanceBindings = bindings;
                 symbol->instanceSpecification = symbol;
+                if (generic->generic->lower == "system.address_to_access_conversions") {
+                    Symbol* pointerName = lookupName("object_pointer", symbol->scope);
+                    Symbol* object = lookupName("object", bindings);
+                    Type* pointer = pointerName != nullptr && pointerName->kind == SymbolKind::TypeName ? pointerName->type : nullptr;
+                    bool pointerView = pointer != nullptr && pointer->kind == TypeKind::Access
+                        && pointer->generalAccess && !pointer->accessConstant && pointer->accessProfile == nullptr
+                        && object != nullptr && SemaSupport::staticallyMatches(pointer->target, object->type);
+                    for (const std::string name : { "to_pointer", "to_address" }) {
+                        bool forward = name == "to_pointer";
+                        auto operations = symbol->scope->lookupLocal(name);
+                        Symbol* operation = operations.size() == 1 ? operations.front() : nullptr;
+                        bool profile = pointerView && operation != nullptr && operation->kind == SymbolKind::Subprogram
+                            && operation->parameters.size() == 1 && operation->parameters[0]->mode == ParameterMode::In
+                            && rootType(operation->parameters[0]->type) == (forward ? m_addressType : pointer)
+                            && rootType(operation->returnType) == (forward ? pointer : m_addressType)
+                            && operation->builtin == BuiltinKind::Runtime && !operation->importAda
+                            && operation->runtimeSymbol == (forward ? "$__ada_address_to_pointer" : "$__ada_pointer_to_address");
+                        if (!profile) {
+                            m_diagnostics.error(decl->location, "invalid predefined Address_To_Access_Conversions " + name + " profile");
+                            continue;
+                        }
+                        if (forward) { operation->builtin = BuiltinKind::AddressToPointer; }
+                        operation->intrinsicRenaming = true;
+                    }
+                }
             }
             if (symbol->kind == SymbolKind::Subprogram) {
                 if (generic->generic->lower == "ada.unchecked_conversion") {

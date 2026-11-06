@@ -14,6 +14,10 @@
 #include "../common/FloatAttributes.h"
 #include "../common/Array.h"
 
+/* System.Address_To_Access_Conversions: nonowning pointer representations. */
+void* __ada_address_to_pointer(void* value, int64_t alignment);
+void* __ada_pointer_to_address(void* value);
+
 /* System.Storage_Elements: integer arithmetic on pointer representations. */
 void* __ada_storage_add(void* left, int64_t right);
 void* __ada_storage_offset_add(int64_t left, void* right);

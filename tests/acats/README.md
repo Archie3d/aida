@@ -1026,3 +1026,13 @@ now resolves for CD30002; object alignment and scalar stride padding still block
 it under the explicit local Impdef settings. CD70001 still needs the next
 address-to-access child. Neither observation is a conformance pass. The original
 145-case backfill outcomes are unchanged.
+
+Address-conversion follow-up: unchanged CD70001 and CD72A01 are regular executable
+PASS cases. CD72A01 uses original FD72A00 and an explicit local
+Impdef.Address_Value_IO = Modular_IO(Integer_Address) adapter. CD72A02 remains a
+rejection for task-entry/select syntax and is not a conformance pass. The extended
+`storage_elements/manifest.json` pins all source/support hashes and eligibility;
+its baseline control retains only live rejection guards and delegates PASS
+execution to the ACATS tests. The original 145 backfill outcomes are unchanged.
+See [the contract](../../docs/address-conversions.md) for permitted instance limits
+and ownership/alignment choices.

@@ -20,6 +20,9 @@ if(NAME STREQUAL "cxah001" OR NAME STREQUAL "cxah002" OR NAME STREQUAL "cxag001"
     list(APPEND extra_support "${ROOT}/support/impdef.ads" "${ROOT}/support/impdef.adb")
     set(host_environment "${CMAKE_COMMAND}" -E env --unset=AIDA_ACATS_WRITE AIDA_ACATS_READ=host-test)
 endif()
+if(NAME STREQUAL "cd72a01" OR NAME STREQUAL "cd72a02")
+    list(APPEND extra_support "${ROOT}/address_conversions/impdef.ads" "${ROOT}/upstream/fd72a00.a")
+endif()
 set(test_sources "${ROOT}/upstream/${NAME}.ada")
 if(DEFINED SOURCE_LIST AND NOT SOURCE_LIST STREQUAL "")
     string(REPLACE "|" ";" source_names "${SOURCE_LIST}")
@@ -28,10 +31,13 @@ if(DEFINED SOURCE_LIST AND NOT SOURCE_LIST STREQUAL "")
         list(APPEND test_sources "${ROOT}/upstream/${source}")
     endforeach()
 endif()
+set(source_arguments)
+foreach(source IN LISTS extra_support test_sources)
+    list(APPEND source_arguments --source "${source}")
+endforeach()
 execute_process(
     COMMAND "${ADA}" -o "${program}"
-        "${ROOT}/support/report.ads" "${ROOT}/support/report.adb" ${extra_support}
-        ${test_sources}
+        "${ROOT}/support/report.ads" "${ROOT}/support/report.adb" ${source_arguments}
     WORKING_DIRECTORY "${work}"
     TIMEOUT 40
     RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors

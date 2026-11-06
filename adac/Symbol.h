@@ -31,7 +31,10 @@ enum class BuiltinKind
     // A plain call into the run time library.  The symbol names the C entry
     // point and the parameter list drives how the arguments are marshalled, so
     // that a whole package can be declared without new code in the emitter.
-    Runtime
+    Runtime,
+    // Predefined address conversion supplies designated alignment as a hidden
+    // runtime argument, with no access collection or ownership adaptation.
+    AddressToPointer
 };
 
 struct Symbol

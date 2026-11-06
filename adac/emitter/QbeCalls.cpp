@@ -75,8 +75,16 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         return Value { "0", 'w' };
     }
     Symbol* intrinsic = subprogram;
-    while (!intrinsic->uncheckedConversion && intrinsic->renamedSubprogram != nullptr) { intrinsic = intrinsic->renamedSubprogram; }
+    while (!intrinsic->uncheckedConversion && intrinsic->builtin != BuiltinKind::AddressToPointer
+        && intrinsic->renamedSubprogram != nullptr) { intrinsic = intrinsic->renamedSubprogram; }
     if (intrinsic->uncheckedConversion) { return emitUncheckedConversion(expr); }
+    if (intrinsic->builtin == BuiltinKind::AddressToPointer) {
+        Value address = emitExpr(expr->resolvedArguments.front());
+        std::string result = newTemp();
+        emitCallInstruction(result + " =l call $__ada_address_to_pointer(l " + address.name
+            + ", l " + std::to_string(typeAlignment(intrinsic->returnType->target)) + ")", CallEffects::CheckException);
+        return Value { result, 'l' };
+    }
     if (subprogram->classWideWrapper || subprogram->classWideResultRenaming) {
         Symbol* target = subprogram;
         while (!target->classWideWrapper && target->renamedSubprogram != nullptr) {

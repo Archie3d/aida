@@ -9,8 +9,8 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 111 source specifications plus builtin Standard: 112 resolving
-units, with nine absent units. System is now an analyzed source specification,
+inventory covers 112 source specifications plus builtin Standard: 113 resolving
+units, with eight absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
 missing-unit diagnostics.
@@ -24,7 +24,6 @@ identified separately.
 | Storage_IO | A.9 | Typed representation buffers and Read/Write |
 | Tags.Generic_Dispatching_Constructor | 3.9 | Generic profiles and construction by tag |
 | Text_IO.Text_Streams and both wide families | A.12.2–A.12.4 | Mixed byte/text operations, lookahead and UTF-8 state |
-| System.Address_To_Access_Conversions | 13.7.2 | Object-pointer views and address/access conversions |
 | System.Storage_Pools | 13.11 | User-defined pools and allocator/deallocator integration |
 
 The original audit pinned 22 partial-API observations: missing System names
@@ -38,8 +37,9 @@ Ada 2012 additions are outside this language target. Specialized-needs annex
 facilities retain their separate matrix scope, including full tasking/priority
 services in Phase 9. The missing families and partial APIs now have explicit
 [Phase 8 implementation items](../TODO.md#predefined-library-implementation),
-added after the audit; Standard/System and Storage_Elements are complete, while
-the remaining items stay open.
+added after the audit; Standard/System, Storage_Elements and
+[Address_To_Access_Conversions](address-conversions.md) are complete for their
+documented target choices/restrictions, while the remaining items stay open.
 
 ## Supported API repairs
 

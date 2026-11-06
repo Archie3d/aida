@@ -17,10 +17,42 @@
       "sha256": "a7938c06d9c5aceb2389889cc66705f4957830bb047a73b69cd41f532e042dc0",
       "git_blob": "484009588046cd59d9b9b035a10585beef7a7978",
       "source": "upstream/cd70001.a",
+      "outcome": "PASS",
+      "note": "The address-conversion child now resolves; executed unchanged by acats.cd70001."
+    },
+    {
+      "source": "upstream/cd72a01.a",
+      "sha256": "f208ebdc592679af4cea27cbafae2fc702a19105b0f90bc59a969afd9d451f08",
+      "git_blob": "9c98cb0c67eeec70fccb279a612fbe1f114534d0",
+      "id": "cd72a01",
+      "outcome": "PASS",
+      "support": [
+        "address_conversions/impdef.ads",
+        "upstream/fd72a00.a"
+      ],
+      "note": "Ada 95 case and official FD72A00 support execute unchanged via acats.cd72a01. The explicit Impdef.Address_Value_IO adapter is Modular_IO(Integer_Address)."
+    },
+    {
+      "source": "upstream/cd72a02.a",
+      "sha256": "ee9305b21e65e167dba43bd017498cce5443d67ace02222ef4caf896ec66f6b8",
+      "git_blob": "f396edc19f3672f58c995a9788c148f301a5e554",
+      "id": "cd72a02",
       "outcome": "COMPILE_REJECTED",
-      "expected": "cd70001.a:55:1: error: cannot find the unit 'System.Address_To_Access_Conversions'\n",
-      "note": "The unchanged case has an unused with of System.Address_To_Access_Conversions, the next roadmap item. No predefined-package stub is supplied."
+      "support": [
+        "address_conversions/impdef.ads",
+        "upstream/fd72a00.a"
+      ],
+      "expected": "cd72a02.a:95:28: error: task entries, interfaces and task definition items are not yet supported\ncd72a02.a:108:7: error: select statements are not yet supported\ncd72a02.a:190:7: error: select statements are not yet supported\n",
+      "note": "Parsing stops at existing Phase 9 task-entry/select syntax. This is not a pass or a test of the remaining class-wide/protected conversions; local rejection controls separately check the documented instantiation restrictions."
     }
   ],
-  "archive_note": "Original bytes extracted from the pinned GitHub archive already used by the ACATS adoption/backfill reviews; upstream root and PAX comment identify the revision."
+  "archive_note": "Original bytes extracted from the pinned GitHub archive already used by the ACATS adoption/backfill reviews; upstream root and PAX comment identify the revision.",
+  "support_files": [
+    {
+      "source": "upstream/fd72a00.a",
+      "sha256": "6fddb2b8f77f98b393f02754398d4b9282c3d18e878f2de7c6744f9f97ab22ee",
+      "git_blob": "fe662ca2601be823fe74abec124104c856b54371",
+      "upstream_source": "support/fd72a00.a"
+    }
+  ]
 }

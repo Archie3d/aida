@@ -703,9 +703,9 @@
     {
       "name": "system.address_to_access_conversions",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "13.7.2",
-      "gap": "address/access conversions"
+      "source": "runtime/ada/system-address_to_access_conversions.ads"
     },
     {
       "name": "system.storage_elements",
@@ -781,6 +781,7 @@
   ],
   "implemented_api_controls": {
     "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers",
-    "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls"
+    "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls",
+    "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension"
   }
 }

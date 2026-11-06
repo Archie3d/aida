@@ -45,3 +45,18 @@ uint64_t __ada_storage_to_integer(void* value)
 {
     return (uintptr_t)value;
 }
+
+void* __ada_address_to_pointer(void* value, int64_t alignment)
+{
+    if (alignment < 1 || ((uint64_t)alignment & ((uint64_t)alignment - 1)) != 0
+        || (value != NULL && (uintptr_t)value % (uint64_t)alignment != 0)) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    return value;
+}
+
+void* __ada_pointer_to_address(void* value)
+{
+    return value;
+}

@@ -18,6 +18,8 @@ endfunction()
 
 # Three-bit enumeration storage with the unchanged official Length_Check unit.
 add_acats_test(cd2a22a)
+add_acats_test(cd70001 SOURCES cd70001.a)
+add_acats_test(cd72a01 SOURCES cd72a01.a)
 add_acats_test(cd3014a)
 add_acats_test(cd3014d)
 add_acats_test(c354002)
