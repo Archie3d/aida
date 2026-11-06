@@ -17,6 +17,10 @@
       "sha256": "c854401d7b25cc9d4e42b1e77e77a49b3d1fcc9b1ac38130de0753b8267c8237",
       "git_blob": "81bdfaefb2ddc57f97855ee2c562dd014aa4264f"
     },
+    "support/lencheck.ada": {
+      "sha256": "6599d2cfdae9dca7602a03d93bbb0a9c5abd14328d4da5ddc09585a13e55f9bd",
+      "git_blob": "f8ed1385bff145a2c8f44c6aee4f97d917c8f421"
+    },
     "tests/b3/b330001.a": {
       "sha256": "8f9bdf304520a59f04d3e22b1eb973c296f4483e7cdea93e63451eca76a64db0",
       "git_blob": "cfb9f47f05dd18532d3869fdfed904893f5a4ee8"
@@ -56,6 +60,18 @@
     "tests/b3/b394a02.a": {
       "sha256": "adf85f40d9c90ee43a3ca141e46af1d2f4bb81c067730978417a7dcf24627d07",
       "git_blob": "4b8f736b968b9aabc33f65dba8b0f27e0c54ceb1"
+    },
+    "tests/b3/b394a03.a": {
+      "sha256": "a841defb5c1f45e65f09ec1405fd3169e48f2749c6ee6d82d44dd9ec6b0f1f20",
+      "git_blob": "0957c26e3793acb229a0204b3c2c53613836e9b6"
+    },
+    "tests/b3/b394a04.a": {
+      "sha256": "d717ee36aa03038bf3c7b068c8be0f95400c960fb37f9622aa7670ed699143c3",
+      "git_blob": "9ff3c42389b4001244904a9311d947ee548cefab"
+    },
+    "tests/b3/b394a05.a": {
+      "sha256": "209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7",
+      "git_blob": "fbb331bb7566d5e1bcb98534ef084e2000f41e84"
     },
     "tests/b3/b3a0001.a": {
       "sha256": "492913ed541a701e2f961940c3cf1ab66209ed27c8b0395d7cbc7d06c27818dc",
@@ -104,6 +120,10 @@
     "tests/b8/b840001.a": {
       "sha256": "2fff0719a37044502034fe3f4bdae70f6776cc3d90bb5141297a25eac2bfa559",
       "git_blob": "f9a9fc7cc279e67d6259d300e07686e89e200467"
+    },
+    "tests/bc/bc60001.a": {
+      "sha256": "88b039164aec66ec5778b818248a32c3a9ee1ee3c8519bb3835d9037bd508396",
+      "git_blob": "3e53066491ed69675b44429dba72dc8b190b6427"
     },
     "tests/c3/c34001a.ada": {
       "sha256": "11cb5b697402b98aa2c2cc3d02cdab60400e96da04c93d8073082fd22785c7dc",
@@ -280,6 +300,26 @@
     "tests/c3/c3a0008.a": {
       "sha256": "4192253aafa6feb0c8da73cfb7bd47119b62d658fd6bc814ae23f65313cd9260",
       "git_blob": "6cd9ce3ddf0c1a6a6f2e93e25a93b3226ab788b8"
+    },
+    "tests/c3/c3a0019.a": {
+      "sha256": "73a1ba4a1eec2fbad51a928a1ae21e90bf29310d6d533c57b48238aaa657a1cf",
+      "git_blob": "ab550dab22893e30c51299359141676fa607fd60"
+    },
+    "tests/c3/c3a0021.a": {
+      "sha256": "a06df1be62e4820b8df2e764a53ff3901791103f4ed2fe093a6dc5a3f7371b4d",
+      "git_blob": "232fb5d64b71d1165888e1106af7dca9d84c3885"
+    },
+    "tests/c3/c3a0022.a": {
+      "sha256": "9a05e0fa3cd4431294f8910a6edf25418d353bebb3f459fcecb9f33acfe72baa",
+      "git_blob": "a52373c16df110f3cd511821849501749d1be9f4"
+    },
+    "tests/c3/c3a0023.a": {
+      "sha256": "f6392ee6a799858340a572b43ab065c3b630639a674a4759187ab18ae2575eca",
+      "git_blob": "3d99e27a0020b7cbb96c716884b7851367b5ad01"
+    },
+    "tests/c3/c3a0024.a": {
+      "sha256": "eb4d2142d378510248573351f23fe929db72b2d3173b1f59b9a03b21d66cc3ae",
+      "git_blob": "0da931c6c8efbc0445ba45c15feec4cea56dadaa"
     },
     "tests/c4/c41103a.ada": {
       "sha256": "6e13bc8b86cb0def76ad4a4624e32ea676dae6fcc3201e8a59128337739e8c3f",
@@ -517,21 +557,49 @@
       "sha256": "0c2ab7d38a0afa56d3eb8a69bd9869ae39dc91dbe11ac15488e51ad69b35553a",
       "git_blob": "9f9e2a283554864b1be8636b2a0fa2c228332c1e"
     },
-    "tests/b3/b394a03.a": {
-      "sha256": "a841defb5c1f45e65f09ec1405fd3169e48f2749c6ee6d82d44dd9ec6b0f1f20",
-      "git_blob": "0957c26e3793acb229a0204b3c2c53613836e9b6"
+    "tests/cc/cc3603a.ada": {
+      "sha256": "6f179e3cbc84e6e9e482a53b65d947327d9fa9241bf3650db8107cd26df906e6",
+      "git_blob": "45e65b25f69b4549e98ded1a44e08a4ef4884549"
     },
-    "tests/b3/b394a04.a": {
-      "sha256": "d717ee36aa03038bf3c7b068c8be0f95400c960fb37f9622aa7670ed699143c3",
-      "git_blob": "9ff3c42389b4001244904a9311d947ee548cefab"
+    "tests/cc/cc3605a.ada": {
+      "sha256": "69a6b86efc51fccbefa33708e86c092dc566f70334073c358ecbd669dcf2da85",
+      "git_blob": "b9fb50b1b90d82834a09706e0c144cca28d86829"
     },
-    "tests/b3/b394a05.a": {
-      "sha256": "209555a4c8a6e07b174ef8b4ee49bb9b08ac430c94b1408b3b589298bac9c2b7",
-      "git_blob": "fbb331bb7566d5e1bcb98534ef084e2000f41e84"
+    "tests/cc/cc3606a.ada": {
+      "sha256": "17a6bad19c45192fea1bd2dab5d401668db9e2345d977e847882492fcec7ce8e",
+      "git_blob": "4d63b7143ceed014075e467a40c0a8cf426f934f"
     },
-    "tests/bc/bc60001.a": {
-      "sha256": "88b039164aec66ec5778b818248a32c3a9ee1ee3c8519bb3835d9037bd508396",
-      "git_blob": "3e53066491ed69675b44429dba72dc8b190b6427"
+    "tests/cc/cc3606b.ada": {
+      "sha256": "36fadd7a77eba4fac6d9f973edec871419aab6cdab682ab97b908c3137b57d17",
+      "git_blob": "79dc8a7ba0efd768532b5395ec754fe61684bd23"
+    },
+    "tests/cd/cd2a22e.ada": {
+      "sha256": "6c0cbe4e1b2bd902d647ac2d7b06ce052f5653f26009cfd5155486f5133d93b4",
+      "git_blob": "28df8bef6e69bf440bad6db9b8cf2d17b8bea698"
+    },
+    "tests/cd/cd2a22i.ada": {
+      "sha256": "47638276e0fbe4b7ab4aab3b1dad688bd5bf9f939320a795504331bd8e120945",
+      "git_blob": "2dbe503414ec0b143f7352f0c037f4469d4f1623"
+    },
+    "tests/cd/cd2a22j.ada": {
+      "sha256": "737218948c5301a58d1f24b06bb3b447fa54c3820fa936ee3bc623394bfb2c40",
+      "git_blob": "89737c746d13b62e48847532d5ba2eb91f9e3cdc"
+    },
+    "tests/cd/cd2a24a.ada": {
+      "sha256": "90244781c9743ebce0d7a9a97cfc7b11555d7ffb6ba8df54f4d4523cd41fbd96",
+      "git_blob": "ccb84affdf7f2b86ee56a152d0fa01cc35d08ab8"
+    },
+    "tests/cd/cd2a24e.ada": {
+      "sha256": "4603a47ded4acb5dd02e61c4d2cb0bb57d18c1e39007832aa2e3e213cad14967",
+      "git_blob": "40ec754be07d4acaa2fa2b347add4ad3a0c56e67"
+    },
+    "tests/cd/cd2a24i.ada": {
+      "sha256": "6feb6ad4878f7cd06f35cbd5141ceebc152ab260232dc124a2bba66a451d44e3",
+      "git_blob": "494516bf019495075a591b96c0bd632c9222d201"
+    },
+    "tests/cd/cd2a24j.ada": {
+      "sha256": "6ed2d3c4e21cc63a75dbafd97447e56bab2f2262c1aa69dc007fe448d02823e3",
+      "git_blob": "2a9fd8175d60b5a77a163a5c5a34f92c75340777"
     }
   },
   "cases": [
@@ -3022,6 +3090,328 @@
         "owner": "P8 B-test grading",
         "note": "Unchanged Ada 2005 null-default legality source. Local genericnull* tests isolate legal controls, execution, matching, intrinsic renamings and replay; frozen rejection is not a graded legality pass."
       }
+    },
+    {
+      "id": "cd2a22e",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT IF A SIZE CLAUSE SPECIFYING THE SMALLEST SIZE APPROPRIATE FOR AN UNSIGNED REPRESENTATION IS GIVEN FOR AN ENUMERATION TYPE, THEN OPERATIONS ON VALUES OF SUCH A TYPE ARE NOT AFFECTED BY THE REPRESENTATION CLAUSE.",
+      "sources": [
+        "tests/cd/cd2a22e.ada"
+      ],
+      "report_name": "CD2A22E",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a22i",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT IF A SIZE CLAUSE SPECIFIES THE SMALLEST APPROPRIATE SIZE FOR A SIGNED REPRESENTATION FOR AN ENUMERATION TYPE, THEN THE TYPE CAN BE USED AS AN ACTUAL PARAMETER IN AN INSTANTIATION.",
+      "sources": [
+        "tests/cd/cd2a22i.ada"
+      ],
+      "report_name": "CD2A22I",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a22j",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT WHEN A SIZE SPECIFICATION IS GIVEN FOR AN ENUMERATION TYPE, THEN SUCH A TYPE OF THE SMALLEST APPROPRIATE UNSIGNED SIZE CAN BE PASSED AS AN ACTUAL PARAMETER TO A GENERIC PROCEDURE.",
+      "sources": [
+        "support/lencheck.ada",
+        "tests/cd/cd2a22j.ada"
+      ],
+      "report_name": "CD2A22J",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a24a",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT WHEN A SIZE SPECIFICATION AND AN ENUMERATION REPRESENTATION CLAUSE ARE GIVEN FOR AN ENUMERATION TYPE, THEN OPERATIONS ON VALUES OF SUCH A TYPE WITH THE SMALLEST APPROPRIATE SIGNED SIZE ARE NOT AFFECTED BY THE REPRESENTATION CLAUSE.",
+      "sources": [
+        "support/lencheck.ada",
+        "tests/cd/cd2a24a.ada"
+      ],
+      "report_name": "CD2A24A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a24e",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT IF A SIZE CLAUSE AND AN ENUMERATION REPRESENTATION CLAUSE ARE GIVEN FOR AN ENUMERATION TYPE, AND THE SMALLEST SIZE APPROPRIATE FOR AN UNSIGNED REPRESENTATION IS SPECIFIED, THEN OPERATIONS ON THE TYPE ARE NOT AFFECTED.",
+      "sources": [
+        "tests/cd/cd2a24e.ada"
+      ],
+      "report_name": "CD2A24E",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a24i",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT IF A SIZE CLAUSE (SPECIFYING THE SMALLEST APPROPRIATE SIZE FOR A SIGNED REPRESENTATION) AND AN ENUMERATION REPRESENTATION CLAUSE ARE GIVEN FOR AN ENUMERATION TYPE, THEN THE TYPE CAN BE USED AS AN ACTUAL PARAMETER IN AN INSTANTIATION.",
+      "sources": [
+        "tests/cd/cd2a24i.ada"
+      ],
+      "report_name": "CD2A24I",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "cd2a24j",
+      "class": "C",
+      "area": "representation",
+      "owner": "P8 bit storage",
+      "rm": "13.2\u201313.4, 12.3, 13.9",
+      "objective": "CHECK THAT IF A SIZE CLAUSE (SPECIFYING THE SMALLEST APPROPRIATE SIZE FOR AN UNSIGNED REPRESENTATION) AND AN ENUMERATION REPRESENTATION CLAUSE ARE GIVEN FOR AN ENUMERATION TYPE, THEN THE TYPE CAN BE USED AS AN ACTUAL PARAMETER IN AN INSTANTIATION.",
+      "sources": [
+        "tests/cd/cd2a24j.ada"
+      ],
+      "report_name": "CD2A24J",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P8 bit storage",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited enumeration Size/mapping and generic objectives applicable to Ada 2005. Where present, 2014 history entries remove Ada 2012 incompatibilities; the source uses no later-language constructs."
+    },
+    {
+      "id": "c3a0019",
+      "class": "C",
+      "area": "access_null_exclusions",
+      "owner": "P6d/P6g null exclusions",
+      "rm": "3.10, 6.1, 12.4",
+      "objective": "Check that Constraint_Error is raised when a null access value is converted to a null excluding subtype of a named access type. Case A: null_exclusion given at point of use of a general access type. Check that a null_exclusion can be given in a subtype_indication, discriminant_specification, parameter_specification, function result subtype, and formal_object_declaration if the subtype_mark is a general access subtype that does not exclude null.",
+      "sources": [
+        "tests/c3/c3a0019.a"
+      ],
+      "report_name": "C3A0019",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d/P6g null exclusions",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Ada 2005 null-exclusion syntax and semantics; whole source reviewed without later-language constructs."
+    },
+    {
+      "id": "c3a0021",
+      "class": "C",
+      "area": "access_null_exclusions",
+      "owner": "P6d/P6g null exclusions",
+      "rm": "3.10, 6.1, 12.4",
+      "objective": "Check that Constraint_Error is raised when a null access value is converted to a null excluding subtype of a named access type. Case C: null_exclusion given in a general access type definition.",
+      "sources": [
+        "tests/c3/c3a0021.a"
+      ],
+      "report_name": "C3A0021",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d/P6g null exclusions",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Ada 2005 null-exclusion syntax and semantics; whole source reviewed without later-language constructs."
+    },
+    {
+      "id": "c3a0022",
+      "class": "C",
+      "area": "access_null_exclusions",
+      "owner": "P6d/P6g null exclusions",
+      "rm": "3.10, 6.1, 12.4",
+      "objective": "Check that Constraint_Error is raised when a null access value is converted to a null excluding subtype of a named access type. Case D: null_exclusion given at point of use of a pool-specific access type. Check that a null_exclusion can be given in a subtype_indication, discriminant_specification, parameter_specification, function result subtype, and formal_object_declaration if the subtype_mark is a pool-specific access subtype that does not exclude null.",
+      "sources": [
+        "tests/c3/c3a0022.a"
+      ],
+      "report_name": "C3A0022",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d/P6g null exclusions",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Ada 2005 null-exclusion syntax and semantics; whole source reviewed without later-language constructs."
+    },
+    {
+      "id": "c3a0023",
+      "class": "C",
+      "area": "access_null_exclusions",
+      "owner": "P6d/P6g null exclusions",
+      "rm": "3.10, 6.1, 12.4",
+      "objective": "Check that Constraint_Error is raised when a null access value is converted to a null excluding subtype of a named access type. Case E: null_exclusion given in a subtype of a pool-specific access type.",
+      "sources": [
+        "tests/c3/c3a0023.a"
+      ],
+      "report_name": "C3A0023",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d/P6g null exclusions",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Ada 2005 null-exclusion syntax and semantics; whole source reviewed without later-language constructs."
+    },
+    {
+      "id": "c3a0024",
+      "class": "C",
+      "area": "access_null_exclusions",
+      "owner": "P6d/P6g null exclusions",
+      "rm": "3.10, 6.1, 12.4",
+      "objective": "Check that Constraint_Error is raised when a null access value is converted to a null excluding subtype of a named access type. Case F: null_exclusion given in a pool-specific access type definition.",
+      "sources": [
+        "tests/c3/c3a0024.a"
+      ],
+      "report_name": "C3A0024",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6d/P6g null exclusions",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Ada 2005 null-exclusion syntax and semantics; whole source reviewed without later-language constructs."
+    },
+    {
+      "id": "cc3603a",
+      "class": "C",
+      "area": "generic_subprograms",
+      "owner": "P6g formal subprograms",
+      "rm": "12.6, 6.3.1",
+      "objective": "CHECK THAT ENUMERATION LITERALS (BOTH IDENTIFIERS AND CHARACTER LITERALS) MAY BE PASSED AS ACTUALS CORRESPONDING TO GENERIC FORMAL SUBPROGRAMS.",
+      "sources": [
+        "tests/cc/cc3603a.ada"
+      ],
+      "report_name": "CC3603A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6g formal subprograms",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
+    },
+    {
+      "id": "cc3605a",
+      "class": "C",
+      "area": "generic_subprograms",
+      "owner": "P6g formal subprograms",
+      "rm": "12.6, 6.3.1",
+      "objective": "CHECK THAT SOME DIFFERENCES BETWEEN THE FORMAL AND THE ACTUAL SUBPROGRAMS DO NOT INVALIDATE A MATCH. 1) CHECK DIFFERENT PARAMETER NAMES. 2) CHECK DIFFERENT PARAMETER CONSTRAINTS. 3) CHECK ONE PARAMETER CONSTRAINED AND THE OTHER UNCONSTRAINED (WITH ARRAY, RECORD, ACCESS, AND PRIVATE TYPES). 4) CHECK PRESENCE OR ABSENCE OF AN EXPLICIT \"IN\" MODE INDICATOR. 5) DIFFERENT TYPE MARKS USED TO SPECIFY THE TYPE OF PARAMETERS.",
+      "sources": [
+        "tests/cc/cc3605a.ada"
+      ],
+      "report_name": "CC3605A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "documented_language_gap",
+        "owner": "P8 access-to-array subtype constraints (existing matrix limitation)",
+        "note": "Whole unchanged source stops at ARR_ACC_TYPE (1 .. 3), line 248: index constraints require an array type. The designated-array access-subtype limitation is already recorded for C761010 and in the coverage matrix. No generic-profile PASS is inferred from the partial source."
+      },
+      "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
+    },
+    {
+      "id": "cc3606a",
+      "class": "C",
+      "area": "generic_subprograms",
+      "owner": "P6g formal subprograms",
+      "rm": "12.6, 6.3.1",
+      "objective": "CHECK THAT THE DEFAULT EXPRESSIONS OF A FORMAL SUBPROGRAM'S FORMAL PARAMETERS ARE USED WHEN THE FORMAL SUBPROGRAM IS CALLED IN THE INSTANTIATED UNIT (RATHER THAN ANY DEFAULT ASSOCIATED WITH ACTUAL SUBPROGRAM'S PARAMETERS).",
+      "sources": [
+        "tests/cc/cc3606a.ada"
+      ],
+      "report_name": "CC3606A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6g formal subprograms",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
+    },
+    {
+      "id": "cc3606b",
+      "class": "C",
+      "area": "generic_subprograms",
+      "owner": "P6g formal subprograms",
+      "rm": "12.6, 6.3.1",
+      "objective": "CHECK THAT ANY CONSTRAINTS SPECIFIED FOR THE ACTUAL SUBPROGRAM'S PARAMETERS ARE USED IN PLACE OF THOSE ASSOCIATED WITH THE FORMAL SUBPROGRAM'S PARAMETERS (INCLUDING PARAMETERS SPECIFIED WITH A FORMAL GENERIC TYPE).",
+      "sources": [
+        "tests/cc/cc3606b.ada"
+      ],
+      "report_name": "CC3606B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P6g formal subprograms",
+        "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
+      },
+      "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
     }
   ],
   "excluded_candidates": [

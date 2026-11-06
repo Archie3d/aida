@@ -3,10 +3,11 @@
 Run after building with `ctest --test-dir build -L acats --output-on-failure`.
 The selection is offline and enabled in the normal CTest suite. This is a small
 set of inherited Ada requirements applicable to Ada 2005, not a full ACATS run
-or a claim of conformity assessment. Ada 2005-specific additions still need tests.
+or a claim of conformity assessment. The selection includes Ada 2005 additions
+and inherited objectives; it is reviewed with each feature.
 
-A completed-feature [backfill baseline](baseline/README.md) adds 129 pinned,
-unchanged cases. Its 80 observed executable passes join the normal ACATS label;
+A completed-feature [backfill baseline](baseline/README.md) adds 145 pinned,
+unchanged cases. Its 107 observed executable passes join the normal ACATS label;
 failures, support blockers and ungraded B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
@@ -1008,3 +1009,10 @@ stored unchanged as `upstream/cc70001.ada`, including rights and disclaimer.
 The complete source executes as PASS after P8 generic-child binding/loading.
 Git blob: `65681b072e1fa7ec44a8b19d23da2db77aa3ec41`.
 SHA-256: `ac9a6ddcc5009092e68d65a273422a86906ec101a910fac8aa0dbd3f59e35016`.
+
+The [Phase 8 adoption audit](../../docs/acats-adoption.md) reconciles the current
+selection and adds 16 whole unchanged sources: 15 executable passes plus the
+baseline-only CC3605A rejection for existing access-to-array subtype constraints.
+The original 129 backfill observations remain unchanged. The pinned manifest
+records language eligibility, hashes, objectives and owning limitations; the
+expanded 145-case snapshot preserves separate C/B/support grading boundaries.

@@ -8,9 +8,9 @@
   "compiler_sha256": "f3cfcfd1ece8e6788819b8ef2a289432bedad833eec41168b22e696462010baa",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
-    "COMPILE_REJECTED": 10,
+    "COMPILE_REJECTED": 11,
     "HARNESS_BLOCKED": 1,
-    "PASS": 92
+    "PASS": 107
   },
   "cases": {
     "c34001a": {
@@ -1062,6 +1062,147 @@
       "compile_stdout": "",
       "compile_stderr": "<upstream>/tests/bc/bc60001.a:60:53: error: a formal function cannot have a null default\n<upstream>/tests/bc/bc60001.a:67:13: error: a formal function cannot have a null default\n<upstream>/tests/bc/bc60001.a:79:20: error: an abstract formal subprogram cannot have a null default\n<upstream>/tests/bc/bc60001.a:86:55: error: an abstract formal subprogram cannot have a null default\n",
       "outcome": "B_REJECTED_UNGRADED"
+    },
+    "cd2a22e": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A22E\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a22i": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A22I\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a22j": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A22J\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a24a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A24A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a24e": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A24E\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a24i": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A24I\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cd2a24j": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CD2A24J\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0019": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0019\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0021": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0021\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0022": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0022\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0023": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0023\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0024": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0024\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cc3603a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CC3603A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cc3605a": {
+      "compile_exit": 1,
+      "compile_stdout": "",
+      "compile_stderr": "<upstream>/tests/cc/cc3605a.ada:248:36: error: index constraints require an array type\n",
+      "outcome": "COMPILE_REJECTED"
+    },
+    "cc3606a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CC3606A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cc3606b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CC3606B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     }
   }
 }

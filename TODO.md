@@ -1143,20 +1143,21 @@ Ada 2005 additions and track annex packages separately.
   backfill outcomes unchanged. Broader Pack policies, conversion categories
   and nondefault bit order retain explicit diagnostics and their matrix gaps.
   [Contract and evidence](docs/packed-arrays.md).
-- [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
-  prelude) alongside each feature,
-  including inherited Ada 95 requirements and cross-feature legality/runtime
-  cases. Record unsupported cases and implementation-defined behavior; extend
-  coverage as the subset grows without treating a passing selection as full
-  conformance. GNAT comparisons are not a project requirement. Correctness
-  repairs in the completed subset are owned by
-  [6f-prelude](#6f-prelude-acats-gaps-in-supported-features).
-  - [x] Completed-feature backfill baseline: 106 unchanged cases with pinned
-    provenance, exact observations and triage (`baseline.acats_*`); 37 C PASS,
-    37 legal-source rejections, five execution failures, seven support blockers;
-    20 B observations remain ungraded, including accepted B36002A.
-    Only observed C passes join the regular ACATS label.
-    [Baseline and follow-up order](docs/acats-baseline.md).
+- [x] Adopt relevant Ada 2005 ACATS conformance tests alongside supported
+  features, including inherited requirements and cross-feature scenarios.
+  The current-subset audit adds 16 pinned unchanged cases: 15 executable PASS
+  and CC3605A's baseline-only rejection for the existing access-to-array subtype
+  constraint limit. Source language eligibility, hashes, objectives, outcomes
+  and existing owners are recorded; the original 129 observations are unchanged.
+  Maintain selection review with each feature without claiming full conformance;
+  correctness repairs retain their 6f-prelude ownership, with B-test grading and
+  predefined/host audits remaining in their existing items. No follow-on item
+  is created. Release 1,790/1,790; focused ASan/UBSan 18/18.
+  [Adoption audit and evidence](docs/acats-adoption.md).
+  - [x] Completed-feature backfill baseline: 145 unchanged cases (119 C, 26 B),
+    with 107 executable PASS, 11 legal-source rejections, one support blocker and
+    26 ungraded B rejections. Only observed C PASS cases join the regular ACATS
+    label. [Baseline and follow-up order](docs/acats-baseline.md).
 - [ ] Audit the predefined environment against the matrix. Cover missing
   core units and API gaps, including random-number generators, storage and
   address facilities, dispatching constructors, text stream children and

@@ -236,3 +236,12 @@ explicitly. Do not infer conformance from regression counts or selected ACATS
 passes. The [robustness contract](robustness.md) records reproducible sanitizer
 checks and generated-access instrumentation with explicit limits. Host/target
 validation remains in Phase 8; abort/rendezvous/full tasking remain in Phase 9.
+
+The [Phase 8 ACATS adoption audit](acats-adoption.md) reviews the current
+selection by supported family. Its additional cohort covers CD2A22E/I/J and
+CD2A24A/E/I/J (Size/mapping/generic actuals), C3A0019/C3A0021–C3A0024 (Ada 2005
+null exclusions), and CC3603A/CC3606A/B (generic literals, defaults and actual
+constraints). All pass unchanged. CC3605A remains a baseline-only compile
+rejection for the existing access-to-array subtype constraint limit recorded
+above and for C761010. B-test grading and the predefined-environment audit
+retain their existing roadmap items.

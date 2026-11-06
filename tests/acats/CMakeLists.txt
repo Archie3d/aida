@@ -150,6 +150,15 @@ if(Python3_Interpreter_FOUND)
             PROPERTIES TIMEOUT 60 LABELS "baseline")
     endforeach()
 
+    # A whole C-source rejection for an existing unsupported prerequisite.
+    # Snapshot stability belongs to baseline, never the ACATS PASS label.
+    add_test(NAME baseline.acats_cc3605a
+        COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
+            --case cc3605a --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-probes")
+    set_tests_properties(baseline.acats_cc3605a
+        PROPERTIES TIMEOUT 60 LABELS "baseline")
+
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         "${baseline_root}/manifest.json" "${baseline_root}/expected.json")
     file(READ "${baseline_root}/manifest.json" baseline_selection)

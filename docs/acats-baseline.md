@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — refreshed 2026-11-06
 
-This backfill adds **129 unchanged upstream cases**: 103 C-tests and 26 B-test
+This backfill adds **145 unchanged upstream cases**: 119 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -11,16 +11,28 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 10 |
+| Legal C-test rejected | 11 |
 | Support/harness blocked | 1 |
-| Executable PASS | 92 |
+| Executable PASS | 107 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **10 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **11 executable C-cases fail**, all compile
 rejections; one further C-case is blocked by the TCTouch adapter.
 All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
+
+## Current-subset adoption audit (Phase 8)
+
+The [bounded adoption review](acats-adoption.md) adds 16 sources selected before
+probing: seven Size/mapping/generic cases, five Ada 2005 null-exclusion cases and
+four formal-subprogram matching/default/literal cases. Fifteen execute unchanged
+as PASS. CC3605A stops at line 248's access-to-array subtype constraint, the
+existing limitation also recorded for C761010; it remains a baseline-only exact
+rejection observation. No generic-profile conformance pass is inferred from its
+partial source. The original 129 observations are unchanged, and the expanded
+145-case snapshot validates all 149 source hashes. No compiler/runtime or
+support-adapter changes were made.
 
 ## Access-subtype record constraints (Phase 8)
 
@@ -257,7 +269,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 92 observed
+crash/timeout handling and source/snapshot integrity. Only the 107 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -398,3 +410,19 @@ The table below gives the observed status and initial triage for every case.
 | [B394A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a03.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Task ancestry/conflicting task-protected ancestors; P8 grading/P9 execution |
 | [B394A04](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a04.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Protected ancestry; P8 grading/P9 execution |
 | [B394A05](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a05.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Synchronized ancestry; P8 grading/P9 execution |
+| [CD2A22E](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22e.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [CD2A22I](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22i.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [lencheck.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/lencheck.ada); [CD2A22J](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22j.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [lencheck.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/lencheck.ada); [CD2A24A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a24a.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [CD2A24E](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a24e.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [CD2A24I](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a24i.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [CD2A24J](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a24j.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
+| [C3A0019](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0019.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
+| [C3A0021](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0021.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
+| [C3A0022](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0022.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
+| [C3A0023](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0023.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
+| [C3A0024](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0024.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
+| [CC3603A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3603a.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
+| [CC3605A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3605a.ada) | 12.6, 6.3.1 | Legal C-test rejected | existing access-to-array subtype constraint limit; P8 |
+| [CC3606A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606a.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
+| [CC3606B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606b.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |

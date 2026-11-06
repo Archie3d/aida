@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 129 cases to the existing strict selection:
-103 executable C-tests and 26 ungraded B-test probes. The selection targets
+implement. It adds 145 cases to the existing strict selection:
+119 executable C-tests and 26 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 132 source files (including three shared foundations) retain their original
+All 149 source files (including four shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -42,7 +42,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The refreshed cohort
-has 92 C passes, 10 legal-source rejections, one support
+has 107 C passes, 11 legal-source rejections, one support
 blocker and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -152,3 +152,12 @@ implementation changed in this range increment.
 C37003A/C37006A subsequently pass unchanged after P8 designated-record
 constraints on access subtypes. Other outcomes are unchanged; B37004A's
 updated diagnostics remain ungraded.
+
+The Phase 8 adoption audit adds CD2A22E/I/J, CD2A24A/E/I/J,
+C3A0019/C3A0021–C3A0024 and CC3603A/CC3605A/CC3606A/B. All 16 sources were
+selected before probing and have per-case language reviews in the manifest.
+The 15 executable passes join the normal ACATS label; CC3605A is the
+recorded rejection for the existing access-to-array subtype constraint limit,
+with a baseline-only stability test. The original 129 observations are unchanged.
+The expanded totals are 107 PASS, 11 COMPILE_REJECTED, one HARNESS_BLOCKED and
+26 ungraded B rejections. [Audit and completion evidence](../../../docs/acats-adoption.md).
