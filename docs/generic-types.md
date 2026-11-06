@@ -408,12 +408,13 @@ argument evaluation and numeric families including binary32/64. Matching
 instead of references, non-callable attributes and intrinsic Access.
 
 Unchanged CC1302A executes its full nested default-attribute scenario as PASS.
-CC3601A retains an exact compile XFAIL for grouped formal object declarations
-such as `V, V1 : T`; this separate Phase 8 grammar gap prevents execution of its
-whole operator/attribute scenario. All 129 prior backfill observations are
-unchanged. Current validation passes 1,282/1,282 tests; three local scenarios
-pass compiler/runtime ASan/UBSan in whole/per-unit modes, three rejection cases
-pass compiler checks and CC1302A executes with the instrumented C runtime.
+CC3601A now executes its whole unchanged operator/attribute scenario as PASS
+after the [Phase 8 grouped-formal increment](generic-grouped.md), including its
+Boolean-array logical-operator prerequisite. All 129 prior backfill observations
+are unchanged. At the attribute milestone, 1,282/1,282 tests passed; three local
+scenarios passed compiler/runtime ASan/UBSan in whole/per-unit modes, three
+rejection cases passed compiler checks and CC1302A executed with the instrumented
+C runtime. The grouped-formal contract records the later validation.
 QBE-generated Ada memory accesses remain uninstrumented; LeakSanitizer is
 unavailable on this host.
 

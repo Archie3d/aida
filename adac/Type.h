@@ -401,6 +401,7 @@ public:
     Type* durationType() const { return m_duration; }
 
     bool isBoolean(const Type* type) const;
+    bool isBooleanArray(const Type* type) const;
     bool isCharacter(const Type* type) const;
     bool isString(const Type* type) const;
 

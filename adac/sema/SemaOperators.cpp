@@ -197,7 +197,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (name == "not") {
             predefined({ m_types.booleanType() }, m_types.booleanType());
             for (Type* type : types) {
-                if ((type->modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
+                if ((type->modulus != 0 || m_types.isBoolean(type) || m_types.isBooleanArray(type)) && representationVisible(type)) {
                     predefined({ type }, type);
                 }
             }
@@ -224,7 +224,7 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (name == "and" || name == "or" || name == "xor") {
             predefined({ m_types.booleanType(), m_types.booleanType() }, m_types.booleanType());
             for (Type* type : types) {
-                if ((type->modulus != 0 || m_types.isBoolean(type)) && representationVisible(type)) {
+                if ((type->modulus != 0 || m_types.isBoolean(type) || m_types.isBooleanArray(type)) && representationVisible(type)) {
                     predefined({ type, type }, type);
                 }
             }

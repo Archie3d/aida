@@ -707,7 +707,7 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   shadowing. Scalar Min/Max lowering and nonstatic formal scalar bounds cover
   the required prerequisites. `genericattribute*` runs whole/per-unit/
   determinism with four workers; unchanged CC1302A executes as PASS. CC3601A
-  remains a compile XFAIL for grouped formal objects (Phase 8). Anonymous
+  now executes unchanged as PASS after Phase 8 grouped formal objects. Anonymous
   universal profiles cannot match named formals; standard stream profiles were added in
   the Phase 7 streaming milestone.
   [Contract](docs/generic-types.md#attribute-subprogram-actuals).
@@ -1123,11 +1123,14 @@ Ada 2005 additions and track annex packages separately.
   Release suite 1,755/1,755; final naming/visibility controls 16/16 in Release
   and ASan/UBSan. The 129-case baseline outcomes remain unchanged.
   [Contract and evidence](docs/generic-children.md).
-- [ ] Grouped generic formal objects: parse declarations such as `V, V1 : T`,
-  retaining each object's mode, defaults, association and instance identity.
-  Unchanged CC3601A currently compile-XFAILs at the first comma; rerun the whole
-  scenario after the grammar is supported. This is a syntax gap in existing
-  ordinary formal objects, separate from 6g's access/limited-object increments.
+- [x] Grouped generic formal objects: declarations such as `V, V1 : T` retain
+  independent modes, defaults, associations and instance identity. Fresh trees
+  and per-formal contract keys preserve default binding through shadowing and
+  nested replay. Boolean-array logical operators complete the prerequisite for
+  unchanged CC3601A, which executes its full scenario as PASS. Local controls
+  cover library/whole/separate/deterministic compilation and four workers.
+  Release 1,765/1,765; focused ASan/UBSan 11/11; all 129 backfill outcomes
+  unchanged. [Contract and evidence](docs/generic-grouped.md).
 - [ ] Complete the Pack and bit-storage prerequisites for CD2A22A and its
   unchanged official Length_Check dependency (`tests/acats/upstream/lencheck.ada`).
   Cover packed Boolean arrays with runtime lengths and nested array indexing,

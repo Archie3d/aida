@@ -54,8 +54,9 @@ collisions.
 The complete unchanged CC70001 executes as PASS, including its generic child
 of a library parent instance and formal-package list-processing scenario.
 Source provenance is recorded in the [ACATS inventory](../tests/acats/README.md).
-Grouped generic formal objects and Pack retain their separately queued Phase 8
-items; this increment adds no follow-on roadmap items.
+Grouped generic formal objects were subsequently completed in their
+[Phase 8 increment](generic-grouped.md). Pack retains its queued Phase 8 item;
+this increment adds no follow-on roadmap items.
 
 Validation: the complete Release suite passed 1,755/1,755 checks. After the final
 name-encoding adjustment, all 16 focused naming/visibility and container controls

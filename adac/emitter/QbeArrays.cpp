@@ -480,6 +480,50 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
     return Value { address, 'l', low.name, high.name };
 }
 
+Value QbeEmitter::emitArrayLogical(Type* type, Value left, const Value* right, const std::string& operation)
+{
+    left = arrayView(left, type);
+    if (right != nullptr) { checkArrayShape(left, type, *right, type); }
+    Value length = lengthOf(left, type);
+    std::string stride = runtimeSize(type->element);
+    Value result { newTemp(), 'l', left.first, left.last };
+    emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+        + ", l " + left.first + ", l " + left.last + ", l " + stride + ")", CallEffects::CheckException);
+    std::string slot = allocScratch(8);
+    line("storel 0, " + slot);
+    std::string head = newLabel("logicalarray");
+    std::string body = newLabel("logicalelement");
+    std::string done = newLabel("logicaldone");
+    label(head);
+    std::string index = newTemp(), within = newTemp();
+    line(index + " =l loadl " + slot);
+    line(within + " =w csltl " + index + ", " + length.name);
+    branch(Value { within, 'w' }, body, done);
+    label(body);
+    auto elementAddress = [&](const Value& array, const std::string& elementStride) {
+        std::string offset = newTemp(), address = newTemp();
+        line(offset + " =l mul " + index + ", " + elementStride);
+        line(address + " =l add " + array.name + ", " + offset);
+        return Value { address, 'l' };
+    };
+    Value first = loadFrom(elementAddress(left, left.strides.front()), type->element);
+    std::string value = newTemp();
+    if (right != nullptr) {
+        Value view = arrayView(*right, type);
+        Value second = loadFrom(elementAddress(view, view.strides.front()), type->element);
+        line(value + " =w " + operation + " " + first.name + ", " + second.name);
+    } else {
+        line(value + " =w ceqw " + first.name + ", 0");
+    }
+    storeInto(elementAddress(result, stride), Value { value, 'w' }, type->element);
+    std::string next = newTemp();
+    line(next + " =l add " + index + ", 1");
+    line("storel " + next + ", " + slot);
+    jump(head);
+    label(done);
+    return arrayView(result, type);
+}
+
 Value QbeEmitter::emitConcatenation(BinaryExpr* expr)
 {
     Type* type = baseType(expr->type);

@@ -1,0 +1,4 @@
+genericgroupederrors.adb:7:5: error: no actual supplied for generic formal 'B'
+genericgroupederrors.adb:8:5: error: a generic formal cannot be supplied more than once
+genericgroupederrors.adb:9:41: error: no visible interpretation of 'True' matches this context
+genericgroupederrors.adb:10:56: error: an in out generic formal object requires a variable actual

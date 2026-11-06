@@ -546,11 +546,16 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
             return expr->type;
         }
         Type* context = operandContext != nullptr ? operandContext : expected;
-        if (context == nullptr || !m_types.isBoolean(context)) {
+        if (context == nullptr || (!m_types.isBoolean(context) && !m_types.isBooleanArray(context))) {
             context = commonOperandType(expr->left.get(), expr->right.get(), scope, nullptr);
         }
         Type* left = analyzeExpr(expr->left.get(), scope, context);
         Type* right = analyzeExpr(expr->right.get(), scope, left);
+        if (m_types.isBooleanArray(left) && typesCompatible(left, right)
+            && expr->op != BinaryOp::AndThen && expr->op != BinaryOp::OrElse) {
+            expr->type = baseType(left);
+            return expr->type;
+        }
         if (!m_types.isBoolean(left) || !m_types.isBoolean(right) || !typesCompatible(left, right)) {
             m_diagnostics.error(expr->location, "logical operators require Boolean operands");
             expr->type = m_types.booleanType();
@@ -788,7 +793,7 @@ Type* Sema::analyzeUnary(UnaryExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
     if (expr->op == UnaryOp::Not) {
-        if (!m_types.isBoolean(operand)) {
+        if (!m_types.isBoolean(operand) && !m_types.isBooleanArray(operand)) {
             m_diagnostics.error(expr->location, "'not' requires a Boolean operand");
             expr->type = m_types.booleanType();
             return expr->type;

@@ -680,6 +680,12 @@ bool TypeTable::isBoolean(const Type* type) const
     return type == m_boolean;
 }
 
+bool TypeTable::isBooleanArray(const Type* type) const
+{
+    return type != nullptr && type->kind == TypeKind::Array && type->arrayRank == 1
+        && isBoolean(type->element);
+}
+
 bool TypeTable::isCharacter(const Type* type) const
 {
     type = rootType(const_cast<Type*>(type));

@@ -341,6 +341,7 @@ private:
     Value lengthOf(const Value& array, Type* type);
     Value emitSlice(CallExpr* expr);
     Value emitConcatenation(BinaryExpr* expr);
+    Value emitArrayLogical(Type* type, Value left, const Value* right, const std::string& operation);
 
     // Expressions and initialization (QbeExpr.cpp).
     Value emitExpr(Expr* expr);

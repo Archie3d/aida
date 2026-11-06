@@ -650,9 +650,11 @@ including Succ/Pred/Image/Value, multiple scalar subtypes and results outside
 the prefix subtype but inside its base range. Contract placeholder scalar
 bounds are no longer folded into false static overflows.
 
-CC3601A is an exact compile XFAIL at grouped generic formal objects (`V, V1 : T`),
-a Phase 8 syntax gap. Its complete operator/attribute scenario is not an
-executable pass. Local `genericattribute*` isolates explicit/default/box actuals,
+CC3601A executes its complete unchanged operator/attribute scenario as PASS
+after the Phase 8 grouped-formal increment. Grouped names retain independent
+bindings/defaults, and its Boolean-array logical operators now resolve and lower
+element by element. See [the contract and validation](../../docs/generic-grouped.md).
+Local `genericattribute*` isolates explicit/default/box actuals,
 base-subtype profiles, named arguments/defaults, prefix capture, nested/library
 replay, binary32/64, fixed/decimal/modular types, Min/Max and intrinsic Access.
 These three scenarios run whole/per-unit/deterministically with four workers;
@@ -726,8 +728,9 @@ private-part null-excluding renaming with a nullable actual. Existing binding,
 array/static-matching, accessibility, null and runtime checks remain active.
 
 Phase 6g closes for the supported actual types/profiles. CC70001 subsequently
-passes after the Phase 8 generic-child compiler-completeness increment; grouped formals, broader legality/staticness and B-test grading also
-remain Phase 8. Concurrent implementations and protected-operation actuals
+passes after the Phase 8 generic-child compiler-completeness increment. Grouped
+formals are complete in Phase 8 (CC3601A PASS); broader legality/staticness and
+B-test grading remain Phase 8. Concurrent implementations and protected-operation actuals
 remain Phase 9. Generated QBE memory accesses remain uninstrumented;
 LeakSanitizer is unavailable.
 

@@ -298,12 +298,12 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     checkGenericContract(decl, scope == m_unitScope ? scope : target);
 }
 
-std::string Sema::contractKey(const SourceLocation& location)
+std::string Sema::contractKey(const SourceLocation& location) const
 {
-    return std::to_string(location.file) + ":" + std::to_string(location.line) + ":" + std::to_string(location.column);
+    return m_formalObjectContext + std::to_string(location.file) + ":" + std::to_string(location.line) + ":" + std::to_string(location.column);
 }
 
-std::string Sema::nameContractKey(Expr* expr)
+std::string Sema::nameContractKey(Expr* expr) const
 {
     std::string name;
     if (expr->kind == ExprKind::Identifier) {
@@ -316,7 +316,7 @@ std::string Sema::nameContractKey(Expr* expr)
     return contractKey(expr->location) + ":" + std::to_string(static_cast<int>(expr->kind)) + ":" + name;
 }
 
-std::string Sema::operatorContractKey(const std::string& name, const std::vector<Expr*>& operands)
+std::string Sema::operatorContractKey(const std::string& name, const std::vector<Expr*>& operands) const
 {
     std::string key = name;
     for (Expr* operand : operands) {
@@ -633,6 +633,10 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
             symbol->location = formal.location;
             bindings->add(symbol);
         } else {
+            // Grouped declarations reuse source locations, but successive
+            // defaults can resolve the same spelling to different declarations.
+            std::string savedContext = m_formalObjectContext;
+            m_formalObjectContext += "object:" + formal.lower + ":";
             Type* type = resolveSubtypeIndication(formal.subtype.get(), bindings);
             if (formal.mode == ParameterMode::In && abstractView(type)) {
                 m_diagnostics.error(formal.location, "a generic formal in object cannot have an abstract type");
@@ -658,6 +662,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 }
             }
             bindings->add(symbol);
+            m_formalObjectContext = std::move(savedContext);
         }
     }
     if (partial != nullptr && !contract->valid) {
@@ -1762,6 +1767,8 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
     m_replayContract = m_genericContracts.at(generic->generic).get();
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
+    std::string savedContext = m_formalObjectContext;
+    m_formalObjectContext += "object:" + formal.lower + ":";
     Type* type = resolveSubtypeIndication(object->subtype.get(), bindings);
     bool useDefault = supplied == nullptr;
     Type* actualType = nullptr;
@@ -1769,6 +1776,7 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
         actual = object->initializer.get();
         actualType = analyzeExpr(actual, bindings, type);
     }
+    m_formalObjectContext = std::move(savedContext);
     m_replayContract = savedReplay;
     m_recordContract = savedRecord;
     m_instanceFirstSymbol = savedFirst;

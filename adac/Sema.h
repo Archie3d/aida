@@ -157,6 +157,7 @@ private:
     Scope* genericChildEnvironment(Symbol* original, Symbol* parent);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
+    std::string m_formalObjectContext;
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnOverrides;
     std::unordered_set<Symbol*> m_noReturnRequired;
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnRenamings;
@@ -178,9 +179,9 @@ private:
     GenericContract* m_instanceOwnerContract = nullptr;
     std::size_t m_instanceFirstSymbol = 0;
     std::unordered_map<Symbol*, Symbol*> m_instanceCopies;
-    static std::string contractKey(const SourceLocation& location);
-    static std::string nameContractKey(Expr* expr);
-    static std::string operatorContractKey(const std::string& name, const std::vector<Expr*>& operands);
+    std::string contractKey(const SourceLocation& location) const;
+    std::string nameContractKey(Expr* expr) const;
+    std::string operatorContractKey(const std::string& name, const std::vector<Expr*>& operands) const;
     Symbol* instanceSymbol(Symbol* symbol);
     std::vector<Symbol*> contractNames(Expr* expr, std::vector<Symbol*> candidates);
     void recordContractName(Expr* expr, Symbol* symbol);

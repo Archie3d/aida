@@ -288,34 +288,56 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                 formal.subprogramTokens.push_back(m_tokens.back());
             }
         } else if (check(TokenKind::Identifier)) {
-            std::size_t start = m_position;
-            const Token& name = advance();
-            formal.kind = GenericFormalKind::ObjectFormal;
-            formal.name = name.text;
-            formal.lower = name.lower;
+            std::vector<Token> names;
+            do {
+                const Token& name = expect(TokenKind::Identifier, "in generic formal object");
+                for (const Token& previous : names) {
+                    if (previous.lower == name.lower) {
+                        m_diagnostics.error(name.location, "duplicate generic formal object '" + name.text + "'");
+                        break;
+                    }
+                }
+                names.push_back(name);
+            } while (match(TokenKind::Comma));
+            Token colon = current();
             expect(TokenKind::Colon, "in generic formal object");
-            formal.objectTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
-                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+            ParameterMode mode = ParameterMode::In;
             if (match(TokenKind::KwIn)) {
                 if (match(TokenKind::KwOut)) {
-                    formal.mode = ParameterMode::InOut;
+                    mode = ParameterMode::InOut;
                 }
             } else if (match(TokenKind::KwOut)) {
                 m_diagnostics.error(formal.location, "a generic formal object mode must be in or in out");
             }
-            start = m_position;
-            formal.subtype = parseSubtypeIndication(true);
-            if (match(TokenKind::Assign)) {
-                formal.defaultValue = parseExpression();
-                if (formal.mode != ParameterMode::In) {
-                    m_diagnostics.error(formal.location, "an in out generic formal object cannot have a default");
+            std::size_t start = m_position;
+            // Each identifier declares an independent formal. Reparse the shared
+            // tail so contract checking and instance replay never share AST state.
+            for (std::size_t index = 0; index < names.size(); ++index) {
+                formal = GenericFormal{};
+                const Token& name = names[index];
+                formal.kind = GenericFormalKind::ObjectFormal;
+                formal.name = name.text;
+                formal.lower = name.lower;
+                formal.location = name.location;
+                formal.mode = mode;
+                m_position = start;
+                formal.subtype = parseSubtypeIndication(true);
+                if (match(TokenKind::Assign)) {
+                    formal.defaultValue = parseExpression();
+                    if (mode != ParameterMode::In && index == 0) {
+                        m_diagnostics.error(formal.location, "an in out generic formal object cannot have a default");
+                    }
+                }
+                formal.objectTokens = {name, colon};
+                formal.objectTokens.insert(formal.objectTokens.end(),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
+                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+                formal.objectTokens.push_back(current());
+                formal.objectTokens.push_back(m_tokens.back());
+                if (index + 1 < names.size()) {
+                    decl->formals.push_back(std::move(formal));
                 }
             }
-            formal.objectTokens.insert(formal.objectTokens.end(),
-                m_tokens.begin() + static_cast<std::ptrdiff_t>(start),
-                m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
-            formal.objectTokens.push_back(current());
-            formal.objectTokens.push_back(m_tokens.back());
         } else {
             fail("expected a generic formal parameter");
         }

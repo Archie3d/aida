@@ -22,6 +22,10 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
     Value left = emitExpr(expr->left.get());
     Value right = emitExpr(expr->right.get());
+    if (expr->type->kind == TypeKind::Array) {
+        std::string operation = expr->op == BinaryOp::And ? "and" : expr->op == BinaryOp::Or ? "or" : "xor";
+        return emitArrayLogical(expr->type, left, &right, operation);
+    }
     if (expr->fixedResult && expr->type->kind != TypeKind::Fixed) {
         std::string result = newTemp();
         bool real = isReal(expr->type);
@@ -176,6 +180,9 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
         return emitExpr(expr->operatorCall.get());
     }
     Value operand = emitExpr(expr->operand.get());
+    if (expr->type->kind == TypeKind::Array) {
+        return emitArrayLogical(expr->type, operand, nullptr, "");
+    }
     std::string temp = newTemp();
 
     if (expr->type->modulus != 0) {
