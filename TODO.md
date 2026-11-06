@@ -1122,6 +1122,19 @@ Ada 2005 additions and track annex packages separately.
   Unchanged CC3601A currently compile-XFAILs at the first comma; rerun the whole
   scenario after the grammar is supported. This is a syntax gap in existing
   ordinary formal objects, separate from 6g's access/limited-object increments.
+- [ ] Complete the Pack and bit-storage prerequisites for CD2A22A and its
+  unchanged official Length_Check dependency (`tests/acats/upstream/lencheck.ada`).
+  Cover packed Boolean arrays with runtime lengths and nested array indexing,
+  three-bit enumeration Size specifications, and the bit-preserving
+  Unchecked_Conversion round trips required by Length_Check. Preserve scalar
+  operations, array/record component access, parameter copy-back and type/object
+  Size semantics. Add focused legality and runtime regressions, including actual
+  Length_Check instantiations, whole/separate/deterministic compilation and
+  four-task coverage. Complete only when the full unchanged CD2A22A scenario
+  and official dependency execute as PASS; retain explicit diagnostics and
+  XFAIL grading until then. Existing explicit packed-record-field support does
+  not complete this item; broader Pack policies and nondefault bit order remain
+  separate representation gaps in the coverage matrix.
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime
