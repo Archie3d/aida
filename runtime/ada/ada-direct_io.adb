@@ -7,22 +7,22 @@ package body Ada.Direct_IO is
     procedure Read_Bytes (File  : in File_Type;
                           Item  : in System.Address;
                           Size  : in Integer;
-                          Index : in Integer);
+                          Index : in Count);
     pragma Import (C, Read_Bytes, "__ada_direct_read_at");
 
     procedure Write_Bytes (File  : in File_Type;
                            Item  : in System.Address;
                            Size  : in Integer;
-                           Index : in Integer);
+                           Index : in Count);
     pragma Import (C, Write_Bytes, "__ada_direct_write_at");
 
-    procedure Move_To (File : in File_Type; To : in Integer; Size : in Integer);
+    procedure Move_To (File : in File_Type; To : in Count; Size : in Integer);
     pragma Import (C, Move_To, "__ada_direct_set_index");
 
-    function Index_Of (File : in File_Type; Size : in Integer) return Integer;
+    function Index_Of (File : in File_Type; Size : in Integer) return Count;
     pragma Import (C, Index_Of, "__ada_direct_index");
 
-    function Size_Of (File : in File_Type; Size : in Integer) return Integer;
+    function Size_Of (File : in File_Type; Size : in Integer) return Count;
     pragma Import (C, Size_Of, "__ada_direct_size");
 
     Element_Size : constant Integer := Element_Type'Size / System.Storage_Unit;

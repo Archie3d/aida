@@ -39,7 +39,9 @@ echo, restoring the settings on every exit. Its Available form polls without
 waiting. Windows console input uses the console byte APIs; pipe availability
 uses PeekNamedPipe. The runtime operates on bytes, with no Unicode decoding or
 terminal-key translation. Terminal behavior and native Windows execution remain
-part of the cross-host audit.
+part of the cross-host audit. The [predefined-environment audit](predefined-environment.md)
+adds a POSIX pseudo-terminal mode-restoration check and concurrent host-formatting
+checks; it records the remaining Windows/locale/rounding boundaries.
 
 ## Numeric and enumeration input
 

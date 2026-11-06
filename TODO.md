@@ -1158,11 +1158,85 @@ Ada 2005 additions and track annex packages separately.
     with 107 executable PASS, 11 legal-source rejections, one support blocker and
     26 ungraded B rejections. Only observed C PASS cases join the regular ACATS
     label. [Baseline and follow-up order](docs/acats-baseline.md).
-- [ ] Audit the predefined environment against the matrix. Cover missing
-  core units and API gaps, including random-number generators, storage and
-  address facilities, dispatching constructors, text stream children and
-  remaining Stream_IO operations. Check concurrent calls and record host
-  formatting, terminal behavior and implementation-defined choices.
+- [x] Audit the predefined environment against the matrix, with the agreed
+  scope of inventory verification and fixes to supported APIs. Checked inventory:
+  109 source specs plus Standard/System, ten missing units and 22 partial-API
+  rejection observations. Correct modular Stream_Element, distinct Direct_IO/
+  Stream_IO Count types, universal-real System.Tick and relative-delay adaptation;
+  add J.1 Direct_IO/Sequential_IO views. Whole/separate/deterministic and four-worker
+  controls cover the profiles; C threads and a real POSIX pseudo-terminal cover
+  formatting and terminal state. Release 1,797/1,797; 14 distinct focused
+  ASan/UBSan checks pass; all 145 backfill outcomes unchanged. Missing random,
+  storage/address, dispatch-constructor and text-stream families, remaining
+  Stream_IO operations and host choices stay explicit in the inventory/matrix;
+  they are not claimed implemented by this audit. Native Windows/MSYS2 and
+  other targets retain the existing host-validation item.
+  [Audit, API boundaries and evidence](docs/predefined-environment.md).
+- [ ] Implement the missing predefined facilities identified by the audit,
+  in the dependency order below. Each item requires its Ada 2005 declarations
+  and behavior, positive/legality/error-path controls, whole/separate/deterministic
+  compilation, concurrent-call/lifetime checks where applicable, and reviewed
+  unchanged ACATS coverage. Document implementation-defined choices, update the
+  matrix and inventory, and replace the corresponding missing-unit/API-gap guards
+  with executable checks before marking an item complete. The completed audit
+  is evidence of the starting state, not completion of these implementations.
+  - [ ] **Standard and System declarations (J.2, 13.7).** Supply Standard.ASCII;
+    System Name/System_Name, numeric limits, Null_Address, Word_Size/Memory_Size,
+    Bit_Order/Default_Bit_Order, priority subtypes/Default_Priority and callable
+    address-comparison profiles, including renaming and generic actuals. Derive
+    values from the supported target model and preserve existing address identity
+    and universal-real Tick. Re-probe C35502C/C54A03A/C64005C after ASCII support.
+    Priority declarations do not complete Phase 9 scheduling; exposing Bit_Order
+    does not complete nondefault representation layout.
+  - [ ] **System.Storage_Elements (13.7.1).** Implement Storage_Offset/Count,
+    Storage_Element/Array, Integer_Address, address arithmetic/mod and integer
+    conversions with the required profiles and storage representation. Specify
+    wraparound, alignment and invalid-operation behavior; check boundary values,
+    slices/aliased elements and foreign-memory interoperability. Reassess the
+    Storage_Elements prerequisite of CD30002 without counting unrelated support
+    or object-clause blockers as a pass.
+  - [ ] **System.Address_To_Access_Conversions (13.7.2).** Implement the generic
+    Object_Pointer view and To_Pointer/To_Address operations. Preserve null and
+    address identity, designated-type/alignment rules and documented restrictions
+    for unconstrained objects. Cover aliased objects/components, conversions,
+    generic instances and lifetime boundaries; conversion must not manufacture
+    ownership or extend an object's lifetime.
+  - [ ] **Ada.Storage_IO (A.9).** Implement the generic profile, Buffer_Size,
+    Buffer_Type and Read/Write using Storage_Elements. Cover buffer extent and
+    representation, scalar/composite round trips, padding/invalid-data policy,
+    generic-instance identity and boundary/error cases. Include required compiler
+    representation support in this item; preserve object ownership/finalization
+    rather than silently treating managed values as unrestricted byte copies.
+  - [ ] **System.Storage_Pools (13.11–13.11.1).** Implement Root_Storage_Pool and
+    its required primitives, Storage_Pool specification/query and integration
+    with allocators and Unchecked_Deallocation. Cover size/alignment requests,
+    access-type/derived-type pool association, allocation/initialization failures,
+    deallocation callbacks, collection/master lifetime and concurrent use. Retain
+    existing default-pool and zero-Storage_Size behavior.
+  - [ ] **Ada.Numerics.Float_Random and Discrete_Random (A.5.2).** Implement both
+    complete basic/advanced APIs: Generator/State, Random, all Reset forms, Save,
+    Image/Value and Max_Image_Width. Define initialization, reproducibility,
+    state-format/invalid-input and range/distribution choices. Cover signed,
+    modular and enumeration result subtypes, independent instances/generators,
+    saved-state round trips, finalization and concurrent callers.
+  - [ ] **Ada.Tags.Generic_Dispatching_Constructor (3.9).** Implement the required
+    generic formals and tag-selected constructor call. Cover derived/private and
+    interface ancestry, concrete/abstract tags, controlling results, parameter
+    forwarding, accessibility, Tag_Error and constructor exceptions, and result
+    ownership/finalization. Include required dispatch/lowering prerequisites
+    within this item.
+  - [ ] **Complete Ada.Streams.Stream_IO operations (A.12.1).** Add positioned
+    Read/Write overloads, Set_Mode and Flush. Preserve atomicity of positioning
+    plus transfer under the file lock, Count/Positive_Count checks, EOF/Last,
+    append/reset semantics, stream-view identity and borrowed/owned file lifetime.
+    Check null/sliced buffers, nonpositionable files, mode/device errors and
+    concurrent calls; retain explicit host limits.
+  - [ ] **Text_Streams children (A.12.2–A.12.4).** Implement Text_IO.Text_Streams,
+    Wide_Text_IO.Text_Streams and Wide_Wide_Text_IO.Text_Streams, including their
+    Stream_Access types and Stream functions. Define raw stream/text interleaving
+    over lookahead, pending CR/LF and UTF-8 decoder state. Check current/standard
+    and explicit files, multibyte boundaries, EOF/errors, mode changes, close/reset,
+    borrowed-view lifetime and concurrent calls across all three widths.
 - [ ] Add B-test grading for expected error locations, allowed diagnostic
   groups, recovery and legal controls. Rejection for an unrelated unsupported
   construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol

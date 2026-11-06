@@ -2,7 +2,9 @@
 
 `Ada.Streams.Root_Stream_Type` is an abstract tagged limited type with
 abstract `Read` and `Write` primitives. `Stream_Element_Array` has aliased
-byte components. Attributes accept access to a root-class stream, including
+byte components of modular type Stream_Element (`mod 256`). The
+[predefined-environment audit](predefined-environment.md) also corrects distinct
+Stream_IO.Count identity. Attributes accept access to a root-class stream, including
 `Object'Access` for a derived memory stream. Null streams raise
 `Constraint_Error`; user callback exceptions propagate; premature completion
 of a value raises `End_Error`.

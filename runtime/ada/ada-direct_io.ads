@@ -15,8 +15,8 @@ package Ada.Direct_IO is
 
     type File_Mode is (In_File, Inout_File, Out_File);
 
-    subtype Count is Integer range 0 .. 2147483647;
-    subtype Positive_Count is Integer range 1 .. 2147483647;
+    type Count is range 0 .. 2147483647;
+    subtype Positive_Count is Count range 1 .. Count'Last;
 
     procedure Create (File : in out File_Type;
                       Mode : in File_Mode := Inout_File;

@@ -2360,5 +2360,39 @@ add_ada_error_test(packederrors SOURCES representation/packederrors.adb)
 add_ada_error_test(bitsizeerrors SOURCES representation/bitsizeerrors.adb)
 add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedconversionerrors.adb)
 
+# The environment audit distinguishes resolution from full API availability.
+find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME baseline.predefined_inventory
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/predefined/check_inventory.py
+            --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/predefined-inventory)
+    set_tests_properties(baseline.predefined_inventory PROPERTIES TIMEOUT 120 LABELS baseline)
+endif()
+add_ada_test(predefinedprofiles SOURCES library/predefinedprofiles.adb)
+add_determinism_test(predefinedprofiles SOURCE library/predefinedprofiles.adb)
+add_ada_error_test(predefinedprofileerrors SOURCES library/predefinedprofileerrors.adb)
+add_test(NAME runtime.predefinedprofiles_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/predefinedprofiles.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/predefinedprofiles.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/predefinedprofiles-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.predefinedprofiles determinism.predefinedprofiles
+    runtime.predefinedprofiles_modes PROPERTIES TIMEOUT 120)
+add_executable(predefined_environment_test PredefinedEnvironmentTest.c)
+target_link_libraries(predefined_environment_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.predefined_formatting COMMAND predefined_environment_test)
+if(UNIX)
+    add_test(NAME runtime.predefined_terminal COMMAND predefined_environment_test terminal)
+    set_tests_properties(runtime.predefined_terminal PROPERTIES TIMEOUT 20)
+endif()
+
 add_subdirectory(robustness)
 aida_finalize_tests()

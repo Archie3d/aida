@@ -14,8 +14,8 @@ package Ada.Streams.Stream_IO is
 
     type Stream_Access is access all Root_Stream_Type'Class;
 
-    subtype Count is Integer range 0 .. 2147483647;
-    subtype Positive_Count is Integer range 1 .. 2147483647;
+    type Count is range 0 .. 2147483647;
+    subtype Positive_Count is Count range 1 .. Count'Last;
 
     procedure Create (File : in out File_Type;
                       Mode : in File_Mode := Out_File;

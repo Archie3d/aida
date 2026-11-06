@@ -1,0 +1,6 @@
+predefinedprofileerrors.adb:11:28: error: initial value is not compatible with the declared subtype
+predefinedprofileerrors.adb:12:40: error: initial value is not compatible with the declared subtype
+predefinedprofileerrors.adb:13:36: error: no visible subprogram matches this call
+predefinedprofileerrors.adb:14:42: error: initial value is not compatible with the declared subtype
+predefinedprofileerrors.adb:16:21: error: no visible subprogram matches this call
+predefinedprofileerrors.adb:17:22: error: no visible subprogram matches this call

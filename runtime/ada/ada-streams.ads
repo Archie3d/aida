@@ -5,7 +5,7 @@
 package Ada.Streams is
     pragma Pure;
 
-    type Stream_Element is range 0 .. 255;
+    type Stream_Element is mod 256;
     for Stream_Element'Size use 8;
 
     type Stream_Element_Offset is range -2147483647 .. 2147483647;

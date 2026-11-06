@@ -5,6 +5,7 @@ with Ada.Streams.Stream_IO;
 procedure StreamRawEdges is
     use type Ada.Streams.Stream_Element;
     use type Ada.Streams.Stream_Element_Offset;
+    use type Ada.Streams.Stream_IO.Count;
     procedure Check (Condition : Boolean) is
     begin
         if not Condition then

@@ -67,8 +67,9 @@ values outside Duration/Time raise Constraint_Error. Arbitrary input bounds,
 including strings ending at Integer'Last, work. Formatting is locale independent
 and uses no shared result buffers.
 
-The obsolescent `System.Tick` constant is now available with type Duration. It
-represents Calendar's microsecond resolution rounded to 1074 Duration ticks;
+The obsolescent `System.Tick` named number has type universal_real and value
+0.000001 seconds after the [predefined-environment audit](predefined-environment.md).
+A receiving Duration context rounds it to 1074 Duration ticks;
 it is not a scheduler latency guarantee. Existing delay semantics, including
 protected-action rejection, remain in the [host contract](host-library.md).
 

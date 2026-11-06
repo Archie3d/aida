@@ -375,6 +375,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (!delay->until && !typesCompatible(m_types.durationType(), type)) {
             m_diagnostics.error(delay->expression->location, "relative delay requires a Standard.Duration value");
         }
+        if (!delay->until) { adaptUniversal(delay->expression.get(), m_types.durationType()); }
         delay->calendar = m_calendarTimeType != nullptr && rootType(type) == m_calendarTimeType;
         if (delay->until && !delay->calendar && (m_realTimeType == nullptr || rootType(type) != m_realTimeType)) {
             m_diagnostics.error(delay->expression->location, "delay until requires an Ada.Real_Time.Time or Ada.Calendar.Time value");
