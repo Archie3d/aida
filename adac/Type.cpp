@@ -768,6 +768,22 @@ bool needsFinalization(const Type* type)
     return false;
 }
 
+bool supportsStorageIo(const Type* type)
+{
+    if (type == nullptr) { return false; }
+    if (type->genericFormal) { return true; }
+    if (type->isIncomplete || type->classRoot != nullptr
+        || type->dependentStorage || hasLimitedParts(type) || hasTasks(type) || hasProtected(type)
+        || type->fileHandle || type->exceptionOccurrence || type->accessDiscriminant) { return false; }
+    if (type->kind == TypeKind::Array) {
+        return (type->constrained || type->boundsSymbol != nullptr) && supportsStorageIo(type->element);
+    }
+    for (const FieldInfo& field : type->fields) {
+        if (field.storageType != nullptr || !supportsStorageIo(field.type)) { return false; }
+    }
+    return true;
+}
+
 bool hasTasks(const Type* type)
 {
     if (type == nullptr) {

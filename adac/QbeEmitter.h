@@ -370,6 +370,8 @@ private:
     Value emitBinary(BinaryExpr* expr);
     Value emitUnary(UnaryExpr* expr);
     Value emitUncheckedConversion(CallExpr* expr);
+    Value emitStorageIo(CallExpr* expr, bool reading);
+    void emitStorageIoComponents(const Value& target, const Value& source, Type* type, bool reading);
     Value emitDiscreteConversion(const Value& value, Type* source, Type* target);
     Value emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type);
     Value emitIntegerOperation(int operation, const Value& left, const Value& right, char type);

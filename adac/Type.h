@@ -314,6 +314,8 @@ bool streamAvailable(Type* type, int attribute);
 bool hasRuntimeLayout(const Type* type);
 bool needsZeroInit(const Type* type);
 bool needsFinalization(const Type* type);
+// Storage_IO snapshots borrow references and exclude runtime-owned layouts.
+bool supportsStorageIo(const Type* type);
 bool isFileHandleView(const Type* type);
 bool needsCollection(const Type* type);
 bool hasAccessDiscriminants(const Type* type);

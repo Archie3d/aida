@@ -1892,6 +1892,15 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
     }
 
     applyGenericUses(generic->generic, formals.size(), bindings, decl->formalTypes);
+    if (generic->generic->lower == "ada.storage_io") {
+        Symbol* element = lookupName("element_type", bindings);
+        if (element == nullptr || !supportsStorageIo(element->type)) {
+            m_diagnostics.error(decl->location,
+                "Ada.Storage_IO currently requires a definite nonlimited element type without dependent storage, class-wide, task, protected or runtime-resource parts");
+            return false;
+        }
+    }
+
     if (generic->generic->lower == "system.address_to_access_conversions") {
         Symbol* object = lookupName("object", bindings);
         Type* type = object != nullptr ? object->type : nullptr;

@@ -34,7 +34,9 @@ enum class BuiltinKind
     Runtime,
     // Predefined address conversion supplies designated alignment as a hidden
     // runtime argument, with no access collection or ownership adaptation.
-    AddressToPointer
+    AddressToPointer,
+    StorageIoRead,
+    StorageIoWrite
 };
 
 struct Symbol

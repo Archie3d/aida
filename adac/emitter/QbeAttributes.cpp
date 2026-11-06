@@ -531,6 +531,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return constantValue(field != nullptr && field->bitWidth != 0 ? 1 : typeAlignment(prefixType),
                              qbeClass(expr->type));
     }
+    if (name == "max_size_in_storage_elements") { return Value {runtimeSize(prefixType), 'l'}; }
     if (name == "stream_size") { return constantValue(streamSizeBits(prefixType), 'l'); }
     if (name == "size") {
         if (expr->sizeTypePrefix && prefixType->packedBoolean) {

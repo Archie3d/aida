@@ -2377,6 +2377,9 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/storage_elements/check.py
             --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/storage-elements-acats)
     set_tests_properties(baseline.storage_elements_acats PROPERTIES TIMEOUT 120 LABELS baseline)
+    add_test(NAME baseline.storage_io_acats_sources
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/storage_io/check.py)
+    set_tests_properties(baseline.storage_io_acats_sources PROPERTIES TIMEOUT 30 LABELS baseline)
 endif()
 add_ada_test(predefinedprofiles SOURCES library/predefinedprofiles.adb)
 add_determinism_test(predefinedprofiles SOURCE library/predefinedprofiles.adb)
@@ -2434,6 +2437,24 @@ set_tests_properties(ada.storageelements determinism.storageelements
     runtime.storageelements_modes PROPERTIES TIMEOUT 120)
 add_ada_error_test(addressconversionprofileerrors SOURCES library/bad_address_conversion.ads library/addressconversionprofileerrors.adb)
 add_ada_error_test(addressconversionerrors SOURCES library/addressconversionerrors.adb)
+add_ada_error_test(storageioerrors SOURCES library/storageioerrors.adb)
+add_ada_error_test(storageioprofileerrors SOURCES library/storageioprofileerrors.adb)
+add_ada_test(storageio SOURCES library/storageio.adb)
+add_determinism_test(storageio SOURCE library/storageio.adb)
+add_test(NAME runtime.storageio_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/storageio.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/storageio.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/storageio-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.storageio determinism.storageio runtime.storageio_modes PROPERTIES TIMEOUT 120)
 add_ada_test(addressconversions SOURCES library/addressconversions.adb)
 add_determinism_test(addressconversions SOURCE library/addressconversions.adb)
 add_test(NAME runtime.addressconversions_modes

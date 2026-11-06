@@ -786,7 +786,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
             return expr->type;
         }
-        if (name != "base" && name != "size" && name != "stream_size" && name != "address"
+        if (name != "base" && name != "size" && name != "max_size_in_storage_elements" && name != "stream_size" && name != "address"
             && name != "image" && name != "value" && name != "succ" && name != "pred"
             && name != "min" && name != "max" && name != "machine_radix"
             && name != "read" && name != "write" && name != "input" && name != "output") {
@@ -1164,6 +1164,21 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->isStatic = prefixIsType;
         expr->alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
         expr->staticValue = prefixIsType && prefixType->alignment == 0 ? 0 : typeAlignment(prefixType);
+        return expr->type;
+    }
+
+    if (name == "max_size_in_storage_elements") {
+        if (!prefixIsType || prefixType == nullptr || !expr->arguments.empty()
+            || prefixType->isIncomplete || prefixType->classRoot != nullptr || prefixType->dependentStorage
+            || (prefixType->kind == TypeKind::Array && !prefixType->constrained && prefixType->boundsSymbol == nullptr)) {
+            m_diagnostics.error(expr->location,
+                "'Max_Size_In_Storage_Elements currently requires a complete definite subtype without dependent storage and no arguments");
+            return nullptr;
+        }
+        freezeType(prefixType);
+        expr->type = m_types.universalInteger();
+        expr->isStatic = !hasRuntimeLayout(prefixType);
+        if (expr->isStatic) { expr->staticValue = typeSize(prefixType); }
         return expr->type;
     }
 

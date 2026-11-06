@@ -332,9 +332,9 @@
     {
       "name": "ada.storage_io",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "A.9",
-      "gap": "storage buffers and representation I/O"
+      "source": "runtime/ada/ada-storage_io.ads"
     },
     {
       "name": "ada.streams",
@@ -782,6 +782,7 @@
   "implemented_api_controls": {
     "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers",
     "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls",
-    "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension"
+    "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension",
+    "storage_io": "storageio / storageioerrors / storageioprofileerrors: native representation buffers, runtime-sized inline arrays/records, checked Read and controlled assignment; dependent-storage and runtime-resource parts diagnosed"
   }
 }

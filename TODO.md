@@ -1223,12 +1223,19 @@ Ada 2005 additions and track annex packages separately.
     CD72A02 remains blocked by Phase 9 syntax. Release 1,818/1,818 and 12 focused
     ASan/UBSan checks pass; all 145 backfill outcomes unchanged.
     [Contract, choices and evidence](docs/address-conversions.md).
-  - [ ] **Ada.Storage_IO (A.9).** Implement the generic profile, Buffer_Size,
-    Buffer_Type and Read/Write using Storage_Elements. Cover buffer extent and
-    representation, scalar/composite round trips, padding/invalid-data policy,
-    generic-instance identity and boundary/error cases. Include required compiler
-    representation support in this item; preserve object ownership/finalization
-    rather than silently treating managed values as unrestricted byte copies.
+  - [x] **Ada.Storage_IO (A.9).** Source generic, Buffer_Size/Buffer_Type,
+    ordinary Read/Write profiles and renamed Data_Error. Native extent via
+    Max_Size_In_Storage_Elements, aligned staging, zero padding/tag placeholders
+    and checked scalar/composite decoding. Static/runtime-sized inline arrays
+    and records, represented fields, variants, packed arrays and private actuals;
+    controlled Read acquires an adjusted temporary before destination cleanup,
+    including self-assignment and failure paths. Buffers borrow resources without
+    extending lifetime; dependent owned layouts and runtime-resource parts are
+    diagnosed as remaining limitations. Whole/separate/deterministic controls,
+    large buffers and four workers; unchanged CXA9001/CXA9002 execute as PASS.
+    Release 1,826/1,826 and 18 focused ASan/UBSan checks pass; all 145 original
+    backfill outcomes unchanged.
+    [Representation, ownership and evidence](docs/storage-io.md).
   - [ ] **System.Storage_Pools (13.11–13.11.1).** Implement Root_Storage_Pool and
     its required primitives, Storage_Pool specification/query and integration
     with allocators and Unchecked_Deallocation. Cover size/alignment requests,

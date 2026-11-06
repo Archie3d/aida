@@ -1283,4 +1283,23 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
     target->importAda = decl->conventionAda;
     target->canRaise = true;
     target->hasBody = true;
+    if (decl->linkName == "__ada_storage_io_read" || decl->linkName == "__ada_storage_io_write") {
+        bool reading = decl->linkName == "__ada_storage_io_read";
+        bool valid = !decl->conventionAda && target->returnType == nullptr && target->parameters.size() == 2;
+        if (valid) {
+            Type* buffer = target->parameters[0]->type;
+            Type* item = target->parameters[1]->type;
+            valid = buffer->kind == TypeKind::Array && (buffer->constrained || buffer->boundsSymbol != nullptr) && buffer->arrayRank == 1
+                && buffer->element->modulus == 256 && typeSize(buffer->element) == 1
+                && (hasRuntimeLayout(buffer) || arrayLength(buffer) == typeSize(item)) && supportsStorageIo(item)
+                && target->parameters[0]->mode == (reading ? ParameterMode::In : ParameterMode::Out)
+                && target->parameters[1]->mode == (reading ? ParameterMode::Out : ParameterMode::In);
+        }
+        if (!valid) {
+            m_diagnostics.error(decl->location, "invalid internal Storage_IO transfer profile");
+            return;
+        }
+        target->builtin = reading ? BuiltinKind::StorageIoRead : BuiltinKind::StorageIoWrite;
+        target->intrinsicRenaming = true;
+    }
 }

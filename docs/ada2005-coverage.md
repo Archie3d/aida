@@ -193,7 +193,7 @@ inventory, while the linked contracts and tests establish the supported subset.
 | --- | --- | --- | --- | --- |
 | 11.4.2 | Ada.Assertions | Assertion_Error, Assert and configuration assertion policy | `pragma*`, `semantics.pragmapolicies`; C651001 PASS | P6h/P7 complete for documented policies |
 | A.5.2 | Ada.Numerics.Float_Random; Ada.Numerics.Discrete_Random | Absent. Generator state, reset/reproducibility and generic discrete result profiles remain open | — | P8 predefined environment |
-| A.9 | Ada.Storage_IO | Absent. Audit external storage representation, buffer sizing and Read/Write | — | P8 predefined environment |
+| A.9 | Ada.Storage_IO | Native buffers, checked Read/Write, zero padding/tag placeholders and controlled assignment; runtime-sized inline arrays/records supported. Dependent owned layouts/runtime resources diagnosed ([contract](storage-io.md)) | `storageio`, legality/profile errors, whole/separate/determinism and four workers; unchanged CXA9001/CXA9002 PASS | P8 implemented for documented representations; dependent owned layouts remain open |
 | 3.9 | Ada.Tags.Generic_Dispatching_Constructor | Absent. Generic profile matching and tag-driven construction remain open | — | P8 predefined environment |
 | 13.7 | System | Analyzed system.ads with canonical Address bootstrap and ordinary parent/binder/cache dependencies. Public configuration/numeric limits, Null_Address, bit-order and priority subtypes/constants; unsigned address comparison profiles including renaming and generic actuals/defaults. [Target choices](standard-system.md); scheduling and nondefault layouts remain open | `loading.system_spec`, `standardfacilities`, `standardfacilityerrors`, `predefinedprofiles`, `baseline.predefined_inventory`; C96008A/B PASS | P8 declarations complete; P9 scheduling / P8 host validation |
 | 13.7.1 | System.Storage_Elements | Complete public types/profiles for the 64-bit byte target: wrapping arithmetic, signed address differences, divisor-sign mod, integer conversions and aliased byte arrays; confirming Component_Size prerequisite ([contract](storage-elements.md)) | `storageelements`, `storageelementerrors`, `runtime.storage_elements`, inventory and separate ACATS prerequisite observations; CD30002 remains blocked; CD70001 now PASS | P8 implementation complete; broader layouts / P8 host validation remain open |
@@ -248,8 +248,8 @@ rejection for the existing access-to-array subtype constraint limit recorded
 above and for C761010. B-test grading and the predefined-environment audit
 retain their existing roadmap items.
 
-The [predefined-environment audit](predefined-environment.md) verifies all 112
-source specs (including System), builtin Standard and eight absent units. The original 22
+The [predefined-environment audit](predefined-environment.md) verifies all 113
+source specs (including System), builtin Standard and seven absent units. The original 22
 partial-API gaps now leave four Stream_IO guards after Standard/System
 implementation. It repairs supported profiles and checks concurrent
 file/formatting calls and POSIX terminal behavior. The listed missing library families remain

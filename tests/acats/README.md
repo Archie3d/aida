@@ -1036,3 +1036,23 @@ its baseline control retains only live rejection guards and delegates PASS
 execution to the ACATS tests. The original 145 backfill outcomes are unchanged.
 See [the contract](../../docs/address-conversions.md) for permitted instance limits
 and ownership/alignment choices.
+
+### Storage_IO follow-up
+
+Unchanged CXA9001 and CXA9002 execute their complete REPORT scenarios as regular
+ACATS PASS cases, using the existing REPORT support without new adapters.
+CXA9001 persists buffers containing runtime-sized nested records/arrays through
+Direct_IO; CXA9002 covers tagged and extended record buffers. The original bytes
+come from the same pinned ACATS archive, revision
+`2785c30c1f8577d97ac7b3043882f6818781e9c5`:
+
+| Original path | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/cxa/cxa9001.a` | `4fe9c357614d4754382b01f87bfb2df702fa6241` | `7829121254cddfe4681c296ea5cd30a997c99af9d7f254f64c6b24e49736e56c` |
+| `tests/cxa/cxa9002.a` | `415a56630ad5bc7f3f3fed90f2dffc6a9a6bc9b0` | `eb22555e9c727f0b4aedd12016fad9accf1d32d9b35eee38a1230105fc179ce0` |
+
+`storage_io/manifest.json` and `baseline.storage_io_acats_sources` verify source
+provenance separately from execution. No upstream source is edited or reduced.
+The original 145-case backfill outcomes remain unchanged. See the
+[buffer/ownership contract](../../docs/storage-io.md) for supported representations
+and explicitly diagnosed dependent-storage/resource limits.

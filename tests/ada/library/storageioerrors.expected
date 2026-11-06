@@ -1,0 +1,13 @@
+storageioerrors.adb:4:48: error: 'Ada.Storage_IO' expects a type of a fixed size, and 'String' is not one
+storageioerrors.adb:8:47: error: 'Ada.Storage_IO' expects a nonlimited type, and 'Limited_Item' is not one
+storageioerrors.adb:10:49: error: 'Ada.Storage_IO' expects a type of a fixed size, and 'Root'Class' is not one
+storageioerrors.adb:14:5: error: Ada.Storage_IO currently requires a definite nonlimited element type without dependent storage, class-wide, task, protected or runtime-resource parts
+storageioerrors.adb:16:44: error: 'Ada.Storage_IO' expects a nonlimited type, and 'Job' is not one
+storageioerrors.adb:21:49: error: 'Ada.Storage_IO' expects a nonlimited type, and 'Lock' is not one
+storageioerrors.adb:28:91: error: no subprogram matches the renaming profile
+storageioerrors.adb:30:38: error: 'Max_Size_In_Storage_Elements currently requires a complete definite subtype without dependent storage and no arguments
+storageioerrors.adb:30:38: error: the value of a named number must be numeric
+storageioerrors.adb:32:35: error: 'Max_Size_In_Storage_Elements currently requires a complete definite subtype without dependent storage and no arguments
+storageioerrors.adb:32:35: error: the value of a named number must be numeric
+storageioerrors.adb:34:21: error: 'B' cannot be assigned to
+storageioerrors.adb:35:23: error: 'X' cannot be assigned to

@@ -119,7 +119,8 @@ Supported:
   ([contract](docs/wide-foundation.md))
 - `Standard.ASCII` and `System` configuration, numeric, address, bit-order and priority declarations ([choices](docs/standard-system.md));
   `System.Storage_Elements` byte storage and address arithmetic ([contract](docs/storage-elements.md));
-  `Address_To_Access_Conversions` for definite fixed-layout objects ([limits](docs/address-conversions.md))
+  `Address_To_Access_Conversions` for definite fixed-layout objects ([limits](docs/address-conversions.md));
+  `Ada.Storage_IO` checked representation buffers ([format and limits](docs/storage-io.md))
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,

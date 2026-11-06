@@ -6,6 +6,142 @@
 
 using QbeSupport::isUnconstrainedArray;
 
+// Canonical native snapshots contain logical components, zero padding and a
+// static tag. They never acquire ownership or register finalization actions.
+void QbeEmitter::emitStorageIoComponents(const Value& target, const Value& source, Type* type, bool reading)
+{
+    if (type->packedBoolean) {
+        Value view = source.hasBounds() ? source : withBounds(source, type, nullptr);
+        std::string bits = lengthOf(view, type).name;
+        emitCallInstruction("call $__ada_unchecked_copy(l " + target.name + ", l " + bits
+            + ", l " + source.name + ", l " + bits + ")", CallEffects::CheckException);
+        return;
+    }
+    if (type->kind == TypeKind::Array) {
+        Value view = source.hasBounds() ? source : withBounds(source, type, nullptr);
+        std::string stride = arrayElementSize(view, type);
+        std::string length = lengthOf(view, type).name;
+        std::string cursor = allocScratch(8);
+        line("storel 0, " + cursor);
+        std::string head = newLabel("storage_elements"), body = newLabel("storage_element");
+        std::string done = newLabel("storage_elements_done");
+        jump(head);
+        label(head);
+        std::string index = newTemp(), more = newTemp();
+        line(index + " =l loadl " + cursor);
+        line(more + " =w cultl " + index + ", " + length);
+        branch(Value {more, 'w'}, body, done);
+        label(body);
+        std::string offset = newTemp();
+        Value from = arrayRow(view, type), to = from;
+        from.name = newTemp();
+        to.name = newTemp();
+        line(offset + " =l mul " + index + ", " + stride);
+        line(from.name + " =l add " + source.name + ", " + offset);
+        line(to.name + " =l add " + target.name + ", " + offset);
+        emitStorageIoComponents(to, from, type->element, reading);
+        std::string next = newTemp();
+        line(next + " =l add " + index + ", 1");
+        line("storel " + next + ", " + cursor);
+        jump(head);
+        label(done);
+        return;
+    }
+    if (type->kind == TypeKind::Record) {
+        if (type->tagged) {
+            if (reading) {
+                std::string tag = newTemp(), same = newTemp();
+                line(tag + " =l loadl " + source.name);
+                line(same + " =w ceql " + tag + ", 0");
+                std::string good = newLabel("storage_tag"), bad = newLabel("storage_bad_tag");
+                branch(Value {same, 'w'}, good, bad);
+                label(bad);
+                raiseConstraintError();
+                label(good);
+            }
+            line("storel " + (reading ? typeTag(type).name : "0") + ", " + target.name);
+        }
+        Type* record = baseType(type);
+        for (const FieldInfo& field : record->fields) {
+            std::string done;
+            if (field.variant >= 0) {
+                std::string active = newLabel("storage_variant");
+                done = newLabel("storage_variant_done");
+                branch(variantCondition(source, record, field.variant), active, done);
+                label(active);
+            }
+            emitStorageIoComponents(fieldAddress(target, record, field), fieldAddress(source, record, field), field.type, reading);
+            if (!done.empty()) { jump(done); label(done); }
+        }
+        return;
+    }
+    Value value = loadFrom(source, type);
+    emitRangeCheck(value, type, m_context->sourceLocation);
+    storeInto(target, value, type);
+}
+
+Value QbeEmitter::emitStorageIo(CallExpr* expr, bool reading)
+{
+    Type* type = expr->subprogram->parameters[1]->type;
+    Value buffer = emitAddress(expr->resolvedArguments[0]);
+    Value item;
+    if (reading || isComposite(type)) {
+        item = emitAddress(expr->resolvedArguments[1]);
+    } else {
+        Value value = emitExpr(expr->resolvedArguments[1]);
+        item = Value {allocTypeScratch(type), 'l'};
+        storeInto(item, value, type);
+    }
+    Value snapshot {allocTypeScratch(type), 'l'};
+    std::string size = runtimeSize(type);
+    std::string same = newTemp();
+    line(same + " =w ceql " + lengthOf(buffer, expr->subprogram->parameters[0]->type).name + ", " + size);
+    std::string fits = newLabel("storage_buffer"), bad = newLabel("storage_bad_buffer");
+    branch(Value {same, 'w'}, fits, bad);
+    label(bad);
+    raiseConstraintError();
+    label(fits);
+    emitCallInstruction("call $memset(l " + snapshot.name + ", w 0, l " + size + ")", CallEffects::DeferredCheck);
+    Value source = item;
+    if (reading) {
+        // Buffer_Type has byte alignment, even when it is a slice. Do not load
+        // scalars or tags directly from its potentially unaligned storage.
+        source = Value {allocTypeScratch(type), 'l'};
+        emitCallInstruction("call $memmove(l " + source.name + ", l " + buffer.name
+            + ", l " + size + ")", CallEffects::DeferredCheck);
+    }
+    auto savedChecks = m_suppressedChecks;
+    m_suppressedChecks = 0;
+    emitStorageIoComponents(snapshot, source, type, reading);
+    m_suppressedChecks = savedChecks;
+    if (reading) {
+        if (needsFinalization(type)) {
+            // A byte snapshot borrows its resources. Acquire an adjusted
+            // temporary before assignment can finalize an aliasing target.
+            bool savedTemporary = m_context->initializingTemporary;
+            m_context->initializingTemporary = true;
+            prepareControlledObject(snapshot, type);
+            m_context->initializingTemporary = savedTemporary;
+            adjustControlledObject(snapshot, type, type->tagged ? typeTag(type).name : "");
+        }
+        Symbol temporary;
+        temporary.type = type;
+        temporary.owner = m_context->symbol;
+        m_context->locals[&temporary] = snapshot.name;
+        if (type->kind == TypeKind::Array) { m_context->bounds[&temporary] = withBounds(snapshot, type, nullptr); }
+        IdentifierExpr value;
+        value.type = type;
+        value.symbol = &temporary;
+        assignInto(item, type, &value, false, recordConstrained(expr->resolvedArguments[1], &item).name);
+        m_context->locals.erase(&temporary);
+        m_context->bounds.erase(&temporary);
+    } else {
+        emitCallInstruction("call $memmove(l " + buffer.name + ", l " + snapshot.name
+            + ", l " + size + ")", CallEffects::DeferredCheck);
+    }
+    return Value {"0", 'w'};
+}
+
 Value QbeEmitter::emitUncheckedConversion(CallExpr* expr)
 {
     Type* sourceType = expr->subprogram->parameters.front()->type;
@@ -73,6 +209,9 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     Symbol* subprogram = expr->subprogram;
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
+    }
+    if (subprogram->builtin == BuiltinKind::StorageIoRead || subprogram->builtin == BuiltinKind::StorageIoWrite) {
+        return emitStorageIo(expr, subprogram->builtin == BuiltinKind::StorageIoRead);
     }
     Symbol* intrinsic = subprogram;
     while (!intrinsic->uncheckedConversion && intrinsic->builtin != BuiltinKind::AddressToPointer
