@@ -239,6 +239,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 {
     Type* type = resolveSubtypeIndication(decl->subtype.get(), scope,
                                           true, !decl->isRenaming);
+    if (type == nullptr) { return; }
 
     checkCompleteView(type, decl->location, "an object declaration");
     if (type != nullptr && !decl->isRenaming && hasIncompleteParts(type)

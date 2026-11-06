@@ -107,6 +107,7 @@ struct Expr : Node
     bool contextDeterminedTag = false; // A surrounding dispatch/assignment supplies the tag.
     std::unique_ptr<Expr> implicitCall; // Desugared parameterless subprogram dereference.
     Type* type = nullptr;
+    int syntaxDepth = 1; // Parser capacity check, independent of semantic annotations.
     bool isStatic = false;
     long long staticValue = 0;
     ExactReal exactReal;

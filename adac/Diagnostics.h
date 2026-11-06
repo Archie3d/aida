@@ -32,6 +32,7 @@ private:
     void report(const SourceLocation& location, const char* severity, const std::string& message);
 
     std::vector<std::string> m_files;
+    static constexpr int kMaxReportedDiagnostics = 100;
     int m_errorCount = 0;
     int m_warningCount = 0;
 };

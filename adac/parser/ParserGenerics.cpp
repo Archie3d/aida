@@ -415,13 +415,15 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     return decl;
 }
 
-DeclPtr Parser::parseFormalPackageInstantiation()
+DeclPtr Parser::parseFormalPackageInstantiation() try
 {
     SourceLocation location = expect(TokenKind::KwPackage, "in formal package").location;
     Token name = expect(TokenKind::Identifier, "in formal package");
     expect(TokenKind::KwIs, "in formal package");
     expect(TokenKind::KwNew, "in formal package");
     return parseGenericInstantiation(location, name.text, name.lower, true, true);
+} catch (const ParseLimit&) {
+    return {};
 }
 
 DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const std::string& name,

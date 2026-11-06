@@ -2230,3 +2230,6 @@ add_ada_error_test(wideprofileerrors SOURCES wideprofileerrors.adb)
 add_ada_error_test(widehashcategoryerrors SOURCES widehashcategoryerrors.ads)
 # A similarly named alias to another target does not get the predefined exception.
 add_ada_error_test(widehashparenterrors SOURCES strings/hashparenterrors/ada-strings-wide_fixed-wide_hash.ads)
+
+add_subdirectory(robustness)
+aida_finalize_tests()

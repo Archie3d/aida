@@ -1,3 +1,4 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ProcessLimits.cmake)
 # Runs one Ada test program end to end through the ada driver, then compares
 # the program output against the recorded expectation.
 
@@ -13,11 +14,12 @@ set(program "${work}/${NAME}")
 
 execute_process(
     COMMAND "${ADA}" -o "${program}" ${source_list}
+    TIMEOUT ${AIDA_COMPILE_TIMEOUT}
     RESULT_VARIABLE status
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors
 )
-if(NOT status EQUAL 0)
+if(NOT status STREQUAL "0")
     message(FATAL_ERROR "ada failed:\n${output}${errors}")
 endif()
 
@@ -25,6 +27,7 @@ endif()
 # leaves anything behind in the source tree.
 execute_process(
     COMMAND "${program}"
+    TIMEOUT ${AIDA_RUN_TIMEOUT}
     WORKING_DIRECTORY "${work}"
     RESULT_VARIABLE status
     OUTPUT_VARIABLE actual

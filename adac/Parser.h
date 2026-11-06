@@ -23,6 +23,24 @@ public:
     DeclPtr parseFormalPackageInstantiation();
 
 private:
+    static constexpr int kMaxSyntaxDepth = 128;
+    int m_syntaxDepth = 0;
+    class NestingGuard
+    {
+    public:
+        explicit NestingGuard(Parser& parser);
+        ~NestingGuard();
+        NestingGuard(const NestingGuard&) = delete;
+        NestingGuard& operator=(const NestingGuard&) = delete;
+
+    private:
+        Parser& m_parser;
+    };
+
+    struct ParseLimit
+    {
+    };
+
     struct ParseError
     {
     };
@@ -35,6 +53,7 @@ private:
     const Token& advance();
     const Token& expect(TokenKind kind, const char* context);
     [[noreturn]] void fail(const std::string& message);
+    [[noreturn]] void capacityError(const std::string& construct);
     void skipToSemicolon();
     bool expandStub(std::size_t start, const std::string& name, DeclKind kind);
     void parseContextClause(CompilationUnit& unit);

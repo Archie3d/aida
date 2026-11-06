@@ -188,6 +188,9 @@ void Toolchain::locateFrom(const std::string& executablePath)
 
     applyEnvironment();
     m_runtime.push_back("-pthread");
+#ifdef ADA_SANITIZER_FLAG
+    m_runtime.push_back(ADA_SANITIZER_FLAG);
+#endif
 #ifdef ADA_SEPARATE_LIBM
     // Static runtime dependencies must follow the archive on the link line.
     m_runtime.push_back("-lm");

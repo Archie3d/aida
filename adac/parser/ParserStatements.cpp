@@ -71,6 +71,7 @@ std::vector<ExceptionHandler> Parser::parseExceptionHandlers()
 
 StmtPtr Parser::parseStatement()
 {
+    NestingGuard nesting(*this);
     SourceLocation location = current().location;
 
     switch (current().kind) {

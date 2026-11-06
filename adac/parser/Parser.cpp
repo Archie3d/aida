@@ -9,6 +9,18 @@ Parser::Parser(std::vector<Token> tokens, Diagnostics& diagnostics)
 {
 }
 
+Parser::NestingGuard::NestingGuard(Parser& parser)
+    : m_parser(parser)
+{
+    if (parser.m_syntaxDepth >= kMaxSyntaxDepth) { parser.capacityError("syntax nesting"); }
+    ++parser.m_syntaxDepth;
+}
+
+Parser::NestingGuard::~NestingGuard()
+{
+    --m_parser.m_syntaxDepth;
+}
+
 const Token& Parser::current() const
 {
     return m_tokens[m_position];
@@ -61,6 +73,14 @@ void Parser::fail(const std::string& message)
     throw ParseError {};
 }
 
+void Parser::capacityError(const std::string& construct)
+{
+    m_diagnostics.error(current().location, construct + " exceeds compiler limit of " + std::to_string(kMaxSyntaxDepth));
+    // Capacity failures must bypass speculative expression recovery, which
+    // would otherwise retry the same over-deep input as an aggregate.
+    throw ParseLimit {};
+}
+
 void Parser::skipToSemicolon()
 {
     while (!check(TokenKind::EndOfFile)) {
@@ -71,7 +91,7 @@ void Parser::skipToSemicolon()
     }
 }
 
-std::vector<CompilationUnitPtr> Parser::parseCompilation()
+std::vector<CompilationUnitPtr> Parser::parseCompilation() try
 {
     std::vector<CompilationUnitPtr> units;
 
@@ -162,9 +182,11 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation()
     }
 
     return units;
+} catch (const ParseLimit&) {
+    return {};
 }
 
-DeclList Parser::parseDeclarations()
+DeclList Parser::parseDeclarations() try
 {
     DeclList declarations;
 
@@ -178,6 +200,8 @@ DeclList Parser::parseDeclarations()
     }
 
     return declarations;
+} catch (const ParseLimit&) {
+    return {};
 }
 
 void Parser::parseContextClause(CompilationUnit& unit)

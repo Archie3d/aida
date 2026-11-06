@@ -1,3 +1,4 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ProcessLimits.cmake)
 # Compiles a program as a whole, then one library unit at a time, and checks
 # that each unit came out the same either way.  Compiling units apart is only
 # sound if what a unit generates does not depend on what happened to be
@@ -14,11 +15,12 @@ file(MAKE_DIRECTORY "${work}/apart")
 
 execute_process(
     COMMAND "${ADAC}" -D "${work}/whole" "${SOURCE}"
+    TIMEOUT ${AIDA_COMPILE_TIMEOUT}
     RESULT_VARIABLE status
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors
 )
-if(NOT status EQUAL 0)
+if(NOT status STREQUAL "0")
     message(FATAL_ERROR "compiling the whole program failed:\n${output}${errors}")
 endif()
 
@@ -42,11 +44,12 @@ endif()
 foreach(unit IN LISTS units)
     execute_process(
         COMMAND "${ADAC}" -c -D "${work}/apart" "${source.${unit}}"
+        TIMEOUT ${AIDA_COMPILE_TIMEOUT}
         RESULT_VARIABLE status
         OUTPUT_VARIABLE output
         ERROR_VARIABLE errors
     )
-    if(NOT status EQUAL 0)
+    if(NOT status STREQUAL "0")
         message(FATAL_ERROR "compiling ${unit} on its own failed:\n${output}${errors}")
     endif()
 

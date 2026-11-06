@@ -7,6 +7,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(GNUInstallDirs)
+include(cmake/Sanitizers.cmake)
+include(cmake/TestLimits.cmake)
 
 # Where an installed compiler keeps the parts that are not programs.  The names
 # are the ones GNAT uses: the environment is source to be read, and the run time
@@ -56,6 +58,27 @@ set_target_properties(qbe PROPERTIES
 )
 add_dependencies(qbe qbe_build)
 
+set(AIDA_REAL_QBE ${QBE_EXECUTABLE})
+if(AIDA_SANITIZER STREQUAL "thread")
+    if(NOT UNIX OR NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "Generated Ada TSan instrumentation requires Clang on a POSIX host")
+    endif()
+    find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+    set(AIDA_TSAN_TOOLS "${CMAKE_CURRENT_SOURCE_DIR}/tools")
+    set(AIDA_TSAN_BACKEND "${AIDA_REAL_QBE}")
+    foreach(path AIDA_TSAN_TOOLS AIDA_TSAN_BACKEND)
+        string(REPLACE "\\" "\\\\" ${path} "${${path}}")
+        string(REPLACE "\"" "\\\"" ${path} "${${path}}")
+    endforeach()
+    file(SHA256 tools/tsan_ir.py AIDA_TSAN_PASS_DIGEST)
+    file(SHA256 tools/qbe_tsan.py AIDA_TSAN_ADAPTER_DIGEST)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS tools/tsan_ir.py tools/qbe_tsan.py)
+    set(QBE_EXECUTABLE "${CMAKE_CURRENT_BINARY_DIR}/qbe-tsan")
+    configure_file(cmake/qbe-tsan.in "${QBE_EXECUTABLE}" @ONLY)
+    file(CHMOD "${QBE_EXECUTABLE}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+    set_target_properties(qbe PROPERTIES IMPORTED_LOCATION "${QBE_EXECUTABLE}")
+endif()
+
 add_subdirectory(runtime)
 add_subdirectory(adac)
 add_subdirectory(ada)
@@ -65,7 +88,7 @@ add_subdirectory(tests)
 
 # qbe is an imported target, being built by its own Makefile, so the program it
 # leaves behind is installed as a file rather than as a target.
-install(PROGRAMS "${QBE_EXECUTABLE}"
+install(PROGRAMS "${AIDA_REAL_QBE}"
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 

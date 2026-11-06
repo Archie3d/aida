@@ -41,6 +41,10 @@ target_compile_definitions(${TARGET}
         ADA_RUNTIME_INSTALL_PATH="${CMAKE_INSTALL_FULL_LIBDIR}/ada/adalib/libadart.a"
 )
 
+if(AIDA_SANITIZER_FLAG)
+    target_compile_definitions(${TARGET} PRIVATE ADA_SANITIZER_FLAG="${AIDA_SANITIZER_FLAG}")
+endif()
+
 add_dependencies(${TARGET} adac qbe_build adart)
 
 install(TARGETS ${TARGET}

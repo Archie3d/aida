@@ -107,7 +107,10 @@ void Parser::parseClosingName(const std::string& lower, bool allowSimpleName)
 
 ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
 {
+    int suffixes = 0;
     while (true) {
+        if ((check(TokenKind::Dot) || check(TokenKind::LeftParen) || check(TokenKind::Tick))
+            && suffixes++ >= kMaxSyntaxDepth) { capacityError("name suffix depth"); }
         if (check(TokenKind::Dot) && (peek(1).kind == TokenKind::Identifier || peek(1).kind == TokenKind::CharacterLiteral || peek(1).kind == TokenKind::KwAll
             || (peek(1).kind == TokenKind::StringLiteral && !operatorSymbol(peek(1).text).empty()))) {
             SourceLocation location = current().location;

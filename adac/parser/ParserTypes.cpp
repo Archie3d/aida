@@ -60,6 +60,7 @@ DeclPtr Parser::parseSubtypeDecl()
 
 TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
 {
+    NestingGuard nesting(*this);
     SourceLocation location = current().location;
 
     if (check(TokenKind::KwInterface) || check(TokenKind::KwSynchronized)
@@ -428,6 +429,7 @@ void Parser::parseRecordComponents(std::vector<RecordField>& fields)
 // values named, written as a case at the end of the record definition.
 VariantPartPtr Parser::parseVariantPart()
 {
+    NestingGuard nesting(*this);
     auto part = std::make_unique<VariantPart>();
     part->location = current().location;
     expect(TokenKind::KwCase, "in variant part");

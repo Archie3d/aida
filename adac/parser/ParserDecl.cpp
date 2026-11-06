@@ -45,6 +45,7 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate, const std::string& stu
 
 DeclPtr Parser::parseDeclarativeItem()
 {
+    NestingGuard nesting(*this);
     switch (current().kind) {
     case TokenKind::KwTask:
         return parseTask();

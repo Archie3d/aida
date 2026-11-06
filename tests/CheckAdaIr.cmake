@@ -1,3 +1,4 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ProcessLimits.cmake)
 # Compares the QBE intermediate language produced by adac with a recorded
 # reference, so that changes to code generation are noticed.  A program is
 # compiled one library unit at a time, so the reference is a directory holding
@@ -10,11 +11,12 @@ file(MAKE_DIRECTORY "${work}")
 
 execute_process(
     COMMAND "${ADAC}" -D "${work}" ${source_list}
+    TIMEOUT ${AIDA_COMPILE_TIMEOUT}
     RESULT_VARIABLE status
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors
 )
-if(NOT status EQUAL 0)
+if(NOT status STREQUAL "0")
     message(FATAL_ERROR "adac failed:\n${output}${errors}")
 endif()
 

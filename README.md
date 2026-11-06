@@ -182,7 +182,9 @@ unsupported.
 
 See [TODO.md](TODO.md) for the roadmap and `tests/` for executable examples
 and expected diagnostics. The [Ada 2005 coverage matrix](docs/ada2005-coverage.md)
-tracks supported behavior and known gaps by RM clause and predefined unit. The
+tracks supported behavior and known gaps by RM clause and predefined unit.
+[Robustness validation](docs/robustness.md) covers deadlines, reproducible fuzzing
+and sanitizer presets, including generated Ada access checks with TSan. The
 [selected ACATS suite](tests/acats/README.md) runs with
 `ctest --test-dir build -L acats --output-on-failure`, including recorded expected
 failures. This selection does not establish conformance.

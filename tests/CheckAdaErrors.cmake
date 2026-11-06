@@ -1,3 +1,4 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ProcessLimits.cmake)
 # Checks that adac rejects a program, comparing the diagnostics it writes with
 # a recorded reference.
 
@@ -11,6 +12,7 @@ file(MAKE_DIRECTORY "${work}")
 
 execute_process(
     COMMAND "${ADAC}" -o "${work}/${NAME}.ssa" ${source_list}
+    TIMEOUT ${AIDA_COMPILE_TIMEOUT}
     RESULT_VARIABLE status
     OUTPUT_VARIABLE output
     ERROR_VARIABLE errors

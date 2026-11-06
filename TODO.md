@@ -1075,12 +1075,15 @@ Ada 2005 additions and track annex packages separately.
     Unchanged CD1009N remains the upstream placement control. Conservative
     captures and unsupported categories are explicit in the contract. Broader
     unaligned components, nondefault bit order and Pack retain their matrix gaps.
-- [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
-  sanitizer builds. Bound the run time of the compiler and of test programs.
-  From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada
-  memory accesses are not instrumented; find another way to cover them, for
-  example a race detector at the run-time boundary or an instrumented IR pass
-  outside `qbe/`.
+- [x] Robustness: finite CTest/compiler/program deadlines, deterministic
+  malformed-source and mutation campaigns with crash/timeout/output controls,
+  parser capacity diagnostics and the unknown-object-type crash repair.
+  Reproducible ASan/UBSan and TSan presets instrument native code; an external
+  QBE IR pass covers generated loads/stores/blits without modifying `qbe/`.
+  Whole/separate tasking controls require clean execution and deliberate Ada
+  race detection. Release 1,722/1,722; ASan/UBSan 287/287; TSan 14/14;
+  2,048 additional mutations pass and 20/20 repeated Ada races are detected.
+  [Protocol, commands, coverage and instrumentation limits](docs/robustness.md).
   - [x] Record-component and declaration syntax recovery after missing
     delimiters (`recordrecovery*`, with timeouts).
 - [ ] Complete discrete-range syntax using range attributes in array type

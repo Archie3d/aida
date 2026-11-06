@@ -26,7 +26,10 @@ const std::string& Diagnostics::fileName(int file) const
 void Diagnostics::error(const SourceLocation& location, const std::string& message)
 {
     ++m_errorCount;
-    report(location, "error", message);
+    if (m_errorCount <= kMaxReportedDiagnostics) { report(location, "error", message); }
+    else if (m_errorCount == kMaxReportedDiagnostics + 1) {
+        report(location, "error", "too many errors; further diagnostics suppressed");
+    }
 }
 
 void Diagnostics::warning(const SourceLocation& location, const std::string& message)

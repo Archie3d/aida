@@ -279,3 +279,5 @@ add_acats_test(cxa4034)
 
 # Wide_Image and Wide_Value of modular types, including the 64-bit modulus.
 add_acats_test(c354003)
+
+aida_finalize_tests()

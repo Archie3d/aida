@@ -1,3 +1,4 @@
 .vscode/
 build/
 *.tmp
+__pycache__/

@@ -1,9 +1,11 @@
 #include "Parser.h"
 
 #include <utility>
+#include <algorithm>
 
 ExprPtr Parser::parseExpression()
 {
+    NestingGuard nesting(*this);
     ExprPtr left = parseRelation();
 
     while (true) {
@@ -136,6 +138,7 @@ ExprPtr Parser::parseTerm()
 
 ExprPtr Parser::parseFactor()
 {
+    NestingGuard nesting(*this);
     SourceLocation location = current().location;
 
     if (check(TokenKind::KwNot)) {
@@ -350,7 +353,10 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
 
 ExprPtr Parser::makeBinary(BinaryOp op, ExprPtr left, ExprPtr right, const SourceLocation& location)
 {
+    int depth = 1 + std::max(left->syntaxDepth, right->syntaxDepth);
+    if (depth > kMaxSyntaxDepth) { capacityError("expression depth"); }
     auto expr = std::make_unique<BinaryExpr>();
+    expr->syntaxDepth = depth;
     expr->location = location;
     expr->op = op;
     expr->left = std::move(left);

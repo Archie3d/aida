@@ -1,0 +1,33 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "validation",
+            "hidden": true,
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/validation/${presetName}",
+            "cacheVariables": {"CMAKE_BUILD_TYPE": "RelWithDebInfo"}
+        },
+        {"name": "release", "inherits": "validation", "cacheVariables": {"AIDA_SANITIZER": "none"}},
+        {"name": "asan-ubsan", "inherits": "validation", "cacheVariables": {"AIDA_SANITIZER": "address-undefined"}},
+        {"name": "tsan", "inherits": "validation", "cacheVariables": {"AIDA_SANITIZER": "thread"}}
+    ],
+    "buildPresets": [
+        {"name": "release", "configurePreset": "release", "jobs": 6},
+        {"name": "asan-ubsan", "configurePreset": "asan-ubsan", "jobs": 6},
+        {"name": "tsan", "configurePreset": "tsan", "jobs": 6}
+    ],
+    "testPresets": [
+        {"name": "release", "configurePreset": "release", "output": {"outputOnFailure": true}, "execution": {"jobs": 6}},
+        {
+            "name": "asan-ubsan", "configurePreset": "asan-ubsan", "output": {"outputOnFailure": true},
+            "execution": {"jobs": 2},
+            "filter": {"include": {"name": "^(robustness\\.|error\\.|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
+        },
+        {
+            "name": "tsan", "configurePreset": "tsan", "output": {"outputOnFailure": true},
+            "execution": {"jobs": 2},
+            "filter": {"include": {"name": "^(robustness\\.(sanitized_tasking|ir_instrumentation|process_protocol)|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
+        }
+    ]
+}
