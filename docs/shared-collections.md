@@ -100,6 +100,8 @@ boundaries rather than proving absence of every Ada data race.
 Unchanged upstream ACATS C761002 passes after Phase 6e labels/goto and the root
 `Unchecked_Deallocation` generic renaming. Local `gotocleanup` also covers
 collection and master cleanup on outward transfers.
-General/anonymous access, accessibility extensions, custom storage
-pools and runtime-constrained array allocators remain outside this change.
+General/anonymous access, accessibility extensions and runtime-constrained array
+allocators were added in later phases. Phase 8 adds
+[specified storage pools](storage-pools.md) to these collection/cleanup paths,
+with explicit limits on arena-based construction.
 Cross-host validation remains Phase 8 work; abort delivery remains Phase 9.

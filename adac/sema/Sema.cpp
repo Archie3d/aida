@@ -169,6 +169,48 @@ Symbol* Sema::addTypeTo(Scope* scope, Type* type)
 // They are picked up as the Ada source declaring them is analysed.
 void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 {
+    if (m_namePrefix == std::vector<std::string>{"system", "storage_pools"} && package->scope != nullptr) {
+        m_storagePoolType = typeIn(package->scope, "root_storage_pool");
+        m_defaultStoragePool = lookupName("default_pool_object", package->scope);
+        Type* root = m_storagePoolType;
+        bool valid = root != nullptr && root->tagged && root->abstract && root->isLimited && root->controlled
+            && m_defaultStoragePool != nullptr && m_defaultStoragePool->kind == SymbolKind::Object
+            && !m_defaultStoragePool->isConstant && isTaggedAncestor(root, m_defaultStoragePool->type);
+        for (const std::string name : {"allocate", "deallocate", "storage_size"}) {
+            auto operations = package->scope->lookupLocal(name);
+            Symbol* operation = nullptr;
+            for (Symbol* candidate : operations) {
+                if (candidate->kind == SymbolKind::Subprogram && candidate->controllingType == root) {
+                    if (operation != nullptr) { valid = false; }
+                    operation = candidate;
+                }
+            }
+            bool size = name == "storage_size";
+            bool profile = operation != nullptr && operation->abstract
+                && operation->parameters.size() == (size ? 1 : 4);
+            if (profile) {
+                profile = rootType(operation->parameters[0]->type) == root
+                    && operation->parameters[0]->mode == (size ? ParameterMode::In : ParameterMode::InOut);
+                auto count = [](Type* type) {
+                    return type != nullptr && type->kind == TypeKind::Integer && typeSize(type) == 8
+                        && type->low == 0 && type->high == INT64_MAX;
+                };
+                if (size) { profile &= count(operation->returnType); }
+                else {
+                    profile &= operation->returnType == nullptr && rootType(operation->parameters[1]->type) == m_addressType
+                        && operation->parameters[1]->mode == (name == "allocate" ? ParameterMode::Out : ParameterMode::In)
+                        && count(operation->parameters[2]->type) && count(operation->parameters[3]->type)
+                        && operation->parameters[2]->mode == ParameterMode::In && operation->parameters[3]->mode == ParameterMode::In;
+                }
+            }
+            valid &= profile;
+        }
+        if (!valid) {
+            m_diagnostics.error(decl->location, "invalid predefined Root_Storage_Pool declaration or primitive profiles");
+            m_storagePoolType = nullptr;
+            m_defaultStoragePool = nullptr;
+        }
+    }
     if (m_namePrefix == std::vector<std::string>{"system", "storage_elements"} && package->scope != nullptr) {
         // RM 13.7.1: the public operations have intrinsic convention even
         // though their implementation uses ordinary runtime entry points.

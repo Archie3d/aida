@@ -9,8 +9,8 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 113 source specifications plus builtin Standard: 114 resolving
-units, with seven absent units. System is now an analyzed source specification,
+inventory covers 114 source specifications plus builtin Standard: 115 resolving
+units, with six absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
 missing-unit diagnostics.
@@ -23,12 +23,15 @@ ordinary Read/Write procedures, including runtime-sized inline layouts and
 controlled assignment. Dependent owned layouts and runtime-resource parts remain
 explicit implementation gaps.
 
+[System.Storage_Pools](storage-pools.md) now supplies pool associations, queries
+and allocation/deallocation dispatch with existing collection/master lifetimes.
+Positive Storage_Size and specified-pool arena-result limitations remain explicit.
+
 | Missing unit/family | Ada 2005 reference | Existing gap |
 | --- | --- | --- |
 | Numerics.Float_Random; Discrete_Random | A.5.2 | Generator ownership/state, discrete profiles, resets and state images |
 | Tags.Generic_Dispatching_Constructor | 3.9 | Generic profiles and construction by tag |
 | Text_IO.Text_Streams and both wide families | A.12.2–A.12.4 | Mixed byte/text operations, lookahead and UTF-8 state |
-| System.Storage_Pools | 13.11 | User-defined pools and allocator/deallocator integration |
 
 The original audit pinned 22 partial-API observations: missing System names
 and callable address-ordering profiles, Stream_IO's positioned overloads,

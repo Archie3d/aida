@@ -7,8 +7,9 @@ std::string QbeEmitter::finalizerName(Type* type)
     return type->exceptionOccurrence ? "$__ada_occurrence_release" : rootType(type)->tagName + ".finalize";
 }
 
-void QbeEmitter::initializeCollection(Type* type)
+void QbeEmitter::initializeCollection(Type* type, bool poolClause)
 {
+    if (type != nullptr && type->storagePoolSpecified && !poolClause) { return; }
     if (!needsCollection(type) || type->accessParameter || type->accessDiscriminant || type->parentType != nullptr || m_initializedCollections.contains(type)) {
         return;
     }
@@ -26,6 +27,31 @@ void QbeEmitter::initializeCollection(Type* type)
     std::string collection = newTemp();
     emitCallInstruction(collection + " =l call $__ada_collection_create(l " + owner + ", l " + arena + ")", CallEffects::CheckException);
     line("storel " + collection + ", " + slot);
+}
+
+int QbeEmitter::storagePoolSlot(const std::string& name)
+{
+    Type* root = m_sema.storagePoolType();
+    if (root != nullptr) {
+        for (Symbol* operation : root->dispatchSlots) {
+            if (operation->name == name) { return operation->dispatchSlot; }
+        }
+    }
+    m_diagnostics.error(m_context->sourceLocation, "invalid predefined storage pool primitive profile");
+    return -1;
+}
+
+void QbeEmitter::emitStoragePoolClause(RepresentationDecl* decl)
+{
+    if (decl->storagePoolType == nullptr) { return; }
+    // Register after evaluating the pool name, so its object precedes the
+    // collection in the finalization chain, even if the access type did not.
+    Value pool = emitAddress(decl->value.get());
+    initializeCollection(decl->storagePoolType, true);
+    Value collection = collectionFor(decl->storagePoolType);
+    emitCallInstruction("call $__ada_collection_set_pool(l " + collection.name + ", l " + pool.name
+        + ", w " + std::to_string(storagePoolSlot("allocate"))
+        + ", w " + std::to_string(storagePoolSlot("deallocate")) + ")", CallEffects::CheckException);
 }
 
 Value QbeEmitter::collectionFor(Type* type)
@@ -46,9 +72,7 @@ Value QbeEmitter::collectionFor(Type* type)
         return collection;
     }
     // Derived access types share the parent's pool and collection lifetime.
-    while (type->parentType != nullptr) {
-        type = type->parentType;
-    }
+    type = accessPoolType(type);
     std::string slot = type->collectionName;
     if (type->collectionOwner != nullptr) {
         Value frame = type->collectionOwner == m_context->symbol

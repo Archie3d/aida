@@ -440,6 +440,16 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
     }
     expr->prefixType = prefixType;
+    if (expr->lower == "storage_pool" || expr->lower == "storage_size") {
+        if (!prefixIsType || prefixType == nullptr || prefixType->kind != TypeKind::Access
+            || prefixType->accessProfile != nullptr || !expr->arguments.empty() || m_storagePoolType == nullptr) {
+            m_diagnostics.error(expr->location, "'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments");
+            return nullptr;
+        }
+        freezeType(prefixType);
+        expr->type = expr->lower == "storage_pool" ? classWideType(m_storagePoolType) : m_types.universalInteger();
+        return expr->type;
+    }
     if (expr->lower != "class" && !checkCompleteView(prefixType, expr->location, "this attribute")) { return nullptr; }
     if (expr->lower == "definite") {
         std::string key = contractKey(expr->location);

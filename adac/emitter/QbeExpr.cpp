@@ -480,6 +480,9 @@ Value QbeEmitter::emitAddress(Expr* expr)
         return emitAddress(expr->implicitCall.get());
     }
     switch (expr->kind) {
+    case ExprKind::Attribute:
+        if (static_cast<AttributeExpr*>(expr)->lower == "storage_pool") { return emitAttribute(static_cast<AttributeExpr*>(expr)); }
+        break;
     case ExprKind::Identifier: {
         auto* identifier = static_cast<IdentifierExpr*>(expr);
         if (identifier->symbol != nullptr
@@ -686,6 +689,8 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
     // full storage size, just like records and local array declarations.
     std::string size = array && hasRuntimeLayout(designated) ? objectBytes(bounds, designated)
         : runtimeSize(isScalar(designated) ? expr->type->target : designated);
+    Type* storageType = isScalar(designated) ? expr->type->target : designated;
+    long long alignment = storageType->alignment == 0 ? 0 : typeAlignment(storageType);
     if (designated->classRoot != nullptr && hasLimitedParts(designated)) {
         Value collection = collectionFor(expr->type);
         std::string pending = newTemp();
@@ -732,8 +737,8 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
             emitCallInstruction("call $__ada_collection_finish_sized(l " + m_context->pendingAllocation
                 + ", l " + object.name + ", l " + size + ")", CallEffects::CheckException);
         } else {
-            emitCallInstruction(object.name + " =l call $__ada_collection_allocate(l " + collection.name
-                 + ", l " + size + ")", CallEffects::CheckException);
+            emitCallInstruction(object.name + " =l call $__ada_collection_allocate_aligned(l " + collection.name
+                 + ", l " + size + ", l " + std::to_string(alignment) + ")", CallEffects::CheckException);
         }
         if (array) { bounds.name = object.name; bounds.type = 'l'; object = bounds; }
         std::string failed = newLabel("allocationfailed");
@@ -977,7 +982,7 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 
 Value QbeEmitter::emitAllocator(AllocatorExpr* expr)
 {
-    if (rootType(expr->type)->zeroStorage) {
+    if (accessPoolType(expr->type)->zeroStorage) {
         Symbol storageError;
         storageError.exceptionObject = "$__ada_exc_storage_error";
         emitRaise(&storageError, expr->location);

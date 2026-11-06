@@ -243,6 +243,12 @@ void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, 
    cannot be met, and freeing null does nothing. Deallocation of a collection
    member finalizes its active controlled parts before releasing storage. */
 void* __ada_allocate(long size);
+void* __ada_pool_default_allocate(int64_t size);
+void __ada_pool_default_deallocate(void* address);
+void __ada_collection_set_pool(void* owner, void* pool, int allocateSlot, int deallocateSlot);
+void* __ada_collection_pool(void* owner, void* defaultPool);
+int64_t __ada_collection_storage_size(void* owner, void* defaultPool, int slot);
+void* __ada_collection_allocate_aligned(void* owner, int64_t size, int64_t alignment);
 void __ada_deallocate(void* address);
 int64_t __ada_array_length(int64_t first, int64_t last);
 int __ada_array_narrow(int64_t length);

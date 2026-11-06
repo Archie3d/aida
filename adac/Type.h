@@ -279,6 +279,7 @@ struct Type
     bool accessConstant = false;
     bool zeroStorage = false;
     bool storageSizeSpecified = false;
+    bool storagePoolSpecified = false;
     bool accessProtected = false;
     bool accessConventionC = false;
     bool accessConventionFrozen = false;
@@ -334,6 +335,7 @@ bool variantsExclusive(const Type* type, int left, int right);
 
 // The type identity at the root of a subtype chain.
 Type* rootType(Type* type);
+Type* accessPoolType(Type* type);
 
 // Which alternative of a variant part a discriminant value picks, or -1 when
 // it picks none.

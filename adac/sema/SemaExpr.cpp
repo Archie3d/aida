@@ -306,7 +306,8 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         return nullptr;
     }
 
-    if (access->zeroStorage && !m_genericInstanceBody) {
+    Type* poolType = accessPoolType(access);
+    if (poolType->zeroStorage && !m_genericInstanceBody) {
         m_diagnostics.error(expr->location, "an allocator cannot use an access type with Storage_Size zero");
         return access;
     }
@@ -355,6 +356,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         && !hasDefaultDiscriminants(designated) && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "an allocator for an indefinite record requires a constraint or initializer");
     }
+    Type* initializerType = nullptr;
     if (expr->value != nullptr) {
         if (hasIncompleteParts(designated)) {
             m_deferredProtectedUses.push_back({designated, expr->location});
@@ -366,6 +368,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "allocators containing tasks cannot have explicit initializers yet");
         }
         Type* value = analyzeExpr(expr->value.get(), scope, designated);
+        initializerType = value;
         if (!hasProtected(designated) && hasLimitedParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
         }
@@ -379,6 +382,21 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
         }
     }
 
+    if (poolType->storagePoolSpecified) {
+        Expr* value = expr->value.get();
+        while (value != nullptr && value->kind == ExprKind::Qualified) { value = static_cast<QualifiedExpr*>(value)->operand.get(); }
+        bool unknownLimitedArray = designated->kind == TypeKind::Array && hasLimitedParts(designated)
+            && !designated->constrained && designated->boundsSymbol == nullptr && expr->subtype->indexLows.empty()
+            && value != nullptr && value->kind != ExprKind::Aggregate;
+        Type* actual = expr->designated;
+        if (hasAccessDiscriminants(actual) || actual->dependentStorage
+            || (initializerType != nullptr && (initializerType->classRoot != nullptr
+                || initializerType->dependentStorage || hasAccessDiscriminants(initializerType)))
+            || (actual->classRoot != nullptr && hasLimitedParts(actual)) || unknownLimitedArray) {
+            m_diagnostics.error(expr->location,
+                "custom storage pools do not yet support coextensions, dependent owned storage, dynamically tagged values or dynamically sized limited results");
+        }
+    }
     expr->type = expected;
     return expr->type;
 }

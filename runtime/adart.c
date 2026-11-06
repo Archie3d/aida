@@ -407,7 +407,7 @@ void __ada_exception_information_copy(const AdaExceptionOccurrence* occurrence, 
     renderInformation(occurrence, target);
 }
 
-void* __ada_allocate(long size)
+void* __ada_pool_default_allocate(int64_t size)
 {
     void* address;
 
@@ -419,6 +419,16 @@ void* __ada_allocate(long size)
         __ada_raise(ADA_STORAGE_ERROR);
     }
     return address;
+}
+
+void* __ada_allocate(long size)
+{
+    return __ada_pool_default_allocate(size);
+}
+
+void __ada_pool_default_deallocate(void* address)
+{
+    free(address);
 }
 
 static int releaseControlledAllocation(void* address);
@@ -1442,7 +1452,8 @@ typedef struct AdaAllocation
     int borrowed;
     int constrained;
     const char* viewIdentity;
-    long size;
+    int64_t size;
+    int64_t alignment;
     void* arrayBounds;
     int arrayRank;
 } AdaAllocation;
@@ -1454,7 +1465,101 @@ struct AdaCollection
     AdaTaskContext* context;
     AdaAllocation* allocations;
     int closing;
+    void* pool;
+    int allocateSlot;
+    int deallocateSlot;
 };
+
+static AdaDispatchEntry* poolOperation(void* pool, int slot)
+{
+    AdaTag* tag = pool == NULL ? NULL : *(AdaTag**)pool;
+    if (tag == NULL || slot < 0 || slot >= tag->slotCount || tag->slots[slot].code == NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    return &tag->slots[slot];
+}
+
+static int collectionOpen(AdaCollection* collection)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    int open = collection != NULL && !collection->closing;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    return open;
+}
+
+void __ada_collection_set_pool(void* owner, void* pool, int allocateSlot, int deallocateSlot)
+{
+    AdaCollection* collection = owner;
+    if (pool == NULL || poolOperation(pool, allocateSlot) == NULL || poolOperation(pool, deallocateSlot) == NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    if (collection == NULL || collection->pool != NULL || collection->allocations != NULL || collection->closing) {
+        __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    collection->pool = pool;
+    collection->allocateSlot = allocateSlot;
+    collection->deallocateSlot = deallocateSlot;
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+}
+
+void* __ada_collection_pool(void* owner, void* defaultPool)
+{
+    AdaCollection* collection = owner;
+    if (!collectionOpen(collection)) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    return collection->pool == NULL ? defaultPool : collection->pool;
+}
+
+int64_t __ada_collection_storage_size(void* owner, void* defaultPool, int slot)
+{
+    void* pool = __ada_collection_pool(owner, defaultPool);
+    AdaDispatchEntry* operation = poolOperation(pool, slot);
+    if (operation == NULL) { return 0; }
+    return operation->link == NULL ? ((int64_t (*)(void*))operation->code)(pool)
+        : ((int64_t (*)(void*, void*))operation->code)(operation->link, pool);
+}
+
+// Deallocate must also run while an allocator's initialization exception is
+// pending. Suspend the complete occurrence without allocating or taking locks.
+static void poolDeallocate(AdaCollection* collection, void* object, int64_t size, int64_t alignment)
+{
+    if (collection->pool == NULL) { free(object); return; }
+    AdaTaskContext* context = __ada_task_context();
+    __ada_abort_defer(context);
+    AdaExceptionOccurrence saved = {0};
+    saved.identity = context->exception;
+    saved.ownedMessage = context->pendingMessage;
+    saved.length = context->pendingMessageLength;
+    saved.origin = context->pendingOrigin;
+    saved.traceCount = context->pendingTraceCount;
+    memcpy(saved.trace, context->pendingTrace, (size_t)saved.traceCount * sizeof *saved.trace);
+    context->exception = NULL;
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
+    AdaDispatchEntry* operation = poolOperation(collection->pool, collection->deallocateSlot);
+    if (operation != NULL) {
+        if (operation->link == NULL) {
+            ((void (*)(void*, void*, int64_t, int64_t))operation->code)(collection->pool, object, size, alignment);
+        } else {
+            ((void (*)(void*, void*, void*, int64_t, int64_t))operation->code)
+                (operation->link, collection->pool, object, size, alignment);
+        }
+    }
+    if (saved.identity != NULL) {
+        free(context->pendingMessage);
+        context->exception = saved.identity;
+        context->pendingMessage = saved.ownedMessage;
+        context->pendingMessageLength = saved.length;
+        context->pendingOrigin = saved.origin;
+        context->pendingTraceCount = saved.traceCount;
+        memcpy(context->pendingTrace, saved.trace, (size_t)saved.traceCount * sizeof *saved.trace);
+    } else { free(saved.ownedMessage); }
+    __ada_abort_undefer(context);
+}
 
 
 /* The storage mutex protects indexes and collection membership, not user
@@ -1523,7 +1628,7 @@ static void releaseAllocation(AdaAllocation* allocation)
     __ada_finalize_to(&allocation->finalizations, NULL);
     __ada_array_release(&allocation->arena);
     if (!allocation->arenaOwnsObject && !allocation->borrowed) {
-        free(allocation->object);
+        poolDeallocate(allocation->collection, allocation->object, allocation->size, allocation->alignment);
     }
     free(allocation);
 }
@@ -1599,21 +1704,55 @@ static int registerAllocation(AdaCollection* collection, AdaAllocation* allocati
     return 1;
 }
 
-void* __ada_collection_allocate(void* owner, long size)
+void* __ada_collection_allocate_aligned(void* owner, int64_t size, int64_t alignment)
 {
+    AdaCollection* collection = owner;
+    if (!collectionOpen(collection) || size < 0 || alignment < 0
+        || (alignment != 0 && ((uint64_t)alignment & ((uint64_t)alignment - 1)) != 0)) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
     AdaAllocation* allocation = calloc(1, sizeof *allocation);
     if (allocation == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    allocation->object = __ada_allocate(size);
+    allocation->size = size;
+    allocation->alignment = alignment;
+    if (collection->pool == NULL) {
+        allocation->object = __ada_pool_default_allocate(size);
+    } else {
+        AdaDispatchEntry* operation = poolOperation(collection->pool, collection->allocateSlot);
+        if (operation != NULL) {
+            if (operation->link == NULL) {
+                ((void (*)(void*, void**, int64_t, int64_t))operation->code)
+                    (collection->pool, &allocation->object, size, alignment);
+            } else {
+                ((void (*)(void*, void*, void**, int64_t, int64_t))operation->code)
+                    (operation->link, collection->pool, &allocation->object, size, alignment);
+            }
+        }
+        if (__ada_exception != NULL) { free(allocation); return NULL; }
+        if (allocation->object == NULL || (alignment != 0 && (uintptr_t)allocation->object % alignment != 0)) {
+            __ada_raise(ADA_PROGRAM_ERROR);
+            if (allocation->object != NULL) { poolDeallocate(collection, allocation->object, size, alignment); }
+            free(allocation);
+            return NULL;
+        }
+        if (size != 0) { memset(allocation->object, 0, (size_t)size); }
+    }
     if (allocation->object == NULL || !registerAllocation(owner, allocation)) {
-        free(allocation->object);
+        if (allocation->object != NULL) { poolDeallocate(collection, allocation->object, size, alignment); }
         free(allocation);
         return NULL;
     }
     allocation->size = size;
     return allocation->object;
+}
+
+void* __ada_collection_allocate(void* owner, long size)
+{
+    return __ada_collection_allocate_aligned(owner, size, 8);
 }
 
 void __ada_allocation_set_array_bounds(void* object, const void* descriptor, int rank, const char* identity)
@@ -1896,7 +2035,7 @@ void* __ada_tagged_allocation(void* collection, const void* source)
 {
     AdaTaskContext* context = __ada_task_context();
     const AdaTag* tag = *(const AdaTag* const*)source;
-    void* target = __ada_collection_allocate(collection, tag->size);
+    void* target = __ada_collection_allocate_aligned(collection, tag->size, tag->alignment);
     if (target == NULL) {
         return NULL;
     }

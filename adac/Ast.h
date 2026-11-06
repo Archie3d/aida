@@ -1197,6 +1197,7 @@ struct RepresentationDecl : Decl
     std::string lower;
     std::string attribute;
     bool classWide = false;
+    Type* storagePoolType = nullptr;
     ExprPtr value;
     ExprPtr modulus;
     std::vector<ComponentClause> components;

@@ -813,6 +813,13 @@ bool needsCollection(const Type* type)
         && ((type->target != nullptr && type->accessProfile == nullptr) || type->accessProtected);
 }
 
+Type* accessPoolType(Type* type)
+{
+    type = rootType(type);
+    while (type != nullptr && type->parentType != nullptr) { type = rootType(type->parentType); }
+    return type;
+}
+
 bool hasLimitedControlledParts(const Type* type)
 {
     if (type == nullptr) {

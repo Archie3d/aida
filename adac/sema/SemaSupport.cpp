@@ -314,6 +314,7 @@ std::vector<std::string> splitDottedName(const std::string& name)
 // 0 is not an object name, 1 is a constant view, 2 is a variable view.
 int objectView(Expr* expr)
 {
+    if (expr->kind == ExprKind::Attribute && static_cast<AttributeExpr*>(expr)->lower == "storage_pool") { return 2; }
     if (expr->implicitCall != nullptr) {
         return 0;
     }

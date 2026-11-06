@@ -1,0 +1,15 @@
+storagepoolerrors.adb:24:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:27:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:28:5: error: Storage_Size currently requires an unfrozen access-to-object first subtype and a single static zero specification
+storagepoolerrors.adb:31:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:33:29: error: an allocator cannot use an access type with Storage_Size zero
+storagepoolerrors.adb:35:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:37:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:39:5: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification
+storagepoolerrors.adb:42:5: error: a representation item must precede freezing of its type or subtype
+storagepoolerrors.adb:44:47: error: 'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments
+storagepoolerrors.adb:45:45: error: 'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments
+storagepoolerrors.adb:47:5: error: an abstract type cannot be used to create an object
+storagepoolerrors.adb:51:33: error: custom storage pools do not yet support coextensions, dependent owned storage, dynamically tagged values or dynamically sized limited results
+storagepoolerrors.adb:52:5: error: a tagged primitive cannot be declared after its type is frozen
+storagepoolerrors.adb:54:9: error: Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification

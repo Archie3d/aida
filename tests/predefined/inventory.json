@@ -717,9 +717,9 @@
     {
       "name": "system.storage_pools",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "13.11",
-      "gap": "user-defined storage pools"
+      "source": "runtime/ada/system-storage_pools.ads"
     },
     {
       "name": "text_io",
@@ -783,6 +783,7 @@
     "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers",
     "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls",
     "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension",
-    "storage_io": "storageio / storageioerrors / storageioprofileerrors: native representation buffers, runtime-sized inline arrays/records, checked Read and controlled assignment; dependent-storage and runtime-resource parts diagnosed"
+    "storage_io": "storageio / storageioerrors / storageioprofileerrors: native representation buffers, runtime-sized inline arrays/records, checked Read and controlled assignment; dependent-storage and runtime-resource parts diagnosed",
+    "storage_pools": "storagepools / storagepoolerrors / runtime.storage_pools: native size/alignment, specified/shared/derived/default pools, callback exceptions, finalization/master lifetime and concurrent callers; unsupported arena-result paths diagnosed"
   }
 }

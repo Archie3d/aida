@@ -1669,6 +1669,23 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         type->componentSizeSpecified = true;
         return;
     }
+    if (decl->attribute == "storage_pool") {
+        Type* type = symbol->type;
+        Type* pool = analyzeExpr(decl->value.get(), scope, nullptr);
+        if (freezesTarget()) { return; }
+        Type* specific = pool != nullptr && pool->classRoot != nullptr ? pool->classRoot : pool;
+        if (type->kind != TypeKind::Access || type->isSubtype || type->parentType != nullptr
+            || type->anonymousAccess || type->accessProfile != nullptr || type->storageSizeSpecified
+            || type->storagePoolSpecified || m_storagePoolType == nullptr
+            || !isTaggedAncestor(m_storagePoolType, specific) || SemaSupport::objectView(decl->value.get()) != 2) {
+            m_diagnostics.error(decl->location,
+                "Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification");
+            return;
+        }
+        type->storagePoolSpecified = true;
+        decl->storagePoolType = type;
+        return;
+    }
     if (decl->attribute == "storage_size") {
         Type* type = symbol->type;
         long long size = -1;
@@ -1676,7 +1693,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         if (freezesTarget()) { return; }
         if (expression == nullptr || (expression->kind != TypeKind::Integer && expression->kind != TypeKind::UniversalInteger)
             || type->kind != TypeKind::Access || type->isSubtype || type->anonymousAccess
-            || type->accessProfile != nullptr || type->storageSizeSpecified || type->streamsFrozen
+            || type->accessProfile != nullptr || type->storageSizeSpecified || type->storagePoolSpecified || type->parentType != nullptr || type->streamsFrozen
             || !foldStatic(decl->value.get(), size) || size != 0) {
             m_diagnostics.error(decl->location, "Storage_Size currently requires an unfrozen access-to-object first subtype and a single static zero specification");
         } else {

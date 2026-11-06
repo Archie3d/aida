@@ -296,6 +296,8 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
         }
         if (decl->kind == DeclKind::Pragma) {
             emitPragma(static_cast<PragmaDecl*>(decl.get()));
+        } else if (decl->kind == DeclKind::Representation) {
+            emitStoragePoolClause(static_cast<RepresentationDecl*>(decl.get()));
         } else if (decl->kind == DeclKind::GenericDeclaration) {
             auto* generic = static_cast<GenericDecl*>(decl.get());
             if (generic->hasBody && generic->renamesLower.empty()) {
@@ -506,6 +508,9 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         switch (decl->kind) {
         case DeclKind::Pragma:
             emitPragma(static_cast<PragmaDecl*>(decl.get()));
+            break;
+        case DeclKind::Representation:
+            emitStoragePoolClause(static_cast<RepresentationDecl*>(decl.get()));
             break;
         case DeclKind::SubprogramDeclaration: {
             auto* renaming = static_cast<SubprogramDecl*>(decl.get());

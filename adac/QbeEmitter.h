@@ -261,7 +261,9 @@ private:
     void pushHandler(const std::string& label);
     void emitControlledCall(const Value& object, Type* type, const std::string& operation, const std::string& explicitTag = "");
     void initializeFinalization();
-    void initializeCollection(Type* type);
+    void initializeCollection(Type* type, bool poolClause = false);
+    void emitStoragePoolClause(RepresentationDecl* decl);
+    int storagePoolSlot(const std::string& name);
     Value collectionFor(Type* type);
     void emitExtendedReturnBody(ReturnStmt* statement);
     void emitControlledResult(Expr* expression, ObjectDecl* object = nullptr, ReturnStmt* extended = nullptr);

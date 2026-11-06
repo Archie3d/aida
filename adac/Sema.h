@@ -25,6 +25,8 @@ public:
     Type* fileStreamType() const { return m_fileStreamType; }
     Symbol* streamRead() const { return m_streamRead; }
     Symbol* streamWrite() const { return m_streamWrite; }
+    Type* storagePoolType() const { return m_storagePoolType; }
+    Symbol* defaultStoragePool() const { return m_defaultStoragePool; }
     Symbol* mainSubprogram() const { return m_main; }
 
     // The exceptions declared in one file, whose objects that file's unit is
@@ -392,6 +394,8 @@ private:
     Type* m_taskIdType = nullptr;
     bool m_streamDefault = false;
     Type* m_streamRootType = nullptr;
+    Type* m_storagePoolType = nullptr;
+    Symbol* m_defaultStoragePool = nullptr;
     Type* m_fileStreamType = nullptr;
     Symbol* m_streamRead = nullptr;
     Symbol* m_streamWrite = nullptr;

@@ -493,7 +493,7 @@ DeclPtr Parser::parseRepresentationClause()
         expect(TokenKind::Tick, "after class-wide representation prefix");
         decl->attribute = expect(TokenKind::Identifier, "as class-wide attribute").lower;
     }
-    if (decl->attribute != "component_size" && decl->attribute != "storage_size" && decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "stream_size" && decl->attribute != "machine_radix"
+    if (decl->attribute != "component_size" && decl->attribute != "storage_size" && decl->attribute != "storage_pool" && decl->attribute != "alignment" && decl->attribute != "size" && decl->attribute != "small" && decl->attribute != "stream_size" && decl->attribute != "machine_radix"
         && decl->attribute != "read" && decl->attribute != "write"
         && decl->attribute != "input" && decl->attribute != "output") {
         m_diagnostics.error(location, "unsupported representation attribute '" + attribute.text

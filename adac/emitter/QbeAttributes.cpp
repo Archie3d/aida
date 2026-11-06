@@ -14,6 +14,21 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
+    if (name == "storage_pool" || name == "storage_size") {
+        Value collection = collectionFor(prefixType);
+        std::string result = newTemp();
+        Value defaultPool = addressOf(m_sema.defaultStoragePool());
+        if (name == "storage_pool") {
+            emitCallInstruction(result + " =l call $__ada_collection_pool(l " + collection.name
+                + ", l " + defaultPool.name + ")", CallEffects::CheckException);
+        } else if (accessPoolType(prefixType)->zeroStorage) {
+            return Value {"0", 'l'};
+        } else {
+            emitCallInstruction(result + " =l call $__ada_collection_storage_size(l " + collection.name
+                + ", l " + defaultPool.name + ", w " + std::to_string(storagePoolSlot("storage_size")) + ")", CallEffects::CheckException);
+        }
+        return Value {result, 'l'};
+    }
     if (const FloatAttributeInfo* info = floatAttributeInfo(name.c_str()); info != nullptr
         && prefixType != nullptr && prefixType->kind == TypeKind::Float) {
         bool narrow = typeSize(prefixType) == 4;

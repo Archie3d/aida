@@ -275,12 +275,26 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
 {
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
-    Parser parser(lexer.tokenize(), m_diagnostics);
+    auto tokens = lexer.tokenize();
+    bool poolAttribute = false;
+    for (std::size_t i = 0; i + 2 < tokens.size(); ++i) {
+        if (tokens[i].kind == TokenKind::Tick
+            && (tokens[i + 1].lower == "storage_pool" || tokens[i + 1].lower == "storage_size")
+            && tokens[i + 2].kind != TokenKind::KwUse) { poolAttribute = true; }
+    }
+    Parser parser(std::move(tokens), m_diagnostics);
     auto units = parser.parseCompilation();
     auto& source = m_sources[sourceIdentity(path)];
     // Publish every item before following any edge, including forward
     // references within a bundle and references from other explicit sources.
     for (auto& unit : units) {
+        if (poolAttribute && declarationName(*unit->units.front()) != "system.storage_pools") {
+            WithClause dependency;
+            dependency.names = {"System.Storage_Pools"};
+            dependency.namesLower = {"system.storage_pools"};
+            dependency.location = unit->units.front()->location;
+            unit->withClauses.push_back(std::move(dependency));
+        }
         // Numeric I/O generics belong to Text_IO itself (RM A.10.1).
         // Accept AIDA's historical child-style with clauses for source compatibility.
         for (WithClause& clause : unit->withClauses) {

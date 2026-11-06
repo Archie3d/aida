@@ -167,8 +167,12 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         analyzeTypeDecl(typeDecl, scope);
         Type* declared = typeDecl->declaredType;
         if (declared != nullptr && !declared->isIncomplete) {
-            freezeType(declared->parentType);
-            freezeType(declared->parentSubtype);
+            // A derived object access type shares a pool not yet necessarily
+            // specified on its parent. Allocation/use freezes the ancestry.
+            if (declared->kind != TypeKind::Access || declared->accessProfile != nullptr) {
+                freezeType(declared->parentType);
+                freezeType(declared->parentSubtype);
+            }
             if (declared->kind == TypeKind::Array) {
                 // Bounds and element strides are captured during declaration.
                 freezeType(declared->index);

@@ -1056,3 +1056,28 @@ provenance separately from execution. No upstream source is edited or reduced.
 The original 145-case backfill outcomes remain unchanged. See the
 [buffer/ownership contract](../../docs/storage-io.md) for supported representations
 and explicitly diagnosed dependent-storage/resource limits.
+
+### Storage_Pools follow-up
+
+Unchanged C3A0015 is a regular executable PASS case. Its complete REPORT scenario
+checks parent/derived pool identity, generic allocation, conversions and
+deallocation for default and user-defined pools. Original CDB0A01 and its
+official FDB0A00 foundation are pinned and reviewed, but remain compile-rejected
+at the positive Storage_Size clause. This rejection is not a conformance pass.
+The Ada 2012 subpool test CDB4001 is outside the Ada 2005 selection.
+
+Sources come from ACATS revision `2785c30c1f8577d97ac7b3043882f6818781e9c5`:
+
+| Original path | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/c3/c3a0015.a` | `856c910f92df53b366d630283f0ba392586b680e` | `100c3021dd487042145aeeb333b70b8b815fb807c7264092f7609d8df0d9d169` |
+| `tests/cd/cdb0a01.a` | `566fad13883b26c5c455882df02b77e09d70ca25` | `12156b16e0d24b1fe6ef0aa13a29920041f1792e460e731a4ddd4a7497e2afa8` |
+| `support/fdb0a00.a` | `4888c24aa9b0c33151ee73fc5348c7a735e292d6` | `1615a62514cafe8bc0c3dce73aea08f73ff1ef3b8d916b36ef09641b84924fcb` |
+
+`storage_pools/manifest.json` and `baseline.storage_pools_acats` validate original
+bytes, language eligibility, support inputs and the exact remaining rejection.
+No upstream test is edited or reduced. All 145 original backfill outcomes are
+unchanged; B34001B/B34002B retain ungraded rejection status with more specific
+Storage_Size prefix diagnostics. See the
+[implementation contract](../../docs/storage-pools.md) for allocation policies,
+pool lifetimes and remaining representation limits.

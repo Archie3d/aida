@@ -304,7 +304,7 @@ checks.
   heap finalization across tasks; collection tasks belong to the access type's
   master (`sharedcollections`, `sharedtaskcollections`,
   `runtime.shared_collections`; ACATS C761002 PASS after P6e labels/renaming).
-  Foreign stack chains and custom pools unsupported.
+  Foreign stack chains remain unsupported; custom pools are added in Phase 8.
   [Limits](docs/shared-collections.md).
 
 ### 6b. Dynamic data
@@ -1236,12 +1236,19 @@ Ada 2005 additions and track annex packages separately.
     Release 1,826/1,826 and 18 focused ASan/UBSan checks pass; all 145 original
     backfill outcomes unchanged.
     [Representation, ownership and evidence](docs/storage-io.md).
-  - [ ] **System.Storage_Pools (13.11–13.11.1).** Implement Root_Storage_Pool and
-    its required primitives, Storage_Pool specification/query and integration
-    with allocators and Unchecked_Deallocation. Cover size/alignment requests,
-    access-type/derived-type pool association, allocation/initialization failures,
-    deallocation callbacks, collection/master lifetime and concurrent use. Retain
-    existing default-pool and zero-Storage_Size behavior.
+  - [x] **System.Storage_Pools (13.11–13.11.1).** Source limited-controlled
+    root and abstract primitives; captured Storage_Pool clauses, class-wide pool
+    views and dispatching Storage_Size queries. Allocators retain native size,
+    alignment and pool association for failure cleanup, Unchecked_Deallocation
+    and collection/master finalization. Shared/derived/default pools, library
+    elaboration, zero Storage_Size and callback exceptions covered; callbacks
+    run outside the storage lock and preserve pending initialization occurrences.
+    Unsupported coextension/owned-dependent/dynamic-result paths and positive
+    Storage_Size clauses remain explicit diagnostics. Whole/separate/determinism,
+    four Ada/native workers and unchanged C3A0015 PASS; CDB0A01 still rejected at
+    positive Storage_Size. Release 1,834/1,834, 25 focused ASan/UBSan and two
+    TSan checks pass; all 145 backfill outcomes unchanged (two B diagnostics
+    refined). [Policy, limits and evidence](docs/storage-pools.md).
   - [ ] **Ada.Numerics.Float_Random and Discrete_Random (A.5.2).** Implement both
     complete basic/advanced APIs: Generator/State, Random, all Reset forms, Save,
     Image/Value and Max_Image_Width. Define initialization, reproducibility,
