@@ -43,8 +43,8 @@ even if a particular actual object is constrained.
 [Anonymous access and access discriminants](anonymous-access.md) landed in the
 following Phase 6d item. [Null exclusions](null-exclusions.md) are supported;
 broader generic formal access types remain separate roadmap items. Limited
-current instances now follow the [Phase 6f contract](tagged-discriminants.md). Constraints on access subtypes,
-custom storage pools, and general representation freezing remain Phase 8 work;
+current instances now follow the [Phase 6f contract](tagged-discriminants.md). Designated-record constraints on access subtypes now follow the
+[P8 contract](access-subtype-constraints.md). Custom storage pools remain Phase 8 work;
 unsupported syntax receives diagnostics. Applications must synchronize concurrent
 modification of designated data, as with ordinary shared object access.
 

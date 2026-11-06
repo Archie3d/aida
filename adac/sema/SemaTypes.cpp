@@ -2176,10 +2176,26 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
         if (array != nullptr && array->kind == TypeKind::Record) {
             return constrainDiscriminants(indication, base, scope);
         }
-        if (array != nullptr && array->kind == TypeKind::Access && array->target != nullptr
-            && baseType(array->target)->kind == TypeKind::Record) {
-            m_diagnostics.error(indication->location, "discriminant constraints on access subtypes are not yet supported");
-            return base;
+        if (base->kind == TypeKind::Access && base->target != nullptr
+            && baseType(base->target)->kind == TypeKind::Record) {
+            Type* designatedRoot = rootType(base->target);
+            if (designatedRoot->privateTo != nullptr && designatedRoot->privateDiscriminantCount == 0
+                && !designatedRoot->unknownDiscriminants && !designatedRoot->privateExtension) {
+                m_diagnostics.error(indication->location, "an access discriminant constraint requires an unconstrained partial view");
+                return base;
+            }
+            bool general = base->generalAccess || (m_genericBodyContext && rootType(base)->genericFormal);
+            bool defaulted = hasDefaultDiscriminants(base->target)
+                || (m_genericBodyContext && designatedRoot->genericFormal && !designatedRoot->tagged);
+            if (general && defaulted) {
+                m_diagnostics.error(indication->location, "a general access subtype cannot constrain a designated type with defaulted discriminants");
+                return base;
+            }
+            Type* designated = constrainDiscriminants(indication, base->target, scope);
+            Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            subtype->target = designated;
+            indication->resolved = subtype;
+            return subtype;
         }
         if (std::any_of(indication->discriminantNames.begin(), indication->discriminantNames.end(),
                 [](const auto& names) { return !names.empty(); })) {

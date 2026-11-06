@@ -42,7 +42,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The refreshed cohort
-has 90 C passes, 12 legal-source rejections, one support
+has 92 C passes, 10 legal-source rejections, one support
 blocker and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -148,3 +148,7 @@ The 2026-11-06 full refresh promotes the seven discrete-range cases
 previously stale observations of existing REPORT/partial ImpDef support;
 see the [current baseline](../../../docs/acats-baseline.md). No support adapter
 implementation changed in this range increment.
+
+C37003A/C37006A subsequently pass unchanged after P8 designated-record
+constraints on access subtypes. Other outcomes are unchanged; B37004A's
+updated diagnostics remain ungraded.

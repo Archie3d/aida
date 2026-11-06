@@ -149,9 +149,12 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
     }
 }
 
-void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLocation& location)
+void QbeEmitter::emitRangeCheck(const Value& value, Type* type, const SourceLocation& location, const Value* address)
 {
-    if (type != nullptr && type->kind == TypeKind::Access && type->excludesNull) { checkNotNull(value); }
+    if (type != nullptr && type->kind == TypeKind::Access) {
+        if (type->excludesNull) { checkNotNull(value); }
+        emitAccessConstraintCheck(value, type, address);
+    }
     if (m_suppressedChecks & CheckPolicy::kRange) { return; }
     if (type != nullptr && type->kind == TypeKind::Float) {
         Value bounds = scalarBounds(type);
@@ -335,4 +338,27 @@ void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
     label(bad);
     raiseConstraintError();
     label(good);
+}
+
+// Null belongs to a nullable access subtype regardless of its designated
+// constraint. Only a non-null value has discriminants to inspect.
+void QbeEmitter::emitAccessConstraintCheck(const Value& value, Type* type, const Value* address)
+{
+    Type* target = type->target;
+    if (target == nullptr || target->kind != TypeKind::Record || !hasDiscriminantConstraint(target)) { return; }
+    std::string nonNull = newTemp(), check = newLabel("accessconstraint"), done = newLabel("accessconstraintdone");
+    line(nonNull + " =w cnel " + value.name + ", 0");
+    branch(Value {nonNull, 'w'}, check, done);
+    label(check);
+    auto savedObjects = m_context->discriminantObjects;
+    if (address != nullptr && address->constraintLayout != nullptr) {
+        for (Type* walk = baseType(address->constraintLayout); walk != nullptr; walk = walk->parentType) {
+            m_context->discriminantObjects[baseType(walk)] = {
+                *address->constraintObject, baseType(address->constraintLayout)};
+        }
+    }
+    emitRecordConstraintCheck(value, target);
+    m_context->discriminantObjects = std::move(savedObjects);
+    jump(done);
+    label(done);
 }

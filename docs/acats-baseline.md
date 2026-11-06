@@ -11,16 +11,25 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 12 |
+| Legal C-test rejected | 10 |
 | Support/harness blocked | 1 |
-| Executable PASS | 90 |
+| Executable PASS | 92 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **12 executable C-cases fail**, all compile
+No crashes or timeouts were observed. **10 executable C-cases fail**, all compile
 rejections; one further C-case is blocked by the TCTouch adapter.
 All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
+
+## Access-subtype record constraints (Phase 8)
+
+C37003A and C37006A now execute unchanged as PASS. Designated-record
+constraints reuse captured discriminant values and check non-null access values
+at value boundaries, including component initialization and conversion.
+[Contract and local cross-unit/tasking coverage](access-subtype-constraints.md).
+All other outcomes remain unchanged; B37004A has updated, ungraded diagnostics
+where its previously unsupported access constraint is now analyzed.
 
 ## Discrete-range observations (Phase 8)
 
@@ -199,7 +208,8 @@ participate in index/call overload resolution; nested slice indexing retains
 its own lower bound. Nested package bodies see enclosing body declarations
 without leaking them to clients. Concatenation/equality use a visible nonlimited
 full view. Visible partial-view discriminants and class-wide use-type marks are
-also repaired; C37006A and C760011 retain independently owned prerequisites.
+also repaired; C37006A and C760011 then retained independent prerequisites.
+Both now execute unchanged as PASS after their subsequent increments.
 `supportedrejections`/`supportedrejectionerrors` cover legal and rejection
 controls in whole/per-unit/deterministic modes, with four tasks and compiler
 ASan/UBSan. All four new passes join the strict selection.
@@ -216,7 +226,7 @@ be blocked before reaching the feature named in their objective.
 | Area | C PASS | C rejected | C runtime failure | Harness blocked | B ungraded |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | derived scalars | 9 | 1 | 0 | 0 | 0 |
-| arrays discriminants | 8 | 2 | 0 | 0 | 0 |
+| arrays discriminants | 10 | 0 | 0 | 0 | 0 |
 | object orientation | 17 | 0 | 0 | 0 | 0 |
 | access callbacks | 7 | 0 | 0 | 0 | 0 |
 | indexing slices | 8 | 0 | 0 | 0 | 0 |
@@ -247,7 +257,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 90 observed
+crash/timeout handling and source/snapshot integrity. Only the 92 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -274,10 +284,10 @@ The table below gives the observed status and initial triage for every case.
 | [C36104B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104b.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
 | [C36180A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36180a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
 | [C37002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37002a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
-| [C37003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37003a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 access-subtype constraints |
+| [C37003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37003a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 access-subtype record constraints |
 | [C37003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37003b.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
 | [C37005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37005a.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
-| [C37006A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37006a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 access-subtype constraints |
+| [C37006A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37006a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 access-subtype record constraints |
 | [C37008A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37008a.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
 | [C37008B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37008b.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
 | [C390010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c390010.a) | 3.4/3.9/3.10 | Executable PASS | constrained class-wide/variant repair; P6f-prelude |

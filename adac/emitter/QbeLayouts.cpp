@@ -82,6 +82,11 @@ Value QbeEmitter::fieldAddress(const Value& object, Type* type, const FieldInfo&
     address.declaredLayout = object.declaredLayout;
     address.bitOffset = field.bitOffset;
     address.bitWidth = field.bitWidth;
+    if (field.type->kind == TypeKind::Access && field.type->target != nullptr
+        && field.type->target->discriminantRecord != nullptr) {
+        address.constraintObject = std::make_shared<Value>(object);
+        address.constraintLayout = type;
+    }
     if (field.inlineDependent) {
         Value view = dependentFieldBounds(object, type, field);
         view.name = address.name;

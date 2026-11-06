@@ -83,9 +83,11 @@ Dependent arrays with controlled, task or protected elements are diagnosed.
 Controlled variant components now follow the [controlled-variant contract](controlled-variants.md).
 Tagged composites containing managed dependent records follow the Phase 6f
 [tagged/private-view contract](tagged-discriminants.md). General limited records
-were added with Phase 6e returns. Discriminant constraints
-on access subtypes remain unsupported; access types designating a constrained
-record subtype and record allocator constraints are supported. Record
+were added with Phase 6e returns. Designated-record constraints
+on access subtypes now follow the [P8 contract](access-subtype-constraints.md),
+including capture, null checks and per-object component constraints. Access
+types designating a constrained record subtype and record allocator constraints
+remain supported. Record
 clauses can instead use [bounded inline payloads](representation-clauses.md).
 
 `runtimediscriminants`, `discriminantcomponents`, `discriminantcleanup` and

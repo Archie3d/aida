@@ -1100,9 +1100,17 @@ Ada 2005 additions and track annex packages separately.
   record components, exception timing and four independent workers in
   whole/separate/deterministic modes. Release 1,737/1,737; focused compiler
   ASan/UBSan 13/13. [Contract and evidence](docs/discrete-ranges.md).
-- [ ] Complete access-subtype designated-record discriminant constraints
-  (C37003A/C37006A); keep the explicit diagnostic until constraint capture,
-  null/conversion checks and library/per-unit behavior are implemented.
+- [x] Complete access-subtype designated-record discriminant constraints.
+  Reuse record constraint analysis and capture while retaining access identity;
+  check non-null designated values at initialization, assignment, conversion,
+  parameter/result and copy-back boundaries. Preserve containing-object context
+  for per-object access components, library captures, aliases and derived
+  types; enforce defaulted-discriminant/partial-view legality and subtype
+  conformance. `accesssubtypes` / `access_subtype_checks` and
+  `accesssubtypeerrors` cover whole/separate/deterministic compilation,
+  private views, mixed dependent storage and four workers. Unchanged
+  C37003A/C37006A execute as PASS. Release 1,743/1,743; focused ASan/UBSan 9/9.
+  [Contract and evidence](docs/access-subtype-constraints.md).
 - [ ] Complete generic-child unit loading for generic parents. Unchanged
   CC70001 is currently rejected by the loader before formal-package execution;
   this is the existing deferral recorded during Phase 6g. Preserve parent and

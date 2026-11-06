@@ -41,8 +41,9 @@ Runtime explicit constraints and dependent component bounds now follow the
 components follow the [controlled-variant contract](controlled-variants.md).
 Tagged discriminants, access discriminants, new derived
 discriminant parts and general limited records retain their existing
-restrictions. Named discriminant constraints landed with runtime constraints; discriminant
-constraints on access subtypes remain unsupported. No broader representation or stream support is
+restrictions. Named discriminant constraints landed with runtime constraints;
+designated-record constraints on access subtypes follow the
+[P8 contract](access-subtype-constraints.md). No broader representation or stream support is
 claimed.
 
 Evidence: `defaultdiscriminants`, `defaultdiscriminantstasking` and

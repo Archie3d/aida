@@ -242,15 +242,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     jump(ready);
                     label(ready);
                 }
-                if (target->kind == TypeKind::Record && hasDiscriminantConstraint(target)) {
-                    std::string nonNull = newTemp(), check = newLabel("accessconstraint"), ready = newLabel("accessconstraintdone");
-                    line(nonNull + " =w cnel " + value.name + ", 0");
-                    branch(Value {nonNull, 'w'}, check, ready);
-                    label(check);
-                    checkRecordAssignment(value, value, target, true, "1");
-                    jump(ready);
-                    label(ready);
-                }
+                emitAccessConstraintCheck(value, expr->type);
                 preserveAccessView(value, expr->type, operand->type);
                 value.accessLevel = accessLevelFor(expr->type);
                 value.accessOwner.clear();

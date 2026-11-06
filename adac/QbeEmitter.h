@@ -46,6 +46,10 @@ struct Value
     bool declaredLayout = false; // Destination under construction; its tag may name an ancestor.
     bool shared = false; // This value denotes shared scalar storage.
 
+    // Containing object for an access component constrained by discriminants.
+    std::shared_ptr<Value> constraintObject;
+    Type* constraintLayout = nullptr;
+
     Type* scalarStorageType = nullptr; // Physical type of a discriminant used by an inherited expression.
     int bitOffset = 0;
     int bitWidth = 0;
@@ -226,10 +230,11 @@ private:
     void emitExceptionCheck();
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,
                       const std::string& dispatchLabel);
+    void emitAccessConstraintCheck(const Value& value, Type* type, const Value* address = nullptr);
     void emitRecordConstraintCheck(const Value& value, Type* type);
     Value recordConstraintMatches(const Value& value, Type* type);
     void emitDiscreteRangeCheck(Expr* low, const Value& first, const Value& last);
-    void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location);
+    void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location, const Value* address = nullptr);
     Value variantCondition(const Value& address, Type* record, int variant);
     void checkVariant(const Value& address, Type* record, int variant);
     std::string rangeTest(const Value& value, long long low, long long high);

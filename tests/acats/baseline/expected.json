@@ -5,12 +5,12 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "475467edc8036bbc5553b31ca4b4736ac144d4c7ecb5f4841cbbd1959c020872",
+  "compiler_sha256": "3b36004f5911019b39032b791becc97fe4a130ea5bbbb21cce36c5ae3cb0984b",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
-    "COMPILE_REJECTED": 12,
+    "COMPILE_REJECTED": 10,
     "HARNESS_BLOCKED": 1,
-    "PASS": 90
+    "PASS": 92
   },
   "cases": {
     "c34001a": {
@@ -137,10 +137,13 @@
       "outcome": "PASS"
     },
     "c37003a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/c3/c37003a.ada:171:27: error: discriminant constraints on access subtypes are not yet supported\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37003A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c37003b": {
       "compile_exit": 0,
@@ -161,10 +164,13 @@
       "outcome": "PASS"
     },
     "c37006a": {
-      "compile_exit": 1,
+      "compile_exit": 0,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/c3/c37006a.ada:155:33: error: discriminant constraints on access subtypes are not yet supported\n",
-      "outcome": "COMPILE_REJECTED"
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C37006A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c37008a": {
       "compile_exit": 0,
@@ -946,7 +952,7 @@
     "b37004a": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b37004a.ada:51:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:52:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:55:29: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:55:16: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:56:16: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/b3/b37004a.ada:58:44: error: 'C7' is not declared\n<upstream>/tests/b3/b37004a.ada:59:35: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:60:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:63:17: error: discriminant constraints on access subtypes are not yet supported\n<upstream>/tests/b3/b37004a.ada:64:30: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:64:33: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:64:17: error: an accuracy constraint must be static\n<upstream>/tests/b3/b37004a.ada:65:26: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:65:29: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:66:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:66:36: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:66:36: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:67:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:67:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:67:36: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:67:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:68:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:68:30: error: 'Size requires a type or an object\n<upstream>/tests/b3/b37004a.ada:69:28: error: 'C19' is not declared\n<upstream>/tests/b3/b37004a.ada:69:31: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:70:33: error: 'C20' is not declared\n<upstream>/tests/b3/b37004a.ada:70:36: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:33: error: 'C20' is not declared\n<upstream>/tests/b3/b37004a.ada:70:36: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:72:25: error: 'C32' is not declared\n<upstream>/tests/b3/b37004a.ada:72:28: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:72:17: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:73:26: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:74:28: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:75:23: error: an allocator for 'AR' has to make a 'R'\n",
+      "compile_stderr": "<upstream>/tests/b3/b37004a.ada:51:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:52:16: error: record components require a constrained array subtype\n<upstream>/tests/b3/b37004a.ada:55:29: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:55:16: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:56:25: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:58:44: error: 'C7' is not declared\n<upstream>/tests/b3/b37004a.ada:59:35: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:60:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:63:26: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:63:29: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:64:30: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:64:33: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:64:17: error: an accuracy constraint must be static\n<upstream>/tests/b3/b37004a.ada:65:26: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:65:29: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:66:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:66:36: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:66:36: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:66:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:67:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:67:33: error: 'C11' is not declared\n<upstream>/tests/b3/b37004a.ada:67:36: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:67:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:68:28: error: 'C4' is not declared\n<upstream>/tests/b3/b37004a.ada:68:30: error: 'Size requires a type or an object\n<upstream>/tests/b3/b37004a.ada:69:28: error: 'C19' is not declared\n<upstream>/tests/b3/b37004a.ada:69:31: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:17: error: an index constraint requires an unconstrained array subtype\n<upstream>/tests/b3/b37004a.ada:70:33: error: 'C20' is not declared\n<upstream>/tests/b3/b37004a.ada:70:36: error: 'first requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:33: error: 'C20' is not declared\n<upstream>/tests/b3/b37004a.ada:70:36: error: 'last requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:70:36: error: aggregate choice is incompatible with the index type\n<upstream>/tests/b3/b37004a.ada:72:25: error: 'C32' is not declared\n<upstream>/tests/b3/b37004a.ada:72:28: error: 'FIRST requires an array prefix or a scalar subtype mark\n<upstream>/tests/b3/b37004a.ada:72:17: error: array index bounds must be discrete\n<upstream>/tests/b3/b37004a.ada:73:26: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:74:28: error: the component default has an incompatible type\n<upstream>/tests/b3/b37004a.ada:75:23: error: an allocator for 'AR' has to make a 'R'\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b3a0001": {

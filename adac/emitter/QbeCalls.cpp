@@ -579,7 +579,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     // Formal declaration order is our choice of Ada's arbitrary copy-back order.
     for (const ScalarCopyBack& copy : copyBacks) {
         Value value = loadFrom(copy.temporary, copy.formalType);
-        emitRangeCheck(value, copy.argument->type, copy.argument->location);
+        emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
         storeInto(copy.actual, value, copy.argument->type);
     }
     emitStorageCopyBacks(storageCopies);
@@ -608,7 +608,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
             emitExceptionCheck();
             for (const auto& copy : sharedCopies) {
                 Value value = loadFrom(copy.temporary, copy.type);
-                emitRangeCheck(value, copy.argument->type, copy.argument->location);
+                emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
                 storeInto(copy.actual, value, copy.argument->type);
             }
         }

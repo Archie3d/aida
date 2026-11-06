@@ -182,7 +182,7 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
     while (left->parentType != nullptr) { left = left->parentType; }
     while (right->parentType != nullptr) { right = right->parentType; }
     related = left == right;
-    bool designated = matchingDesignated(target->target, source->target)
+    bool designated = related || matchingDesignated(target->target, source->target)
         || (target->target->kind == TypeKind::Record && source->target->kind == TypeKind::Record
             && matchingDesignated(source->target, target->target));
     if (target->target->tagged && source->target->tagged) {

@@ -815,9 +815,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 access-subtype constraints",
-        "note": "Discriminant constraints on the designated record of an access subtype, line 171; the existing access-subtype restriction is explicit."
+        "kind": "covered_probe",
+        "owner": "P8 access-subtype record constraints",
+        "note": "Unchanged complete source executes as PASS after designated-record constraint analysis, declaration-time capture and null-safe value checks."
       }
     },
     {
@@ -872,9 +872,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 access-subtype constraints",
-        "note": "Designated-record discriminant constraints on an access subtype at line 155 remain unsupported. Visible partial-view discriminant selections at lines 205/243 are repaired; no executable pass is claimed."
+        "kind": "covered_probe",
+        "owner": "P8 access-subtype record constraints",
+        "note": "Unchanged complete source executes as PASS after designated-record constraint analysis, declaration-time capture and null-safe value checks."
       }
     },
     {

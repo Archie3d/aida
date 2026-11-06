@@ -215,6 +215,9 @@ bool staticallyMatches(Type* actual, Type* formal)
     if (actual == formal) {
         return true;
     }
+    if (actual->kind == TypeKind::Access) {
+        return actual->accessProfile != nullptr || staticallyMatches(actual->target, formal->target);
+    }
     if (isScalar(actual)) {
         return actual->scalarBoundsSymbol == formal->scalarBoundsSymbol
             && actual->low == formal->low && actual->high == formal->high

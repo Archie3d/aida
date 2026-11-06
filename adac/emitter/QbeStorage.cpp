@@ -635,7 +635,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
         return;
     }
     Value result = emitExpr(value);
-    emitRangeCheck(result, type, value->location);
+    emitRangeCheck(result, type, value->location, &address);
     storeInto(address, result, type);
 }
 

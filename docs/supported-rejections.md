@@ -36,8 +36,9 @@ observations and per-case triage remain in
   ([RM 4.1.3(7)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-1-3.html)).
   The type retains the partial view's discriminant
   count through completion; discovery and binding expose those discriminants
-  while keeping full-view components hidden. The case still rejects its
-  independently unsupported access-subtype constraint at line 155.
+  while keeping full-view components hidden. The designated-record access-subtype constraint at line 155 is now
+  supported by the [P8 increment](access-subtype-constraints.md), and the
+  complete unchanged case executes as PASS.
 - **C760011, partial repair:** `use type` accepts subtype marks with `'Class`
   or `'Base`, including qualified marks and comma-separated lists. It uses the
   existing type resolution rules; a class-wide mark contributes the specific
@@ -63,7 +64,7 @@ record-extension aggregate repair; it now joins the strict executable selection.
 
 ## Deferred prerequisites
 
-The refreshed cohort has **12 legal C rejections**. Removing a prerequisite
+The refreshed cohort has **10 legal C rejections**. Removing a prerequisite
 requires a fresh execution of the complete unchanged source. The discrete-range
 cases now pass; [current observations](acats-baseline.md) include earlier
 REPORT adapter improvements without changing adapters in this increment.
@@ -71,7 +72,6 @@ REPORT adapter improvements without changing adapters in this increment.
 | Cases | Prerequisite | Roadmap owner |
 | --- | --- | --- |
 | C35502C, C54A03A, C64005C | Predefined ASCII names | P8 predefined environment |
-| C37003A, C37006A | Designated-record discriminant constraints on access subtypes | P8 access-subtype constraints |
 | C761010 | Access-to-array subtype constraints and dependent controlled arrays | Existing access/controlled-array limits |
 | C432005, C761001 | Task entries/accept bodies and aggregate/finalization interactions | P9 full tasking |
 | C85005A, C85005B | Task entry renamings and accept/select rendezvous | P9 full tasking |
