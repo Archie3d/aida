@@ -1,0 +1,2 @@
+genericchilddirecterrors.adb:3:5: error: a generic child must be selected through a parent instance
+genericchilddirecterrors.adb:4:5: error: a generic child must be selected through a parent instance

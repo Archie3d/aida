@@ -450,6 +450,12 @@ Symbol* Sema::declareUnitRenaming(const std::string& name, const std::string& lo
         m_diagnostics.error(location, "'" + renamed + "' does not denote " + kind);
         return nullptr;
     }
+    if (original->kind == SymbolKind::Generic && original->parentPackage != nullptr
+        && original->parentPackage->kind == SymbolKind::Generic
+        && scope->immediateDepth(original->parentPackage->scope) < 0) {
+        m_diagnostics.error(location, "a generic child must be selected through a parent instance");
+        return nullptr;
+    }
     if (scope == m_unitScope && renamedView->libraryName.empty()) {
         m_diagnostics.error(location, "a library unit renaming must rename a library unit");
         return nullptr;
@@ -460,7 +466,7 @@ Symbol* Sema::declareUnitRenaming(const std::string& name, const std::string& lo
     auto dot = lower.rfind('.');
     if (dot != std::string::npos) {
         std::size_t pushed = 0;
-        Symbol* parent = declarePackagePath(lower.substr(0, dot), name.substr(0, dot), scope, location, pushed);
+        Symbol* parent = declarePackagePath(lower.substr(0, dot), name.substr(0, dot), scope, location, pushed, true);
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
         }

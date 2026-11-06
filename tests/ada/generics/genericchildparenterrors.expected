@@ -1,0 +1,1 @@
+genericchildparenterrors.ads:4:1: error: a child of a generic package must be generic

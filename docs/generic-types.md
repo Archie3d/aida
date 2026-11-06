@@ -553,10 +553,9 @@ also pass compiler instrumentation; those ACATS executables run against the
 instrumented C runtime. Generated Ada memory accesses remain uninstrumented;
 LeakSanitizer is unavailable on this host.
 
-CC70001 remains deferred because its generic child package of a generic parent
-is rejected by the existing unit loader before formal-package execution; this
-source does not establish a PASS. This existing deferred loader gap is owned
-by the Phase 8 compiler-completeness audit.
+CC70001 now executes unchanged as PASS after the Phase 8
+[generic-child increment](generic-children.md). Bound child contracts preserve
+parent instance identity, context dependencies and separate compilation.
 
 ## Partial formal-package actual lists and boxes
 
@@ -711,7 +710,7 @@ original five commitments rather than adding new feature families:
 | --- | --- |
 | Formal type categories | Supported derived categories implemented, including synchronized contracts and class-wide actuals |
 | Formal subprograms and array constraints | Implemented for the documented profiles and matching rules |
-| Formal packages | Implemented for the documented template/view categories; generic-child loader limitation remains |
+| Formal packages | Implemented for the documented template/view categories; generic children completed in Phase 8 |
 | Formal objects | Access objects and limited `in` objects implemented for supported actual types |
 | Contract checking | Completed for the documented features; broader Phase 8 legality/staticness audit remains |
 

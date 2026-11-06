@@ -12,7 +12,7 @@ Scope* Sema::expandedScope(Symbol* prefix, Scope* from) const
         && prefix->inheritedFrom == nullptr) {
         return prefix->constructScope;
     }
-    return prefix->kind == SymbolKind::Package ? prefix->scope : nullptr;
+    return prefix->kind == SymbolKind::Package || prefix->kind == SymbolKind::Generic ? prefix->scope : nullptr;
 }
 
 Symbol* Sema::expandedPrefix(Expr* prefix, Scope* scope, bool* ambiguous)
@@ -30,11 +30,15 @@ Symbol* Sema::expandedPrefix(Expr* prefix, Scope* scope, bool* ambiguous)
     return result;
 }
 
-std::vector<Symbol*> Sema::expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from) const
+std::vector<Symbol*> Sema::expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from)
 {
     Scope* region = expandedScope(prefix, from);
     if (region == nullptr) { return {}; }
+    if (region->lookupLocal(name).empty()) { genericChild(prefix, name); }
     auto result = region->lookupVisibleLocal(name, from);
+    if (prefix->kind == SymbolKind::Generic && from->immediateDepth(region) < 0) {
+        std::erase_if(result, [](Symbol* symbol) { return symbol->kind != SymbolKind::Generic; });
+    }
     if (prefix->kind == SymbolKind::Package && region != prefix->scope) {
         auto declared = result;
         auto specification = prefix->scope->lookupVisibleLocal(name, from);

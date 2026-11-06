@@ -2242,6 +2242,7 @@ add_test(NAME runtime.discreteranges_modes
         -DQBE=${QBE_EXECUTABLE}
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/discreteranges-modes
@@ -2259,12 +2260,38 @@ add_test(NAME runtime.accesssubtypes_modes
         -DQBE=${QBE_EXECUTABLE}
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/access/accesssubtypes.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/access/accesssubtypes.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/accesssubtypes-modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.accesssubtypes determinism.accesssubtypes
     runtime.accesssubtypes_modes PROPERTIES TIMEOUT 120)
+
+add_ada_error_test(genericchildnamespace SOURCES generics/genericchildnamespace.adb)
+add_ada_error_test(genericchildparenterrors SOURCES generics/genericchildparenterrors.ads)
+add_ada_error_test(genericchilddirecterrors SOURCES generics/genericchilddirecterrors.adb)
+add_ada_error_test(genericchildinstancekinderrors SOURCES generics/genericchildinstancekinderrors.ads)
+add_ada_error_test(genericchilderrors SOURCES generics/genericchilderrors.adb)
+add_ada_error_test(genericchildvisibility SOURCES generics/genericchildren.adb generics/genericchildvisibility.adb)
+add_ada_test(genericchildlate SOURCES generics/genericchildlate.adb)
+add_determinism_test(genericchildlate SOURCE generics/genericchildlate.adb)
+add_ada_test(genericchildren SOURCES generics/genericchildren.adb)
+add_determinism_test(genericchildren SOURCE generics/genericchildren.adb)
+add_test(NAME runtime.genericchildren_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/generics/genericchildren.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/generics/genericchildren.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/genericchildren-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.genericchildren determinism.genericchildren
+    runtime.genericchildren_modes PROPERTIES TIMEOUT 120)
 
 add_subdirectory(robustness)
 aida_finalize_tests()

@@ -11,7 +11,7 @@ using SemaSupport::splitDottedName;
 // itself.  Every part joins m_namePrefix, which is what gives the child's
 // subprograms names of their own.
 Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& displayName, Scope* scope,
-                                 const SourceLocation& location, std::size_t& pushed)
+                                 const SourceLocation& location, std::size_t& pushed, bool allowGenericParent)
 {
     std::vector<std::string> parts = splitDottedName(lower);
     std::vector<std::string> display = splitDottedName(displayName);
@@ -28,14 +28,17 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
         symbol = nullptr;
         if (i + 1 == parts.size()) {
             for (Symbol* candidate : candidates) {
-                if (candidate->kind != SymbolKind::Package) {
+                if (candidate->kind != SymbolKind::Package
+                    && !(allowGenericParent && candidate->kind == SymbolKind::Generic && candidate->scope != nullptr)) {
                     m_diagnostics.error(location, "'" + displayName + "' has already been declared in this scope");
                     break;
                 }
             }
         }
         for (Symbol* candidate : candidates) {
-            if (candidate->kind == SymbolKind::Package && !candidate->limitedView) {
+            if ((candidate->kind == SymbolKind::Package
+                || (candidate->kind == SymbolKind::Generic && (i + 1 < parts.size() || allowGenericParent)))
+                && candidate->scope != nullptr && !candidate->limitedView) {
                 symbol = candidate;
                 break;
             }
@@ -93,6 +96,9 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     }
     symbol->hasSpecification = true;
     symbol->packageDeclaration = decl;
+    if (m_recordContract != nullptr && decl->lower == m_recordContract->unitName) {
+        symbol->parentPackage = m_recordContract->parentPackage;
+    }
 
     // What a private type is made of is in reach from here down to the end of
     // the private part, and from the body, but nowhere else.
@@ -347,8 +353,16 @@ void Sema::analyzeUseClause(UseDecl& decl, Scope* scope)
 // right now.  A child unit counts, since it is analysed inside its parent.
 bool Sema::withinPackage(Symbol* package) const
 {
+    // A checked generic scope supports child lookup, not a full view of
+    // the private formal types whose owner is the generic symbol.
+    if (package != nullptr && package->kind == SymbolKind::Generic) { return false; }
     if (m_unitScope != nullptr && m_unitScope->m_publicChildPart && !m_unitScope->privateVisible(package)) {
         return false;
+    }
+    for (const GenericContract* contract : {m_recordContract, m_replayContract}) {
+        if (contract != nullptr && contract->parentPackage != nullptr && !contract->packageTemplate) {
+            return contract->bindings->privateVisible(package);
+        }
     }
     for (Symbol* open : m_packages) {
         if (open->scope != nullptr && open->scope->privateVisible(package)) {

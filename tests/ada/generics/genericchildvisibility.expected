@@ -1,0 +1,1 @@
+genericchildvisibility.adb:4:5: error: 'Child_Parent.Child' is not a generic unit

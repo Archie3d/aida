@@ -149,6 +149,7 @@ struct Symbol
     // Generic units, which keep the declaration they came from so that an
     // instantiation can read the tokens again.
     struct GenericDecl* generic = nullptr;
+    Symbol* genericOrigin = nullptr; // A child template bound to one parent instance.
     Symbol* instanceTemplate = nullptr;
     Scope* instanceBindings = nullptr;
     Symbol* instanceSpecification = nullptr;

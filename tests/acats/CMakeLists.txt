@@ -201,6 +201,7 @@ add_acats_test(cc1302a)
 add_acats_test(cc3601a REJECTION "expected ':' in generic formal object")
 
 # Formal package views, complete contracts, callbacks and formal-part use clauses.
+add_acats_test(cc70001)
 add_acats_test(cc70002)
 add_acats_test(cc70003)
 add_acats_test(cc70a02 SOURCES fc70a00.ada cc70a02.ada)

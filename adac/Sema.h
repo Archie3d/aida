@@ -83,7 +83,7 @@ private:
 
     // SemaPackages.cpp
     Symbol* declarePackagePath(const std::string& lower, const std::string& displayName, Scope* scope,
-                               const SourceLocation& location, std::size_t& pushed);
+                               const SourceLocation& location, std::size_t& pushed, bool allowGenericParent = false);
     void analyzePackageSpec(PackageSpecDecl* decl, Scope* scope);
     void analyzePackageBody(PackageBodyDecl* decl, Scope* scope);
     void analyzeUseClause(UseDecl& decl, Scope* scope);
@@ -103,6 +103,8 @@ private:
     // to the declarations and predefined/operator choices checked here.
     struct GenericContract
     {
+        Symbol* parentPackage = nullptr;
+        bool packageTemplate = true;
         Scope* environment = nullptr;
         Scope* bindings = nullptr;
         GenericContract* source = nullptr;
@@ -110,6 +112,7 @@ private:
         std::string unitName;
         std::size_t tokenCount = 0;
         std::unordered_set<Symbol*> localSymbols;
+        std::unordered_map<Symbol*, Symbol*> environmentCopies;
         DeclList declarations;
         DeclList profiles;
         std::unordered_map<std::string, Symbol*> names;
@@ -149,6 +152,9 @@ private:
     };
     std::vector<PendingGenericInstance> m_pendingGenericInstances;
     void completeGenericInstance(PendingGenericInstance pending);
+    DeclList m_genericChildDeclarations;
+    Symbol* genericChild(Symbol* parent, const std::string& name);
+    Scope* genericChildEnvironment(Symbol* original, Symbol* parent);
     std::unordered_map<GenericDecl*, std::unique_ptr<GenericContract>> m_genericContracts;
     GenericContract* m_recordContract = nullptr;
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnOverrides;
@@ -254,7 +260,7 @@ private:
     std::vector<Symbol*> lookupAll(const std::string& lower, Scope* scope);
     Scope* expandedScope(Symbol* prefix, Scope* from) const;
     Symbol* expandedPrefix(Expr* prefix, Scope* scope, bool* ambiguous = nullptr);
-    std::vector<Symbol*> expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from) const;
+    std::vector<Symbol*> expandedDeclarations(Symbol* prefix, const std::string& name, Scope* from);
     Type* classWideType(Type* specific);
     void dispatchIndeterminate(Expr* expr, Type* controlling);
     Type* dispatchingResultType(Symbol* operation);

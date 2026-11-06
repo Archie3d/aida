@@ -5,6 +5,7 @@
 #include "SemaSupport.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 
 using SemaSupport::staticallyMatches;
@@ -234,6 +235,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     // One with a dotted name is a child like any other, so it is declared
     // inside its parent rather than under a name with a dot in it.
     Scope* target = scope;
+    Symbol* parentPackage = nullptr;
     std::string lower = decl->lower;
     std::string name = decl->name;
 
@@ -241,10 +243,11 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     if (dot != std::string::npos) {
         std::size_t pushed = 0;
         Symbol* parent = declarePackagePath(decl->lower.substr(0, dot), decl->name.substr(0, dot), scope,
-                                            decl->location, pushed);
+                                            decl->location, pushed, true);
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
         }
+        parentPackage = parent;
         target = parent->scope;
         lower = decl->lower.substr(dot + 1);
         name = decl->name.substr(dot + 1);
@@ -277,11 +280,12 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Generic, lower, name);
     symbol->location = decl->location;
     symbol->generic = decl;
+    symbol->parentPackage = parentPackage;
     symbol->hasBody = decl->hasBody;
     symbol->requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->owner = m_currentSubprogram;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
-    symbol->qbeName = "$" + mangle(lower) + "__generic";
+    symbol->qbeName = "$" + mangle(parentPackage != nullptr ? decl->lower : lower) + "__generic";
     std::size_t ordinal = ++m_subprogramNames[symbol->qbeName];
     if (ordinal > 1) {
         symbol->qbeName += "__" + std::to_string(ordinal);
@@ -329,6 +333,10 @@ Symbol* Sema::instanceSymbol(Symbol* symbol)
     auto copied = m_instanceCopies.find(symbol);
     if (copied != m_instanceCopies.end()) {
         return copied->second;
+    }
+    if (symbol->kind == SymbolKind::Generic && symbol->parentPackage != nullptr) {
+        Symbol* parent = instanceSymbol(symbol->parentPackage);
+        if (parent != nullptr && parent != symbol->parentPackage) { return genericChild(parent, symbol->name); }
     }
     const auto& symbols = m_symbolTable.symbols();
     if (!m_replayContract->localSymbols.contains(symbol)) {
@@ -382,12 +390,35 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     bool continuation = owned != nullptr;
     if (!continuation) {
         owned = std::make_unique<GenericContract>();
+        owned->parentPackage = decl->symbol != nullptr ? decl->symbol->parentPackage : nullptr;
+        owned->packageTemplate = decl->isPackage;
         owned->environment = scope;
         owned->bindings = m_symbolTable.createScope(scope);
         owned->bindings->m_genericBindings = true;
         owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
         owned->valid = true;
         owned->checkMask = m_suppressedChecks;
+        if (decl->symbol != nullptr && decl->symbol->genericOrigin != nullptr) {
+            Symbol* original = decl->symbol->genericOrigin;
+            owned->source = m_genericContracts.at(original->generic).get();
+            Symbol* parent = decl->symbol->parentPackage;
+            owned->environmentCopies = m_genericContracts.at(parent->instanceTemplate->generic)->environmentCopies;
+            mapPackageMembers(original->parentPackage, parent, owned->environmentCopies);
+            auto* parentContract = m_genericContracts.at(original->parentPackage->generic).get();
+            for (const auto& [name, symbols] : parentContract->bindings->declarations()) {
+                for (Symbol* source : symbols) {
+                    if (source->kind == SymbolKind::Package && name == parentContract->unitName) {
+                        mapPackageMembers(source, parent->instanceSpecification, owned->environmentCopies);
+                        continue;
+                    }
+                    for (Symbol* actual : parent->instanceBindings->lookupLocal(name)) {
+                        if (actual->kind != source->kind || contractKey(actual->location) != contractKey(source->location)) { continue; }
+                        owned->environmentCopies[source] = actual;
+                        break;
+                    }
+                }
+            }
+        }
         // A nested declaration is rechecked in each enclosing instance. Keep
         // its source-level discriminant identities and attribute legality even
         // when the enclosing formal has already been replaced by its actual.
@@ -400,17 +431,19 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
                 auto source = m_genericContracts.find(original->generic);
                 if (source != m_genericContracts.end()) {
                     owned->source = source->second.get();
-                    owned->discriminantSelections = source->second->discriminantSelections;
-                    owned->discriminantConstraints = source->second->discriminantConstraints;
-                    owned->definiteAttributes = source->second->definiteAttributes;
-                    owned->classAttributes = source->second->classAttributes;
-                    owned->abstractFormals = source->second->abstractFormals;
                     break;
                 }
             }
         }
     }
     GenericContract* contract = owned.get();
+    if (contract->source != nullptr) {
+        contract->discriminantSelections = contract->source->discriminantSelections;
+        contract->discriminantConstraints = contract->source->discriminantConstraints;
+        contract->definiteAttributes = contract->source->definiteAttributes;
+        contract->classAttributes = contract->source->classAttributes;
+        contract->abstractFormals = contract->source->abstractFormals;
+    }
     ScopedCheckPolicy contractChecks(m_suppressedChecks, m_suppressedChecks | contract->checkMask);
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     if (!continuation) { contract->firstSymbol = firstSymbol; }
@@ -433,6 +466,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
             if (Symbol* copy = instanceSymbol(original)) { m_instanceCopies[original] = copy; }
         }
     }
+    m_instanceCopies.insert(contract->environmentCopies.begin(), contract->environmentCopies.end());
     m_recordContract = contract;
     m_replayContract = contract->source;
     m_instanceFirstSymbol = contract->firstSymbol;
@@ -648,10 +682,42 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
         // A template is checked under its own category. Ordinary instances do
         // not inherit a library-unit pragma (RM 10.1.5(7.1)).
         if (unit->kind == DeclKind::PackageSpecification) { unit->category = decl->category; }
+        unit->privateUnit = decl->privateUnit;
     }
-    analyzeDeclarativePart(declarations, bindings);
-    for (DeclPtr& unit : declarations) {
-        contract->declarations.push_back(std::move(unit));
+    if (!decl->isPackage && contract->parentPackage != nullptr) {
+        for (DeclPtr& unit : declarations) {
+            bindings->m_publicChildPart = unit->kind == DeclKind::SubprogramDeclaration && !decl->privateUnit;
+            DeclList part;
+            part.push_back(std::move(unit));
+            analyzeDeclarativePart(part, bindings);
+            contract->declarations.push_back(std::move(part.front()));
+        }
+        bindings->m_publicChildPart = false;
+    } else {
+        analyzeDeclarativePart(declarations, bindings);
+        for (DeclPtr& unit : declarations) { contract->declarations.push_back(std::move(unit)); }
+    }
+    if (decl->isPackage && decl->symbol != nullptr) {
+        for (Symbol* checked : bindings->lookupLocal(contract->unitName)) {
+            if (checked->kind != SymbolKind::Package) { continue; }
+            decl->symbol->scope = checked->scope;
+            checked->parentPackage = decl->symbol->parentPackage;
+            break;
+        }
+    }
+    if (decl->symbol != nullptr && decl->symbol->genericOrigin != nullptr) {
+        // Later body attachment must reuse this checked specification, even
+        // when same-location instance copies have since been created.
+        for (const auto& [name, originals] : contract->source->bindings->declarations()) {
+            for (Symbol* original : originals) {
+                for (Symbol* checked : bindings->lookupLocal(name)) {
+                    if (original->kind != checked->kind || contractKey(original->location) != contractKey(checked->location)) { continue; }
+                    if (original->kind == SymbolKind::Package) { mapPackageMembers(original, checked, contract->environmentCopies); }
+                    else { contract->environmentCopies[original] = checked; }
+                    break;
+                }
+            }
+        }
     }
     const auto& symbols = m_symbolTable.symbols();
     for (std::size_t i = firstSymbol; i < symbols.size(); ++i) {
@@ -1156,7 +1222,15 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     m_replayContract = contract;
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
+    // A formal wrapper belongs to this instance, including when several
+    // library instances are compiled independently or in a different order.
+    // Keep the formal's name separate so operator mangling still applies.
+    m_namePrefix.push_back(decl->lower);
+    m_namePrefix.push_back("formal_" + std::to_string(decl->location.line)
+        + "_" + std::to_string(decl->location.column));
     Symbol* wrapper = declareSubprogram(body->spec, bindings, true, true);
+    m_namePrefix.pop_back();
+    m_namePrefix.pop_back();
     bool checkedInstance = (savedReplay != nullptr
         && savedReplay->instances.contains(contractKey(decl->location)))
         || (contract->source != nullptr && contract->abstractFormals.contains(contractKey(wrapper->location)));
@@ -1815,7 +1889,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
 
 void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* scope)
 {
-    Symbol* generic = lookupName(decl->genericLower, scope);
+    Symbol* generic = instanceSymbol(lookupName(decl->genericLower, scope));
     if (generic == nullptr || generic->kind != SymbolKind::Generic) {
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");
         return;
@@ -1847,6 +1921,13 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
         home = parent->scope;
         instanceName = decl->lower.substr(dot + 1);
         instanceDisplay = decl->name.substr(dot + 1);
+    }
+
+    if (generic->parentPackage != nullptr && generic->parentPackage->kind == SymbolKind::Generic
+        && scope->immediateDepth(generic->parentPackage->scope) < 0) {
+        m_diagnostics.error(decl->location, "a generic child must be selected through a parent instance");
+        for (std::size_t i = 0; i < pushed; ++i) { m_namePrefix.pop_back(); }
+        return;
     }
 
     auto foundContract = m_genericContracts.find(generic->generic);
@@ -1892,7 +1973,8 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     m_recordContract = nullptr;
     m_instanceFirstSymbol = firstSymbol;
     auto savedCopies = std::move(m_instanceCopies);
-    m_instanceCopies = decl->packageCopies;
+    m_instanceCopies = contract->environmentCopies;
+    m_instanceCopies.insert(decl->packageCopies.begin(), decl->packageCopies.end());
     ++m_instantiationDepth;
     analyzeDeclarativePart(expansion, bindings);
     if (!generic->hasBody) {
@@ -2114,6 +2196,19 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
     bool progress = true;
     while (progress && !m_diagnostics.hasErrors()) {
         progress = false;
+        for (std::size_t i = 0; i < m_genericChildDeclarations.size() && !m_diagnostics.hasErrors(); ++i) {
+            auto* declaration = static_cast<GenericDecl*>(m_genericChildDeclarations[i].get());
+            Symbol* child = declaration->symbol;
+            Symbol* original = child->genericOrigin;
+            if (child->hasBody || !original->hasBody) { continue; }
+            child->hasBody = declaration->hasBody = true;
+            declaration->tokens = original->generic->tokens;
+            auto savedPrefix = m_namePrefix;
+            m_namePrefix = SemaSupport::splitDottedName(child->parentPackage->scope->m_packageName);
+            checkGenericContract(declaration, genericChildEnvironment(original, child->parentPackage));
+            m_namePrefix = std::move(savedPrefix);
+            progress = true;
+        }
         for (std::size_t i = 0; i < m_pendingGenericInstances.size() && !m_diagnostics.hasErrors();) {
             if (!m_pendingGenericInstances[i].instance->generic->hasBody) {
                 ++i;
@@ -2258,4 +2353,66 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         }
     }
 
+}
+
+// A generic child is an implicit declaration in each parent instance. Keep
+// its contract and formals separate while resolving parent names in that
+// instance's specification/bindings rather than in the generic parent.
+Symbol* Sema::genericChild(Symbol* parent, const std::string& name)
+{
+    if (parent->kind != SymbolKind::Package || parent->instanceTemplate == nullptr) { return nullptr; }
+    if (parent->packageActual != nullptr) { return genericChild(parent->packageActual, name); }
+    for (Symbol* existing : parent->scope->lookupLocal(name)) {
+        if (existing->kind == SymbolKind::Generic) { return existing; }
+    }
+    Symbol* original = nullptr;
+    Symbol* sourceTemplate = parent->instanceTemplate;
+    while (sourceTemplate->genericOrigin != nullptr) { sourceTemplate = sourceTemplate->genericOrigin; }
+    Scope* source = sourceTemplate->scope;
+    if (source == nullptr) { return nullptr; }
+    for (Symbol* candidate : source->lookupLocal(name)) {
+        if (candidate->kind == SymbolKind::Generic && candidate->parentPackage == sourceTemplate) {
+            original = candidate;
+            break;
+        }
+    }
+    if (original == nullptr) { return nullptr; }
+    Parser parser(original->generic->specificationTokens, m_diagnostics);
+    DeclList copies = parser.parseDeclarations();
+    if (copies.size() != 1 || copies.front()->kind != DeclKind::GenericDeclaration) { return nullptr; }
+    auto* declaration = static_cast<GenericDecl*>(copies.front().get());
+    declaration->tokens = original->generic->tokens;
+    declaration->hasBody = original->hasBody;
+    declaration->privateUnit = original->privateUnit;
+    Symbol* child = m_symbolTable.createSymbol(SymbolKind::Generic, name, original->displayName);
+    child->generic = declaration;
+    child->genericOrigin = original;
+    child->parentPackage = parent;
+    child->location = original->location;
+    child->libraryName = original->libraryName;
+    child->privateUnit = original->privateUnit;
+    child->qbeName = original->qbeName;
+    child->owner = original->owner;
+    child->level = original->level;
+    child->hasBody = original->hasBody;
+    child->requiresBody = false; // The original library template owns completion.
+    declaration->symbol = child;
+    parent->scope->add(child);
+    m_genericChildDeclarations.push_back(std::move(copies.front()));
+    auto savedPrefix = m_namePrefix;
+    m_namePrefix = SemaSupport::splitDottedName(parent->scope->m_packageName);
+    checkGenericContract(declaration, genericChildEnvironment(original, parent));
+    m_namePrefix = std::move(savedPrefix);
+    return child;
+}
+
+Scope* Sema::genericChildEnvironment(Symbol* original, Symbol* parent)
+{
+    // A separate body can add a context layer above the specification's
+    // imports. Copy the full chain, replacing only the enclosing parent.
+    std::function<Scope*(Scope*)> rebase = [&](Scope* source) -> Scope* {
+        if (source == nullptr || source == original->parentPackage->scope) { return parent->scope; }
+        return m_symbolTable.createScope(rebase(source->parent()), source);
+    };
+    return rebase(m_genericContracts.at(original->generic)->environment);
 }

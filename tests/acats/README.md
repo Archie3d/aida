@@ -677,9 +677,8 @@ the same pinned archive revision used by the backfill baseline; `.a` files are
 stored with `.ada` extensions without changing bytes or rights/disclaimers.
 The existing 129-case backfill cohort is unchanged.
 
-CC70001 remains deferred: the unit loader rejects its generic child package of
-a generic parent before the formal-package scenario can execute. This is not
-an executable pass. Mixed explicit/boxed formal-package lists and `others => <>`
+CC70001 now executes unchanged as PASS after the P8 generic-child increment,
+including the library child instance and complete formal-package scenario. Mixed explicit/boxed formal-package lists and `others => <>`
 are now covered by local `genericpackagepartial*` and
 `genericpartialpackagelibrary_main` scenarios and targeted rejection tests.
 No new partial-specific upstream PASS is claimed: CC51009 and CC51011 in the
@@ -726,9 +725,8 @@ class-wide abstract actuals, invalid uninstantiated templates/defaults and a
 private-part null-excluding renaming with a nullable actual. Existing binding,
 array/static-matching, accessibility, null and runtime checks remain active.
 
-Phase 6g closes for the supported actual types/profiles. The existing CC70001
-generic-child loader deferral belongs to the Phase 8 compiler-completeness
-audit; grouped formals, broader legality/staticness and B-test grading also
+Phase 6g closes for the supported actual types/profiles. CC70001 subsequently
+passes after the Phase 8 generic-child compiler-completeness increment; grouped formals, broader legality/staticness and B-test grading also
 remain Phase 8. Concurrent implementations and protected-operation actuals
 remain Phase 9. Generated QBE memory accesses remain uninstrumented;
 LeakSanitizer is unavailable.
@@ -998,3 +996,10 @@ It executes as PASS for range-attribute aggregate choices and the complete
 anonymous access-parameter scenario.
 Git blob: `deb92f1a8c5a0fdda41870556e810efb3911f6c5`.
 SHA-256: `f710dbcbc8958f926edf56fd77710cac9581a219067e90cccbdf77da8a12f894`.
+
+CC70001 was retrieved on 2026-11-06 from the pinned
+[ACATS revision 2785c30](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc70001.a),
+stored unchanged as `upstream/cc70001.ada`, including rights and disclaimer.
+The complete source executes as PASS after P8 generic-child binding/loading.
+Git blob: `65681b072e1fa7ec44a8b19d23da2db77aa3ec41`.
+SHA-256: `ac9a6ddcc5009092e68d65a273422a86906ec101a910fac8aa0dbd3f59e35016`.

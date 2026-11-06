@@ -737,7 +737,7 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   duplicate elaboration. Four local scenarios run whole/per-unit/determinism
   with four workers; three rejection tests and compiler/C-runtime ASan/UBSan
   checks pass. Unchanged CC70002, CC70003, CC70A02 and CC70B01 execute as PASS.
-  CC70001 remains deferred at the existing generic-child unit-loader gap.
+  CC70001 was deferred at this increment; generic children are completed in Phase 8 below.
   All 1,319 tests pass; the 129-case baseline is unchanged.
   [Contract](docs/generic-types.md#formal-packages-and-contract-matching).
 - [x] **Partial formal-package actual lists and boxes.** Mixed explicit/
@@ -803,7 +803,7 @@ Phase 8 audits and Phase 9 concurrent execution remain separately owned below.
   [Contract and completion audit](docs/generic-types.md#contract-checking-and-phase-completion).
 
 **Phase 6g is complete for the documented supported actual types and profiles.**
-The existing CC70001 generic-child loader deferral is owned by Phase 8 below;
+The CC70001 generic-child loading item is completed in Phase 8 below;
 no complete Ada conformance or concurrent implementation is implied.
 
 For each item, add execution/legality coverage, whole/per-unit and determinism
@@ -819,7 +819,7 @@ of checkboxes nor an unrelated ACATS rejection measures language completeness.
 - Phase 8: prefixed-view renaming and generic subprogram actuals (C413005),
   including receiver binding, lifetime and reduced-profile conformance; implicit
   operator callable views/renaming/actuals; generic subprogram renaming-as-body
-  completions; the existing CC70001 generic-child loader deferral; full
+  completions; full
   staticness/legality audit and B-test grading. These remain
   Phase 8 work rather than implicit additions to 6g.
 - Phase 9: concrete synchronized/task/protected interface implementations,
@@ -1111,12 +1111,18 @@ Ada 2005 additions and track annex packages separately.
   private views, mixed dependent storage and four workers. Unchanged
   C37003A/C37006A execute as PASS. Release 1,743/1,743; focused ASan/UBSan 9/9.
   [Contract and evidence](docs/access-subtype-constraints.md).
-- [ ] Complete generic-child unit loading for generic parents. Unchanged
-  CC70001 is currently rejected by the loader before formal-package execution;
-  this is the existing deferral recorded during Phase 6g. Preserve parent and
-  child instance identity and dependencies in whole/per-unit loading, then run
-  the complete upstream scenario. This belongs to compiler completeness rather
-  than reopening the completed formal-package matching increment.
+- [x] Complete generic-child unit loading for generic parents. Bound child
+  contracts retain parent types, objects, exceptions, private views and imported
+  contexts across whole/per-unit compilation. Nested children, child subprograms,
+  private-child helpers, library renamings and late body attachment preserve
+  instance identity. Child binding follows the selected parent independently of
+  its declaration location. Qualified template flags and instance-specific
+  formal callback wrappers keep generated names deterministic. Unchanged
+  CC70001 executes as PASS. `genericchildren`, `genericchildlate` and focused
+  rejection controls cover whole/separate/deterministic builds and four workers.
+  Release suite 1,755/1,755; final naming/visibility controls 16/16 in Release
+  and ASan/UBSan. The 129-case baseline outcomes remain unchanged.
+  [Contract and evidence](docs/generic-children.md).
 - [ ] Grouped generic formal objects: parse declarations such as `V, V1 : T`,
   retaining each object's mode, defaults, association and instance identity.
   Unchanged CC3601A currently compile-XFAILs at the first comma; rerun the whole

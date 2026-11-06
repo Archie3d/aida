@@ -1,0 +1,1 @@
+genericchildinstancekinderrors.ads:2:1: error: a child of a generic package instance must be an instance or a library unit renaming

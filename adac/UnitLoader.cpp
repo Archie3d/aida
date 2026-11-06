@@ -118,6 +118,16 @@ bool predefinedHashParent(const Decl& declaration, const std::string& dependency
     return false;
 }
 
+bool isUnitRenaming(const Decl& decl)
+{
+    return (decl.kind == DeclKind::PackageSpecification
+            && !static_cast<const PackageSpecDecl&>(decl).renamesLower.empty())
+        || (decl.kind == DeclKind::SubprogramDeclaration
+            && static_cast<const SubprogramDecl&>(decl).renamedName != nullptr)
+        || (decl.kind == DeclKind::GenericDeclaration
+            && !static_cast<const GenericDecl&>(decl).renamesLower.empty());
+}
+
 bool isOptionalCompletion(const Decl& decl)
 {
     return (decl.kind == DeclKind::SubprogramDeclaration
@@ -558,6 +568,16 @@ bool UnitLoader::orderUnits()
                         && !static_cast<const GenericDecl&>(parentDecl).renamesLower.empty());
                 if (renamedParent) {
                     m_diagnostics.error(decl->location, "a renamed package cannot be the parent of a child unit");
+                    return false;
+                }
+                if (unit->isSpec && parentDecl.kind == DeclKind::GenericDeclaration
+                    && decl->kind != DeclKind::GenericDeclaration && !isUnitRenaming(*decl)) {
+                    m_diagnostics.error(decl->location, "a child of a generic package must be generic");
+                    return false;
+                }
+                if (unit->isSpec && parentDecl.kind == DeclKind::GenericInstantiation
+                    && decl->kind != DeclKind::GenericInstantiation && !isUnitRenaming(*decl)) {
+                    m_diagnostics.error(decl->location, "a child of a generic package instance must be an instance or a library unit renaming");
                     return false;
                 }
                 if (libraryKind(parentDecl) != LibraryKind::Package) {
