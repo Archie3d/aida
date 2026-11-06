@@ -228,6 +228,7 @@ private:
                       const std::string& dispatchLabel);
     void emitRecordConstraintCheck(const Value& value, Type* type);
     Value recordConstraintMatches(const Value& value, Type* type);
+    void emitDiscreteRangeCheck(Expr* low, const Value& first, const Value& last);
     void emitRangeCheck(const Value& value, Type* type, const SourceLocation& location);
     Value variantCondition(const Value& address, Type* record, int variant);
     void checkVariant(const Value& address, Type* record, int variant);

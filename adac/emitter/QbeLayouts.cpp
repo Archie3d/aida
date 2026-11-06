@@ -120,6 +120,7 @@ Value QbeEmitter::dependentFieldBounds(const Value& object, Type* type, const Fi
         line(nonNull + " =w csgel " + last.name + ", " + first.name);
         branch(Value {nonNull, 'w'}, check, ready);
         label(check);
+        emitDiscreteRangeCheck(expressions.first, first, last);
         emitRangeCheck(first, axis->index, expressions.first->location);
         emitRangeCheck(last, axis->index, expressions.second->location);
         jump(ready);

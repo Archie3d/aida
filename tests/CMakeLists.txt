@@ -2231,5 +2231,23 @@ add_ada_error_test(widehashcategoryerrors SOURCES widehashcategoryerrors.ads)
 # A similarly named alias to another target does not get the predefined exception.
 add_ada_error_test(widehashparenterrors SOURCES strings/hashparenterrors/ada-strings-wide_fixed-wide_hash.ads)
 
+
+add_ada_error_test(discreterangeerrors SOURCES arrays/discreterangeerrors.adb)
+add_ada_test(discreteranges SOURCES arrays/discreteranges.adb)
+add_determinism_test(discreteranges SOURCE arrays/discreteranges.adb)
+add_test(NAME runtime.discreteranges_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/discreteranges-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.discreteranges determinism.discreteranges
+    runtime.discreteranges_modes PROPERTIES TIMEOUT 120)
+
 add_subdirectory(robustness)
 aida_finalize_tests()

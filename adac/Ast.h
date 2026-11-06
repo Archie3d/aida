@@ -106,6 +106,9 @@ struct Expr : Node
     bool tagIndeterminate = false;
     bool contextDeterminedTag = false; // A surrounding dispatch/assignment supplies the tag.
     std::unique_ptr<Expr> implicitCall; // Desugared parameterless subprogram dereference.
+    // An explicit subtype indication constrains the pair, only when non-null.
+    std::string rangeSubtypeLower;
+    Type* rangeSubtype = nullptr;
     Type* type = nullptr;
     int syntaxDepth = 1; // Parser capacity check, independent of semantic annotations.
     bool isStatic = false;

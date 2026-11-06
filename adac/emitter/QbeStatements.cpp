@@ -143,7 +143,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
             Value low = emitExpr(loop->rangeLow.get());
             Value high = emitExpr(loop->rangeHigh.get());
             char type = qbeClass(variable->type);
-            if (variable->type->scalarBoundsSymbol != nullptr) {
+            if (!loop->rangeTypeLower.empty()) {
                 std::string nonNull = newTemp();
                 std::string check = newLabel("looprangecheck");
                 std::string ready = newLabel("looprangeready");

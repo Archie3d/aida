@@ -40,6 +40,14 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
     // can differ, and Unsuppress must never be weakened by a cached template.
     if (expr != nullptr) { expr->suppressedChecks = activeCheckPermissions(); }
     int errors = m_diagnostics.errorCount();
+    if (expr != nullptr && !expr->rangeSubtypeLower.empty()) {
+        expr->rangeSubtype = resolveTypeName(expr->rangeSubtypeLower, scope, expr->location);
+        if (!isDiscrete(expr->rangeSubtype)) {
+            m_diagnostics.error(expr->location, "a discrete range requires a discrete subtype");
+        } else if (expected != nullptr && !typesCompatible(expected, expr->rangeSubtype)) {
+            m_diagnostics.error(expr->location, "discrete range subtype has an incompatible type");
+        }
+    }
     ++m_expressionDepth;
     Type* result = analyzeExprValue(expr, scope, expected);
     if (expr != nullptr && expr->accessCreationLevel < 0) { expr->accessCreationLevel = m_accessibilityLevel; }

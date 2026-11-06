@@ -87,6 +87,7 @@ add_acats_test(c3a0013)
 add_acats_test(c460001)
 add_acats_test(c460002)
 add_acats_test(c3a2002)
+add_acats_test(c3a2003)
 
 # Null exclusions, including generic named/anonymous access objects.
 add_acats_test(c3a0030)

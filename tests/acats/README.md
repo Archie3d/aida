@@ -238,7 +238,7 @@ Git blob: `b23d4ee11514f0cf96d3a20ca7de30cd0c5efcc6`.
 SHA-256: `316ea2029cdabe84823eb0759a82d935e0d38cdd17d072e1328a5eaa18668354`.
 C3A0014 tests the superseded Ada 95 aliased-constrained rule and is inapplicable
 here. C3A0015 needs storage pools; C3A2002/C460001/C460002 now pass with anonymous
-access parameters; C3A2003 still needs range-attribute aggregate choices (P8).
+access parameters; C3A2003 now passes with range-attribute aggregate choices (P8).
 C3A2A01 now passes after formal access/derived types (P6g). C460A01/C460A02
 retain later generic gaps and are deferred unchanged; [local evidence and limits](../../docs/general-access.md)
 cover the implemented named-access subset.
@@ -259,9 +259,9 @@ applicable to Ada 2005. They use the existing REPORT adapter without extra suppo
 Anonymous array object follow-up (2026-10-24): unchanged
 [C36180A](https://github.com/gcc-mirror/gcc/blob/releases/gcc-15/gcc/testsuite/ada/acats/tests/c3/c36180a.ada)
 uses inline array object declarations, but also requires `array (A'Range)`
-index syntax. That independently tracked P8 gap still rejects the case, so no
-new executable ACATS pass is claimed for this parser fix. The exact access-array
-example and independent grouped type/bound/initializer semantics are covered by
+index syntax. It now executes unchanged as PASS after the P8 discrete-range
+increment. The exact access-array example and independent grouped
+type/bound/initializer semantics are also covered by
 `anonymousarrayobjects` and rejection regressions.
 
 ## Null exclusions (Phase 6d)
@@ -990,3 +990,11 @@ maximum supported binary modulus. No REPORT changes are needed. Earlier wide
 string/I/O/conversion cases remain selected and the baseline cohort is unchanged.
 The pinned archive has no dedicated string-hash case; bounds, native widths,
 wrappers, categorization and container/hash callers have project regressions.
+
+C3A2003 was retrieved on 2026-11-06 from the pinned
+[ACATS revision 2785c30](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a2003.a),
+stored unchanged as `upstream/c3a2003.ada`, including rights and disclaimer.
+It executes as PASS for range-attribute aggregate choices and the complete
+anonymous access-parameter scenario.
+Git blob: `deb92f1a8c5a0fdda41870556e810efb3911f6c5`.
+SHA-256: `f710dbcbc8958f926edf56fd77710cac9581a219067e90cccbdf77da8a12f894`.

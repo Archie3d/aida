@@ -401,6 +401,15 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
     }
     expr->type = expected;
+    // Explicit named choices determine the aggregate's own bounds. The
+    // surrounding subtype is checked when the value is assigned or converted;
+    // equality must be able to compare arrays of different lengths.
+    if (hasNamed && !hasOthers) {
+        expr->type = m_types.makeSubtype(anonymousTypeName(), expected, expected->low, expected->high);
+        expr->type->constrained = false;
+        expr->type->boundsSymbol = nullptr;
+        expr->type->boundExpressions.clear();
+    }
     return expr->type;
 }
 

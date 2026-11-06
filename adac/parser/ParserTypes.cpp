@@ -211,27 +211,16 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
                         unconstrained = true;
                         definition->unconstrainedIndexes = true;
                     } else {
-                        index->rangeLow = parseSimpleExpression();
-                        expect(TokenKind::DoubleDot, "in index range");
-                        index->rangeHigh = parseSimpleExpression();
+                        parseRange(index->rangeLow, index->rangeHigh);
                     }
-                } else if (check(TokenKind::Tick)) {
+                } else if (!check(TokenKind::Comma) && !check(TokenKind::RightParen)) {
                     m_position = saved;
                     index->name.clear();
                     index->lower.clear();
-                    parseDiscreteRange(index->name, index->lower, index->rangeLow, index->rangeHigh);
-                } else if (check(TokenKind::DoubleDot)) {
-                    m_position = saved;
-                    index->name.clear();
-                    index->lower.clear();
-                    index->rangeLow = parseSimpleExpression();
-                    expect(TokenKind::DoubleDot, "in index range");
-                    index->rangeHigh = parseSimpleExpression();
+                    parseRange(index->rangeLow, index->rangeHigh);
                 }
             } else {
-                index->rangeLow = parseSimpleExpression();
-                expect(TokenKind::DoubleDot, "in index range");
-                index->rangeHigh = parseSimpleExpression();
+                parseRange(index->rangeLow, index->rangeHigh);
             }
             index->indexSubtypeMark = index->rangeLow == nullptr;
             // RM 3.6: an array definition uses index_subtype_definitions
@@ -500,9 +489,7 @@ SubtypeIndicationPtr Parser::parseSubtypeIndication(bool allowAccess)
     }
 
     if (match(TokenKind::KwRange)) {
-        indication->rangeLow = parseSimpleExpression();
-        expect(TokenKind::DoubleDot, "in range constraint");
-        indication->rangeHigh = parseSimpleExpression();
+        parseRange(indication->rangeLow, indication->rangeHigh);
         return indication;
     }
 
@@ -516,11 +503,9 @@ SubtypeIndicationPtr Parser::parseSubtypeIndication(bool allowAccess)
                 expect(TokenKind::Arrow, "after discriminant selector");
             }
             indication->discriminantNames.push_back(std::move(selectors));
-            ExprPtr low = parseExpression();
+            ExprPtr low;
             ExprPtr high;
-            if (match(TokenKind::DoubleDot)) {
-                high = parseSimpleExpression();
-            }
+            parseDiscreteChoice(low, high);
             indication->indexLows.push_back(std::move(low));
             indication->indexHighs.push_back(std::move(high));
             if (!match(TokenKind::Comma)) {
@@ -543,9 +528,7 @@ void Parser::parseDiscreteRange(std::string& typeName, std::string& typeLower, E
         if (match(TokenKind::KwRange)) {
             typeName = name;
             typeLower = lowered;
-            low = parseSimpleExpression();
-            expect(TokenKind::DoubleDot, "in discrete range");
-            high = parseSimpleExpression();
+            parseRange(low, high);
             return;
         }
         // A name on its own is a type mark, but only where the range ends: a
@@ -562,8 +545,31 @@ void Parser::parseDiscreteRange(std::string& typeName, std::string& typeLower, E
         m_position = saved;
     }
 
+    parseRange(low, high);
+}
+
+// Constraints, slice arguments and aggregate choices can also contain a
+// single expression. Retain an explicit subtype mark for its range check.
+void Parser::parseDiscreteChoice(ExprPtr& low, ExprPtr& high)
+{
+    std::size_t saved = m_position;
+    if (check(TokenKind::Identifier)) {
+        std::string lowered;
+        parseSubtypeMark(lowered);
+        if (match(TokenKind::KwRange)) {
+            parseRange(low, high);
+            low->rangeSubtypeLower = lowered;
+            return;
+        }
+        m_position = saved;
+    }
+    parseRange(low, high, true);
+}
+
+void Parser::parseRange(ExprPtr& low, ExprPtr& high, bool allowSingle)
+{
     std::size_t rangeStart = m_position;
-    ExprPtr first = parseSimpleExpression();
+    ExprPtr first = allowSingle ? parseExpression() : parseSimpleExpression();
     if (first->kind == ExprKind::Attribute) {
         auto* attribute = static_cast<AttributeExpr*>(first.get());
         if (attribute->lower == "range") {
@@ -585,6 +591,7 @@ void Parser::parseDiscreteRange(std::string& typeName, std::string& typeLower, E
     }
 
     low = std::move(first);
+    if (allowSingle && !check(TokenKind::DoubleDot)) { return; }
     expect(TokenKind::DoubleDot, "in discrete range");
     high = parseSimpleExpression();
 }

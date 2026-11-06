@@ -644,9 +644,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Subtype range constraints written with an array range attribute (SUBINT RANGE A1'RANGE), lines 188/211; explicit bounds already work."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -699,13 +699,11 @@
       ],
       "report_name": "C35502C",
       "support": [],
-      "harness_gaps": [
-        "REPORT.ident_char"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 REPORT adapter",
-        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
+        "kind": "predefined_library_gap",
+        "owner": "P8 predefined ASCII",
+        "note": "The existing REPORT.Ident_Char adapter is available; unchanged source now reaches missing predefined ASCII names."
       }
     },
     {
@@ -741,9 +739,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Subtype-mark discrete ranges in index constraints and aggregate choices (e.g. I_5 RANGE 0 .. 6 and MID_WEEK RANGE MON .. WED); review range checks once these syntactic forms parse."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -760,9 +758,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Subtype-mark discrete ranges in index constraints and aggregate choices (e.g. I_5 RANGE 0 .. 6 and MID_WEEK RANGE MON .. WED); review range checks once these syntactic forms parse."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -779,9 +777,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Array index declarations using A'RANGE/K'RANGE/D'RANGE, lines 55/57/61; declaration syntax remains separate from supported loop ranges."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -798,9 +796,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Typed index constraints (U(V RANGE 1 .. X), STRING(POSITIVE RANGE X .. 10)) and array-range-attribute constraints in record components."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -1423,13 +1421,11 @@
       ],
       "report_name": "C41104A",
       "support": [],
-      "harness_gaps": [
-        "REPORT.ident_char"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 REPORT adapter",
-        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
+        "kind": "covered_probe",
+        "owner": "P8 observation refresh",
+        "note": "Unchanged complete source executes as PASS with the existing REPORT adapter. Refreshed during the discrete-range audit; no adapter change in this increment."
       }
     },
     {
@@ -1541,9 +1537,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Range-attribute choices in array aggregates (e.g. A'RANGE => ...); supported explicit aggregate choices do not cover this syntax."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -1617,9 +1613,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 discrete-range syntax audit",
-        "note": "Array index bounds beginning with function calls or qualified expressions, e.g. IDENT_INT(1)..IDENT_INT(0) and INTEGER'(-1)..1; not a null-array runtime failure."
+        "kind": "covered_probe",
+        "owner": "P8 discrete ranges",
+        "note": "Unchanged complete source executes as PASS after shared range syntax, subtype compatibility and declaration-time bound capture."
       }
     },
     {
@@ -1824,13 +1820,11 @@
       ],
       "report_name": "C54A07A",
       "support": [],
-      "harness_gaps": [
-        "REPORT.ident_char"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 REPORT adapter",
-        "note": "REPORT.Ident_Char is absent from the selected support adapter; source remains unchanged and execution is not graded until real support is supplied."
+        "kind": "covered_probe",
+        "owner": "P8 observation refresh",
+        "note": "Unchanged complete source executes as PASS with the existing REPORT adapter. Refreshed during the discrete-range audit; no adapter change in this increment."
       }
     },
     {
@@ -1940,13 +1934,11 @@
       ],
       "report_name": "C64005C",
       "support": [],
-      "harness_gaps": [
-        "REPORT.ident_char"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 REPORT adapter; P7 predefined ASCII",
-        "note": "REPORT.Ident_Char plus predefined ASCII are independent prerequisites; enclosing subprogram qualification already works."
+        "kind": "predefined_library_gap",
+        "owner": "P8 predefined ASCII",
+        "note": "The existing REPORT.Ident_Char adapter is available; unchanged source now reaches missing predefined ASCII names."
       }
     },
     {
@@ -2119,13 +2111,11 @@
       "support": [
         "tctouch"
       ],
-      "harness_gaps": [
-        "REPORT.ident_char"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_gap",
-        "owner": "P8 REPORT adapter",
-        "note": "Tagged discriminants now compile; REPORT.Ident_Char at lines 193/208 is the remaining observed adapter blocker."
+        "kind": "covered_probe",
+        "owner": "P8 observation refresh",
+        "note": "Unchanged complete source executes as PASS with the existing REPORT adapter. Refreshed during the discrete-range audit; no adapter change in this increment."
       }
     },
     {
@@ -2512,7 +2502,7 @@
       "triage": {
         "kind": "support_adapter_gap",
         "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
-        "note": "Target-configured ImpDef support is missing. These compound sources also exercise task allocation and full protected entry/body behavior (queuing/internal calls/exception propagation); removing ImpDef alone is not evidence of a language pass."
+        "note": "The partial ImpDef unit is available, but the requested target-specific scheduling service is absent. This is observed as a compilation rejection; full task/protected semantics remain independent prerequisites."
       }
     },
     {
@@ -2533,7 +2523,7 @@
       "triage": {
         "kind": "support_adapter_gap",
         "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
-        "note": "Target-configured ImpDef support is missing. These compound sources also exercise task allocation and full protected entry/body behavior (queuing/internal calls/exception propagation); removing ImpDef alone is not evidence of a language pass."
+        "note": "The partial ImpDef unit is available, but the requested target-specific scheduling service is absent. This is observed as a compilation rejection; full task/protected semantics remain independent prerequisites."
       }
     },
     {

@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — 2026-10-27
+# ACATS completed-feature baseline — refreshed 2026-11-06
 
 This backfill adds **129 unchanged upstream cases**: 103 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -11,17 +11,29 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 15 |
-| Support/harness blocked | 8 |
-| Executable PASS | 80 |
+| Legal C-test rejected | 12 |
+| Support/harness blocked | 1 |
+| Executable PASS | 90 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. **15 executable C-cases fail**, all compile
-rejections; eight further C-cases are blocked by
-support adapters.
+No crashes or timeouts were observed. **12 executable C-cases fail**, all compile
+rejections; one further C-case is blocked by the TCTouch adapter.
 All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
 rejects its mixed constrained/unconstrained array definitions; the Phase 8
 B-test grader remains required before any upstream legality-pass claim.
+
+## Discrete-range observations (Phase 8)
+
+C35003A, C36104A/B, C36180A, C37002A, C41207A and C43204A now execute
+unchanged as PASS. They cover range attributes, explicit subtype ranges,
+null-range compatibility, declaration-time checks and call/qualified bounds.
+C3A2003 passes separately in the focused selection. [Contract](discrete-ranges.md).
+
+The complete 129-case refresh also observes the already available REPORT
+adapter: C41104A, C54A07A and C760011 pass; C35502C/C64005C now reach missing
+ASCII declarations. C940005/C940010 reach missing services in the partial
+ImpDef unit, recorded as compile rejections. No adapter or predefined-library
+implementation changed in this increment. B-probes remain ungraded.
 
 ## Interface-formal observations (Phase 6g)
 
@@ -68,7 +80,7 @@ C540001 now passes unchanged after enumeration-literal function actuals,
 expanded character names (`Pkg.'A'`) and static related-enumeration conversions.
 The complete case-expression scenario is registered as `acats.backfill_c540001`.
 It is the only changed observation at this increment: all other 128 observations
-remain unchanged; the current cohort has 80 executable passes.
+remained unchanged; the cohort then had 80 executable passes.
 
 The Phase 6f backfill adds 16 C-tests from the same pinned archive, preserving
 all 18 imported files byte-for-byte, including the F392D00/F393A00 foundations.
@@ -192,11 +204,9 @@ also repaired; C37006A and C760011 retain independently owned prerequisites.
 controls in whole/per-unit/deterministic modes, with four tasks and compiler
 ASan/UBSan. All four new passes join the strict selection.
 
-The [remaining-rejections audit](supported-rejections.md) maps every one of the
-23 legal-source rejections and seven support blockers to concrete prerequisites
-in P6f, P6g, P7, P8 or P9. No unclassified front-end rejection remains in this
-bounded baseline; removing a prerequisite still requires rerunning the
-unchanged compound case before any promotion.
+The [remaining-rejections audit](supported-rejections.md) records concrete
+prerequisites. Removing a prerequisite still requires rerunning the unchanged
+compound case before promotion.
 
 ## Coverage by area
 
@@ -205,20 +215,21 @@ be blocked before reaching the feature named in their objective.
 
 | Area | C PASS | C rejected | C runtime failure | Harness blocked | B ungraded |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| derived scalars | 8 | 1 | 0 | 1 | 0 |
-| arrays discriminants | 4 | 6 | 0 | 0 | 0 |
-| object orientation | 16 | 1 | 0 | 0 | 0 |
-| access callbacks | 6 | 1 | 0 | 0 | 0 |
-| indexing slices | 6 | 1 | 0 | 1 | 0 |
-| aggregates | 0 | 4 | 0 | 0 | 0 |
-| conversions static | 6 | 1 | 0 | 0 | 0 |
-| control flow | 1 | 2 | 0 | 1 | 0 |
-| calls returns | 6 | 1 | 0 | 1 | 0 |
-| private finalization | 6 | 5 | 0 | 1 | 0 |
+| derived scalars | 9 | 1 | 0 | 0 | 0 |
+| arrays discriminants | 8 | 2 | 0 | 0 | 0 |
+| object orientation | 17 | 0 | 0 | 0 | 0 |
+| access callbacks | 7 | 0 | 0 | 0 | 0 |
+| indexing slices | 8 | 0 | 0 | 0 | 0 |
+| aggregates | 3 | 1 | 0 | 0 | 0 |
+| conversions static | 7 | 0 | 0 | 0 | 0 |
+| control flow | 3 | 1 | 0 | 0 | 0 |
+| calls returns | 7 | 1 | 0 | 0 | 0 |
+| private finalization | 9 | 2 | 0 | 1 | 0 |
 | visibility renaming | 9 | 2 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
-| protected objects | 0 | 0 | 0 | 2 | 0 |
-| legality sample | 0 | 0 | 0 | 0 | 20 |
+| protected objects | 0 | 2 | 0 | 0 | 0 |
+| legality sample | 0 | 0 | 0 | 0 | 21 |
+| generic interfaces | 0 | 0 | 0 | 0 | 5 |
 
 ## Follow-up order
 
@@ -236,7 +247,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner self-tests enforce strict REPORT completion/identity,
 zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 80 observed
+crash/timeout handling and source/snapshot integrity. Only the 90 observed
 executable PASS cases join the normal ACATS test label. The full cohort has a
 separate snapshot-stability target; matching a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
@@ -254,15 +265,15 @@ The table below gives the observed status and initial triage for every case.
 | [C34001D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001d.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
 | [C34002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34002a.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
 | [C34002C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34002c.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
-| [C35003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003a.ada) | 3.4–3.5 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
+| [C35003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003a.ada) | 3.4–3.5 | Executable PASS | covered probe; P8 discrete ranges |
 | [C35003D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003d.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
 | [C35502A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502a.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
-| [C35502C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502c.ada) | 3.4–3.5 | Support/harness blocked | support adapter gap; P8 REPORT adapter |
+| [C35502C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502c.ada) | 3.4–3.5 | Legal C-test rejected | predefined library gap; P8 predefined ASCII |
 | [C35502G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502g.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
-| [C36104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
-| [C36104B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104b.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
-| [C36180A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36180a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
-| [C37002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37002a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
+| [C36104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
+| [C36104B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104b.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
+| [C36180A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36180a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
+| [C37002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37002a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
 | [C37003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37003a.ada) | 3.6–3.8 | Legal C-test rejected | documented language gap; P8 access-subtype constraints |
 | [C37003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37003b.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
 | [C37005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c37005a.ada) | 3.6–3.8 | Executable PASS | covered probe; P3/P6b/P6c |
@@ -294,17 +305,17 @@ The table below gives the observed status and initial triage for every case.
 | [C3A0007](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0007.a) | 3.10 | Executable PASS | repaired; P6f tagged/private views |
 | [C3A0008](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0008.a) | 3.10 | Executable PASS | covered probe; P6d |
 | [C41103A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41103a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P6f-prelude |
-| [C41104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41104a.ada) | 4.1.1–4.1.2 | Support/harness blocked | support adapter gap; P8 REPORT adapter |
+| [C41104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41104a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P8 observation refresh |
 | [C41105A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41105a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P6f-prelude |
 | [C41107A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41107a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P3/P6b |
 | [C41204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41204a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P3/P6b |
 | [C41205A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41205a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P3/P6b |
 | [C41206A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41206a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P3/P6b |
-| [C41207A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41207a.ada) | 4.1.1–4.1.2 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
+| [C41207A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41207a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P8 discrete ranges |
 | [C432001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432001.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
 | [C432004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432004.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
 | [C432005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432005.a) | 4.3 | Legal C-test rejected | cross feature language gap; P9 full tasking |
-| [C43204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c43204a.ada) | 4.3 | Legal C-test rejected | documented language gap; P8 discrete-range syntax audit |
+| [C43204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c43204a.ada) | 4.3 | Executable PASS | covered probe; P8 discrete ranges |
 | [C460004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460004.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C460005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460005.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C460006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460006.a) | 4.6/4.9 | Executable PASS | abstract operations and tagged view conversions; P6f |
@@ -312,16 +323,16 @@ The table below gives the observed status and initial triage for every case.
 | [C49021A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49021a.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022b.ada) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C49022C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022c.ada) | 4.6/4.9 | Executable PASS | covered probe; P6f-prelude |
-| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | PASS | complete case-expression scenario, including expanded character names and literal function actuals |
+| [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Executable PASS | complete case-expression scenario, including expanded character names and literal function actuals |
 | [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Executable PASS | discrete-context selector resolution repaired; P6f-prelude |
 | [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | Legal C-test rejected | predefined library gap; P7 predefined ASCII |
-| [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Support/harness blocked | support adapter gap; P8 REPORT adapter |
+| [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Executable PASS | covered probe; P8 observation refresh |
 | [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Executable PASS | repaired; P6g tagged private formals |
 | [C64002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64002b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C64004G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64004g.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005a.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005b.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
-| [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | Support/harness blocked | support adapter gap; P8 REPORT adapter; P7 predefined ASCII |
+| [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | Legal C-test rejected | predefined library gap; P8 predefined ASCII |
 | [C65003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003a.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C65003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C730004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c730004.a) | 7.3/7.6 | Executable PASS | covered probe; P6f-prelude |
@@ -330,7 +341,7 @@ The table below gives the observed status and initial triage for every case.
 | [C760002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760002.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C760009](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760009.a) | 7.3/7.6 | Executable PASS | repaired; P6f tagged/private views |
 | [C760010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760010.a) | 7.3/7.6 | Executable PASS | repaired; P6g tagged private formals |
-| [C760011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760011.a) | 7.3/7.6 | Support/harness blocked | support gap; P8 REPORT.Ident_Char adapter |
+| [C760011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760011.a) | 7.3/7.6 | Executable PASS | covered probe; P8 observation refresh |
 | [C760013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760013.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Legal C-test rejected | cross feature language gap; P9 task entries |
 | [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Support/harness blocked | support adapter gap; P8 TCTouch adapter |
@@ -350,8 +361,8 @@ The table below gives the observed status and initial triage for every case.
 | [CA1003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1003a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1004a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1005a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
-| [C940005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940005.a) | 9.4–9.5 | Support/harness blocked | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
-| [C940010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940010.a) | 9.4–9.5 | Support/harness blocked | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
+| [C940005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940005.a) | 9.4–9.5 | Legal C-test rejected | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
+| [C940010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940010.a) | 9.4–9.5 | Legal C-test rejected | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
 | [B330001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b330001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B33101A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33101a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B33102A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33102a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |

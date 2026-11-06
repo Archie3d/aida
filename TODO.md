@@ -1086,15 +1086,20 @@ Ada 2005 additions and track annex packages separately.
   [Protocol, commands, coverage and instrumentation limits](docs/robustness.md).
   - [x] Record-component and declaration syntax recovery after missing
     delimiters (`recordrecovery*`, with timeouts).
-- [ ] Complete discrete-range syntax using range attributes in array type
-  definitions beyond the `array (Object'Range)` form now covered by C3A0013.
-  Include subtype range-attribute constraints (C35003A), subtype-mark discrete
-  ranges in index constraints/aggregate choices (C36104A/B, C37002A), and
-  function-call/qualified-expression array bounds (C43204A).
-  Preserve the index type and evaluate bounds once at type elaboration; cover
-  explicit dimensions and runtime bounds. Existing `'Range` support in loops
-  and other contexts does not cover this declaration syntax. Also support
-  range-attribute choices in array aggregates (C3A2003).
+- [x] Complete discrete-range syntax using range attributes in array type
+  definitions, scalar subtype constraints, index constraints, slices and array
+  aggregate choices. Support subtype-mark discrete ranges and function-call /
+  qualified-expression bounds; preserve index types, static dimensions and
+  single evaluation of prefixes/bounds at declaration elaboration. Check
+  non-null ranges against named subtypes while preserving null-range endpoints
+  and staticness of compatible static constraints. Named aggregates retain
+  their own bounds for comparison and check shape at value boundaries.
+  C35003A, C36104A/B, C36180A, C37002A, C41207A, C43204A and C3A2003 execute
+  unchanged as PASS; C3A0013 remains a control. `discreteranges` and
+  `discreterangeerrors` cover legality, capture, enum indices, dimensions,
+  record components, exception timing and four independent workers in
+  whole/separate/deterministic modes. Release 1,737/1,737; focused compiler
+  ASan/UBSan 13/13. [Contract and evidence](docs/discrete-ranges.md).
 - [ ] Complete access-subtype designated-record discriminant constraints
   (C37003A/C37006A); keep the explicit diagnostic until constraint capture,
   null/conversion checks and library/per-unit behavior are implemented.

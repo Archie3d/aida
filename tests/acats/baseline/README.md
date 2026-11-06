@@ -41,11 +41,11 @@ if previously recorded. Normal runtime failures remain RUN_FAILED; they are
 not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
-aggregate support; it joins the strict executable selection. The current cohort
-has 80 C passes, 15 legal-source rejections, eight support
-blockers and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
-after the tagged/private-view milestone. C760011 now reaches the REPORT.Ident_Char
-adapter gap; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
+aggregate support; it joins the strict executable selection. The refreshed cohort
+has 90 C passes, 12 legal-source rejections, one support
+blocker and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
+after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
+adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
 The Phase 6f backfill adds 16 C-tests covering interfaces, abstract operations,
@@ -142,3 +142,9 @@ rest of the unit. It remains B_REJECTED_UNGRADED, not a legality pass. Local
 Access restriction through renaming and forwarding. All prior 128 observations
 are unchanged. At that increment the 129-case cohort had 79 executable passes,
 16 compile rejections, eight harness blockers and 26 ungraded B observations.
+
+The 2026-11-06 full refresh promotes the seven discrete-range cases
+(C35003A, C36104A/B, C36180A, C37002A, C41207A, C43204A). It also records
+previously stale observations of existing REPORT/partial ImpDef support;
+see the [current baseline](../../../docs/acats-baseline.md). No support adapter
+implementation changed in this range increment.

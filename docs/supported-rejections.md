@@ -1,7 +1,7 @@
 # Remaining supported-area rejection audit
 
-This completes the 6f-prelude review of the pinned 106-case
-[ACATS baseline](acats-baseline.md). It is a review of this selection, not a
+This follows the original 6f-prelude review of the pinned 106-case baseline.
+The [current ACATS baseline](acats-baseline.md) contains 129 cases. It is a review of this selection, not a
 complete language audit. Upstream source bytes are unchanged. The exact
 observations and per-case triage remain in
 [expected.json](../tests/acats/baseline/expected.json) and
@@ -63,39 +63,20 @@ record-extension aggregate repair; it now joins the strict executable selection.
 
 ## Deferred prerequisites
 
-The remaining **23 legal C rejections** have these concrete prerequisites.
-These categories reflect explicit subset boundaries; implementing a prerequisite
-must be followed by a fresh review and execution of the entire compound case.
+The refreshed cohort has **12 legal C rejections**. Removing a prerequisite
+requires a fresh execution of the complete unchanged source. The discrete-range
+cases now pass; [current observations](acats-baseline.md) include earlier
+REPORT adapter improvements without changing adapters in this increment.
 
 | Cases | Prerequisite | Roadmap owner |
 | --- | --- | --- |
-| C35003A | Array range attributes in scalar subtype range constraints | P8 discrete-range syntax |
-| C36104A, C36104B, C37002A | Subtype-mark discrete ranges in index constraints/aggregate choices; range-attribute constraints | P8 discrete-range syntax |
-| C36180A | Range attributes as array-declaration indices | P8 discrete-range syntax |
-| C41207A | Range-attribute choices in array aggregates | P8 discrete-range syntax |
-| C43204A | Array bounds beginning with function calls/qualified expressions | P8 discrete-range syntax |
-| C37003A, C37006A | Discriminant constraints on access subtypes' designated records | P8 access-subtype constraints |
-| C3A0007 | Record extension of a private tagged ancestor | P6f private tagged views |
-| C432001, C432004, C760009 | Private extension declarations and their aggregate/finalization interactions | P6f private extensions |
-| C540001 | Derived-formal parsing repaired; expanded character-literal names such as `Pkg.'A'` remain rejected | P6g enumeration-literal names |
-| C640001, C760010 | Execute unchanged as PASS after tagged private formals | P6g repaired |
-| C54A03A | Predefined ASCII.NUL | P7 predefined library |
-| C760011 | New discriminants on a derived controlled tagged type; independent REPORT.Ident_Char dependency | P6f discriminated tagged types; P8 REPORT adapter |
-| C761010 | Unknown-discriminant private views | P6f private views |
-| C432005, C761001 | Task entries/accept bodies; protected/task aggregates and finalization interactions | P9 full tasking |
-| C85005A, C85005B | Task entry renamings, accept/select rendezvous and task definitions | P9 full tasking |
+| C35502C, C54A03A, C64005C | Predefined ASCII names | P8 predefined environment |
+| C37003A, C37006A | Designated-record discriminant constraints on access subtypes | P8 access-subtype constraints |
+| C761010 | Access-to-array subtype constraints and dependent controlled arrays | Existing access/controlled-array limits |
+| C432005, C761001 | Task entries/accept bodies and aggregate/finalization interactions | P9 full tasking |
+| C85005A, C85005B | Task entry renamings and accept/select rendezvous | P9 full tasking |
+| C940005, C940010 | Missing scheduling services in partial ImpDef; independent protected/tasking prerequisites | P8 ImpDef configuration; P9 full tasking |
 
-The **seven harness-blocked cases** retain separate prerequisites. Missing
-support is not replaced with stubs, and none is promoted to PASS.
-
-| Cases | Support and independent language prerequisites | Roadmap owner |
-| --- | --- | --- |
-| C35502C, C41104A, C54A07A | REPORT.Ident_Char | P8 REPORT adapter |
-| C64005C | REPORT.Ident_Char and predefined ASCII | P8 REPORT adapter; P7 predefined library |
-| C761004 | TCTouch.Flush and three-argument Validate, with real trace semantics | P8 TCTouch adapter |
-| C940005, C940010 | Target-configured ImpDef; compound tests also exercise task allocation and full protected entry/body behavior, including internal operations, queuing and exception propagation | P8 ImpDef configuration; P9 full tasking |
-
-All 20 B observations remain ungraded. Their error markers and legal controls
-still require the Phase 8 grader; a compiler rejection does not establish a
-legality pass. No parser cascade from an explicitly unsupported prerequisite is
-classified as an independently confirmed defect without a focused reproducer.
+The remaining **harness-blocked case**, C761004, needs TCTouch.Flush and the
+three-argument Validate overload with actual trace semantics (P8 TCTouch
+adapter). It is not promoted to PASS.

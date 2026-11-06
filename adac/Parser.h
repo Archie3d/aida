@@ -78,6 +78,8 @@ private:
     void parseRecordComponents(std::vector<RecordField>& fields);
     VariantPartPtr parseVariantPart();
     SubtypeIndicationPtr parseSubtypeIndication(bool allowAccess = false);
+    void parseRange(ExprPtr& low, ExprPtr& high, bool allowSingle = false);
+    void parseDiscreteChoice(ExprPtr& low, ExprPtr& high);
     void parseDiscreteRange(std::string& typeName, std::string& typeLower, ExprPtr& low, ExprPtr& high);
 
     // Subprograms (ParserSubprograms.cpp).

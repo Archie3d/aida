@@ -63,7 +63,7 @@ mirror tests the superseded Ada 95 rule that
 aliased default-discriminated objects are constrained, so it is inapplicable to
 this Ada 2005 behavior. C3A0015 requires custom storage pools.
 C3A2002/C460001/C460002 now pass with
-anonymous parameters; C3A2003 still needs range-attribute aggregate choices.
+anonymous parameters; C3A2003 also passes after the P8 range-attribute aggregate-choice increment.
 C3A2A01 now passes after the 6g formal-derived/access increment. C460A01
 has not yet been adopted into the focused selection; C460A02 still requires
 access formal objects (6g).

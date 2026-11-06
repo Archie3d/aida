@@ -48,6 +48,7 @@ Value QbeEmitter::prepareArrayAggregate(Expr* expr, const Value& context, Type* 
                 for (std::size_t i = 0; i < component.choiceLows.size(); ++i) {
                     std::string low = choiceValue(component.choiceLows[i].get());
                     std::string high = component.choiceHighs[i] ? choiceValue(component.choiceHighs[i].get()) : low;
+                    emitDiscreteRangeCheck(component.choiceLows[i].get(), Value { low, 'l' }, Value { high, 'l' });
                     ranges.push_back({ low, high });
                 }
             }
@@ -215,6 +216,9 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
                         : emitExpr(component.choiceHighs[i].get());
                     emitRangeCheck(highValue, m_sema.typeTable().scalarBaseType(type->index), component.choiceHighs[i]->location);
                     high = widen(highValue);
+                }
+                if (plan == nullptr) {
+                    emitDiscreteRangeCheck(component.choiceLows[i].get(), Value { low, 'l' }, Value { high, 'l' });
                 }
                 choices.push_back({ low, high, component.value.get() });
             }

@@ -146,10 +146,7 @@ ExprPtr Parser::parseNameSuffixes(ExprPtr prefix)
                         advance();
                         advance();
                     }
-                    association.value = parseExpression();
-                    if (match(TokenKind::DoubleDot)) {
-                        association.high = parseExpression();
-                    }
+                    parseDiscreteChoice(association.value, association.high);
                     expr->arguments.push_back(std::move(association));
                     if (!match(TokenKind::Comma)) {
                         break;

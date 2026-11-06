@@ -12,6 +12,14 @@
 using SemaSupport::isUniversal;
 using SemaSupport::adaptUniversal;
 
+// A known null range is compatible with every subtype. Dynamic subtype
+// bounds, or a non-null range outside static bounds, need an elaboration check.
+static bool rangeNeedsCheck(Type* subtype, __int128 low, __int128 high)
+{
+    return subtype != nullptr && (subtype->scalarBoundsSymbol != nullptr
+        || (low <= high && (low < subtype->low || high > subtype->high)));
+}
+
 static Type* discriminantDependency(Expr* expression)
 {
     if (expression == nullptr) { return nullptr; }
@@ -598,6 +606,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             row->arrayRank = rank - dimension;
             row->constrained = !definition->unconstrainedIndexes;
             SubtypeIndication* index = definition->indexTypes[dimension].get();
+            // Resolve a static dimension before operand discovery: different
+            // dimensions can have distinct index types (including enums).
+            if (index->rangeLow != nullptr && index->rangeLow->kind == ExprKind::Attribute) {
+                auto* attribute = static_cast<AttributeExpr*>(index->rangeLow.get());
+                if (attribute->rangeFirst == attribute) {
+                    for (auto& argument : attribute->arguments) { analyzeExpr(argument.get(), scope, m_types.integerType()); }
+                }
+            }
             Type* indexType = index->name.empty() && index->rangeLow && index->rangeHigh
                 ? commonOperandType(index->rangeLow.get(), index->rangeHigh.get(), scope, nullptr)
                 : index->name.empty() ? m_types.integerType() : resolveTypeName(index->lower, scope, index->location);
@@ -620,7 +636,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 bool staticLow = foldStatic(index->rangeLow.get(), row->indexLow);
                 bool staticHigh = foldStatic(index->rangeHigh.get(), row->indexHigh);
                 row->indexRangeStatic = staticLow && staticHigh;
-                if (!row->indexRangeStatic) {
+                if (!row->indexRangeStatic || rangeNeedsCheck(indexType, row->indexLow, row->indexHigh)) {
                     dynamicBounds = true;
                 }
             } else if (indexType != nullptr && row->constrained) {
@@ -689,11 +705,12 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 newDiscriminants.push_back(symbol);
             }
         }
-        Type* parent = resolveSubtypeIndication(definition->parent.get(), parentScope, false, true);
+        Type* parent = resolveSubtypeIndication(definition->parent.get(), parentScope, true, true);
         if (!checkCompleteView(parent, decl->location, "type derivation")) { return; }
         if (parent == nullptr) {
             return;
         }
+        recordArrayConstraint(parent, definition->parent.get());
         rootType(parent)->streamsFrozen = true;
         if (parent->isIncomplete && (!parent->tagged || parent->privateTo == nullptr)) {
             m_diagnostics.error(decl->location, parent->privateTo == nullptr
@@ -2144,6 +2161,12 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             return subtype;
         }
         Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, low, high);
+        if (allowDynamicScalar && rangeNeedsCheck(base, low, high)) {
+            subtype->scalarLow = indication->rangeLow.get();
+            subtype->scalarHigh = indication->rangeHigh.get();
+            subtype->scalarConstraintBase = base;
+            recordScalarConstraint(subtype, indication->location, false);
+        }
         indication->resolved = subtype;
         return subtype;
     }
@@ -2223,7 +2246,9 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
                 bool staticHigh = foldStatic(high, row->indexHigh);
                 row->indexConstraint = indexConstraints[dimension];
                 row->indexRangeStatic = staticLow && staticHigh;
-                allStatic = allStatic && staticLow && staticHigh && original->index->scalarBoundsSymbol == nullptr;
+                allStatic = allStatic && staticLow && staticHigh
+                    && !rangeNeedsCheck(original->index, row->indexLow, row->indexHigh)
+                    && !rangeNeedsCheck(low->rangeSubtype, row->indexLow, row->indexHigh);
                 rows.push_back(row);
                 if (dimension + 1 < array->arrayRank) {
                     original = original->element;
@@ -2258,7 +2283,8 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             staticHigh = foldStatic(indication->indexHighs.front().get(), high);
         }
         bool staticRange = staticLow && staticHigh;
-        bool ok = staticRange && array->index->scalarBoundsSymbol == nullptr;
+        bool ok = staticRange && !rangeNeedsCheck(array->index, low, high)
+            && !rangeNeedsCheck(indication->indexLows.front()->rangeSubtype, low, high);
         if (!ok && allowDynamic && indication->indexHighs.front() != nullptr) {
             if (!isDiscrete(indication->indexLows.front()->type)
                 || !isDiscrete(indication->indexHighs.front()->type)) {

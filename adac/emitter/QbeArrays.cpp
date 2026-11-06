@@ -96,6 +96,25 @@ void QbeEmitter::storeArrayView(const std::string& descriptor, Value value, Type
     }
 }
 
+// A subtype indication checks its bounds as a pair: a null range is
+// compatible even when either endpoint lies outside the named subtype.
+void QbeEmitter::emitDiscreteRangeCheck(Expr* low, const Value& first, const Value& last)
+{
+    if (low == nullptr || low->rangeSubtype == nullptr) { return; }
+    Value lower = wideBound(first);
+    Value upper = wideBound(last);
+    std::string nonNull = newTemp();
+    line(nonNull + " =w csgel " + upper.name + ", " + lower.name);
+    std::string check = newLabel("discreterangecheck");
+    std::string ready = newLabel("discreterangeready");
+    branch(Value { nonNull, 'w' }, check, ready);
+    label(check);
+    emitRangeCheck(first, low->rangeSubtype, low->location);
+    emitRangeCheck(last, low->rangeSubtype, low->location);
+    jump(ready);
+    label(ready);
+}
+
 void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
 {
     if (type == nullptr || type->boundExpressions.empty()) {
@@ -129,6 +148,7 @@ void QbeEmitter::emitTypeBounds(Type* type, const SourceLocation& location)
         auto [low, high] = type->boundExpressions[dimension];
         Value first = low ? emitExpr(low) : constantValue(axis->indexLow, 'l');
         Value last = high ? emitExpr(high) : constantValue(axis->indexHigh, 'l');
+        emitDiscreteRangeCheck(low, first, last);
         first = wideBound(first);
         last = wideBound(last);
         std::string nonNull = newTemp();
@@ -190,6 +210,7 @@ void QbeEmitter::emitDynamicArray(ObjectDecl* object, Symbol* symbol)
             std::string ready = newLabel("boundsready");
             branch(Value { nonNull, 'w' }, check, ready);
             label(check);
+            emitDiscreteRangeCheck(object->subtype->indexLows[dimension].get(), first, last);
             emitRangeCheck(first, axis->index, object->location);
             emitRangeCheck(last, axis->index, object->location);
             jump(ready);
@@ -449,6 +470,7 @@ Value QbeEmitter::emitSlice(CallExpr* expr)
     Value low = emitExpr(expr->resolvedArguments[0]);
     Value high = emitExpr(expr->resolvedArguments[1]);
 
+    emitDiscreteRangeCheck(expr->resolvedArguments[0], low, high);
     low = wideBound(low);
     high = wideBound(high);
     std::string offset = newTemp(), address = newTemp();

@@ -1,0 +1,18 @@
+discreterangeerrors.adb:10:35: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:10:35: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:11:30: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:11:30: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:12:32: error: array index bounds have an incompatible type
+discreterangeerrors.adb:13:29: error: range bounds must have the subtype's discrete type
+discreterangeerrors.adb:14:32: error: discrete range subtype has an incompatible type
+discreterangeerrors.adb:14:32: error: no visible interpretation of 'Red' matches this context
+discreterangeerrors.adb:14:39: error: no visible interpretation of 'Blue' matches this context
+discreterangeerrors.adb:14:11: error: array index bounds must be discrete
+discreterangeerrors.adb:16:23: error: discrete range subtype has an incompatible type
+discreterangeerrors.adb:16:23: error: no visible interpretation of 'Red' matches this context
+discreterangeerrors.adb:16:30: error: no visible interpretation of 'Blue' matches this context
+discreterangeerrors.adb:16:23: error: aggregate choice is incompatible with the index type
+discreterangeerrors.adb:17:12: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:17:12: error: array dimension must be a static value within the array rank
+discreterangeerrors.adb:17:12: error: aggregate choice is incompatible with the index type
+discreterangeerrors.adb:18:23: error: a discrete range requires a discrete subtype

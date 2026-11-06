@@ -307,17 +307,15 @@ ExprPtr Parser::parseParenthesizedOrAggregate()
             std::size_t start = m_position;
             ExprPtr first = parseExpression();
             bool named = false;
-            if (check(TokenKind::DoubleDot) || check(TokenKind::Bar) || check(TokenKind::Arrow)) {
+            if (check(TokenKind::KwRange) || check(TokenKind::DoubleDot) || check(TokenKind::Bar) || check(TokenKind::Arrow)) {
                 named = true;
             }
             if (named) {
                 m_position = start;
                 while (true) {
-                    ExprPtr low = parseSimpleExpression();
+                    ExprPtr low;
                     ExprPtr high;
-                    if (match(TokenKind::DoubleDot)) {
-                        high = parseSimpleExpression();
-                    }
+                    parseDiscreteChoice(low, high);
                     if (low->kind == ExprKind::Identifier && !high) {
                         component.names.push_back(static_cast<IdentifierExpr*>(low.get())->lower);
                     } else {
