@@ -96,6 +96,18 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     }
     symbol->hasSpecification = true;
     symbol->packageDeclaration = decl;
+    if (symbol->scope == m_addressType->declarationScope) {
+        bool declaresAddress = std::any_of(decl->publicPart.begin(), decl->publicPart.end(), [](const DeclPtr& item) {
+            return item->kind == DeclKind::Type && static_cast<TypeDecl*>(item.get())->lower == "address";
+        });
+        if (!declaresAddress) {
+            m_diagnostics.error(decl->location, "System must declare the compiler-completed Address type");
+            // A broken replacement specification must not erase the type
+            // required by Address attributes and by dependent runtime units.
+            addTypeTo(symbol->scope, m_addressType);
+        }
+    }
+
     if (m_recordContract != nullptr && decl->lower == m_recordContract->unitName) {
         symbol->parentPackage = m_recordContract->parentPackage;
     }

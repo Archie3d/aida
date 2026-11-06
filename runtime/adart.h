@@ -14,6 +14,15 @@
 #include "../common/FloatAttributes.h"
 #include "../common/Array.h"
 
+/* System.Storage_Elements: integer arithmetic on pointer representations. */
+void* __ada_storage_add(void* left, int64_t right);
+void* __ada_storage_offset_add(int64_t left, void* right);
+void* __ada_storage_subtract(void* left, int64_t right);
+int64_t __ada_storage_difference(void* left, void* right);
+int64_t __ada_storage_mod(void* left, int64_t right);
+void* __ada_storage_to_address(uint64_t value);
+uint64_t __ada_storage_to_integer(void* value);
+
 typedef struct AdaDispatchEntry
 {
     void* code;

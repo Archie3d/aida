@@ -17,6 +17,8 @@ procedure StandardFacilityErrors is
     Invalid : Object_Pointer := Object_Pointer (System.Null_Address);
     Value : Integer := ASCII.HT;
     Name : System.Name := System.Low_Order_First;
+    Equality : Comparison := System."="'Access;
+    Inequality : Comparison := System."/="'Access;
 begin
     System.Default_Priority := 1;
     ASCII.NUL := 'X';

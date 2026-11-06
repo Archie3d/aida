@@ -1129,6 +1129,8 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean array without aliased or shared components");
         } else if (m_frozenTypes.contains(type)) {
             m_diagnostics.error(decl->location, "Pack must precede freezing of the array type");
+        } else if (type->componentSizeSpecified) {
+            m_diagnostics.error(decl->location, "Pack after a Component_Size specification is not yet supported");
         } else if (type->packedBoolean) {
             m_diagnostics.error(decl->location, "Pack may be specified only once for an array type");
         } else if (type->alignmentSpecified && type->alignment > 1) {

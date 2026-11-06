@@ -429,7 +429,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
     if (!prefixIsType && prefixType != nullptr && prefixType->kind == TypeKind::Access
         && prefixType->target != nullptr && prefixType->target->kind == TypeKind::Array
-        && (expr->lower == "first" || expr->lower == "last" || expr->lower == "length")) {
+        && (expr->lower == "first" || expr->lower == "last" || expr->lower == "length"
+            || expr->lower == "component_size")) {
         auto dereference = std::make_unique<SelectedExpr>();
         dereference->location = expr->prefix->location;
         dereference->selector = dereference->selectorLower = "all";
@@ -1132,6 +1133,24 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->isStatic = true;
         expr->staticValue = streamSizeBits(prefixType);
         rootType(prefixType)->streamsFrozen = true;
+        return expr->type;
+    }
+    if (name == "component_size") {
+        freezeType(prefixType);
+        if (prefixType == nullptr || prefixType->kind != TypeKind::Array
+            || !representationVisible(prefixType) || prefixType->isIncomplete || !expr->arguments.empty()
+            || prefixType->arrayRank != 1 || prefixType->element == nullptr
+            || prefixType->genericFormal || prefixType->element->genericFormal
+            || hasRuntimeLayout(prefixType->element)) {
+            m_diagnostics.error(expr->location,
+                "'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments");
+            return nullptr;
+        }
+        expr->type = m_types.universalInteger();
+        expr->sizeTypePrefix = prefixIsType;
+        // RM 4.9 only grants array-attribute staticness to First/Last/Length.
+        expr->isStatic = false;
+        expr->staticValue = prefixType->packedBoolean ? 1 : typeSize(prefixType->element) * 8;
         return expr->type;
     }
     if (name == "alignment") {

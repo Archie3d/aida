@@ -1,18 +1,6 @@
 #ifndef ADA_PREDEFINED_H
 #define ADA_PREDEFINED_H
 
-/* The supported target model uses 32-bit Integer priorities and little-endian
-   bit numbering. These declarations do not implement priority scheduling. */
-enum
-{
-    kSystemPriorityFirst = 0,
-    kSystemPriorityLast = 30,
-    kSystemInterruptPriorityLast = 31,
-    kSystemDefaultPriority = (kSystemPriorityFirst + kSystemPriorityLast) / 2,
-    kSystemName = 0,
-    kSystemLowOrderFirst = 1
-};
-
 /* RM J.5: shared by the builtin declarations and their addressable storage. */
 #define ADA_ASCII_CONSTANTS(X) \
     X(NUL, nul, 0) \

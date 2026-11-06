@@ -317,9 +317,10 @@ The test runs in whole and separate compilation and checks deterministic IR.
 `alignmenterrors` pins legality and subset-limit diagnostics. The existing Size,
 representation rejection and ACATS suites remain regression coverage.
 
-ACATS CD30002 is the relevant alignment case. Its Impdef/Storage_Elements support,
-object clauses and multiple library units require further compiler/harness work;
-see `tests/acats/README.md`. It is not counted as passing coverage.
+ACATS CD30002 is the relevant alignment case. Storage_Elements now resolves and
+an explicit Impdef adapter permits assessment; four object Alignment clauses and
+one scalar stride-padding clause still reject the unchanged source. It is not
+counted as passing coverage; see [the assessment](storage-elements.md).
 
 `enumrepresentation` checks signed/unsigned storage widths and endpoints through
 a C memory observer, globals, heap objects, variants, inherited/replaced mappings,
@@ -420,3 +421,12 @@ rerunning it). All 21 focused compiler ASan/UBSan checks pass, including
 whole/separate/determinism, four-task execution and unchanged CD1009N,
 CD3014A and CD3014D. The C runtime is unchanged; generated QBE accesses remain
 uninstrumented. `git diff --check` is clean.
+
+## Confirming array component sizes
+
+The Storage_Elements increment adds confirming Component_Size clauses and queries
+for visible one-dimensional arrays with fixed-size components, including its
+aliased byte array. Clauses precede freezing and cannot change stride or ownership.
+Queries are nonstatic, support implicit dereference, and evaluate an object prefix
+once. Generic formal layouts and Pack after an explicit clause retain diagnostics.
+See [the contract and controls](storage-elements.md).

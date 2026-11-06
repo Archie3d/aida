@@ -467,7 +467,7 @@ bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
         bodyPath = bodyPart->second->fileName;
     }
     if (specPath.empty() && bodyPath.empty()) {
-        // Standard and System are compiler-defined. Sema diagnoses other
+        // Standard is compiler-defined. Sema diagnoses other
         // missing units after loading has completed.
         return m_parts.contains(key + ".spec") || m_parts.contains(key + ".body");
     }
@@ -657,7 +657,7 @@ bool UnitLoader::orderUnits()
                     }
                 }
                 if (!m_parts.contains(key + ".spec") && !m_parts.contains(key + ".body")
-                    && key != "standard" && key != "system") {
+                    && key != "standard") {
                     m_diagnostics.error(clause.location, "cannot find the unit '" + name + "'");
                     return false;
                 }
@@ -754,7 +754,7 @@ bool UnitLoader::orderUnits()
                     found = m_parts.find(key + ".body");
                 }
                 if (found == m_parts.end()) {
-                    if (key == "standard" || key == "system") {
+                    if (key == "standard") {
                         continue;
                     }
                     m_diagnostics.error(pragma.location, "unknown elaboration pragma unit '" + name + "'");

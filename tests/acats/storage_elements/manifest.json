@@ -1,0 +1,26 @@
+{
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "source_repository": "https://github.com/simonjwright/ACATS",
+  "language": "Ada 95 cases retained by Ada 2005; no later-language syntax",
+  "cases": [
+    {
+      "id": "cd30002",
+      "sha256": "eb16d9ecdd4736f6d8b4d773115e5075388dca0d1d2247c7d909032944b106eb",
+      "git_blob": "7b6fff713ee628630ab6fc5850bc66ba0c7e51a9",
+      "source": "upstream/cd30002.a",
+      "outcome": "COMPILE_REJECTED",
+      "expected": "cd30002.a:104:5: error: 'Library_Level_Object' is not a type declared here\ncd30002.a:111:5: error: Alignment requiring scalar or array stride padding is not yet supported\ncd30002.a:143:5: error: 'Stuff_Object' is not a type declared here\ncd30002.a:147:5: error: 'Quarter_Object' is not a type declared here\ncd30002.a:151:5: error: 'Half_Object' is not a type declared here\n",
+      "note": "Storage_Elements resolves; remaining object alignment and scalar stride-padding clauses are unsupported. Local Impdef settings are an assessment adapter, not full target validation."
+    },
+    {
+      "id": "cd70001",
+      "sha256": "a7938c06d9c5aceb2389889cc66705f4957830bb047a73b69cd41f532e042dc0",
+      "git_blob": "484009588046cd59d9b9b035a10585beef7a7978",
+      "source": "upstream/cd70001.a",
+      "outcome": "COMPILE_REJECTED",
+      "expected": "cd70001.a:55:1: error: cannot find the unit 'System.Address_To_Access_Conversions'\n",
+      "note": "The unchanged case has an unused with of System.Address_To_Access_Conversions, the next roadmap item. No predefined-package stub is supplied."
+    }
+  ],
+  "archive_note": "Original bytes extracted from the pinned GitHub archive already used by the ACATS adoption/backfill reviews; upstream root and PAX comment identify the revision."
+}

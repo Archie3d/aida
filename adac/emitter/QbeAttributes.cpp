@@ -513,6 +513,13 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         line(last + " =l sub " + bits + ", 1");
         return result(last);
     }
+    if (name == "component_size") {
+        // The layout is constant, but an object prefix still evaluates once.
+        if (!expr->sizeTypePrefix) {
+            emitExpr(expr->prefix.get());
+        }
+        return constantValue(expr->staticValue, qbeClass(expr->type));
+    }
     if (name == "alignment") {
         // Evaluating an object view must not read an uninitialized scalar.
         if (expr->alignmentObjectView) {

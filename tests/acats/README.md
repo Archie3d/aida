@@ -1016,3 +1016,13 @@ baseline-only CC3605A rejection for existing access-to-array subtype constraints
 The original 129 backfill observations remain unchanged. The pinned manifest
 records language eligibility, hashes, objectives and owning limitations; the
 expanded 145-case snapshot preserves separate C/B/support grading boundaries.
+
+Storage_Elements follow-up: unchanged CD30002 and CD70001 are vendored in
+`upstream/` and assessed separately by `baseline.storage_elements_acats`.
+Their original-byte hashes, language review, exact diagnostics and remaining
+blockers are in `storage_elements/manifest.json` and
+[the implementation contract](../../docs/storage-elements.md). Storage_Elements
+now resolves for CD30002; object alignment and scalar stride padding still block
+it under the explicit local Impdef settings. CD70001 still needs the next
+address-to-access child. Neither observation is a conformance pass. The original
+145-case backfill outcomes are unchanged.

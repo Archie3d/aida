@@ -1191,14 +1191,25 @@ Ada 2005 additions and track annex packages separately.
     enumeration Value tab-trimming defect (P3/P8). Priority scheduling and
     nondefault representation layouts retain their later owners.
     Release 1,803/1,803; 13 distinct focused ASan/UBSan checks pass.
+    Source-backed `system.ads` now supplies the declarations, with only canonical
+    Address/bootstrap comparisons in the compiler; normal discovery/binding and
+    cached constant changes are checked by `loading.system_spec`. Refactor
+    validation: Release 1,810/1,810; 21 focused ASan/UBSan checks; all 145
+    backfill outcomes unchanged.
     [Choices and evidence](docs/standard-system.md).
-  - [ ] **System.Storage_Elements (13.7.1).** Implement Storage_Offset/Count,
-    Storage_Element/Array, Integer_Address, address arithmetic/mod and integer
-    conversions with the required profiles and storage representation. Specify
-    wraparound, alignment and invalid-operation behavior; check boundary values,
-    slices/aliased elements and foreign-memory interoperability. Reassess the
-    Storage_Elements prerequisite of CD30002 without counting unrelated support
-    or object-clause blockers as a pass.
+  - [x] **System.Storage_Elements (13.7.1).** Signed 64-bit offsets/counts,
+    modular byte elements and aliased arrays, modular Integer_Address, wrapping
+    arithmetic, signed differences, divisor-sign mod and bit-preserving conversions.
+    Intrinsic profiles support renaming and generic actuals/defaults. Source-backed
+    System children load/bind against the source-backed parent; confirming Component_Size
+    clauses/queries preserve layout and evaluate object prefixes once.
+    `storageelements` / `storageelementerrors` cover whole/separate/deterministic
+    compilation, four workers, slices/aliases, foreign bytes and failure paths;
+    `runtime.storage_elements` checks 80,224 boundary/random pairs on four threads.
+    Unchanged CD30002 now reaches object-alignment/stride-padding limits; CD70001
+    remains blocked by the next address-conversion child. Neither counts as PASS.
+    Release 1,809/1,809; 19 focused ASan/UBSan checks pass; 145 backfill
+    outcomes unchanged. [Choices, limits and evidence](docs/storage-elements.md).
   - [ ] **System.Address_To_Access_Conversions (13.7.2).** Implement the generic
     Object_Pointer view and To_Pointer/To_Address operations. Preserve null and
     address identity, designated-type/alignment rules and documented restrictions

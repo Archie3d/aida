@@ -7,10 +7,13 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 ## Inventory and boundaries
 
-The inventory names all 109 source specifications and the two compiler builtins
-Standard/System. Its baseline check compiles an independent import probe for
-each of the 111 resolving units, checks that every runtime spec is accounted
-for, and verifies exact normal missing-unit diagnostics for ten absent units.
+The original audit named 109 source specifications and the two compiler builtins
+Standard/System. After [Storage_Elements](storage-elements.md), the current
+inventory covers 111 source specifications plus builtin Standard: 112 resolving
+units, with nine absent units. System is now an analyzed source specification,
+retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
+unit, checks every runtime spec is accounted for, and verifies exact normal
+missing-unit diagnostics.
 Resolving a unit is not a claim that its complete API is implemented. Core and
 compatibility units, selected annex subsets and implementation extensions are
 identified separately.
@@ -21,7 +24,7 @@ identified separately.
 | Storage_IO | A.9 | Typed representation buffers and Read/Write |
 | Tags.Generic_Dispatching_Constructor | 3.9 | Generic profiles and construction by tag |
 | Text_IO.Text_Streams and both wide families | A.12.2–A.12.4 | Mixed byte/text operations, lookahead and UTF-8 state |
-| System.Storage_Elements; Address_To_Access_Conversions | 13.7.1–13.7.2 | Storage types, address arithmetic and conversions |
+| System.Address_To_Access_Conversions | 13.7.2 | Object-pointer views and address/access conversions |
 | System.Storage_Pools | 13.11 | User-defined pools and allocator/deallocator integration |
 
 The original audit pinned 22 partial-API observations: missing System names
@@ -35,7 +38,8 @@ Ada 2012 additions are outside this language target. Specialized-needs annex
 facilities retain their separate matrix scope, including full tasking/priority
 services in Phase 9. The missing families and partial APIs now have explicit
 [Phase 8 implementation items](../TODO.md#predefined-library-implementation),
-added after the audit; Standard/System is complete and the remaining items stay open.
+added after the audit; Standard/System and Storage_Elements are complete, while
+the remaining items stay open.
 
 ## Supported API repairs
 

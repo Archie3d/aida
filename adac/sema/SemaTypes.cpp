@@ -124,6 +124,23 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
     }
 
+    if (scope == m_addressType->declarationScope && decl->lower == "address") {
+        if (decl->definition == nullptr || decl->definition->kind != TypeDefKind::Private
+            || decl->definition->tagged || decl->definition->isLimited || !decl->discriminants.empty()
+            || decl->unknownDiscriminants) {
+            m_diagnostics.error(decl->location, "System.Address requires the compiler-completed nonlimited private declaration");
+            // Retain the canonical identity for recovery in dependent units.
+        }
+        // System's intrinsic full view is not an Ada access-to-object type.
+        // Bind the analyzed source declaration to the bootstrap identity and
+        // preserve the existing raw-address/null extensions without a pool.
+        m_addressType->preelaborableInitialization = true;
+        decl->declaredType = m_addressType;
+        Symbol* symbol = addTypeTo(scope, m_addressType);
+        symbol->location = decl->location;
+        return;
+    }
+
     if (completing == nullptr) {
         for (Symbol* candidate : scope->lookupDeclaration(decl->lower)) {
             if (candidate->kind == SymbolKind::TypeName && candidate->type != nullptr
@@ -831,6 +848,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->visibleStreamReadWrite = visibleStreamReadWrite;
         type->streamsFrozen = false;
         type->streamSizeSpecified = false;
+        type->componentSizeSpecified = false;
         type->interfaceKind = InterfaceKind::None;
         if (parent->interfaceKind != InterfaceKind::None) {
             type->isLimited = definition->isLimited;
@@ -1632,6 +1650,25 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "a representation item cannot freeze its own type or subtype");
         return true;
     };
+    if (decl->attribute == "component_size") {
+        Type* type = symbol->type;
+        long long bits = 0;
+        Type* expression = analyzeExpr(decl->value.get(), scope, nullptr);
+        if (freezesTarget()) { return; }
+        if (type->kind != TypeKind::Array || type->isSubtype || type->isIncomplete
+            || !representationVisible(type) || type->componentSizeSpecified || type->arrayRank != 1
+            || type->element == nullptr || type->genericFormal || type->element->genericFormal
+            || hasRuntimeLayout(type->element) || expression == nullptr
+            || (expression->kind != TypeKind::Integer && expression->kind != TypeKind::UniversalInteger)
+            || !foldStatic(decl->value.get(), bits) || bits <= 0
+            || bits != (type->packedBoolean ? 1 : typeSize(type->element) * 8)) {
+            m_diagnostics.error(decl->location,
+                "Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components");
+            return;
+        }
+        type->componentSizeSpecified = true;
+        return;
+    }
     if (decl->attribute == "storage_size") {
         Type* type = symbol->type;
         long long size = -1;

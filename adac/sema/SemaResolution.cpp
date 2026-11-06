@@ -608,7 +608,7 @@ std::vector<Type*> Sema::discoverExpressionTypes(Expr* expr, Scope* scope, Type*
         } else if (name == "constrained" || name == "callable" || name == "terminated" || name == "machine_overflows" || name == "machine_rounds") {
             add(m_types.booleanType());
         } else if (name == "modulus" || name == "pos" || name == "length" || name == "size"
-            || name == "alignment" || name == "position" || name == "first_bit" || name == "last_bit") {
+            || name == "component_size" || name == "alignment" || name == "position" || name == "first_bit" || name == "last_bit") {
             add(m_types.universalInteger());
         } else if (name == "scale" || name == "width" || name == "wide_width" || name == "wide_wide_width" || name == "digits" || name == "fore" || name == "aft" || name == "machine_radix") {
             add(m_types.integerType());

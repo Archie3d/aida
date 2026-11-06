@@ -80,7 +80,9 @@ void Sema::setupStandardScope()
     // 'Address yields, so the compiler has to know the type whether or not a
     // program ever names the package.
     Symbol* system = m_symbolTable.createSymbol(SymbolKind::Package, "system", "System");
-    system->scope = m_symbolTable.createScope(nullptr);
+    system->scope = m_symbolTable.createScope(m_standardScope);
+    system->scope->m_libraryPackage = "system";
+    system->scope->m_packageName = "system";
     system->libraryName = "system";
     m_standardScope->add(system);
 
@@ -106,36 +108,7 @@ void Sema::setupStandardScope()
 
     m_addressType = m_types.create(TypeKind::Access, "Address");
     m_addressType->declarationScope = system->scope;
-    addTypeTo(system->scope, m_addressType);
-    addConstant(system->scope, "Null_Address", m_addressType, 0, "system_null_address");
-    auto addEnumeration = [&](const std::string& name, const std::vector<std::string>& names) {
-        Type* type = m_types.create(TypeKind::Enumeration, name);
-        type->declarationScope = system->scope;
-        type->high = static_cast<long long>(names.size()) - 1;
-        addTypeTo(system->scope, type);
-        for (std::size_t i = 0; i < names.size(); ++i) {
-            type->literals.push_back(toLower(names[i]));
-            Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, toLower(names[i]), names[i]);
-            literal->type = type;
-            literal->enumerationValue = static_cast<long long>(i);
-            system->scope->add(literal);
-            type->primitives.push_back(literal);
-        }
-        return type;
-    };
-    // All supported QBE targets use this 64-bit, little-endian data model.
-    Type* name = addEnumeration("Name", { "AIDA_64" });
-    addConstant(system->scope, "System_Name", name, kSystemName, "system_name");
-    Type* bitOrder = addEnumeration("Bit_Order", { "High_Order_First", "Low_Order_First" });
-    addConstant(system->scope, "Default_Bit_Order", bitOrder, kSystemLowOrderFirst, "system_bit_order");
-    Type* anyPriority = m_types.makeSubtype("Any_Priority", m_types.integerType(),
-        kSystemPriorityFirst, kSystemInterruptPriorityLast);
-    Type* priority = m_types.makeSubtype("Priority", anyPriority, kSystemPriorityFirst, kSystemPriorityLast);
-    Type* interruptPriority = m_types.makeSubtype("Interrupt_Priority", anyPriority,
-        kSystemPriorityLast + 1, kSystemInterruptPriorityLast);
-    for (Type* type : { anyPriority, priority, interruptPriority }) { addTypeTo(system->scope, type); }
-    addConstant(system->scope, "Default_Priority", priority,
-        kSystemDefaultPriority, "system_default_priority");
+    m_addressType->zeroStorage = true;
     m_tagType = m_types.create(TypeKind::Access, "Tag");
     m_tagType->privateTo = m_symbolTable.createSymbol(SymbolKind::Package, "ada.tags", "Ada.Tags");
 
@@ -160,46 +133,6 @@ void Sema::setupStandardScope()
     m_taskIdType = m_types.create(TypeKind::Access, "Task_Id");
     m_taskIdType->privateTo =
         m_symbolTable.createSymbol(SymbolKind::Package, "ada.task_identification", "Ada.Task_Identification");
-
-    // RM 13.7(20): Tick is universal_real. Calendar uses microsecond resolution;
-    // a receiving fixed-point context performs its own representation rounding.
-    Symbol* tick = m_symbolTable.createSymbol(SymbolKind::Number, "tick", "Tick");
-    tick->type = m_types.universalReal();
-    tick->isConstant = true;
-    tick->hasStaticValue = true;
-    tick->exactReal = ExactReal::make(1, 1000000);
-    tick->staticReal = tick->exactReal.real();
-    system->scope->add(tick);
-
-    Symbol* storageUnit = m_symbolTable.createSymbol(SymbolKind::Number, "storage_unit", "Storage_Unit");
-    storageUnit->type = m_types.universalInteger();
-    storageUnit->exactReal = ExactReal::make(8);
-    storageUnit->hasStaticValue = true;
-    storageUnit->staticValue = 8;
-    system->scope->add(storageUnit);
-    for (const auto& limit : { std::pair<const char*, __int128> { "max_binary_modulus", (__int128)1 << 64 },
-                              { "max_nonbinary_modulus", ((__int128)1 << 64) - 1 },
-                              { "min_int", m_types.longIntegerType()->low },
-                              { "max_int", m_types.longIntegerType()->high },
-                              { "max_base_digits", m_types.longFloatType()->digits },
-                              { "max_digits", m_types.longFloatType()->digits },
-                              { "max_mantissa", typeSize(m_types.longIntegerType()) * 8 - 1 },
-                              { "word_size", typeSize(m_addressType) * 8 },
-                              { "memory_size", (__int128)1 << (typeSize(m_addressType) * 8) } }) {
-        Symbol* number = m_symbolTable.createSymbol(SymbolKind::Number, limit.first, limit.first);
-        number->type = m_types.universalInteger();
-        number->isConstant = true;
-        number->hasStaticValue = true;
-        number->exactReal = ExactReal::make(limit.second);
-        system->scope->add(number);
-    }
-
-    Symbol* fineDelta = m_symbolTable.createSymbol(SymbolKind::Number, "fine_delta", "Fine_Delta");
-    fineDelta->type = m_types.universalReal();
-    fineDelta->hasStaticValue = true;
-    fineDelta->exactReal = ExactReal::make(1, (__int128)1 << 62);
-    fineDelta->staticReal = fineDelta->exactReal.real();
-    system->scope->add(fineDelta);
 
     addException(m_standardScope, "Constraint_Error");
     addException(m_standardScope, "Program_Error");
@@ -236,6 +169,17 @@ Symbol* Sema::addTypeTo(Scope* scope, Type* type)
 // They are picked up as the Ada source declaring them is analysed.
 void Sema::adoptLibraryUnit(PackageSpecDecl* decl, Symbol* package)
 {
+    if (m_namePrefix == std::vector<std::string>{"system", "storage_elements"} && package->scope != nullptr) {
+        // RM 13.7.1: the public operations have intrinsic convention even
+        // though their implementation uses ordinary runtime entry points.
+        for (const auto& [name, symbols] : package->scope->declarations()) {
+            for (Symbol* symbol : symbols) {
+                if (symbol->kind == SymbolKind::Subprogram && symbol->builtin == BuiltinKind::Runtime) {
+                    symbol->intrinsicRenaming = true;
+                }
+            }
+        }
+    }
     if (m_namePrefix == std::vector<std::string>{"ada", "streams", "stream_io"} && package->scope != nullptr) {
         m_fileStreamType = typeIn(package->scope, "file_stream");
     }
@@ -327,6 +271,9 @@ void Sema::analyze(CompilationUnit& unit)
             }
         }
     };
+    // Analyze the source specification into the package shell that owns the
+    // canonical type used by Address attributes before any library is loaded.
+    if (name == "system" && unit.isSpec && existing != nullptr) { context->add(existing); }
     mention(name);
     if (existing != nullptr && existing->kind == SymbolKind::Subprogram && name.find('.') != std::string::npos) {
         context->add(existing);

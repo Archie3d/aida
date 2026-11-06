@@ -302,6 +302,7 @@ struct Type
     long long alignment = -1;
     long long specifiedSize = -1;
     long long valueSizeBits = -1;
+    bool componentSizeSpecified = false;
     bool packedBoolean = false;
     bool alignmentSpecified = false;
 };

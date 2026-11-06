@@ -2367,6 +2367,16 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/predefined/check_inventory.py
             --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/predefined-inventory)
     set_tests_properties(baseline.predefined_inventory PROPERTIES TIMEOUT 120 LABELS baseline)
+    add_test(NAME loading.system_spec
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/predefined/check_system_spec.py
+            --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --source ${CMAKE_SOURCE_DIR}/runtime/ada/system.ads
+            --work ${ADA_TEST_WORK_DIR}/system-spec "--exe-suffix=${CMAKE_EXECUTABLE_SUFFIX}")
+    set_tests_properties(loading.system_spec PROPERTIES TIMEOUT 180)
+    add_test(NAME baseline.storage_elements_acats
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/storage_elements/check.py
+            --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/storage-elements-acats)
+    set_tests_properties(baseline.storage_elements_acats PROPERTIES TIMEOUT 120 LABELS baseline)
 endif()
 add_ada_test(predefinedprofiles SOURCES library/predefinedprofiles.adb)
 add_determinism_test(predefinedprofiles SOURCE library/predefinedprofiles.adb)
@@ -2404,6 +2414,28 @@ add_test(NAME runtime.standardfacilities_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(ada.standardfacilities determinism.standardfacilities
     runtime.standardfacilities_modes PROPERTIES TIMEOUT 120)
+add_ada_error_test(storageelementerrors SOURCES library/storageelementerrors.adb)
+add_ada_test(storageelements SOURCES library/storageelements.adb)
+add_determinism_test(storageelements SOURCE library/storageelements.adb)
+add_test(NAME runtime.storageelements_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/storageelements.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/storageelements.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/storageelements-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.storageelements determinism.storageelements
+    runtime.storageelements_modes PROPERTIES TIMEOUT 120)
+add_executable(storage_elements_test StorageElementsTest.c)
+target_link_libraries(storage_elements_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.storage_elements COMMAND storage_elements_test)
+set_tests_properties(runtime.storage_elements PROPERTIES TIMEOUT 30)
 add_executable(predefined_environment_test PredefinedEnvironmentTest.c)
 target_link_libraries(predefined_environment_test PRIVATE adart Threads::Threads)
 add_test(NAME runtime.predefined_formatting COMMAND predefined_environment_test)

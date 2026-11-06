@@ -696,7 +696,7 @@
     },
     {
       "name": "system",
-      "source": "compiler builtin",
+      "source": "runtime/ada/system.ads",
       "scope": "core",
       "status": "resolves"
     },
@@ -710,9 +710,9 @@
     {
       "name": "system.storage_elements",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "13.7.1",
-      "gap": "address arithmetic and storage types"
+      "source": "runtime/ada/system-storage_elements.ads"
     },
     {
       "name": "system.storage_pools",
@@ -780,6 +780,7 @@
     }
   ],
   "implemented_api_controls": {
-    "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers"
+    "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers",
+    "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls"
   }
 }

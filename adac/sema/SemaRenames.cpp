@@ -396,6 +396,11 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     }
     m_currentSubprogram = saved;
     alias->intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr;
+    for (Symbol* complement : scope->lookupLocal("/=")) {
+        if (complement->negatedEquality == alias) {
+            complement->intrinsicRenaming = alias->intrinsicRenaming;
+        }
+    }
     if (completion == nullptr) {
         alias->genericActualEntity = enumeration ? chosen : nullptr;
         alias->genericIntrinsic = intrinsic ? operation : attributeType != nullptr

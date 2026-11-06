@@ -1,0 +1,27 @@
+storageelementerrors.adb:13:102: error: no subprogram matches the renaming profile
+storageelementerrors.adb:16:30: error: 'Access of intrinsic subprograms is not allowed
+storageelementerrors.adb:18:47: error: 'Access of intrinsic subprograms is not allowed
+storageelementerrors.adb:20:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:23:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:26:5: error: a representation item must precede freezing of its type or subtype
+storageelementerrors.adb:28:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:31:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:33:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:36:5: error: Pack after a Component_Size specification is not yet supported
+storageelementerrors.adb:39:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:43:41: error: 'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments
+storageelementerrors.adb:43:41: error: the value of a named number must be numeric
+storageelementerrors.adb:45:45: error: the value of a named number must be static
+storageelementerrors.adb:46:39: error: 'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments
+storageelementerrors.adb:47:40: error: 'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments
+storageelementerrors.adb:48:38: error: 'missing' is not declared
+storageelementerrors.adb:49:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
+storageelementerrors.adb:50:37: error: 'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments
+storageelementerrors.adb:52:17: error: no visible subprogram matches this call
+storageelementerrors.adb:53:5: error: the assigned value has an incompatible type
+storageelementerrors.adb:54:24: error: no visible subprogram matches this call
+storageelementerrors.adb:55:27: error: no visible subprogram matches this call
+storageelementerrors.adb:56:24: error: the operands of an arithmetic operator must have the same type
+storageelementerrors.adb:56:24: error: arithmetic operators require numeric operands
+storageelementerrors.adb:57:23: error: arithmetic operators require numeric operands
+storageelementerrors.adb:57:5: error: the assigned value has an incompatible type

@@ -1,0 +1,273 @@
+export data $system__null_address = align 8 { z 8 }
+export data $system__system_name = align 1 { z 1 }
+export data $system__default_bit_order = align 1 { z 1 }
+export data $system__default_priority = align 4 { z 4 }
+data $.system.str.0 = { b "system.ads:12:5" 0 }
+data $.system.str.1 = { b "system.ads:37:5" 0 }
+data $.system.str.2 = { b "system.ads:42:5" 0 }
+data $.system.str.3 = { b "system (spec elaboration)" 0 }
+data $.system.str.4 = { b "<unknown>" 0 }
+export data $system__operator_60.elaborated = align 4 { w 0 }
+export data $system__operator_60.access = align 8 { l $system__operator_60, l 0 }
+data $.system.str.5 = { b "system.ads:29:5" 0 }
+data $.system.str.6 = { b "<" 0 }
+export data $system__operator_60_61.elaborated = align 4 { w 0 }
+export data $system__operator_60_61.access = align 8 { l $system__operator_60_61, l 0 }
+data $.system.str.7 = { b "system.ads:30:5" 0 }
+data $.system.str.8 = { b "<=" 0 }
+export data $system__operator_62.elaborated = align 4 { w 0 }
+export data $system__operator_62.access = align 8 { l $system__operator_62, l 0 }
+data $.system.str.9 = { b "system.ads:31:5" 0 }
+data $.system.str.10 = { b ">" 0 }
+export data $system__operator_62_61.elaborated = align 4 { w 0 }
+export data $system__operator_62_61.access = align 8 { l $system__operator_62_61, l 0 }
+data $.system.str.11 = { b "system.ads:32:5" 0 }
+data $.system.str.12 = { b ">=" 0 }
+export data $system__operator_61.elaborated = align 4 { w 0 }
+export data $system__operator_61.access = align 8 { l $system__operator_61, l 0 }
+data $.system.str.13 = { b "system.ads:33:5" 0 }
+data $.system.str.14 = { b "=" 0 }
+
+export function $ada_elab.system_spec() {
+@start
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.3, l $.system.str.4)
+    storel 0, $system__null_address
+    %.t0 =w csgew 0, 0
+    %.t1 =w cslew 0, 0
+    %.t2 =w and %.t0, %.t1
+    jnz %.t2, @inrange.1, @outofrange.2
+@outofrange.2
+    storel $.system.str.0, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.0
+@inrange.1
+    storeb 0, $system__system_name
+    storew 1, $system__operator_60.elaborated
+    storew 1, $system__operator_60_61.elaborated
+    storew 1, $system__operator_62.elaborated
+    storew 1, $system__operator_62_61.elaborated
+    storew 1, $system__operator_61.elaborated
+    %.t3 =w csgew 1, 0
+    %.t4 =w cslew 1, 1
+    %.t5 =w and %.t3, %.t4
+    jnz %.t5, @inrange.3, @outofrange.4
+@outofrange.4
+    storel $.system.str.1, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.0
+@inrange.3
+    storeb 1, $system__default_bit_order
+    %.t6 =w csgew 15, 0
+    %.t7 =w cslew 15, 30
+    %.t8 =w and %.t6, %.t7
+    jnz %.t8, @inrange.5, @outofrange.6
+@outofrange.6
+    storel $.system.str.2, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.0
+@inrange.5
+    storew 15, $system__default_priority
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+@propagate.0
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret
+}
+
+export function w $system__operator_60(l %p.left, l %p.right) {
+@start
+    %v.left.9 =l alloc8 8
+    storel %p.left, %v.left.9
+    %v.right.10 =l alloc8 8
+    storel %p.right, %v.right.10
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.6, l $.system.str.5)
+    %.t11 =w loadw $system__operator_60.elaborated
+    jnz %.t11, @elaborated.8, @unelaborated.9
+@unelaborated.9
+    storel $.system.str.5, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t12 =l loadl %.taskContext
+    %.t13 =w cnel %.t12, 0
+    jnz %.t13, @propagate.7, @nothrow.10
+@nothrow.10
+    jmp @elaborated.8
+@elaborated.8
+    %.t19 =l loadl %v.left.9
+    %.t20 =l loadl %v.right.10
+    %.t21 =w cultl %.t19, %.t20
+    %.t22 =w csgew %.t21, 0
+    %.t23 =w cslew %.t21, 1
+    %.t24 =w and %.t22, %.t23
+    jnz %.t24, @inrange.11, @outofrange.12
+@outofrange.12
+    storel $.system.str.5, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.7
+@inrange.11
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret %.t21
+@propagate.7
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret 0
+}
+
+export function w $system__operator_60_61(l %p.left, l %p.right) {
+@start
+    %v.left.25 =l alloc8 8
+    storel %p.left, %v.left.25
+    %v.right.26 =l alloc8 8
+    storel %p.right, %v.right.26
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.8, l $.system.str.7)
+    %.t27 =w loadw $system__operator_60_61.elaborated
+    jnz %.t27, @elaborated.14, @unelaborated.15
+@unelaborated.15
+    storel $.system.str.7, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t28 =l loadl %.taskContext
+    %.t29 =w cnel %.t28, 0
+    jnz %.t29, @propagate.13, @nothrow.16
+@nothrow.16
+    jmp @elaborated.14
+@elaborated.14
+    %.t35 =l loadl %v.left.25
+    %.t36 =l loadl %v.right.26
+    %.t37 =w culel %.t35, %.t36
+    %.t38 =w csgew %.t37, 0
+    %.t39 =w cslew %.t37, 1
+    %.t40 =w and %.t38, %.t39
+    jnz %.t40, @inrange.17, @outofrange.18
+@outofrange.18
+    storel $.system.str.7, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.13
+@inrange.17
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret %.t37
+@propagate.13
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret 0
+}
+
+export function w $system__operator_62(l %p.left, l %p.right) {
+@start
+    %v.left.41 =l alloc8 8
+    storel %p.left, %v.left.41
+    %v.right.42 =l alloc8 8
+    storel %p.right, %v.right.42
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.10, l $.system.str.9)
+    %.t43 =w loadw $system__operator_62.elaborated
+    jnz %.t43, @elaborated.20, @unelaborated.21
+@unelaborated.21
+    storel $.system.str.9, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t44 =l loadl %.taskContext
+    %.t45 =w cnel %.t44, 0
+    jnz %.t45, @propagate.19, @nothrow.22
+@nothrow.22
+    jmp @elaborated.20
+@elaborated.20
+    %.t51 =l loadl %v.left.41
+    %.t52 =l loadl %v.right.42
+    %.t53 =w cugtl %.t51, %.t52
+    %.t54 =w csgew %.t53, 0
+    %.t55 =w cslew %.t53, 1
+    %.t56 =w and %.t54, %.t55
+    jnz %.t56, @inrange.23, @outofrange.24
+@outofrange.24
+    storel $.system.str.9, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.19
+@inrange.23
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret %.t53
+@propagate.19
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret 0
+}
+
+export function w $system__operator_62_61(l %p.left, l %p.right) {
+@start
+    %v.left.57 =l alloc8 8
+    storel %p.left, %v.left.57
+    %v.right.58 =l alloc8 8
+    storel %p.right, %v.right.58
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.12, l $.system.str.11)
+    %.t59 =w loadw $system__operator_62_61.elaborated
+    jnz %.t59, @elaborated.26, @unelaborated.27
+@unelaborated.27
+    storel $.system.str.11, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t60 =l loadl %.taskContext
+    %.t61 =w cnel %.t60, 0
+    jnz %.t61, @propagate.25, @nothrow.28
+@nothrow.28
+    jmp @elaborated.26
+@elaborated.26
+    %.t67 =l loadl %v.left.57
+    %.t68 =l loadl %v.right.58
+    %.t69 =w cugel %.t67, %.t68
+    %.t70 =w csgew %.t69, 0
+    %.t71 =w cslew %.t69, 1
+    %.t72 =w and %.t70, %.t71
+    jnz %.t72, @inrange.29, @outofrange.30
+@outofrange.30
+    storel $.system.str.11, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.25
+@inrange.29
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret %.t69
+@propagate.25
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret 0
+}
+
+export function w $system__operator_61(l %p.left, l %p.right) {
+@start
+    %v.left.73 =l alloc8 8
+    storel %p.left, %v.left.73
+    %v.right.74 =l alloc8 8
+    storel %p.right, %v.right.74
+    %.trace =l alloc8 24
+    %.traceLocation =l add %.trace, 16
+    %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.14, l $.system.str.13)
+    %.t75 =w loadw $system__operator_61.elaborated
+    jnz %.t75, @elaborated.32, @unelaborated.33
+@unelaborated.33
+    storel $.system.str.13, %.traceLocation
+    call $__ada_raise(l $__ada_exc_program_error)
+    %.t76 =l loadl %.taskContext
+    %.t77 =w cnel %.t76, 0
+    jnz %.t77, @propagate.31, @nothrow.34
+@nothrow.34
+    jmp @elaborated.32
+@elaborated.32
+    %.t83 =l loadl %v.left.73
+    %.t84 =l loadl %v.right.74
+    %.t85 =w ceql %.t83, %.t84
+    %.t86 =w csgew %.t85, 0
+    %.t87 =w cslew %.t85, 1
+    %.t88 =w and %.t86, %.t87
+    jnz %.t88, @inrange.35, @outofrange.36
+@outofrange.36
+    storel $.system.str.13, %.traceLocation
+    call $__ada_raise(l $__ada_exc_constraint_error)
+    jmp @propagate.31
+@inrange.35
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret %.t85
+@propagate.31
+    call $__ada_trace_leave_context(l %.taskContext, l %.trace)
+    ret 0
+}
+

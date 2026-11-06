@@ -1,11 +1,44 @@
 # Standard and System (Ada 2005)
 
 The compiler supplies Standard.ASCII ([RM J.5](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-J-5.html))
-and the public declarations of System ([RM 13.7](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-7.html)).
+while [system.ads](../runtime/ada/system.ads) supplies the public declarations of
+System ([RM 13.7](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-7.html)).
 ASCII is nested in Standard and directly visible without a with clause. All
 79 constants have type Character and their prescribed values: controls,
 punctuation and lower-case letters. Package/object renaming, static use and
 address-taking retain the same immutable objects across units and tasks.
+
+## Source specification and bootstrap
+
+System is an analyzed Pure source unit, with ordinary source discovery,
+`system.spec` dependencies, binding, caching and installation. Its named numbers,
+enumerations, subtypes and constants are declared in `runtime/ada/system.ads`.
+Limits derive from the existing Long_Integer/Long_Float types and Address size;
+implementation choices such as priorities and Tick have one source definition.
+The former C constants and compiler-built System declarations are removed.
+
+Only the canonical machine-address type and its intrinsic comparisons need
+compiler bootstrap support. System's `type Address is private` declaration is
+completed by that intrinsic full view, without an Ada private-part completion.
+It is not a normal access-to-Integer representation: it has no designated object,
+collection or pool. It has preelaborable zero initialization. Existing null,
+related-address conversion and comparison-visibility extensions are preserved.
+Missing or malformed Address declarations are diagnosed; dependent-unit recovery
+retains the canonical identity. Ordinary source type errors remain diagnostics.
+
+The public comparison profiles are analyzed renamings of those intrinsic
+operations; `/=` is implicitly declared with `=` and retains intrinsic convention.
+Typed System constants use the source unit's generated storage. Standard.ASCII
+continues to use its shared immutable C storage.
+
+`loading.system_spec` replaces Default_Priority with 7 and then 9 using the same
+client cache, checks both the client's static value and the constant's backing
+bytes through C memcmp, and requires the custom source path/system.spec in the
+manifest. It checks malformed/missing intrinsic declarations, an ordinary source
+type error, bootstrap Address expressions without the stdlib, and a missing-source
+diagnostic for `with System` with stdlib lookup disabled. The hello IR snapshot
+includes the real System unit and its binder dependency. Existing whole/separate/
+deterministic and four-worker controls cover the public behavior and identity.
 
 ## Target choices
 
@@ -73,3 +106,11 @@ focused ASan/UBSan checks pass, with the final expanded four-test facility
 subset repeated successfully. Generated Ada accesses remain uninstrumented;
 LeakSanitizer is disabled on this host. Other host/target execution retains
 the roadmap's host-validation item.
+
+The source-specification refactor passes Release 1,810/1,810 CTest checks and
+21 distinct focused ASan/UBSan checks, including the malformed-source campaign.
+The final source/backing-storage/cache control also passes separately in both
+builds. All 145 backfill outcomes remain unchanged; only the compiler fingerprint
+changes. The original audit/implementation counts above describe their earlier
+increments. Generated Ada accesses remain uninstrumented and LeakSanitizer is
+disabled on this host; other host/target execution retains its roadmap owner.
