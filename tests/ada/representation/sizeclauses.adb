@@ -72,8 +72,6 @@ procedure SizeClauses is
     Ptr : Pointer := new Integer'(42);
     S : Small := -10;
     R : Derived := -2147483648;
-    -- Confirming an existing size does not invalidate prior uses.
-    for Signed_Byte'Size use 8;
 begin
     if B (1) /= -128 or B (2) /= 127 or P.A /= 255 or P.B /= 128
         or H /= -32768 or U /= 65535 or W (1) /= -2147483648

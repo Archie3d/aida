@@ -77,9 +77,11 @@ their runtime bounds. No new mutable runtime global state is introduced.
 Storage remains 64 bits; compact fixed-point Size clauses are still unsupported.
 Only binary ordinary Smalls are supported, as permitted by RM 3.5.9.
 [Decimal fixed point](decimal-fixed-point.md) has its own exact decimal scale.
-Legacy delta constraints (J.3), complete freezing rules, portable
+Legacy delta constraints (J.3), portable
 user-defined stream representations and Annex G guarantees remain outside this
-stage. Unsupported syntax or representations are diagnosed.
+stage. The [Phase 8 freezing audit](representation-clauses.md#record-layout-freezing)
+retains adjacent Small clauses because scale is captured at type analysis.
+Unsupported syntax or representations are diagnosed.
 
 `fixedwide`, `fixedwidechecks`, `fixedoperators`, `fixedoperatorerrors`,
 `fixedwideerrors`, `fixedstreams` and `fixedtasking` complement the earlier fixed

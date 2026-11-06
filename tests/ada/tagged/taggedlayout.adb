@@ -17,6 +17,7 @@ procedure TaggedLayout is
     type Leaf is new Child with record
         Z : Long_Integer := 12;
     end record;
+    function Slice (Object : Leaf) return Root;
     overriding function Make return Leaf is
     begin
         return (Child'(Root with Y => 13) with Z => 14);

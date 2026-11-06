@@ -476,7 +476,7 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "component '" + field.displayName + "' is not visible through this type view");
             return nullptr;
         }
-        freezeRecordLayout(record);
+        noteTypeUse(record);
         expr->fieldIndex = field.index;
         expr->type = field.type;
         if (m_recordContract != nullptr && field.isDiscriminant) {

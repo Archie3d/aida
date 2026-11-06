@@ -1,0 +1,24 @@
+generalfreezingerrors.adb:6:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:7:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:8:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:12:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:15:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:19:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:27:5: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:28:5: error: a tagged primitive cannot be declared after its type is frozen
+generalfreezingerrors.adb:29:5: error: a record Size clause must precede freezing of the record layout
+generalfreezingerrors.adb:36:5: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:37:5: error: a representation item must precede freezing of its type or subtype
+generalfreezingerrors.adb:47:5: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:60:5: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:72:5: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:82:9: error: a tagged primitive cannot be declared after its type is frozen
+generalfreezingerrors.adb:89:9: error: pragma Import must precede freezing of the subprogram
+generalfreezingerrors.adb:94:5: error: a representation item cannot freeze its own type or subtype
+generalfreezingerrors.adb:98:5: error: a shared type pragma must precede freezing of the type
+generalfreezingerrors.adb:102:5: error: callback Convention must be specified once, before uses of the access type
+generalfreezingerrors.adb:110:9: error: a record representation clause must precede freezing of the record layout
+generalfreezingerrors.adb:115:5: error: a shared object pragma must precede freezing of the object
+generalfreezingerrors.adb:119:5: error: Controlled must precede freezing of its access type
+generalfreezingerrors.adb:126:5: error: a record Size clause must precede freezing of the record layout
+generalfreezingerrors.adb:133:5: error: a representation item must precede freezing of its type or subtype

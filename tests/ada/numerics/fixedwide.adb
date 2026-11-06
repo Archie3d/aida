@@ -4,8 +4,9 @@ with Ada.Text_IO.Fixed_IO;
 procedure FixedWide is
     type Fine is delta 2.0 ** (-62) range -1.0 .. 1.0;
     type Coarse is delta 8.0 range -1024.0 .. 1024.0;
-    type Quarter is delta 0.25 range -100.0 .. 100.0;
-    for Quarter'Small use Quarter'Delta / 2.0;
+    Quarter_Delta : constant := 0.25;
+    type Quarter is delta Quarter_Delta range -100.0 .. 100.0;
+    for Quarter'Small use Quarter_Delta / 2.0;
     package IO is new Ada.Text_IO.Fixed_IO (Coarse);
     A : Fine := 0.5;
     B : Fine := 0.25;

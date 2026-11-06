@@ -79,7 +79,7 @@ struct Symbol
     // the declaration, so a call that leaves the parameter out simply points at
     // it rather than making a copy.
     Expr* defaultExpr = nullptr;
-    std::vector<Type*> defaultLayoutTypes;
+    FreezingDependencies deferredUses;
     std::vector<Token> defaultTokens;
 
     // Subprograms.

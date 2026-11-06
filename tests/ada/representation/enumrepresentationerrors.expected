@@ -2,7 +2,7 @@ enumrepresentationerrors.adb:4:5: error: an enumeration representation clause re
 enumrepresentationerrors.adb:6:5: error: an enumeration representation clause requires a complete, visible, nonboolean first subtype
 enumrepresentationerrors.adb:9:5: error: duplicate enumeration representation clause
 enumrepresentationerrors.adb:11:5: error: an enumeration representation clause requires a complete, visible, nonboolean first subtype
-enumrepresentationerrors.adb:14:5: error: an enumeration representation clause must be adjacent to its type declaration, before representation use
+enumrepresentationerrors.adb:14:5: error: a representation item must precede freezing of its type or subtype
 enumrepresentationerrors.adb:16:5: error: enumeration representation clause must cover every literal
 enumrepresentationerrors.adb:18:30: error: A is covered by an earlier choice
 enumrepresentationerrors.adb:20:27: error: enumeration representation choices must have the enumeration type

@@ -3,6 +3,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 procedure ControlledViews is
     Live : Integer := 0;
     type Guard is new Ada.Finalization.Controlled with null record;
+    procedure Copy_Ancestor (Target : in out Guard; Source : Guard);
     overriding procedure Initialize (Object : in out Guard);
     overriding procedure Adjust (Object : in out Guard);
     overriding procedure Finalize (Object : in out Guard);

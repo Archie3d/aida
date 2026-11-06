@@ -2,6 +2,7 @@ with System;
 with Ada.Streams;
 procedure SharedCompletionErrors is
     value : Integer := 0;
+    pragma Atomic (value);
     alias : Integer renames value;
     address : System.Address := alias'Address;
     generic
@@ -12,7 +13,6 @@ procedure SharedCompletionErrors is
         actual := 1;
     end Modify;
     procedure Instance is new Modify (alias);
-    pragma Atomic (value);
     type Shared is new Integer;
     pragma Atomic (Shared);
     type Container is record

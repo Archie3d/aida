@@ -26,6 +26,12 @@ struct Type;
 struct Symbol;
 class Scope;
 
+struct FreezingDependencies
+{
+    std::vector<Type*> types;
+    std::vector<const Symbol*> entities;
+};
+
 struct FieldInfo
 {
     std::string name;          // Lowered, which is how a selection looks it up.
@@ -37,7 +43,8 @@ struct FieldInfo
     // What the component declaration gives it, used when an object of the
     // record is made without a value of its own.
     struct Expr* defaultValue = nullptr;
-    std::vector<Type*> defaultLayoutTypes;
+    // Nonstatic default and per-object constraint uses, activated on freezing.
+    FreezingDependencies deferredUses;
 
     // A leading component named in the discriminant part. Only whole-object
     // assignment to an unconstrained variable may change it.

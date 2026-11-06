@@ -139,8 +139,8 @@ Supported:
 - Scalar `Atomic` and `Volatile` objects and types
 - Size, alignment, enumeration and record clauses, including packed and
   unaligned discrete fields and changed layouts on plain untagged derived
-  records. Untagged record clauses can follow deferred defaults and
-  appear in the private part of the same package specification
+  records. Freezing checks cover callable/tagged/generic dependencies;
+  clauses can follow deferred defaults and unrelated declarations
   ([limits](docs/representation-clauses.md))
 - Narrow/wide string maps, constants, callbacks, hashing and fixed/bounded/unbounded facilities
   ([wide strings](docs/wide-strings.md)); Ada 2005 containers with cursors, callbacks and sorting ([limits](docs/library-collections.md))

@@ -6,13 +6,13 @@ procedure RecordBits is
     pragma Import (C, Byte_At, "__test_size_value");
 
     type Number is new Integer;
-    subtype Signed_Seven is Number range -64 .. 63;
     procedure Write_Signed
         (Stream : access Ada.Streams.Root_Stream_Type'Class; Item : Number);
     procedure Read_Signed
         (Stream : access Ada.Streams.Root_Stream_Type'Class; Item : out Number);
     for Number'Write use Write_Signed;
     for Number'Read use Read_Signed;
+    subtype Signed_Seven is Number range -64 .. 63;
     Writes, Reads : Natural := 0;
     procedure Write_Signed
         (Stream : access Ada.Streams.Root_Stream_Type'Class; Item : Number) is

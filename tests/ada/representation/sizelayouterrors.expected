@@ -8,6 +8,5 @@ sizelayouterrors.adb:16:5: error: composite Size must cover its components and b
 sizelayouterrors.adb:19:5: error: composite Size must cover its components and be a multiple of its alignment
 sizelayouterrors.adb:21:5: error: a composite Size clause requires a complete static layout
 sizelayouterrors.adb:25:5: error: a size clause requires a complete, visible representation
-sizelayouterrors.adb:31:5: error: a size-changing clause must be adjacent to its type or subtype declaration, before representation use
-sizelayouterrors.adb:37:5: error: a size-changing clause must be adjacent to its type or subtype declaration, before representation use
-sizelayouterrors.adb:39:5: error: a size-changing clause must be adjacent to its type or subtype declaration, before representation use
+sizelayouterrors.adb:37:5: error: a representation item must precede freezing of its type or subtype
+sizelayouterrors.adb:39:5: error: a representation item cannot freeze its own type or subtype

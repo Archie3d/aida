@@ -15,4 +15,4 @@ decimalerrors.adb:18:57: error: 'Ada.Text_IO.Fixed_IO' expects an ordinary fixed
 decimalerrors.adb:19:58: error: 'Ada.Text_IO.Decimal_IO' expects a decimal fixed-point type, and 'Binary' is not one
 decimalerrors.adb:21:5: error: decimal Machine_Radix must be the static value 2 or 10
 decimalerrors.adb:24:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
-decimalerrors.adb:27:5: error: Machine_Radix requires an adjacent decimal fixed-point first subtype
+decimalerrors.adb:27:5: error: a representation item must precede freezing of its type or subtype

@@ -613,7 +613,10 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
             // Formal values are unknown while checking the contract. Symbolic
             // layouts are retained here and resolved when instantiating.
             if (formal.defaultValue) {
-                Type* value = analyzeExpr(formal.defaultValue.get(), bindings, type);
+                // The default is reanalyzed in the instance when omitted. Its
+                // nonstatic uses do not freeze the declaration environment.
+                FreezingDependencies deferredUses;
+                Type* value = analyzeDeferredExpression(formal.defaultValue.get(), bindings, type, deferredUses);
                 if (!typesCompatible(type, value)) {
                     m_diagnostics.error(formal.location, "generic formal object default has an incompatible type");
                 } else {
@@ -1310,6 +1313,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     // The formal's calling convention comes from its actual, including an
     // intrinsic null default forwarded through another generic or renaming.
     bool enumeration = !intrinsic && candidates.front()->kind == SymbolKind::EnumerationLiteral;
+    if (!intrinsic && !enumeration) { noteEntityUse(candidates.front()); }
+    if (enumeration) { noteTypeUse(candidates.front()->type); }
     wrapper->genericActualExpression = actual == &defaultName ? nullptr : actual;
     wrapper->genericActualEntity = intrinsic ? nullptr : candidates.front();
     wrapper->genericIntrinsic = intrinsic ? operation : std::string();
@@ -1611,7 +1616,8 @@ bool Sema::bindGenericFormal(GenericInstantiationDecl* decl, Symbol* generic, co
             return false;
         }
         if (!checkCompleteView(type, actual->location, "a generic actual type")) { return false; }
-        freezeRecordLayout(type);
+        if (m_instanceFreezeTypes != nullptr && !m_frozenTypes.contains(type)) { m_instanceFreezeTypes->insert(type); }
+        freezeType(type);
         Symbol* owner = type->privateTo != nullptr && scope->privateVisible(type->privateTo) ? type->privateTo : nullptr;
         if (formal.preelaborableInitialization && !hasPreelaborableInitialization(type, owner, nullptr, scope)) {
             m_diagnostics.error(actual->location, "generic actual type must have preelaborable initialization");
@@ -1855,7 +1861,13 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     Scope* bindings = m_symbolTable.createScope(contract->environment);
     bindings->m_genericBindings = true;
+    // The instance declaration can itself declare a primitive of an actual
+    // tagged type. Register that declaration before applying its freezing point.
+    std::unordered_set<Type*> instanceFreezeTypes;
+    auto* savedFreezeTypes = m_instanceFreezeTypes;
+    m_instanceFreezeTypes = &instanceFreezeTypes;
     if (!bindGenericFormals(decl, generic, bindings, scope)) {
+        m_instanceFreezeTypes = savedFreezeTypes;
         for (std::size_t i = 0; i < pushed; ++i) {
             m_namePrefix.pop_back();
         }
@@ -1989,7 +2001,10 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                         m_diagnostics.error(decl->location, "a controlling access parameter of a generic instance must exclude null");
                     }
                 }
+                SourceLocation templateLocation = symbol->location;
+                symbol->location = decl->location;
                 registerPrimitive(symbol, home);
+                symbol->location = templateLocation;
                 checkOverridingIndicator(symbol, decl->overriding, decl->location);
                 if (symbol->name == "=" && m_types.isBoolean(symbol->returnType)) {
                     for (Symbol* complement : bindings->lookupLocal("/=")) {
@@ -2014,6 +2029,8 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     if (decl->symbol == nullptr) {
         m_diagnostics.error(decl->location, "generic '" + decl->genericName + "' produced no instance");
     }
+    m_instanceFreezeTypes = savedFreezeTypes;
+    for (Type* type : instanceFreezeTypes) { freezeType(type); }
 }
 
 void Sema::completeGenericInstance(PendingGenericInstance pending)

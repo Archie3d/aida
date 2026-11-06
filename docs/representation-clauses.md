@@ -17,9 +17,9 @@ promise; allocation still uses the natural alignment. Positive requests cannot
 weaken natural alignment. Values above eight, non-power-of-two values, duplicate
 clauses and unsupported targets produce diagnostics.
 
-Alignment clauses for untagged records follow the record layout freezing
-rules below. Other Alignment clauses still require an adjacent group before
-layout use. Alignment clauses on named subtypes or individual objects remain
+Alignment clauses follow the freezing rules below and can follow unrelated
+declarations. A scalar Base view that has already captured representation
+retains an explicit diagnostic for a later Alignment clause. Alignment clauses on named subtypes or individual objects remain
 unsupported, as do tagged/task/protected Alignment clauses.
 
 The layout helper propagates alignment to subtypes and derived types, array
@@ -51,18 +51,19 @@ positions, spelling and case in Image/Value.
 
 The implementation supports signed 32-bit codes and chooses one, two or four
 bytes of storage, using unsigned byte/halfword storage for nonnegative codes.
-An adjacent Size clause can select 8, 16 or 32 bits if all codes fit; either
+A Size clause before freezing can select 8, 16 or 32 bits if all codes fit; either
 clause order is accepted. Alignment promises must still fit the chosen storage.
 A subtype inherits its type's mapping; a derived type inherits the mapping
-and can replace it with an adjacent clause of its own. Corresponding subtypes
+and can replace it with a clause of its own before freezing. Corresponding subtypes
 in inherited primitive profiles follow the derived storage width and alignment.
 
-Clauses require a complete, visible first subtype and an adjacent group of
-representation items, before other declarations or base-subtype use. Duplicate
+Clauses require a complete, visible, unfrozen first subtype. Plain subtype
+aliases and unrelated intervening declarations leave representation open.
+A captured scalar Base view retains a diagnostic for a later mapping. Duplicate
 clauses, mappings on Boolean or Character descendants, codes outside signed 32 bits,
 null choices, mappings whose literal list is unknown in a generic contract,
 and mappings following subtype declarations against an earlier
-private view are diagnosed. General Ada freezing and wider codes remain open.
+private view are diagnosed. Wider codes remain outside this subset.
 
 Scalar expressions and the Ada scalar call ABI carry positions. Typed stores
 encode positions; typed loads decode codes, including atomic/volatile storage.
@@ -96,9 +97,10 @@ AIDA also permits `subtype Byte is Long_Integer range -128 .. 127;` followed
 by `for Byte'Size use 8;`. **This syntax is an AIDA extension:** Ada 2005
 RM 13.3(48) permits specification on first subtypes. It was already accepted
 for confirming sizes; the extension now changes named-subtype storage too.
-Size clauses for untagged records follow the record layout freezing rules
-below. Other size-changing clauses retain the adjacency requirement. A
-subtype-specific Size preserves parent and sibling storage.
+Size clauses follow the freezing rules below, including confirming clauses.
+A scalar Base view that has captured representation retains an explicit
+diagnostic for a later size-changing first-subtype clause. A subtype-specific
+Size preserves parent and sibling storage.
 
 Storage width and arithmetic width are separate. Byte above occupies one byte,
 but its expressions, arithmetic checks and scalar Ada ABI retain Long_Integer's
@@ -259,40 +261,42 @@ extension to Ada 2005 RM 13.1(10).
 
 ### Record layout freezing
 
+The Phase 8 audit covers the supported representation surface against Ada 2005
+RM [13.14](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-14.html).
+One cycle-checked dependency graph settles scalar, array, record and callable
+profile types, stream configuration and tagged dispatch. This is an audit of
+AIDA's implemented constructs, with the explicit restrictions below; it does
+not claim complete Ada freezing or representation support.
+
 A record placement, Size or Alignment clause can follow intervening
-declarations in the same declarative part, including in the private part of
-the package specification that declares the record. Subtype marks in plain
-subtype, access type and callable profile declarations leave the layout open.
-A fresh record subtype can have its own Size even when its base type is frozen.
+unrelated declarations in the same declarative part, including the private
+part of the package specification declaring the type. Nonrecord Size,
+Alignment and enumeration clauses use the same unfrozen-type checks. Plain
+subtype, object-access type and callable profile declarations leave the
+referenced layout open. A fresh named subtype can retain its own Size when
+its base is frozen (the named-subtype Size extension described above).
 
-A clause must precede layout use. The front end tracks object creation,
-allocators, component selection, layout attributes, resolved calls and generic
-type actuals. It also settles preceding layouts at body boundaries and settles
-package layouts after the private part. Freezing propagates through record
-components, array elements and ancestors. Because AIDA computes dependent
-layouts eagerly, a record used as a field, array element or parent is treated
-as frozen when the containing or derived type is declared. A subtype-specific
-Size also settles its base layout.
+| Audit area | Freezing point and enforced effect |
+| --- | --- |
+| Expressions and attributes, RM 13.14(8–13) | Static expressions settle immediately. Ordinary value expressions, resolved calls, selections, dereferences and allocators settle their nominal/result/designated types. Value attributes also settle the prefix type when their result is Integer. Enumeration literals used as representation choices are exempt. An item that freezes its own target is rejected. |
+| Defaults, RM 13.14(8, 14–15) | Nonstatic parameter, component and discriminant defaults retain type and callable dependencies. Omitted actuals activate the applicable defaults, including nested calls; explicit actuals leave unused defaults pending. A containing type activates its component/discriminant defaults when frozen. Selections and allocators within these defaults are deferred too. |
+| Per-object constraints, RM 13.14(8, 15) | Supported discriminant/current-instance expressions defer their dependencies until the containing type freezes. Non-per-object dynamic constraints settle at declaration elaboration. The existing requirement that a discriminant appear alone in a component constraint remains diagnosed. |
+| Callables and tagged entities, RM 13.14(14–16) | Calls, subprogram Access and declaration boundaries settle callable profiles. Freezing an access-to-subprogram type settles its profile; freezing an object-access type leaves its designated subtype open. Tagged specific/class-wide views settle each other and their primitive profiles. Late primitive declarations/overrides and late Import of a frozen subprogram are rejected, including local tagged primitives. |
+| Generic contracts and instances, RM 13.14(5, 8) | Nonstatic formal-object defaults leave the declaration environment open and are reanalyzed only when omitted at instantiation. Actual types and actual subprogram profiles settle at instantiation. A primitive instance is registered before applying its own instantiation's freezing point; later instances still see the frozen actual. |
+| Eager storage captures | Record component types, array elements/index types and derived parents settle when AIDA captures their layout. Changing these layouts later is rejected. This remains conservative relative to Ada; the compiler does not silently retain stale offsets, strides or inherited layouts. |
+| Nonrecord representation items, RM 13.14(19) | Size, Alignment, enumeration mappings, Stream_Size and zero Storage_Size require unfrozen targets, even when confirming. Existing stream-clause checks share the frozen state. Type/object Atomic/Volatile, Controlled and callback Convention also reject late specifications. |
 
-Ordinary parameter defaults record the layouts needed by nonstatic value
-expressions and by their calls. An omitted actual activates those dependencies,
-including defaults used by nested calls. Explicit actuals leave the unused
-default's dependencies pending. Calls and subprogram Access also freeze record
-layouts in the callable profile. The profile is followed when an
-access-to-subprogram type freezes and at applicable declaration boundaries.
+Bodies and applicable declaration boundaries settle preceding entities; package
+layouts settle after the private part. The existing full/private/incomplete-view
+legality checks remain in force. Unsupported syntax keeps its own diagnostic.
 
-Nonstatic component and discriminant defaults likewise record dependencies.
-Freezing the containing record type settles those dependencies, including
-ones inherited from an ancestor or reached through a call's parameter default.
-When a current-instance selection settles the layout during type analysis,
-the completed field list is revisited to include later defaults.
-
-This is a record layout subset of Ada freezing. Static layout queries,
-component selections and allocators still settle their layouts during
-analysis, including inside defaults. Per-object expressions retain
-conservative checks. General tagged, callable and generic freezing rules and
-nonrecord representation items remain open.
-[Ada 2005 RM §13.14](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-14.html)
+The remaining conservative captures are explicit: Small and decimal
+Machine_Radix retain adjacent-clause requirements because scales are selected
+at type analysis; scalar Base snapshots can prevent later representation
+changes; folded storage-place/Size/Alignment queries and selected stream
+operations settle during analysis even within a nonstatic default. Eager
+component/array/parent captures are described above. Representation categories
+not implemented by AIDA remain rejected, rather than bypassing freezing.
 
 ### Remaining record restrictions
 
@@ -329,7 +333,7 @@ Unchanged ACATS CD3014A and CD3014D pass for ordering, array indexing and
 generic instantiation, including mappings inside a generic package. These tests
 check positional language behavior; the local C observer separately verifies
 that objects contain the requested codes. Broader representation ACATS cases
-requiring Unchecked_Conversion or general freezing remain unselected.
+requiring Unchecked_Conversion or unsupported representation categories remain unselected.
 
 `sizestorage` checks physical widths, narrow subtype field offsets, padded
 records/arrays, multidimensional and nested strides, global/heap/large local
@@ -391,3 +395,25 @@ fixtures cover nested parameter defaults, explicit actuals, subprogram Access,
 callback profiles and nested package boundaries. They also cover deferred
 component and discriminant defaults, freezing at object creation, and a
 current-instance selection followed by a later default.
+
+`generalfreezing` extends the audit with nonadjacent scalar/array layouts,
+refreshed subtype aliases, defining floating bounds, named enumeration choices,
+deferred object names, selections and allocators, generic formal defaults with
+explicit and omitted actuals, and a per-object current-instance access constraint. It runs whole/separate and with
+deterministic IR, with four concurrent callers. `generalfreezingerrors` covers
+confirming items after use, parent/index subtype captures, value attributes, tagged primitive
+profiles, class-wide callback profiles, static defaults, allocator/generic
+activation, progenitor profiles, late Import/shared/Controlled/Convention
+specifications and self-freezing items. Existing rejection fixtures retain their
+original legality coverage;
+`sizevalueerrors` puts the object after its invalid-size probes, and `recordbits`
+puts stream clauses before the static bounds of its scalar subtype. Local
+tagged test helpers now declare their profiles before freezing; `fixedwide`
+uses a named delta constant instead of a self-freezing Small expression.
+
+Audit validation: 1,719 CTest checks verified (1,718 passed in the full run;
+the shared-scalar fixture passed after moving Atomic before its aliases and
+rerunning it). All 21 focused compiler ASan/UBSan checks pass, including
+whole/separate/determinism, four-task execution and unchanged CD1009N,
+CD3014A and CD3014D. The C runtime is unchanged; generated QBE accesses remain
+uninstrumented. `git diff --check` is clean.

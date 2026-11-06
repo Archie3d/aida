@@ -59,11 +59,11 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
                     if (symbol->type->isIncomplete && symbol->type->privateTo == nullptr) {
                         m_diagnostics.error(decl->location, "an incomplete type must be completed before an intervening body");
                     }
-                    freezeRecordLayout(symbol->type);
+                    freezeType(symbol->type);
                     if (!symbol->type->isIncomplete) { rootType(symbol->type)->streamsFrozen = true; }
                     if (symbol->type->tagged) { rootType(symbol->type)->dispatchFrozen = true; }
                 } else if (symbol->kind == SymbolKind::Subprogram && symbol->declarationScope == scope) {
-                    noteCallableLayoutUse(symbol.get());
+                    noteEntityUse(symbol.get());
                 }
             }
         }
@@ -82,7 +82,7 @@ void Sema::analyzeDeclarativePart(DeclList& declarations, Scope* scope, bool rep
     }
     if (reportIncomplete) {
         reportIncompleteTypes(declarations);
-        freezeDeclaredRecordLayouts(declarations);
+        freezeDeclaredEntities(declarations);
     }
 }
 
@@ -167,9 +167,14 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         analyzeTypeDecl(typeDecl, scope);
         Type* declared = typeDecl->declaredType;
         if (declared != nullptr && !declared->isIncomplete) {
-            freezeRecordLayout(declared->parentType);
-            if (declared->kind == TypeKind::Array) { freezeRecordLayout(declared->element); }
-            for (const FieldInfo& field : declared->fields) { freezeRecordLayout(field.type); }
+            freezeType(declared->parentType);
+            freezeType(declared->parentSubtype);
+            if (declared->kind == TypeKind::Array) {
+                // Bounds and element strides are captured during declaration.
+                freezeType(declared->index);
+                freezeType(declared->element);
+            }
+            for (const FieldInfo& field : declared->fields) { freezeType(field.type); }
         }
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr) {
             analyzeProtected(typeDecl, scope);
@@ -256,7 +261,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         m_packages.back()->containsTasks = true;
     }
     if (type != nullptr && !type->isIncomplete && !(decl->isConstant && decl->initializer == nullptr)) {
-        freezeRecordLayout(type);
+        freezeType(type);
         rootType(type)->streamsFrozen = true;
     }
     if (type != nullptr && type->tagged && type->classRoot == nullptr) {
@@ -716,8 +721,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                     && parameter->mode == spec.parameters[i].mode
                     && SemaSupport::staticallyMatches(parameter->type, parameterTypes[i]);
                 if (spec.parameters[i].defaultValue != nullptr) {
-                    std::vector<Type*> layoutTypes;
-                    analyzeLayoutDefault(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i], layoutTypes);
+                    FreezingDependencies layoutTypes;
+                    analyzeDeferredExpression(spec.parameters[i].defaultValue.get(), profileScope, parameterTypes[i], layoutTypes);
                     conforms = conforms && SemaSupport::conformingExpressions(parameter->defaultExpr,
                         spec.parameters[i].defaultValue.get());
                     if (candidate->controllingType != nullptr
@@ -804,8 +809,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             }
             Symbol* savedSubprogram = m_currentSubprogram;
             m_currentSubprogram = symbol;
-            Type* defaultType = analyzeLayoutDefault(declaration.defaultValue.get(), profileScope,
-                parameterTypes[i], parameter->defaultLayoutTypes);
+            Type* defaultType = analyzeDeferredExpression(declaration.defaultValue.get(), profileScope,
+                parameterTypes[i], parameter->deferredUses);
             m_currentSubprogram = savedSubprogram;
             if (!typesCompatible(parameterTypes[i], defaultType)) {
                 m_diagnostics.error(declaration.defaultValue->location, "the default expression has an incompatible type");
@@ -1120,6 +1125,8 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
             || type->kind != TypeKind::Access || type->isSubtype || type->parentType != nullptr
             || type->anonymousAccess || !representationVisible(type)) {
             m_diagnostics.error(decl->location, "Controlled requires a nonderived access first subtype declared here");
+        } else if (m_frozenTypes.contains(type)) {
+            m_diagnostics.error(decl->location, "Controlled must precede freezing of its access type");
         } else if (!m_storageControlledTypes.insert(type).second) {
             m_diagnostics.error(decl->location, "Controlled may be specified only once for an access type");
         }
@@ -1183,6 +1190,14 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
                 }
             }
         }
+        if (typeName && m_frozenTypes.contains(type)) {
+            m_diagnostics.error(decl->location, "a shared type pragma must precede freezing of the type");
+            return;
+        }
+        if (object && m_frozenEntities.contains(entity)) {
+            m_diagnostics.error(decl->location, "a shared object pragma must precede freezing of the object");
+            return;
+        }
         int& shared = typeName ? type->shared : entity->shared;
         shared = std::max(shared, decl->lower == "atomic" ? 2 : 1);
         return;
@@ -1195,7 +1210,7 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "pragma Convention currently requires a named access-to-subprogram type");
             return;
         }
-        if (type->accessConventionFrozen || type->accessConventionSpecified) {
+        if (type->accessConventionFrozen || type->accessConventionSpecified || m_frozenTypes.contains(type)) {
             m_diagnostics.error(decl->location, "callback Convention must be specified once, before uses of the access type");
             return;
         }
@@ -1229,6 +1244,10 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 
     if (target->addressTaken) {
         m_diagnostics.error(decl->location, "pragma Import must precede subprogram Access uses");
+        return;
+    }
+    if (m_frozenEntities.contains(target)) {
+        m_diagnostics.error(decl->location, "pragma Import must precede freezing of the subprogram");
         return;
     }
     target->builtin = BuiltinKind::Runtime;

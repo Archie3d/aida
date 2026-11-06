@@ -5,6 +5,7 @@ procedure PrefixedCleanup is
     type Guard is new Ada.Finalization.Controlled with record
         Value : Integer := 5;
     end record;
+    function Make return Guard;
     overriding procedure Initialize (Object : in out Guard);
     overriding procedure Adjust (Object : in out Guard);
     overriding procedure Finalize (Object : in out Guard);

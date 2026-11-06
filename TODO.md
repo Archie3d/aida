@@ -1042,7 +1042,7 @@ Ada 2005 additions and track annex packages separately.
   and runtime gaps, local regressions, ACATS observations and roadmap owners.
   The matrix separates core requirements, implementation choices, extensions
   and selected annex facilities. Maintain it with each increment.
-- [ ] Extend record representation support beyond the Phase 6c byte subset.
+- [x] Extend record representation support beyond the Phase 6c byte subset.
   [Contract](docs/representation-clauses.md#packed-and-unaligned-discrete-components).
   - [x] Packed and unaligned discrete components in adjacent untagged record
     clauses. Bit-level overlap checks, signed and mapped values, inherited
@@ -1066,10 +1066,15 @@ Ada 2005 additions and track annex packages separately.
     discriminant defaults until the containing type freezes. Revisit defaults
     after layout completion when a current-instance reference froze a partial
     field list. Covered by `recordfreezing` and `recordfreezingerrors`.
-  - [ ] Complete the general freezing audit, including per-object expressions,
-    eager layout captures, tagged entities, generic contracts and nonrecord
-    representation items. Broader unaligned component
-    categories, nondefault bit order and Pack retain separate gaps in the matrix.
+  - [x] General freezing audit of the supported representation surface:
+    per-object constraints and deferred selections/allocators, eager captures,
+    tagged primitive/class-wide profiles, generic defaults/instance ordering,
+    nonrecord items and confirming/self-freezing clauses (`generalfreezing`,
+    `generalfreezingerrors`). Whole/separate/determinism and four-task coverage;
+    1,719 CTest checks verified, plus 21 focused compiler ASan/UBSan checks.
+    Unchanged CD1009N remains the upstream placement control. Conservative
+    captures and unsupported categories are explicit in the contract. Broader
+    unaligned components, nondefault bit order and Pack retain their matrix gaps.
 - [ ] Robustness: malformed-source, fuzzing, crash and timeout coverage, and
   sanitizer builds. Bound the run time of the compiler and of test programs.
   From Phase 4, run the tasking tests under ThreadSanitizer. QBE-generated Ada

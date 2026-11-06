@@ -61,7 +61,8 @@ order, before objects may be declared. This also supports ordinary records and
 arrays containing those records. Bounds retain declaration-time capture.
 
 Static tagged first-subtype Size clauses can reserve aligned trailing storage;
-too-small, nonadjacent size-changing and runtime-layout clauses are diagnosed.
+too-small, frozen-type and runtime-layout clauses are diagnosed. Phase 8
+allows intervening unrelated declarations before freezing.
 A tagged subtype cannot change its type's shared tag layout. Tagged Alignment
 and component representation clauses retain their existing restrictions.
 
@@ -98,7 +99,7 @@ Dependent arrays with controlled, task or protected elements, access-subtype
 discriminant constraints and new discriminants on untagged derivations remain
 diagnosed. Aggregates needing static selection of a parent variant through
 new discriminant correspondences remain restricted. Indefinite generic formals
-belong to Phase 6g; task/protected discriminants and broader freezing retain
+belong to Phase 6g; task/protected discriminants and unsupported representation categories retain
 their roadmap owners. Interfaces now follow the [interface contract](interfaces.md). These selected passes are not a full Ada conformance
 claim. Sanitizers instrument the compiler or C runtime; QBE-generated loads and
 stores are not instrumented.

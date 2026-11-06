@@ -156,8 +156,13 @@ private:
     std::vector<std::pair<Symbol*, Symbol*>> m_noReturnRenamings;
     std::vector<std::pair<Symbol*, SourceLocation>> m_noReturnAccesses;
     std::unordered_set<Type*> m_storageControlledTypes;
-    std::unordered_set<Type*> m_frozenRecordLayouts;
-    std::vector<Type*>* m_defaultLayoutTypes = nullptr;
+    std::unordered_set<Type*> m_frozenTypes;
+    std::unordered_set<Type*>* m_instanceFreezeTypes = nullptr;
+    FreezingDependencies* m_deferredUses = nullptr;
+    std::unordered_set<const Symbol*> m_frozenEntities;
+    Type* m_enumerationChoiceType = nullptr;
+    Type* m_scalarDefinitionType = nullptr;
+    FreezingDependencies* m_componentConstraintUses = nullptr;
     uint32_t activeCheckPermissions() const;
     bool m_assertionsEnabled = true;
     uint32_t m_suppressedChecks = 0;
@@ -214,13 +219,16 @@ private:
     void analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope);
     void layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope);
     void reportIncompleteTypes(DeclList& declarations);
-    void freezeRecordLayout(Type* type);
-    void noteRecordLayoutUse(Type* type);
-    void noteCallableLayoutUse(const Symbol* operation);
-    Type* analyzeLayoutDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes);
-    void freezeDeclaredRecordLayouts(const DeclList& declarations);
+    void freezeType(Type* type);
+    void noteTypeUse(Type* type);
+    void noteEntityUse(const Symbol* operation);
+    void freezeEntity(const Symbol* operation);
+    void noteDeferredUses(const FreezingDependencies& dependencies);
+    Type* analyzeDeferredExpression(Expr* expr, Scope* scope, Type* expected, FreezingDependencies& dependencies);
+    void freezeDeclaredEntities(const DeclList& declarations);
+    Type* analyzeConstraintExpression(Expr* expr, Scope* scope, Type* expected);
     void analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, Type* type);
-    void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type, Type* precedingType);
+    void analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* scope, Type* type);
     void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,
                                   bool allowDynamicScalar = false);

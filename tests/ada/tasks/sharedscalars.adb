@@ -32,9 +32,9 @@ procedure SharedScalars is
     flag : Boolean := True;
     pragma Atomic (flag);
     original : Integer := 7;
+    pragma Atomic (original);
     alias : Integer renames original;
     secondAlias : Integer renames alias;
-    pragma Atomic (original);
     typed : Shared_Integer := 4;
     inherited : Derived := 9;
     constrained : Small := 1;

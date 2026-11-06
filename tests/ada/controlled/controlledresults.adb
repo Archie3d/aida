@@ -44,6 +44,7 @@ procedure ControlledResults is
     type Counter is new Ada.Finalization.Controlled with record
         Value : Integer := 0;
     end record;
+    function Aggregate_Result return Counter;
     overriding procedure Initialize (Object : in out Counter);
     overriding procedure Adjust (Object : in out Counter);
     overriding procedure Finalize (Object : in out Counter);

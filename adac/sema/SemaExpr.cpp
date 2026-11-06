@@ -26,11 +26,11 @@ bool isCharacterLiteralExpression(const Expr* expr)
 
 } // namespace
 
-Type* Sema::analyzeLayoutDefault(Expr* expr, Scope* scope, Type* expected, std::vector<Type*>& layoutTypes)
+Type* Sema::analyzeDeferredExpression(Expr* expr, Scope* scope, Type* expected, FreezingDependencies& dependencies)
 {
-    auto* saved = std::exchange(m_defaultLayoutTypes, &layoutTypes);
+    auto* saved = std::exchange(m_deferredUses, &dependencies);
     Type* result = analyzeExpr(expr, scope, expected);
-    m_defaultLayoutTypes = saved;
+    m_deferredUses = saved;
     return result;
 }
 
@@ -49,15 +49,28 @@ Type* Sema::analyzeExpr(Expr* expr, Scope* scope, Type* expected)
         Symbol* named = expr->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(expr)->symbol
             : expr->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expr)->symbol : nullptr;
         if (named == nullptr || named->kind != SymbolKind::TypeName) {
-            if (expr->isStatic) { freezeRecordLayout(result); }
-            else { noteRecordLayoutUse(result); }
+            if (expr->isStatic) {
+                bool representationChoice = m_enumerationChoiceType != nullptr
+                    && baseType(result) == m_enumerationChoiceType
+                    && (expr->kind == ExprKind::CharacterLiteral
+                        || (named != nullptr && named->kind == SymbolKind::EnumerationLiteral));
+                if (!representationChoice) { freezeType(result); }
+            } else { noteTypeUse(result); }
+        }
+        if (named != nullptr && named->kind == SymbolKind::Object) { noteEntityUse(named); }
+        if (expr->kind == ExprKind::Attribute) {
+            auto* attribute = static_cast<AttributeExpr*>(expr);
+            if (attribute->lower != "base" && attribute->lower != "class") {
+                if (expr->isStatic) { freezeType(attribute->prefixType); }
+                else { noteTypeUse(attribute->prefixType); }
+            }
         }
         if (expr->kind == ExprKind::Call) {
-            noteCallableLayoutUse(static_cast<CallExpr*>(expr)->subprogram);
+            noteEntityUse(static_cast<CallExpr*>(expr)->subprogram);
         } else if (named != nullptr && named->kind == SymbolKind::Subprogram) {
-            noteCallableLayoutUse(named);
+            noteEntityUse(named);
             for (const Symbol* parameter : named->parameters) {
-                for (Type* type : parameter->defaultLayoutTypes) { noteRecordLayoutUse(type); }
+                noteDeferredUses(parameter->deferredUses);
             }
         }
     }
@@ -329,7 +342,7 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     }
 
     expr->designated = designated;
-    freezeRecordLayout(designated);
+    noteTypeUse(designated);
     if (baseType(designated)->discriminantCount > 0 && !hasKnownDiscriminants(designated)
         && !hasDefaultDiscriminants(designated) && expr->value == nullptr) {
         m_diagnostics.error(expr->location, "an allocator for an indefinite record requires a constraint or initializer");

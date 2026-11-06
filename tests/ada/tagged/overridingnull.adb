@@ -55,8 +55,8 @@ procedure OverridingNull is
             procedure Replace (Self : in out Root) is null;
             type Child is new Root with null record;
             overriding procedure Keep (Self : in out Child) is null;
-            overriding procedure Reset is new Generic_Reset (Child);
             overriding procedure Replace (Self : in out Child) renames Keep;
+            overriding procedure Reset is new Generic_Reset (Child);
         end Model;
         Equal_Object : Equals.Child;
         Forward_Object : Model.Forward;

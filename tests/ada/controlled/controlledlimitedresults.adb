@@ -10,6 +10,12 @@ procedure ControlledLimitedResults is
     end record;
     overriding procedure Initialize (Object : in out Guard);
     overriding procedure Finalize (Object : in out Guard);
+    function Make (Value : Integer) return Guard;
+    function Forward (Depth : Integer) return Guard;
+    function Retry return Guard;
+    type Holder is limited record
+        Item : Guard;
+    end record;
     overriding procedure Initialize (Object : in out Guard) is
     begin
         Live := Live + 1;
@@ -46,18 +52,15 @@ procedure ControlledLimitedResults is
     exception
         when Constraint_Error => return Make (11);
     end Retry;
-    type Holder is limited record
-        Item : Guard;
-    end record;
     function Build return Holder is
     begin
         return (Item => Make (5));
     end Build;
-    function From_Holder (Object : Holder) return Guard is
-    begin
-        return Make (Object.Item.Value);
-    end From_Holder;
     function Nested_Argument return Holder is
+        function From_Holder (Object : Holder) return Guard is
+        begin
+            return Make (Object.Item.Value);
+        end From_Holder;
     begin
         return (Item => From_Holder ((Item => Make (6))));
     end Nested_Argument;

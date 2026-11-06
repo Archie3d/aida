@@ -5,7 +5,7 @@ alignmenterrors.adb:10:5: error: an Alignment clause requires a static integer
 alignmenterrors.adb:12:5: error: an Alignment clause requires a static integer
 alignmenterrors.adb:14:5: error: Alignment cannot be smaller than the natural alignment
 alignmenterrors.adb:17:5: error: duplicate Alignment clause
-alignmenterrors.adb:20:5: error: an Alignment clause must be adjacent to its type declaration, before representation use
+alignmenterrors.adb:20:5: error: a representation item must precede freezing of its type or subtype
 alignmenterrors.adb:22:5: error: an Alignment clause requires a complete, visible, untagged first subtype without task or protected parts
 alignmenterrors.adb:24:5: error: Alignment requiring scalar or array stride padding is not yet supported
 alignmenterrors.adb:28:5: error: Alignment requiring scalar or array stride padding is not yet supported

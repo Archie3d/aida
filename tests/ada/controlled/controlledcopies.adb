@@ -15,6 +15,7 @@ procedure ControlledCopies is
     type Guard is new Ada.Finalization.Controlled with record
         Data : Link := null;
     end record;
+    procedure Assign (Target : in out Guard; Source : Guard);
     overriding procedure Initialize (Object : in out Guard);
     overriding procedure Adjust (Object : in out Guard);
     overriding procedure Finalize (Object : in out Guard);

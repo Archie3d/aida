@@ -13,6 +13,7 @@ procedure GenericLimitedCleanup is
             Value : aliased Integer := 0;
             Self : Link;
         end record;
+        function Make (Id : Integer; Fail : Boolean := False) return Resource;
         overriding procedure Initialize (Value : in out Resource);
         overriding procedure Finalize (Value : in out Resource);
         procedure Initialize (Value : in out Resource) is
@@ -33,7 +34,7 @@ procedure GenericLimitedCleanup is
                 raise Constraint_Error;
             end if;
         end Finalize;
-        function Make (Id : Integer; Fail : Boolean := False) return Resource is
+        function Make (Id : Integer; Fail : Boolean) return Resource is
         begin
             Calls := Calls + 1;
             return Result : Resource do

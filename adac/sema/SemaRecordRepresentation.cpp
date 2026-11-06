@@ -16,57 +16,97 @@ bool repackableFields(const Type* type)
 
 } // namespace
 
-void Sema::freezeRecordLayout(Type* type)
+void Sema::freezeType(Type* type)
 {
-    if (type == nullptr || type->isIncomplete || (!isComposite(type) && type->accessProfile == nullptr)
-        || !m_frozenRecordLayouts.insert(type).second) {
-        return;
+    if (type == nullptr || type->isIncomplete || type == m_scalarDefinitionType
+        || (m_instanceFreezeTypes != nullptr && m_instanceFreezeTypes->contains(type))
+        || !m_frozenTypes.insert(type).second) { return; }
+    type->streamsFrozen = true;
+    freezeType(type->parentSubtype);
+    if (type->kind == TypeKind::Array) {
+        // Constrained array views can carry index subtypes distinct from
+        // those of the root array, including on inner dimensions.
+        freezeType(type->index);
+        freezeType(type->indexConstraint);
+        freezeType(type->element);
     }
     Type* base = baseType(type);
     if (base != type) {
-        freezeRecordLayout(base);
-    } else if (type->kind == TypeKind::Array) {
-        freezeRecordLayout(type->element);
-    } else if (type->accessProfile != nullptr) {
-        freezeRecordLayout(type->accessProfile->returnType);
-        for (const Symbol* parameter : type->accessProfile->parameters) { freezeRecordLayout(parameter->type); }
+        freezeType(base);
     } else {
-        freezeRecordLayout(type->parentType);
-        for (const FieldInfo& field : type->fields) {
-            freezeRecordLayout(field.type);
-            for (Type* dependency : field.defaultLayoutTypes) { freezeRecordLayout(dependency); }
+        freezeType(type->parentType);
+        if (type->accessProfile != nullptr) {
+            freezeType(type->accessProfile->returnType);
+            for (const Symbol* parameter : type->accessProfile->parameters) { freezeType(parameter->type); }
+        } else if (type->kind == TypeKind::Record) {
+            for (const FieldInfo& field : type->fields) {
+                freezeType(field.type);
+                for (Type* dependency : field.deferredUses.types) { freezeType(dependency); }
+                for (const Symbol* dependency : field.deferredUses.entities) { freezeEntity(dependency); }
+            }
+        }
+    }
+    // Object access types do not freeze their designated subtype. Tagged
+    // types, however, freeze both views and every primitive's full profile.
+    if (type->tagged) {
+        type->dispatchFrozen = true;
+        freezeType(type->classRoot);
+        freezeType(type->classWide);
+        for (const Symbol* primitive : type->primitives) {
+            freezeEntity(primitive);
         }
     }
 }
 
-void Sema::noteRecordLayoutUse(Type* type)
+void Sema::noteTypeUse(Type* type)
 {
-    if (m_defaultLayoutTypes == nullptr) {
-        freezeRecordLayout(type);
-    } else if (type != nullptr && (isComposite(type) || type->accessProfile != nullptr)
-        && std::find(m_defaultLayoutTypes->begin(), m_defaultLayoutTypes->end(), type) == m_defaultLayoutTypes->end()) {
-        m_defaultLayoutTypes->push_back(type);
+    if (m_deferredUses == nullptr) {
+        freezeType(type);
+    } else if (type != nullptr && std::find(m_deferredUses->types.begin(), m_deferredUses->types.end(), type)
+        == m_deferredUses->types.end()) {
+        m_deferredUses->types.push_back(type);
     }
 }
 
-void Sema::noteCallableLayoutUse(const Symbol* operation)
+void Sema::freezeEntity(const Symbol* operation)
 {
-    if (operation == nullptr) { return; }
-    noteRecordLayoutUse(operation->returnType);
-    for (const Symbol* parameter : operation->parameters) { noteRecordLayoutUse(parameter->type); }
+    if (operation == nullptr || !m_frozenEntities.insert(operation).second) { return; }
+    if (operation->kind == SymbolKind::Subprogram) {
+        freezeType(operation->returnType);
+        for (const Symbol* parameter : operation->parameters) { freezeType(parameter->type); }
+    }
 }
 
-void Sema::freezeDeclaredRecordLayouts(const DeclList& declarations)
+void Sema::noteEntityUse(const Symbol* operation)
+{
+    if (operation == nullptr) { return; }
+    if (m_deferredUses == nullptr) {
+        freezeEntity(operation);
+    } else if (std::find(m_deferredUses->entities.begin(), m_deferredUses->entities.end(), operation)
+        == m_deferredUses->entities.end()) {
+        m_deferredUses->entities.push_back(operation);
+    }
+}
+
+void Sema::noteDeferredUses(const FreezingDependencies& dependencies)
+{
+    for (Type* type : dependencies.types) { noteTypeUse(type); }
+    for (const Symbol* operation : dependencies.entities) { noteEntityUse(operation); }
+}
+
+void Sema::freezeDeclaredEntities(const DeclList& declarations)
 {
     for (const DeclPtr& decl : declarations) {
         if (decl->kind == DeclKind::Type) {
-            freezeRecordLayout(static_cast<TypeDecl*>(decl.get())->declaredType);
+            freezeType(static_cast<TypeDecl*>(decl.get())->declaredType);
         } else if (decl->kind == DeclKind::Subtype) {
-            freezeRecordLayout(static_cast<SubtypeDecl*>(decl.get())->declaredType);
+            freezeType(static_cast<SubtypeDecl*>(decl.get())->declaredType);
+        } else if (decl->kind == DeclKind::Object) {
+            for (const Symbol* object : static_cast<ObjectDecl*>(decl.get())->symbols) { freezeEntity(object); }
         } else if (decl->kind == DeclKind::SubprogramDeclaration) {
-            noteCallableLayoutUse(static_cast<SubprogramDecl*>(decl.get())->symbol);
+            noteEntityUse(static_cast<SubprogramDecl*>(decl.get())->symbol);
         } else if (decl->kind == DeclKind::SubprogramBody) {
-            noteCallableLayoutUse(static_cast<SubprogramBody*>(decl.get())->symbol);
+            noteEntityUse(static_cast<SubprogramBody*>(decl.get())->symbol);
         }
     }
 }
@@ -83,7 +123,7 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
         m_diagnostics.error(decl->location, "duplicate record representation clause");
         return;
     }
-    if (m_frozenRecordLayouts.contains(type)) {
+    if (m_frozenTypes.contains(type)) {
         m_diagnostics.error(decl->location, "a record representation clause must precede freezing of the record layout");
         return;
     }
@@ -98,6 +138,10 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
     };
     auto integer = [&](Expr* expression, long long& value) {
         Type* actual = analyzeExpr(expression, scope, nullptr);
+        if (m_frozenTypes.contains(type)) {
+            error(expression->location, "a representation item cannot freeze its own type or subtype");
+            return false;
+        }
         if (actual == nullptr || (actual->kind != TypeKind::Integer && actual->kind != TypeKind::UniversalInteger)
             || !foldStatic(expression, value)) {
             error(expression->location, "a record representation expression must be a static integer");

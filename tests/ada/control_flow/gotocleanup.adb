@@ -7,6 +7,7 @@ procedure GotoCleanup is
     type Guard is new Ada.Finalization.Limited_Controlled with record
         Id : Integer := 0;
     end record;
+    function Build return Guard;
     overriding procedure Finalize (Object : in out Guard) is
     begin
         Trace := Trace * 10 + Object.Id;
