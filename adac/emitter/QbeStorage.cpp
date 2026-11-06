@@ -189,6 +189,13 @@ Value QbeEmitter::addressOf(Symbol* symbol)
 
 Value QbeEmitter::loadBitField(const Value& address, Type* type)
 {
+    if (!address.dynamicBitOffset.empty()) {
+        std::string byte = newTemp(), shifted = newTemp(), value = newTemp();
+        line(byte + " =w loadub " + address.name);
+        line(shifted + " =w shr " + byte + ", " + address.dynamicBitOffset);
+        line(value + " =w and " + shifted + ", 1");
+        return Value { value, 'w' };
+    }
     std::string raw = "0";
     int bit = address.bitOffset;
     for (int consumed = 0; consumed < address.bitWidth;) {
@@ -227,6 +234,18 @@ Value QbeEmitter::loadBitField(const Value& address, Type* type)
 
 void QbeEmitter::storeBitField(const Value& address, const Value& value, Type* type)
 {
+    if (!address.dynamicBitOffset.empty()) {
+        std::string mask = newTemp(), keep = newTemp(), byte = newTemp();
+        std::string previous = newTemp(), placed = newTemp(), combined = newTemp();
+        line(mask + " =w shl 1, " + address.dynamicBitOffset);
+        line(keep + " =w xor " + mask + ", 255");
+        line(byte + " =w loadub " + address.name);
+        line(previous + " =w and " + byte + ", " + keep);
+        line(placed + " =w shl " + value.name + ", " + address.dynamicBitOffset);
+        line(combined + " =w or " + previous + ", " + placed);
+        line("storeb " + combined + ", " + address.name);
+        return;
+    }
     std::string raw = value.name;
     if (value.type == 'w') {
         raw = newTemp();

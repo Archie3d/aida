@@ -1831,12 +1831,13 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "a size clause needs a static number of bits");
         return;
     }
-    if (bits <= 0 || bits % 8 != 0) {
+    bool bitEnumeration = type->kind == TypeKind::Enumeration && bits > 0 && bits <= 32;
+    if (bits <= 0 || (bits % 8 != 0 && !bitEnumeration)) {
         m_diagnostics.error(decl->location, "a size clause requires a positive multiple of 8 bits");
         return;
     }
 
-    long long bytes = bits / 8;
+    long long bytes = bitEnumeration ? (bits <= 8 ? 1 : bits <= 16 ? 2 : 4) : bits / 8;
     if (type->kind == TypeKind::Array || type->kind == TypeKind::Record) {
         if (hasRuntimeLayout(type)
             || type->incompleteLayout || hasIncompleteParts(type)) {
@@ -1876,7 +1877,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         m_diagnostics.error(decl->location, "size-changing scalar subtypes require a static nonnull range");
         return;
     }
-    if (bits != 8 && bits != 16 && bits != 32 && bits != 64) {
+    if (!bitEnumeration && bits != 8 && bits != 16 && bits != 32 && bits != 64) {
         m_diagnostics.error(decl->location, "scalar size clauses support only 8, 16, 32 or 64 bits");
         return;
     }
@@ -1943,6 +1944,8 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
     if (bytes == typeSize(type)) {
         type->specifiedSize = bytes;
+        if (bitEnumeration) { type->valueSizeBits = bits; }
+        m_types.refreshStorageRepresentation(type);
         return;
     }
     // A scalar Base view can retain the earlier arithmetic/storage choice.
@@ -1958,6 +1961,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
     }
     type->byteSize = bytes;
     type->specifiedSize = bytes;
+    if (bitEnumeration) { type->valueSizeBits = bits; }
     m_types.refreshStorageRepresentation(type);
     if (type->kind == TypeKind::Enumeration && !type->isSubtype) { m_types.refreshEnumerationRepresentation(type); }
 }
@@ -2994,8 +2998,9 @@ void Sema::analyzeEnumerationRepresentation(RepresentationDecl* decl, Scope* sco
         : codes.front() >= -32768 && codes.back() <= 32767 ? 2 : 4;
     if (type->specifiedSize >= 0) {
         bytes = type->specifiedSize;
-        long long low = codes.front() < 0 ? -(1LL << (bytes * 8 - 1)) : 0;
-        long long high = bytes == 4 || codes.front() < 0 ? (1LL << (bytes * 8 - 1)) - 1 : (1LL << (bytes * 8)) - 1;
+        long long bits = type->valueSizeBits >= 0 ? type->valueSizeBits : bytes * 8;
+        long long low = codes.front() < 0 ? -(1LL << (bits - 1)) : 0;
+        long long high = bits == 32 || codes.front() < 0 ? (1LL << (bits - 1)) - 1 : (1LL << bits) - 1;
         if (codes.front() < low || codes.back() > high) {
             m_diagnostics.error(decl->location, "enumeration representation codes do not fit the specified Size");
             return;

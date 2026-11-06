@@ -526,6 +526,15 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     }
     if (name == "stream_size") { return constantValue(streamSizeBits(prefixType), 'l'); }
     if (name == "size") {
+        if (expr->sizeTypePrefix && prefixType->packedBoolean) {
+            Value view = withBounds(Value {}, prefixType, nullptr);
+            Value bits = lengthOf(view, prefixType);
+            emitRangeCheck(bits, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
+            if (qbeClass(expr->type) == 'l') { return bits; }
+            std::string narrow = newTemp();
+            line(narrow + " =w copy " + bits.name);
+            return Value { narrow, 'w' };
+        }
         Value bytes;
         if (prefixType->classRoot != nullptr) {
             Value object = emitExpr(expr->prefix.get());

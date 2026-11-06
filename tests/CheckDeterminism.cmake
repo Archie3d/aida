@@ -12,9 +12,10 @@ set(work "${WORKDIR}/determinism/${NAME}")
 file(REMOVE_RECURSE "${work}")
 file(MAKE_DIRECTORY "${work}/whole")
 file(MAKE_DIRECTORY "${work}/apart")
+string(REPLACE "|" ";" extra_sources "${EXTRA_SOURCES}")
 
 execute_process(
-    COMMAND "${ADAC}" -D "${work}/whole" "${SOURCE}"
+    COMMAND "${ADAC}" -D "${work}/whole" ${extra_sources} "${SOURCE}"
     TIMEOUT ${AIDA_COMPILE_TIMEOUT}
     RESULT_VARIABLE status
     OUTPUT_VARIABLE output
@@ -43,7 +44,7 @@ endif()
 
 foreach(unit IN LISTS units)
     execute_process(
-        COMMAND "${ADAC}" -c -D "${work}/apart" "${source.${unit}}"
+        COMMAND "${ADAC}" -c -D "${work}/apart" ${extra_sources} "${source.${unit}}"
         TIMEOUT ${AIDA_COMPILE_TIMEOUT}
         RESULT_VARIABLE status
         OUTPUT_VARIABLE output

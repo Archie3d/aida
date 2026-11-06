@@ -560,6 +560,13 @@ Value QbeEmitter::emitAddress(Expr* expr)
                      + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")", CallEffects::CheckException);
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
+                if (dimension->packedBoolean) {
+                    std::string distance = newTemp();
+                    line(distance + " =l sub " + index.name + ", " + axis.first);
+                    address.dynamicBitOffset = newTemp();
+                    line(address.dynamicBitOffset + " =l and " + distance + ", 7");
+                    address.bitWidth = 1;
+                }
                 axis = arrayRow(axis, dimension);
                 dimension = dimension->element;
             }

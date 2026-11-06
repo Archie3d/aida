@@ -170,7 +170,7 @@ Not supported yet:
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
 - Predefined facilities including random-number generators, user-defined storage
-  pools, unchecked conversion, and the text stream children
+  pools, general unchecked conversion, and the text stream children
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).

@@ -338,7 +338,7 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         expect(TokenKind::Semicolon, "after pragma");
         return pragma;
     }
-    if (name.lower == "atomic" || name.lower == "volatile") {
+    if (name.lower == "atomic" || name.lower == "volatile" || name.lower == "pack") {
         if (!allowShared) {
             fail("shared-variable pragmas are only supported in declarative parts");
         }

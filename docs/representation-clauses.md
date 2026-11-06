@@ -51,7 +51,8 @@ positions, spelling and case in Image/Value.
 
 The implementation supports signed 32-bit codes and chooses one, two or four
 bytes of storage, using unsigned byte/halfword storage for nonnegative codes.
-A Size clause before freezing can select 8, 16 or 32 bits if all codes fit; either
+A Size clause before freezing can select 1–32 value bits, rounded to 1/2/4-byte
+storage, if all codes fit; either
 clause order is accepted. Alignment promises must still fit the chosen storage.
 A subtype inherits its type's mapping; a derived type inherits the mapping
 and can replace it with a clause of its own before freezing. Corresponding subtypes
@@ -87,7 +88,9 @@ Static tagged Size padding is supported by the
 [Phase 6f contract](tagged-discriminants.md), including parent-prefix preservation.
 The untagged representation rules below still apply to their original subset.
 
-Size clauses accept positive byte multiples. Discrete scalar storage uses 8,
+The [Phase 8 bit-storage increment](packed-arrays.md) adds 1–32-bit enumeration
+value Size and packed Boolean arrays. Other Size clauses accept positive byte
+multiples. Discrete scalar storage uses 8,
 16, 32 or 64 bits (enumerations stop at 32); floating widths must still match
 digits, and fixed/access storage remains 64 bits. A requested width must hold
 the static subtype range, including the corresponding codes for a mapped enum
@@ -346,11 +349,11 @@ remaining restrictions. `semantics.type_storage` tests the layout/width contract
 ASan/UBSan pass for that unit test and the storage program with an instrumented
 runtime and C observer (QBE-generated accesses remain uninstrumented).
 
-ACATS CD2A22A and its official unmodified Length_Check helper are vendored as an
-explicit compile XFAIL for unsupported Pack/bit storage. This is a tracked gap,
-not an upstream pass; the normal ACATS suite and its strict XFAIL grading remain
-required. Other reviewed Size cases require packing, unchecked conversion,
-implementation substitutions or facilities outside this step.
+ACATS CD2A22A now executes unchanged as PASS after the
+[Phase 8 packed-array increment](packed-arrays.md). Its official unmodified
+Length_Check helper remains a dependency and is also instantiated/executed in
+local whole/separate/deterministic tests. Broader Pack and unchecked conversion
+categories remain outside the documented subset.
 
 `recordrepresentation` checks actual component addresses and C-observed bytes,
 partial/reordered/normalized clauses, narrowed scalar fields and calls, Size

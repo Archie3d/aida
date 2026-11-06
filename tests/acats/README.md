@@ -35,7 +35,7 @@ GCC's release branch itself may change. No download is needed at build/test time
 
 | Case | Ada 2005 RM | Expectation | Remaining gap / owner |
 | --- | --- | --- | --- |
-| CD2A22A | 13.3, 13.2 | Compile XFAIL: Pack in the unchanged official Length_Check dependency is unsupported; the case also needs three-bit enum storage | Byte-only Size remains the supported subset; bit packing/Unchecked_Conversion: Phase 8 |
+| CD2A22A | 13.3, 13.2 | PASS unchanged: three-bit enumeration Size and scalar/component operations, with unchanged official Length_Check dependency | Local `lengthcheckstorage` instantiates/executes the official helper; [Pack/conversion subset](../../docs/packed-arrays.md) |
 | CD3014A | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: mapped enums retain ordering, array indexing and generic swapping, including character literals | Broader representation checks: Phase 8 |
 | CD3014D | 13.4, 3.5.1, 3.6, 12.5.1 | PASS: the same behaviors for enum mappings declared inside a generic package | Broader representation checks: Phase 8 |
 | CXF2002 | 3.5.9–3.5.10, 4.5.5, F.2 | PASS: repeated decimal multiplication/division, truncation and Round with matching operand types and both machine radices | Selected Annex F facility; full Annex F remains unclaimed |
@@ -107,7 +107,9 @@ timeouts, unrelated/changed diagnostics, and unexpected compilation success
 CTest output identifies it as XFAIL. This is not an upstream test pass.
 CD2A22A is graded with its unchanged official Length_Check dependency from
 `upstream/lencheck.ada`; it is not replaced with a weaker attribute-only check.
-The pinned diagnostic is the first dependency's unsupported Pack pragma.
+It executes as PASS after the Phase 8 Pack/bit-storage increment. Local
+`lengthcheckstorage` also instantiates and executes the actual helper for multiple
+scalar representations, in whole/separate/deterministic builds with four workers.
 
 Compilation and execution logs remain under `build/tests/acats/work/<case>/`.
 Each case has its own build directory and bounded compilation/execution time.

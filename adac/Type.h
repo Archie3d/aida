@@ -301,6 +301,8 @@ struct Type
     // -1 selects the default; zero specifies no additional alignment promise.
     long long alignment = -1;
     long long specifiedSize = -1;
+    long long valueSizeBits = -1;
+    bool packedBoolean = false;
     bool alignmentSpecified = false;
 };
 

@@ -1,0 +1,4 @@
+uncheckedconversionerrors.adb:6:5: error: Unchecked_Conversion currently supports discrete scalars and packed Boolean arrays
+uncheckedconversionerrors.adb:9:5: error: Unchecked_Conversion requires a constrained packed array target subtype
+uncheckedconversionerrors.adb:11:5: error: Unchecked_Conversion currently supports discrete scalars and packed Boolean arrays
+uncheckedconversionerrors.adb:14:34: error: 'Access of intrinsic subprograms is not allowed

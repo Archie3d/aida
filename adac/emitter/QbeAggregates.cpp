@@ -323,15 +323,13 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     branch(Value { test, 'w' }, body, done);
     label(body);
     std::string index = newTemp();
-    std::string scaled = newTemp();
-    std::string element = newTemp();
     line(index + " =l add " + first + ", " + offset);
-    line(scaled + " =l mul " + offset + ", " + elementSize);
-    line(element + " =l add " + buffer + ", " + scaled);
+    Value targetShape = resultShape;
+    targetShape.name = buffer;
+    Value element = arrayElementAddress(targetShape, type, offset);
     auto fill = [&](Expr* value) {
         auto checkpoint = storageCheckpoint();
-        Value cell = arrayRow(resultShape, type);
-        cell.name = element;
+        Value cell = element;
         if (type->arrayRank > 1 && value->kind == ExprKind::Aggregate) {
             emitDynamicAggregateInto(static_cast<AggregateExpr*>(value), cell, type->element, plan);
         } else {
@@ -366,7 +364,8 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     jump(head);
     label(done);
     std::string size = newTemp();
-    line(size + " =l mul " + wideLength + ", " + elementSize);
+    emitCallInstruction(size + " =l call $__ada_array_size(l " + resultFirst + ", l " + resultLast
+        + ", l " + elementSize + ")", CallEffects::CheckException);
     if (!address.name.empty() && !needsFinalization(type) && !hasLimitedParts(type)) {
         emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck);
     }

@@ -55,6 +55,7 @@ struct Symbol
     bool genericObject = false;
     bool noReturn = false;
     bool genericInstance = false;
+    bool uncheckedConversion = false;
     std::vector<SourceLocation> returnStatements;
     bool genericFormalSubprogram = false;
     bool explicitNullExclusion = false;
@@ -240,6 +241,29 @@ inline int sharedObjectKind(const Expr* expr)
 
 // Component placement is known for a selected name and for reference views
 // (renamings and generic in out objects) of that name.
+inline bool packedArrayComponent(const Expr* expr)
+{
+    if (expr == nullptr) { return false; }
+    if (expr->kind == ExprKind::Identifier) {
+        const Symbol* symbol = static_cast<const IdentifierExpr*>(expr)->symbol;
+        return symbol != nullptr && packedArrayComponent(symbol->sharedAlias);
+    }
+    if (expr->kind == ExprKind::Selected) {
+        const Symbol* symbol = static_cast<const SelectedExpr*>(expr)->symbol;
+        return symbol != nullptr && packedArrayComponent(symbol->sharedAlias);
+    }
+    if (expr->kind != ExprKind::Call) { return false; }
+    const auto* call = static_cast<const CallExpr*>(expr);
+    if (call->form != CallForm::Indexing) { return false; }
+    Type* array = call->callee->type;
+    if (array != nullptr && array->kind == TypeKind::Access) { array = array->target; }
+    for (std::size_t i = 0; array != nullptr && i < call->resolvedArguments.size(); ++i) {
+        if (i + 1 == call->resolvedArguments.size()) { return array->packedBoolean; }
+        array = array->element;
+    }
+    return false;
+}
+
 inline const FieldInfo* objectField(const Expr* expr)
 {
     if (expr == nullptr) { return nullptr; }

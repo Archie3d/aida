@@ -2,6 +2,8 @@
 
 Array bounds are signed 64-bit values. Lengths, byte strides, offsets and byte
 sizes are nonnegative signed 64-bit values, limited to `Long_Integer'Last`.
+The [packed Boolean-array extension](packed-arrays.md) reserves stride -1 as a
+representation tag; it is not a backward byte stride.
 The former `Integer'Last` length limit and 32-bit multidimensional bound limit
 are removed. Index subtypes still impose their own language constraints.
 [RM 3.6](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-6.html)
@@ -26,7 +28,8 @@ the Phase 8 B-test grader. Compiler ASan/UBSan checks pass for all three inputs.
 ## Shared contract
 
 `common/Array.h` owns the compiler/runtime layout. Each dimension is four
-64-bit words: `first`, `last`, normalized `length`, and byte `stride`.
+64-bit words: `first`, `last`, normalized `length`, and byte `stride`
+(or `ADA_PACKED_BOOLEAN_STRIDE` for a packed Boolean dimension).
 Rank and element representation are properties of the resolved array type;
 they are not additional runtime words. Dimensions are ordered outermost first.
 Multidimensional arrays use contiguous row-major storage, with the final
@@ -43,7 +46,9 @@ operand. `arrayView`, `loadArrayView`, `storeArrayView`, `arrayRow`, `lengthOf`
 and `arrayElementSize` centralize completion, marshalling and access. Element
 addressing uses the dimension's stride; parameters, captures and result
 consumers retain it. Static contiguous views can derive the same stride from
-their type. No public foreign descriptor ABI, negative strides, transposed
+their type. Packed component addressing uses a byte offset and a bit offset;
+packed extents round logical lengths up to bytes. No public foreign descriptor
+ABI, backward strides, transposed
 arrays or arbitrary noncontiguous views are introduced. Bulk copies remain
 contiguous and overlap-safe where assignment requires it.
 
@@ -53,7 +58,7 @@ contiguous and overlap-safe where assignment requires it.
   Non-null bounds must satisfy index constraints. Null ranges preserve both
   endpoints and have length zero, including `Long_Integer'Last .. Long_Integer'First`.
 - Length differences use unsigned/wide checked arithmetic. Counts beyond the
-  signed 64-bit capacity, negative strides/sizes, byte-product overflow and
+  signed 64-bit capacity, negative strides/sizes other than the packed tag, byte-product overflow and
   allocation failure raise `Storage_Error`. Static impossible shapes receive
   diagnostics. Static record layout and activation-frame reservations use
   checked wide arithmetic too, so enclosing wide array components cannot wrap

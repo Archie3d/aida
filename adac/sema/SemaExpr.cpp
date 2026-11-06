@@ -608,6 +608,11 @@ Type* Sema::analyzeBinaryOperation(BinaryExpr* expr, Scope* scope, Type* expecte
 
     case BinaryOp::Concatenate: {
         Type* context = expected != nullptr && expected->kind == TypeKind::Array ? baseType(expected) : nullptr;
+        if (context != nullptr && context->packedBoolean) {
+            m_diagnostics.error(expr->location, "concatenation of packed Boolean arrays is not yet supported");
+            expr->type = context;
+            return expr->type;
+        }
         if (context == nullptr || context->arrayRank != 1 || limitedView(context)
             || hasLimitedParts(context) || hasTasks(context) || hasProtected(context)
             || operandContext == nullptr || rightContext == nullptr) {

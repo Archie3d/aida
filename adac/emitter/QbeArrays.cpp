@@ -35,7 +35,7 @@ Value QbeEmitter::arrayView(Value value, Type* type)
         value.lengths.push_back(lengthOf(axis, nullptr).name);
         cell = cell->element;
     }
-    std::string stride = runtimeSize(cell);
+    std::string stride = type->packedBoolean ? std::to_string(ADA_PACKED_BOOLEAN_STRIDE) : runtimeSize(cell);
     for (int i = type->arrayRank - 1; i >= 0; --i) {
         value.strides[i] = stride;
         if (i != 0) {
@@ -325,12 +325,7 @@ void QbeEmitter::emitArrayFill(const Value& address, Type* type, Expr* value)
     line(test + " =w csltl " + index + ", " + wideLength);
     branch(Value { test, 'w' }, body, done);
     label(body);
-    std::string offset = newTemp();
-    std::string element = newTemp();
-    line(offset + " =l mul " + index + ", " + elementSize);
-    line(element + " =l add " + address.name + ", " + offset);
-    Value cell = arrayRow(address, type);
-    cell.name = element;
+    Value cell = arrayElementAddress(address, type, index);
     auto elementStorage = storageCheckpoint();
     if (value != nullptr) {
         assignInto(cell, type->element, value, true);
@@ -415,6 +410,23 @@ std::string QbeEmitter::arrayElementSize(const Value& array, Type* type)
     return runtimeSize(type->element);
 }
 
+Value QbeEmitter::arrayElementAddress(const Value& array, Type* type, const std::string& offset)
+{
+    Value cell = arrayRow(array, type);
+    std::string bytes = newTemp();
+    if (type->packedBoolean) {
+        line(bytes + " =l shr " + offset + ", 3");
+        cell.dynamicBitOffset = newTemp();
+        line(cell.dynamicBitOffset + " =l and " + offset + ", 7");
+        cell.bitWidth = 1;
+    } else {
+        line(bytes + " =l mul " + offset + ", " + arrayElementSize(array, type));
+    }
+    cell.name = newTemp();
+    line(cell.name + " =l add " + array.name + ", " + bytes);
+    return cell;
+}
+
 void QbeEmitter::checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType)
 {
     if (m_suppressedChecks & CheckPolicy::kLength) { return; }
@@ -485,7 +497,7 @@ Value QbeEmitter::emitArrayLogical(Type* type, Value left, const Value* right, c
     left = arrayView(left, type);
     if (right != nullptr) { checkArrayShape(left, type, *right, type); }
     Value length = lengthOf(left, type);
-    std::string stride = runtimeSize(type->element);
+    std::string stride = type->packedBoolean ? std::to_string(ADA_PACKED_BOOLEAN_STRIDE) : runtimeSize(type->element);
     Value result { newTemp(), 'l', left.first, left.last };
     emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true)
         + ", l " + left.first + ", l " + left.last + ", l " + stride + ")", CallEffects::CheckException);
@@ -500,22 +512,16 @@ Value QbeEmitter::emitArrayLogical(Type* type, Value left, const Value* right, c
     line(within + " =w csltl " + index + ", " + length.name);
     branch(Value { within, 'w' }, body, done);
     label(body);
-    auto elementAddress = [&](const Value& array, const std::string& elementStride) {
-        std::string offset = newTemp(), address = newTemp();
-        line(offset + " =l mul " + index + ", " + elementStride);
-        line(address + " =l add " + array.name + ", " + offset);
-        return Value { address, 'l' };
-    };
-    Value first = loadFrom(elementAddress(left, left.strides.front()), type->element);
+    Value first = loadFrom(arrayElementAddress(left, type, index), type->element);
     std::string value = newTemp();
     if (right != nullptr) {
         Value view = arrayView(*right, type);
-        Value second = loadFrom(elementAddress(view, view.strides.front()), type->element);
+        Value second = loadFrom(arrayElementAddress(view, type, index), type->element);
         line(value + " =w " + operation + " " + first.name + ", " + second.name);
     } else {
         line(value + " =w ceqw " + first.name + ", 0");
     }
-    storeInto(elementAddress(result, stride), Value { value, 'w' }, type->element);
+    storeInto(arrayElementAddress(result, type, index), Value { value, 'w' }, type->element);
     std::string next = newTemp();
     line(next + " =l add " + index + ", 1");
     line("storel " + next + ", " + slot);

@@ -2318,5 +2318,47 @@ add_ada_error_test(genericgroupedduplicate SOURCES generics/genericgroupedduplic
 add_ada_error_test(genericgroupedmodes SOURCES generics/genericgroupedmodes.adb)
 add_ada_error_test(booleanarrayerrors SOURCES generics/booleanarrayerrors.adb)
 
+# Bit storage, including executions of the unchanged official Length_Check.
+set(length_check_sources
+    "${CMAKE_CURRENT_SOURCE_DIR}/acats/upstream/lencheck.ada"
+    "${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.ads"
+    "${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.adb")
+add_ada_test(packedstorage SOURCES representation/packedstorage.adb)
+add_ada_test(lengthcheckstorage SOURCES ${length_check_sources} representation/lengthcheckstorage.adb)
+foreach(bit_case packedstorage lengthcheckstorage)
+    set(bit_extra_sources "")
+    if(bit_case STREQUAL "lengthcheckstorage")
+        string(REPLACE ";" "|" bit_extra_sources "${length_check_sources}")
+    endif()
+    add_test(NAME determinism.${bit_case}
+        COMMAND ${CMAKE_COMMAND}
+            -DNAME=${bit_case}
+            -DADAC=$<TARGET_FILE:adac>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/representation/${bit_case}.adb
+            "-DEXTRA_SOURCES=${bit_extra_sources}"
+            -DWORKDIR=${ADA_TEST_WORK_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckDeterminism.cmake)
+    add_test(NAME runtime.${bit_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/representation/${bit_case}.adb
+            "-DEXTRA_SOURCES=${bit_extra_sources}"
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/representation/${bit_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${bit_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${bit_case} determinism.${bit_case}
+        runtime.${bit_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+
+add_ada_error_test(packederrors SOURCES representation/packederrors.adb)
+add_ada_error_test(bitsizeerrors SOURCES representation/bitsizeerrors.adb)
+add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedconversionerrors.adb)
+
 add_subdirectory(robustness)
 aida_finalize_tests()

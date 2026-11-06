@@ -1,0 +1,5 @@
+bitsizeerrors.adb:3:5: error: the range of 'Too_Small' does not fit in 1 bits
+bitsizeerrors.adb:6:5: error: enumeration representation codes do not fit the specified Size
+bitsizeerrors.adb:9:5: error: the range of 'Outside' does not fit in 3 bits
+bitsizeerrors.adb:11:5: error: a size clause requires a positive multiple of 8 bits
+bitsizeerrors.adb:14:5: error: a representation item must precede freezing of its type or subtype

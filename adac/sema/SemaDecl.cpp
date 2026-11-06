@@ -1119,6 +1119,28 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         return;
     }
     std::vector<Symbol*> candidates = scope->lookupLocal(decl->entityLower);
+    if (decl->lower == "pack") {
+        Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
+        Type* type = entity != nullptr && entity->kind == SymbolKind::TypeName ? entity->type : nullptr;
+        if (type == nullptr || type->isSubtype || type->kind != TypeKind::Array
+            || !m_types.isBooleanArray(type) || type->aliasedElements || type->shared != 0
+            || sharedTypeKind(type->element) != 0
+            || !representationVisible(type)) {
+            m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean array without aliased or shared components");
+        } else if (m_frozenTypes.contains(type)) {
+            m_diagnostics.error(decl->location, "Pack must precede freezing of the array type");
+        } else if (type->packedBoolean) {
+            m_diagnostics.error(decl->location, "Pack may be specified only once for an array type");
+        } else if (type->alignmentSpecified && type->alignment > 1) {
+            m_diagnostics.error(decl->location, "packed Boolean arrays require storage-element alignment");
+        } else {
+            type->packedBoolean = true;
+            type->alignment = 1;
+            freezeType(type->element);
+            m_types.refreshStorageRepresentation(type);
+        }
+        return;
+    }
     if (decl->lower == "controlled") {
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         Type* type = entity != nullptr ? entity->type : nullptr;

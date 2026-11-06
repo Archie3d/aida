@@ -53,6 +53,7 @@ struct Value
     Type* scalarStorageType = nullptr; // Physical type of a discriminant used by an inherited expression.
     int bitOffset = 0;
     int bitWidth = 0;
+    std::string dynamicBitOffset;
 
     bool hasBounds() const { return !first.empty() && !last.empty(); }
 };
@@ -326,6 +327,7 @@ private:
     Value withBounds(const Value& address, Type* type, Symbol* symbol);
     Value arrayRow(const Value& array, Type* type);
     std::string arrayElementSize(const Value& array, Type* type);
+    Value arrayElementAddress(const Value& array, Type* type, const std::string& offset);
     void checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType);
     Value convertArrayBounds(Value value, Type* source, Type* target, const SourceLocation& location);
     struct ArrayCopyBack
@@ -367,6 +369,7 @@ private:
     // Operators (QbeOperators.cpp).
     Value emitBinary(BinaryExpr* expr);
     Value emitUnary(UnaryExpr* expr);
+    Value emitUncheckedConversion(CallExpr* expr);
     Value emitDiscreteConversion(const Value& value, Type* source, Type* target);
     Value emitModularOperation(ModularOperation operation, const Value& left, const Value& right, Type* type);
     Value emitIntegerOperation(int operation, const Value& left, const Value& right, char type);

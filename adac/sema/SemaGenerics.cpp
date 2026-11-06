@@ -2059,6 +2059,20 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                 symbol->instanceSpecification = symbol;
             }
             if (symbol->kind == SymbolKind::Subprogram) {
+                if (generic->generic->lower == "ada.unchecked_conversion") {
+                    symbol->uncheckedConversion = true;
+                    symbol->intrinsicRenaming = true;
+                    auto supported = [](Type* type) {
+                        return type->genericFormal || isDiscrete(type) || type->packedBoolean;
+                    };
+                    if (!supported(symbol->parameters.front()->type) || !supported(symbol->returnType)) {
+                        m_diagnostics.error(decl->location, "Unchecked_Conversion currently supports discrete scalars and packed Boolean arrays");
+                    }
+                    if (symbol->returnType->packedBoolean && !symbol->returnType->constrained
+                        && symbol->returnType->boundsSymbol == nullptr) {
+                        m_diagnostics.error(decl->location, "Unchecked_Conversion requires a constrained packed array target subtype");
+                    }
+                }
                 symbol->declarationScope = home;
                 for (Symbol* inherited : home->lookupDeclaration(symbol->name)) {
                     bool matches = inherited->kind == SymbolKind::Subprogram

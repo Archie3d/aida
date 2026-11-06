@@ -128,6 +128,10 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "only one-dimensional arrays can be sliced");
             return nullptr;
         }
+        if (prefixType->packedBoolean) {
+            m_diagnostics.error(expr->location, "slices of packed Boolean arrays are not yet supported");
+            return nullptr;
+        }
         Expr* low = expr->arguments.front().value.get();
         Expr* high = expr->arguments.front().high.get();
         analyzeExpr(low, scope, prefixType->index);

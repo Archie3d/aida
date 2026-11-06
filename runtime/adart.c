@@ -904,6 +904,7 @@ void __ada_unhandled(const AdaException* exception)
 }
 
 static int arrayLengthChecked(int64_t first, int64_t last, int64_t* length);
+static int arraySizeChecked(int64_t first, int64_t last, int64_t elementSize, int64_t* bytes);
 
 _Static_assert(sizeof(void*) == 8 && sizeof(ptrdiff_t) == 8, "64-bit array ABI required");
 _Static_assert(sizeof(AdaArrayDimension) == 32, "array dimension ABI");
@@ -925,11 +926,7 @@ void __ada_array_result(void* descriptor, const void* source, int64_t first, int
     int64_t size;
     void* buffer;
 
-    if (elementSize < 0 || (elementSize != 0 && length > INT64_MAX / elementSize)) {
-        __ada_raise(ADA_STORAGE_ERROR);
-        return;
-    }
-    size = length * elementSize;
+    if (!arraySizeChecked(first, last, elementSize, &size)) { return; }
     if ((uint64_t)size > SIZE_MAX) {
         __ada_raise(ADA_STORAGE_ERROR);
         return;
@@ -1010,6 +1007,7 @@ int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t s
         return 0;
     }
     uint64_t distance = (uint64_t)index - (uint64_t)first;
+    if (stride == ADA_PACKED_BOOLEAN_STRIDE) { return (int64_t)(distance / 8); }
     if (stride < 0 || (stride != 0 && distance > INT64_MAX / (uint64_t)stride)) {
         __ada_raise(ADA_STORAGE_ERROR);
         return 0;
@@ -1029,6 +1027,10 @@ static int arraySizeChecked(int64_t first, int64_t last, int64_t elementSize, in
 {
     int64_t length;
     if (!arrayLengthChecked(first, last, &length)) { return 0; }
+    if (elementSize == ADA_PACKED_BOOLEAN_STRIDE) {
+        *bytes = length / 8 + (length % 8 != 0);
+        return 1;
+    }
     if (elementSize < 0 || (elementSize != 0 && length > INT64_MAX / elementSize)) {
         __ada_raise(ADA_STORAGE_ERROR);
         return 0;
@@ -1042,6 +1044,19 @@ int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize)
     int64_t bytes = 0;
     arraySizeChecked(first, last, elementSize, &bytes);
     return bytes;
+}
+
+void __ada_unchecked_copy(void* target, int64_t targetBits, const void* source, int64_t sourceBits)
+{
+    if (targetBits < 0 || targetBits != sourceBits) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
+    }
+    int64_t bytes = targetBits / 8;
+    if (bytes != 0) { memmove(target, source, (size_t)bytes); }
+    if (targetBits % 8 != 0) {
+        ((unsigned char*)target)[bytes] = ((const unsigned char*)source)[bytes] & ((1U << (targetBits % 8)) - 1);
+    }
 }
 
 /* RM 4.5.3: a null left operand yields the complete right bounds;

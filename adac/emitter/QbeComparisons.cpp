@@ -74,14 +74,7 @@ Value QbeEmitter::compareArrays(BinaryOp op, const Value& left, Type* leftType, 
 
     label(body);
     auto elementAddress = [&](const Value& array, Type* type) {
-        std::string offset = newTemp();
-        std::string address = newTemp();
-        std::string elementSize = arrayElementSize(array, type);
-        line(offset + " =l mul " + index + ", " + elementSize);
-        line(address + " =l add " + array.name + ", " + offset);
-        Value cell = arrayRow(array, type);
-        cell.name = address;
-        return cell;
+        return arrayElementAddress(array, type, index);
     };
     Value leftElement = elementAddress(left, leftType);
     Value rightElement = elementAddress(right, rightType);

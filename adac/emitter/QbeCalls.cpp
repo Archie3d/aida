@@ -6,6 +6,43 @@
 
 using QbeSupport::isUnconstrainedArray;
 
+Value QbeEmitter::emitUncheckedConversion(CallExpr* expr)
+{
+    Type* sourceType = expr->subprogram->parameters.front()->type;
+    Type* targetType = expr->subprogram->returnType;
+    Value source = emitExpr(expr->resolvedArguments.front());
+    auto bits = [&](Type* type, const Value& value) {
+        if (type->packedBoolean) { return lengthOf(value, type).name; }
+        return std::to_string(type->valueSizeBits >= 0 ? type->valueSizeBits : typeSize(type) * 8);
+    };
+    std::string sourceBits = bits(sourceType, source);
+    if (!isComposite(sourceType)) {
+        Value slot { allocTypeScratch(sourceType), 'l' };
+        storeInto(slot, source, sourceType);
+        source = slot;
+    }
+    Value target;
+    if (targetType->packedBoolean) {
+        target = withBounds(Value {}, targetType, nullptr);
+        target.name = newTemp();
+        target.type = 'l';
+        emitCallInstruction(target.name + " =l call $__ada_array_local(l " + storageArena(true, true)
+            + ", l " + target.first + ", l " + target.last + ", l " + std::to_string(ADA_PACKED_BOOLEAN_STRIDE) + ")", CallEffects::CheckException);
+    } else {
+        target = Value { allocTypeScratch(targetType), 'l' };
+        emitCallInstruction("call $memset(l " + target.name + ", w 0, l " + std::to_string(typeSize(targetType)) + ")", CallEffects::DeferredCheck);
+    }
+    emitCallInstruction("call $__ada_unchecked_copy(l " + target.name + ", l " + bits(targetType, target)
+        + ", l " + source.name + ", l " + sourceBits + ")", CallEffects::CheckException);
+    if (targetType->packedBoolean) { return arrayView(target, targetType); }
+    if (targetType->valueSizeBits > 0 && targetType->valueSizeBits < typeSize(targetType) * 8) {
+        target.bitWidth = static_cast<int>(targetType->valueSizeBits);
+    }
+    Value result = loadFrom(target, targetType);
+    emitRangeCheck(result, targetType, expr->location);
+    return result;
+}
+
 Value QbeEmitter::emitCall(CallExpr* expr, Type* inheritedControllingType)
 {
     Value result = emitCallValue(expr, inheritedControllingType);
@@ -37,6 +74,9 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
     }
+    Symbol* intrinsic = subprogram;
+    while (!intrinsic->uncheckedConversion && intrinsic->renamedSubprogram != nullptr) { intrinsic = intrinsic->renamedSubprogram; }
+    if (intrinsic->uncheckedConversion) { return emitUncheckedConversion(expr); }
     if (subprogram->classWideWrapper || subprogram->classWideResultRenaming) {
         Symbol* target = subprogram;
         while (!target->classWideWrapper && target->renamedSubprogram != nullptr) {
@@ -643,7 +683,7 @@ Value QbeEmitter::emitRuntimeCall(CallExpr* expr, Symbol* subprogram)
         const FieldInfo* component = objectField(argument);
         if (parameter->byReference && isScalar(formal)
             && (formal->excludesNull || sharedObjectKind(argument) != 0 || sharedTypeKind(formal) != 0 || !formal->enumCodes.empty()
-                || typeSize(formal) != typeSize(argument->type) || (component != nullptr && component->bitWidth != 0))) {
+                || typeSize(formal) != typeSize(argument->type) || packedArrayComponent(argument) || (component != nullptr && component->bitWidth != 0))) {
             Value temporary { allocTypeScratch(formal), 'l' };
             Value actual;
             if (parameter->mode != ParameterMode::In) {

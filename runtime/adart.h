@@ -239,6 +239,7 @@ int64_t __ada_array_concat_shape(AdaArrayDimension* shape, int64_t leftFirst, in
     int64_t rightFirst, int64_t rightLast, int64_t rightLength, int64_t indexFirst, int64_t indexLast,
     int constrainedAncestor, int64_t elementSize);
 int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize);
+void __ada_unchecked_copy(void* target, int64_t targetBits, const void* source, int64_t sourceBits);
 void __ada_component_array_copy(void* descriptor, int rank);
 void* __ada_array_local(void** owner, int64_t first, int64_t last, int64_t elementSize);
 void __ada_array_release(void** owner);

@@ -1085,7 +1085,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     // generic body hand a value to the run time without either side having to
     // know what shape it has.
     if (name == "address") {
-        if (const FieldInfo* field = objectField(expr->prefix.get()); field != nullptr && field->bitWidth != 0) {
+        if (const FieldInfo* field = objectField(expr->prefix.get()); packedArrayComponent(expr->prefix.get()) || (field != nullptr && field->bitWidth != 0)) {
             m_diagnostics.error(expr->location, "'Address of a packed or unaligned component is not supported");
             return nullptr;
         }
@@ -1169,6 +1169,18 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return expr->type;
         }
         expr->isStatic = true;
+        if (packedArrayComponent(expr->prefix.get())) {
+            expr->staticValue = 1;
+            return expr->type;
+        }
+        if (prefixIsType && prefixType->packedBoolean) {
+            expr->staticValue = arrayLength(prefixType);
+            return expr->type;
+        }
+        if (prefixIsType && prefixType->valueSizeBits >= 0) {
+            expr->staticValue = prefixType->valueSizeBits;
+            return expr->type;
+        }
         if (const FieldInfo* field = objectField(expr->prefix.get()); field != nullptr && field->bitWidth != 0) {
             expr->staticValue = field->bitWidth;
             return expr->type;

@@ -144,6 +144,7 @@ long long typeSize(const Type* type)
         return type->accessDiscriminant ? 24 : type->accessParameter ? 16 : 8;
     case TypeKind::Array: {
         long long count = arrayLength(type);
+        if (type->packedBoolean) { return count / 8 + (count % 8 != 0); }
         long long elementSize = typeSize(type->element);
         long long alignment = typeAlignment(type->element);
         if (elementSize % alignment != 0) {
@@ -427,6 +428,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->alignment = parent->alignment;
     subtype->compositeSize = parent->compositeSize;
     subtype->sizeBounds = parent->sizeBounds;
+    subtype->valueSizeBits = parent->valueSizeBits;
+    subtype->packedBoolean = parent->packedBoolean;
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->tagged = parent->tagged;
@@ -563,6 +566,8 @@ void TypeTable::refreshStorageRepresentation(Type* type)
             subtype->byteSize = type->byteSize;
             subtype->compositeSize = type->compositeSize;
             subtype->sizeBounds = type->sizeBounds;
+            subtype->valueSizeBits = type->valueSizeBits;
+            subtype->packedBoolean = type->packedBoolean;
             subtype->alignment = type->alignment;
         }
     }

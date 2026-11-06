@@ -271,9 +271,9 @@ determinism tests and instrumented C run-time checks.
   - [x] Size-changing scalar subtypes and byte-aligned composite layouts
     (`sizestorage`, `sizestreams`, `sizetasking`, `sizestorageerrors`,
     `semantics.type_storage`). Named-subtype Size clauses are an AIDA
-    extension. Bit packing, dynamic layouts and nonconfirming tagged/
-    controlled/limited/task/protected sizes diagnosed; ACATS CD2A22A is a
-    packing XFAIL.
+    extension. Dynamic layouts and nonconfirming tagged/controlled/limited/
+    task/protected sizes remain restricted. Phase 8 subsequently adds packed
+    Boolean arrays and bit-sized enums; unchanged CD2A22A now passes.
 - [x] **Checked arithmetic speed.** Inline signed 32/64-bit checks for all
   integer operators with unchanged failure paths; 88,000 differential cases per
   mode (ACATS C45504A/C45611A). [Contract](docs/checked-arithmetic.md),
@@ -1131,19 +1131,18 @@ Ada 2005 additions and track annex packages separately.
   cover library/whole/separate/deterministic compilation and four workers.
   Release 1,765/1,765; focused ASan/UBSan 11/11; all 129 backfill outcomes
   unchanged. [Contract and evidence](docs/generic-grouped.md).
-- [ ] Complete the Pack and bit-storage prerequisites for CD2A22A and its
-  unchanged official Length_Check dependency (`tests/acats/upstream/lencheck.ada`).
-  Cover packed Boolean arrays with runtime lengths and nested array indexing,
-  three-bit enumeration Size specifications, and the bit-preserving
-  Unchecked_Conversion round trips required by Length_Check. Preserve scalar
-  operations, array/record component access, parameter copy-back and type/object
-  Size semantics. Add focused legality and runtime regressions, including actual
-  Length_Check instantiations, whole/separate/deterministic compilation and
-  four-task coverage. Complete only when the full unchanged CD2A22A scenario
-  and official dependency execute as PASS; retain explicit diagnostics and
-  XFAIL grading until then. Existing explicit packed-record-field support does
-  not complete this item; broader Pack policies and nondefault bit order remain
-  separate representation gaps in the coverage matrix.
+- [x] Complete the Pack and bit-storage prerequisites for CD2A22A and its
+  unchanged official Length_Check dependency. Packed Boolean arrays retain
+  runtime lengths, nested-row byte extents and component bit access. Enum
+  value Size supports 1–32 bits with byte allocation and unchanged scalar ABI;
+  discrete/packed-array Unchecked_Conversion preserves representation bits.
+  `packedstorage` and actual official `lengthcheckstorage` instantiations cover
+  library/whole/separate/deterministic compilation, copy-back, Size, invalid
+  conversion paths and four workers. Full unchanged CD2A22A executes as PASS.
+  Release 1,774/1,774; focused compiler/runtime ASan/UBSan 12/12; all 129
+  backfill outcomes unchanged. Broader Pack policies, conversion categories
+  and nondefault bit order retain explicit diagnostics and their matrix gaps.
+  [Contract and evidence](docs/packed-arrays.md).
 - [ ] Adopt relevant Ada 2005 ACATS conformance tests (harness from the Phase 5
   prelude) alongside each feature,
   including inherited Ada 95 requirements and cross-feature legality/runtime
