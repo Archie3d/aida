@@ -24,22 +24,18 @@ identified separately.
 | System.Storage_Elements; Address_To_Access_Conversions | 13.7.1–13.7.2 | Storage types, address arithmetic and conversions |
 | System.Storage_Pools | 13.11 | User-defined pools and allocator/deallocator integration |
 
-The same baseline check pins 22 partial-API observations: missing System names
+The original audit pinned 22 partial-API observations: missing System names
 and callable address-ordering profiles, Stream_IO's positioned overloads,
-Set_Mode/Flush, and Standard.ASCII. These rejection observations are gap guards,
-not legality or conformance passes. A new implementation or changed diagnostic
-requires inventory review rather than silently retaining an obsolete claim.
-The System list includes missing numeric limits as well as configuration,
-address, bit-order and priority declarations. Current numeric support is
-Storage_Unit, the two maximum moduli, Fine_Delta and Tick. Ordinary address
-comparison expressions and a callable profile/renaming are distinct audit
-surfaces; the latter remains recorded as a gap.
+Set_Mode/Flush, and Standard.ASCII. The subsequent [Standard/System implementation](standard-system.md) supplies all
+18 missing Standard/System surfaces and replaces their rejection guards with
+executable controls. Only Stream_IO's four API-gap guards remain. The audit's
+original counts below describe its historical starting state.
 
 Ada 2012 additions are outside this language target. Specialized-needs annex
 facilities retain their separate matrix scope, including full tasking/priority
 services in Phase 9. The missing families and partial APIs now have explicit
 [Phase 8 implementation items](../TODO.md#predefined-library-implementation),
-added after the audit; those implementation items remain open.
+added after the audit; Standard/System is complete and the remaining items stay open.
 
 ## Supported API repairs
 

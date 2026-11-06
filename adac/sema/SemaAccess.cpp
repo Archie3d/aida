@@ -182,6 +182,14 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
     while (left->parentType != nullptr) { left = left->parentType; }
     while (right->parentType != nullptr) { right = right->parentType; }
     related = left == right;
+    // Address and its derivatives have no designated object or collection.
+    // Their related-type conversions preserve pointer bits without ownership.
+    if (target->target == nullptr || source->target == nullptr) {
+        if (!related || left != m_addressType || !representationVisible(target) || !representationVisible(source)) {
+            m_diagnostics.error(expr->location, "this type conversion is not allowed");
+        }
+        return true;
+    }
     bool designated = related || matchingDesignated(target->target, source->target)
         || (target->target->kind == TypeKind::Record && source->target->kind == TypeKind::Record
             && matchingDesignated(source->target, target->target));

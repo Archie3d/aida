@@ -1079,6 +1079,7 @@ struct GenericFormal
     InterfaceKind interfaceKind = InterfaceKind::None;
     std::vector<Symbol*> defaultCandidates;
     bool defaultUsesFormal = false;
+    Symbol* defaultOperatorPrefix = nullptr; // Declaration-site package of an expanded operator default.
     Symbol* abstractDefault = nullptr; // Checked declaration-site abstract-formal default.
     Symbol* literalDefault = nullptr; // Resolved enumeration-literal default, including inherited literals.
     SourceLocation location;

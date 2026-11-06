@@ -161,3 +161,8 @@ recorded rejection for the existing access-to-array subtype constraint limit,
 with a baseline-only stability test. The original 129 observations are unchanged.
 The expanded totals are 107 PASS, 11 COMPILE_REJECTED, one HARNESS_BLOCKED and
 26 ungraded B rejections. [Audit and completion evidence](../../../docs/acats-adoption.md).
+
+Standard/System follow-up: C54A03A and C64005C now pass unchanged with ASCII.
+C35502C now executes and fails enumeration Value tab-trimming controls; it is
+RUN_FAILED, not a conformance pass. The cohort has 109 PASS, eight legal-source
+rejections, one runtime failure, one support blocker and 26 ungraded B probes.

@@ -57,9 +57,18 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
     }
     std::vector<Symbol*> candidates = expressionNames(name, scope);
     std::string operation;
+    Scope* operatorScope = nullptr;
     if (name->kind == ExprKind::StringLiteral) {
         operation = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(name)->value));
         candidates = contractNames(name, scope->lookup(operation));
+    }
+    if (name->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(name);
+        Symbol* prefix = expandedPrefix(selected->prefix.get(), scope);
+        if (prefix != nullptr) {
+            operation = operatorSymbol(selected->selectorLower);
+            operatorScope = expandedScope(prefix, scope);
+        }
     }
     Symbol* chosen = nullptr;
     for (Symbol* candidate : candidates) {
@@ -112,7 +121,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
             operands.push_back(operand.get());
             expressions.push_back(std::move(operand));
         }
-        for (const OperatorCandidate& candidate : operatorCandidates(operation, operands, probes, result)) {
+        for (const OperatorCandidate& candidate : operatorCandidates(operation, operands, probes, result, false, {}, operatorScope)) {
             bool conforms = spec.isFunction && candidate.parameters.size() == types.size()
                 && baseType(candidate.result) == baseType(result);
             for (std::size_t i = 0; conforms && i < types.size(); ++i) {

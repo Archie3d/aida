@@ -221,6 +221,9 @@ Value QbeEmitter::emitExprValue(Expr* expr)
             if (expr->type->kind == TypeKind::Access && expr->type->excludesNull) { checkNotNull(value); }
             if (expr->type->kind == TypeKind::Access && operand->type->kind == TypeKind::Access
                 && expr->type->accessProfile == nullptr && operand->type->accessProfile == nullptr) {
+                // Related machine-address views carry no designated-object
+                // accessibility, ownership or allocation-collection metadata.
+                if (expr->type->target == nullptr && operand->type->target == nullptr) { return value; }
                 if (operand->type->anonymousAccess
                     || operand->type->accessLevel > expr->type->accessLevel) {
                     emitCallInstruction("call $__ada_accessibility_check(w " + value.accessLevel
@@ -228,7 +231,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                 }
                 Type* target = expr->type->target;
                 Type* source = operand->type->target;
-                if (target->tagged && source->classRoot != nullptr) {
+                if (target != nullptr && source != nullptr && target->tagged && source->classRoot != nullptr) {
                     std::string nonNull = newTemp(), check = newLabel("accessconvert"), ready = newLabel("accessconverted");
                     line(nonNull + " =w cnel " + value.name + ", 0");
                     branch(Value {nonNull, 'w'}, check, ready);

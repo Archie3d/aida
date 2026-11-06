@@ -117,6 +117,7 @@ Supported:
 - Derived Boolean operations; Latin-1, Wide and Wide_Wide character/string literals,
   UTF-8 source and Unicode identifiers, scalar text attributes and character conversions
   ([contract](docs/wide-foundation.md))
+- `Standard.ASCII` and `System` configuration, numeric, address, bit-order and priority declarations ([choices](docs/standard-system.md))
 - Scalar attributes and captured runtime bounds, including library and real subtypes ([contract](docs/runtime-scalars.md))
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,

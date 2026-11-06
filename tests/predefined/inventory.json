@@ -742,30 +742,6 @@
   ],
   "partial_apis": [
     {
-      "unit": "system",
-      "rm": "13.7",
-      "missing": [
-        "Name",
-        "System_Name",
-        "Null_Address",
-        "Word_Size",
-        "Memory_Size",
-        "Bit_Order",
-        "Default_Bit_Order",
-        "Any_Priority",
-        "Priority",
-        "Interrupt_Priority",
-        "Default_Priority",
-        "Min_Int",
-        "Max_Int",
-        "Max_Base_Digits",
-        "Max_Digits",
-        "Max_Mantissa",
-        "callable address ordering profiles"
-      ],
-      "note": "Existing Address and numeric limits are partial; Tick is corrected to universal_real."
-    },
-    {
       "unit": "ada.streams.stream_io",
       "rm": "A.12.1",
       "missing": [
@@ -775,14 +751,6 @@
         "Flush"
       ],
       "note": "Existing sequential I/O, indexing and file stream views remain supported."
-    },
-    {
-      "unit": "standard",
-      "rm": "J.2",
-      "missing": [
-        "ASCII"
-      ],
-      "note": "Missing obsolescent ASCII package remains the known C35502C/C54A03A/C64005C prerequisite."
     }
   ],
   "separate_owners": {
@@ -790,91 +758,6 @@
     "hosts": "Native Windows/MSYS2 and other target execution remain in the existing host-validation item."
   },
   "api_gap_probes": [
-    {
-      "id": "system_name",
-      "source": "with System;\nprocedure API_Probe is\n    subtype Selected_Type is System.Name;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'system.name' is not declared\n"
-    },
-    {
-      "id": "system_system_name",
-      "source": "with System;\nprocedure API_Probe is\n    Value : System.Name := System.System_Name;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:13: error: 'system.name' is not declared\n"
-    },
-    {
-      "id": "system_null_address",
-      "source": "with System;\nprocedure API_Probe is\n    Value : System.Address := System.Null_Address;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:37: error: 'Null_Address' is not declared in 'System'\n"
-    },
-    {
-      "id": "system_word_size",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Word_Size;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Word_Size' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_memory_size",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Memory_Size;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Memory_Size' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_bit_order",
-      "source": "with System;\nprocedure API_Probe is\n    subtype Selected_Type is System.Bit_Order;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'system.bit_order' is not declared\n"
-    },
-    {
-      "id": "system_default_bit_order",
-      "source": "with System;\nprocedure API_Probe is\n    Value : System.Bit_Order := System.Default_Bit_Order;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:13: error: 'system.bit_order' is not declared\n"
-    },
-    {
-      "id": "system_any_priority",
-      "source": "with System;\nprocedure API_Probe is\n    subtype Selected_Type is System.Any_Priority;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'system.any_priority' is not declared\n"
-    },
-    {
-      "id": "system_priority",
-      "source": "with System;\nprocedure API_Probe is\n    subtype Selected_Type is System.Priority;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'system.priority' is not declared\n"
-    },
-    {
-      "id": "system_interrupt_priority",
-      "source": "with System;\nprocedure API_Probe is\n    subtype Selected_Type is System.Interrupt_Priority;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'system.interrupt_priority' is not declared\n"
-    },
-    {
-      "id": "system_default_priority",
-      "source": "with System;\nprocedure API_Probe is\n    Value : Integer := System.Default_Priority;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:30: error: 'Default_Priority' is not declared in 'System'\n"
-    },
-    {
-      "id": "system_min_int",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Min_Int;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Min_Int' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_max_int",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Max_Int;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Max_Int' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_max_base_digits",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Max_Base_Digits;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Max_Base_Digits' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_max_digits",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Max_Digits;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Max_Digits' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_max_mantissa",
-      "source": "with System;\nprocedure API_Probe is\n    Value : constant := System.Max_Mantissa;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:31: error: 'Max_Mantissa' is not declared in 'System'\napi_probe.adb:3:31: error: the value of a named number must be numeric\n"
-    },
-    {
-      "id": "system_callable_address_ordering_profiles",
-      "source": "with System;\nprocedure API_Probe is\n    function Less (Left, Right : System.Address) return Boolean renames System.\"<\";\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:3:79: error: no subprogram matches the renaming profile\n"
-    },
     {
       "id": "stream_read_from",
       "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Read (File, Data, Last, From => 1);\nend API_Probe;\n",
@@ -894,11 +777,9 @@
       "id": "stream_flush",
       "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Flush (File);\nend API_Probe;\n",
       "diagnostic": "api_probe.adb:9:7: error: 'Flush' is not declared in 'IO'\n"
-    },
-    {
-      "id": "standard_ascii",
-      "source": "procedure API_Probe is\n    Value : Character := ASCII.NUL;\nbegin\n    null;\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:2:26: error: 'ASCII' is not declared\napi_probe.adb:2:31: error: 'NUL' is not a component of a record\n"
     }
-  ]
+  ],
+  "implemented_api_controls": {
+    "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers"
+  }
 }

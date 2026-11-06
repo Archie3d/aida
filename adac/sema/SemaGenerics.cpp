@@ -270,6 +270,12 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
             } else if (value->kind == ExprKind::StringLiteral) {
                 defaultLower = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(value)->value));
             }
+            if (value->kind == ExprKind::Selected) {
+                auto* selected = static_cast<SelectedExpr*>(value);
+                if (!operatorSymbol(selected->selectorLower).empty()) {
+                    formal.defaultOperatorPrefix = expandedPrefix(selected->prefix.get(), target);
+                }
+            }
             formal.defaultUsesFormal = std::find(preceding.begin(), preceding.end(), defaultLower) != preceding.end();
             formal.defaultCandidates = value->kind == ExprKind::StringLiteral
                 ? target->lookup(defaultLower) : expressionNames(value, target);
@@ -1275,10 +1281,20 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
     };
 
     std::string operation;
+    Scope* operatorScope = nullptr;
     if (actual->kind == ExprKind::StringLiteral) {
         operation = operatorSymbol(Unicode::utf8(static_cast<StringLiteralExpr*>(actual)->value));
     } else if (actual->kind == ExprKind::Identifier) {
         operation = operatorSymbol(static_cast<IdentifierExpr*>(actual)->lower);
+    }
+    if (actual->kind == ExprKind::Selected) {
+        auto* selected = static_cast<SelectedExpr*>(actual);
+        Symbol* prefix = namedDefault && formal.defaultOperatorPrefix != nullptr
+            ? instanceSymbol(formal.defaultOperatorPrefix) : expandedPrefix(selected->prefix.get(), actualScope);
+        if (prefix != nullptr) {
+            operation = operatorSymbol(selected->selectorLower);
+            operatorScope = expandedScope(prefix, actualScope);
+        }
     }
     if (actual->kind == ExprKind::Selected
         && !prefixedOperations(static_cast<SelectedExpr*>(actual), actualScope).empty()) {
@@ -1363,7 +1379,7 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         }
         candidates.clear();
         for (const OperatorCandidate& candidate : operatorCandidates(operation, probePointers,
-                 probeScope, wrapper->returnType)) {
+                 probeScope, wrapper->returnType, false, {}, operatorScope)) {
             bool conforms = wrapper->returnType != nullptr && sameType(candidate.result, wrapper->returnType);
             for (std::size_t i = 0; i < candidate.parameters.size(); ++i) {
                 conforms = conforms && wrapper->parameters[i]->mode == ParameterMode::In

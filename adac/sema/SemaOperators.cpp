@@ -141,7 +141,9 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         if (selectedScope != nullptr && owner != selectedScope
             && owner != selectedScope->completionScope() && !universalFixed) { return; }
         if (selectedScope == nullptr && !predefinedOnly && !fixed && owner != m_standardScope
-            && depth < 0 && !scope->usesType(primitiveType)) {
+            // Retain AIDA's existing directly visible Address comparisons,
+            // including uses of Address attributes without naming System.
+            && primitiveType != m_addressType && depth < 0 && !scope->usesType(primitiveType)) {
             return;
         }
         for (const OperatorCandidate& existing : hiddenProfiles) {
@@ -243,7 +245,11 @@ std::vector<Sema::OperatorCandidate> Sema::operatorCandidates(const std::string&
         } else {
             for (Type* type : types) {
                 if (equality || ordering) {
-                    bool allowed = isNumeric(type) || isDiscrete(type) || type->kind == TypeKind::Array
+                    bool addressOrdering = false;
+                    for (Type* ancestor = rootType(type); ancestor != nullptr; ancestor = ancestor->parentType) {
+                        addressOrdering = addressOrdering || rootType(ancestor) == m_addressType;
+                    }
+                    bool allowed = (ordering && addressOrdering) || isNumeric(type) || isDiscrete(type) || type->kind == TypeKind::Array
                         || (equality && (type->kind == TypeKind::Record || type->kind == TypeKind::Access));
                     if (limitedView(type) || (!equality && !representationVisible(type))) {
                         allowed = false;

@@ -2,6 +2,7 @@
 
 #include "Lexer.h"
 #include "SemaSupport.h"
+#include "../../common/Predefined.h"
 
 #include <algorithm>
 
@@ -83,8 +84,58 @@ void Sema::setupStandardScope()
     system->libraryName = "system";
     m_standardScope->add(system);
 
+    auto addConstant = [&](Scope* scope, const std::string& name, Type* type, long long value,
+                           const std::string& storage) {
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::Object, toLower(name), name);
+        symbol->type = type;
+        symbol->isConstant = true;
+        symbol->hasStaticValue = type->kind != TypeKind::Access;
+        symbol->staticValue = value;
+        symbol->exactReal = ExactReal::make(value);
+        symbol->isGlobal = true;
+        symbol->qbeName = "$__ada_" + storage;
+        scope->add(symbol);
+    };
+    Symbol* ascii = m_symbolTable.createSymbol(SymbolKind::Package, "ascii", "ASCII");
+    ascii->scope = m_symbolTable.createScope(nullptr);
+    m_standardScope->add(ascii);
+#define ADD_ASCII(display, name, value) \
+    addConstant(ascii->scope, #display, m_types.characterType(), value, "ascii_" #name);
+    ADA_ASCII_CONSTANTS(ADD_ASCII)
+#undef ADD_ASCII
+
     m_addressType = m_types.create(TypeKind::Access, "Address");
+    m_addressType->declarationScope = system->scope;
     addTypeTo(system->scope, m_addressType);
+    addConstant(system->scope, "Null_Address", m_addressType, 0, "system_null_address");
+    auto addEnumeration = [&](const std::string& name, const std::vector<std::string>& names) {
+        Type* type = m_types.create(TypeKind::Enumeration, name);
+        type->declarationScope = system->scope;
+        type->high = static_cast<long long>(names.size()) - 1;
+        addTypeTo(system->scope, type);
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            type->literals.push_back(toLower(names[i]));
+            Symbol* literal = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, toLower(names[i]), names[i]);
+            literal->type = type;
+            literal->enumerationValue = static_cast<long long>(i);
+            system->scope->add(literal);
+            type->primitives.push_back(literal);
+        }
+        return type;
+    };
+    // All supported QBE targets use this 64-bit, little-endian data model.
+    Type* name = addEnumeration("Name", { "AIDA_64" });
+    addConstant(system->scope, "System_Name", name, kSystemName, "system_name");
+    Type* bitOrder = addEnumeration("Bit_Order", { "High_Order_First", "Low_Order_First" });
+    addConstant(system->scope, "Default_Bit_Order", bitOrder, kSystemLowOrderFirst, "system_bit_order");
+    Type* anyPriority = m_types.makeSubtype("Any_Priority", m_types.integerType(),
+        kSystemPriorityFirst, kSystemInterruptPriorityLast);
+    Type* priority = m_types.makeSubtype("Priority", anyPriority, kSystemPriorityFirst, kSystemPriorityLast);
+    Type* interruptPriority = m_types.makeSubtype("Interrupt_Priority", anyPriority,
+        kSystemPriorityLast + 1, kSystemInterruptPriorityLast);
+    for (Type* type : { anyPriority, priority, interruptPriority }) { addTypeTo(system->scope, type); }
+    addConstant(system->scope, "Default_Priority", priority,
+        kSystemDefaultPriority, "system_default_priority");
     m_tagType = m_types.create(TypeKind::Access, "Tag");
     m_tagType->privateTo = m_symbolTable.createSymbol(SymbolKind::Package, "ada.tags", "Ada.Tags");
 
@@ -127,7 +178,14 @@ void Sema::setupStandardScope()
     storageUnit->staticValue = 8;
     system->scope->add(storageUnit);
     for (const auto& limit : { std::pair<const char*, __int128> { "max_binary_modulus", (__int128)1 << 64 },
-                              { "max_nonbinary_modulus", ((__int128)1 << 64) - 1 } }) {
+                              { "max_nonbinary_modulus", ((__int128)1 << 64) - 1 },
+                              { "min_int", m_types.longIntegerType()->low },
+                              { "max_int", m_types.longIntegerType()->high },
+                              { "max_base_digits", m_types.longFloatType()->digits },
+                              { "max_digits", m_types.longFloatType()->digits },
+                              { "max_mantissa", typeSize(m_types.longIntegerType()) * 8 - 1 },
+                              { "word_size", typeSize(m_addressType) * 8 },
+                              { "memory_size", (__int128)1 << (typeSize(m_addressType) * 8) } }) {
         Symbol* number = m_symbolTable.createSymbol(SymbolKind::Number, limit.first, limit.first);
         number->type = m_types.universalInteger();
         number->isConstant = true;

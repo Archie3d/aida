@@ -4,6 +4,7 @@
 
 #include "adaio.h"
 #include "adaiotoken.h"
+#include "../common/Predefined.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -15,6 +16,14 @@
 #include <string.h>
 
 #define IMAGE_BUFFER_SIZE 64
+
+#define DEFINE_ASCII(display, name, value) const unsigned char __ada_ascii_##name = value;
+ADA_ASCII_CONSTANTS(DEFINE_ASCII)
+#undef DEFINE_ASCII
+const void* const __ada_system_null_address = NULL;
+const unsigned char __ada_system_name = kSystemName;
+const unsigned char __ada_system_bit_order = kSystemLowOrderFirst;
+const int __ada_system_default_priority = kSystemDefaultPriority;
 
 const AdaException __ada_exc_constraint_error = { "CONSTRAINT_ERROR" };
 const AdaException __ada_exc_program_error = { "PROGRAM_ERROR" };

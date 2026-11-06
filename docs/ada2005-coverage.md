@@ -195,7 +195,7 @@ inventory, while the linked contracts and tests establish the supported subset.
 | A.5.2 | Ada.Numerics.Float_Random; Ada.Numerics.Discrete_Random | Absent. Generator state, reset/reproducibility and generic discrete result profiles remain open | — | P8 predefined environment |
 | A.9 | Ada.Storage_IO | Absent. Audit external storage representation, buffer sizing and Read/Write | — | P8 predefined environment |
 | 3.9 | Ada.Tags.Generic_Dispatching_Constructor | Absent. Generic profile matching and tag-driven construction remain open | — | P8 predefined environment |
-| 13.7 | System | Compiler-provided Address, Storage_Unit, universal-real Tick, Fine_Delta and maximum moduli. Missing configuration/numeric limits, Null_Address, Word_Size, bit-order/priority declarations and callable address-ordering profiles are pinned in the [audit inventory](predefined-environment.md) | `predefinedprofiles`, `predefinedprofileerrors`, `baseline.predefined_inventory`, `modular*`, `fixedwide*`; C96008A/B PASS | P8 predefined environment and host ABI |
+| 13.7 | System | Public configuration/numeric limits, Null_Address, bit-order and priority subtypes/constants; unsigned address comparison profiles including renaming and generic actuals/defaults. [Target choices](standard-system.md); scheduling and nondefault layouts remain open | `standardfacilities`, `standardfacilityerrors`, `predefinedprofiles`, `baseline.predefined_inventory`; C96008A/B PASS | P8 declarations complete; P9 scheduling / P8 host validation |
 | 13.7.1–13.7.2 | System.Storage_Elements; System.Address_To_Access_Conversions | Absent. Address arithmetic and conversion contracts remain open | CD30002 has a Storage_Elements dependency | P8 predefined environment and host ABI |
 | 13.9–13.9.2 | Ada.Unchecked_Conversion and J.1 root view | Discrete scalars and packed Boolean arrays, equal logical bit counts, constrained target bounds; invalid scalar results raise Constraint_Error, mismatched sizes raise Program_Error ([contract](packed-arrays.md)) | `packedstorage`, `lengthcheckstorage`, `uncheckedconversionerrors`, `runtime.array_descriptors`; whole/separate/determinism and four workers | P8 CD2A22A subset complete; other representation categories remain P8 |
 | 13.11–13.11.1 | System.Storage_Pools | Absent. Default collections implemented, user-defined pools and pool-specific allocation/deallocation remain open | `runtime.shared_collections`; C761002 PASS for default collections | P8 predefined environment and storage management |
@@ -215,6 +215,7 @@ a separate Phase 8 item.
 | Extension | Ada.Text_IO.Scanning; wide and wide-wide Scanning children; Ada.IO_Handles | Runtime helpers for shared input and file ownership. Covered indirectly by `textinputgrammar`, `iofilelifetime` and wide I/O regressions | P7 I/O |
 | Extension | Ada.Strings.Generic_Hash; Ada.Strings.Wide_Support; Ada.Containers.Storage | Runtime helpers for hashing, sparse wide operations and container storage. Covered indirectly by `stringhashes`, `widehashes` and `container*` | P7 strings and containers |
 | Extension | Ada.Long_Integer_Text_IO; Ada.Long_Float_Text_IO and corresponding wide/wide-wide instances; Ada.Numerics.Long_Elementary_Functions | Additional predefined instances for AIDA's long scalar types. See [text I/O](text-io.md) and [wide text I/O](wide-text-io.md) | P7 libraries; P8 host numeric and I/O audit |
+| Core (obsolescent) | Standard.ASCII | All J.5 Character constants, static use and immutable object identity ([contract](standard-system.md)) | `standardfacilities`, `standardfacilityerrors`; C54A03A/C64005C PASS; C35502C RUN_FAILED for enumeration Value tab trimming | P8 declarations complete; P3/P8 scalar attribute correctness |
 | Core (obsolescent) | Calendar, IO_Exceptions, Text_IO, Direct_IO, Sequential_IO, Unchecked_Conversion, Unchecked_Deallocation | J.1 compatibility renamings of Ada children. Direct_IO/Sequential_IO profiles and per-instance Count identity are checked by `predefinedprofiles`; C761002 covers deallocation | P6e renaming; P8 predefined audit |
 
 ### Specialized Needs Annex follow-up
@@ -247,8 +248,8 @@ above and for C761010. B-test grading and the predefined-environment audit
 retain their existing roadmap items.
 
 The [predefined-environment audit](predefined-environment.md) verifies all 109
-source specs plus Standard/System, ten absent units and 22 partial-API gap
-observations. It repairs supported profiles and checks concurrent file/formatting
+source specs plus Standard/System and ten absent units. The original 22
+partial-API gaps now leave four Stream_IO guards after Standard/System implementation. It repairs supported profiles and checks concurrent file/formatting
 calls and POSIX terminal behavior. The listed missing library families remain
 unimplemented; the audit does not claim complete predefined-environment coverage.
 

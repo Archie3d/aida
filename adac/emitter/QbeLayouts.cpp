@@ -354,7 +354,8 @@ void QbeEmitter::initializeDependentStorage(const Value& object, Type* type)
 
 void QbeEmitter::preserveAccessView(const Value& value, Type* target, Type* source)
 {
-    if (target == source || target->accessProfile != nullptr || source->accessProfile != nullptr) { return; }
+    if (target == source || target->accessProfile != nullptr || source->accessProfile != nullptr
+        || target->target == nullptr || source->target == nullptr) { return; }
     bool array = target->target->kind == TypeKind::Array && !target->target->constrained;
     bool record = target->target->kind == TypeKind::Record && hasDefaultDiscriminants(target->target)
         && !target->accessConstant;

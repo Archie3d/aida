@@ -1180,14 +1180,18 @@ Ada 2005 additions and track annex packages separately.
   matrix and inventory, and replace the corresponding missing-unit/API-gap guards
   with executable checks before marking an item complete. The completed audit
   is evidence of the starting state, not completion of these implementations.
-  - [ ] **Standard and System declarations (J.2, 13.7).** Supply Standard.ASCII;
-    System Name/System_Name, numeric limits, Null_Address, Word_Size/Memory_Size,
-    Bit_Order/Default_Bit_Order, priority subtypes/Default_Priority and callable
-    address-comparison profiles, including renaming and generic actuals. Derive
-    values from the supported target model and preserve existing address identity
-    and universal-real Tick. Re-probe C35502C/C54A03A/C64005C after ASCII support.
-    Priority declarations do not complete Phase 9 scheduling; exposing Bit_Order
-    does not complete nondefault representation layout.
+  - [x] **Standard and System declarations (J.5, 13.7).** All Standard.ASCII
+    constants; System configuration/numeric limits, Null_Address, word/memory
+    sizes, bit order and priority subtypes/constants. Callable unsigned address
+    comparisons support renaming and generic actuals/defaults; related derived
+    address conversions preserve identity without ownership. Existing address
+    visibility and universal-real Tick remain. Whole/separate/deterministic and
+    four-worker controls: `standardfacilities` / `standardfacilityerrors`.
+    Unchanged C54A03A/C64005C pass; C35502C now runs and exposes the existing
+    enumeration Value tab-trimming defect (P3/P8). Priority scheduling and
+    nondefault representation layouts retain their later owners.
+    Release 1,803/1,803; 13 distinct focused ASan/UBSan checks pass.
+    [Choices and evidence](docs/standard-system.md).
   - [ ] **System.Storage_Elements (13.7.1).** Implement Storage_Offset/Count,
     Storage_Element/Array, Integer_Address, address arithmetic/mod and integer
     conversions with the required profiles and storage representation. Specify

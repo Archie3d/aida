@@ -122,7 +122,7 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
             return equal;
         }
         std::string temp = newTemp();
-        line(temp + " =w " + comparisonInstruction(expr->op, type, expr->left->type->modulus != 0) + " " + left.name + ", " + right.name);
+        line(temp + " =w " + comparisonInstruction(expr->op, type, (expr->left->type->modulus != 0 || expr->left->type->kind == TypeKind::Access)) + " " + left.name + ", " + right.name);
         return Value { temp, 'w' };
     }
     case BinaryOp::Modulo:
