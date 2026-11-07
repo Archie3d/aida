@@ -156,7 +156,8 @@ Supported:
 - Narrow and wide text I/O, nested numeric/enumeration generics and scoped file cleanup
   ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); bounded/unbounded string adapters
   and type-aware streams ([streaming](docs/streaming.md)); positioned stream-file I/O
-  with mode changes and flush ([contract](docs/stream-io.md))
+  with mode changes and flush ([contract](docs/stream-io.md)), plus narrow/wide
+  text stream views ([contract](docs/text-streams.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
   subunits ([limits](docs/subunits.md))
@@ -177,8 +178,8 @@ Not supported yet:
 - Derivation before a private view is completed
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
-- Predefined facilities including general unchecked conversion and the text stream children;
-  remaining storage-pool representation limits are [documented](docs/storage-pools.md)
+- General unchecked conversion; remaining storage-pool representation limits
+  are [documented](docs/storage-pools.md)
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).

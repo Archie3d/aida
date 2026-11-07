@@ -165,13 +165,22 @@ static int inputEnd(AdaFile* file)
 
 static size_t inputBytes(AdaFile* file, void* destination, size_t length)
 {
-    if (!pipeInput(file)) { return fread(destination, 1, length, file->stream); }
+    if (length == 0) { return 0; }
     unsigned char* bytes = destination;
     size_t used = 0;
     if (length != 0 && file->byteLookahead != 0) {
         bytes[used++] = (unsigned char)(file->byteLookahead - 1);
         file->byteLookahead = 0;
     }
+    size_t queued = length - used < (size_t)file->replayCount ? length - used : (size_t)file->replayCount;
+    if (queued != 0) {
+        memcpy(bytes + used, file->replay, queued);
+        file->replayCount -= (int)queued;
+        memmove(file->replay, file->replay + queued, (size_t)file->replayCount);
+        used += queued;
+    }
+    if (used == length) { return used; }
+    if (!pipeInput(file)) { return used + fread(bytes + used, 1, length - used, file->stream); }
     while (used < length) {
 #ifdef _WIN32
         DWORD count = 0;
@@ -198,25 +207,65 @@ static size_t inputBytes(AdaFile* file, void* destination, size_t length)
 
 static int inputByte(AdaFile* file)
 {
-    if (!pipeInput(file)) { return fgetc(file->stream); }
     unsigned char byte;
-    return inputBytes(file, &byte, 1) == 1 ? byte : EOF;
+    if (inputBytes(file, &byte, 1) == 0) { return EOF; }
+    if (file->capturing) {
+        if (file->captureCount == ADA_TEXT_CAPTURE) { abort(); }
+        file->capture[file->captureCount++] = byte;
+    }
+    return byte;
 }
 
 static void unreadByte(AdaFile* file, int byte)
 {
-    if (!pipeInput(file)) { ungetc(byte, file->stream); return; }
-    if (byte != EOF) {
-        file->byteLookahead = (unsigned char)byte + 1;
-        file->inputEnd = 0;
+    if (byte == EOF) { return; }
+    if (file->capturing) {
+        if (file->captureCount == 0 || file->capture[file->captureCount - 1] != byte) { abort(); }
+        --file->captureCount;
     }
+    if (!file->text && !pipeInput(file)) { ungetc(byte, file->stream); return; }
+    file->byteLookahead = (unsigned char)byte + 1;
+    file->inputEnd = 0;
 }
 
 static void resetInput(AdaFile* file)
 {
     file->pendingCount = file->utf8Count = 0;
+    file->capturing = file->captureCount = file->replayCount = 0;
     file->pipeInput = file->byteLookahead = 0;
     file->inputEnd = file->inputError = 0;
+}
+
+static void dropPending(AdaFile* file)
+{
+    --file->pendingCount;
+    memmove(file->pending, file->pending + 1, (size_t)file->pendingCount * sizeof *file->pending);
+    memmove(file->pendingRawLength, file->pendingRawLength + 1,
+        (size_t)file->pendingCount * sizeof *file->pendingRawLength);
+    memmove(file->pendingRaw, file->pendingRaw + 1, (size_t)file->pendingCount * sizeof *file->pendingRaw);
+}
+
+/* Transfer decoded lookahead back to its exact external bytes. Existing raw
+   replay and an incomplete nonblocking UTF-8 prefix follow decoded lookahead. */
+static void restoreTextLookahead(AdaFile* file)
+{
+    unsigned char bytes[ADA_TEXT_REPLAY];
+    int length = 0;
+    for (int i = 0; i < file->pendingCount; ++i) {
+        int count = file->pendingRawLength[i];
+        if (length + count > ADA_TEXT_REPLAY) { abort(); }
+        memcpy(bytes + length, file->pendingRaw[i], (size_t)count);
+        length += count;
+    }
+    if (length + file->utf8Count + (file->byteLookahead != 0) + file->replayCount > ADA_TEXT_REPLAY) { abort(); }
+    memcpy(bytes + length, file->utf8Pending, (size_t)file->utf8Count);
+    length += file->utf8Count;
+    if (file->byteLookahead != 0) { bytes[length++] = (unsigned char)(file->byteLookahead - 1); }
+    memcpy(bytes + length, file->replay, (size_t)file->replayCount);
+    length += file->replayCount;
+    memcpy(file->replay, bytes, (size_t)length);
+    file->replayCount = length;
+    file->pendingCount = file->utf8Count = file->byteLookahead = 0;
 }
 
 /* Logical text lookahead has its own queue: ISO C promises only one byte of
@@ -224,13 +273,21 @@ static void resetInput(AdaFile* file)
 int __ada_text_peek(AdaFile* file, int offset)
 {
     while (file->pendingCount <= offset) {
+        if (file->pendingCount == ADA_TEXT_LOOKAHEAD) { abort(); }
+        file->capturing = 1;
+        file->captureCount = file->utf8Count;
+        memcpy(file->capture, file->utf8Pending, (size_t)file->utf8Count);
         int c = file->textWidth > 1 ? wideReadCode(file) : inputByte(file);
         if (file->text && c == '\r') {
             int next = inputByte(file);
             if (next != '\n' && next != EOF) { unreadByte(file, next); }
             c = '\n';
         }
-        file->pending[file->pendingCount++] = c;
+        file->capturing = 0;
+        int slot = file->pendingCount++;
+        file->pending[slot] = c;
+        file->pendingRawLength[slot] = file->captureCount;
+        memcpy(file->pendingRaw[slot], file->capture, (size_t)file->captureCount);
         if (c == EOF) { break; }
     }
     return offset < file->pendingCount ? file->pending[offset] : EOF;
@@ -243,8 +300,7 @@ int __ada_text_take(AdaFile* file)
         if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); }
         return EOF;
     }
-    --file->pendingCount;
-    memmove(file->pending, file->pending + 1, (size_t)file->pendingCount * sizeof(int));
+    dropPending(file);
     if (c == '\n') { file->column = 1; ++file->line; }
     else if (c == '\f') { file->column = file->line = 1; ++file->page; }
     else { ++file->column; }
@@ -1592,6 +1648,7 @@ static void __ada_stream_readImpl(AdaFile* stream, void* item, int64_t size)
         return;
     }
     if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    if (size != 0 && stream->text) { restoreTextLookahead(stream); }
     if (inputBytes(stream, item, (size_t)size) != (size_t)size) {
         __ada_raise(inputError(stream) ? ADA_DEVICE_ERROR : ADA_END_ERROR);
     }
@@ -1609,6 +1666,7 @@ static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int64_t si
     }
     if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
     if (!streamWriteFits(stream, size)) { return; }
+    if (size != 0 && stream->text) { stream->pageTerminated = 0; }
     if (fwrite(item, 1, (size_t)size, stream->stream) != (size_t)size) {
         __ada_raise(ADA_DEVICE_ERROR);
     }
@@ -1686,6 +1744,7 @@ static void __ada_stream_elements_readImpl(AdaFileRef handle, void* item, int le
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
     if (file == NULL) { return; }
     if (length < 0) { __ada_raise(ADA_CONSTRAINT_ERROR); return; }
+    if (length != 0 && file->text) { restoreTextLookahead(file); }
     size_t got = length == 0 ? 0 : inputBytes(file, item, (size_t)length);
     int64_t final = (int64_t)first + (int64_t)got - 1;
     if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); return; }
@@ -1697,6 +1756,7 @@ static void __ada_stream_elements_writeImpl(AdaFileRef handle, const void* item,
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
     if (file == NULL || !streamWriteFits(file, length)) { return; }
+    if (length != 0 && file->text) { file->pageTerminated = 0; }
     if (length != 0 && fwrite(item, 1, (size_t)length, file->stream) != (size_t)length) {
         __ada_raise(ADA_DEVICE_ERROR);
     }
@@ -1941,13 +2001,13 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
         return;
     }
 #ifdef _WIN32
-    if (file->pendingCount == 0 && _isatty(_fileno(file->stream))) {
+    if (file->pendingCount == 0 && file->replayCount == 0 && _isatty(_fileno(file->stream))) {
         if (!wait && !_kbhit()) { return; }
         *item = (char)_getch();
         *available = 1;
         return;
     }
-    if (!wait && file->pendingCount == 0) {
+    if (!wait && file->pendingCount == 0 && file->replayCount == 0) {
         HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file->stream));
         if (GetFileType(handle) == FILE_TYPE_PIPE) {
             DWORD ready = 0;
@@ -1958,7 +2018,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
     }
 #else
     struct termios saved;
-    int terminal = file->pendingCount == 0 && isatty(fileno(file->stream));
+    int terminal = file->pendingCount == 0 && file->replayCount == 0 && isatty(fileno(file->stream));
     if (terminal) {
         if (tcgetattr(fileno(file->stream), &saved) != 0) { __ada_raise(ADA_DEVICE_ERROR); return; }
         struct termios raw = saved;
@@ -1966,7 +2026,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
         raw.c_cc[VMIN] = 1; raw.c_cc[VTIME] = 0;
         if (tcsetattr(fileno(file->stream), TCSANOW, &raw) != 0) { __ada_raise(ADA_DEVICE_ERROR); return; }
     }
-    if (!wait && file->pendingCount == 0) {
+    if (!wait && file->pendingCount == 0 && file->replayCount == 0) {
         struct pollfd descriptor = {fileno(file->stream), POLLIN, 0};
         int status;
         do { status = poll(&descriptor, 1, 0); } while (status < 0 && errno == EINTR);
@@ -1983,8 +2043,7 @@ static void textImmediate(AdaFile* file, char* item, int* available, int wait)
     if (file->pendingCount != 0) {
         c = file->pending[0];
         if (c != EOF) {
-            --file->pendingCount;
-            memmove(file->pending, file->pending + 1, (size_t)file->pendingCount * sizeof(int));
+            dropPending(file);
         }
     } else { c = inputByte(file); }
 #ifndef _WIN32
@@ -2335,8 +2394,7 @@ static void __ada_wtext_read_characterImpl(AdaFileRef handle, void* item, int wi
         }
         if (operation == 0) { __ada_text_take(file); }
         else if (operation >= 2) {
-            --file->pendingCount;
-            memmove(file->pending, file->pending + 1, (size_t)file->pendingCount * sizeof(int));
+            dropPending(file);
         }
     }
     if (width == 2 && code > 65535) { __ada_raise(ADA_DATA_ERROR); return; }

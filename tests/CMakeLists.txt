@@ -2602,5 +2602,40 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(baseline.stream_io_acats_sources PROPERTIES TIMEOUT 30 LABELS baseline)
 endif()
 
+
+foreach(text_stream_case textstreams widetextstreams widewidetextstreams textstreamsvalues)
+    add_ada_test(${text_stream_case} SOURCES io/${text_stream_case}.adb)
+    add_determinism_test(${text_stream_case} SOURCE io/${text_stream_case}.adb)
+    add_test(NAME runtime.${text_stream_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/io/${text_stream_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/io/${text_stream_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${text_stream_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${text_stream_case} determinism.${text_stream_case}
+        runtime.${text_stream_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+add_executable(text_streams_test TextStreamsTest.c)
+target_link_libraries(text_streams_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.text_streams COMMAND text_streams_test)
+add_test(NAME runtime.text_streams_standard
+    COMMAND ${CMAKE_COMMAND} -DADA=$<TARGET_FILE:ada>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/text-streams-standard
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckTextStreamsStandard.cmake)
+set_tests_properties(runtime.text_streams_standard PROPERTIES TIMEOUT 120)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME baseline.text_streams_acats
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/text_streams/check.py
+            --ada $<TARGET_FILE:ada> --work ${ADA_TEST_WORK_DIR}/text-streams-acats)
+    set_tests_properties(baseline.text_streams_acats PROPERTIES TIMEOUT 120 LABELS baseline)
+endif()
+
 add_subdirectory(robustness)
 aida_finalize_tests()

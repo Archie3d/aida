@@ -17,6 +17,9 @@
 #define ADA_MODE_ANY (-1)
 
 struct AdaTag;
+#define ADA_TEXT_LOOKAHEAD 4
+#define ADA_TEXT_CAPTURE 8
+#define ADA_TEXT_REPLAY 64
 typedef struct AdaFileStream
 {
     struct AdaTag* tag;
@@ -45,8 +48,12 @@ typedef struct AdaFile
     int byteLookahead; /* Raw pipe byte plus one; zero means empty. */
     int inputEnd, inputError; /* Raw pipe input has no stdio EOF/error flags. */
     int pageTerminated;
-    int pending[4];
+    int pending[ADA_TEXT_LOOKAHEAD];
     int pendingCount;
+    unsigned char pendingRaw[ADA_TEXT_LOOKAHEAD][ADA_TEXT_CAPTURE];
+    int pendingRawLength[ADA_TEXT_LOOKAHEAD];
+    unsigned char capture[ADA_TEXT_CAPTURE], replay[ADA_TEXT_REPLAY];
+    int capturing, captureCount, replayCount;
     uint64_t column, line, page;
     int lineLength, pageLength;
     AdaFileStream streamView; /* A stable tagged stream view for this pool slot. */

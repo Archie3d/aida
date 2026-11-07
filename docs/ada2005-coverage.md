@@ -173,7 +173,7 @@ inventory, while the linked contracts and tests establish the supported subset.
 | A.10.10 | Ada.Text_IO.Enumeration_IO | Enumeration input/output subset | `enumio` | P7 Text_IO |
 | A.11 | Ada.Wide_Text_IO; Ada.Wide_Wide_Text_IO; nested numeric/enumeration generics; standard numeric instances | Native 16/32-bit text, strict UTF-8 files, character positions/layout, lookahead/immediate input, string profiles, selected/borrowed file lifetime ([contract](wide-text-io.md)); bounded/unbounded children now use native wide strings; host formatting/terminal audit remains | `wideiolibrary`, `widewideiolibrary` whole/per-unit/determinism; four-thread `runtime.wide_text_io`; unchanged CXAB001 PASS | P7 wide text-I/O substep complete; P7 wide strings; P8 host/format audit |
 | 13.13.1 | Ada.Streams | Root stream abstraction, modular byte Stream_Element, component/bounds/discriminant streaming, Stream_Size, custom attributes and controlled/class-wide results ([contract](streaming.md)) | `streammemory`, `streamrecords`, `streamclasswide`, `streamsizes`, `runtime.stream_dispatch`; CDD1001/CDD2B01 PASS | P7 streaming; P8 broader audit |
-| A.12.2–A.12.4 | Text_IO.Text_Streams; Wide_Text_IO.Text_Streams; Wide_Wide_Text_IO.Text_Streams | Absent. Mixed binary/text operations need checks for lookahead and UTF-8 state | Missing-unit diagnostic; upstream CXAC004 remains outside the selected passing cohort | P8 predefined-environment/stream-I/O audit |
+| A.12.2–A.12.4 | Text_IO.Text_Streams; Wide_Text_IO.Text_Streams; Wide_Wide_Text_IO.Text_Streams | Complete profiles and borrowed stream views; exact raw replay of text lookahead/UTF-8 prefixes, unchanged text counts and ordinary file lifetime ([contract](text-streams.md)); cross-family standard-handle lookahead and native-host limits remain explicit | `textstreams*`, `widetextstreams`, `widewidetextstreams`, native/shared/pipe/standard/type checks; whole/separate/determinism; unchanged CXAC004 RUN_FAILED on separately tracked Unbounded_String composite equality | P8 children complete; equality correctness and host validation remain separate |
 | A.12.1 | Ada.Streams.Stream_IO | Complete operations, atomic positioned transfers, nontruncating reset/open, mode/flush, owned/borrowed file lifetime and stable stream adapters; 32-bit counts, 32-file pool and nonpositionable-operation limits ([contract](stream-io.md)) | `streamoperations`, `streamoperationstasking`, native boundaries/pipe/device/ownership and four-worker controls; whole/separate/determinism; unchanged CXAC002/CXAC005/CXAC006/CXAC008/CXAA019 PASS | P8 complete for documented host limits; cross-host execution remains open |
 | A.15 | Ada.Command_Line | Arguments/environment exit status | `commandline`, `runtime.shared_tables` | P8 |
 | A.18.1–A.18.16 | Ada.Containers; definite/indefinite vectors, lists, hashed/ordered maps and sets; sorting utilities | Ada 2005 APIs, shared controlled ownership, cursors/tampering, key projections, set algebra, mutable definite components and exception cleanup; logical streaming of keys/elements; Preelaborate categories and initialization promises; later language additions remain separate ([contract](library-collections.md)) | `container*`, `basicvectors`, `vectorlifetime`, `librarycollectiontasking`; whole/per-unit/determinism, AVL invariants, focused ASan/UBSan and C-runtime TSan; unchanged Amendment CXAI001–CXAI006/CXAIA01–CXAIA06 PASS | P7 container-family and categorization complete for supported actual types |
@@ -248,12 +248,12 @@ rejection for the existing access-to-array subtype constraint limit recorded
 above and for C761010. B-test grading and the predefined-environment audit
 retain their existing roadmap items.
 
-The [predefined-environment audit](predefined-environment.md) verifies all 118
-source specs (including System), builtin Standard and three absent units. The original 22
+The [predefined-environment audit](predefined-environment.md) verifies all 121
+source specs (including System), builtin Standard and no absent units. The original 22
 partial-API gaps now have executable controls after Standard/System and
 Stream_IO implementation. It repairs supported profiles and checks concurrent
-file/formatting calls and POSIX terminal behavior. The listed missing library families remain
-unimplemented; the audit does not claim complete predefined-environment coverage.
+file/formatting calls and POSIX terminal behavior. All originally missing inventoried units now resolve; implementation restrictions
+and known semantic defects remain explicit, including CXAC004 composite equality.
 
 The missing families and partial APIs have explicit, dependency-ordered
 [Phase 8 implementation items](../TODO.md#predefined-library-implementation),

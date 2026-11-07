@@ -103,3 +103,7 @@ record/aggregate restrictions. Those whole-source gaps are not counted as passes
 The contracts follow Ada 2005 RM [13.13.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-13-1.html),
 [13.13.2](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-13-13-2.html)
 and [A.12.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-A-12-1.html).
+
+The [three Text_Streams children](text-streams.md) expose the same stream
+operations for text files, with exact byte replay of text lookahead and no
+changes to logical column/line/page counts during raw transfers.

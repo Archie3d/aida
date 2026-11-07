@@ -9,8 +9,8 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 118 source specifications plus builtin Standard: 119 resolving
-units, with three absent units. System is now an analyzed source specification,
+inventory covers 121 source specifications plus builtin Standard: 122 resolving
+units, with no absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
 missing-unit diagnostics.
@@ -35,9 +35,11 @@ inventory also records their shared Random_Engine implementation child.
 tag-selected construction, concrete/descendant/master checks and ordinary
 controlled/limited result ownership.
 
-| Missing unit/family | Ada 2005 reference | Existing gap |
-| --- | --- | --- |
-| Text_IO.Text_Streams and both wide families | A.12.2–A.12.4 | Mixed byte/text operations, lookahead and UTF-8 state |
+The [Text_Streams children](text-streams.md) now provide all three widths,
+including exact raw/text lookahead replay, UTF-8 boundaries and stream-view
+lifetimes. Every inventoried unit resolves. CXAC004 reaches execution but exposes
+an existing Unbounded_String composite-equality defect, tracked separately;
+unit availability does not establish complete behavior or conformance.
 
 The original audit pinned 22 partial-API observations: missing System names
 and callable address-ordering profiles, Stream_IO's positioned overloads,

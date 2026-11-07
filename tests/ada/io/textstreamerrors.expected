@@ -1,0 +1,5 @@
+textstreamerrors.adb:15:42: error: no visible subprogram matches this call
+textstreamerrors.adb:16:47: error: no visible subprogram matches this call
+textstreamerrors.adb:17:53: error: no visible subprogram matches this call
+textstreamerrors.adb:18:5: error: the assigned value has an incompatible type
+textstreamerrors.adb:19:5: error: the assigned value has an incompatible type

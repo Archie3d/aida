@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/simonjwright/ACATS",
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "cases": [
+    {
+      "id": "cxac004",
+      "source": "upstream/cxac004.a",
+      "original_path": "tests/cxa/cxac004.a",
+      "sha256": "ea2488b007ea7bb6b848699bca69050202bd14d3a60d1d60e045d484c21eed49",
+      "git_blob": "9cc88b93cfb29daea171881206c073a7442cbca6",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "RUN_FAILED",
+      "reason": "Predefined composite equality of Unbounded_String representations compares owning pointers; stream contents round-trip correctly.",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ],
+      "expected_stdout": "TEST CXAC004\nFAILED Unbounded_String values do not match\nFAILED Unbounded_String array values do not match\nFAILED Unexpected exception\n",
+      "expected_stderr": "\nraised PROGRAM_ERROR\n"
+    }
+  ]
+}

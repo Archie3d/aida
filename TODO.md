@@ -1172,7 +1172,7 @@ Ada 2005 additions and track annex packages separately.
   they are not claimed implemented by this audit. Native Windows/MSYS2 and
   other targets retain the existing host-validation item.
   [Audit, API boundaries and evidence](docs/predefined-environment.md).
-- [ ] Implement the missing predefined facilities identified by the audit,
+- [x] Implement the missing predefined facilities identified by the audit,
   in the dependency order below. Each item requires its Ada 2005 declarations
   and behavior, positive/legality/error-path controls, whole/separate/deterministic
   compilation, concurrent-call/lifetime checks where applicable, and reviewed
@@ -1293,12 +1293,27 @@ Ada 2005 additions and track annex packages separately.
     guards replaced with executable controls. Release 1,879/1,879, 18 focused
     ASan/UBSan and one native TSan check pass; all 145 original backfill outcomes
     unchanged. [Contract](docs/stream-io.md).
-  - [ ] **Text_Streams children (A.12.2–A.12.4).** Implement Text_IO.Text_Streams,
+  - [x] **Text_Streams children (A.12.2–A.12.4).** Implement Text_IO.Text_Streams,
     Wide_Text_IO.Text_Streams and Wide_Wide_Text_IO.Text_Streams, including their
     Stream_Access types and Stream functions. Define raw stream/text interleaving
     over lookahead, pending CR/LF and UTF-8 decoder state. Check current/standard
     and explicit files, multibyte boundaries, EOF/errors, mode changes, close/reset,
     borrowed-view lifetime and concurrent calls across all three widths.
+    Added all three child profiles and shared locked stream adapters. Exact
+    byte replay preserves decoded lookahead, CR/LF/form-feed and partial UTF-8
+    without seeking or changing text counts; reset, mode and ownership follow
+    the parent file. Four whole/separate/deterministic programs, standard/current
+    file/pipe and legality checks, four Ada/native workers and shared raw/text
+    writers cover the boundaries. All 122 inventoried units resolve, with no
+    remaining missing-unit/API-gap guards. CXAC004 now reaches its scenario;
+    its existing Unbounded_String composite-equality failure is recorded as
+    RUN_FAILED, not PASS. Release 1,894/1,894, 20 focused ASan/UBSan and one
+    native TSan check pass; all 145 original backfill outcomes unchanged.
+    [Contract and evidence](docs/text-streams.md).
+- [ ] Repair Unbounded_String predefined composite equality (CXAC004): scalar
+  and array element contents round-trip through streams, but arrays compare
+  private owning pointers. Review the private representation and tagged-component
+  primitive equality rules in 4.5.2; preserve Ada 2005 untagged equality semantics.
 - [ ] Add B-test grading for expected error locations, allowed diagnostic
   groups, recovery and legal controls. Rejection for an unrelated unsupported
   construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol
