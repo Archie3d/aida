@@ -1,8 +1,10 @@
 # Host and target validation
 
-Phase 8 has native **Darwin arm64** evidence and prepared checks for the other
-hosts. The roadmap item remains open until their native runs and matched
-performance comparisons are available. CI configuration is not execution evidence.
+Phase 8 has successful native **Darwin arm64 and Linux amd64/arm64** evidence.
+The supplied MSYS2 run passed 1,928/1,936 tests, including threading and mixed
+ABI controls. Its eight failures have [targeted fixes](msys2-ci-fixes.md) awaiting
+a native rerun. The roadmap item remains open for that confirmation and matched
+historical performance comparisons. [Pinned CI results](host-validation-ci.json).
 
 ## Native evidence
 
@@ -36,7 +38,7 @@ ADA_INCLUDE_PATH and ADA_RUNTIME, preserves spaces, recognizes both directory
 separators and supports `.exe` discovery for bare PATH invocations. Lexical
 Windows controls run locally; native Windows process/path behavior is pending.
 
-## Prepared native matrix
+## Native matrix
 
 macOS validation is performed locally rather than in GitHub Actions. Darwin
 arm64 has the native evidence above; Darwin amd64 remains unvalidated and
@@ -49,16 +51,17 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 
 | Host | Prepared runner | Execution status |
 | --- | --- | --- |
-| Linux amd64 | ubuntu-24.04, lib64 | Pending native run |
-| Linux arm64 | ubuntu-24.04-arm, lib | Pending native run |
+| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,937/1,937 PASS |
+| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,937/1,937 PASS |
 | Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
-| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Pending native run, including threading |
+| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | 1,928/1,936 PASS; threading/ABI pass; eight fixes await rerun |
 
 Runner labels follow GitHub's [native runner inventory](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Windows uses the documented [MSYS2 UCRT64 setup](https://github.com/msys2/setup-msys2).
 The workflow preserves JUnit, CTest diagnostics, relocation logs, ABI facts and
-current timing samples per runner. It has not been dispatched from this session.
+current timing samples per runner. The user supplied completed native Linux/MSYS2 run artifacts; the corrected
+MSYS2 job has not yet run.
 Cross-assembly controls elsewhere in the suite are not native execution evidence.
 The driver continues to target its build host/toolchain; no cross-compilation
 option, 32-bit target or big-endian target is added.

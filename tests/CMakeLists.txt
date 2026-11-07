@@ -2243,6 +2243,7 @@ add_test(NAME runtime.discreteranges_modes
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
         -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/discreteranges.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/discreteranges-modes
@@ -2261,6 +2262,7 @@ add_test(NAME runtime.accesssubtypes_modes
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
         -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/access/accesssubtypes.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/access/accesssubtypes.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/accesssubtypes-modes
@@ -2286,6 +2288,7 @@ add_test(NAME runtime.genericchildren_modes
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
         -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/generics/genericchildren.adb
         -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/generics/genericchildren.expected
         -DWORKDIR=${ADA_TEST_WORK_DIR}/genericchildren-modes
@@ -2702,6 +2705,9 @@ add_test(NAME host.abi_modes
 set_tests_properties(host.paths host.abi_layout host.abi_modes determinism.hostabi
     PROPERTIES TIMEOUT 60 LABELS "host")
 if(Python3_Interpreter_FOUND)
+    add_test(NAME host.harness_protocol
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/test_harness.py)
+    set_tests_properties(host.harness_protocol PROPERTIES TIMEOUT 30 LABELS "host")
     add_test(NAME host.install_relocation
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/check_install.py
             --cmake ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}

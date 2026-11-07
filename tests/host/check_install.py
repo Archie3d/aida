@@ -11,8 +11,16 @@ import tempfile
 
 
 def run(command, directory, environment, expected=None):
+    # Windows CreateProcess does not search the replacement environment's
+    # PATH. Select the executable explicitly while preserving bare argv[0],
+    # so the child's own installed-toolchain PATH discovery is still tested.
+    executable = None
+    if not os.path.dirname(str(command[0])):
+        executable = shutil.which(str(command[0]), path=environment.get('PATH', ''))
+        if executable is None:
+            raise FileNotFoundError(f"executable not found on test PATH: {command[0]}")
     result = subprocess.run(list(map(str, command)), cwd=directory, env=environment,
-                            capture_output=True, text=True, timeout=60)
+                            executable=executable, capture_output=True, text=True, timeout=60)
     if result.returncode != 0 or (expected is not None and (result.stdout != expected or result.stderr)):
         raise RuntimeError(f"command failed: {command}\n{result.returncode}\n{result.stdout}{result.stderr}")
     return result

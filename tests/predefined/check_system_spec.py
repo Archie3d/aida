@@ -53,12 +53,13 @@ def run(command, expected=0):
 
 
 program = work / ('systemsource' + args.exe_suffix)
+objects = work / 'objects'
 # Reuse the same output/cache while changing a static constant in a dependency.
 for priority in (7, 9):
     spec.write_text(original.replace("(Priority'First + Priority'Last) / 2", str(priority)))
-    run([args.ada.resolve(), '-o', program, spec, source])
+    run([args.ada.resolve(), '-D', objects, '-o', program, spec, source])
     assert run([program]).stdout == f' {priority}\n'
-    manifest = (work / 'systemsource.adaobj/units.manifest').read_text()
+    manifest = (objects / 'units.manifest').read_text()
     assert 'system.spec' in manifest, manifest
     assert str(spec) in manifest, manifest
 

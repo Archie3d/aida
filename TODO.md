@@ -1364,9 +1364,17 @@ Ada 2005 additions and track annex packages separately.
     Add alternating scalar/image/block/allocation comparisons with optional
     matched baseline toolchains. Local current-only samples and a paired harness
     self-control are recorded without claiming the no-slowdown goal.
-  - [ ] Obtain and triage other native runs, including the full MSYS2 suite and
-    Phase 2 threading. Collect matched before/after performance evidence on
-    other hosts/targets; CI preparation and entry-cost models do not close this.
+  - [x] Triage supplied native CI artifacts: Ubuntu amd64/arm64 each pass
+    1,937/1,937. MSYS2 passes 1,928/1,936, including Phase 2 threading, LLP64
+    layout and mixed ABI. Fix source-alias identity, three omitted stack-probe
+    arguments, a cache suffix assumption, Python PATH lookup and CRLF grading.
+    All 309 whole/per-unit mode registrations supply the stack probe; nine
+    affected/harness checks pass locally in Release and ASan/UBSan; the full
+    Darwin arm64 regression suite passes 1,938/1,938.
+    [Failure analysis and pinned results](docs/msys2-ci-fixes.md).
+  - [ ] Confirm the corrected full MSYS2 run. Collect matched before/after
+    performance evidence on other hosts/targets; current-only timing records
+    and entry-cost models do not close the no-slowdown goal.
   [Contract, commands and evidence](docs/host-validation.md).
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.

@@ -53,6 +53,15 @@ kFailures = {
 }
 
 
+def validExecution(name, result):
+    if grading.baseline.abnormal(result):
+        return False
+    output = result['stdout'].replace('\r\n', '\n')
+    if name == 'positive':
+        return result['exit'] == 0 and not result['stderr'] and output == 'TEST SUPPORT\nPASSED\n'
+    return result['exit'] == 1 and 'FAILED ' in output and 'PASSED' not in output
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ada', type=Path, required=True)
@@ -76,11 +85,7 @@ def main():
             executed = grading.baseline.runCommand([str(program)], 5)
             if grading.baseline.abnormal(executed):
                 raise ValueError(f"{name}: abnormal execution: {executed}")
-            if name == 'positive':
-                valid = executed['exit'] == 0 and not executed['stderr'] and executed['stdout'] == 'TEST SUPPORT\nPASSED\n'
-            else:
-                valid = executed['exit'] > 0 and 'FAILED ' in executed['stdout'] and 'PASSED' not in executed['stdout']
-            if not valid:
+            if not validExecution(name, executed):
                 raise ValueError(f"{name}: incorrect grading: {executed}")
             print(name + ': verified')
     return 0

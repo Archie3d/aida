@@ -7,8 +7,19 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <memory>
 #include <sstream>
 #include <utility>
+
+#ifdef _WIN32
+#   ifndef _WIN32_WINNT
+#       define _WIN32_WINNT 0x0600
+#   endif
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   include <windows.h>
+#endif
 
 namespace {
 
@@ -59,6 +70,26 @@ std::string parentOf(const std::string& unitName)
 
 std::string sourceIdentity(const std::string& path)
 {
+#ifdef _WIN32
+    // MinGW's filesystem canonicalization can retain a symbolic-link name.
+    // Resolve the opened target through Windows instead, without changing
+    // the original spelling used for diagnostics and manifest source paths.
+    HANDLE handle = CreateFileW(nativePath(path).c_str(), 0,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+        OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (handle != INVALID_HANDLE_VALUE) {
+        std::unique_ptr<void, decltype(&CloseHandle)> file(handle, &CloseHandle);
+        DWORD length = GetFinalPathNameByHandleW(file.get(), nullptr, 0, FILE_NAME_NORMALIZED);
+        if (length != 0) {
+            std::wstring resolved(length, L'\0');
+            DWORD written = GetFinalPathNameByHandleW(file.get(), resolved.data(), length, FILE_NAME_NORMALIZED);
+            if (written != 0 && written < length) {
+                resolved.resize(written);
+                return pathUtf8(std::filesystem::path(resolved));
+            }
+        }
+    }
+#endif
     std::error_code error;
     auto canonical = std::filesystem::weakly_canonical(nativePath(path), error);
     return error ? path : pathUtf8(canonical);
