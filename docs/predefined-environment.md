@@ -9,8 +9,8 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 117 source specifications plus builtin Standard: 118 resolving
-units, with four absent units. System is now an analyzed source specification,
+inventory covers 118 source specifications plus builtin Standard: 119 resolving
+units, with three absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
 missing-unit diagnostics.
@@ -31,9 +31,12 @@ Positive Storage_Size and specified-pool arena-result limitations remain explici
 generators, all reset/state operations and full-width discrete sampling. The
 inventory also records their shared Random_Engine implementation child.
 
+[Ada.Tags.Generic_Dispatching_Constructor](dispatching-constructors.md) now supplies
+tag-selected construction, concrete/descendant/master checks and ordinary
+controlled/limited result ownership.
+
 | Missing unit/family | Ada 2005 reference | Existing gap |
 | --- | --- | --- |
-| Tags.Generic_Dispatching_Constructor | 3.9 | Generic profiles and construction by tag |
 | Text_IO.Text_Streams and both wide families | A.12.2–A.12.4 | Mixed byte/text operations, lookahead and UTF-8 state |
 
 The original audit pinned 22 partial-API observations: missing System names

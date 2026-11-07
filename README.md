@@ -127,7 +127,8 @@ Supported:
 - Generics with private/indefinite, discriminated, derived, tagged, interface and access formals ([limits](docs/generic-types.md));
   abstract formals, null defaults, attribute/literal actuals, nonstatic array matching,
   checked contracts, access and limited `in` objects, formal packages with partial actual lists and class-wide derived actuals with dispatch wrappers;
-  tagged dispatching and prefixed calls ([limits](docs/prefixed-calls.md))
+  tagged dispatching and prefixed calls ([limits](docs/prefixed-calls.md));
+  tag-selected constructors ([contract](docs/dispatching-constructors.md))
 - Named and anonymous object access, access-to-constant, accessibility checks,
   nested/protected callbacks and coextensions ([limits](docs/anonymous-access.md));
   object [`Unchecked_Access`](docs/unchecked-access.md)

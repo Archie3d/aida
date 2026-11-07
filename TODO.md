@@ -1261,12 +1261,22 @@ Ada 2005 additions and track annex packages separately.
     Release 1,842/1,842, 11 focused ASan/UBSan and one TSan check pass; all 145
     original backfill outcomes unchanged.
     [Algorithm, period, format and evidence](docs/random.md).
-  - [ ] **Ada.Tags.Generic_Dispatching_Constructor (3.9).** Implement the required
+  - [x] **Ada.Tags.Generic_Dispatching_Constructor (3.9).** Implement the required
     generic formals and tag-selected constructor call. Cover derived/private and
     interface ancestry, concrete/abstract tags, controlling results, parameter
     forwarding, accessibility, Tag_Error and constructor exceptions, and result
     ownership/finalization. Include required dispatch/lowering prerequisites
     within this item.
+    Implemented the intrinsic generic and checked primitive dispatch, capturing
+    instance/tag masters independently of static links. Parameter/access-level
+    forwarding, operand evaluation and result destinations preserve ordinary
+    controlled/limited ownership. Six functional programs cover private,
+    inherited/interface/discriminated types, library/local accessibility,
+    exceptions, nulls, forwarding and allocation; whole/separate/determinism,
+    four Ada/native workers, legality/profile and harness controls. Unchanged
+    Ada 2005 C390012 PASS; Release 1,866/1,866, 26 focused ASan/UBSan and
+    one native TSan check pass. All 145 original backfill outcomes unchanged.
+    [Contract and evidence](docs/dispatching-constructors.md).
   - [ ] **Complete Ada.Streams.Stream_IO operations (A.12.1).** Add positioned
     Read/Write overloads, Set_Mode and Flush. Preserve atomicity of positioning
     plus transfer under the file lock, Count/Positive_Count checks, EOF/Last,

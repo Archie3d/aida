@@ -5,7 +5,7 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "820cd5e0ac28d392b72c3b90ce4c16578beb3967d4508056e9a4d9d264fad1d1",
+  "compiler_sha256": "5724ea761f06fa19d056c7d763fcbb64271afaff646bd0760b2eabccdefabcfb",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 8,

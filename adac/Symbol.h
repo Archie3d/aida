@@ -61,6 +61,8 @@ struct Symbol
     bool noReturn = false;
     bool genericInstance = false;
     bool uncheckedConversion = false;
+    Symbol* dispatchingConstructor = nullptr;
+    long long constructorMasterOffset = -1;
     std::vector<SourceLocation> returnStatements;
     bool genericFormalSubprogram = false;
     bool explicitNullExclusion = false;

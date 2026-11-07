@@ -1105,3 +1105,17 @@ The original sources are pinned at ACATS revision
 settings, language eligibility and the exact remaining rejection. No source is
 edited or reduced. All 145 original backfill outcomes remain unchanged.
 See the [algorithm/state contract](../../docs/random.md).
+
+### Dispatching-constructor follow-up
+
+Unchanged Ada 2005 C390012 passes its complete REPORT scenario: private child
+constructors, class-wide objects and allocators, abstract/unrelated/null tags,
+and a descendant more nested than the instance. It comes from `tests/c3/c390012.a`
+at ACATS revision `2785c30c1f8577d97ac7b3043882f6818781e9c5`.
+The [manifest](dispatching_constructor/manifest.json) pins its original git blob,
+SHA-256 and support inputs; `baseline.dispatching_constructor_acats_sources`
+verifies the bytes. The local TCTouch adapter implements the six registration
+trace alternatives this case requires. Harness self-tests accept each alternative,
+check trace reset and reject an unmatched trace. Other TCTouch protocol gaps
+remain separate roadmap work. All 145 original backfill outcomes are unchanged.
+See the [implementation contract](../../docs/dispatching-constructors.md).

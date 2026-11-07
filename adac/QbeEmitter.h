@@ -199,6 +199,7 @@ private:
     // Declarations (QbeDecl.cpp).
     void emitTypeTag(Type* type);
     void initializeTypeTag(Type* type);
+    void initializeConstructorMaster(Symbol* symbol);
     Value typeTag(Type* type);
     Value taggedSize(const Value& object);
     void checkTagLevel(const Value& object, int level);

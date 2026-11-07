@@ -38,3 +38,45 @@ foreach(scenario failed missing_result wrong_rejection changed_rejection unexpec
         message(FATAL_ERROR "Harness incorrectly graded ${scenario} (${status}):\n${output}${errors}")
     endif()
 endforeach()
+
+# C390012 accepts six elaboration orders. Verify both alternative matching and
+# rejection, and that successful validation clears the accumulated trace.
+foreach(scenario alternatives bad_alternative)
+    set(root "${WORKDIR}/${scenario}")
+    file(MAKE_DIRECTORY "${root}/upstream")
+    file(COPY "${ROOT}/support" DESTINATION "${root}")
+    if(scenario STREQUAL "alternatives")
+        set(body "for C in Character range 'a' .. 'f' loop
+        TCTouch.Touch (C);
+        TCTouch.Validate_One_Of (\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"alternative mismatch\");
+    end loop;
+    TCTouch.Validate (\"\", \"trace was not cleared\");")
+    else()
+        set(body "TCTouch.Touch ('z');
+    TCTouch.Validate_One_Of (\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"deliberate mismatch\");")
+    endif()
+    file(WRITE "${root}/upstream/c390012.a"
+        "with Report; use Report; with TCTouch;
+procedure C390012 is
+begin
+    Test (\"C390012\", \"Harness self-test\");
+    ${body}
+    Result;
+end C390012;")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" "-DADA=${ADA}" -DNAME=c390012 -DSOURCE_LIST=c390012.a
+            "-DROOT=${root}" "-DWORKDIR=${root}/work" -P "${ROOT}/RunAcats.cmake"
+        TIMEOUT 55
+        RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors
+    )
+    if(scenario STREQUAL "alternatives")
+        if(NOT status STREQUAL "0")
+            message(FATAL_ERROR "Harness rejected valid alternatives:\n${output}${errors}")
+        endif()
+    else()
+        string(FIND "${errors}" "ACATS c390012 failed" found)
+        if(NOT status STREQUAL "1" OR found EQUAL -1)
+            message(FATAL_ERROR "Harness accepted an invalid alternative:\n${output}${errors}")
+        endif()
+    endif()
+endforeach()

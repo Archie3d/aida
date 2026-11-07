@@ -17,15 +17,18 @@ void QbeEmitter::emitTypeTag(Type* type)
     if (type != nullptr && type->dependentStorage && !m_emittedTags.contains(rootType(type))) {
         type = rootType(type);
         m_emittedTags[type] = true;
+        // Synthetic tagged-component types have compilation-order-dependent
+        // anonymous names. Their emitted helper identity is unit-stable.
+        std::string traceName = type->dependentArrayStorage ? type->tagName.substr(1) : type->name;
         FunctionContext context;
-        context.traceName = type->name + " component storage";
+        context.traceName = traceName + " component storage";
         context.propagateLabel = newLabel("storagepropagate");
         FunctionContext* saved = m_context;
         m_context = &context;
         emitCallInstruction("call $__ada_array_release(l " + dependentArena(Value {"%object", 'l'}, type) + ")", CallEffects::DeferredCheck);
         finishFunction("export function " + type->tagName + ".finalize(l %object)");
         FunctionContext adjustment;
-        adjustment.traceName = type->name + " component copy";
+        adjustment.traceName = traceName + " component copy";
         adjustment.propagateLabel = newLabel("storagecopypropagate");
         m_context = &adjustment;
         line("storel 0, " + dependentArena(Value {"%object", 'l'}, type));
@@ -273,9 +276,15 @@ void QbeEmitter::collectGlobals(DeclList& declarations)
             collectGlobals(package->declarations);
             break;
         }
-        case DeclKind::GenericInstantiation:
-            collectGlobals(static_cast<GenericInstantiationDecl*>(decl.get())->expansion);
+        case DeclKind::GenericInstantiation: {
+            auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
+            if (instance->symbol != nullptr && instance->symbol->dispatchingConstructor != nullptr
+                && instance->symbol->owner == nullptr) {
+                m_data << "export data " << instance->symbol->qbeName << ".master = align 8 { l 0 }\n";
+            }
+            collectGlobals(instance->expansion);
             break;
+        }
         default:
             break;
         }
@@ -412,6 +421,7 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
             emitElaborationDeclarations(package->privatePart);
         } else if (decl->kind == DeclKind::GenericInstantiation) {
             auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
+            initializeConstructorMaster(instance->symbol);
             if (instance->generic != nullptr && instance->generic->hasBody) {
                 emitElaborationCheck(instance->generic);
             }
@@ -698,6 +708,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         }
         case DeclKind::GenericInstantiation: {
             auto* instance = static_cast<GenericInstantiationDecl*>(decl.get());
+            initializeConstructorMaster(instance->symbol);
             if (instance->generic != nullptr && instance->generic->hasBody) {
                 emitElaborationCheck(instance->generic);
             }
@@ -896,6 +907,20 @@ Value QbeEmitter::typeTag(Type* type)
     line(slot + " =l add " + frame.name + ", " + std::to_string(type->tagOffset));
     line(tag + " =l loadl " + slot);
     return Value { tag, 'l' };
+}
+
+void QbeEmitter::initializeConstructorMaster(Symbol* symbol)
+{
+    if (symbol == nullptr || symbol->dispatchingConstructor == nullptr) { return; }
+    std::string slot = symbol->qbeName + ".master";
+    if (symbol->owner != nullptr) {
+        symbol->constructorMasterOffset = reserveFrame(8);
+        slot = newTemp();
+        line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(symbol->constructorMasterOffset));
+    }
+    std::string master = newTemp();
+    emitCallInstruction(master + " =l call $__ada_constructor_master()", CallEffects::RuntimeHook);
+    line("storel " + master + ", " + slot);
 }
 
 void QbeEmitter::initializeTypeTag(Type* type)

@@ -17,6 +17,7 @@ typedef struct TagRegistration
     struct TagRegistration* next;
     AdaTag* tag;
     int owned;
+    const AdaMaster* master;
 } TagRegistration;
 
 static TagRegistration* registrations;
@@ -56,6 +57,7 @@ static int registerTagImpl(AdaTag* tag, int owned)
     registration->next = registrations;
     registration->tag = tag;
     registration->owned = owned;
+    registration->master = owned ? __ada_task_context()->currentMaster : NULL;
     registrations = registration;
     if (!cleanupRegistered) {
         if (atexit(releaseTags) != 0) {
@@ -223,6 +225,30 @@ int __ada_tag_has_ancestor(const void* value, const void* ancestorValue)
         }
     }
     return 0;
+}
+
+void* __ada_constructor_master(void)
+{
+    return __ada_task_context()->currentMaster;
+}
+
+void __ada_tag_check_constructor(const void* value, const void* ancestor, const AdaMaster* master)
+{
+    const AdaTag* tag = value;
+    if (!requireTag(tag)) { return; }
+    const AdaMaster* declarationMaster = NULL;
+    __ada_mutex_lock(&tagMutex);
+    for (TagRegistration* entry = registrations; entry != NULL; entry = entry->next) {
+        if (entry->tag == tag) { declarationMaster = entry->master; break; }
+    }
+    __ada_mutex_unlock(&tagMutex);
+    int accessible = declarationMaster == NULL;
+    for (; master != NULL; master = master->state) {
+        if (declarationMaster == master) { accessible = 1; break; }
+    }
+    if (tag->isAbstract || !accessible || !__ada_tag_has_ancestor(tag, ancestor)) {
+        __ada_raise(&__ada_exc_tag_error);
+    }
 }
 
 void* __ada_tag_dispatch(void* value, void* interfaceValue, int slot)

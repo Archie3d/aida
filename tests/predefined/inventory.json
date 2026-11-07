@@ -543,9 +543,9 @@
     {
       "name": "ada.tags.generic_dispatching_constructor",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "3.9",
-      "gap": "tag-driven construction"
+      "source": "runtime/ada/ada-tags-generic_dispatching_constructor.ads"
     },
     {
       "name": "ada.task_identification",

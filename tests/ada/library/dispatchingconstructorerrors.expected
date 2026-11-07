@@ -1,0 +1,1 @@
+dispatchingconstructorerrors.adb:12:34: error: actual for abstract formal subprogram must be a dispatching operation of its controlling type

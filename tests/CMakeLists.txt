@@ -2539,5 +2539,39 @@ if(UNIX)
     set_tests_properties(runtime.predefined_terminal PROPERTIES TIMEOUT 20)
 endif()
 
+foreach(constructor_case dispatchingconstructor dispatchingconstructorinterfaces dispatchingconstructorownership dispatchingconstructorcontrolled dispatchingconstructordiscriminants dispatchingconstructorlibrary)
+    add_ada_test(${constructor_case} SOURCES library/${constructor_case}.adb)
+    add_determinism_test(${constructor_case} SOURCE library/${constructor_case}.adb)
+    add_test(NAME runtime.${constructor_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/${constructor_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/${constructor_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${constructor_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${constructor_case} determinism.${constructor_case}
+        runtime.${constructor_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+add_ada_error_test(dispatchingconstructorerrors SOURCES library/dispatchingconstructorerrors.adb)
+add_ada_error_test(dispatchingconstructorintrinsicerrors SOURCES library/dispatchingconstructorintrinsicerrors.adb)
+add_executable(dispatching_constructor_test DispatchingConstructorTest.c)
+target_link_libraries(dispatching_constructor_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.dispatching_constructor COMMAND dispatching_constructor_test)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME loading.dispatching_constructor_profiles
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/predefined/check_dispatching_constructor.py
+            --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/dispatching-constructor-profiles)
+    set_tests_properties(loading.dispatching_constructor_profiles PROPERTIES TIMEOUT 120)
+    add_test(NAME baseline.dispatching_constructor_acats_sources
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/dispatching_constructor/check.py)
+    set_tests_properties(baseline.dispatching_constructor_acats_sources PROPERTIES TIMEOUT 30 LABELS baseline)
+endif()
+
 add_subdirectory(robustness)
 aida_finalize_tests()

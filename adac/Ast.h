@@ -271,6 +271,7 @@ struct CallExpr : Expr
     Symbol* prefixedSubprogram = nullptr; // Underlying operation after prefixed-call lowering.
     bool indirect = false;
     bool dispatching = false;
+    bool tagSelected = false; // Compiler-generated call controlled solely by an explicit tag.
     std::vector<Expr*> resolvedArguments;  // Positional order after resolution.
 };
 

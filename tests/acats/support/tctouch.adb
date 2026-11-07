@@ -28,4 +28,15 @@ package body TCTouch is
         end if;
         Used := 0;
     end Validate;
+    procedure Validate_One_Of
+        (Expected_1, Expected_2, Expected_3, Expected_4, Expected_5, Expected_6 : String;
+         Message : String) is
+    begin
+        if Trace (1 .. Used) /= Expected_1 and then Trace (1 .. Used) /= Expected_2
+            and then Trace (1 .. Used) /= Expected_3 and then Trace (1 .. Used) /= Expected_4
+            and then Trace (1 .. Used) /= Expected_5 and then Trace (1 .. Used) /= Expected_6 then
+            Report.Failed (Message);
+        end if;
+        Used := 0;
+    end Validate_One_Of;
 end TCTouch;

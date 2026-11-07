@@ -289,6 +289,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     symbol->parentPackage = parentPackage;
     symbol->hasBody = decl->hasBody;
     symbol->requiresBody = m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
+    if (decl->lower == "ada.tags.generic_dispatching_constructor") { symbol->requiresBody = false; }
     symbol->owner = m_currentSubprogram;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->qbeName = "$" + mangle(parentPackage != nullptr ? decl->lower : lower) + "__generic";
@@ -2036,7 +2037,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     m_instanceCopies.insert(decl->packageCopies.begin(), decl->packageCopies.end());
     ++m_instantiationDepth;
     analyzeDeclarativePart(expansion, bindings);
-    if (!generic->hasBody) {
+    if (!generic->hasBody && generic->generic->lower != "ada.tags.generic_dispatching_constructor") {
         PendingGenericInstance pending;
         pending.instance = decl;
         pending.bindings = bindings;
@@ -2135,6 +2136,33 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                 }
             }
             if (symbol->kind == SymbolKind::Subprogram) {
+                if (generic->generic->lower == "ada.tags.generic_dispatching_constructor") {
+                    Symbol* constructor = lookupName("constructor", bindings);
+                    Symbol* root = lookupName("t", bindings);
+                    Symbol* parameters = lookupName("parameters", bindings);
+                    auto parameterProfile = [&](Type* type) {
+                        return type != nullptr && type->kind == TypeKind::Access
+                            && type->anonymousAccess && type->excludesNull && !type->accessConstant
+                            && parameters != nullptr && SemaSupport::staticallyMatches(type->target, parameters->type);
+                    };
+                    bool profile = constructor != nullptr && root != nullptr
+                        && generic->generic->formals.size() == 3
+                        && constructor->abstract && constructor->parameters.size() == 1
+                        && parameterProfile(constructor->parameters[0]->type)
+                        && constructor->controllingType == rootType(root->type)
+                        && rootType(constructor->returnType) == rootType(root->type)
+                        && symbol->parameters.size() == 2 && symbol->returnType != nullptr
+                        && rootType(symbol->parameters[0]->type) == m_tagType
+                        && parameterProfile(symbol->parameters[1]->type)
+                        && symbol->returnType->classRoot == rootType(root->type);
+                    if (!profile) {
+                        m_diagnostics.error(decl->location, "invalid predefined Generic_Dispatching_Constructor profile");
+                    } else {
+                        symbol->dispatchingConstructor = constructor;
+                        symbol->intrinsicRenaming = true;
+                        symbol->requiresBody = false;
+                    }
+                }
                 if (generic->generic->lower == "ada.unchecked_conversion") {
                     symbol->uncheckedConversion = true;
                     symbol->intrinsicRenaming = true;
@@ -2184,6 +2212,10 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                 SourceLocation templateLocation = symbol->location;
                 symbol->location = decl->location;
                 registerPrimitive(symbol, home);
+                if (symbol->dispatchingConstructor != nullptr && symbol->dispatchSlot >= 0) {
+                    m_diagnostics.error(decl->location,
+                        "an explicitly declared dispatching operation cannot have intrinsic convention");
+                }
                 symbol->location = templateLocation;
                 checkOverridingIndicator(symbol, decl->overriding, decl->location);
                 if (symbol->name == "=" && m_types.isBoolean(symbol->returnType)) {

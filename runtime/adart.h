@@ -282,6 +282,8 @@ void* __ada_tag_create_layout(const void* templateTag, void* parent, void* maste
 void* __ada_tag_create_full(const void* templateTag, void* parent, void* master, int64_t size,
     const int64_t* layout, int64_t interfaceCount, const AdaInterfaceBinding* interfaces);
 int __ada_tag_has_ancestor(const void* tag, const void* ancestor);
+void* __ada_constructor_master(void);
+void __ada_tag_check_constructor(const void* tag, const void* ancestor, const AdaMaster* master);
 void* __ada_tag_dispatch(void* tag, void* interfaceTag, int slot);
 int __ada_tag_interface_count(void* value);
 void* __ada_tag_interface_at(void* value, int position);

@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/simonjwright/ACATS",
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "cases": [
+    {
+      "id": "c390012",
+      "source": "upstream/c390012.a",
+      "original_path": "tests/c3/c390012.a",
+      "sha256": "137fbdc76632539168dd28eb0ca19fa3ab750d38113f2b5faf3eff5b1170f4f0",
+      "git_blob": "f55e4edc6029c986ff028fd8f69c905aa51858e4",
+      "language": "Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb",
+        "support/tctouch.ads",
+        "support/tctouch.adb"
+      ]
+    }
+  ]
+}

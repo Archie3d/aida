@@ -214,8 +214,62 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         return emitStorageIo(expr, subprogram->builtin == BuiltinKind::StorageIoRead);
     }
     Symbol* intrinsic = subprogram;
-    while (!intrinsic->uncheckedConversion && intrinsic->builtin != BuiltinKind::AddressToPointer
+    while (!intrinsic->uncheckedConversion && intrinsic->dispatchingConstructor == nullptr && intrinsic->builtin != BuiltinKind::AddressToPointer
         && intrinsic->renamedSubprogram != nullptr) { intrinsic = intrinsic->renamedSubprogram; }
+    if (intrinsic->dispatchingConstructor != nullptr) {
+        // Operand calls must not consume the ultimate constructor destination.
+        std::string target = std::exchange(m_context->resultTarget, "");
+        Value shape = std::exchange(m_context->resultTargetShape, Value {});
+        std::string descriptor = std::exchange(m_context->resultDescriptor, "");
+        std::string provided = std::exchange(m_context->resultProvided, "");
+        std::string owner = std::exchange(m_context->resultTargetOwner, "");
+        std::string arena = std::exchange(m_context->resultTargetArena, "");
+        Value tag = emitExpr(expr->resolvedArguments[0]);
+        Value params = emitExpr(expr->resolvedArguments[1]);
+        m_context->resultTarget = std::move(target);
+        m_context->resultTargetShape = std::move(shape);
+        m_context->resultDescriptor = std::move(descriptor);
+        m_context->resultProvided = std::move(provided);
+        m_context->resultTargetOwner = std::move(owner);
+        m_context->resultTargetArena = std::move(arena);
+        checkNotNull(params);
+        std::string masterSlot = intrinsic->qbeName + ".master";
+        if (intrinsic->owner != nullptr) {
+            masterSlot = newTemp();
+            line(masterSlot + " =l add " + staticLinkFor(intrinsic->owner->level).name
+                + ", " + std::to_string(intrinsic->constructorMasterOffset));
+        }
+        std::string master = newTemp();
+        line(master + " =l loadl " + masterSlot);
+        Symbol* constructor = intrinsic->dispatchingConstructor;
+        emitCallInstruction("call $__ada_tag_check_constructor(l " + tag.name + ", l "
+            + typeTag(constructor->controllingType).name + ", l " + master + ")", CallEffects::CheckException);
+        Symbol parameter;
+        parameter.type = constructor->parameters[0]->type;
+        parameter.owner = m_context->symbol;
+        std::string slot = allocTypeScratch(parameter.type);
+        storeInto(Value {slot, 'l'}, params, parameter.type);
+        m_context->locals[&parameter] = slot;
+        IdentifierExpr argument;
+        argument.symbol = &parameter;
+        argument.type = parameter.type;
+        CallExpr dispatch;
+        dispatch.location = expr->location;
+        dispatch.form = CallForm::Subprogram;
+        dispatch.subprogram = constructor;
+        dispatch.type = expr->type;
+        dispatch.dispatching = true;
+        dispatch.tagSelected = true;
+        dispatch.resolvedArguments = { &argument };
+        std::string savedTag = m_context->controllingTag;
+        m_context->controllingTag = tag.name;
+        m_context->constructionOwner = construction.savedOwner;
+        m_context->constructionArena = construction.savedArena;
+        Value result = emitCall(&dispatch);
+        m_context->controllingTag = savedTag;
+        m_context->locals.erase(&parameter);
+        return result;
+    }
     if (intrinsic->uncheckedConversion) { return emitUncheckedConversion(expr); }
     if (intrinsic->builtin == BuiltinKind::AddressToPointer) {
         Value address = emitExpr(expr->resolvedArguments.front());
@@ -545,7 +599,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             label(valid);
         }
     };
-    if (expr->dispatching) {
+    if (expr->dispatching && !expr->tagSelected) {
         for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
             Expr* argument = expr->resolvedArguments[i];
             if (controllingParameterType(subprogram->parameters[i]->type) == subprogram->controllingType
@@ -602,7 +656,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                 value.last = target.last;
                 value.innerBounds = target.innerBounds;
             }
-            if (expr->dispatching && rootType(parameter->type) == subprogram->controllingType
+            if (expr->dispatching && !expr->tagSelected && rootType(parameter->type) == subprogram->controllingType
                 && argument->tagIndeterminate) {
                 checkControllingTag(value);
             }
@@ -629,7 +683,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             if (value.name.empty()) { value = emitExpr(argument); }
             if (parameter->type->accessParameter && subprogram->controllingType != nullptr
                 && controllingParameterType(parameter->type) == subprogram->controllingType) { checkNotNull(value); }
-            if (expr->dispatching && controllingParameterType(parameter->type) == subprogram->controllingType
+            if (expr->dispatching && !expr->tagSelected && controllingParameterType(parameter->type) == subprogram->controllingType
                 && argument->tagIndeterminate) {
                 checkControllingTag(value);
             }
