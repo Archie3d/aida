@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifndef _WIN32
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -23,11 +24,17 @@ typedef struct Worker
     int reading;
 } Worker;
 
-static void error(const AdaException* expected)
+static void expectError(const AdaException* expected, int line)
 {
-    CHECK(__ada_exception == expected);
+    if (__ada_exception != expected) {
+        fprintf(stderr, "stream operations check failed at line %d: expected %s, got %s\n",
+            line, expected->name, __ada_exception != NULL ? __ada_exception->name : "no exception");
+        abort();
+    }
     __ada_exception = NULL;
 }
+
+#define EXPECT_ERROR(expected) expectError((expected), __LINE__)
 
 static void* exercise(void* argument)
 {
@@ -84,7 +91,7 @@ static void concurrency(void)
     unsigned char byte;
     int last;
     __ada_file_stream_elements_read(view->file, &byte, 1, 1, &last);
-    error(ADA_STATUS_ERROR);
+    EXPECT_ERROR(ADA_STATUS_ERROR);
     __ada_file_finalize(&borrowed);
     CHECK(__ada_exception == NULL);
 }
@@ -126,46 +133,46 @@ static void boundaries(void)
     unsigned char bytes[2] = {71, 72};
     __ada_stream_create(&file, ADA_MODE_OUT, "", 0, "", 0);
     __ada_stream_elements_write_at(&file, bytes, 2, INT_MAX);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     CHECK(__ada_stream_index(&file) == INT_MAX && __ada_stream_size(&file) == 0);
     __ada_stream_write(file, bytes, 2);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     __ada_stream_elements_write_at(&file, bytes, 1, INT_MAX);
     CHECK(__ada_exception == NULL && __ada_stream_size(&file) == INT_MAX);
     __ada_stream_index(&file);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     __ada_stream_reset(&file, ADA_MODE_IN);
     int last = 123;
     __ada_stream_elements_read_at(&file, bytes, 1, -2, &last, INT_MAX);
     CHECK(last == -2 && bytes[0] == 71 && __ada_exception == NULL);
     __ada_stream_set_index(&file, 0);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     __ada_stream_set_index(&file, 1);
     __ada_stream_elements_read(&file, NULL, 0, INT_MIN, &last);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     CHECK(last == -2 && __ada_stream_index(&file) == 1);
     __ada_stream_elements_read(&file, bytes, 2, INT_MAX, &last);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     CHECK(last == -2);
     __ada_stream_elements_read_at(&file, NULL, 0, -3, &last, 5);
     CHECK(last == -4 && __ada_stream_index(&file) == 5);
     __ada_stream_set_mode(&file, 3);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     CHECK(__ada_file_mode(&file) == ADA_MODE_IN);
 #ifndef _WIN32
     CHECK(ftruncate(fileno(file->stream), (off_t)INT_MAX + 1) == 0);
     __ada_stream_size(&file);
-    error(ADA_CONSTRAINT_ERROR);
+    EXPECT_ERROR(ADA_CONSTRAINT_ERROR);
     CHECK(__ada_stream_index(&file) == 5);
 #endif
     __ada_file_close(&file);
     CHECK(file == NULL && __ada_exception == NULL);
     __ada_stream_elements_read_at(&file, bytes, 1, 1, &last, 1);
-    error(ADA_STATUS_ERROR);
+    EXPECT_ERROR(ADA_STATUS_ERROR);
     __ada_stream_elements_write_at(&file, bytes, 1, 1);
-    error(ADA_STATUS_ERROR);
+    EXPECT_ERROR(ADA_STATUS_ERROR);
     __ada_stream_reset_same(&file);
-    error(ADA_STATUS_ERROR);
+    EXPECT_ERROR(ADA_STATUS_ERROR);
 }
 
 #ifndef _WIN32
@@ -182,23 +189,23 @@ static void nonpositionable(void)
     unsigned char bytes[4];
     int last = 99;
     __ada_stream_index(&file);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_size(&file);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_elements_read_at(&file, bytes, 3, 1, &last, 1);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     CHECK(last == 99);
     __ada_stream_elements_read_at(&file, NULL, 0, 1, &last, 1);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_set_index(&file, 1);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_elements_read(&file, bytes, 4, 1, &last);
     CHECK(last == 3 && memcmp(bytes, "abc", 3) == 0 && __ada_exception == NULL);
     __ada_stream_set_mode(&file, ADA_MODE_OUT);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     CHECK(__ada_file_mode(&file) == ADA_MODE_IN);
     __ada_stream_reset_same(&file);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_file_close(&file);
     CHECK(__ada_mutex_destroy(&source.mutex) == 0);
 
@@ -207,9 +214,9 @@ static void nonpositionable(void)
         .mode = ADA_MODE_OUT, .streamIo = 1, .canWrite = 1};
     file = &target;
     __ada_stream_elements_write_at(&file, "z", 1, 1);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_elements_write_at(&file, NULL, 0, 1);
-    error(ADA_USE_ERROR);
+    EXPECT_ERROR(ADA_USE_ERROR);
     __ada_stream_set_mode(&file, ADA_MODE_APPEND);
     __ada_stream_elements_write(&file, "xyz", 3);
     __ada_text_flush(&file);
@@ -223,15 +230,20 @@ static void nonpositionable(void)
 static void deviceErrors(void)
 {
     AdaFile* file = NULL;
+    char buffer[BUFSIZ];
     __ada_stream_create(&file, ADA_MODE_OUT, "", 0, "", 0);
-    CHECK(setvbuf(file->stream, NULL, _IOFBF, 1024) == 0);
+    // A NULL buffer can retain glibc's one-byte unbuffered storage. Supply
+    // storage explicitly so the pending write makes Flush exercise the bad fd.
+    CHECK(setvbuf(file->stream, buffer, _IOFBF, sizeof buffer) == 0);
     __ada_stream_elements_write(&file, "x", 1);
     CHECK(__ada_exception == NULL);
+    struct stat status;
+    CHECK(fstat(fileno(file->stream), &status) == 0 && status.st_size == 0);
     CHECK(close(fileno(file->stream)) == 0);
     __ada_text_flush(&file);
-    error(ADA_DEVICE_ERROR);
+    EXPECT_ERROR(ADA_DEVICE_ERROR);
     __ada_file_close(&file);
-    error(ADA_DEVICE_ERROR);
+    EXPECT_ERROR(ADA_DEVICE_ERROR);
     CHECK(file == NULL);
 }
 #endif
