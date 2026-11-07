@@ -2384,6 +2384,10 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/storage_pools/check.py
             --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/storage-pools-acats)
     set_tests_properties(baseline.storage_pools_acats PROPERTIES TIMEOUT 90 LABELS baseline)
+    add_test(NAME baseline.random_acats
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/random/check.py
+            --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/random-acats)
+    set_tests_properties(baseline.random_acats PROPERTIES TIMEOUT 90 LABELS baseline)
 endif()
 add_ada_test(predefinedprofiles SOURCES library/predefinedprofiles.adb)
 add_determinism_test(predefinedprofiles SOURCE library/predefinedprofiles.adb)
@@ -2443,6 +2447,27 @@ add_ada_error_test(addressconversionprofileerrors SOURCES library/bad_address_co
 add_ada_error_test(addressconversionerrors SOURCES library/addressconversionerrors.adb)
 add_ada_error_test(storageioerrors SOURCES library/storageioerrors.adb)
 add_ada_error_test(storagepoolerrors SOURCES library/storagepoolerrors.adb)
+add_ada_test(randomlibrary SOURCES library/randomlibrary.adb)
+add_ada_error_test(randomlibraryerrors SOURCES library/randomlibraryerrors.adb)
+add_determinism_test(randomlibrary SOURCE library/randomlibrary.adb)
+add_test(NAME runtime.randomlibrary_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/randomlibrary.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/library/randomlibrary.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/randomlibrary-modes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(ada.randomlibrary determinism.randomlibrary runtime.randomlibrary_modes PROPERTIES TIMEOUT 120)
+add_executable(random_test RandomTest.c)
+target_link_libraries(random_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.random COMMAND random_test)
+set_tests_properties(runtime.random PROPERTIES TIMEOUT 30)
 add_ada_error_test(storagepoolprofileerrors SOURCES library/bad_storage_pools.ads library/bad_storage_pools.adb library/storagepoolprofileerrors.adb)
 add_ada_test(storagepools SOURCES library/storagepools.adb)
 add_determinism_test(storagepools SOURCE library/storagepools.adb)

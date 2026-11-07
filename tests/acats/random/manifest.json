@@ -1,0 +1,49 @@
+{
+  "repository": "https://github.com/simonjwright/ACATS",
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "cases": [
+    {
+      "id": "cxa5011",
+      "source": "upstream/cxa5011.a",
+      "original_path": "tests/cxa/cxa5011.a",
+      "sha256": "f3e2b4437a15377d3432f5c04c0068fe2768a583daf2b3e66f100edb63b2c68f",
+      "git_blob": "c9a007e524f40b0f6a11b1f2216b942ddbe3e906",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "random/impdef.ads",
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxa5012",
+      "source": "upstream/cxa5012.a",
+      "original_path": "tests/cxa/cxa5012.a",
+      "sha256": "5d19f461904ad489028ef8d44e99af0c9df6baaa03656d933f61bab844610fc8",
+      "git_blob": "a286fa71ed06139f16954d0f939a0331df472646",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "random/impdef.ads",
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxa5013",
+      "source": "upstream/cxa5013.a",
+      "original_path": "tests/cxa/cxa5013.a",
+      "sha256": "6c301683ff2dc004e532184bab14b1ec16c6ee618becd07ff173613c38c05e6a",
+      "git_blob": "fe5b6e2ab9365c2dc80537233547ff0adddf06d6",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "COMPILE_REJECTED",
+      "support": [
+        "random/impdef.ads",
+        "support/report.ads",
+        "support/report.adb"
+      ],
+      "expected": "cxa5013.a:165:13: error: select statements are not yet supported\n"
+    }
+  ]
+}

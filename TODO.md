@@ -1249,12 +1249,18 @@ Ada 2005 additions and track annex packages separately.
     positive Storage_Size. Release 1,834/1,834, 25 focused ASan/UBSan and two
     TSan checks pass; all 145 backfill outcomes unchanged (two B diagnostics
     refined). [Policy, limits and evidence](docs/storage-pools.md).
-  - [ ] **Ada.Numerics.Float_Random and Discrete_Random (A.5.2).** Implement both
-    complete basic/advanced APIs: Generator/State, Random, all Reset forms, Save,
-    Image/Value and Max_Image_Width. Define initialization, reproducibility,
-    state-format/invalid-input and range/distribution choices. Cover signed,
-    modular and enumeration result subtypes, independent instances/generators,
-    saved-state round trips, finalization and concurrent callers.
+  - [x] **Ada.Numerics.Float_Random and Discrete_Random (A.5.2).** Complete
+    source profiles with inline finalized generators and copyable states;
+    xoshiro256**/SplitMix64, reproducible default/integer resets, atomic UTC seed
+    tickets, strict versioned images and exact saved-state replay. Unbiased
+    signed/modular/enumeration sampling through full 64-bit domains, captured
+    bounds, singleton results and null-range instantiation checks. Whole/separate/
+    deterministic controls, generator cleanup, four Ada/native workers and
+    synchronized shared use; two-million-draw 32,768-value coverage control.
+    Unchanged CXA5011/CXA5012 PASS; CXA5013 remains blocked by Phase 9 syntax.
+    Release 1,842/1,842, 11 focused ASan/UBSan and one TSan check pass; all 145
+    original backfill outcomes unchanged.
+    [Algorithm, period, format and evidence](docs/random.md).
   - [ ] **Ada.Tags.Generic_Dispatching_Constructor (3.9).** Implement the required
     generic formals and tag-selected constructor call. Cover derived/private and
     interface ancestry, concrete/abstract tags, controlling results, parameter

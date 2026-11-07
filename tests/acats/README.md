@@ -1081,3 +1081,27 @@ unchanged; B34001B/B34002B retain ungraded rejection status with more specific
 Storage_Size prefix diagnostics. See the
 [implementation contract](../../docs/storage-pools.md) for allocation policies,
 pool lifetimes and remaining representation limits.
+
+### Random-number follow-up
+
+Unchanged CXA5011 and CXA5012 execute their complete REPORT scenarios as regular
+PASS cases. They cover initialization, seeded reproducibility, saved states,
+images/values, enumeration and floating generators, and invalid state strings.
+The explicit local Impdef supplies `Non_State_String = "invalid random state"`
+and `Delay_Per_Random_Test = 1.0`. CXA5013 remains rejected at asynchronous select
+syntax before its coverage scenario can run; it is not a conformance pass.
+Local native coverage controls remain separate from that upstream observation.
+
+The original sources are pinned at ACATS revision
+`2785c30c1f8577d97ac7b3043882f6818781e9c5`:
+
+| Original path | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/cxa/cxa5011.a` | `c9a007e524f40b0f6a11b1f2216b942ddbe3e906` | `f3e2b4437a15377d3432f5c04c0068fe2768a583daf2b3e66f100edb63b2c68f` |
+| `tests/cxa/cxa5012.a` | `a286fa71ed06139f16954d0f939a0331df472646` | `5d19f461904ad489028ef8d44e99af0c9df6baaa03656d933f61bab844610fc8` |
+| `tests/cxa/cxa5013.a` | `fe5b6e2ab9365c2dc80537233547ff0adddf06d6` | `6c301683ff2dc004e532184bab14b1ec16c6ee618becd07ff173613c38c05e6a` |
+
+`random/manifest.json` and `baseline.random_acats` check original bytes, support
+settings, language eligibility and the exact remaining rejection. No source is
+edited or reduced. All 145 original backfill outcomes remain unchanged.
+See the [algorithm/state contract](../../docs/random.md).

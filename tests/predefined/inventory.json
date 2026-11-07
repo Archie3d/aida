@@ -288,9 +288,9 @@
     {
       "name": "ada.numerics.discrete_random",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "A.5.2",
-      "gap": "generic discrete generator"
+      "source": "runtime/ada/ada-numerics-discrete_random.ads"
     },
     {
       "name": "ada.numerics.elementary_functions",
@@ -301,9 +301,9 @@
     {
       "name": "ada.numerics.float_random",
       "scope": "core",
-      "status": "missing",
+      "status": "resolves",
       "rm": "A.5.2",
-      "gap": "random generator state/reset/image"
+      "source": "runtime/ada/ada-numerics-float_random.ads"
     },
     {
       "name": "ada.numerics.generic_elementary_functions",
@@ -315,6 +315,12 @@
       "name": "ada.numerics.long_elementary_functions",
       "source": "runtime/ada/ada-numerics-long_elementary_functions.ads",
       "scope": "extension",
+      "status": "resolves"
+    },
+    {
+      "name": "ada.numerics.random_engine",
+      "source": "runtime/ada/ada-numerics-random_engine.ads",
+      "scope": "implementation",
       "status": "resolves"
     },
     {
@@ -784,6 +790,7 @@
     "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls",
     "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension",
     "storage_io": "storageio / storageioerrors / storageioprofileerrors: native representation buffers, runtime-sized inline arrays/records, checked Read and controlled assignment; dependent-storage and runtime-resource parts diagnosed",
-    "storage_pools": "storagepools / storagepoolerrors / runtime.storage_pools: native size/alignment, specified/shared/derived/default pools, callback exceptions, finalization/master lifetime and concurrent callers; unsupported arena-result paths diagnosed"
+    "storage_pools": "storagepools / storagepoolerrors / runtime.storage_pools: native size/alignment, specified/shared/derived/default pools, callback exceptions, finalization/master lifetime and concurrent callers; unsupported arena-result paths diagnosed",
+    "random": "randomlibrary / randomlibraryerrors / runtime.random: complete profiles, inline finalized generators, all reset forms, versioned states, unbiased full-width discrete ranges, default/seed reproducibility and concurrent independent/synchronized generators"
   }
 }

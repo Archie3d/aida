@@ -192,7 +192,7 @@ inventory, while the linked contracts and tests establish the supported subset.
 | RM | Unit(s) | Implemented behavior or gap | Regression / ACATS evidence | Roadmap owner |
 | --- | --- | --- | --- | --- |
 | 11.4.2 | Ada.Assertions | Assertion_Error, Assert and configuration assertion policy | `pragma*`, `semantics.pragmapolicies`; C651001 PASS | P6h/P7 complete for documented policies |
-| A.5.2 | Ada.Numerics.Float_Random; Ada.Numerics.Discrete_Random | Absent. Generator state, reset/reproducibility and generic discrete result profiles remain open | — | P8 predefined environment |
+| A.5.2 | Ada.Numerics.Float_Random; Ada.Numerics.Discrete_Random | Complete profiles; inline finalized generators, xoshiro256**/SplitMix64, default/integer/time resets, versioned state images and unbiased full-width position sampling ([contract](random.md)) | `randomlibrary`, legality errors, native reference/distribution/coverage/concurrency controls; whole/separate/determinism, ASan/UBSan/TSan; unchanged CXA5011/CXA5012 PASS, CXA5013 select syntax blocked | P8 implementation complete for documented target model; Annex G remains separate |
 | A.9 | Ada.Storage_IO | Native buffers, checked Read/Write, zero padding/tag placeholders and controlled assignment; runtime-sized inline arrays/records supported. Dependent owned layouts/runtime resources diagnosed ([contract](storage-io.md)) | `storageio`, legality/profile errors, whole/separate/determinism and four workers; unchanged CXA9001/CXA9002 PASS | P8 implemented for documented representations; dependent owned layouts remain open |
 | 3.9 | Ada.Tags.Generic_Dispatching_Constructor | Absent. Generic profile matching and tag-driven construction remain open | — | P8 predefined environment |
 | 13.7 | System | Analyzed system.ads with canonical Address bootstrap and ordinary parent/binder/cache dependencies. Public configuration/numeric limits, Null_Address, bit-order and priority subtypes/constants; unsigned address comparison profiles including renaming and generic actuals/defaults. [Target choices](standard-system.md); scheduling and nondefault layouts remain open | `loading.system_spec`, `standardfacilities`, `standardfacilityerrors`, `predefinedprofiles`, `baseline.predefined_inventory`; C96008A/B PASS | P8 declarations complete; P9 scheduling / P8 host validation |
@@ -248,8 +248,8 @@ rejection for the existing access-to-array subtype constraint limit recorded
 above and for C761010. B-test grading and the predefined-environment audit
 retain their existing roadmap items.
 
-The [predefined-environment audit](predefined-environment.md) verifies all 114
-source specs (including System), builtin Standard and six absent units. The original 22
+The [predefined-environment audit](predefined-environment.md) verifies all 117
+source specs (including System), builtin Standard and four absent units. The original 22
 partial-API gaps now leave four Stream_IO guards after Standard/System
 implementation. It repairs supported profiles and checks concurrent
 file/formatting calls and POSIX terminal behavior. The listed missing library families remain

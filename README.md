@@ -103,6 +103,7 @@ Supported:
 - Exact bounded named-number arithmetic ([limits](docs/static-arithmetic.md))
 - Checked binary32/64 arithmetic, integer powers, floating `'Value` and Ada 2005
   floating attributes, including rounding and machine/model properties ([floating model](docs/floating-point.md))
+- Float and discrete random generators, reproducible resets and saved states ([algorithm and format](docs/random.md))
 - Arrays with 64-bit bounds, lengths and byte strides, anonymous object declarations,
   library runtime bounds and generic objects; indices must be all constrained
   or all boxed (`range <>`) ([descriptor ABI](docs/array-descriptors.md))
@@ -174,8 +175,8 @@ Not supported yet:
 - Derivation before a private view is completed
 - Named protected callback types and general C callback exports
 - Many representation clauses and pragmas
-- Predefined facilities including random-number generators, user-defined storage
-  pools, general unchecked conversion, and the text stream children
+- Predefined facilities including general unchecked conversion and the text stream children;
+  remaining storage-pool representation limits are [documented](docs/storage-pools.md)
 
 Access-type collections support allocation and deallocation across tasks, with
 master-based lifetime and finalization ([contract](docs/shared-collections.md)).
