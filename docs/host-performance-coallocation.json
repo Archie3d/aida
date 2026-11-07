@@ -32,7 +32,7 @@
     "thread_sanitizer_checks_passed": 13,
     "previous_compiler_control": "Fails the strengthened constant aggregate size-helper check as expected",
     "previous_runtime_control": "Fails the single-allocation default collection test as expected",
-    "native_ci_confirmation": "pending for coallocation and constant-size reuse; public runtime layouts remain unchanged",
+    "native_ci_confirmation": "Confirmed at b067332b07ec37154bfb1d0bc7b4d1068bb415ee: Ubuntu amd64/arm64 1,945/1,945 each, MSYS2 1,944/1,944; new allocation/pool/cleanup controls and unchanged ABI/install pass. Native short timings do not establish uniform isolated speedup. Full reports: host-performance-coallocation-ci.json",
     "new_raw_modes_windows_stack_probe_configured": true
   },
   "comparisons": {

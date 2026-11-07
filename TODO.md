@@ -1426,11 +1426,18 @@ Ada 2005 additions and track annex packages separately.
     controls. Release 1,945/1,945; 18 ASan/UBSan and 13 TSan checks pass. Local
     allocation/block medians improve about 11%/7.5% against the preceding build.
     [Full samples and limits](docs/host-validation.md#default-pool-coallocation-and-constant-aggregate-sizes).
-  - [ ] Confirm coallocation/constant-size reuse on native CI. Measure longer
-    workloads and batches with multiple live objects before further registry
-    indexing or aggregate construction tuning. Local blocks/allocation remain
-    1.474x/2.420x slower than pre-Phase-2; the no-slowdown goal remains open.
-    Phase 2's small differences still need longer workloads before attribution.
+  - [x] Confirm coallocation/constant-size reuse on native CI: Ubuntu amd64/arm64
+    each pass 1,945/1,945; MSYS2 passes 1,944/1,944, with no failures, disabled
+    tests or skips. Single-allocation, closing-pool and temporary-finalizer
+    controls pass; ABI/install checks remain unchanged. Historical block ratios
+    are 2.211x/1.966x/1.495x; allocation 5.669x/5.046x/2.347x. Separate CI runs
+    do not show a uniform isolated speedup, especially on Ubuntu amd64.
+    [Full native samples](docs/host-performance-coallocation-ci.json).
+  - [ ] Measure longer workloads and batches with multiple live objects before
+    further registry indexing or aggregate construction tuning. Local matched
+    blocks/allocation remain 1.474x/2.420x historical, and native ratios vary;
+    the no-slowdown goal remains open. Phase 2's small differences still need
+    longer workloads before attribution.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

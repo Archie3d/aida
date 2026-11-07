@@ -289,6 +289,9 @@ combines default-pool objects and registry footers in one cleared heap block and
 reuses proven aggregate byte counts while retaining the pre-copy exception check.
 Native Darwin arm64 pairs show allocation about 11% faster and blocks about 7.5%
 faster than the preceding build. [Full samples and validation](../../docs/host-performance-coallocation.json)
-are retained; native CI confirmation is pending. Longer runs and batches with
+are retained. [Native functional confirmation](../../docs/host-performance-coallocation-ci.json)
+passes 1,945 tests on each Ubuntu architecture and 1,944 on MSYS2. Short CI
+pairs do not reproduce a uniform speedup across separate runs; Ubuntu amd64
+block/allocation ratios are worse this time. Longer runs and batches with
 multiple live objects are needed before tuning registry scaling. The immediate
 allocate/free workload does not exercise long registry searches.
