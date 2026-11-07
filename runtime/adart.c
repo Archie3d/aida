@@ -1575,9 +1575,10 @@ static int allocationOwnsChain(AdaFinalization** owner)
     return 0;
 }
 
-static AdaAllocation* findAllocation(void* address)
+/* Called with the storage mutex held. Prefer an owned allocation to a
+   borrowed view of the same object, irrespective of registration order. */
+static AdaAllocation* findAllocationLocked(void* address)
 {
-    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     AdaAllocation* allocation = __ada_main_context.registeredAllocations;
     AdaAllocation* borrowed = NULL;
     while (allocation != NULL) {
@@ -1588,6 +1589,13 @@ static AdaAllocation* findAllocation(void* address)
         allocation = allocation->registeredNext;
     }
     if (allocation == NULL) { allocation = borrowed; }
+    return allocation;
+}
+
+static AdaAllocation* findAllocation(void* address)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* allocation = findAllocationLocked(address);
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     return allocation;
 }
@@ -1605,12 +1613,9 @@ void __ada_collection_activate(void* owner)
     __ada_master_activate(__ada_task_context(), &collection->master);
 }
 
-static void releaseAllocation(AdaAllocation* allocation)
+/* Called with the storage mutex held. Unlink before user code can reenter. */
+static void unlinkAllocation(AdaAllocation* allocation)
 {
-    AdaTaskContext* context = __ada_task_context();
-    // Unlink before calling user code: a finalizer may deallocate another
-    // member of this collection. Keep the object alive until all parts finish.
-    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     AdaAllocation** link = &allocation->collection->allocations;
     while (*link != allocation) {
         link = &(*link)->next;
@@ -1621,7 +1626,13 @@ static void releaseAllocation(AdaAllocation* allocation)
         link = &(*link)->registeredNext;
     }
     *link = allocation->registeredNext;
-    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+}
+
+/* No registry lock is held across joins, finalizers or pool callbacks. Keep
+   the unlinked record alive until all parts of the object have finished. */
+static void finishAllocation(AdaAllocation* allocation)
+{
+    AdaTaskContext* context = __ada_task_context();
     if (!allocation->borrowed) {
         __ada_task_discard(context, &allocation->collection->master, allocation->object, allocation->size);
     }
@@ -1633,17 +1644,30 @@ static void releaseAllocation(AdaAllocation* allocation)
     free(allocation);
 }
 
+static void releaseAllocation(AdaAllocation* allocation)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    unlinkAllocation(allocation);
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    finishAllocation(allocation);
+}
+
 static int releaseControlledAllocation(void* address)
 {
-    AdaAllocation* allocation = findAllocation(address);
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaAllocation* allocation = findAllocationLocked(address);
     if (allocation == NULL) {
+        __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
         return 0;
     }
     if (allocation->borrowed) {
+        __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
         __ada_raise(ADA_PROGRAM_ERROR);
         return 1;
     }
-    releaseAllocation(allocation);
+    unlinkAllocation(allocation);
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    finishAllocation(allocation);
     return 1;
 }
 

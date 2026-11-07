@@ -1401,10 +1401,22 @@ Ada 2005 additions and track annex packages separately.
     current revision, including Windows. Paired block ratios are now
     5.817x/5.723x/3.575x historical; allocation 5.308x/5.939x/2.652x.
     [Full native samples](docs/host-performance-master-activities-ci.json).
-  - [ ] Investigate remaining block aggregate temporary allocation/copying and
-    shared storage registry costs. Locally, blocks/allocation remain 3.475x/2.795x slower than
-    pre-Phase-2; this repair does not close the no-slowdown goal. Phase 2's small
-    differences still need longer workloads before attribution.
+  - [x] Remove arena allocation for unmanaged aggregate temporaries with known
+    bounds/stride and byte counts within the existing stack limit. Keep zeroed
+    separate storage and the final copy for aliasing/exception safety; retain
+    dynamic/large/packed/managed fallback. Combine owned deallocation lookup
+    and unlinking under one registry lock, with joins/finalizers/pool callbacks
+    outside it. Both staged/full Release suites pass 1,942/1,942; 15 ASan/UBSan
+    and ten TSan checks pass. Matched local blocks improve about 55%; allocation
+    is about 3% lower in the combined run, a smaller difference requiring longer
+    workloads before a general conclusion.
+    [Full samples and limits](docs/host-validation.md#aggregate-temporaries-and-registry-transactions).
+  - [ ] Confirm aggregate/registry repairs on native CI and investigate residual
+    costs: constant aggregate shape/copy helper calls, per-allocation metadata
+    allocation and shared registry indexing/checks. Local blocks/allocation
+    remain 1.620x/2.674x slower than pre-Phase-2; the no-slowdown goal remains
+    open. Phase 2's small differences still need longer workloads before
+    attribution.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

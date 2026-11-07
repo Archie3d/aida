@@ -240,6 +240,60 @@ slowdowns against pre-Phase-2, and Windows images remain about 6% slower in this
 short workload. Native confirmation is complete; aggregate temporary allocation
 and shared storage registry overhead remain open investigation targets.
 
+### Aggregate temporaries and registry transactions
+
+The subsequent repair keeps unmanaged aggregate temporaries on the stack when
+their actual bounds and element stride are integer literals, the checked byte
+count fits signed 64-bit arithmetic, and the temporary fits the existing
+65,536-byte stack limit. The temporary remains separate and zeroed, including
+the one-byte allocation for a null aggregate. Components may read the old
+destination or raise; the destination is copied only after successful filling.
+Dynamic/large/packed temporaries retain arena storage, while managed/limited
+construction retains its existing ownership path. Choice, bounds and sliding
+validation still precede component evaluation.
+
+Owned deallocation now combines registry lookup and removal under one storage
+mutex acquisition. Owned records still take precedence over borrowed views;
+deallocating a borrowed-only view still raises Program_Error. The record remains
+alive through cleanup, and joining tasks, finalizing objects and invoking user
+pool callbacks happen after unlocking. Registry synchronization is retained.
+No runtime layout or calling ABI changes in this repair.
+
+Two staged native Darwin arm64 Release builds compare with the matching
+compiler/runtime at `30d0ae995b65b3bd0933919ad8b5acb11a6b214e`. The aggregate-only
+pair improved the block workload by about 55%, leaving allocation unchanged.
+After the registry change, the combined 21-trial pair records:
+
+| Workload | Before median (s) | Combined repair median (s) | Repair / before | Repair / pre-Phase-2, separate pair |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar calls | 0.014276 | 0.014388 | 1.008 | 0.751 |
+| Images | 0.024528 | 0.024584 | 1.002 | 0.785 |
+| Block scopes | 0.017230 | 0.007837 | 0.455 | 1.620 |
+| Allocation/deallocation | 0.019229 | 0.018581 | 0.966 | 2.674 |
+
+[All staged/historical samples, component/source hashes and build flags](host-performance-aggregate-registry.json)
+are retained. Comparisons alternate validated binaries on the same host, with
+matching toolchain/Release options and no concurrent build/test load. The roughly
+3% allocation difference is much smaller than the block improvement; longer
+workloads are needed before a general conclusion. Process startup is included.
+
+Both full Release stages pass 1,942/1,942 checks, with no failures or skips.
+Fifteen ASan/UBSan and ten TSan checks pass for aggregate construction, generated
+tasking, shared collections, borrowed storage, pool callbacks and failure cleanup.
+The new `aggregatetemporaries` fixture exercises repeated self-referential
+assignment, null aggregates, and a component exception after producing values
+different from the old destination; it runs normally, deterministically, and in
+whole/per-unit modes. `codegen.aggregate_storage` rejects arena-allocation calls
+in that small-static fixture and fails against the preceding compiler as a
+regression control. The existing hello IR reference is unchanged.
+
+Native CI confirmation is still required for these two repairs. Remaining
+investigation targets include constant aggregate shape/copy helper calls and
+per-allocation metadata allocation, shared registry indexing and open checks.
+These costs are visible in the implementation but have not each been isolated
+by measurement. Blocks/allocation remain slower than pre-Phase-2; the overall
+no-slowdown goal remains open.
+
 ## Reproduce
 
 ```sh

@@ -300,9 +300,27 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     std::string elementSize = arrayElementSize(resultShape, type);
     std::string buffer = address.name;
     if (buffer.empty() || (!needsFinalization(type) && !hasLimitedParts(type))) {
-        buffer = newTemp();
-        emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
-             + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")", CallEffects::CheckException);
+        long long scratchBytes = -1;
+        if (!needsFinalization(type) && !hasLimitedParts(type)
+            && QbeSupport::isLiteralOperand(resultFirst) && QbeSupport::isLiteralOperand(resultLast)
+            && QbeSupport::isLiteralOperand(elementSize)) {
+            __int128 length = std::max<__int128>(0, (__int128)std::stoll(resultLast) - std::stoll(resultFirst) + 1);
+            long long stride = std::stoll(elementSize);
+            __int128 bytes = length * stride;
+            if (length <= INT64_MAX && stride >= 0 && bytes <= kArrayStackLimit) {
+                scratchBytes = std::max(1LL, (long long)bytes);
+            }
+        }
+        if (scratchBytes >= 0) {
+            // Keep a separate, zeroed temporary: component evaluation can read
+            // the destination or raise before the final copy commits it.
+            buffer = allocScratch(scratchBytes, typeAlignment(type));
+            emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(scratchBytes) + ")", CallEffects::DeferredCheck);
+        } else {
+            buffer = newTemp();
+            emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
+                 + ", l " + resultFirst + ", l " + resultLast + ", l " + elementSize + ")", CallEffects::CheckException);
+        }
         if (needsFinalization(type)) {
             Value object { buffer, 'l', resultFirst, resultLast };
             object.innerBounds = resultShape.innerBounds;

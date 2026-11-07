@@ -271,3 +271,12 @@ remain slower than pre-Phase-2. [Native CI confirmation](../../docs/host-perform
 now passes all suites, verifies the 16-byte master layout and captures every
 revision field. Residual regressions remain on all active CI hosts; separate
 runner executions do not provide an isolated before/after speedup for the repair.
+
+The next [aggregate/registry repair](../../docs/host-validation.md#aggregate-temporaries-and-registry-transactions)
+uses zeroed stack temporaries for small unmanaged aggregates with known byte
+counts, preserving aliasing and exception behavior. Deallocation lookup/unlink
+uses one shared critical section, with user callbacks outside it. Native Darwin
+arm64 paired runs show about 55% lower block time; allocation is about 3% lower
+in the combined pair, which needs longer measurements before a broad claim.
+[All staged and historical samples](../../docs/host-performance-aggregate-registry.json)
+are retained. Residual slowdowns and native CI confirmation remain open.

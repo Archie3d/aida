@@ -89,6 +89,14 @@ join/resample protocol and defensive await on leave. Pending exceptions and
 finalization ordering are unchanged. Native host workers must still be joined
 by their caller before the owning collection/master leaves.
 
+Owned deallocation now finds and unlinks its allocation record in one storage
+registry critical section. Borrowed views still reject deallocation, and lookup
+still prefers an owned record over borrowed views of the same address. The
+unlinked record stays alive through dependent-task joining, finalization, arena
+release and pool deallocation. All joins and user callbacks run after releasing
+the mutex; collection-wide cleanup and failed-result cleanup use the same
+unlink/finish helpers. Other registry lookups retain their existing locking.
+
 ## Evidence and limits
 
 `runtime.shared_collections` runs four allocating workers, then four deallocating
