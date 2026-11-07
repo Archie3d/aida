@@ -56,6 +56,10 @@ def main():
     parser.add_argument('--work', type=Path, required=True)
     parser.add_argument('--runs', type=int, default=11)
     args = parser.parse_args()
+    for name in ('revision', 'baseline_revision'):
+        value = getattr(args, name)
+        if value is not None and not value.strip():
+            parser.error('--' + name.replace('_', '-') + ' must not be empty')
     if args.baseline_build and not args.baseline_ada:
         parser.error('--baseline-build requires --baseline-ada')
     if args.runs < 3:

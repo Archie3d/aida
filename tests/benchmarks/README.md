@@ -239,7 +239,9 @@ and `--baseline-build` for a real alternating before/after comparison using
 matching compiler/runtime builds on the same host/toolchain. The collector
 rejects failed workloads; an identical-driver control is labeled as a harness
 check. Current-only collection and entry models do not prove Phase 2's broad
-no-slowdown goal. Native comparisons on other hosts remain open.
+no-slowdown goal. Native historical pairs now cover all active CI hosts;
+[full cross-host samples](../../docs/host-performance-ci.json) preserve the
+block/allocation regressions and the Windows revision-field limitation.
 
 The CI workflow now builds the pinned pre-Phase-2 revision
 `3d2aac5980f57fb68524a15b154f65cf0882bdc2` and collects 21 alternating trials.

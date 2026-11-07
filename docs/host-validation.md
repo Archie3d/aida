@@ -4,8 +4,8 @@ Phase 8 has successful native **Darwin arm64, Linux amd64/arm64 and Windows
 amd64 (MSYS2 UCRT64)** evidence. The corrected CI runs pass 1,938/1,938 tests
 on each Ubuntu architecture and 1,937/1,937 on Windows, with no failures,
 disabled tests or skips. All eight [MSYS2 fixes](msys2-ci-fixes.md) are confirmed.
-The roadmap item remains open for cross-host historical performance comparisons
-and the local block/allocation regressions described below.
+Matched comparisons now cover all active CI hosts. The roadmap item remains
+open for the block/allocation regressions described below.
 [Pinned current and previous CI results](host-validation-ci.json).
 
 ## Native evidence
@@ -93,8 +93,8 @@ Eleven local runs after build/test work finished gave these current-only medians
 These are current compiler/runtime measurements, not an actual pre-Phase-2
 comparison or proof of the no-slowdown goal. A three-run identical-driver paired
 control exercised the comparison harness and is explicitly labeled as such.
-All three CI jobs now have successful current-only timing records, including
-Windows; matched cross-host comparisons are still required. The existing [historical locking costs and performance limits](../tests/benchmarks/README.md)
+The initial CI records were current-only; the subsequent native runs now
+include historical pairs on all three active hosts. The existing [historical locking costs and performance limits](../tests/benchmarks/README.md)
 remain applicable; they are not replaced with a no-regression claim.
 
 ### Matched historical comparison
@@ -129,9 +129,40 @@ No broad no-slowdown claim is supported.
 The CI workflow now checks out the pinned pre-Phase-2 revision with its QBE
 submodule and builds its `ada` target separately in Release. The existing native
 suites still run against current code; timing collection then alternates current
-and historical binaries for 21 trials. The next Linux/MSYS2 artifacts will
-contain paired measurements, subject to successful historical builds and workload
-validation. macOS CI entries remain commented out.
+and historical binaries for 21 trials. The supplied Linux/MSYS2 artifacts confirm successful historical builds and
+workload validation. macOS CI entries remain commented out.
+
+### Native CI historical comparisons
+
+The next supplied CI run passes 1,938/1,938 tests on both Ubuntu architectures
+and 1,937/1,937 on MSYS2, with no failures, disabled tests or skips. All three
+relocated installs and ABI controls pass. Each host supplies 21 samples per
+workload and compiler, using matching Release flags and compiler versions.
+Workload hashes match the repository sources (CRLF checkout on Windows).
+
+| Host | Scalar calls, current / baseline | Images | Blocks | Allocation |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.707 | 0.804 | 9.800 | 8.044 |
+| Ubuntu arm64 | 0.919 | 0.930 | 8.811 | 8.091 |
+| MSYS2 UCRT64 amd64 | 0.729 | 1.060 | 5.451 | 3.901 |
+
+Ratios above one are slower. The block/allocation regression is present on
+all measured hosts. Windows images are about 6% slower in this run; process
+startup and runner variability require longer measurements before attributing
+that smaller difference. Each ratio compares the two compiler builds on one host; it does not compare
+host speeds. The baseline medians are only a few milliseconds
+for blocks/allocation, but their large differences also reproduce locally.
+
+[Full unmodified timing reports](host-performance-ci.json) retain every sample,
+revision field, compiler/flags and component hash. [JUnit/install summaries](host-validation-ci.json)
+retain current and previous artifact checksums. Linux reports current revision
+`c4fdd097f06e208ec9ef33c81177230f4c675925`; all three report the pinned
+pre-Phase-2 baseline. The Windows current-revision field is empty, so its exact
+source revision cannot be established from that field; its measured binary
+hashes remain available. The workflow now supplies `GITHUB_SHA` directly rather
+than relying on a shell Git lookup, and the collector rejects explicitly empty
+revision arguments. No source revision has been substituted into the old report.
+The cross-host measurements are collected; the no-slowdown goal remains unmet.
 
 ## Reproduce
 

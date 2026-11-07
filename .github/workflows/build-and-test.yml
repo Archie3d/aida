@@ -56,7 +56,7 @@ jobs:
           mkdir -p 'build with spaces/host evidence'
           'build with spaces/tests/host_abi_report' > 'build with spaces/host evidence/abi.json'
           cmake --build 'build with spaces' --target context_access_benchmark --parallel 3
-          python3 -B tests/host/measure.py --ada 'build with spaces/ada/ada' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada --baseline-build ../performance-baseline-build --revision "$(git rev-parse HEAD)" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark' --work 'build with spaces/host evidence' --runs 21
+          python3 -B tests/host/measure.py --ada 'build with spaces/ada/ada' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada --baseline-build ../performance-baseline-build --revision "$GITHUB_SHA" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark' --work 'build with spaces/host evidence' --runs 21
       - name: Preserve validation evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -113,7 +113,7 @@ jobs:
           mkdir -p 'build with spaces/host evidence'
           'build with spaces/tests/host_abi_report.exe' > 'build with spaces/host evidence/abi.json'
           cmake --build 'build with spaces' --target context_access_benchmark --parallel 3
-          python -B tests/host/measure.py --ada 'build with spaces/ada/ada.exe' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada.exe --baseline-build ../performance-baseline-build --revision "$(git rev-parse HEAD)" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark.exe' --work 'build with spaces/host evidence' --runs 21
+          python -B tests/host/measure.py --ada 'build with spaces/ada/ada.exe' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada.exe --baseline-build ../performance-baseline-build --revision "$GITHUB_SHA" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark.exe' --work 'build with spaces/host evidence' --runs 21
       - name: Preserve validation evidence
         if: always()
         uses: actions/upload-artifact@v7

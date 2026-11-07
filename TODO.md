@@ -1352,8 +1352,8 @@ Ada 2005 additions and track annex packages separately.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces. Local validation and preparation
   for other hosts are complete; native runs now pass on all active CI hosts.
-  Cross-host historical performance evidence and local block/allocation
-  regression investigation remain required.
+  Historical pairs are recorded for all active CI hosts; block/allocation
+  regression investigation remains required.
   - [x] Darwin arm64: mixed C/Ada register/stack ABI, descriptor/trace layouts,
     moved installs, PATH/symlink invocation, library/runtime/include overrides
     and spaced paths. Full Release suite from spaced source/build paths with
@@ -1390,9 +1390,14 @@ Ada 2005 additions and track annex packages separately.
     await/leave locking and access-collection bookkeeping. Preserve task,
     accessibility and cleanup semantics; Phase 2's small differences need
     longer workload measurements before attribution.
-  - [ ] Collect matched before/after performance evidence on other hosts/targets
-    using the updated CI jobs; current-only records and entry-cost models do
-    not close the no-slowdown goal.
+  - [x] Collect matched before/after performance evidence on all active CI hosts:
+    21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
+    arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is
+    8.044x/8.091x/3.901x slower. Full suites and relocated installs pass.
+    Preserve all samples and hashes; Windows omitted its current revision,
+    so retain that provenance limit and fix revision capture for future runs.
+    The regressions above keep the no-slowdown goal open.
+    [Cross-host evidence](docs/host-performance-ci.json).
   [Contract, commands and evidence](docs/host-validation.md).
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.
