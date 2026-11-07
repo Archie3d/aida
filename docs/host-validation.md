@@ -317,6 +317,63 @@ These costs are visible in the implementation but have not each been isolated
 by measurement. Blocks/allocation remain slower than pre-Phase-2; the overall
 no-slowdown goal remains open.
 
+### Default-pool coallocation and constant aggregate sizes
+
+Direct built-in default-pool collection allocations now reserve the zeroed
+object and an aligned registry-record footer with one `calloc`. The object
+remains the allocation base, and zero-sized objects still reserve one real byte.
+Size/padding/record arithmetic is checked before allocation. Registry membership
+remains locked; the footer survives task joining, finalization and arena cleanup,
+then the block is freed once. User-selected pools, borrowed views and deferred
+result construction keep their separate storage paths. A closing-pool callback
+test verifies that rejected registration releases the returned object exactly
+once through its original pool, preserving the pending exception.
+
+For small unmanaged aggregates already proven to fit stack storage, the emitter
+reuses the computed byte count instead of calling `__ada_array_size` again. It
+retains an explicit pending-exception check before the final copy: temporary
+component finalizers can raise even after producing their scalar value. Dynamic,
+large, packed and managed paths keep their existing checks and ownership.
+
+Native Darwin arm64 Release pairs compare the working tree with matching builds
+of `e5d98f58363c6780b1351f9a3aaf16ae31dd6299` and, separately, pre-Phase-2. Each
+pair alternates validated binaries for 21 trials on the same idle host/toolchain.
+Compilation and tests finish before timing; process startup remains included.
+
+| Workload | Before median (s) | Repair median (s) | Repair / before | Repair / pre-Phase-2, separate pair |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar calls | 0.014064 | 0.014089 | 1.002 | 0.766 |
+| Images | 0.024220 | 0.024320 | 1.004 | 0.785 |
+| Block scopes | 0.007589 | 0.007017 | 0.925 | 1.474 |
+| Allocation/deallocation | 0.018360 | 0.016289 | 0.887 | 2.420 |
+
+[All samples, component/source hashes, build flags and validation](host-performance-coallocation.json)
+are retained. Allocation improves about 11% and blocks about 7.5% against the
+preceding build; scalar/image differences are small. The remaining historical
+gaps are substantial, so this is not a no-slowdown conclusion.
+
+The final full suite passes 1,945/1,945 checks, with no failures or skips.
+Eighteen ASan/UBSan and 13 TSan checks pass. Allocation instrumentation permits
+exactly one allocation for zero, odd and larger default-pool object sizes,
+checks alignment/zero initialization and verifies allocation-free release and
+failure rollback. The failure sweep now continues to its first complete success
+instead of assuming a fixed number of allocation points. Custom-pool callback
+closure and reentry remain covered.
+
+`aggregatetemporarycleanup` checks a failing finalizer on the last component's
+limited controlled temporary, an unchanged destination, cleanup counts and a
+subsequent successful assignment in normal/determinism/whole/per-unit modes.
+The strengthened `codegen.aggregate_storage` rejects redundant size-helper calls
+as well as arena allocation. The preceding compiler/runtime fail the new
+size-helper and single-allocation controls respectively. The new raw-mode case
+includes the Windows stack probe; public runtime layouts remain unchanged.
+
+Native CI confirmation is pending for this repair. Longer workloads and batches
+with multiple live objects are the next measurement targets: the current
+allocation workload releases each object immediately and does not characterize
+the linked registry's scaling. Remaining aggregate helper/copy and registry costs
+need measurement before further tuning. The overall performance item stays open.
+
 ## Reproduce
 
 ```sh

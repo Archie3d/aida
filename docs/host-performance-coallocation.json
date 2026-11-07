@@ -1,0 +1,650 @@
+{
+  "schema": 1,
+  "description": "Native Darwin arm64 Release working tree: default-pool object/record coallocation and reuse of proven aggregate byte counts, retaining the pre-copy exception barrier. All timing samples preserved; no universal no-slowdown conclusion.",
+  "source_base_revision": "e5d98f58363c6780b1351f9a3aaf16ae31dd6299",
+  "implementation_sources_sha256": {
+    "runtime/adart.c": "20386006c57aa37760775065c4bf6254e8e30881215358afa3fd45c9af1c9cfb",
+    "adac/emitter/QbeAggregates.cpp": "d51d3cd46e6ab787b29999e725bd4680c7edb6868a21ea3fca4daeda4e8f6d15",
+    "tests/ArrayStorageTest.c": "c66dc0c0c1073bf3732743f2362e7f7d88a8185d0f070d4d8234540ebda487a1",
+    "tests/StoragePoolsTest.c": "eca6a6e8d1a456eb152f44232539d54b474f3a6d779c6316f387fbcbd3275d08",
+    "tests/CMakeLists.txt": "626ac6676ee51ad2d7e9d2f5d5e0814dba305b2580fc62d52b8a7ffa643b6dd7",
+    "tests/CheckAggregateStorage.cmake": "53868390a9fc128250d432abfd35ddf0c7b0b38a1d1990603cfd3caf1e6334d9",
+    "tests/ada/arrays/aggregatetemporarycleanup.adb": "e49622978be71b63d57639db065ed537e94ea746d1e000eaaeeb3f114e2563fc",
+    "tests/ada/arrays/aggregatetemporarycleanup.expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "abi": {
+    "pointer_bits": 64,
+    "int_bits": 32,
+    "long_bits": 64,
+    "size_bits": 64,
+    "ptrdiff_bits": 64,
+    "little_endian": true,
+    "trace_bytes": 24,
+    "array_result_bytes": 48,
+    "master_bytes": 16
+  },
+  "validation": {
+    "release_tests": 1945,
+    "release_passed": 1945,
+    "release_seconds": 354.0,
+    "release_junit_sha256": "c58f2172d40f1675d9d474db16bf7cb1e7400abc88ac21f80e7fc915454f7747",
+    "address_undefined_checks_passed": 18,
+    "thread_sanitizer_checks_passed": 13,
+    "previous_compiler_control": "Fails the strengthened constant aggregate size-helper check as expected",
+    "previous_runtime_control": "Fails the single-allocation default collection test as expected",
+    "native_ci_confirmation": "pending for coallocation and constant-size reuse; public runtime layouts remain unchanged",
+    "new_raw_modes_windows_stack_probe_configured": true
+  },
+  "comparisons": {
+    "coallocation-vs-previous": {
+      "schema": 2,
+      "recorded_at": "2026-11-07T22:45:15.202170+00:00",
+      "revisions": {
+        "current": "e5d98f58363c6780b1351f9a3aaf16ae31dd6299+uncommitted-coallocation",
+        "baseline": "e5d98f58363c6780b1351f9a3aaf16ae31dd6299"
+      },
+      "build_configuration": {
+        "current": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        },
+        "baseline": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        }
+      },
+      "build_components_sha256": {
+        "current": {
+          "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+          "runtime/libadart.a": "ac575645275813c9f95b02fecb1e898f4006a1f3faa8853a7417f7954fcbf329",
+          "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+        },
+        "baseline": {
+          "adac/adac": "084b61cfc4cb40fe264a0e9c86dc36e4bc6f8c29c19c8ee5d19a74e95b497236",
+          "runtime/libadart.a": "e84bdb7b31f6fe5ca25f8dcb98b01144582de9a4f8a65f6ac2256df1550a9aac",
+          "qbe/qbe": "2c86fc3880fa57c8120998ff9b0f491183ea7b26320282bd22dc2f24c0c68c5b"
+        }
+      },
+      "context_probe_sha256": null,
+      "host": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "release": "27.0.0",
+        "python": "3.15.0"
+      },
+      "driver_sha256": {
+        "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+        "baseline": "a2ff4b8c907b22b400ddb63896efacd0f6205f8983c48ca11bb6cbc904427d1a"
+      },
+      "comparison": "paired",
+      "runs": 21,
+      "workloads": {
+        "contextcalls": {
+          "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+          "samples_seconds": {
+            "current": [
+              0.014639624976553023,
+              0.013608083012513816,
+              0.014088750001974404,
+              0.014291790896095335,
+              0.014061458059586585,
+              0.014169874950312078,
+              0.014189749956130981,
+              0.014420334016904235,
+              0.014472333015874028,
+              0.014057083055377007,
+              0.013965207966975868,
+              0.014238875010050833,
+              0.013959625037387013,
+              0.01363874995149672,
+              0.014317332999780774,
+              0.014114958001300693,
+              0.014091665972955525,
+              0.013890499947592616,
+              0.013692541979253292,
+              0.013478334061801434,
+              0.013752750004641712
+            ],
+            "baseline": [
+              0.013914457987993956,
+              0.01408004097174853,
+              0.01385674998164177,
+              0.014080166001804173,
+              0.013962291995994747,
+              0.013899457990191877,
+              0.013962500030174851,
+              0.014330332982353866,
+              0.014141916995868087,
+              0.014064499991945922,
+              0.014445625012740493,
+              0.014072249992750585,
+              0.013761334004811943,
+              0.013762000016868114,
+              0.014185416977852583,
+              0.01418966706842184,
+              0.013834583922289312,
+              0.013688000035472214,
+              0.013592917006462812,
+              0.014086375012993813,
+              0.014331957907415926
+            ]
+          },
+          "median_seconds": {
+            "current": 0.014088750001974404,
+            "baseline": 0.014064499991945922
+          },
+          "current_over_baseline": 1.0017241999390216
+        },
+        "imagecalls": {
+          "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+          "samples_seconds": {
+            "current": [
+              0.0246887500397861,
+              0.024140250054188073,
+              0.023833916056901217,
+              0.024606124963611364,
+              0.024337042006663978,
+              0.024116999935358763,
+              0.02370966610033065,
+              0.025145708001218736,
+              0.02415462490171194,
+              0.023917999933473766,
+              0.024518500082194805,
+              0.0241332920268178,
+              0.0240396250737831,
+              0.023362332955002785,
+              0.02433637494686991,
+              0.02470850001554936,
+              0.02474208304192871,
+              0.02472062490414828,
+              0.024319958058185875,
+              0.024057958042249084,
+              0.025279833003878593
+            ],
+            "baseline": [
+              0.02428495790809393,
+              0.024118124973028898,
+              0.02422045893035829,
+              0.02435108390636742,
+              0.024206959060393274,
+              0.02463629108387977,
+              0.024288334068842232,
+              0.02489104203414172,
+              0.024180916021578014,
+              0.02401579194702208,
+              0.024934499990195036,
+              0.02473704202566296,
+              0.024072958971373737,
+              0.023702875012531877,
+              0.02425112493801862,
+              0.02419716597069055,
+              0.024219083017669618,
+              0.024534040945582092,
+              0.023961166967637837,
+              0.023916624952107668,
+              0.024630208034068346
+            ]
+          },
+          "median_seconds": {
+            "current": 0.024319958058185875,
+            "baseline": 0.02422045893035829
+          },
+          "current_over_baseline": 1.0041080612103048
+        },
+        "blockcalls": {
+          "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+          "samples_seconds": {
+            "current": [
+              0.009035458089783788,
+              0.007016999996267259,
+              0.00695279089268297,
+              0.0070900419959798455,
+              0.006798459100537002,
+              0.007307583000510931,
+              0.007167584029957652,
+              0.007259166915901005,
+              0.006959040998481214,
+              0.007363041979260743,
+              0.00697233306709677,
+              0.0070654170121997595,
+              0.006911374977789819,
+              0.00738704192917794,
+              0.006920665968209505,
+              0.007439708919264376,
+              0.007280958001501858,
+              0.006623916910029948,
+              0.006832834100350738,
+              0.006781750009395182,
+              0.006425749976187944
+            ],
+            "baseline": [
+              0.00915062497369945,
+              0.008340124972164631,
+              0.008230749983340502,
+              0.007795250043272972,
+              0.007865458028391004,
+              0.008205374935641885,
+              0.007128584082238376,
+              0.007409374928101897,
+              0.007398499990813434,
+              0.007588749984279275,
+              0.007366042002104223,
+              0.0075855840696021914,
+              0.007741334033198655,
+              0.0077220420353114605,
+              0.007102041970938444,
+              0.0073188750538975,
+              0.007784834015183151,
+              0.00766408396884799,
+              0.007568750064820051,
+              0.007181874942034483,
+              0.007436292013153434
+            ]
+          },
+          "median_seconds": {
+            "current": 0.007016999996267259,
+            "baseline": 0.007588749984279275
+          },
+          "current_over_baseline": 0.9246582125914751
+        },
+        "allocationcalls": {
+          "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+          "samples_seconds": {
+            "current": [
+              0.017202750081196427,
+              0.016317250090651214,
+              0.016130875097587705,
+              0.016112957964651287,
+              0.016463250038214028,
+              0.016041374998167157,
+              0.01590424997266382,
+              0.015952166984789073,
+              0.01614587497897446,
+              0.016139250015839934,
+              0.015869166934862733,
+              0.016667917021550238,
+              0.016133291996084154,
+              0.016403709072619677,
+              0.016497917007654905,
+              0.016325291013345122,
+              0.016285125049762428,
+              0.01646329089999199,
+              0.016328500001691282,
+              0.01636150002013892,
+              0.016289417049847543
+            ],
+            "baseline": [
+              0.018077958025969565,
+              0.01862420793622732,
+              0.018027666956186295,
+              0.018394791055470705,
+              0.01858583407010883,
+              0.018274958012625575,
+              0.017935957992449403,
+              0.018115416052751243,
+              0.018199124955572188,
+              0.018205708009190857,
+              0.018339790985919535,
+              0.018574874964542687,
+              0.018359666923061013,
+              0.018281124997884035,
+              0.01850787503644824,
+              0.018363957991823554,
+              0.018465332919731736,
+              0.018315583001822233,
+              0.018702082918025553,
+              0.01852095895446837,
+              0.01844691706355661
+            ]
+          },
+          "median_seconds": {
+            "current": 0.016289417049847543,
+            "baseline": 0.018359666923061013
+          },
+          "current_over_baseline": 0.8872392466655757
+        }
+      },
+      "context_probe_samples_seconds": {},
+      "context_probe_median_seconds": {}
+    },
+    "coallocation-vs-pre-phase2": {
+      "schema": 2,
+      "recorded_at": "2026-11-07T22:45:21.227363+00:00",
+      "revisions": {
+        "current": "e5d98f58363c6780b1351f9a3aaf16ae31dd6299+uncommitted-coallocation",
+        "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+      },
+      "build_configuration": {
+        "current": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        },
+        "baseline": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        }
+      },
+      "build_components_sha256": {
+        "current": {
+          "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+          "runtime/libadart.a": "ac575645275813c9f95b02fecb1e898f4006a1f3faa8853a7417f7954fcbf329",
+          "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+        },
+        "baseline": {
+          "adac/adac": "534eac7be460766f165d7b82d60e1770a690afa1d6ab431b421fd629b37d711c",
+          "runtime/libadart.a": "2029b6c84028b44df738f2687a01988bc09ce11a4040cf904513f1e38d3d234c",
+          "qbe/qbe": "12c1e11bfd38149498d92e9b28261bdf33dad7c78c6b0eeffba8657d69a6dd28"
+        }
+      },
+      "context_probe_sha256": null,
+      "host": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "release": "27.0.0",
+        "python": "3.15.0"
+      },
+      "driver_sha256": {
+        "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+        "baseline": "202fdd0788980f7feadcfcbd0423548840cff2ec184431bddf20365b4d420ca8"
+      },
+      "comparison": "paired",
+      "runs": 21,
+      "workloads": {
+        "contextcalls": {
+          "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+          "samples_seconds": {
+            "current": [
+              0.014741666964255273,
+              0.014751499984413385,
+              0.014444667031057179,
+              0.014718958991579711,
+              0.014474957948550582,
+              0.014627541066147387,
+              0.01396237500011921,
+              0.014399249921552837,
+              0.015364708960987628,
+              0.014424500055611134,
+              0.014469166053459048,
+              0.01401370798703283,
+              0.014308082987554371,
+              0.014750333037227392,
+              0.014775415998883545,
+              0.014428332913666964,
+              0.020995415979996324,
+              0.01406908396165818,
+              0.013962624943815172,
+              0.014083542046137154,
+              0.01402504206635058
+            ],
+            "baseline": [
+              0.018799209035933018,
+              0.019112750072963536,
+              0.018668167060241103,
+              0.01898795901797712,
+              0.019091750029474497,
+              0.01893358293455094,
+              0.018900917028076947,
+              0.019203333999030292,
+              0.019079208956100047,
+              0.019346917048096657,
+              0.01888150000013411,
+              0.018732791068032384,
+              0.018632999970577657,
+              0.018806083011440933,
+              0.018722042092122138,
+              0.01887179201003164,
+              0.0188657499384135,
+              0.018676583073101938,
+              0.018442834028974175,
+              0.018617958994582295,
+              0.01852120808325708
+            ]
+          },
+          "median_seconds": {
+            "current": 0.014444667031057179,
+            "baseline": 0.0188657499384135
+          },
+          "current_over_baseline": 0.7656555969527439
+        },
+        "imagecalls": {
+          "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+          "samples_seconds": {
+            "current": [
+              0.02674991707317531,
+              0.024694332969374955,
+              0.02439962502103299,
+              0.02434970799367875,
+              0.024440875044092536,
+              0.02428420796059072,
+              0.023879709071479738,
+              0.024640082963742316,
+              0.024472375051118433,
+              0.024832916096784174,
+              0.02421874995343387,
+              0.02444591699168086,
+              0.024264708976261318,
+              0.02439745794981718,
+              0.024121791939251125,
+              0.024719250039197505,
+              0.02478683297522366,
+              0.024244832922704518,
+              0.02443824999500066,
+              0.024301249999552965,
+              0.024581082980148494
+            ],
+            "baseline": [
+              0.03147649997845292,
+              0.030999833019450307,
+              0.03129229205660522,
+              0.031022666953504086,
+              0.031054583028890193,
+              0.030826875008642673,
+              0.031128625036217272,
+              0.03120479197241366,
+              0.03151795803569257,
+              0.031399540952406824,
+              0.031202125013805926,
+              0.031036625034175813,
+              0.03082524996716529,
+              0.031256916001439095,
+              0.03114074992481619,
+              0.0315700409701094,
+              0.03111637500114739,
+              0.03106683399528265,
+              0.03135362500324845,
+              0.03161725006066263,
+              0.03105895803309977
+            ]
+          },
+          "median_seconds": {
+            "current": 0.02443824999500066,
+            "baseline": 0.03114074992481619
+          },
+          "current_over_baseline": 0.7847675490796616
+        },
+        "blockcalls": {
+          "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+          "samples_seconds": {
+            "current": [
+              0.007271207985468209,
+              0.007066915975883603,
+              0.006769333966076374,
+              0.007401834009215236,
+              0.007752583944238722,
+              0.007081417017616332,
+              0.0073113749967888,
+              0.0065362920286133885,
+              0.007323124911636114,
+              0.007770916912704706,
+              0.011175708961673081,
+              0.007838207995519042,
+              0.006843375042080879,
+              0.006908874958753586,
+              0.0072804579976946115,
+              0.006901082932017744,
+              0.007192958029918373,
+              0.007200957974418998,
+              0.007361958967521787,
+              0.007586708990857005,
+              0.0066724170465022326
+            ],
+            "baseline": [
+              0.005471042008139193,
+              0.005162083078175783,
+              0.004929790971800685,
+              0.005071791005320847,
+              0.005420625093393028,
+              0.00476720801088959,
+              0.005365333985537291,
+              0.0048201249446719885,
+              0.004981833044439554,
+              0.004633207921870053,
+              0.005158749991096556,
+              0.004845709074288607,
+              0.004769083927385509,
+              0.004394916933961213,
+              0.004842958063818514,
+              0.004872749908827245,
+              0.005462832981720567,
+              0.004690458998084068,
+              0.004931833012960851,
+              0.005071541992947459,
+              0.005258999997749925
+            ]
+          },
+          "median_seconds": {
+            "current": 0.007271207985468209,
+            "baseline": 0.004931833012960851
+          },
+          "current_over_baseline": 1.4743418859396664
+        },
+        "allocationcalls": {
+          "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+          "samples_seconds": {
+            "current": [
+              0.0166650420287624,
+              0.01579204190056771,
+              0.016086749965324998,
+              0.01574345794506371,
+              0.01611583400517702,
+              0.016085958923213184,
+              0.016127333976328373,
+              0.01563637505751103,
+              0.016491416026838124,
+              0.015794083010405302,
+              0.01627954200375825,
+              0.01613829203415662,
+              0.016884541022591293,
+              0.015703874989412725,
+              0.016361040994524956,
+              0.01646587497089058,
+              0.016112291952595115,
+              0.015708624967373908,
+              0.016059833113104105,
+              0.0159013340016827,
+              0.01642724999692291
+            ],
+            "baseline": [
+              0.007438624976202846,
+              0.006656708079390228,
+              0.006933416938409209,
+              0.006060957908630371,
+              0.006109000067226589,
+              0.006478416966274381,
+              0.007110000005923212,
+              0.006424958002753556,
+              0.006739208009094,
+              0.006205374957062304,
+              0.0066966250305995345,
+              0.006911000004038215,
+              0.007004125043749809,
+              0.006687749992124736,
+              0.0066502500558272,
+              0.0065774579998105764,
+              0.0069318750174716115,
+              0.006547000026330352,
+              0.006843707989901304,
+              0.006038291030563414,
+              0.006386415916495025
+            ]
+          },
+          "median_seconds": {
+            "current": 0.016112291952595115,
+            "baseline": 0.006656708079390228
+          },
+          "current_over_baseline": 2.420459446386155
+        }
+      },
+      "context_probe_samples_seconds": {},
+      "context_probe_median_seconds": {}
+    }
+  }
+}

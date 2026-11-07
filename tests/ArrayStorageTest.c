@@ -111,8 +111,46 @@ static void adjustValue(void* object)
     }
 }
 
+static int checkDefaultCollectionStorage(void)
+{
+    AdaFinalization* owner = NULL;
+    void* arena = NULL;
+    void* collection = __ada_collection_create(&owner, &arena);
+    CHECK(collection != NULL && __ada_exception == NULL);
+    int initialAllocations = liveAllocations;
+    static const size_t kSizes[] = {0, 1, 3, 8, 17, 255, 4096};
+    for (size_t i = 0; i < sizeof kSizes / sizeof kSizes[0]; ++i) {
+        // Permit exactly one heap allocation. Metadata must not require a
+        // second allocation, and deallocation must need none.
+        failAfter = 1;
+        unsigned char* object = __ada_collection_allocate_aligned(collection, kSizes[i], _Alignof(max_align_t));
+        CHECK(object != NULL && __ada_exception == NULL && failAfter == 0);
+        CHECK((uintptr_t)object % _Alignof(max_align_t) == 0);
+        CHECK(liveAllocations == initialAllocations + 1);
+        size_t bytes = kSizes[i] == 0 ? 1 : kSizes[i];
+        for (size_t n = 0; n < bytes; ++n) {
+            CHECK(object[n] == 0);
+            object[n] = 93;
+        }
+        __ada_deallocate(object);
+        CHECK(__ada_exception == NULL && liveAllocations == initialAllocations);
+        CHECK(__ada_main_context.registeredAllocations == NULL);
+        failAfter = -1;
+    }
+    failNext = 1;
+    CHECK(__ada_collection_allocate(collection, 4) == NULL);
+    CHECK(__ada_exception == ADA_STORAGE_ERROR && liveAllocations == initialAllocations);
+    CHECK(__ada_main_context.registeredAllocations == NULL);
+    __ada_exception = NULL;
+    __ada_finalize_to(&owner, NULL);
+    __ada_array_release(&arena);
+    CHECK(liveAllocations == 0 && __ada_exception == NULL);
+    return 0;
+}
+
 int main(void)
 {
+    CHECK(checkDefaultCollectionStorage() == 0);
     AdaArrayResult result = { 0 };
     __ada_array_result_cleanup(__ada_task_context(), &result);
     CHECK(liveAllocations == 0);
@@ -359,7 +397,9 @@ int main(void)
     __ada_exception = NULL;
     /* Every allocation point in collection creation, object allocation and
        part registration must unwind without leaving registry or heap nodes. */
-    for (int failure = 0; failure <= 8; ++failure) {
+    enum { kCollectionFailureLimit = 16 };
+    int collectionSucceeded = 0;
+    for (int failure = 0; failure < kCollectionFailureLimit && !collectionSucceeded; ++failure) {
         failAfter = failure;
         void* collection = __ada_collection_create(&finalizations, &owner);
         if (collection != NULL) {
@@ -372,13 +412,15 @@ int main(void)
                 }
             }
         }
-        CHECK(failure == 8 || __ada_exception == ADA_STORAGE_ERROR);
+        collectionSucceeded = __ada_exception == NULL;
+        CHECK(collectionSucceeded || __ada_exception == ADA_STORAGE_ERROR);
         failAfter = -1;
         __ada_finalize_to(&finalizations, NULL);
         __ada_array_release(&owner);
         CHECK(liveAllocations == 0 && __ada_task_context()->registeredAllocations == NULL && __ada_task_context()->registeredFinalizations == NULL);
         __ada_exception = NULL;
     }
+    CHECK(collectionSucceeded);
     void* collection = __ada_collection_create(&finalizations, &owner);
     CHECK(collection != NULL);
     int* allocatedFirst = __ada_collection_allocate(collection, sizeof *allocatedFirst);

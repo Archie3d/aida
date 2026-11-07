@@ -299,6 +299,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     Value resultShape = inferred && plan != nullptr ? plan->shapes.at(expr) : address;
     std::string elementSize = arrayElementSize(resultShape, type);
     std::string buffer = address.name;
+    long long knownBytes = -1;
     if (buffer.empty() || (!needsFinalization(type) && !hasLimitedParts(type))) {
         long long scratchBytes = -1;
         if (!needsFinalization(type) && !hasLimitedParts(type)
@@ -308,6 +309,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
             long long stride = std::stoll(elementSize);
             __int128 bytes = length * stride;
             if (length <= INT64_MAX && stride >= 0 && bytes <= kArrayStackLimit) {
+                knownBytes = (long long)bytes;
                 scratchBytes = std::max(1LL, (long long)bytes);
             }
         }
@@ -381,9 +383,17 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
     line("storel " + incremented + ", " + slot);
     jump(head);
     label(done);
-    std::string size = newTemp();
-    emitCallInstruction(size + " =l call $__ada_array_size(l " + resultFirst + ", l " + resultLast
-        + ", l " + elementSize + ")", CallEffects::CheckException);
+    std::string size;
+    if (knownBytes >= 0) {
+        size = std::to_string(knownBytes);
+        // A component's temporary finalizer can leave a pending exception.
+        // Keep the original helper's barrier before committing the copy.
+        emitExceptionCheck();
+    } else {
+        size = newTemp();
+        emitCallInstruction(size + " =l call $__ada_array_size(l " + resultFirst + ", l " + resultLast
+            + ", l " + elementSize + ")", CallEffects::CheckException);
+    }
     if (!address.name.empty() && !needsFinalization(type) && !hasLimitedParts(type)) {
         emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck);
     }

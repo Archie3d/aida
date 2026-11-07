@@ -1450,6 +1450,7 @@ typedef struct AdaAllocation
     void* arena;
     int arenaOwnsObject;
     int borrowed;
+    int coallocated;
     int constrained;
     const char* viewIdentity;
     int64_t size;
@@ -1628,6 +1629,19 @@ static void unlinkAllocation(AdaAllocation* allocation)
     *link = allocation->registeredNext;
 }
 
+static void releaseAllocationStorage(AdaAllocation* allocation)
+{
+    if (allocation->coallocated) {
+        // The object is the allocation base; its registry record is a footer.
+        free(allocation->object);
+    } else {
+        if (allocation->object != NULL && !allocation->arenaOwnsObject && !allocation->borrowed) {
+            poolDeallocate(allocation->collection, allocation->object, allocation->size, allocation->alignment);
+        }
+        free(allocation);
+    }
+}
+
 /* No registry lock is held across joins, finalizers or pool callbacks. Keep
    the unlinked record alive until all parts of the object have finished. */
 static void finishAllocation(AdaAllocation* allocation)
@@ -1638,10 +1652,7 @@ static void finishAllocation(AdaAllocation* allocation)
     }
     __ada_finalize_to(&allocation->finalizations, NULL);
     __ada_array_release(&allocation->arena);
-    if (!allocation->arenaOwnsObject && !allocation->borrowed) {
-        poolDeallocate(allocation->collection, allocation->object, allocation->size, allocation->alignment);
-    }
-    free(allocation);
+    releaseAllocationStorage(allocation);
 }
 
 static void releaseAllocation(AdaAllocation* allocation)
@@ -1736,16 +1747,34 @@ void* __ada_collection_allocate_aligned(void* owner, int64_t size, int64_t align
         __ada_raise(ADA_PROGRAM_ERROR);
         return NULL;
     }
-    AdaAllocation* allocation = calloc(1, sizeof *allocation);
+    AdaAllocation* allocation;
+    if (collection->pool == NULL) {
+        size_t objectBytes = size == 0 ? 1 : (size_t)size;
+        const size_t kPadding = _Alignof(AdaAllocation) - 1;
+        if ((uint64_t)size > SIZE_MAX || objectBytes > SIZE_MAX - kPadding - sizeof *allocation) {
+            __ada_raise(ADA_STORAGE_ERROR);
+            return NULL;
+        }
+        size_t offset = (objectBytes + kPadding) & ~kPadding;
+        void* storage = calloc(1, offset + sizeof *allocation);
+        if (storage == NULL) {
+            __ada_raise(ADA_STORAGE_ERROR);
+            return NULL;
+        }
+        allocation = (AdaAllocation*)((char*)storage + offset);
+        allocation->object = storage;
+        allocation->coallocated = 1;
+    } else {
+        allocation = calloc(1, sizeof *allocation);
+    }
     if (allocation == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
+    allocation->collection = collection;
     allocation->size = size;
     allocation->alignment = alignment;
-    if (collection->pool == NULL) {
-        allocation->object = __ada_pool_default_allocate(size);
-    } else {
+    if (!allocation->coallocated) {
         AdaDispatchEntry* operation = poolOperation(collection->pool, collection->allocateSlot);
         if (operation != NULL) {
             if (operation->link == NULL) {
@@ -1766,8 +1795,7 @@ void* __ada_collection_allocate_aligned(void* owner, int64_t size, int64_t align
         if (size != 0) { memset(allocation->object, 0, (size_t)size); }
     }
     if (allocation->object == NULL || !registerAllocation(owner, allocation)) {
-        if (allocation->object != NULL) { poolDeallocate(collection, allocation->object, size, alignment); }
-        free(allocation);
+        releaseAllocationStorage(allocation);
         return NULL;
     }
     allocation->size = size;

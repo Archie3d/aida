@@ -26,6 +26,7 @@ typedef struct Pool
     atomic_int queries;
     int mode;
     void* invalidBase;
+    AdaFinalization** closeOwner;
 } Pool;
 
 static void allocate(void* link, void* object, void** address, int64_t size, int64_t alignment)
@@ -46,6 +47,9 @@ static void allocate(void* link, void* object, void** address, int64_t size, int
         *address = (char*)*address + 1;
     }
     atomic_fetch_add(&pool->allocations, 1);
+    if (pool->mode == 5) {
+        __ada_finalize_to(pool->closeOwner, NULL);
+    }
 }
 
 static void deallocate(void* link, void* object, void* address, int64_t size, int64_t alignment)
@@ -157,6 +161,20 @@ int main(void)
     CHECK(object != NULL);
     __ada_deallocate(object);
     clearException(ADA_CONSTRAINT_ERROR);
+    pool.mode = 0;
+    // A pool callback can close the destination collection before returning.
+    // Rejected registration must return its object to that same pool once.
+    AdaFinalization* closingOwner = NULL;
+    void* closingArena = NULL;
+    void* closingCollection = __ada_collection_create(&closingOwner, &closingArena);
+    __ada_collection_set_pool(closingCollection, &pool, 0, 1);
+    pool.closeOwner = &closingOwner;
+    pool.mode = 5;
+    CHECK(__ada_collection_allocate_aligned(closingCollection, 17, 8) == NULL);
+    clearException(ADA_PROGRAM_ERROR);
+    CHECK(closingOwner == NULL && atomic_load(&pool.allocations) == atomic_load(&pool.releases));
+    __ada_array_release(&closingArena);
+    pool.closeOwner = NULL;
     pool.mode = 0;
     for (int i = 0; i < 10; ++i) { CHECK(__ada_collection_allocate_aligned(collection, i, 8) != NULL); }
     __ada_finalize_to(&owner, NULL);

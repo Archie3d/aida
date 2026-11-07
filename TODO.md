@@ -1417,11 +1417,20 @@ Ada 2005 additions and track annex packages separately.
     checks pass. ABI layouts remain unchanged. Paired historical block ratios
     are 1.941x/1.966x/1.549x; allocation 4.712x/5.667x/2.739x.
     [Full native samples](docs/host-performance-aggregate-registry-ci.json).
-  - [ ] Investigate residual costs: constant aggregate shape/copy helper calls,
-    per-allocation metadata allocation and shared registry indexing/checks. Local blocks/allocation
-    remain 1.620x/2.674x slower than pre-Phase-2; the no-slowdown goal remains
-    open. Phase 2's small differences still need longer workloads before
-    attribution.
+  - [x] Combine default-pool objects and aligned allocation-record footers in
+    one cleared heap block, keeping the object at the allocation base. Preserve
+    custom pools, borrowed views and deferred results; check size arithmetic
+    and zero-sized objects, and free the block after complete cleanup. Reuse
+    proven aggregate byte counts while retaining the pre-copy exception check.
+    Add one-allocation, closing-pool and last-component temporary-finalizer
+    controls. Release 1,945/1,945; 18 ASan/UBSan and 13 TSan checks pass. Local
+    allocation/block medians improve about 11%/7.5% against the preceding build.
+    [Full samples and limits](docs/host-validation.md#default-pool-coallocation-and-constant-aggregate-sizes).
+  - [ ] Confirm coallocation/constant-size reuse on native CI. Measure longer
+    workloads and batches with multiple live objects before further registry
+    indexing or aggregate construction tuning. Local blocks/allocation remain
+    1.474x/2.420x slower than pre-Phase-2; the no-slowdown goal remains open.
+    Phase 2's small differences still need longer workloads before attribution.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

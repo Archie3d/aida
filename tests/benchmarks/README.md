@@ -283,3 +283,12 @@ are retained. [Native CI confirmation](../../docs/host-performance-aggregate-reg
 now passes 1,942 tests on each Ubuntu architecture and 1,941 on MSYS2, including
 all four new aggregate controls. Blocks remain about 1.55–1.97x historical and
 allocation 2.74–5.67x; residual slowdowns remain open.
+
+The subsequent [coallocation/constant-size repair](../../docs/host-validation.md#default-pool-coallocation-and-constant-aggregate-sizes)
+combines default-pool objects and registry footers in one cleared heap block and
+reuses proven aggregate byte counts while retaining the pre-copy exception check.
+Native Darwin arm64 pairs show allocation about 11% faster and blocks about 7.5%
+faster than the preceding build. [Full samples and validation](../../docs/host-performance-coallocation.json)
+are retained; native CI confirmation is pending. Longer runs and batches with
+multiple live objects are needed before tuning registry scaling. The immediate
+allocate/free workload does not exercise long registry searches.

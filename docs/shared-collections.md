@@ -42,6 +42,19 @@ existing exception suspension and abort-deferral rules. Reentrant callbacks can
 allocate or deallocate another collection member. `Free(null)` remains a no-op,
 including while a limited result has an unpublished null object address.
 
+Direct allocations from the built-in default pool reserve the object and its
+allocation record in one zeroed heap block. The object stays at the block's
+base; the record is an aligned footer after the object bytes. Zero-sized objects
+still reserve one real byte, and size/padding/record arithmetic is checked before
+allocation. Registration and lookup remain protected by the storage mutex. The
+footer survives task joining, component finalization and arena cleanup, and the
+block is freed once afterwards.
+
+User-selected pools, borrowed views and deferred result construction retain
+separate records/storage. A user pool may close its collection before returning
+an object; rejected registration still returns that object to the same pool once,
+outside the mutex, while preserving the pending exception.
+
 ## Masters, activation and closure
 
 Collection masters register their owning context eagerly, before other tasks
@@ -113,11 +126,14 @@ partial-initialization failure and finalization of surviving local allocations.
 derived type, and a controlled sentinel checking that dependent tasks terminate
 before local finalization. Both run whole/separate and determinism checks.
 
-All 680 CTest expectations pass, including 18 selected ACATS expectations.
+The original Phase 6a validation passed 680 CTest expectations, including 18
+selected ACATS expectations.
 ASan/UBSan passes six affected C runtime tests; ThreadSanitizer passes five.
 Both new Ada programs pass whole/separate modes with each instrumented runtime.
-Generated Ada memory accesses are not instrumented, so this verifies runtime
-boundaries rather than proving absence of every Ada data race.
+Those original checks instrumented runtime boundaries rather than generated
+Ada accesses. See [current host evidence](host-validation.md) and
+[generated-access instrumentation](robustness.md) for subsequent validation;
+passing checks do not prove absence of every possible Ada data race.
 
 Unchanged upstream ACATS C761002 passes after Phase 6e labels/goto and the root
 `Unchecked_Deallocation` generic renaming. Local `gotocleanup` also covers
