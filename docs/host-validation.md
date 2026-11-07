@@ -164,6 +164,58 @@ than relying on a shell Git lookup, and the collector rejects explicitly empty
 revision arguments. No source revision has been substituted into the old report.
 The cross-host measurements are collected; the no-slowdown goal remains unmet.
 
+### Empty-master cleanup repair
+
+The next repair gives each master monotonic atomic activity flags. Task creation
+marks its master and ancestor chain before publishing the task under the shared
+mutex; reparenting a task-bearing collection marks its new ancestors as well.
+Activation/await can skip the registry for masters without dependents, and leave
+only locks when removing a registered master or accessibility record. Empty
+blocks avoid five lock/unlock pairs. Dependent-task joining still resamples the
+registry, and leave retains its defensive await after finalization.
+
+The master record grows from 8 to 16 bytes. Compiler scratch allocations and
+the C runtime share `common/Master.h`; the native ABI report checks the size and
+activity-field offset. Captured constructor-master slots remain pointers.
+Recompile Ada objects with the matching compiler/runtime.
+
+Two 21-trial native Darwin arm64 Release pairs compare the working tree with
+the preceding revision `5a08a8e66f046008bd8b942ed6eea099edae1951` and separately
+with pre-Phase-2. Builds/tests finish before timing, and both builds in each
+pair use matching flags and compiler versions.
+
+| Workload | Before repair median (s) | After repair median (s) | After / before | After / pre-Phase-2, separate pair |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar calls | 0.013650 | 0.013665 | 1.001 | 0.754 |
+| Images | 0.023391 | 0.023413 | 1.001 | 0.782 |
+| Block scopes | 0.022801 | 0.016716 | 0.733 | 3.475 |
+| Allocation/deallocation | 0.025279 | 0.018615 | 0.736 | 2.795 |
+
+[All samples, component/source hashes, flags and validation details](host-performance-master-activities.json)
+are retained separately from the previous CI evidence. This removes a measured
+contributor, but does not close the remaining regression. Inspection of generated
+block IR shows `__ada_array_local` for the small aggregate, a copy to the fixed
+local array, and arena rewind/free each iteration; the pre-Phase-2 IR does not
+allocate that temporary. Allocation/deallocation still locks the shared storage
+registry for lookup and membership changes. These are the next investigation
+targets, without attributing all remaining time to either one.
+
+The Release full run passed 1,937/1,938 checks; its only failure was the expected
+master scratch allocation change in `ir.hello`. Reviewing all generated units
+found exactly three `alloc8 8` to `alloc8 16` changes in two golden files. After
+updating those references, all six focused reruns pass, so all 1,938 distinct
+Release checks have passed. Eleven distinct ASan/UBSan and five TSan checks pass,
+covering real task lifecycle, shared collections, accessibility, constructor
+lifetimes and generated master-hook cleanup. The lifecycle regression holds the
+shared mutex across empty-scope operations to detect unwanted locking and
+checks expired access levels and reparented unactivated tasks deterministically.
+
+Validation also corrected the lifecycle fixture to use a real runtime collection,
+passed sanitizer link flags to the master-hook fixture, and made TSan adapter
+checksums resolve relative to the source directory during CMake regeneration.
+Native Linux/MSYS2 confirmation of the new layout and performance remains open;
+the existing workflow will collect those results on the next run.
+
 ## Reproduce
 
 ```sh

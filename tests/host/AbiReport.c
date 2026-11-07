@@ -16,6 +16,7 @@ int main(void)
         || sizeof(int64_t) != 8 || sizeof(float) != 4 || sizeof(double) != 8
         || sizeof(size_t) != 8 || sizeof(ptrdiff_t) != 8 || bytes[0] != 1
         || sizeof(AdaTraceFrame) != 24 || offsetof(AdaTraceFrame, location) != 16
+        || sizeof(AdaMaster) != kAdaMasterBytes || offsetof(AdaMaster, activities) != 8
         || offsetof(AdaTaskContext, exception) != 0 || sizeof(AdaArrayDimension) != 32
         || sizeof(AdaArrayResult) != 48 || offsetof(AdaArrayResult, stride) != 40) {
         fprintf(stderr, "unsupported host/runtime data layout\n");
@@ -23,9 +24,9 @@ int main(void)
     }
     printf("{\"pointer_bits\":%zu,\"int_bits\":%zu,\"long_bits\":%zu,"
            "\"size_bits\":%zu,\"ptrdiff_bits\":%zu,\"little_endian\":true,"
-           "\"trace_bytes\":%zu,\"array_result_bytes\":%zu}\n",
+           "\"trace_bytes\":%zu,\"array_result_bytes\":%zu,\"master_bytes\":%zu}\n",
            sizeof(void*) * CHAR_BIT, sizeof(int) * CHAR_BIT, sizeof(long) * CHAR_BIT,
            sizeof(size_t) * CHAR_BIT, sizeof(ptrdiff_t) * CHAR_BIT,
-           sizeof(AdaTraceFrame), sizeof(AdaArrayResult));
+           sizeof(AdaTraceFrame), sizeof(AdaArrayResult), sizeof(AdaMaster));
     return 0;
 }

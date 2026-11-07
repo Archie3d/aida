@@ -1,6 +1,9 @@
 #ifndef ADAMASTER_H
 #define ADAMASTER_H
 
+#include <stdatomic.h>
+#include "../common/Master.h"
+
 typedef struct AdaTaskContext AdaTaskContext;
 
 /* Caller-owned identity, live until its dependents have terminated and local
@@ -9,6 +12,9 @@ typedef struct AdaTaskContext AdaTaskContext;
 typedef struct AdaMaster
 {
     void* state;
+    /* Monotonic while live. Foreign task creation marks every ancestor before
+       publishing the task, so empty cleanup can avoid the shared registry. */
+    atomic_uint activities;
 } AdaMaster;
 
 enum AdaMasterKind

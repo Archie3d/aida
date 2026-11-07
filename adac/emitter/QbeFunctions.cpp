@@ -547,7 +547,7 @@ void QbeEmitter::finishFunction(const std::string& signature)
     // Trace entry fetches the bound task context once without an extra call.
     text += "    %.taskContext =l call $__ada_trace_enter(l %.trace, l " + traceName + ", l " + traceLocation + ")\n";
     if (context.hasMaster) {
-        text += "    %.master =l alloc8 8\n";
+        text += "    %.master =l alloc8 " + std::to_string(kAdaMasterBytes) + "\n";
         text += "    call $__ada_master_enter(l %.taskContext, l %.master, w 0)\n";
     }
     // Allocations may occur in a branch emitted after an early return. Once

@@ -48,8 +48,78 @@ static void failedTask(void* argument)
     __ada_raise_message(&__ada_exc_constraint_error, "child failure", 13);
 }
 
+static void checkEmptyMasters(void)
+{
+    AdaTaskContext context = {0};
+    AdaTaskContext* previous = __ada_task_context_bind(&context);
+    AdaMaster outer, collection, inner;
+    __ada_master_enter(&context, &outer, ADA_MASTER_BLOCK);
+    int oldLevel = __ada_current_access_level();
+    CHECK(oldLevel > 0);
+    __ada_master_enter(&context, &collection, ADA_MASTER_COLLECTION);
+    __ada_raise_message(ADA_CONSTRAINT_ERROR, "empty cleanup", 13);
+    // Unrelated live registry entries must not force empty scopes to lock.
+    // The ordinary mutex is intentionally held: a registry lookup deadlocks.
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    for (int i = 0; i < 20; ++i) {
+        __ada_master_enter(&context, &inner, ADA_MASTER_BLOCK);
+        __ada_master_activate(&context, &inner);
+        __ada_master_await(&context, &inner);
+        __ada_master_leave(&context, &inner);
+        CHECK(context.currentMaster == &outer);
+        CHECK(context.exception == ADA_CONSTRAINT_ERROR);
+        CHECK(context.pendingMessageLength == 13);
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    context.exception = NULL;
+    __ada_master_leave(&context, &collection);
+    __ada_master_leave(&context, &outer);
+    CHECK(context.taskMasters == NULL);
+    // Reusing the same stack address must not reuse an expired access level.
+    __ada_master_enter(&context, &outer, ADA_MASTER_BLOCK);
+    int newLevel = __ada_current_access_level();
+    CHECK(newLevel > oldLevel);
+    __ada_accessibility_check(oldLevel, newLevel);
+    CHECK(context.exception == ADA_PROGRAM_ERROR);
+    __ada_master_leave(&context, &outer);
+    CHECK(__ada_task_context_dispose(&context));
+    __ada_task_context_bind(previous);
+}
+
+static void checkReparentedDependents(void)
+{
+    AdaTaskContext context = {0};
+    AdaTaskContext* previous = __ada_task_context_bind(&context);
+    AdaMaster outer, inner;
+    AdaFinalization* owner = NULL;
+    void* arena = NULL;
+    int elaborated = 1;
+    void* object;
+    atomic_store(&completed, 0);
+    __ada_master_enter(&context, &outer, ADA_MASTER_BLOCK);
+    void* collection = __ada_collection_create(&owner, &arena);
+    CHECK(collection != NULL);
+    __ada_task_create(&context, &object, successfulTask, NULL, &elaborated, collection, NULL);
+    __ada_master_enter(&context, &inner, ADA_MASTER_BLOCK);
+    __ada_collection_set_access_level(collection, __ada_current_access_level());
+    CHECK(context.exception == NULL);
+    // Leave it unactivated: the new parent's await must retire it even though
+    // that parent was entered after task registration. No scheduling race can
+    // make this check pass when ancestor marking is missing.
+    __ada_master_await(&context, &inner);
+    CHECK(atomic_load(&completed) == 0 && __ada_task_is_terminated(object));
+    __ada_finalize_to(&owner, NULL);
+    __ada_array_release(&arena);
+    __ada_master_leave(&context, &inner);
+    __ada_master_leave(&context, &outer);
+    CHECK(__ada_task_context_dispose(&context));
+    __ada_task_context_bind(previous);
+}
+
 int main(void)
 {
+    checkEmptyMasters();
+    checkReparentedDependents();
     for (int iteration = 0; iteration < 20; ++iteration) {
         AdaTaskContext context = {0};
         AdaTaskContext* previous = __ada_task_context_bind(&context);
@@ -107,18 +177,21 @@ int main(void)
     CHECK(__ada_task_context_dispose(&context));
     // Allocation in a shorter-lived scope still depends on the collection's
     // original lexical master. The outer await precedes collection cleanup.
-    AdaMaster collection;
+    AdaFinalization* owner = NULL;
+    void* arena = NULL;
     AdaMaster inner;
     __ada_master_enter(&context, &master, ADA_MASTER_BLOCK);
-    __ada_master_enter(&context, &collection, ADA_MASTER_COLLECTION);
+    void* collection = __ada_collection_create(&owner, &arena);
+    CHECK(collection != NULL);
     __ada_master_enter(&context, &inner, ADA_MASTER_SUBPROGRAM);
-    __ada_task_create(&context, &objects[0], successfulTask, NULL, &elaborated, &collection, NULL);
-    __ada_master_activate(&context, &collection);
+    __ada_task_create(&context, &objects[0], successfulTask, NULL, &elaborated, collection, NULL);
+    __ada_master_activate(&context, collection);
     __ada_master_await(&context, &inner);
     __ada_master_leave(&context, &inner);
     __ada_master_await(&context, &master);
     CHECK(atomic_load(&completed) == 1);
-    __ada_master_leave(&context, &collection);
+    __ada_finalize_to(&owner, NULL);
+    __ada_array_release(&arena);
     __ada_master_leave(&context, &master);
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);

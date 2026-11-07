@@ -92,7 +92,7 @@ export function $ada__text_io__get_line__2(l %p.file, l %p.item, l %p.item.first
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.12, l $.ada_text_io.str.5)
-    %.master =l alloc8 8
+    %.master =l alloc8 16
     call $__ada_master_enter(l %.taskContext, l %.master, w 0)
     %.t10 =w loadw $ada__text_io__get_line__2.elaborated
     jnz %.t10, @elaborated.6, @unelaborated.7
@@ -212,7 +212,7 @@ export function $ada__text_io__get_line(l %p.item, l %p.item.first, l %p.item.la
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io.str.12, l $.ada_text_io.str.13)
-    %.master =l alloc8 8
+    %.master =l alloc8 16
     call $__ada_master_enter(l %.taskContext, l %.master, w 0)
     %.t60 =w loadw $ada__text_io__get_line.elaborated
     jnz %.t60, @elaborated.22, @unelaborated.23

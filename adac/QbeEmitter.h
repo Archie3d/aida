@@ -2,6 +2,7 @@
 
 #include "Ast.h"
 #include "../common/Array.h"
+#include "../common/Master.h"
 #include "../common/Modular.h"
 #include "../common/Real.h"
 #include "Diagnostics.h"

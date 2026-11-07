@@ -15,7 +15,7 @@ endif()
 if(NAME STREQUAL "masterlibraryfailure")
     list(APPEND extra -DEXPECT_LIBRARY_FAILURE)
 endif()
-execute_process(COMMAND "${CC}" -std=c11 -pthread "${program}.s" "${HELPERS}" "${RUNTIME}"
+execute_process(COMMAND "${CC}" -std=c11 -pthread ${SANITIZER_FLAGS} "${program}.s" "${HELPERS}" "${RUNTIME}"
     ${extra} -o "${program}" RESULT_VARIABLE status)
 if(NOT status EQUAL 0)
     message(FATAL_ERROR "Master hook link failed")

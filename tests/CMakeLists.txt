@@ -735,6 +735,7 @@ foreach(master_case masterhooks masterfailure masterlibraryfailure)
             -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
             -DSOURCE=${source_path}
             -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/MasterHooks.c
+            -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
             -DWORKDIR=${ADA_TEST_WORK_DIR}/${master_case}
             -DEXPECT_STATUS=${master_status}
             -DEXPECT_FAILURE=${master_failure}

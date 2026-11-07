@@ -396,7 +396,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Block: {
         auto* block = static_cast<BlockStmt*>(statement);
         auto checkpoint = storageCheckpoint();
-        std::string master = allocScratch(8);
+        std::string master = allocScratch(kAdaMasterBytes);
         emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook);
         m_context->blockMasters.push_back({ master, checkpoint });
         emitLocalDeclarations(block->declarations);

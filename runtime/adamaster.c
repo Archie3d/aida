@@ -7,7 +7,28 @@
 #include <stdio.h>
 #include <limits.h>
 
-_Static_assert(sizeof(AdaMaster) == 8, "master record QBE ABI");
+_Static_assert(sizeof(AdaMaster) == kAdaMasterBytes, "master record QBE ABI");
+
+enum
+{
+    kMasterRegistered = 1,
+    kMasterDependents = 2,
+    kMasterAccessLevel = 4
+};
+
+/* Parent links remain live until dependent tasks and finalization finish.
+   Shared collection reparenting and task publication hold the master mutex. */
+static void markDependents(AdaMaster* master)
+{
+    for (; master != NULL; master = master->state) {
+        atomic_fetch_or_explicit(&master->activities, kMasterDependents, memory_order_release);
+    }
+}
+
+static unsigned int masterActivities(AdaMaster* master)
+{
+    return master != NULL ? atomic_load_explicit(&master->activities, memory_order_acquire) : 0;
+}
 
 typedef struct AdaTaskState
 {
@@ -128,6 +149,7 @@ static AdaMasterState* registerMaster(AdaTaskContext* context, AdaMaster* master
     context->taskMasters = state;
     state->registeredNext = __ada_main_context.sharedMasters;
     __ada_main_context.sharedMasters = state;
+    atomic_fetch_or_explicit(&master->activities, kMasterRegistered, memory_order_release);
     return state;
 }
 
@@ -156,6 +178,7 @@ static int accessLevelForMaster(AdaMaster* master)
     *entry = (AdaAccessLevel) {__ada_main_context.sharedAccessLevels, master,
         (int)++__ada_main_context.nextAccessLevel, parent};
     __ada_main_context.sharedAccessLevels = entry;
+    atomic_fetch_or_explicit(&master->activities, kMasterAccessLevel, memory_order_release);
     return entry->id;
 }
 
@@ -181,9 +204,9 @@ void __ada_accessibility_check(int sourceLevel, int targetLevel)
     if (level != sourceLevel) { __ada_raise(ADA_PROGRAM_ERROR); }
 }
 
+/* Called with the shared master mutex held. */
 static void forgetAccessMaster(AdaMaster* master)
 {
-    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     AdaAccessLevel** link = &__ada_main_context.sharedAccessLevels;
     while (*link != NULL && (*link)->master != master) { link = &(*link)->next; }
     if (*link != NULL) {
@@ -191,12 +214,12 @@ static void forgetAccessMaster(AdaMaster* master)
         *link = entry->next;
         free(entry);
     }
-    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
 void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind)
 {
     master->state = context->currentMaster;
+    atomic_init(&master->activities, 0);
     if (kind == ADA_MASTER_COLLECTION) {
         // Register the access type's owner before foreign tasks can allocate.
         __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
@@ -306,6 +329,7 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
         return;
     }
     task->next = state->tasks;
+    markDependents(master);
     state->tasks = task;
     *object = task;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
@@ -314,6 +338,9 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
 static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* group)
 {
     (void)context;
+    if (!(masterActivities(master) & kMasterDependents)) {
+        return;
+    }
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     AdaMasterState* state = findMaster(master);
     if (state == NULL) {
@@ -431,6 +458,9 @@ static int dependsOn(AdaMasterState* state, AdaMaster* master)
    snapshot or a one-pass collection-first traversal would miss that task. */
 static void awaitTasks(AdaMaster* master, void* object, long size, int discard)
 {
+    if (!(masterActivities(master) & kMasterDependents)) {
+        return;
+    }
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     for (;;) {
         AdaTaskState* selected = NULL;
@@ -498,21 +528,28 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
 void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
 {
     __ada_master_await(context, master);
-    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-    AdaMasterState* state = findMaster(master);
-    if (state != NULL) {
-        AdaMasterState** entry = &state->owner->taskMasters;
-        while (*entry != state) {
-            entry = &(*entry)->next;
+    unsigned int activities = masterActivities(master);
+    AdaMasterState* state = NULL;
+    if (activities & (kMasterRegistered | kMasterAccessLevel)) {
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        state = activities & kMasterRegistered ? findMaster(master) : NULL;
+        if (state != NULL) {
+            AdaMasterState** entry = &state->owner->taskMasters;
+            while (*entry != state) {
+                entry = &(*entry)->next;
+            }
+            *entry = state->next;
+            entry = &__ada_main_context.sharedMasters;
+            while (*entry != state) {
+                entry = &(*entry)->registeredNext;
+            }
+            *entry = state->registeredNext;
         }
-        *entry = state->next;
-        entry = &__ada_main_context.sharedMasters;
-        while (*entry != state) {
-            entry = &(*entry)->registeredNext;
+        if (activities & kMasterAccessLevel) {
+            forgetAccessMaster(master);
         }
-        *entry = state->registeredNext;
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     }
-    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     if (state != NULL) {
         while (state->tasks != NULL) {
             AdaTaskState* task = state->tasks;
@@ -526,8 +563,8 @@ void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
     if (context->currentMaster == master) {
         context->currentMaster = master->state;
     }
-    forgetAccessMaster(master);
     master->state = NULL;
+    atomic_store_explicit(&master->activities, 0, memory_order_relaxed);
 }
 
 void __ada_access_collection_parent(AdaMaster* master, int level)
@@ -538,7 +575,13 @@ void __ada_access_collection_parent(AdaMaster* master, int level)
         if (entry->id == level) { parent = entry->master; }
     }
     AdaMasterState* state = findMaster(master);
-    if (state != NULL && parent != NULL) { state->parent = parent; master->state = parent; }
+    if (state != NULL && parent != NULL) {
+        state->parent = parent;
+        master->state = parent;
+        if (masterActivities(master) & kMasterDependents) {
+            markDependents(parent);
+        }
+    }
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     if (parent == NULL || state == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
 }

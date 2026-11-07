@@ -1386,10 +1386,20 @@ Ada 2005 additions and track annex packages separately.
     than pre-Phase-2; the large regressions arise after Phase 2. Prepare CI to
     build the pinned historical baseline and collect paired results.
     [Measurements and limits](docs/host-validation.md#matched-historical-comparison).
-  - [ ] Investigate later block/allocation regressions, beginning with master
-    await/leave locking and access-collection bookkeeping. Preserve task,
-    accessibility and cleanup semantics; Phase 2's small differences need
-    longer workload measurements before attribution.
+  - [x] Investigate master cleanup overhead: atomic activity flags let empty
+    scopes skip five registry locks across activation/await/leave. Mark ancestor
+    chains before task publication and after collection reparenting; retain
+    synchronized dependent cleanup and accessibility-record removal. Share the
+    new 16-byte master layout between compiler/runtime. Darwin arm64 paired
+    blocks/allocation improve about 27%; scalar/image times are unchanged.
+    All 1,938 distinct Release checks pass after reviewing/rerunning the master
+    allocation golden updates; 11 ASan/UBSan and five TSan checks pass.
+    [Repair, full samples and limits](docs/host-validation.md#empty-master-cleanup-repair).
+  - [ ] Confirm the new master layout and optimization on native CI. Investigate
+    remaining block aggregate temporary allocation/copying and shared storage
+    registry costs. Locally, blocks/allocation remain 3.475x/2.795x slower than
+    pre-Phase-2; this repair does not close the no-slowdown goal. Phase 2's small
+    differences still need longer workloads before attribution.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

@@ -68,12 +68,26 @@ Library storage creation and library shutdown still belong to the environment
 task; other tasks use an already elaborated library collection. Direct use of a
 foreign task's stack finalization chain remains unsupported.
 
-The pending exception offset, eight-byte master identity, forty-byte finalization
-record and owned-result calling ABI are unchanged. Shared service fields are
+The pending exception offset, forty-byte finalization record and owned-result
+calling ABI are unchanged. Masters now use the shared 16-byte layout in
+`common/Master.h`: the parent pointer plus atomic activity flags. Recompile Ada
+objects against the matching compiler/runtime. Shared service fields are
 appended to the task context; its environment mutexes/condition survive disposal.
 Disposal checks shared indexes under their locks before clearing environment
 state. Compiler fingerprints invalidate cached units for the new plain-access
 collection emission; the hello golden IR records the intentional library setup.
+
+Master activity flags are monotonic during a live scope. Registering a task
+marks the collection/lexical master and every ancestor before publishing the
+task under the shared master mutex; reparenting a task-bearing collection marks
+the new ancestor chain under that same mutex. Await and activation can therefore
+skip the shared registry for masters without dependents. Registered collections
+and lazily created accessibility records are tracked separately, so an unrelated
+live collection does not force an empty block to lock during leave. Record
+removal still holds the mutex, and dependent-task cleanup retains the existing
+join/resample protocol and defensive await on leave. Pending exceptions and
+finalization ordering are unchanged. Native host workers must still be joined
+by their caller before the owning collection/master leaves.
 
 ## Evidence and limits
 

@@ -89,8 +89,11 @@ requires broader workloads and other target measurements.
 
 ## Master and activation boundaries
 
-The Phase 2 hooks reserve an eight-byte identity per emitted master and use
-the already-cached task context. Empty subprogram boundaries are elided when
+The original Phase 2 hooks reserved an eight-byte identity per emitted master.
+The current record is 16 bytes, with atomic activity flags that allow empty
+masters to skip shared-registry locking; compiler and runtime use the shared
+size in `common/Master.h`. Hooks use the already-cached task context.
+Empty subprogram boundaries are elided when
 there are no declarations or owned temporaries; nested blocks still carry
 their own hooks. This avoids extra calls on scalar leaf routines such as
 `Next` in `contextcalls.adb`. Scopes with declarations do execute no-op hook
@@ -257,3 +260,11 @@ and [full samples](../../docs/host-performance-darwin-arm64.json) cover pre-Phas
 end-of-Phase-2 and current builds. Current scalar/image workloads improve, but
 block/allocation regressions remain open; the large differences arise after
 Phase 2. This is workload-specific evidence, not a phase-wide no-slowdown result.
+
+The subsequent [master activity repair](../../docs/host-validation.md#empty-master-cleanup-repair)
+removes empty-scope registry locks. On native Darwin arm64, 21 alternating
+trials improve blocks/allocation by about 27% against the preceding compiler;
+scalar/image times are unchanged. Full [before/after and historical samples](../../docs/host-performance-master-activities.json)
+are retained. Blocks still create an arena-backed aggregate temporary and copy
+it to a fixed local; allocation still uses the shared storage registry. Both
+remain slower than pre-Phase-2, and native CI confirmation of this repair is open.
