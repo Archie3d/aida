@@ -1411,9 +1411,14 @@ Ada 2005 additions and track annex packages separately.
     is about 3% lower in the combined run, a smaller difference requiring longer
     workloads before a general conclusion.
     [Full samples and limits](docs/host-validation.md#aggregate-temporaries-and-registry-transactions).
-  - [ ] Confirm aggregate/registry repairs on native CI and investigate residual
-    costs: constant aggregate shape/copy helper calls, per-allocation metadata
-    allocation and shared registry indexing/checks. Local blocks/allocation
+  - [x] Confirm aggregate/registry repairs on native CI: Ubuntu amd64/arm64 each
+    pass 1,942/1,942; MSYS2 passes 1,941/1,941. No failures, disabled tests or
+    skips; all four new aggregate controls and existing pool/collection/install
+    checks pass. ABI layouts remain unchanged. Paired historical block ratios
+    are 1.941x/1.966x/1.549x; allocation 4.712x/5.667x/2.739x.
+    [Full native samples](docs/host-performance-aggregate-registry-ci.json).
+  - [ ] Investigate residual costs: constant aggregate shape/copy helper calls,
+    per-allocation metadata allocation and shared registry indexing/checks. Local blocks/allocation
     remain 1.620x/2.674x slower than pre-Phase-2; the no-slowdown goal remains
     open. Phase 2's small differences still need longer workloads before
     attribution.

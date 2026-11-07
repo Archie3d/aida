@@ -40,7 +40,7 @@
     "address_undefined_checks_passed": 15,
     "thread_sanitizer_checks_passed": 10,
     "previous_compiler_control": "Previous compiler fails the new small-aggregate arena-allocation check as expected",
-    "native_ci_confirmation": "pending for aggregate and registry repairs; internal master ABI remains 16 bytes",
+    "native_ci_confirmation": "Confirmed on Ubuntu amd64/arm64 (1,942/1,942 each) and MSYS2 UCRT64 (1,941/1,941) at f9573946610d838aa0a418a9a01fc7ad21c75a14. All four new controls pass, ABI unchanged. Full samples: host-performance-aggregate-registry-ci.json",
     "new_raw_modes_windows_stack_probe_configured": true
   },
   "comparisons": {

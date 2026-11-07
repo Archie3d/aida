@@ -1,8 +1,8 @@
 # Host and target validation
 
 Phase 8 has successful native **Darwin arm64, Linux amd64/arm64 and Windows
-amd64 (MSYS2 UCRT64)** evidence. The corrected CI runs pass 1,938/1,938 tests
-on each Ubuntu architecture and 1,937/1,937 on Windows, with no failures,
+amd64 (MSYS2 UCRT64)** evidence. The latest CI runs pass 1,942/1,942 tests
+on each Ubuntu architecture and 1,941/1,941 on Windows, with no failures,
 disabled tests or skips. All eight [MSYS2 fixes](msys2-ci-fixes.md) are confirmed.
 Matched comparisons now cover all active CI hosts. The roadmap item remains
 open for the block/allocation regressions described below.
@@ -54,11 +54,11 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 
 | Host | Prepared runner | Execution status |
 | --- | --- | --- |
-| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,938/1,938 PASS |
-| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,938/1,938 PASS |
+| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,942/1,942 PASS |
+| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,942/1,942 PASS |
 | Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
-| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,937/1,937 PASS; all eight fixes confirmed |
+| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,941/1,941 PASS; all eight fixes confirmed |
 
 Runner labels follow GitHub's [native runner inventory](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Windows uses the documented [MSYS2 UCRT64 setup](https://github.com/msys2/setup-msys2).
@@ -287,8 +287,31 @@ whole/per-unit modes. `codegen.aggregate_storage` rejects arena-allocation calls
 in that small-static fixture and fails against the preceding compiler as a
 regression control. The existing hello IR reference is unchanged.
 
-Native CI confirmation is still required for these two repairs. Remaining
-investigation targets include constant aggregate shape/copy helper calls and
+Native CI now confirms these two repairs at revision
+`f9573946610d838aa0a418a9a01fc7ad21c75a14`. Both Ubuntu architectures pass
+1,942/1,942 tests and MSYS2 passes 1,941/1,941, with no failures, disabled tests
+or skips. All four new aggregate controls and the pool, shared-collection, ABI
+and relocation checks pass. ABI reports are unchanged, including the 16-byte
+master. The paired reports use matching flags/toolchains, the pinned historical
+baseline and verified workload hashes (CRLF checkout on Windows).
+
+| Host | Scalar calls, current / historical | Images | Blocks | Allocation |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.705 | 0.850 | 1.941 | 4.712 |
+| Ubuntu arm64 | 0.916 | 0.917 | 1.966 | 5.667 |
+| MSYS2 UCRT64 amd64 | 0.703 | 0.882 | 1.549 | 2.739 |
+
+[Full native confirmation samples](host-performance-aggregate-registry-ci.json)
+retain all 21 trials per pair, revisions, flags and hashes. Earlier CI reports
+remain separate. Block ratios are substantially lower than the previous CI
+observations, consistent with the local aggregate repair. Allocation remains
+the larger gap, and separate runner instances do not isolate an exact speedup
+for the registry change. Windows images are faster than baseline in this run;
+the earlier small slowdown did not reproduce, reinforcing the need for longer
+workloads before attributing small differences.
+
+Native confirmation is complete. Remaining investigation targets include
+constant aggregate shape/copy helper calls and
 per-allocation metadata allocation, shared registry indexing and open checks.
 These costs are visible in the implementation but have not each been isolated
 by measurement. Blocks/allocation remain slower than pre-Phase-2; the overall

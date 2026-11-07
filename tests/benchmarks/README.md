@@ -279,4 +279,7 @@ uses one shared critical section, with user callbacks outside it. Native Darwin
 arm64 paired runs show about 55% lower block time; allocation is about 3% lower
 in the combined pair, which needs longer measurements before a broad claim.
 [All staged and historical samples](../../docs/host-performance-aggregate-registry.json)
-are retained. Residual slowdowns and native CI confirmation remain open.
+are retained. [Native CI confirmation](../../docs/host-performance-aggregate-registry-ci.json)
+now passes 1,942 tests on each Ubuntu architecture and 1,941 on MSYS2, including
+all four new aggregate controls. Blocks remain about 1.55–1.97x historical and
+allocation 2.74–5.67x; residual slowdowns remain open.

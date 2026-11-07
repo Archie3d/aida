@@ -5,13 +5,13 @@
   "runs": [
     {
       "artifact": "host-ubuntu-24",
-      "junit_sha256": "654f039a13fee73dd322ec8640ce2921c136cd3204d6698e1d99b4e984f8203f",
-      "timestamp": "2026-11-07T21:16:51",
-      "tests": 1938,
+      "junit_sha256": "0e6c4d1a246373c02f0d80fe7a79f5dcb9ac0bd37fd1f87ad43950de1ed5b487",
+      "timestamp": "2026-11-07T21:58:11",
+      "tests": 1942,
       "failures": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1938,
+      "passed": 1942,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -41,7 +41,7 @@
       },
       "installation_sha256": "299676c06cf9c16055fd0e976817393e38d2cda5372a79371b146d2561092a7a",
       "performance": {
-        "sha256": "be3e127a009a3469f314c7654b68325188a9b30c6329b850446800be05e0ead6",
+        "sha256": "f8fb25f84a99992b5d7ba2f9ec548ef537f5cfcfc14ac5426e86b5c3b0851b6b",
         "host": {
           "system": "Linux",
           "machine": "x86_64",
@@ -51,37 +51,37 @@
         "comparison": "paired",
         "runs": 21,
         "revisions": {
-          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "current": "f9573946610d838aa0a418a9a01fc7ad21c75a14",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.01591824699994504,
-            "baseline": 0.023400675999937448
+            "current": 0.009516308000002027,
+            "baseline": 0.013495940999973755
           },
           "imagecalls": {
-            "current": 0.025405942000020332,
-            "baseline": 0.03071544699992046
+            "current": 0.012320084000009501,
+            "baseline": 0.014500599000029979
           },
           "blockcalls": {
-            "current": 0.014056921000019429,
-            "baseline": 0.002416540000012901
+            "current": 0.0032446820000018306,
+            "baseline": 0.0016713050000021212
           },
           "allocationcalls": {
-            "current": 0.02060628499998529,
-            "baseline": 0.003882387999965431
+            "current": 0.010483489000023383,
+            "baseline": 0.0022250620000363597
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.680247314222358,
-          "imagecalls": 0.8271389311080553,
-          "blockcalls": 5.816961854529362,
-          "allocationcalls": 5.307631540219259
+          "contextcalls": 0.7051237109009689,
+          "imagecalls": 0.8496258671785925,
+          "blockcalls": 1.9414062663593494,
+          "allocationcalls": 4.711549161260258
         },
         "build_components_sha256": {
           "current": {
-            "adac/adac": "7ae0cf027c9c79963734663dc35e12504dc6c2ae4decb317ae7e094221641aae",
-            "runtime/libadart.a": "056402f5abd6654c08a9f21a634381f7cc9e030c6e19455d4a38ca1ca764a3c3",
+            "adac/adac": "9d0828fbd3d9408ff21e2942d2eace01942943dd1fe44f6794cee7665d9cfde8",
+            "runtime/libadart.a": "57561e300a0136a67f17f78c4b05d95ce471b5d0c32b72bf06e1dac4233fa4c1",
             "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
           },
           "baseline": {
@@ -96,13 +96,13 @@
     },
     {
       "artifact": "host-ubuntu-24-arm",
-      "junit_sha256": "853a55fa1cc8be7d88ceb366aa8b9f95eadc5f9a91e4de1de70438502f467374",
-      "timestamp": "2026-11-07T21:16:32",
-      "tests": 1938,
+      "junit_sha256": "09b1a7f0d43a476943c4cee35f266c13c6c64886c51c744212ce0519d3a5d474",
+      "timestamp": "2026-11-07T21:58:48",
+      "tests": 1942,
       "failures": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1938,
+      "passed": 1942,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -132,7 +132,7 @@
       },
       "installation_sha256": "92494bebd7a5ff7a65eb9a6c354c360818e92ec03ddc106dec9651685c5b2948",
       "performance": {
-        "sha256": "3e42248ac49e61d3319ae87cae2f6e01de25c3281925c4f7651fc496cb9e38ff",
+        "sha256": "88fe69c1327c141d2b85216029780b7d15a26ea84f822d97475ed05648a0f6c3",
         "host": {
           "system": "Linux",
           "machine": "aarch64",
@@ -142,37 +142,37 @@
         "comparison": "paired",
         "runs": 21,
         "revisions": {
-          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "current": "f9573946610d838aa0a418a9a01fc7ad21c75a14",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.01427816900002199,
-            "baseline": 0.015518764000034935
+            "current": 0.014440060999959314,
+            "baseline": 0.015765314000077524
           },
           "imagecalls": {
-            "current": 0.02839505999997982,
-            "baseline": 0.031026472000007743
+            "current": 0.028499083000042447,
+            "baseline": 0.031090655999946648
           },
           "blockcalls": {
-            "current": 0.012518421999970997,
-            "baseline": 0.002187405999961811
+            "current": 0.004372213000010561,
+            "baseline": 0.0022240439999450246
           },
           "allocationcalls": {
-            "current": 0.02147078200005126,
-            "baseline": 0.003614990999949441
+            "current": 0.02086754499998733,
+            "baseline": 0.003682096999909845
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.9200583886699899,
-          "imagecalls": 0.9151881657693062,
-          "blockcalls": 5.7229531235580176,
-          "allocationcalls": 5.939373569768652
+          "contextcalls": 0.9159386866565619,
+          "imagecalls": 0.9166446343265112,
+          "blockcalls": 1.9658842181713294,
+          "allocationcalls": 5.667299096275374
         },
         "build_components_sha256": {
           "current": {
-            "adac/adac": "8a0a3cc212fe5e625514272ec501d8172e244a8b0d4f5cd54ee51492625b33a8",
-            "runtime/libadart.a": "336bc2563be703ec7d185c7d929301a3969c4aa59573c1d54ac2d45a1dc823ec",
+            "adac/adac": "0a626e196f79755e30869620bb40e8e556fd430b19c111a3631c053bcbe94b60",
+            "runtime/libadart.a": "78a957d78e66363c83853beb80a38047b3af3a4f9a141fa6f1a79812d942936f",
             "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
           },
           "baseline": {
@@ -187,13 +187,13 @@
     },
     {
       "artifact": "host-windows-ucrt64",
-      "junit_sha256": "538f2065a0c9d45408d29a524ee677af71739eadb303ed7627243ece3ef3aef1",
-      "timestamp": "2026-11-07T21:18:43",
-      "tests": 1937,
+      "junit_sha256": "d1b056a7ab4c75511cb5035f2313c5a04305bd654bb55985ac9bd20a765542a1",
+      "timestamp": "2026-11-07T22:01:26",
+      "tests": 1941,
       "failures": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1937,
+      "passed": 1941,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -222,7 +222,7 @@
       },
       "installation_sha256": "ac7abbac209b67134e3758b47fa1de08e5a288d1d3d255a9fcc8a5a97421788d",
       "performance": {
-        "sha256": "90588cc75b801a569454d7a5700c30c715a4a10103b9f9d2f06cff08c80449ef",
+        "sha256": "e7f20cfee75e7540e1a7c797b1bd5cdc53c45ffa83266978cd372e77224122b1",
         "host": {
           "system": "Windows",
           "machine": "AMD64",
@@ -232,43 +232,43 @@
         "comparison": "paired",
         "runs": 21,
         "revisions": {
-          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "current": "f9573946610d838aa0a418a9a01fc7ad21c75a14",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.01723220000008041,
-            "baseline": 0.02309149999996407
+            "current": 0.020115499999974418,
+            "baseline": 0.028612900000098307
           },
           "imagecalls": {
-            "current": 0.03650059999995392,
-            "baseline": 0.03455039999994369
+            "current": 0.043568199999981516,
+            "baseline": 0.04939379999996163
           },
           "blockcalls": {
-            "current": 0.024171199999955206,
-            "baseline": 0.0067609000000175
+            "current": 0.010552200000120138,
+            "baseline": 0.0068111999999018735
           },
           "allocationcalls": {
-            "current": 0.025786899999957313,
-            "baseline": 0.00972249999995256
+            "current": 0.029069200000094497,
+            "baseline": 0.01061489999983678
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.7462572808222603,
-          "imagecalls": 1.0564450773366851,
-          "blockcalls": 3.5751453208733515,
-          "allocationcalls": 2.6522910774063395
+          "contextcalls": 0.7030220634715567,
+          "imagecalls": 0.8820580720660358,
+          "blockcalls": 1.549242424282382,
+          "allocationcalls": 2.738527918354528
         },
         "build_components_sha256": {
           "current": {
-            "adac/adac.exe": "3cc9bcc84591bea764f627365417c660bf15cc05c29e0f16a4445aae2ab1e199",
-            "runtime/libadart.a": "322d11187c0bfbee577e1adcd4aa9a3359fd6a129f583fae1e8cd42e87fce595",
-            "qbe/qbe.exe": "0bbe3f8a0dc74ca52ab9041807f60cdbd130208ddb01990e6e81139fae85ec32"
+            "adac/adac.exe": "8ff453f6f24f6791d4b7c2b7f43393e9e1dbe827f7f4f127e4b872608fc79407",
+            "runtime/libadart.a": "1c4fcd33ee04a8bd87d85a240bc121c797b8eba702a2d79bfae84169a229811f",
+            "qbe/qbe.exe": "c09bc5200d60f227d4b9e254963296b927bf77b244bf5e3dd38a2ec6431c1f0a"
           },
           "baseline": {
-            "adac/adac.exe": "ed57db8c5ec61714cfa9a4b7a6e4ea77c2a25528785d803c2c6b521d4d4d1557",
+            "adac/adac.exe": "62c6855bf593c0fcf3504fcba4f6009eaa81a47f8bdb199b590dabc0fd05e68a",
             "runtime/libadart.a": "21ae890cf35b620325cce7a220abc2ba31af73a1cf49a72566a2d94a49816433",
-            "qbe/qbe.exe": "45a20e946aa2bbc50186284c09da803b3d76f0c882b06deb7c0485511bf11ba6"
+            "qbe/qbe.exe": "6f66ba9eb3a4567220c2e8aab1773960ded9f863b90ed6a9c1bd7f816466b7b0"
           }
         }
       },
@@ -287,7 +287,7 @@
     }
   ],
   "windows_fix_verification": "Confirmed by native MSYS2 UCRT64 rerun: all eight formerly failing tests and the new harness regression pass",
-  "historical_performance_comparisons": "Master activity repair confirmed on all three active native CI hosts; 16-byte master layout and revision capture pass. Block/allocation residual regressions remain open. Full latest samples in host-performance-master-activities-ci.json; previous CI and Darwin comparisons retained separately.",
+  "historical_performance_comparisons": "Aggregate/registry repair confirmed on all active native CI hosts at f9573946610d838aa0a418a9a01fc7ad21c75a14; ABI/install and all four new controls pass. Full samples in host-performance-aggregate-registry-ci.json. Residual block/allocation slowdowns remain; earlier runs retained.",
   "local_repair_validation": {
     "host": "Darwin arm64",
     "release_tests": {
@@ -899,6 +899,288 @@
         "acats.support_protocol"
       ],
       "disabled": 0
+    },
+    {
+      "artifact": "host-ubuntu-24",
+      "junit_sha256": "654f039a13fee73dd322ec8640ce2921c136cd3204d6698e1d99b4e984f8203f",
+      "timestamp": "2026-11-07T21:16:51",
+      "tests": 1938,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1938,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib64",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "299676c06cf9c16055fd0e976817393e38d2cda5372a79371b146d2561092a7a",
+      "performance": {
+        "sha256": "be3e127a009a3469f314c7654b68325188a9b30c6329b850446800be05e0ead6",
+        "host": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.01591824699994504,
+            "baseline": 0.023400675999937448
+          },
+          "imagecalls": {
+            "current": 0.025405942000020332,
+            "baseline": 0.03071544699992046
+          },
+          "blockcalls": {
+            "current": 0.014056921000019429,
+            "baseline": 0.002416540000012901
+          },
+          "allocationcalls": {
+            "current": 0.02060628499998529,
+            "baseline": 0.003882387999965431
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.680247314222358,
+          "imagecalls": 0.8271389311080553,
+          "blockcalls": 5.816961854529362,
+          "allocationcalls": 5.307631540219259
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "7ae0cf027c9c79963734663dc35e12504dc6c2ae4decb317ae7e094221641aae",
+            "runtime/libadart.a": "056402f5abd6654c08a9f21a634381f7cc9e030c6e19455d4a38ca1ca764a3c3",
+            "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
+          },
+          "baseline": {
+            "adac/adac": "02d92f25dcbe900493b5f2012324bc23a4261c4ac3ad657241b7e73bfb0bccbe",
+            "runtime/libadart.a": "40e7eb26a3cfd952aba0de924067839203896e36ff9b856a0e76351671fa5e45",
+            "qbe/qbe": "2f86de4df41dcdd24e114c94dff700f5515990c7ee1071ffa57abdbfda8992ce"
+          }
+        }
+      },
+      "disabled": 0,
+      "abi_sha256": "27cc8a1519390d31656e7984f42f4bd2b9a9407706a0d2b2377392b25cbdaa9b"
+    },
+    {
+      "artifact": "host-ubuntu-24-arm",
+      "junit_sha256": "853a55fa1cc8be7d88ceb366aa8b9f95eadc5f9a91e4de1de70438502f467374",
+      "timestamp": "2026-11-07T21:16:32",
+      "tests": 1938,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1938,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "92494bebd7a5ff7a65eb9a6c354c360818e92ec03ddc106dec9651685c5b2948",
+      "performance": {
+        "sha256": "3e42248ac49e61d3319ae87cae2f6e01de25c3281925c4f7651fc496cb9e38ff",
+        "host": {
+          "system": "Linux",
+          "machine": "aarch64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.01427816900002199,
+            "baseline": 0.015518764000034935
+          },
+          "imagecalls": {
+            "current": 0.02839505999997982,
+            "baseline": 0.031026472000007743
+          },
+          "blockcalls": {
+            "current": 0.012518421999970997,
+            "baseline": 0.002187405999961811
+          },
+          "allocationcalls": {
+            "current": 0.02147078200005126,
+            "baseline": 0.003614990999949441
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.9200583886699899,
+          "imagecalls": 0.9151881657693062,
+          "blockcalls": 5.7229531235580176,
+          "allocationcalls": 5.939373569768652
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "8a0a3cc212fe5e625514272ec501d8172e244a8b0d4f5cd54ee51492625b33a8",
+            "runtime/libadart.a": "336bc2563be703ec7d185c7d929301a3969c4aa59573c1d54ac2d45a1dc823ec",
+            "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
+          },
+          "baseline": {
+            "adac/adac": "8fb9c2ae7c7cb663b1903b604271b59df1e9accd32403c91f83a8eb59193312e",
+            "runtime/libadart.a": "e4d401545a367b7db0f58f7efea701d6521d83d143032dcb9cc0417234de95cc",
+            "qbe/qbe": "d92821d07f351b3d88d912e5ba1e8875c489254c1c8f303aab83018d1eb70da0"
+          }
+        }
+      },
+      "disabled": 0,
+      "abi_sha256": "27cc8a1519390d31656e7984f42f4bd2b9a9407706a0d2b2377392b25cbdaa9b"
+    },
+    {
+      "artifact": "host-windows-ucrt64",
+      "junit_sha256": "538f2065a0c9d45408d29a524ee677af71739eadb303ed7627243ece3ef3aef1",
+      "timestamp": "2026-11-07T21:18:43",
+      "tests": 1937,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1937,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 32,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "nt",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides"
+        ]
+      },
+      "installation_sha256": "ac7abbac209b67134e3758b47fa1de08e5a288d1d3d255a9fcc8a5a97421788d",
+      "performance": {
+        "sha256": "90588cc75b801a569454d7a5700c30c715a4a10103b9f9d2f06cff08c80449ef",
+        "host": {
+          "system": "Windows",
+          "machine": "AMD64",
+          "release": "2025Server",
+          "python": "3.14.10"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.01723220000008041,
+            "baseline": 0.02309149999996407
+          },
+          "imagecalls": {
+            "current": 0.03650059999995392,
+            "baseline": 0.03455039999994369
+          },
+          "blockcalls": {
+            "current": 0.024171199999955206,
+            "baseline": 0.0067609000000175
+          },
+          "allocationcalls": {
+            "current": 0.025786899999957313,
+            "baseline": 0.00972249999995256
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.7462572808222603,
+          "imagecalls": 1.0564450773366851,
+          "blockcalls": 3.5751453208733515,
+          "allocationcalls": 2.6522910774063395
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac.exe": "3cc9bcc84591bea764f627365417c660bf15cc05c29e0f16a4445aae2ab1e199",
+            "runtime/libadart.a": "322d11187c0bfbee577e1adcd4aa9a3359fd6a129f583fae1e8cd42e87fce595",
+            "qbe/qbe.exe": "0bbe3f8a0dc74ca52ab9041807f60cdbd130208ddb01990e6e81139fae85ec32"
+          },
+          "baseline": {
+            "adac/adac.exe": "ed57db8c5ec61714cfa9a4b7a6e4ea77c2a25528785d803c2c6b521d4d4d1557",
+            "runtime/libadart.a": "21ae890cf35b620325cce7a220abc2ba31af73a1cf49a72566a2d94a49816433",
+            "qbe/qbe.exe": "45a20e946aa2bbc50186284c09da803b3d76f0c882b06deb7c0485511bf11ba6"
+          }
+        }
+      },
+      "previously_failed_tests_confirmed_pass": [
+        "loading.sources",
+        "loading.completions",
+        "runtime.discreteranges_modes",
+        "runtime.accesssubtypes_modes",
+        "runtime.genericchildren_modes",
+        "loading.system_spec",
+        "host.install_relocation",
+        "acats.support_protocol"
+      ],
+      "disabled": 0,
+      "abi_sha256": "d2a3306a5d1930ff288546ea58f73aeed50a48f209c366d4118428da40221860"
     }
   ]
 }
