@@ -19,8 +19,17 @@ This is a baseline of the current subset, not a conformance claim.
 No crashes or timeouts were observed. Six legal C-tests are rejected and
 C35502C retains its enumeration Value tab-trimming runtime failure.
 The raw B observations stay ungraded for historical comparison. The independent
-[location/group-aware grader](acats-grading.md) records **11 B PASS and 15 B FAIL**,
+[location/group-aware grader](acats-grading.md) records **17 B PASS and nine B FAIL**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
+
+## Non-tasking legality increment (Phase 8)
+
+Unchanged B33101A/B34001B/B34002B/B37004A/B460001/BC60001 now grade PASS.
+The [audit](legality-audit.md) distinguishes compiler repairs from diagnostic
+and location review. The raw cohort still contains 26 rejected B observations;
+only these six diagnostic streams change, with all C outcomes unchanged and all
+149 upstream hashes intact. The independent grading report has 17 PASS and
+nine FAIL; the nine blocked full sources retain P9 prerequisite owners.
 
 ## Support-protocol increment (Phase 8)
 
@@ -268,19 +277,19 @@ be blocked before reaching the feature named in their objective.
 
 ## Follow-up order
 
-1. Repair the non-tasking legality findings in the [B-test report](acats-grading.md),
-   reviewing diagnostic families and source locations alongside compiler fixes.
-   Concurrent syntax prerequisites retain their Phase 9 owners.
+1. Validate target configuration on other supported hosts. The [non-tasking
+   B-test findings](legality-audit.md) now pass; concurrent prerequisites retain
+   their Phase 9 owners.
 2. Investigate the remaining six legal C rejections and C35502C runtime failure;
    turn confirmed defects into focused compiler regressions before fixing them.
-3. Validate target configuration on other supported hosts. Current TCTouch and
-   local ImpDef gaps for the selected support-blocked probes are repaired.
+3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
+   are repaired; broader protocol/applicability work requires its own selection.
 4. Retain explicit unsupported-feature boundaries and promote complete cases
    as features or defects are resolved.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 112 executable C passes and the independent grader's 11 complete B passes
+Its 112 executable C passes and the independent grader's 17 complete B passes
 join normal ACATS labels. Snapshot stability of a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 

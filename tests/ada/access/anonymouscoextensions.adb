@@ -28,6 +28,12 @@ procedure AnonymousCoextensions is
     end record;
     type Holder_Link is access all Holder;
     type Child_Link is access all Child;
+    function Convert (Ref : access Child) return Child_Link is
+    begin
+        -- Access parameters require a dynamic accessibility check. A direct
+        -- conversion of a statically deeper discriminant is illegal.
+        return Child_Link (Ref);
+    end Convert;
     procedure Free is new Ada.Unchecked_Deallocation (Holder, Holder_Link);
     function Build return Holder_Link is
     begin
@@ -60,7 +66,7 @@ begin
     begin
         Check (Live = 1 and Object.Ref.Value = 7 and Object.Count = 5);
         begin
-            Escaped := Child_Link (Object.Ref);
+            Escaped := Convert (Object.Ref);
             raise Constraint_Error;
         exception
             when Program_Error => Check (Escaped = null);

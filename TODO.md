@@ -471,8 +471,9 @@ full-tasking restrictions retain their later roadmap owners.
   representation/model properties for binary32/64. Checked static folding,
   base-type profiles, generic actuals/renamings, signed zeros and task-local
   exceptions (`floatattributes`, `floatattributetasking`, `floatattributeerrors`,
-  `runtime.float_attributes`; unchanged CXA5015 PASS). Bounded static arithmetic,
-  J.5 obsolescent attributes and Annex G remain Phase 8 gaps.
+  `runtime.float_attributes`; unchanged CXA5015 PASS). Bounded static arithmetic
+  and Annex G accuracy remain Phase 8 gaps. Ada 83 compatibility attributes
+  are outside the Ada 2005 target (reviewed in the Phase 8 legality audit).
   [Contract](docs/floating-point.md#floating-attributes).
 - [x] **Aggregate overload resolution and private views.** Hidden record/array
   full views no longer compete with visible aggregate types, fixing unqualified
@@ -1333,12 +1334,21 @@ Ada 2005 additions and track annex packages separately.
   annex support and other-host validation are not claimed. Release 1,918/1,918;
   13 adversarial grading checks and eight executable support controls pass.
   [Contract, failed cases and evidence](docs/acats-grading.md).
-- [ ] Resolve the non-tasking legality findings from the B-test grader before
-  widening its PASS selection: B33101A discriminants, B460001 accessibility,
-  BC60001 intrinsic Access, B37004A component/discriminant legality and
-  B34001B/B34002B attribute coverage. Review source locations and diagnostic
-  families alongside compiler repairs; unrelated restrictions and recovery
-  must not mask missing checks. Concurrent prerequisites retain their P9 owners.
+- [x] Resolve the non-tasking legality findings from the B-test grader.
+  Reject invalid discriminant categories/current-instance allocator marks and
+  statically deeper access-discriminant conversions; defer current-object Size
+  until record layout completes. Semantic null-default checks preserve recovery
+  through the existing intrinsic Access rule. Distinguish fixed-attribute prefix
+  errors from Ada 83 attributes outside the Ada 2005 target; review exact
+  locations and secondary component-reference diagnostics without waiving
+  required sites. Unchanged B33101A/B34001B/B34002B/B37004A/B460001/BC60001
+  now PASS: 17 graded B PASS, nine P9-prerequisite failures. All C baseline
+  outcomes and all 149 upstream hashes are unchanged. Whole/per-unit/determinism
+  and four-worker controls cover legal counterparts, final Size, aliases,
+  implicit dereferences and static/dynamic lifetimes. Release 1,932/1,932;
+  21 distinct focused ASan/UBSan checks pass (reviewed diagnostic fixture
+  refreshed for semantic recovery).
+  [Audit and evidence](docs/legality-audit.md).
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces. Includes validation left open
   by completed items: running the suite on MSYS2 (Phase 2 threading), and

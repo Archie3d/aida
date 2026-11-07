@@ -14,7 +14,15 @@
     "groups": [
       "discriminants require a record, task or protected type"
     ],
-    "legal": "legal.adb"
+    "legal": "legal.adb",
+    "sites": {
+      "tests/b3/b33101a.ada:41": {
+        "lines": [
+          40,
+          41
+        ]
+      }
+    }
   },
   "b33102a": {
     "objective": "A TYPE DECLARATION, INCOMPLETE TYPE DECLARATION, PRIVATE TYPE DECLARATION OR SUBTYPE DECLARATION CANNOT INTRODUCE AN IDENTIFIER THAT WAS INTRODUCED PREVIOUSLY IN THE SAME DECLARATIVE PART. CASE A: A SINGLE PACKAGE SPECIFICATION. JRK 4/1/81 JWC 10/2/85 JRK 11/15/85",
@@ -48,7 +56,9 @@
       "a storage-place attribute requires a visible record component and no arguments",
       "attribute 'MACHINE_(?:EMAX|EMIN|MANTISSA|RADIX)' requires a visible floating-point subtype mark",
       "entry 'Count requires an entry of the current protected instance",
-      "task attribute requires a task object"
+      "task attribute requires a task object",
+      "attribute '(?:AFT|FORE|SMALL|DELTA)' requires a visible fixed-point subtype mark",
+      "attribute '(?:EMAX|EPSILON|LARGE|MANTISSA|SAFE_EMAX|SAFE_LARGE|SAFE_SMALL)' is not defined by Ada 2005"
     ],
     "legal": "legal.adb"
   },
@@ -77,7 +87,9 @@
       "a storage-place attribute requires a visible record component and no arguments",
       "attribute 'MACHINE_(?:EMAX|EMIN|MANTISSA|RADIX)' requires a visible floating-point subtype mark",
       "entry 'Count requires an entry of the current protected instance",
-      "task attribute requires a task object"
+      "task attribute requires a task object",
+      "attribute '(?:AFT|FORE|SMALL|DELTA)' requires a visible fixed-point subtype mark",
+      "attribute '(?:EMAX|EPSILON|LARGE|MANTISSA|SAFE_EMAX|SAFE_LARGE|SAFE_SMALL)' is not defined by Ada 2005"
     ],
     "legal": "legal.adb"
   },
@@ -176,7 +188,161 @@
       "'[A-Z][A-Z0-9]*' is not declared",
       "the component default has an incompatible type"
     ],
-    "legal": "legal.adb"
+    "legal": "legal.adb",
+    "sites": {
+      "tests/b3/b37004a.ada:75": {
+        "groups": [
+          "an allocator for 'AR' has to make a 'R'"
+        ]
+      },
+      "tests/b3/b37004a.ada:77": {
+        "groups": [
+          "an allocator subtype mark cannot denote the current instance"
+        ]
+      }
+    },
+    "recovery": [
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          55
+        ],
+        "message": "array\\ index\\ bounds\\ must\\ be\\ discrete"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          63
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          64
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          64
+        ],
+        "message": "an\\ accuracy\\ constraint\\ must\\ be\\ static"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          65
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          66
+        ],
+        "message": "an\\ index\\ constraint\\ requires\\ an\\ unconstrained\\ array\\ subtype"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          66
+        ],
+        "message": "'first\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          66
+        ],
+        "message": "'last\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          66
+        ],
+        "message": "aggregate\\ choice\\ is\\ incompatible\\ with\\ the\\ index\\ type"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          67
+        ],
+        "message": "an\\ index\\ constraint\\ requires\\ an\\ unconstrained\\ array\\ subtype"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          67
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          67
+        ],
+        "message": "aggregate\\ choice\\ is\\ incompatible\\ with\\ the\\ index\\ type"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          68
+        ],
+        "message": "'Size\\ requires\\ a\\ type\\ or\\ an\\ object"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          69
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          70
+        ],
+        "message": "an\\ index\\ constraint\\ requires\\ an\\ unconstrained\\ array\\ subtype"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          70
+        ],
+        "message": "'first\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          70
+        ],
+        "message": "'last\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          70
+        ],
+        "message": "aggregate\\ choice\\ is\\ incompatible\\ with\\ the\\ index\\ type"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          72
+        ],
+        "message": "'FIRST\\ requires\\ an\\ array\\ prefix\\ or\\ a\\ scalar\\ subtype\\ mark"
+      },
+      {
+        "source": "tests/b3/b37004a.ada",
+        "lines": [
+          72
+        ],
+        "message": "array\\ index\\ bounds\\ must\\ be\\ discrete"
+      }
+    ]
   },
   "b3a0001": {
     "objective": "Check that objects defined to be of a general access type may not designate an object or component which is not defined to be aliased. Check that a renaming of an aliased view is also defined to be aliased. Check that an array slice may not be aliased. Check that the general access modifiers \"all\" and \"constant\" are allowed. Check that an object designated by an access-to-constant type object cannot be updated through a value of that type. Check that an object designated by a value of an access-to-variable type can be both read and updated.",
@@ -336,7 +502,7 @@
     "groups": [
       "a formal function cannot have a null default",
       "an abstract formal subprogram cannot have a null default",
-      "'Access cannot designate an intrinsic subprogram"
+      "'Access of intrinsic subprograms is not allowed"
     ],
     "legal": "legal.adb"
   }

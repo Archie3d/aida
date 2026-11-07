@@ -1,0 +1,1 @@
+currentallocatorerrors.adb:5:31: error: an allocator subtype mark cannot denote the current instance

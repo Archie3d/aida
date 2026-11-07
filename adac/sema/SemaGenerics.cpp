@@ -508,6 +508,11 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
             DeclList profile = parser.parseDeclarations();
             if (profile.size() == 1) {
                 auto* declaration = static_cast<SubprogramDecl*>(profile.front().get());
+                if (formal.nullDefault && (formal.abstract || declaration->spec.isFunction)) {
+                    m_diagnostics.error(formal.nullDefaultLocation, formal.abstract
+                        ? "an abstract formal subprogram cannot have a null default"
+                        : "a formal function cannot have a null default");
+                }
                 // A default name is resolved before the declaration becomes
                 // visible, so a same-named formal cannot capture its default.
                 auto defaults = formal.defaultValue != nullptr

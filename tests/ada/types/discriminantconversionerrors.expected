@@ -1,0 +1,3 @@
+discriminantconversionerrors.adb:9:32: error: source access type is deeper than the target access type
+discriminantconversionerrors.adb:10:32: error: source access type is deeper than the target access type
+discriminantconversionerrors.adb:12:32: error: source access type is deeper than the target access type

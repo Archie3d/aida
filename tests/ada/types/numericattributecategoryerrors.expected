@@ -1,0 +1,11 @@
+numericattributecategoryerrors.adb:3:26: error: attribute 'Aft' requires a visible fixed-point subtype mark
+numericattributecategoryerrors.adb:4:26: error: attribute 'Fore' requires a visible fixed-point subtype mark
+numericattributecategoryerrors.adb:5:24: error: attribute 'Small' requires a visible fixed-point subtype mark
+numericattributecategoryerrors.adb:6:24: error: attribute 'Delta' requires a visible fixed-point subtype mark
+numericattributecategoryerrors.adb:7:26: error: attribute 'Emax' is not defined by Ada 2005
+numericattributecategoryerrors.adb:8:24: error: attribute 'Epsilon' is not defined by Ada 2005
+numericattributecategoryerrors.adb:9:24: error: attribute 'Large' is not defined by Ada 2005
+numericattributecategoryerrors.adb:10:26: error: attribute 'Mantissa' is not defined by Ada 2005
+numericattributecategoryerrors.adb:11:26: error: attribute 'Safe_Emax' is not defined by Ada 2005
+numericattributecategoryerrors.adb:12:24: error: attribute 'Safe_Large' is not defined by Ada 2005
+numericattributecategoryerrors.adb:13:24: error: attribute 'Safe_Small' is not defined by Ada 2005

@@ -1193,13 +1193,19 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (name == "size") {
-        freezeType(prefixType);
+        Symbol* object = expr->prefix->kind == ExprKind::Identifier
+            ? static_cast<IdentifierExpr*>(expr->prefix.get())->symbol : nullptr;
+        bool currentInstance = object != nullptr && object->currentInstance != nullptr;
+        if (!currentInstance) { freezeType(prefixType); }
         expr->sizeTypePrefix = prefixIsType;
         if (prefixType == nullptr) {
             m_diagnostics.error(expr->location, "'Size requires a type or an object");
             return nullptr;
         }
         expr->type = expected != nullptr && expected->kind == TypeKind::Integer ? expected : m_types.universalInteger();
+        // The remaining fields have not been laid out yet. Evaluate the
+        // current object's Size only after its enclosing type is complete.
+        if (currentInstance) { return expr->type; }
         if (prefixType->classRoot != nullptr) {
             if (prefixIsType) {
                 m_diagnostics.error(expr->location, "class-wide subtype 'Size is not yet supported");
@@ -1290,6 +1296,13 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         return expr->type;
     }
 
-    m_diagnostics.error(expr->location, "unsupported attribute '" + expr->name + "'");
+    if (name == "aft" || name == "fore" || name == "small" || name == "delta") {
+        m_diagnostics.error(expr->location, "attribute '" + expr->name + "' requires a visible fixed-point subtype mark");
+    } else if (name == "emax" || name == "epsilon" || name == "large" || name == "mantissa"
+        || name == "safe_emax" || name == "safe_large" || name == "safe_small") {
+        m_diagnostics.error(expr->location, "attribute '" + expr->name + "' is not defined by Ada 2005");
+    } else {
+        m_diagnostics.error(expr->location, "unsupported attribute '" + expr->name + "'");
+    }
     return nullptr;
 }

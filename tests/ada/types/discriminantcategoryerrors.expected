@@ -1,0 +1,8 @@
+discriminantcategoryerrors.adb:2:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:3:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:4:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:5:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:6:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:7:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:8:5: error: discriminants require a record, task or protected type
+discriminantcategoryerrors.adb:9:5: error: discriminants require a record, task or protected type

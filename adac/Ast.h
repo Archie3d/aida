@@ -1071,6 +1071,7 @@ struct GenericFormal
     ParameterMode mode = ParameterMode::In;
     bool boxDefault = false;
     bool nullDefault = false;
+    SourceLocation nullDefaultLocation;
     bool limited = false;
     bool preelaborableInitialization = false;
     bool synchronized = false;

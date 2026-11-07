@@ -307,6 +307,13 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     }
 
     Type* poolType = accessPoolType(access);
+    // In a record definition its name denotes the current object, not a
+    // subtype mark (RM 8.6(17)). Anonymous access definitions are different.
+    if (Symbol* named = lookupName(expr->subtype->lower, scope);
+        named != nullptr && named->currentInstance != nullptr) {
+        m_diagnostics.error(expr->subtype->location, "an allocator subtype mark cannot denote the current instance");
+        return access;
+    }
     if (poolType->zeroStorage && !m_genericInstanceBody) {
         m_diagnostics.error(expr->location, "an allocator cannot use an access type with Storage_Size zero");
         return access;

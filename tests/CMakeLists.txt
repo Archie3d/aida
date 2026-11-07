@@ -2658,5 +2658,28 @@ foreach(equality_source library/unboundedequality.adb tagged/componentequality.a
         runtime.${equality_case}_modes PROPERTIES TIMEOUT 120)
 endforeach()
 
+# Phase 8: legality findings from location-aware ACATS B-test grading.
+add_ada_test(legalityaudit SOURCES types/legalityaudit.adb)
+add_ada_error_test(discriminantcategoryerrors SOURCES types/discriminantcategoryerrors.adb)
+add_ada_error_test(currentallocatorerrors SOURCES types/currentallocatorerrors.adb)
+add_ada_error_test(discriminantconversionerrors SOURCES types/discriminantconversionerrors.adb)
+add_ada_error_test(numericattributecategoryerrors SOURCES types/numericattributecategoryerrors.adb)
+add_ada_error_test(genericnulllegalityerrors SOURCES generics/genericnulllegalityerrors.adb)
+add_determinism_test(legalityaudit SOURCE types/legalityaudit.adb)
+add_test(NAME runtime.legalityaudit_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE}
+        -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/types/legalityaudit.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/types/legalityaudit.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/legalityaudit-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.legalityaudit_modes PROPERTIES TIMEOUT 60)
+
 add_subdirectory(robustness)
 aida_finalize_tests()

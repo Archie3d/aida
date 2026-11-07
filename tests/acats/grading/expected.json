@@ -32,19 +32,9 @@
     "legal_stdout": ""
   },
   "b33101a": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/b3/b33101a.ada:37",
-      "tests/b3/b33101a.ada:38",
-      "tests/b3/b33101a.ada:39",
-      "tests/b3/b33101a.ada:41",
-      "tests/b3/b33101a.ada:42",
-      "tests/b3/b33101a.ada:43",
-      "tests/b3/b33101a.ada:44"
-    ],
-    "unexpected": [
-      "<upstream>/tests/b3/b33101a.ada:44:6: error: new discriminants on an untagged derived type are not yet supported"
-    ],
+    "outcome": "PASS",
+    "missing": [],
+    "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,
     "legal_stderr": "",
@@ -60,66 +50,18 @@
     "legal_stdout": ""
   },
   "b34001b": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/b3/b34001b.ada:130",
-      "tests/b3/b34001b.ada:136",
-      "tests/b3/b34001b.ada:138",
-      "tests/b3/b34001b.ada:139",
-      "tests/b3/b34001b.ada:145",
-      "tests/b3/b34001b.ada:147",
-      "tests/b3/b34001b.ada:163",
-      "tests/b3/b34001b.ada:176",
-      "tests/b3/b34001b.ada:177",
-      "tests/b3/b34001b.ada:178",
-      "tests/b3/b34001b.ada:181"
-    ],
-    "unexpected": [
-      "<upstream>/tests/b3/b34001b.ada:130:12: error: unsupported attribute 'AFT'",
-      "<upstream>/tests/b3/b34001b.ada:136:12: error: unsupported attribute 'DELTA'",
-      "<upstream>/tests/b3/b34001b.ada:138:12: error: unsupported attribute 'EMAX'",
-      "<upstream>/tests/b3/b34001b.ada:139:12: error: unsupported attribute 'EPSILON'",
-      "<upstream>/tests/b3/b34001b.ada:145:12: error: unsupported attribute 'FORE'",
-      "<upstream>/tests/b3/b34001b.ada:147:12: error: unsupported attribute 'LARGE'",
-      "<upstream>/tests/b3/b34001b.ada:163:12: error: unsupported attribute 'MANTISSA'",
-      "<upstream>/tests/b3/b34001b.ada:176:12: error: unsupported attribute 'SAFE_EMAX'",
-      "<upstream>/tests/b3/b34001b.ada:177:12: error: unsupported attribute 'SAFE_LARGE'",
-      "<upstream>/tests/b3/b34001b.ada:178:12: error: unsupported attribute 'SAFE_SMALL'",
-      "<upstream>/tests/b3/b34001b.ada:181:12: error: unsupported attribute 'SMALL'"
-    ],
+    "outcome": "PASS",
+    "missing": [],
+    "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,
     "legal_stderr": "",
     "legal_stdout": ""
   },
   "b34002b": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/b3/b34002b.ada:130",
-      "tests/b3/b34002b.ada:136",
-      "tests/b3/b34002b.ada:138",
-      "tests/b3/b34002b.ada:139",
-      "tests/b3/b34002b.ada:145",
-      "tests/b3/b34002b.ada:147",
-      "tests/b3/b34002b.ada:163",
-      "tests/b3/b34002b.ada:176",
-      "tests/b3/b34002b.ada:177",
-      "tests/b3/b34002b.ada:178",
-      "tests/b3/b34002b.ada:181"
-    ],
-    "unexpected": [
-      "<upstream>/tests/b3/b34002b.ada:130:12: error: unsupported attribute 'AFT'",
-      "<upstream>/tests/b3/b34002b.ada:136:12: error: unsupported attribute 'DELTA'",
-      "<upstream>/tests/b3/b34002b.ada:138:12: error: unsupported attribute 'EMAX'",
-      "<upstream>/tests/b3/b34002b.ada:139:12: error: unsupported attribute 'EPSILON'",
-      "<upstream>/tests/b3/b34002b.ada:145:12: error: unsupported attribute 'FORE'",
-      "<upstream>/tests/b3/b34002b.ada:147:12: error: unsupported attribute 'LARGE'",
-      "<upstream>/tests/b3/b34002b.ada:163:12: error: unsupported attribute 'MANTISSA'",
-      "<upstream>/tests/b3/b34002b.ada:176:12: error: unsupported attribute 'SAFE_EMAX'",
-      "<upstream>/tests/b3/b34002b.ada:177:12: error: unsupported attribute 'SAFE_LARGE'",
-      "<upstream>/tests/b3/b34002b.ada:178:12: error: unsupported attribute 'SAFE_SMALL'",
-      "<upstream>/tests/b3/b34002b.ada:181:12: error: unsupported attribute 'SMALL'"
-    ],
+    "outcome": "PASS",
+    "missing": [],
+    "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,
     "legal_stderr": "",
@@ -144,34 +86,9 @@
     "legal_stdout": ""
   },
   "b37004a": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/b3/b37004a.ada:75",
-      "tests/b3/b37004a.ada:77"
-    ],
-    "unexpected": [
-      "<upstream>/tests/b3/b37004a.ada:55:16: error: array index bounds must be discrete",
-      "<upstream>/tests/b3/b37004a.ada:63:29: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:64:33: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:64:17: error: an accuracy constraint must be static",
-      "<upstream>/tests/b3/b37004a.ada:65:29: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:66:17: error: an index constraint requires an unconstrained array subtype",
-      "<upstream>/tests/b3/b37004a.ada:66:36: error: 'first requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:66:36: error: 'last requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:66:36: error: aggregate choice is incompatible with the index type",
-      "<upstream>/tests/b3/b37004a.ada:67:17: error: an index constraint requires an unconstrained array subtype",
-      "<upstream>/tests/b3/b37004a.ada:67:36: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:67:36: error: aggregate choice is incompatible with the index type",
-      "<upstream>/tests/b3/b37004a.ada:68:30: error: 'Size requires a type or an object",
-      "<upstream>/tests/b3/b37004a.ada:69:31: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:70:17: error: an index constraint requires an unconstrained array subtype",
-      "<upstream>/tests/b3/b37004a.ada:70:36: error: 'first requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:70:36: error: 'last requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:70:36: error: aggregate choice is incompatible with the index type",
-      "<upstream>/tests/b3/b37004a.ada:72:28: error: 'FIRST requires an array prefix or a scalar subtype mark",
-      "<upstream>/tests/b3/b37004a.ada:72:17: error: array index bounds must be discrete",
-      "<upstream>/tests/b3/b37004a.ada:75:23: error: an allocator for 'AR' has to make a 'R'"
-    ],
+    "outcome": "PASS",
+    "missing": [],
+    "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,
     "legal_stderr": "",
@@ -248,11 +165,8 @@
     "legal_stdout": ""
   },
   "b460001": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/b4/b460001.a:238",
-      "tests/b4/b460001.a:259"
-    ],
+    "outcome": "PASS",
+    "missing": [],
     "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,
@@ -767,10 +681,8 @@
     "legal_stdout": ""
   },
   "bc60001": {
-    "outcome": "FAIL",
-    "missing": [
-      "tests/bc/bc60001.a:102"
-    ],
+    "outcome": "PASS",
+    "missing": [],
     "unexpected": [],
     "compile_exit": 1,
     "legal_exit": 0,

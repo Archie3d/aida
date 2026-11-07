@@ -274,8 +274,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                         formal.boxDefault = match(TokenKind::Box);
                         if (!formal.boxDefault) {
                             if (check(TokenKind::KwNull)) {
-                                if (formal.abstract) { fail("an abstract formal subprogram cannot have a null default"); }
-                                if (spec.isFunction) { fail("a formal function cannot have a null default"); }
+                                formal.nullDefaultLocation = current().location;
                                 advance();
                                 formal.nullDefault = true;
                             } else {

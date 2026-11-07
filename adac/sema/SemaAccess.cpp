@@ -176,6 +176,19 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
 {
     if (target->accessProfile != nullptr || source == nullptr || source->kind != TypeKind::Access
         || source->accessProfile != nullptr) { return false; }
+    int sourceLevel = source->accessLevel;
+    bool dynamicLevel = source->accessParameter || source->accessDiscriminant;
+    if (source->accessDiscriminant && !expr->resolvedArguments.empty()) {
+        Expr* operand = expr->resolvedArguments.front();
+        while (operand->kind == ExprKind::Qualified) {
+            operand = static_cast<QualifiedExpr*>(operand)->operand.get();
+        }
+        // Component views keep their enclosing object's level, including
+        // implicit dereferences and renamings (RM 3.10.2(8, 12.4, 16)).
+        ObjectAccessView enclosing = accessView(operand);
+        sourceLevel = enclosing.level;
+        dynamicLevel = enclosing.dynamic;
+    }
     bool related = false;
     Type* left = rootType(target);
     Type* right = rootType(source);
@@ -208,7 +221,7 @@ bool Sema::checkObjectAccessConversion(CallExpr* expr, Type* target, Type* sourc
         m_diagnostics.error(expr->location, "this type conversion is not allowed");
     } else if (!matchingStorage(target->target, source->target)) {
         m_diagnostics.error(expr->location, "object access conversion requires matching designated storage representation");
-    } else if (source->accessLevel > target->accessLevel && !source->accessParameter && !source->accessDiscriminant && m_replayContract == nullptr) {
+    } else if (sourceLevel > target->accessLevel && !dynamicLevel && m_replayContract == nullptr) {
         m_diagnostics.error(expr->location, "source access type is deeper than the target access type");
     }
     return true;

@@ -295,6 +295,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     };
 
     TypeDefinition* definition = decl->definition.get();
+    if (!decl->discriminants.empty() && definition->kind != TypeDefKind::Record
+        && definition->kind != TypeDefKind::Private && definition->kind != TypeDefKind::Derived
+        && definition->kind != TypeDefKind::Task && definition->kind != TypeDefKind::Protected) {
+        m_diagnostics.error(decl->location, "discriminants require a record, task or protected type");
+    }
     bool taggedDefinition = (definition->kind == TypeDefKind::Record && definition->tagged)
         || (definition->kind == TypeDefKind::Derived && definition->extension);
     if (!taggedDefinition && definition->kind == TypeDefKind::Derived && definition->parent != nullptr) {
@@ -748,7 +753,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "a limited extension requires a limited ancestor type");
         }
         if (!decl->discriminants.empty() && !parent->tagged) {
-            m_diagnostics.error(decl->location, "new discriminants on an untagged derived type are not yet supported");
+            m_diagnostics.error(decl->location, parent->kind == TypeKind::Record
+                ? "new discriminants on an untagged derived type are not yet supported"
+                : "discriminants require a record, task or protected type");
             return;
         }
         if (!definition->progenitors.empty() && !parent->tagged) {

@@ -31,7 +31,7 @@ B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
 cannot establish correctness. The independent [B-test grader](../../../docs/acats-grading.md)
 now checks expected error locations, permitted diagnostic groups and legal
-controls, recording 11 PASS and 15 FAIL. Raw observations stay ungraded. B36002A now
+controls, recording 17 PASS and nine FAIL. Raw observations stay ungraded. B36002A now
 rejects its mixed constrained/boxed array-index declarations with 12 targeted
 diagnostics after the 6f-prelude repair. Its observation remains ungraded;
 local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
@@ -171,4 +171,4 @@ rejections, one runtime failure, one support blocker and 26 ungraded B probes.
 Support-protocol follow-up: unchanged C761004/C940005/C940010 now PASS after
 TCTouch and local ImpDef configuration. The current totals are 112 C PASS,
 six legal-source rejections, one runtime failure and 26 raw B observations.
-The independent grader records 11 B PASS and 15 B FAIL.
+The independent grader records 17 B PASS and nine B FAIL.
