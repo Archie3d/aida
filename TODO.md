@@ -1305,15 +1305,21 @@ Ada 2005 additions and track annex packages separately.
     the parent file. Four whole/separate/deterministic programs, standard/current
     file/pipe and legality checks, four Ada/native workers and shared raw/text
     writers cover the boundaries. All 122 inventoried units resolve, with no
-    remaining missing-unit/API-gap guards. CXAC004 now reaches its scenario;
-    its existing Unbounded_String composite-equality failure is recorded as
-    RUN_FAILED, not PASS. Release 1,894/1,894, 20 focused ASan/UBSan and one
+    remaining missing-unit/API-gap guards. CXAC004 reached its scenario and
+    exposed a composite-equality defect, repaired in the follow-up below. Release 1,894/1,894, 20 focused ASan/UBSan and one
     native TSan check pass; all 145 original backfill outcomes unchanged.
     [Contract and evidence](docs/text-streams.md).
-- [ ] Repair Unbounded_String predefined composite equality (CXAC004): scalar
-  and array element contents round-trip through streams, but arrays compare
-  private owning pointers. Review the private representation and tagged-component
-  primitive equality rules in 4.5.2; preserve Ada 2005 untagged equality semantics.
+- [x] Repair Unbounded_String predefined composite equality (CXAC004).
+  Correct tagged-component primitive selection independently of the enclosing
+  composite; retain predefined equality for untagged components. All three
+  unbounded families now give their private controlled storage logical equality,
+  shared with public equality, covering composites and generic private formals.
+  Unicode/empty/shifted-bound values, copies/mutations, nested/multidimensional
+  composites, exception propagation and four workers pass whole/separate/
+  deterministic controls. Unchanged CXAC004 now passes as a regular C-test.
+  Release 1,901/1,901, 14 focused ASan/UBSan and six generated-Ada TSan checks
+  pass; all 145 original backfill outcomes unchanged (compiler hash refreshed).
+  [Contract and evidence](docs/composite-equality.md).
 - [ ] Add B-test grading for expected error locations, allowed diagnostic
   groups, recovery and legal controls. Rejection for an unrelated unsupported
   construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol

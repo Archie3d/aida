@@ -37,9 +37,9 @@ controlled/limited result ownership.
 
 The [Text_Streams children](text-streams.md) now provide all three widths,
 including exact raw/text lookahead replay, UTF-8 boundaries and stream-view
-lifetimes. Every inventoried unit resolves. CXAC004 reaches execution but exposes
-an existing Unbounded_String composite-equality defect, tracked separately;
-unit availability does not establish complete behavior or conformance.
+lifetimes. Every inventoried unit resolves. CXAC004 now passes after the
+[unbounded-string composite-equality repair](composite-equality.md); unit
+availability does not establish complete behavior or conformance.
 
 The original audit pinned 22 partial-API observations: missing System names
 and callable address-ordering profiles, Stream_IO's positioned overloads,

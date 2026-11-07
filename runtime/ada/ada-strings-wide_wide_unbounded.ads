@@ -98,6 +98,7 @@ private
     end record;
     overriding procedure Adjust (Object : in out Storage);
     overriding procedure Finalize (Object : in out Storage);
+    overriding function "=" (Left, Right : Storage) return Boolean;
     type Unbounded_Wide_Wide_String is record
         Value : Storage;
     end record;

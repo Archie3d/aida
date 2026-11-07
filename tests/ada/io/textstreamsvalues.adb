@@ -25,6 +25,7 @@ procedure TextStreamsValues is
         T.Reset (F, T.In_File);
         for I in A'Range loop U.Unbounded_String'Read (P, B (I)); end loop;
         C := Many'Input (P);
+        if A /= B or A /= C then raise Program_Error; end if;
         for I in A'Range loop
             if U.To_String (A (I)) /= U.To_String (B (I))
                 or U.To_String (A (I)) /= U.To_String (C (I)) then
@@ -50,6 +51,7 @@ procedure TextStreamsValues is
         T.Reset (F, T.In_File);
         for I in A'Range loop U.Unbounded_Wide_String'Read (P, B (I)); end loop;
         C := Many'Input (P);
+        if A /= B or A /= C then raise Program_Error; end if;
         for I in A'Range loop
             if U.To_Wide_String (A (I)) /= U.To_Wide_String (B (I))
                 or U.To_Wide_String (A (I)) /= U.To_Wide_String (C (I)) then
@@ -75,6 +77,7 @@ procedure TextStreamsValues is
         T.Reset (F, T.In_File);
         for I in A'Range loop U.Unbounded_Wide_Wide_String'Read (P, B (I)); end loop;
         C := Many'Input (P);
+        if A /= B or A /= C then raise Program_Error; end if;
         for I in A'Range loop
             if U.To_Wide_Wide_String (A (I)) /= U.To_Wide_Wide_String (B (I))
                 or U.To_Wide_Wide_String (A (I)) /= U.To_Wide_Wide_String (C (I)) then

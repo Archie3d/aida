@@ -2631,11 +2631,32 @@ add_test(NAME runtime.text_streams_standard
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckTextStreamsStandard.cmake)
 set_tests_properties(runtime.text_streams_standard PROPERTIES TIMEOUT 120)
 if(Python3_Interpreter_FOUND)
-    add_test(NAME baseline.text_streams_acats
-        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/text_streams/check.py
-            --ada $<TARGET_FILE:ada> --work ${ADA_TEST_WORK_DIR}/text-streams-acats)
-    set_tests_properties(baseline.text_streams_acats PROPERTIES TIMEOUT 120 LABELS baseline)
+    add_test(NAME baseline.text_streams_acats_sources
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/text_streams/check.py)
+    set_tests_properties(baseline.text_streams_acats_sources PROPERTIES TIMEOUT 120 LABELS baseline)
 endif()
+
+foreach(equality_source library/unboundedequality.adb tagged/componentequality.adb)
+    get_filename_component(equality_case "${equality_source}" NAME_WE)
+    add_ada_test(${equality_case} SOURCES ${equality_source})
+    add_determinism_test(${equality_case} SOURCE ${equality_source})
+    get_filename_component(equality_directory "${equality_source}" DIRECTORY)
+    add_test(NAME runtime.${equality_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/${equality_source}
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/${equality_directory}/${equality_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${equality_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${equality_case} determinism.${equality_case}
+        runtime.${equality_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
 
 add_subdirectory(robustness)
 aida_finalize_tests()

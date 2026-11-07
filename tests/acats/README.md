@@ -1136,13 +1136,15 @@ See the [stream-file contract](../../docs/stream-io.md).
 
 ### Text_Streams children
 
-Unchanged CXAC004 now compiles and runs after adding Text_IO.Text_Streams.
-It remains RUN_FAILED on comparisons of arrays of Unbounded_String; component
-string contents round-trip correctly. This existing private-representation
-composite-equality defect is a separate TODO item and is not graded PASS.
+Unchanged CXAC004 passes as a regular executable C-test after the composite
+and private-storage equality repair. The full scenario checks heterogeneous
+stream Read/Write and Input/Output, including arrays of Unbounded_String.
 The [manifest](text_streams/manifest.json) pins `tests/cxa/cxac004.a` at revision
 `2785c30c1f8577d97ac7b3043882f6818781e9c5`, original SHA-256/git blob, support,
-and exact stdout/stderr. `baseline.text_streams_acats` checks the recorded
-observation. No upstream source is modified or reduced. Independent narrow,
-wide and wide-wide value/content controls remain distinct from this observation.
-See the [contract](../../docs/text-streams.md).
+and successful REPORT output. `baseline.text_streams_acats_sources` checks the
+bytes and `acats.cxac004` grades execution. The previous RUN_FAILED guard is
+removed; no upstream source is modified or reduced. All 145 original backfill
+outcomes remain unchanged. Independent byte/wide/wide-wide equality and value
+controls include generic formals, nested composites, copies and mutation.
+See the [equality contract](../../docs/composite-equality.md) and
+[Text_Streams contract](../../docs/text-streams.md).

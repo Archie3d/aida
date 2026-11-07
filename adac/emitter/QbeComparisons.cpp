@@ -10,7 +10,9 @@ Value QbeEmitter::compareObjects(const Value& left, const Value& right, Type* ty
         return compareArrays(BinaryOp::Equal, left, type, right, type);
     }
     if (type->kind == TypeKind::Record) {
-        return compareRecords(left, right, type);
+        // RM 4.5.2: tagged components use primitive equality regardless of
+        // whether their enclosing composite is tagged, untagged, or an array.
+        return type->tagged ? comparePrimitiveRecord(left, right, type) : compareRecords(left, right, type);
     }
     Value leftValue = loadFrom(left, type);
     Value rightValue = loadFrom(right, type);
@@ -169,9 +171,7 @@ Value QbeEmitter::compareRecords(const Value& left, const Value& right, Type* ty
     auto compareField = [&](const FieldInfo& field) {
         Value leftField = fieldAddress(left, record, field);
         Value rightField = fieldAddress(right, record, field);
-        Value equal = record->tagged && field.type->kind == TypeKind::Record
-            ? comparePrimitiveRecord(leftField, rightField, field.type)
-            : compareObjects(leftField, rightField, field.type);
+        Value equal = compareObjects(leftField, rightField, field.type);
         std::string next = newLabel("recordnextfield");
         branch(equal, next, different);
         label(next);

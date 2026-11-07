@@ -56,7 +56,7 @@ same external standard handle does not coordinate their separate lookahead.
 Text codec, file-pool, Form, terminal and native Windows/MSYS2 execution limits
 remain those of the [narrow](text-io.md) and [wide](wide-text-io.md) contracts.
 
-## Evidence and a separate equality defect
+## Evidence
 
 `textstreams`, `widetextstreams` and `widewidetextstreams` cover exact replay,
 CR/LF/form-feed, UTF-8 splits and recovery, null/shifted buffers, unchanged text
@@ -73,15 +73,16 @@ termination, borrowed ownership and closed-file checks. Existing text, wide,
 terminal, pipe and stream regressions remain active. All 122 inventoried units
 now resolve, with no missing-unit or original API-gap guards remaining.
 
-Unchanged ACATS CXAC004 compiles and reaches its complete scenario but remains
-RUN_FAILED: predefined equality of arrays of Unbounded_String compares private
-storage pointers even though streamed string contents round-trip correctly.
-This existing composite-equality defect is tracked separately in TODO.md.
+Unchanged ACATS CXAC004 now passes its complete REPORT scenario after the
+[composite-equality repair](composite-equality.md). All three unbounded families
+compare logical contents within arrays/records and generic formals; the value
+round-trip controls now check whole-array equality as well as component contents.
 The [manifest](../tests/acats/text_streams/manifest.json) pins original bytes,
-revision, support and exact observed output. `baseline.text_streams_acats`
-checks that observation; matching the failure is not a conformance pass.
+revision, support and successful output. `acats.cxac004` grades execution;
+`baseline.text_streams_acats_sources` checks the source hashes.
 
-Validation on Darwin arm64: Release 1,894/1,894 tests, 20 focused ASan/UBSan
-checks and one native TSan check pass. All 145 original backfill observations
-and the compiler fingerprint remain unchanged. ASan/UBSan instrument compiler
+Original Text_Streams validation on Darwin arm64 passed Release 1,894/1,894
+tests, 20 focused ASan/UBSan checks and one native TSan check. All 145 original
+backfill observations and the compiler fingerprint were unchanged for that
+increment; the [equality follow-up](composite-equality.md) records current validation. ASan/UBSan instrument compiler
 and runtime code; generated QBE accesses are not ASan-instrumented.

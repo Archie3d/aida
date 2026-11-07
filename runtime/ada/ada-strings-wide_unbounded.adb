@@ -36,6 +36,18 @@ package body Ada.Strings.Wide_Unbounded is
         Free (Object.Data);
     end Finalize;
 
+    -- Tagged storage makes logical equality available to predefined equality
+    -- of enclosing composites and generic formal types (RM 4.5.2(32.1)).
+    function "=" (Left, Right : Storage) return Boolean is
+    begin
+        if Left.Data = null then
+            return Right.Data = null or else Right.Data.all'Length = 0;
+        elsif Right.Data = null then
+            return Left.Data.all'Length = 0;
+        end if;
+        return Left.Data.all = Right.Data.all;
+    end "=";
+
     function Length (Source : Unbounded_Wide_String) return Natural is
     begin
         if Source.Value.Data = null then
@@ -157,7 +169,7 @@ package body Ada.Strings.Wide_Unbounded is
 
     function "=" (Left : Unbounded_Wide_String; Right : Unbounded_Wide_String) return Boolean is
     begin
-        return To_Wide_String (Left) = To_Wide_String (Right);
+        return Left.Value = Right.Value;
     end "=";
 
     function "=" (Left : Unbounded_Wide_String; Right : Wide_String) return Boolean is

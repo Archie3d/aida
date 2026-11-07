@@ -760,6 +760,7 @@
     "storage_pools": "storagepools / storagepoolerrors / runtime.storage_pools: native size/alignment, specified/shared/derived/default pools, callback exceptions, finalization/master lifetime and concurrent callers; unsupported arena-result paths diagnosed",
     "random": "randomlibrary / randomlibraryerrors / runtime.random: complete profiles, inline finalized generators, all reset forms, versioned states, unbiased full-width discrete ranges, default/seed reproducibility and concurrent independent/synchronized generators",
     "stream_io": "streamoperations / streamoperationstasking / runtime.stream_operations: positioned reads/writes, mode/flush, nontruncating reset/open, stream views, EOF, bounds, errors and four shared-file workers",
-    "text_streams": "textstreams / widetextstreams / widewidetextstreams / runtime.text_streams: exact raw replay of text lookahead, UTF-8 prefixes, counts, standard/current/borrowed handles and four workers"
+    "text_streams": "textstreams / widetextstreams / widewidetextstreams / runtime.text_streams: exact raw replay of text lookahead, UTF-8 prefixes, counts, standard/current/borrowed handles and four workers",
+    "unbounded_equality": "unboundedequality / componentequality / textstreamsvalues: logical byte/wide/wide-wide storage equality in composites and generic formals; tagged primitive selection and ordinary untagged predefined equality; CXAC004 PASS"
   }
 }
