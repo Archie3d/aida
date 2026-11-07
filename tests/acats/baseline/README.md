@@ -29,8 +29,9 @@ may expose additional compiler limitations.
 
 B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
-cannot establish correctness: the next harness stage must validate expected
-error locations, permitted error groups and legal controls. B36002A now
+cannot establish correctness. The independent [B-test grader](../../../docs/acats-grading.md)
+now checks expected error locations, permitted diagnostic groups and legal
+controls, recording 11 PASS and 15 FAIL. Raw observations stay ungraded. B36002A now
 rejects its mixed constrained/boxed array-index declarations with 12 targeted
 diagnostics after the 6f-prelude repair. Its observation remains ungraded;
 local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
@@ -41,9 +42,9 @@ if previously recorded. Normal runtime failures remain RUN_FAILED; they are
 not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
-aggregate support; it joins the strict executable selection. The refreshed cohort
-has 107 C passes, 11 legal-source rejections, one support
-blocker and 26 ungraded B observations. C3A0007/C432001/C432004/C760009 now pass unchanged
+aggregate support; it joins the strict executable selection. The current cohort
+has 112 C passes, six legal-source rejections, one runtime failure and
+26 raw B observations; see the current support-protocol increment in the report. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
@@ -166,3 +167,8 @@ Standard/System follow-up: C54A03A and C64005C now pass unchanged with ASCII.
 C35502C now executes and fails enumeration Value tab-trimming controls; it is
 RUN_FAILED, not a conformance pass. The cohort has 109 PASS, eight legal-source
 rejections, one runtime failure, one support blocker and 26 ungraded B probes.
+
+Support-protocol follow-up: unchanged C761004/C940005/C940010 now PASS after
+TCTouch and local ImpDef configuration. The current totals are 112 C PASS,
+six legal-source rejections, one runtime failure and 26 raw B observations.
+The independent grader records 11 B PASS and 15 B FAIL.

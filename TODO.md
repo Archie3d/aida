@@ -1320,10 +1320,25 @@ Ada 2005 additions and track annex packages separately.
   Release 1,901/1,901, 14 focused ASan/UBSan and six generated-Ada TSan checks
   pass; all 145 original backfill outcomes unchanged (compiler hash refreshed).
   [Contract and evidence](docs/composite-equality.md).
-- [ ] Add B-test grading for expected error locations, allowed diagnostic
-  groups, recovery and legal controls. Rejection for an unrelated unsupported
-  construct must not count as PASS. Fill REPORT.Ident_Char and TCTouch protocol
-  gaps, then applicable target-specific ImpDef support; re-probe blocked cases.
+- [x] Add B-test grading for expected error locations, diagnostic groups,
+  required/optional sites, reviewed recovery and independent legal controls.
+  Unsupported/unrelated rejection, missing diagnostics, crashes and failed legal
+  controls cannot pass. All 26 pinned cases grade independently: 11 PASS join
+  regular ACATS; 15 FAIL retain their existing legality/P9 owners in the report.
+  Existing REPORT.Ident_Char is verified over all Character values; TCTouch adds
+  Flush, unordered/defaulted Validate and optional alternatives, with executable
+  failure controls. Local ImpDef task-progress delays unblock unchanged
+  C761004/C940005/C940010: all three PASS. The other 142 raw observations and
+  all 149 upstream hashes are unchanged. General official grading/applicability,
+  annex support and other-host validation are not claimed. Release 1,918/1,918;
+  13 adversarial grading checks and eight executable support controls pass.
+  [Contract, failed cases and evidence](docs/acats-grading.md).
+- [ ] Resolve the non-tasking legality findings from the B-test grader before
+  widening its PASS selection: B33101A discriminants, B460001 accessibility,
+  BC60001 intrinsic Access, B37004A component/discriminant legality and
+  B34001B/B34002B attribute coverage. Review source locations and diagnostic
+  families alongside compiler repairs; unrelated restrictions and recovery
+  must not mask missing checks. Concurrent prerequisites retain their P9 owners.
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces. Includes validation left open
   by completed items: running the suite on MSYS2 (Phase 2 threading), and

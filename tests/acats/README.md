@@ -7,8 +7,8 @@ or a claim of conformity assessment. The selection includes Ada 2005 additions
 and inherited objectives; it is reviewed with each feature.
 
 A completed-feature [backfill baseline](baseline/README.md) adds 145 pinned,
-unchanged cases. Its 107 observed executable passes join the normal ACATS label;
-failures, support blockers and ungraded B-probes are recorded separately in
+unchanged cases. Its 112 observed executable passes join the normal ACATS label;
+failures and raw B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
 
@@ -88,8 +88,9 @@ TCTouch adapter records and validates its Touch/Validate traces.
 | c761002.ada | `5b807bba720ad3cc8b4b0845f33dd704a3e6c00e` | `c71a0098c5bc221924eac3cffed1b4c9fb88cb57fbe8ecd2d6c128ecb9f908d4` |
 | c35507a.ada | `0a67765603fe62285e1cadd6d3994392dc3f5b66` | `dbd2ad559f2b315b4ec5fa9eabb853afd2d88292dd2826a78d9cf7f27be42456` |
 
-`support/report.*` is a local adapter implementing only TEST, FAILED, RESULT,
-IDENT_INT, IDENT_STR, IDENT_BOOL, EQUAL, LEGAL_FILE_NAME, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official
+`support/report.*` is a local adapter implementing TEST, FAILED, RESULT,
+IDENT_INT, IDENT_STR, IDENT_CHAR, IDENT_WIDE_CHAR, IDENT_BOOL, EQUAL,
+LEGAL_FILE_NAME, COMMENT and NOT_APPLICABLE, sufficient for these cases. It is not the official
 REPORT implementation. `support/tctouch.*` supplies local Assert/Assert_Not assertions for C354002 and Touch/Validate traces for C761002. Identity functions return their argument through an
 ordinary separately compiled function; no cross-unit optimization is used.
 FAILED records failure and prints its description; RESULT raises Program_Error
@@ -132,9 +133,11 @@ To extend the selection, vendor unchanged upstream sources with provenance and
 rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).
 When closing a known gap, remove its rejection expectation and run the executable
-case. B-tests, multi-stage/multi-file ACATS construction, implementation-defined
-substitutions, broader annex selections and the full official REPORT protocol are future
-harness work; do not route them through this C-test runner unchanged.
+case. The separate [B-test grader](../../docs/acats-grading.md) grades all 26 pinned
+legality probes (11 PASS, 15 FAIL); only complete observed passes join the
+`acats;b-tests` labels. Multi-stage construction, general implementation-defined
+substitutions, broader annex selections and the full official REPORT protocol
+remain outside this selected-case harness.
 
 C36203A retains its upstream contents, including rights and disclaimer.
 Its git blob is `f3f7e2bc72f497c64a5132bf5bbeb50c0a3501e4` and SHA-256 is

@@ -155,6 +155,34 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(baseline.acats_metadata baseline.acats_runner
         PROPERTIES TIMEOUT 30 LABELS "baseline")
 
+    add_test(NAME acats.b_grading_harness
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/grading/test_grade.py")
+    add_test(NAME acats.support_protocol
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/grading/check_support.py"
+            --ada $<TARGET_FILE:ada> --work "${CMAKE_CURRENT_BINARY_DIR}/support-controls")
+    set_tests_properties(acats.b_grading_harness acats.support_protocol
+        PROPERTIES TIMEOUT 90 LABELS "acats")
+    add_test(NAME baseline.acats_b_grades
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/grading/grade.py" --check
+            --adac $<TARGET_FILE:adac> --work "${CMAKE_CURRENT_BINARY_DIR}/b-grade-observations")
+    set_tests_properties(baseline.acats_b_grades PROPERTIES TIMEOUT 90 LABELS "baseline")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/grading/expected.json")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/grading/expected.json" b_grades)
+    string(JSON b_count LENGTH "${b_grades}")
+    math(EXPR b_last "${b_count} - 1")
+    foreach(index RANGE ${b_last})
+        string(JSON case_id MEMBER "${b_grades}" ${index})
+        string(JSON outcome GET "${b_grades}" ${case_id} outcome)
+        if(outcome STREQUAL "PASS")
+            add_test(NAME acats.legality_${case_id}
+                COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/grading/grade.py"
+                    --require-pass --case ${case_id} --adac $<TARGET_FILE:adac>
+                    --work "${CMAKE_CURRENT_BINARY_DIR}/b-grade-passes")
+            set_tests_properties(acats.legality_${case_id} PROPERTIES TIMEOUT 60 LABELS "acats;b-tests")
+        endif()
+    endforeach()
+
     # Raw legality observations only; these are not graded B-test passes.
     foreach(case_id b394a01 b394a02 b394a03 b394a04 b394a05 bc60001)
         add_test(NAME baseline.acats_${case_id}

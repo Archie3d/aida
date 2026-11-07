@@ -154,6 +154,8 @@ def observeCase(case, args):
         helpers = [str(support / "report.ads"), str(support / "report.adb")]
         if "tctouch" in case["support"]:
             helpers += [str(support / "tctouch.ads"), str(support / "tctouch.adb")]
+        if "impdef" in case["support"]:
+            helpers += [str(support / "impdef.ads"), str(support / "impdef.adb")]
         program = directory / "program"
         if case["class"] == "B":
             command = [str(args.adac), "-o", str(directory / "test.ssa"), *helpers, *sources]

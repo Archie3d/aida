@@ -82,7 +82,8 @@ The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly ->
 The [lowering decision](docs/lowering-decision.md) retains direct QBE emission
 and records the representation and cleanup refactors required by later phases.
 
-The [ACATS backfill baseline](docs/acats-baseline.md) records independent passes, failures and harness gaps for completed features.
+The [ACATS backfill baseline](docs/acats-baseline.md) records passes and gaps;
+[location-aware B-test grading](docs/acats-grading.md) checks legality diagnostics and legal controls.
 
 ## Features and limits
 

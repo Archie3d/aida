@@ -1,0 +1,343 @@
+{
+  "b330001": {
+    "objective": "Check that if a subtype indication of a variable object defines an indefinite subtype, then there is an initialization. Check that if the array type definition of a variable object defines an unconstrained array subtype, then there is an initialization. Check that indefinite subtypes may not be used as the subtype indication of a component definition (in either an array or a record definition).",
+    "groups": [
+      "an unconstrained array object needs an initializer or index constraint",
+      "an unconstrained record object requires a constraint or initializer",
+      "array components require a definite subtype",
+      "record components require a definite subtype"
+    ],
+    "legal": "legal.adb"
+  },
+  "b33101a": {
+    "objective": "ENUMERATION, INTEGER, REAL, ARRAY, ACCESS, AND DERIVED TYPE_DECLARATIONS CANNOT HAVE DISCRIMINANT PARTS. JRK 4/1/81 JWC 10/4/85 RENAMED FROM B33002A.ADA; ADDED TESTS FOR ACCESS AND DERIVED TYPES. RLB 11/19/19 Added error location indicators.",
+    "groups": [
+      "discriminants require a record, task or protected type"
+    ],
+    "legal": "legal.adb"
+  },
+  "b33102a": {
+    "objective": "A TYPE DECLARATION, INCOMPLETE TYPE DECLARATION, PRIVATE TYPE DECLARATION OR SUBTYPE DECLARATION CANNOT INTRODUCE AN IDENTIFIER THAT WAS INTRODUCED PREVIOUSLY IN THE SAME DECLARATIVE PART. CASE A: A SINGLE PACKAGE SPECIFICATION. JRK 4/1/81 JWC 10/2/85 JRK 11/15/85",
+    "groups": [
+      "'[A-J]' has already been declared in this scope"
+    ],
+    "legal": "legal.adb"
+  },
+  "b34001b": {
+    "objective": "ONLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED ENUMERATION TYPES, EXCLUDING BOOLEAN TYPES. JRK 8/20/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X.",
+    "groups": [
+      "this type conversion is not allowed",
+      "no visible subprogram matches this call",
+      "'C' is not a component of a record",
+      "only an access value designates an object with '\\.all'",
+      "only arrays and subprograms can be applied to arguments",
+      "only an array can be sliced",
+      "'not' requires a Boolean operand",
+      "logical operators require Boolean operands",
+      "the operands of an arithmetic operator must have the same type",
+      "arithmetic operators require numeric operands",
+      "unary operators require a numeric operand",
+      "concatenation requires a nonlimited one-dimensional array type and matching operands",
+      "'(?:FIRST|LAST|LENGTH|first|last) requires an array prefix or a scalar subtype mark",
+      "'(?:FIRST|LAST|first|last) takes no arguments",
+      "'Length requires an array prefix",
+      "'Constrained requires a discriminated object and no arguments",
+      "'Digits requires a floating point prefix",
+      "'(?:MACHINE_OVERFLOWS|MACHINE_ROUNDS) requires a floating or fixed point subtype mark and no arguments",
+      "'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments",
+      "a storage-place attribute requires a visible record component and no arguments",
+      "attribute 'MACHINE_(?:EMAX|EMIN|MANTISSA|RADIX)' requires a visible floating-point subtype mark",
+      "entry 'Count requires an entry of the current protected instance",
+      "task attribute requires a task object"
+    ],
+    "legal": "legal.adb"
+  },
+  "b34002b": {
+    "objective": "ONLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED INTEGER TYPES. JRK 8/21/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X.",
+    "groups": [
+      "this type conversion is not allowed",
+      "no visible subprogram matches this call",
+      "'C' is not a component of a record",
+      "only an access value designates an object with '\\.all'",
+      "only arrays and subprograms can be applied to arguments",
+      "only an array can be sliced",
+      "'not' requires a Boolean operand",
+      "logical operators require Boolean operands",
+      "the operands of an arithmetic operator must have the same type",
+      "arithmetic operators require numeric operands",
+      "unary operators require a numeric operand",
+      "concatenation requires a nonlimited one-dimensional array type and matching operands",
+      "'(?:FIRST|LAST|LENGTH|first|last) requires an array prefix or a scalar subtype mark",
+      "'(?:FIRST|LAST|first|last) takes no arguments",
+      "'Length requires an array prefix",
+      "'Constrained requires a discriminated object and no arguments",
+      "'Digits requires a floating point prefix",
+      "'(?:MACHINE_OVERFLOWS|MACHINE_ROUNDS) requires a floating or fixed point subtype mark and no arguments",
+      "'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments",
+      "a storage-place attribute requires a visible record component and no arguments",
+      "attribute 'MACHINE_(?:EMAX|EMIN|MANTISSA|RADIX)' requires a visible floating-point subtype mark",
+      "entry 'Count requires an entry of the current protected instance",
+      "task attribute requires a task object"
+    ],
+    "legal": "legal.adb"
+  },
+  "b36001a": {
+    "objective": "CHECK THAT AN ARRAY TYPE CANNOT BE DECLARED WITH A NON-DISCRETE INDEX TYPE.",
+    "groups": [
+      "array indices require a discrete type"
+    ],
+    "legal": "legal.adb"
+  },
+  "b36002a": {
+    "objective": "THE INDICES OF MULTIDIMENSIONAL ARRAY TYPES MUST BE EITHER ALL CONSTRAINED OR ALL UNCONSTRAINED. L.BROWN 7/2/86",
+    "groups": [
+      "array indices must be either all constrained or all unconstrained"
+    ],
+    "legal": "legal.adb",
+    "sites": {
+      "tests/b3/b36002a.ada:33": {
+        "lines": [
+          32,
+          33
+        ]
+      },
+      "tests/b3/b36002a.ada:37": {
+        "lines": [
+          36,
+          37
+        ]
+      },
+      "tests/b3/b36002a.ada:40": {
+        "lines": [
+          39,
+          40
+        ]
+      },
+      "tests/b3/b36002a.ada:43": {
+        "lines": [
+          42,
+          43
+        ]
+      },
+      "tests/b3/b36002a.ada:47": {
+        "lines": [
+          46,
+          47
+        ]
+      },
+      "tests/b3/b36002a.ada:51": {
+        "lines": [
+          50,
+          51
+        ]
+      },
+      "tests/b3/b36002a.ada:55": {
+        "lines": [
+          54,
+          55
+        ]
+      },
+      "tests/b3/b36002a.ada:59": {
+        "lines": [
+          58,
+          59
+        ]
+      },
+      "tests/b3/b36002a.ada:63": {
+        "lines": [
+          62,
+          63
+        ]
+      },
+      "tests/b3/b36002a.ada:66": {
+        "lines": [
+          65,
+          66
+        ]
+      },
+      "tests/b3/b36002a.ada:70": {
+        "lines": [
+          69,
+          70
+        ]
+      },
+      "tests/b3/b36002a.ada:74": {
+        "lines": [
+          73,
+          74
+        ]
+      }
+    }
+  },
+  "b37004a": {
+    "objective": "RECORD COMPONENTS CANNOT BE UNCONSTRAINED ARRAYS, EVEN IF INITIALIZED TO A STATIC VALUE. (B) CHECK THAT COMPONENTS CANNOT BE USED IN ANOTHER RECORD COMPONENT'S CONSTRAINT OR INITIAL VALUE, OR IN ITS OWN CONSTRAINT OR INITIAL VALUES. (C) CHECK THAT THE BASE TYPES OF A COMPONENT AND ITS INITIAL VALUE MUST MATCH. (F) CHECK THAT THE NAME OF A RECORD TYPE CANNOT BE USED INSIDE ITS RECORD DEFINITION. DAT 5/18/81 SPS 11/3/82 VKG 1/13/83 RJW 1/9/86 - ADDED 'C20', DELETED 'C21' TO 'C30' AND CASE (G). PWN 10/24/95 REMOVED CHECKS NO LONGER SUPPORTED IN AD",
+    "groups": [
+      "record components require a constrained array subtype",
+      "'[A-Z][A-Z0-9]*' is not declared",
+      "the component default has an incompatible type"
+    ],
+    "legal": "legal.adb"
+  },
+  "b3a0001": {
+    "objective": "Check that objects defined to be of a general access type may not designate an object or component which is not defined to be aliased. Check that a renaming of an aliased view is also defined to be aliased. Check that an array slice may not be aliased. Check that the general access modifiers \"all\" and \"constant\" are allowed. Check that an object designated by an access-to-constant type object cannot be updated through a value of that type. Check that an object designated by a value of an access-to-variable type can be both read and updated.",
+    "groups": [
+      "object '(?:Unchecked_)?Access requires an aliased object view",
+      "access-to-variable cannot designate a constant view",
+      "a constant access view cannot be modified"
+    ],
+    "legal": "legal.adb"
+  },
+  "b3a0002": {
+    "objective": "Check that subtype conformance is required for actual values of access to subprogram types. Check that the mode, number and subtype of parameters must statically match. Check that the calling convention of the value must not be Intrinsic. Check that corresponding subtypes of the profiles must statically match. Check that a generic formal subprogram may not be the actual value of an access to subprogram type because it cannot subtype-conform with anything.",
+    "groups": [
+      "a subprogram access value requires a subtype conformant profile"
+    ],
+    "legal": "legal.adb"
+  },
+  "b43002d": {
+    "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN A SINGLE POSITIONAL ASSOCIATION.",
+    "groups": [
+      "the assigned value has an incompatible type"
+    ],
+    "legal": "legal.adb"
+  },
+  "b43002e": {
+    "objective": "CHECK THAT AN ARRAY AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS.",
+    "groups": [
+      "others must appear once, as the final aggregate association"
+    ],
+    "legal": "legal.adb"
+  },
+  "b43002f": {
+    "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS.",
+    "groups": [
+      "others must appear once, as the final aggregate association"
+    ],
+    "legal": "legal.adb",
+    "recovery": [
+      {
+        "source": "tests/b4/b43002f.ada",
+        "lines": [
+          45
+        ],
+        "message": "record association has no components"
+      }
+    ]
+  },
+  "b460001": {
+    "objective": "Check that if the target type of a type conversion is a general access type, the accessibility level of the operand type must not be statically deeper than that of the target type. Check for cases where the operand is: (a) a stand-alone access object. (b) a formal parameter. (c) an access discriminant.",
+    "groups": [
+      "source access type is deeper than the target access type"
+    ],
+    "legal": "legal.adb"
+  },
+  "b64002a": {
+    "objective": "THE NUMBER OF ACTUAL PARAMETERS AND NAMED PARAMETERS MUST EQUAL THE NUMBER OF FORMAL PARAMETERS. DAS 1/27/81 CPP 6/28/84",
+    "groups": [
+      "no visible interpretation of 'P1' matches this context",
+      "no visible subprogram matches this call"
+    ],
+    "legal": "legal.adb"
+  },
+  "b64002c": {
+    "objective": "THE BASE TYPES OF A FORMAL AND ACTUAL PARAMETER CANNOT BE DIFFERENT. DAS 2/9/81 SPS 12/10/82 CPP 6/28/84 JRK 11/28/84",
+    "groups": [
+      "no visible subprogram matches this call"
+    ],
+    "legal": "legal.adb"
+  },
+  "b64003a": {
+    "objective": "FOR A MIXTURE OF NAMED AND POSITIONAL NOTATION, NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. SUBTESTS ARE: (A) NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. (B) A NAMED PARAMETER AND A LATER POSITIONAL PARAMETER CANNOT BE SPECIFIED FOR THE SAME FORMAL PARAMETER. (C) TWO OR MORE NAMED PARAMETERS CANNOT SPECIFY THE SAME FORMAL PARAMETER. (D) THE NAME USED IN A NAMED PARAMETER MUST ONLY BE A NAME OF A FORMAL PARAMETER. (E) A NAMED PARAMETER CANNOT BE PROVIDED FOR A FORMAL PARAMETER",
+    "groups": [
+      "a positional argument cannot follow a named argument",
+      "a parameter cannot be supplied more than once",
+      "no visible subprogram matches this call"
+    ],
+    "legal": "legal.adb"
+  },
+  "b650002": {
+    "objective": "Check that an extended return statement cannot be used to return from a procedure body, entry body, or accept statement. Check that an extended return statement cannot be used to return from an outer extended return statement. Check that a simple return statement that applies to a procedure body, entry body, accept statement, or extended return statement cannot have an expression. Check that a simple return statement that applies to a function body must have an expression.",
+    "groups": [
+      "a procedure cannot return a value",
+      "a return statement requires a result",
+      "an extended return is not allowed in a procedure"
+    ],
+    "legal": "legal.adb"
+  },
+  "b650004": {
+    "objective": "Check that a return statement is illegal if it is not within a callable construct. Check that a return statement is illegal if it is within a body that is within the construct to which it applies.",
+    "groups": [
+      "a return statement is not allowed in a package body",
+      "a return statement requires an enclosing callable construct"
+    ],
+    "legal": "legal.adb"
+  },
+  "b840001": {
+    "objective": "Check that the name in a use type clause must denote a subtype. Check that only the primitive operators of the type determined by the subtype mark in a use type clause are use-visible (in particular, that the primitive operators of no other type declared in the same package are use-visible). Check that the scope of a use type clause in the private part of a library unit does not include the visible part of any public descendant of that library unit.",
+    "groups": [
+      "'B840001_[04]' is not a type",
+      "'(?:Int_Op|Tag_Op|another_integer|my_integer)' is not declared",
+      "no visible operator '(?:-|>=)' matches (?:this operand|these operands)"
+    ],
+    "legal": "legal.adb"
+  },
+  "b394a01": {
+    "objective": "Check that progenitor subtype marks denote interfaces, including formal interface and formal derived declarations.",
+    "groups": [
+      "interface progenitors must be interface types",
+      "a nonlimited interface cannot have a limited progenitor",
+      "a task type requires task or synchronized interface progenitors",
+      "a protected type requires protected or synchronized interface progenitors"
+    ],
+    "legal": "legal.adb"
+  },
+  "b394a02": {
+    "objective": "Check that descendants of nonlimited interfaces cannot be limited, including generic formal declarations.",
+    "groups": [
+      "interface progenitors must be interface types",
+      "a nonlimited interface cannot have a limited progenitor",
+      "a task type requires task or synchronized interface progenitors",
+      "a protected type requires protected or synchronized interface progenitors"
+    ],
+    "legal": "legal.adb"
+  },
+  "b394a03": {
+    "objective": "Check task-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
+    "groups": [
+      "interface progenitors must be interface types",
+      "a nonlimited interface cannot have a limited progenitor",
+      "a task type requires task or synchronized interface progenitors",
+      "a protected type requires protected or synchronized interface progenitors"
+    ],
+    "legal": "legal.adb"
+  },
+  "b394a04": {
+    "objective": "Check protected-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
+    "groups": [
+      "interface progenitors must be interface types",
+      "a nonlimited interface cannot have a limited progenitor",
+      "a task type requires task or synchronized interface progenitors",
+      "a protected type requires protected or synchronized interface progenitors"
+    ],
+    "legal": "legal.adb"
+  },
+  "b394a05": {
+    "objective": "Check synchronized-interface descendants, including formal derived extensions.",
+    "groups": [
+      "interface progenitors must be interface types",
+      "a nonlimited interface cannot have a limited progenitor",
+      "a task type requires task or synchronized interface progenitors",
+      "a protected type requires protected or synchronized interface progenitors"
+    ],
+    "legal": "legal.adb"
+  },
+  "bc60001": {
+    "objective": "Check that null defaults are forbidden for formal functions and abstract formals, and that an omitted null default has Intrinsic convention.",
+    "groups": [
+      "a formal function cannot have a null default",
+      "an abstract formal subprogram cannot have a null default",
+      "'Access cannot designate an intrinsic subprogram"
+    ],
+    "legal": "legal.adb"
+  }
+}

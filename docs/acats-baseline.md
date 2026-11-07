@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — refreshed 2026-11-06
+# ACATS completed-feature baseline — refreshed 2026-11-07
 
 This backfill adds **145 unchanged upstream cases**: 119 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -11,16 +11,26 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 11 |
-| Support/harness blocked | 1 |
-| Executable PASS | 107 |
-| Executable failure | 0 |
+| Legal C-test rejected | 6 |
+| Support/harness blocked | 0 |
+| Executable PASS | 112 |
+| Executable failure | 1 |
 
-No crashes or timeouts were observed. **11 executable C-cases fail**, all compile
-rejections; one further C-case is blocked by the TCTouch adapter.
-All 26 rejected B-probes remain ungraded, not legality passes. B36002A now
-rejects its mixed constrained/unconstrained array definitions; the Phase 8
-B-test grader remains required before any upstream legality-pass claim.
+No crashes or timeouts were observed. Six legal C-tests are rejected and
+C35502C retains its enumeration Value tab-trimming runtime failure.
+The raw B observations stay ungraded for historical comparison. The independent
+[location/group-aware grader](acats-grading.md) records **11 B PASS and 15 B FAIL**,
+with separate legal controls. Only complete B passes join the regular ACATS label.
+
+## Support-protocol increment (Phase 8)
+
+C761004 now passes unchanged after TCTouch Flush/Validate support. C940005 and
+C940010 pass unchanged with local ImpDef task-progress delays. The remaining
+142 raw observations and all 149 upstream hashes are unchanged. The detailed
+[grading contract, failed cases and support boundaries](acats-grading.md) distinguish
+harness completion from the language defects and unsupported prerequisites
+exposed by 15 failed B-tests. Older increment counts below describe their
+historical snapshots.
 
 ## Current-subset adoption audit (Phase 8)
 
@@ -235,49 +245,50 @@ compound case before promotion.
 Counts are observations, not percentages of RM coverage. Compound cases may
 be blocked before reaching the feature named in their objective.
 
-| Area | C PASS | C rejected | C runtime failure | Harness blocked | B ungraded |
+| Area | C PASS | C rejected | C runtime failure | Harness blocked | B raw rejected |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| derived scalars | 9 | 1 | 0 | 0 | 0 |
+| derived scalars | 9 | 0 | 1 | 0 | 0 |
 | arrays discriminants | 10 | 0 | 0 | 0 | 0 |
 | object orientation | 17 | 0 | 0 | 0 | 0 |
 | access callbacks | 7 | 0 | 0 | 0 | 0 |
 | indexing slices | 8 | 0 | 0 | 0 | 0 |
 | aggregates | 3 | 1 | 0 | 0 | 0 |
 | conversions static | 7 | 0 | 0 | 0 | 0 |
-| control flow | 3 | 1 | 0 | 0 | 0 |
-| calls returns | 7 | 1 | 0 | 0 | 0 |
-| private finalization | 9 | 2 | 0 | 1 | 0 |
+| control flow | 4 | 0 | 0 | 0 | 0 |
+| calls returns | 8 | 0 | 0 | 0 | 0 |
+| private finalization | 10 | 2 | 0 | 0 | 0 |
 | visibility renaming | 9 | 2 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
-| protected objects | 0 | 2 | 0 | 0 | 0 |
+| protected objects | 2 | 0 | 0 | 0 | 0 |
 | legality sample | 0 | 0 | 0 | 0 | 21 |
 | generic interfaces | 0 | 0 | 0 | 0 | 5 |
+| representation | 7 | 0 | 0 | 0 | 0 |
+| access null exclusions | 5 | 0 | 0 | 0 | 0 |
+| generic subprograms | 3 | 1 | 0 | 0 | 0 |
 
 ## Follow-up order
 
-1. Investigate the remaining legal C rejections; turn
-   confirmed defects into focused compiler regressions before fixing them.
-2. Implement B-test grading against upstream error markers, permitted error
-   groups and legal controls. Include recovery/diagnostic coverage; a nonzero
-   compiler exit or an unrelated unsupported construct must not yield PASS.
-3. Fill the small REPORT/TCTouch gaps, then configure applicable ImpDef
-   support. Never stub target-dependent semantics merely to compile a case.
-   The protected probes also need later library/tasking features.
-4. Review the remaining legal-source rejections by RM requirement and roadmap
-   owner. Retain explicit unsupported-feature boundaries and promote cases as
-   features or defects are resolved.
+1. Repair the non-tasking legality findings in the [B-test report](acats-grading.md),
+   reviewing diagnostic families and source locations alongside compiler fixes.
+   Concurrent syntax prerequisites retain their Phase 9 owners.
+2. Investigate the remaining six legal C rejections and C35502C runtime failure;
+   turn confirmed defects into focused compiler regressions before fixing them.
+3. Validate target configuration on other supported hosts. Current TCTouch and
+   local ImpDef gaps for the selected support-blocked probes are repaired.
+4. Retain explicit unsupported-feature boundaries and promote complete cases
+   as features or defects are resolved.
 
-The baseline runner self-tests enforce strict REPORT completion/identity,
-zero-exit failure detection, ungraded B results, support-gap separation,
-crash/timeout handling and source/snapshot integrity. Only the 107 observed
-executable PASS cases join the normal ACATS test label. The full cohort has a
-separate snapshot-stability target; matching a recorded failure is not an
+The baseline runner tests enforce strict REPORT completion/identity, raw B
+observation boundaries, crash/timeout handling and source/snapshot integrity.
+Its 112 executable C passes and the independent grader's 11 complete B passes
+join normal ACATS labels. Snapshot stability of a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
 ## Case inventory
 
 Each objective, source hash and owning feature is recorded in the manifest.
-The table below gives the observed status and initial triage for every case.
+The table below gives the raw observed status and triage for every case;
+B-test grades are reported independently in the linked grading report.
 “Front-end rejection to investigate” is not a confirmed root-cause diagnosis.
 
 | Case / upstream source | RM area | Observation | Initial triage / next owner |
@@ -366,7 +377,7 @@ The table below gives the observed status and initial triage for every case.
 | [C760011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760011.a) | 7.3/7.6 | Executable PASS | covered probe; P8 observation refresh |
 | [C760013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760013.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Legal C-test rejected | cross feature language gap; P9 task entries |
-| [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Support/harness blocked | support adapter gap; P8 TCTouch adapter |
+| [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Executable PASS | TCTouch protocol repaired; P8 |
 | [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
 | [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6d/P6g access subtypes; dependent controlled arrays |
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
@@ -383,8 +394,8 @@ The table below gives the observed status and initial triage for every case.
 | [CA1003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1003a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1004a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1005a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
-| [C940005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940005.a) | 9.4–9.5 | Legal C-test rejected | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
-| [C940010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940010.a) | 9.4–9.5 | Legal C-test rejected | support adapter gap; P8 ImpDef configuration; P9 protected/tasking semantics |
+| [C940005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940005.a) | 9.4–9.5 | Executable PASS | local task-progress configuration; P8 |
+| [C940010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940010.a) | 9.4–9.5 | Executable PASS | local task-progress configuration; P8 |
 | [B330001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b330001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B33101A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33101a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
 | [B33102A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33102a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |

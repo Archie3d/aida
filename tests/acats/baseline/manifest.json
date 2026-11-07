@@ -2238,14 +2238,11 @@
       "support": [
         "tctouch"
       ],
-      "harness_gaps": [
-        "TCTouch.Flush",
-        "TCTouch.Validate third argument"
-      ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 TCTouch adapter",
-        "note": "TCTouch.Flush and the three-argument Validate overload at lines 111/113; preserve actual trace semantics when extending the adapter."
+        "kind": "covered_probe",
+        "owner": "P8 support protocol",
+        "note": "PASS unchanged after TCTouch/target timing support; no source changes or weakened checks."
       }
     },
     {
@@ -2563,14 +2560,14 @@
         "tests/c9/c940005.a"
       ],
       "report_name": "C940005",
-      "support": [],
-      "harness_gaps": [
-        "ImpDef requires target-specific support configuration"
+      "support": [
+        "impdef"
       ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
-        "note": "The partial ImpDef unit is available, but the requested target-specific scheduling service is absent. This is observed as a compilation rejection; full task/protected semantics remain independent prerequisites."
+        "kind": "covered_probe",
+        "owner": "P8 support protocol",
+        "note": "PASS unchanged after TCTouch/target timing support; no source changes or weakened checks."
       }
     },
     {
@@ -2584,14 +2581,14 @@
         "tests/c9/c940010.a"
       ],
       "report_name": "C940010",
-      "support": [],
-      "harness_gaps": [
-        "ImpDef requires target-specific support configuration"
+      "support": [
+        "impdef"
       ],
+      "harness_gaps": [],
       "triage": {
-        "kind": "support_adapter_gap",
-        "owner": "P8 ImpDef configuration; P9 protected/tasking semantics",
-        "note": "The partial ImpDef unit is available, but the requested target-specific scheduling service is absent. This is observed as a compilation rejection; full task/protected semantics remain independent prerequisites."
+        "kind": "covered_probe",
+        "owner": "P8 support protocol",
+        "note": "PASS unchanged after TCTouch/target timing support; no source changes or weakened checks."
       }
     },
     {
