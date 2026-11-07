@@ -1350,9 +1350,24 @@ Ada 2005 additions and track annex packages separately.
   refreshed for semantic recovery).
   [Audit and evidence](docs/legality-audit.md).
 - [ ] Validate supported hosts and targets: ABI widths, installation and
-  relocation, library lookup, paths with spaces. Includes validation left open
-  by completed items: running the suite on MSYS2 (Phase 2 threading), and
-  checking Phase 2's no-slowdown goal on other hosts and targets.
+  relocation, library lookup, paths with spaces. Local validation and preparation
+  for other hosts are complete; native cross-host evidence remains required.
+  - [x] Darwin arm64: mixed C/Ada register/stack ABI, descriptor/trace layouts,
+    moved installs, PATH/symlink invocation, library/runtime/include overrides
+    and spaced paths. Full Release suite from spaced source/build paths with
+    lib64: 1,937/1,937; default lib install also passes; seven focused ASan/UBSan
+    checks pass; all 145 raw ACATS observations unchanged. Shared path parsing
+    fixes Windows drive-letter/list/backslash handling with lexical controls.
+  - [x] Prepare complete native CI jobs for Linux amd64/arm64 and Windows
+    UCRT64; preserve per-host test/ABI/install/timing evidence. Validate macOS
+    locally; Darwin amd64 remains unvalidated pending a separate manual run.
+    Add alternating scalar/image/block/allocation comparisons with optional
+    matched baseline toolchains. Local current-only samples and a paired harness
+    self-control are recorded without claiming the no-slowdown goal.
+  - [ ] Obtain and triage other native runs, including the full MSYS2 suite and
+    Phase 2 threading. Collect matched before/after performance evidence on
+    other hosts/targets; CI preparation and entry-cost models do not close this.
+  [Contract, commands and evidence](docs/host-validation.md).
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.
 - [ ] Serialized semantic interfaces, so clients compile without dependency

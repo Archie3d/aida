@@ -2681,5 +2681,34 @@ add_test(NAME runtime.legalityaudit_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.legalityaudit_modes PROPERTIES TIMEOUT 60)
 
+# Portable host-validation probes; the installation check is exercised on
+# each native runner, including MSYS2's LLP64 data model.
+add_executable(host_paths_test host/PathsTest.cpp)
+add_test(NAME host.paths COMMAND host_paths_test)
+add_executable(host_abi_report host/AbiReport.c)
+add_test(NAME host.abi_layout COMMAND host_abi_report)
+add_determinism_test(hostabi SOURCE driver/hostabi.adb)
+add_test(NAME host.abi_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/host/AbiHelper.c
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/driver/hostabi.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/driver/hostabi.expected
+        "-DWORKDIR=${ADA_TEST_WORK_DIR}/host ABI modes"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(host.paths host.abi_layout host.abi_modes determinism.hostabi
+    PROPERTIES TIMEOUT 60 LABELS "host")
+if(Python3_Interpreter_FOUND)
+    add_test(NAME host.install_relocation
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/check_install.py
+            --cmake ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+            --libdir ${CMAKE_INSTALL_LIBDIR}
+            --work "${CMAKE_CURRENT_BINARY_DIR}/host installation")
+    set_tests_properties(host.install_relocation PROPERTIES TIMEOUT 180 LABELS "host" RESOURCE_LOCK install)
+endif()
+
 add_subdirectory(robustness)
 aida_finalize_tests()

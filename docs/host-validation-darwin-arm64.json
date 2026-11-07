@@ -1,0 +1,192 @@
+{
+  "recorded_date": "2026-11-07",
+  "base_revision": "97200da845a2b06715cf368d46c00256f535bf7a",
+  "source_tree_dirty": true,
+  "scope": "Local Darwin arm64 validation; other native runners prepared, not executed",
+  "build_type": "Release",
+  "c_compiler": "Apple Clang 21.0.0",
+  "install_libdirs_checked": [
+    "lib",
+    "lib64"
+  ],
+  "spaced_source_and_build": true,
+  "abi": {
+    "pointer_bits": 64,
+    "int_bits": 32,
+    "long_bits": 64,
+    "size_bits": 64,
+    "ptrdiff_bits": 64,
+    "little_endian": true,
+    "trace_bytes": 24,
+    "array_result_bytes": 48
+  },
+  "release_tests": {
+    "passed": 1937,
+    "total": 1937
+  },
+  "asan_ubsan_focused_tests": {
+    "passed": 7,
+    "total": 7
+  },
+  "acats_raw_baseline": {
+    "cases": 145,
+    "snapshot": "unchanged"
+  },
+  "timings": {
+    "schema": 1,
+    "build_components_sha256": {
+      "current": {
+        "adac/adac": "5be86ffc21c3407b90ba365e34e71018d5a6902e5aa4ec6e3715400d93c444a8",
+        "runtime/libadart.a": "040255d8afa79d05981efb14e403818fd3595f23e6131bd3f85eea895088817b",
+        "qbe/qbe": "2d42b71a6d0c02014e44ca1eae4fa9f603acee508ad2a246ff56cac039117448"
+      }
+    },
+    "context_probe_sha256": "aa4f765f8163b4d19225d4c81d9f9a824a9be79c85f6848c15f1dc37b7af9648",
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0"
+    },
+    "driver_sha256": {
+      "current": "67207634063121ec6591f465bea72019de1b6b823005b05ea51bfd6a0db3ab83"
+    },
+    "comparison": "current-only; no no-slowdown conclusion",
+    "runs": 11,
+    "workloads": {
+      "contextcalls": {
+        "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "samples_seconds": {
+          "current": [
+            0.013618875003885478,
+            0.013014416967052966,
+            0.013789999997243285,
+            0.01416833297116682,
+            0.014173416013363749,
+            0.013616834010463208,
+            0.013156041968613863,
+            0.013245165988337249,
+            0.012995292025152594,
+            0.013499542023055255,
+            0.013647166022565216
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013616834010463208
+        }
+      },
+      "imagecalls": {
+        "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "samples_seconds": {
+          "current": [
+            0.02402866695774719,
+            0.02386145800119266,
+            0.023409790999721736,
+            0.023572959005832672,
+            0.02359279099619016,
+            0.023965207976289093,
+            0.02443437499459833,
+            0.023762166034430265,
+            0.023581375018693507,
+            0.02379358297912404,
+            0.024135707993991673
+          ]
+        },
+        "median_seconds": {
+          "current": 0.02379358297912404
+        }
+      },
+      "blockcalls": {
+        "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "samples_seconds": {
+          "current": [
+            0.023883917019702494,
+            0.023061041021719575,
+            0.022645624994765967,
+            0.022817916003987193,
+            0.023240416951011866,
+            0.023422917001880705,
+            0.023269540979526937,
+            0.02281875000335276,
+            0.022654165979474783,
+            0.023133458045776933,
+            0.023314958030823618
+          ]
+        },
+        "median_seconds": {
+          "current": 0.023133458045776933
+        }
+      },
+      "allocationcalls": {
+        "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "samples_seconds": {
+          "current": [
+            0.02503045799676329,
+            0.025108084024395794,
+            0.025755791983101517,
+            0.025613415986299515,
+            0.025047582981642336,
+            0.02517191699007526,
+            0.025939541053958237,
+            0.02604487497592345,
+            0.02561762504046783,
+            0.02557562501169741,
+            0.02491587499389425
+          ]
+        },
+        "median_seconds": {
+          "current": 0.02557562501169741
+        }
+      }
+    },
+    "context_probe_samples_seconds": {
+      "0": [
+        0.029063,
+        0.028954,
+        0.029037,
+        0.028738,
+        0.029034,
+        0.028762,
+        0.029008,
+        0.028942,
+        0.028994,
+        0.028859,
+        0.02878
+      ],
+      "1": [
+        0.028783,
+        0.028725,
+        0.028695,
+        0.028616,
+        0.02868,
+        0.028602,
+        0.028594,
+        0.028571,
+        0.02861,
+        0.028614,
+        0.028617
+      ],
+      "2": [
+        0.029347,
+        0.029676,
+        0.029375,
+        0.029705,
+        0.029492,
+        0.029843,
+        0.029642,
+        0.029702,
+        0.029814,
+        0.029688,
+        0.029627
+      ]
+    },
+    "context_probe_median_seconds": {
+      "0": 0.028954,
+      "1": 0.028616,
+      "2": 0.029676
+    }
+  },
+  "historical_performance_comparison": "not performed; matched baseline required",
+  "other_hosts": "native Linux amd64/arm64 and Windows UCRT64 CI execution pending; Darwin amd64 manual validation pending",
+  "source_path_is_symlink": true
+}

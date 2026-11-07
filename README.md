@@ -20,11 +20,12 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Windows: use an MSYS2 MinGW-w64 shell with GCC, make, and CMake installed.
+Windows: use an MSYS2 UCRT64 shell with MinGW-w64 GCC, make, and CMake installed.
 
 The compiler produces programs for the build host/toolchain; cross-compilation
 is not currently exposed as a supported driver option. To install, run
 `cmake --install build --prefix <prefix>`, then put `<prefix>/bin` on `PATH`.
+[Host validation](docs/host-validation.md) records tested layouts and pending native runs.
 
 ## Use example
 
@@ -76,6 +77,7 @@ The repository consists of the following components:
 - `qbe/`: bundled QBE backend, translating its IR to native assembly.
 - `runtime/`: C runtime plus predefined Ada packages (in `runtime/ada/`).
 - `common/`: shared C-compatible utilities and data.
+- `support/`: shared C++ utilities for the compiler tools.
 - `tests/`: compiler and runtime regressions ([Ada fixture guide](tests/ada/README.md)).
 
 The compilation path is Ada source -> AIDA frontend -> QBE IR -> QBE assembly -> system assembler/linker, with the AIDA runtime linked into the executable.

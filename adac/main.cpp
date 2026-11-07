@@ -7,6 +7,7 @@
 #include "UnitManifest.h"
 
 #include "Digest.h"
+#include "../support/HostPaths.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -171,16 +172,8 @@ void addSeparatedPaths(UnitLoader& loader, const char* text)
     if (text == nullptr) {
         return;
     }
-    std::string list = text;
-    std::size_t start = 0;
-    while (start <= list.size()) {
-        std::size_t separator = list.find(':', start);
-        std::size_t end = separator == std::string::npos ? list.size() : separator;
-        loader.addSearchPath(list.substr(start, end - start));
-        if (separator == std::string::npos) {
-            break;
-        }
-        start = separator + 1;
+    for (const std::string& path : HostPaths::splitList(text)) {
+        loader.addSearchPath(path);
     }
 }
 
@@ -188,15 +181,6 @@ bool directoryExists(const std::string& path)
 {
     struct stat information;
     return !path.empty() && stat(path.c_str(), &information) == 0 && S_ISDIR(information.st_mode);
-}
-
-std::string directoryOf(const std::string& path)
-{
-    std::size_t slash = path.find_last_of("/\\");
-    if (slash == std::string::npos) {
-        return std::string();
-    }
-    return path.substr(0, slash);
 }
 
 // A name invoked without a slash was found on PATH, and that is the only clue
@@ -207,19 +191,17 @@ std::string alongPath(const std::string& name)
     if (path == nullptr) {
         return std::string();
     }
-    std::string list = path;
-    std::size_t start = 0;
-    while (start <= list.size()) {
-        std::size_t separator = list.find(':', start);
-        std::size_t end = separator == std::string::npos ? list.size() : separator;
-        std::string candidate = list.substr(start, end - start) + "/" + name;
+    for (const std::string& directory : HostPaths::splitList(path)) {
+        std::string candidate = (directory.empty() ? "." : directory) + "/" + name;
         if (access(candidate.c_str(), X_OK) == 0) {
             return candidate;
         }
-        if (separator == std::string::npos) {
-            break;
+#ifdef _WIN32
+        candidate += ".exe";
+        if (access(candidate.c_str(), X_OK) == 0) {
+            return candidate;
         }
-        start = separator + 1;
+#endif
     }
     return std::string();
 }
@@ -250,7 +232,7 @@ std::string libraryBesideExecutable(const std::string& executablePath)
     std::string found = executablePath.find_first_of("/\\") == std::string::npos
         ? alongPath(executablePath)
         : executablePath;
-    std::string directory = directoryOf(resolvedPath(found));
+    std::string directory = HostPaths::directoryOf(resolvedPath(found));
     if (directory.empty()) {
         return std::string();
     }

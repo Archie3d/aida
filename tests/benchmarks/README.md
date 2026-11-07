@@ -218,3 +218,25 @@ For the optimized-runtime pair, set `ADA_RUNTIME` to the absolute path of
 wall-clock durations from a monotonic timer. Timing is not a CTest threshold;
 `runtime.checkedarithmetic_modes` separately tests results and exceptions and
 rejects generated integer-helper references.
+
+## Repeatable host/target collection
+
+[Phase 8 host validation](../../docs/host-validation.md) adds a portable collector
+for contextcalls, imagecalls, blockcalls (200,000 scopes) and allocationcalls
+(100,000 allocations with explicit deallocation). Every program checks its
+checksum. Timings include process startup and never become CTest thresholds.
+
+```sh
+cmake --build build --target context_access_benchmark
+python3 -B tests/host/measure.py --ada build/ada/ada --build build \
+    --context-probe build/tests/context_access_benchmark \
+    --work build/host-evidence --runs 11
+```
+
+The JSON records host identity, individual samples, medians and hashes of the
+workloads, driver, frontend, QBE, runtime and entry probe. Add `--baseline-ada`
+and `--baseline-build` for a real alternating before/after comparison using
+matching compiler/runtime builds on the same host/toolchain. The collector
+rejects failed workloads; an identical-driver control is labeled as a harness
+check. Current-only collection and entry models do not prove Phase 2's broad
+no-slowdown goal. Native comparisons on other hosts remain open.

@@ -1,4 +1,5 @@
 #include "Toolchain.h"
+#include "../support/HostPaths.h"
 
 #include <climits>
 #include <cstdlib>
@@ -69,38 +70,6 @@ bool directoryExists(const std::string& path)
     return !path.empty() && stat(path.c_str(), &information) == 0 && S_ISDIR(information.st_mode);
 }
 
-std::string directoryOf(const std::string& path)
-{
-    std::size_t slash = path.find_last_of('/');
-    if (slash == std::string::npos) {
-        return std::string();
-    }
-    return path.substr(0, slash);
-}
-
-// The run time paths arrive as one colon separated list, in the same shape as
-// the search paths the shell uses.
-std::vector<std::string> splitList(const std::string& text)
-{
-    std::vector<std::string> parts;
-    std::string current;
-
-    for (char c : text) {
-        if (c == ':') {
-            if (!current.empty()) {
-                parts.push_back(current);
-            }
-            current.clear();
-            continue;
-        }
-        current.push_back(c);
-    }
-    if (!current.empty()) {
-        parts.push_back(current);
-    }
-    return parts;
-}
-
 // A name invoked without a slash was found on PATH, and that is the only clue
 // to where the compiler was installed.
 std::string alongPath(const std::string& name)
@@ -109,11 +78,17 @@ std::string alongPath(const std::string& name)
     if (path == nullptr) {
         return std::string();
     }
-    for (const std::string& directory : splitList(path)) {
-        std::string candidate = directory + "/" + name;
+    for (const std::string& directory : HostPaths::splitList(path)) {
+        std::string candidate = (directory.empty() ? "." : directory) + "/" + name;
         if (access(candidate.c_str(), X_OK) == 0) {
             return candidate;
         }
+#ifdef _WIN32
+        candidate += ".exe";
+        if (access(candidate.c_str(), X_OK) == 0) {
+            return candidate;
+        }
+#endif
     }
     return std::string();
 }
@@ -122,7 +97,7 @@ std::string alongPath(const std::string& name)
 // link on PATH pointing into an install leads back to the install.
 std::string homeOf(const std::string& executablePath)
 {
-    std::string found = executablePath.find('/') == std::string::npos ? alongPath(executablePath) : executablePath;
+    std::string found = executablePath.find_first_of("/\\") == std::string::npos ? alongPath(executablePath) : executablePath;
     if (found.empty()) {
         return std::string();
     }
@@ -139,7 +114,7 @@ std::string homeOf(const std::string& executablePath)
         found = resolved;
     }
 #endif
-    return directoryOf(found);
+    return HostPaths::directoryOf(found);
 }
 
 void overrideFrom(const char* environmentName, std::string& value)
@@ -234,7 +209,10 @@ void Toolchain::applyEnvironment()
     std::string runtime;
     overrideFrom("ADA_RUNTIME", runtime);
     if (!runtime.empty()) {
-        m_runtime = splitList(runtime);
+        m_runtime.clear();
+        for (const std::string& part : HostPaths::splitList(runtime)) {
+            if (!part.empty()) { m_runtime.push_back(part); }
+        }
     }
 }
 
