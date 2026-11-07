@@ -267,4 +267,7 @@ trials improve blocks/allocation by about 27% against the preceding compiler;
 scalar/image times are unchanged. Full [before/after and historical samples](../../docs/host-performance-master-activities.json)
 are retained. Blocks still create an arena-backed aggregate temporary and copy
 it to a fixed local; allocation still uses the shared storage registry. Both
-remain slower than pre-Phase-2, and native CI confirmation of this repair is open.
+remain slower than pre-Phase-2. [Native CI confirmation](../../docs/host-performance-master-activities-ci.json)
+now passes all suites, verifies the 16-byte master layout and captures every
+revision field. Residual regressions remain on all active CI hosts; separate
+runner executions do not provide an isolated before/after speedup for the repair.

@@ -213,8 +213,32 @@ checks expired access levels and reparented unactivated tasks deterministically.
 Validation also corrected the lifecycle fixture to use a real runtime collection,
 passed sanitizer link flags to the master-hook fixture, and made TSan adapter
 checksums resolve relative to the source directory during CMake regeneration.
-Native Linux/MSYS2 confirmation of the new layout and performance remains open;
-the existing workflow will collect those results on the next run.
+The subsequent native CI run confirms the new layout and records the following
+pairs against pre-Phase-2. Both Ubuntu suites pass 1,938/1,938 checks; MSYS2
+passes 1,937/1,937, with no failures, disabled tests or skips. Task lifecycle,
+shared collections, accessibility, ABI and relocated-install checks pass on all
+three. Every ABI report records `master_bytes: 16`.
+
+| Host | Scalar calls, current / historical | Images | Blocks | Allocation |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.680 | 0.827 | 5.817 | 5.308 |
+| Ubuntu arm64 | 0.920 | 0.915 | 5.723 | 5.939 |
+| MSYS2 UCRT64 amd64 | 0.746 | 1.056 | 3.575 | 2.652 |
+
+[Full native confirmation samples and ABI reports](host-performance-master-activities-ci.json)
+retain all 21 trials per pair, hashes and toolchain flags. Every report now
+captures current revision `a0d1fdaf0c9e7524e85f2ab5213164ab6383723a`, including
+Windows; the previous missing revision remains unchanged in its historical
+report. Baseline revisions, workload hashes and within-host compiler/Release
+flags match. Windows workload hashes reflect its CRLF source checkout.
+
+Block/allocation ratios are lower than the earlier CI observations, consistent
+with the local repair measurements. The CI runs use separate runner instances,
+so they do not establish an exact isolated before/after speedup for this change;
+the local same-host pair supplies that evidence. All hosts still show residual
+slowdowns against pre-Phase-2, and Windows images remain about 6% slower in this
+short workload. Native confirmation is complete; aggregate temporary allocation
+and shared storage registry overhead remain open investigation targets.
 
 ## Reproduce
 

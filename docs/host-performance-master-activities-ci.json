@@ -1,0 +1,1188 @@
+{
+  "schema": 1,
+  "description": "Native CI confirmation of master activity repair; unmodified timing reports and full samples. Comparisons with earlier CI runs are separate runner executions, not controlled same-machine before/after pairs.",
+  "runs": [
+    {
+      "artifact": "host-ubuntu-24",
+      "timings_sha256": "be3e127a009a3469f314c7654b68325188a9b30c6329b850446800be05e0ead6",
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "timings": {
+        "schema": 2,
+        "recorded_at": "2026-11-07T21:23:36.856335+00:00",
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "build_configuration": {
+          "current": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "/usr/bin/c++",
+              "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "/usr/bin/cc",
+              "version": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          },
+          "baseline": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "/usr/bin/c++",
+              "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "/usr/bin/cc",
+              "version": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          }
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "7ae0cf027c9c79963734663dc35e12504dc6c2ae4decb317ae7e094221641aae",
+            "runtime/libadart.a": "056402f5abd6654c08a9f21a634381f7cc9e030c6e19455d4a38ca1ca764a3c3",
+            "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
+          },
+          "baseline": {
+            "adac/adac": "02d92f25dcbe900493b5f2012324bc23a4261c4ac3ad657241b7e73bfb0bccbe",
+            "runtime/libadart.a": "40e7eb26a3cfd952aba0de924067839203896e36ff9b856a0e76351671fa5e45",
+            "qbe/qbe": "2f86de4df41dcdd24e114c94dff700f5515990c7ee1071ffa57abdbfda8992ce"
+          }
+        },
+        "context_probe_sha256": "87c8240e19e28d4f25595c7b9bd43adea536a5ece8d357f7d44eede8a1500b4f",
+        "host": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "driver_sha256": {
+          "current": "2d740a38836624739c6eed6d10f3ad72a98bd6fc6d9e2d4411d03c9b6657f88d",
+          "baseline": "af96efc5fd225546cdeb05004c4ae54c4e424ed918257217d502cbf17cf225ab"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "workloads": {
+          "contextcalls": {
+            "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+            "samples_seconds": {
+              "current": [
+                0.016048680000039894,
+                0.01594696099994053,
+                0.01592957800005479,
+                0.015955816999962735,
+                0.016604354000037347,
+                0.016115735000084896,
+                0.01587683000002471,
+                0.015979150000021036,
+                0.01833256200006872,
+                0.015828009000074417,
+                0.015922164000016892,
+                0.015801759999931164,
+                0.015842426000062915,
+                0.015926772999932837,
+                0.015801037999949585,
+                0.01591824699994504,
+                0.01585571099997196,
+                0.015779978999944433,
+                0.015779558999952314,
+                0.015832286999966527,
+                0.015792052000051626
+              ],
+              "baseline": [
+                0.023558471999990616,
+                0.02369580799995674,
+                0.0237912159999496,
+                0.023407891000033487,
+                0.02352260399993611,
+                0.023456781999925624,
+                0.023343161000070722,
+                0.023352047999992465,
+                0.023609235999970224,
+                0.023589029000049777,
+                0.023289901999987705,
+                0.023400675999937448,
+                0.02334276999999929,
+                0.023414312999989306,
+                0.02328165699998408,
+                0.02330603199993675,
+                0.023457753999991837,
+                0.023333032999971692,
+                0.02330780500005858,
+                0.023258724000015718,
+                0.02327718799995182
+              ]
+            },
+            "median_seconds": {
+              "current": 0.01591824699994504,
+              "baseline": 0.023400675999937448
+            },
+            "current_over_baseline": 0.680247314222358
+          },
+          "imagecalls": {
+            "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+            "samples_seconds": {
+              "current": [
+                0.025300184000002446,
+                0.025262464000093132,
+                0.025318849999962367,
+                0.025636179999992237,
+                0.025255612000023575,
+                0.025231146000010085,
+                0.025491269999974975,
+                0.02534467800001039,
+                0.025333235999937642,
+                0.025405942000020332,
+                0.025589432999936434,
+                0.025407265000012558,
+                0.025597097999934704,
+                0.025612576000071385,
+                0.025745983999968303,
+                0.025466032999929666,
+                0.02552239900001041,
+                0.02547364800000196,
+                0.025217381000061323,
+                0.02540534000002026,
+                0.025196271000027082
+              ],
+              "baseline": [
+                0.030823180000083994,
+                0.03059203699990576,
+                0.03079971400006798,
+                0.031447009000089565,
+                0.030770640000014282,
+                0.0307207370000242,
+                0.030516226000031565,
+                0.030632772999979352,
+                0.030614740000032725,
+                0.03071544699992046,
+                0.032740778000061255,
+                0.030501209000021845,
+                0.030668109000089316,
+                0.030886806000012257,
+                0.03059406099998796,
+                0.030448750999994445,
+                0.03070195199995851,
+                0.030671164999944267,
+                0.03071811200004504,
+                0.030791107999903033,
+                0.03286042100000941
+              ]
+            },
+            "median_seconds": {
+              "current": 0.025405942000020332,
+              "baseline": 0.03071544699992046
+            },
+            "current_over_baseline": 0.8271389311080553
+          },
+          "blockcalls": {
+            "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+            "samples_seconds": {
+              "current": [
+                0.014056651000032616,
+                0.014093469000044934,
+                0.014167958000030012,
+                0.014071519000026456,
+                0.013976451999951678,
+                0.014126249999890206,
+                0.01415213899997525,
+                0.014059044999953585,
+                0.014012229000059051,
+                0.014102857000011682,
+                0.014023428999962562,
+                0.014056921000019429,
+                0.014099740999995447,
+                0.014009874000066702,
+                0.014135899000052632,
+                0.013982021999936478,
+                0.013946575999966626,
+                0.014029571000037322,
+                0.01397905700002866,
+                0.014051772000016172,
+                0.014178629000070941
+              ],
+              "baseline": [
+                0.0024319980000200303,
+                0.0024250349999874743,
+                0.0023960009999655085,
+                0.0024056390000168903,
+                0.00244705599993722,
+                0.0023889080000571994,
+                0.0024293129999932717,
+                0.0024044269999876633,
+                0.0024343119999912233,
+                0.002393355999970481,
+                0.0024203060000900223,
+                0.002411179000091579,
+                0.0024310060000516387,
+                0.002415157000086765,
+                0.002414074999933291,
+                0.0024056990000644873,
+                0.002421979000018837,
+                0.002388346000088859,
+                0.002416540000012901,
+                0.0024325489999910133,
+                0.002480538999975579
+              ]
+            },
+            "median_seconds": {
+              "current": 0.014056921000019429,
+              "baseline": 0.002416540000012901
+            },
+            "current_over_baseline": 5.816961854529362
+          },
+          "allocationcalls": {
+            "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+            "samples_seconds": {
+              "current": [
+                0.02086701100006394,
+                0.02068179599996256,
+                0.02057273399998394,
+                0.02047908899999129,
+                0.020537547000003542,
+                0.02055799599997954,
+                0.02093712200007758,
+                0.020809273000054418,
+                0.02060314000004837,
+                0.020897598000033213,
+                0.02054839799995989,
+                0.020554819999915708,
+                0.02060628499998529,
+                0.0204948879999165,
+                0.020591256999978214,
+                0.02054500100007317,
+                0.02081729799999721,
+                0.020628946999977416,
+                0.02100734199996168,
+                0.0206880870000532,
+                0.020609561000014764
+              ],
+              "baseline": [
+                0.003949543999965499,
+                0.003932362000000467,
+                0.0038530339999169883,
+                0.0038915549999956056,
+                0.0038770180000256005,
+                0.0038753459999725237,
+                0.003913986999918961,
+                0.003876918000059959,
+                0.003886495999950057,
+                0.00386975500009612,
+                0.0038838510000687165,
+                0.0038881390000824467,
+                0.0038779799999701936,
+                0.0038835409999364856,
+                0.003862681999976303,
+                0.0038645759999553775,
+                0.003882387999965431,
+                0.003882008000005044,
+                0.0038933280000037485,
+                0.003871958999980052,
+                0.0039059330000554837
+              ]
+            },
+            "median_seconds": {
+              "current": 0.02060628499998529,
+              "baseline": 0.003882387999965431
+            },
+            "current_over_baseline": 5.307631540219259
+          }
+        },
+        "context_probe_samples_seconds": {
+          "0": [
+            0.049978,
+            0.050068,
+            0.050007,
+            0.049916,
+            0.049926,
+            0.050026,
+            0.050034,
+            0.05002,
+            0.050353,
+            0.049943,
+            0.050067,
+            0.049982,
+            0.050029,
+            0.049899,
+            0.049949,
+            0.049985,
+            0.049984,
+            0.049902,
+            0.049917,
+            0.049926,
+            0.049912
+          ],
+          "1": [
+            0.050028,
+            0.050207,
+            0.049927,
+            0.049979,
+            0.049964,
+            0.049889,
+            0.050058,
+            0.050044,
+            0.050007,
+            0.049938,
+            0.04997,
+            0.049938,
+            0.050067,
+            0.049934,
+            0.049944,
+            0.050091,
+            0.050006,
+            0.049976,
+            0.049948,
+            0.04989,
+            0.049906
+          ],
+          "2": [
+            0.049912,
+            0.049915,
+            0.04989,
+            0.049911,
+            0.049883,
+            0.049846,
+            0.049917,
+            0.049897,
+            0.05006,
+            0.049959,
+            0.049914,
+            0.049916,
+            0.049998,
+            0.049962,
+            0.049907,
+            0.049961,
+            0.049962,
+            0.049871,
+            0.049973,
+            0.049937,
+            0.049939
+          ]
+        },
+        "context_probe_median_seconds": {
+          "0": 0.049982,
+          "1": 0.04997,
+          "2": 0.049916
+        }
+      }
+    },
+    {
+      "artifact": "host-ubuntu-24-arm",
+      "timings_sha256": "3e42248ac49e61d3319ae87cae2f6e01de25c3281925c4f7651fc496cb9e38ff",
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "timings": {
+        "schema": 2,
+        "recorded_at": "2026-11-07T21:21:37.549734+00:00",
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "build_configuration": {
+          "current": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "/usr/bin/c++",
+              "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "/usr/bin/cc",
+              "version": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          },
+          "baseline": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "/usr/bin/c++",
+              "version": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "/usr/bin/cc",
+              "version": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          }
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "8a0a3cc212fe5e625514272ec501d8172e244a8b0d4f5cd54ee51492625b33a8",
+            "runtime/libadart.a": "336bc2563be703ec7d185c7d929301a3969c4aa59573c1d54ac2d45a1dc823ec",
+            "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
+          },
+          "baseline": {
+            "adac/adac": "8fb9c2ae7c7cb663b1903b604271b59df1e9accd32403c91f83a8eb59193312e",
+            "runtime/libadart.a": "e4d401545a367b7db0f58f7efea701d6521d83d143032dcb9cc0417234de95cc",
+            "qbe/qbe": "d92821d07f351b3d88d912e5ba1e8875c489254c1c8f303aab83018d1eb70da0"
+          }
+        },
+        "context_probe_sha256": "ec0a7987be31a23c3cef65bf2b2f351b1913c98c5f9f1f558fb56bf98fc2ae39",
+        "host": {
+          "system": "Linux",
+          "machine": "aarch64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "driver_sha256": {
+          "current": "f298d771bd10c4c9e219e20b11e4fb87012e890fe9ad32c355c7c48b12985ac6",
+          "baseline": "6823fd2aa10e3d5726c32408061f8136caaa6febd0a171538d7c21b6e2621330"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "workloads": {
+          "contextcalls": {
+            "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+            "samples_seconds": {
+              "current": [
+                0.014518350999992435,
+                0.014385939000021608,
+                0.014348979000033069,
+                0.014330689999951574,
+                0.01427339999997912,
+                0.014290937000055237,
+                0.014313496999989184,
+                0.014200813999991624,
+                0.014294384999971044,
+                0.01427816900002199,
+                0.01425696700005119,
+                0.014238735000049019,
+                0.014325234000011733,
+                0.0142331509999849,
+                0.014350586000091425,
+                0.0142107340000166,
+                0.014158605000034186,
+                0.01415778099999443,
+                0.014266904000010072,
+                0.01433279399998355,
+                0.014244727999994211
+              ],
+              "baseline": [
+                0.015598429999954533,
+                0.015549044999943362,
+                0.01566866400003164,
+                0.01576767500000642,
+                0.015676609000024655,
+                0.01545760200008317,
+                0.015456905999940318,
+                0.01549913100006961,
+                0.015534411999965414,
+                0.015510763000065708,
+                0.015504162999945947,
+                0.0155801660000634,
+                0.015518764000034935,
+                0.015480186999980106,
+                0.01563380799996139,
+                0.015451794000000518,
+                0.015509722999922815,
+                0.015510595999899124,
+                0.015655376000040633,
+                0.01549057099998663,
+                0.015666064000015467
+              ]
+            },
+            "median_seconds": {
+              "current": 0.01427816900002199,
+              "baseline": 0.015518764000034935
+            },
+            "current_over_baseline": 0.9200583886699899
+          },
+          "imagecalls": {
+            "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+            "samples_seconds": {
+              "current": [
+                0.02848083100002441,
+                0.028436054000053446,
+                0.028455022000002828,
+                0.028428620999989107,
+                0.028568352999968738,
+                0.028352218999998513,
+                0.028264609000075325,
+                0.02839505999997982,
+                0.02837539500001185,
+                0.028446646000020337,
+                0.028272456999957285,
+                0.028395092000096156,
+                0.028432326000029207,
+                0.02840177199993832,
+                0.02842398100005994,
+                0.028355698999916967,
+                0.028341683000007833,
+                0.028321097999992162,
+                0.028351035000014235,
+                0.028332058000046345,
+                0.028383420000068327
+              ],
+              "baseline": [
+                0.031048015999999734,
+                0.03113817000007657,
+                0.031000669999912134,
+                0.031074168000031932,
+                0.0314024580000023,
+                0.03128791100004946,
+                0.031070040999907178,
+                0.03099079800006166,
+                0.031186348000005637,
+                0.030972405999932562,
+                0.031079809000061687,
+                0.030908443999919655,
+                0.031048247999933665,
+                0.030964381999979196,
+                0.030838882000011836,
+                0.030981863000079102,
+                0.03101379099996393,
+                0.030955629000004592,
+                0.031026472000007743,
+                0.030975150000017493,
+                0.03159872800006269
+              ]
+            },
+            "median_seconds": {
+              "current": 0.02839505999997982,
+              "baseline": 0.031026472000007743
+            },
+            "current_over_baseline": 0.9151881657693062
+          },
+          "blockcalls": {
+            "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+            "samples_seconds": {
+              "current": [
+                0.01259847999995145,
+                0.012549822999972093,
+                0.01255736699999943,
+                0.012449891999949614,
+                0.012512198000081298,
+                0.012472501000047487,
+                0.012543318999973962,
+                0.012505876999966858,
+                0.012611312999979418,
+                0.012506005999966874,
+                0.012518421999970997,
+                0.012467556000046898,
+                0.012544430000048123,
+                0.012510837999911928,
+                0.012577223999983289,
+                0.012475620999907733,
+                0.012548166999977184,
+                0.012493917999904625,
+                0.012516109999978653,
+                0.012534662000007302,
+                0.012590231999979551
+              ],
+              "baseline": [
+                0.0022390480000922253,
+                0.0021379099999876416,
+                0.0022434879999764235,
+                0.002159782000035193,
+                0.0022175670000024184,
+                0.00214583699994364,
+                0.0021789580000586284,
+                0.0021576860000322995,
+                0.0022494330000881746,
+                0.002154149000034522,
+                0.0021631740000884747,
+                0.002121693000049163,
+                0.0021437579999883383,
+                0.002132581000068967,
+                0.002251808000096389,
+                0.0022023030001037114,
+                0.0022246479999239455,
+                0.002187405999961811,
+                0.0022420239999974,
+                0.0022058790000301087,
+                0.002302706000023136
+              ]
+            },
+            "median_seconds": {
+              "current": 0.012518421999970997,
+              "baseline": 0.002187405999961811
+            },
+            "current_over_baseline": 5.7229531235580176
+          },
+          "allocationcalls": {
+            "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+            "samples_seconds": {
+              "current": [
+                0.021529056000076707,
+                0.021512286999950447,
+                0.021516583999982686,
+                0.02145483799995418,
+                0.021623995000027207,
+                0.021417876999976215,
+                0.021588177000012365,
+                0.021466461999921194,
+                0.02152392699997563,
+                0.021507974999963153,
+                0.021884433999957764,
+                0.02143845299997338,
+                0.021399595999923804,
+                0.02147078200005126,
+                0.021462054000039643,
+                0.021445020999976805,
+                0.021484319000023788,
+                0.021448318000011568,
+                0.021493469999995796,
+                0.021408308999980363,
+                0.021457614000041758
+              ],
+              "baseline": [
+                0.0036890899999661997,
+                0.003563998000004176,
+                0.0035665100000414895,
+                0.0035507410000263917,
+                0.003661176000036903,
+                0.0035455170000204816,
+                0.0036273839999694246,
+                0.0035506699999814373,
+                0.0036427200000161974,
+                0.0036617289999867353,
+                0.0038238450000562807,
+                0.00395387399998981,
+                0.0035505900000316615,
+                0.003653609000025426,
+                0.0035463090000575903,
+                0.0035153889999719468,
+                0.003626911999958793,
+                0.003614990999949441,
+                0.0036355040000444205,
+                0.003557724999950551,
+                0.0036149029999705817
+              ]
+            },
+            "median_seconds": {
+              "current": 0.02147078200005126,
+              "baseline": 0.003614990999949441
+            },
+            "current_over_baseline": 5.939373569768652
+          }
+        },
+        "context_probe_samples_seconds": {
+          "0": [
+            0.029594,
+            0.029909,
+            0.029608,
+            0.029592,
+            0.02986,
+            0.029573,
+            0.029618,
+            0.029815,
+            0.029735,
+            0.03005,
+            0.029905,
+            0.029523,
+            0.029642,
+            0.029988,
+            0.029472,
+            0.029359,
+            0.029599,
+            0.030181,
+            0.029625,
+            0.029704,
+            0.029977
+          ],
+          "1": [
+            0.034755,
+            0.034694,
+            0.034731,
+            0.035315,
+            0.033866,
+            0.03357,
+            0.033542,
+            0.034713,
+            0.034783,
+            0.034787,
+            0.033515,
+            0.035362,
+            0.034748,
+            0.034729,
+            0.033473,
+            0.035344,
+            0.035307,
+            0.034733,
+            0.035303,
+            0.034729,
+            0.033719
+          ],
+          "2": [
+            0.029556,
+            0.029584,
+            0.029531,
+            0.029538,
+            0.029541,
+            0.029539,
+            0.02955,
+            0.029548,
+            0.029554,
+            0.029563,
+            0.029565,
+            0.029541,
+            0.029529,
+            0.029602,
+            0.029547,
+            0.029523,
+            0.029561,
+            0.029555,
+            0.029622,
+            0.029539,
+            0.029526
+          ]
+        },
+        "context_probe_median_seconds": {
+          "0": 0.029642,
+          "1": 0.034731,
+          "2": 0.029548
+        }
+      }
+    },
+    {
+      "artifact": "host-windows-ucrt64",
+      "timings_sha256": "90588cc75b801a569454d7a5700c30c715a4a10103b9f9d2f06cff08c80449ef",
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 32,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "timings": {
+        "schema": 2,
+        "recorded_at": "2026-11-07T21:31:28.314233+00:00",
+        "revisions": {
+          "current": "a0d1fdaf0c9e7524e85f2ab5213164ab6383723a",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "build_configuration": {
+          "current": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "D:/a/_temp/msys64/ucrt64/bin/c++.exe",
+              "version": "c++.exe (Rev6, Built by MSYS2 project) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "D:/a/_temp/msys64/ucrt64/bin/cc.exe",
+              "version": "cc.exe (Rev6, Built by MSYS2 project) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          },
+          "baseline": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "CMAKE_CXX_COMPILER": {
+              "path": "D:/a/_temp/msys64/ucrt64/bin/c++.exe",
+              "version": "c++.exe (Rev6, Built by MSYS2 project) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_CXX_FLAGS": "",
+            "CMAKE_CXX_FLAGS_DEBUG": "-g",
+            "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+            "CMAKE_C_COMPILER": {
+              "path": "D:/a/_temp/msys64/ucrt64/bin/cc.exe",
+              "version": "cc.exe (Rev6, Built by MSYS2 project) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "CMAKE_C_FLAGS": "",
+            "CMAKE_C_FLAGS_DEBUG": "-g",
+            "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+            "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+            "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+          }
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac.exe": "3cc9bcc84591bea764f627365417c660bf15cc05c29e0f16a4445aae2ab1e199",
+            "runtime/libadart.a": "322d11187c0bfbee577e1adcd4aa9a3359fd6a129f583fae1e8cd42e87fce595",
+            "qbe/qbe.exe": "0bbe3f8a0dc74ca52ab9041807f60cdbd130208ddb01990e6e81139fae85ec32"
+          },
+          "baseline": {
+            "adac/adac.exe": "ed57db8c5ec61714cfa9a4b7a6e4ea77c2a25528785d803c2c6b521d4d4d1557",
+            "runtime/libadart.a": "21ae890cf35b620325cce7a220abc2ba31af73a1cf49a72566a2d94a49816433",
+            "qbe/qbe.exe": "45a20e946aa2bbc50186284c09da803b3d76f0c882b06deb7c0485511bf11ba6"
+          }
+        },
+        "context_probe_sha256": "48ef19388dc76cc3acf54c7254ea5ccddd1517570c4090d2e7cf9f8ca08cb1d4",
+        "host": {
+          "system": "Windows",
+          "machine": "AMD64",
+          "release": "2025Server",
+          "python": "3.14.10"
+        },
+        "driver_sha256": {
+          "current": "79b4cb0f28fd9ce99e660ab81662187bbb10352477664dc47ab44c8da26f7f4b",
+          "baseline": "4b95fa9546e4b5c0b07753863bd646ee775d61ea8121f7f29b9582f7c1c2fcc4"
+        },
+        "comparison": "paired",
+        "runs": 21,
+        "workloads": {
+          "contextcalls": {
+            "source_sha256": "6aa6ee4deaf99f6f9880c5ea6d2ba0ba3a9fccc53fb2c43868c305ed3792f8d4",
+            "samples_seconds": {
+              "current": [
+                0.017074800000045798,
+                0.01764780000007704,
+                0.017361099999789076,
+                0.018083299999943847,
+                0.017260000000078435,
+                0.017203299999891897,
+                0.017063000000007378,
+                0.01828469999986737,
+                0.01723220000008041,
+                0.0176845000000867,
+                0.017314799999894603,
+                0.016944899999998597,
+                0.016902200000004086,
+                0.017309800000020914,
+                0.016900900000109687,
+                0.01741659999993317,
+                0.016959100000121907,
+                0.017937599999868326,
+                0.017025800000055824,
+                0.01711739999996098,
+                0.016887599999790837
+              ],
+              "baseline": [
+                0.02288559999988138,
+                0.02309149999996407,
+                0.023105099999838785,
+                0.03055469999981142,
+                0.023244799999929455,
+                0.022926200000028985,
+                0.024374200000011115,
+                0.02487040000005436,
+                0.023121899999978268,
+                0.023426499999914085,
+                0.02308879999986857,
+                0.02302929999996195,
+                0.022845500000130414,
+                0.022897300000067844,
+                0.02296559999990677,
+                0.023221700000021883,
+                0.023461199999928795,
+                0.023564399999941088,
+                0.022904400000015812,
+                0.022889300000088042,
+                0.022869399999990492
+              ]
+            },
+            "median_seconds": {
+              "current": 0.01723220000008041,
+              "baseline": 0.02309149999996407
+            },
+            "current_over_baseline": 0.7462572808222603
+          },
+          "imagecalls": {
+            "source_sha256": "5abd3655416b6dde0a8e6ea0a0aadb91981b14a2a2d905bcd687c20606c32ebd",
+            "samples_seconds": {
+              "current": [
+                0.0361728000000312,
+                0.03621090000001459,
+                0.0373515999999654,
+                0.036549499999864565,
+                0.03647149999983412,
+                0.03676040000004832,
+                0.03727570000000924,
+                0.03659410000000207,
+                0.03644839999992655,
+                0.03611100000011902,
+                0.03640380000001642,
+                0.03650170000014441,
+                0.036507499999970605,
+                0.03639569999995729,
+                0.03640599999994265,
+                0.03653290000011111,
+                0.03656320000004598,
+                0.03630469999984598,
+                0.03857309999989411,
+                0.03634480000005169,
+                0.03650059999995392
+              ],
+              "baseline": [
+                0.035486900000023525,
+                0.03411439999990762,
+                0.03677000000016051,
+                0.038118400000030306,
+                0.034401199999820165,
+                0.03452459999994062,
+                0.034455799999932424,
+                0.034023999999817534,
+                0.03426119999994626,
+                0.034402700000100594,
+                0.03764849999993203,
+                0.035031000000117274,
+                0.03469249999989188,
+                0.03436259999989488,
+                0.03455039999994369,
+                0.03448849999995218,
+                0.034913500000129716,
+                0.03537049999999908,
+                0.03473089999988588,
+                0.03469380000001365,
+                0.03438740000001417
+              ]
+            },
+            "median_seconds": {
+              "current": 0.03650059999995392,
+              "baseline": 0.03455039999994369
+            },
+            "current_over_baseline": 1.0564450773366851
+          },
+          "blockcalls": {
+            "source_sha256": "66de5621c49365dfd48df9b3322bb6a48f94826bdc209a5c2d189d391f35930d",
+            "samples_seconds": {
+              "current": [
+                0.023724099999981263,
+                0.023592199999939112,
+                0.024162100000012288,
+                0.023926999999957843,
+                0.02432150000004185,
+                0.02387940000016897,
+                0.024171199999955206,
+                0.023771200000055615,
+                0.024475999999822307,
+                0.024591799999825525,
+                0.02495490000001155,
+                0.024230799999941155,
+                0.024241900000106398,
+                0.024016799999799332,
+                0.02428989999998521,
+                0.024041899999929228,
+                0.02455480000003263,
+                0.024170200000071418,
+                0.02458939999996801,
+                0.02376049999998031,
+                0.024681699999973716
+              ],
+              "baseline": [
+                0.006818500000008498,
+                0.006348000000116372,
+                0.006761100000176157,
+                0.006247199999961595,
+                0.006861000000071726,
+                0.0065038000000186,
+                0.0067609000000175,
+                0.006051099999922371,
+                0.007238499999857595,
+                0.006843699999990349,
+                0.006893300000001545,
+                0.0062048999998296495,
+                0.006870200000093973,
+                0.00638529999991988,
+                0.006744300000036674,
+                0.006551799999897412,
+                0.0068655000000035216,
+                0.006371899999976449,
+                0.0068840999999792984,
+                0.006193700000039826,
+                0.0070290000001023145
+              ]
+            },
+            "median_seconds": {
+              "current": 0.024171199999955206,
+              "baseline": 0.0067609000000175
+            },
+            "current_over_baseline": 3.5751453208733515
+          },
+          "allocationcalls": {
+            "source_sha256": "dcf42bebbc84333ec39baebbf1f7b13d45f154deb88dfefe88ce3bf0569c848c",
+            "samples_seconds": {
+              "current": [
+                0.025542900000118607,
+                0.025992800000040006,
+                0.025871999999935724,
+                0.02544339999985823,
+                0.025571200000058525,
+                0.025786899999957313,
+                0.025620599999911065,
+                0.025544499999796244,
+                0.026080999999976484,
+                0.025567700000010518,
+                0.025649899999962145,
+                0.02528159999997115,
+                0.02583320000007916,
+                0.02589510000007067,
+                0.0348917999999685,
+                0.025533199999927092,
+                0.0258661000000302,
+                0.02538009999989299,
+                0.02583949999984725,
+                0.02593580000007023,
+                0.026548800000000483
+              ],
+              "baseline": [
+                0.00957460000017818,
+                0.009067100000038408,
+                0.00972249999995256,
+                0.009313799999972616,
+                0.010265599999911501,
+                0.009329299999990326,
+                0.009864199999810808,
+                0.009931700000151977,
+                0.009855700000116485,
+                0.009332399999948393,
+                0.009725699999989956,
+                0.009345199999870601,
+                0.009846100000004299,
+                0.009547200000042722,
+                0.010264100000085818,
+                0.009462199999916265,
+                0.009964399999944362,
+                0.009555499999805761,
+                0.010214800000085233,
+                0.009894399999893722,
+                0.009584900000163543
+              ]
+            },
+            "median_seconds": {
+              "current": 0.025786899999957313,
+              "baseline": 0.00972249999995256
+            },
+            "current_over_baseline": 2.6522910774063395
+          }
+        },
+        "context_probe_samples_seconds": {
+          "0": [
+            0.035544,
+            0.03555,
+            0.03561,
+            0.035569,
+            0.035558,
+            0.035636,
+            0.035591,
+            0.035703,
+            0.035628,
+            0.035656,
+            0.03555,
+            0.035566,
+            0.03556,
+            0.035563,
+            0.035551,
+            0.035608,
+            0.035619,
+            0.035567,
+            0.035766,
+            0.035553,
+            0.035582
+          ],
+          "1": [
+            0.024741,
+            0.024615,
+            0.024715,
+            0.024656,
+            0.024618,
+            0.024706,
+            0.024641,
+            0.024675,
+            0.024633,
+            0.024634,
+            0.024666,
+            0.024625,
+            0.024636,
+            0.024621,
+            0.024643,
+            0.024668,
+            0.024619,
+            0.024636,
+            0.024859,
+            0.024685,
+            0.024638
+          ],
+          "2": [
+            0.024604,
+            0.024599,
+            0.02674,
+            0.02467,
+            0.024603,
+            0.024693,
+            0.024701,
+            0.024646,
+            0.024688,
+            0.024623,
+            0.02464,
+            0.024621,
+            0.024665,
+            0.024629,
+            0.024785,
+            0.024619,
+            0.024611,
+            0.024608,
+            0.024641,
+            0.024708,
+            0.024655
+          ]
+        },
+        "context_probe_median_seconds": {
+          "0": 0.035569,
+          "1": 0.024641,
+          "2": 0.024641
+        }
+      }
+    }
+  ]
+}

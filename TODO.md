@@ -1395,17 +1395,23 @@ Ada 2005 additions and track annex packages separately.
     All 1,938 distinct Release checks pass after reviewing/rerunning the master
     allocation golden updates; 11 ASan/UBSan and five TSan checks pass.
     [Repair, full samples and limits](docs/host-validation.md#empty-master-cleanup-repair).
-  - [ ] Confirm the new master layout and optimization on native CI. Investigate
-    remaining block aggregate temporary allocation/copying and shared storage
-    registry costs. Locally, blocks/allocation remain 3.475x/2.795x slower than
+  - [x] Confirm the new master layout and optimization on native CI: Ubuntu
+    amd64/arm64 pass 1,938/1,938 each; MSYS2 passes 1,937/1,937, with no failures,
+    disabled tests or skips. All report the 16-byte master layout and correct
+    current revision, including Windows. Paired block ratios are now
+    5.817x/5.723x/3.575x historical; allocation 5.308x/5.939x/2.652x.
+    [Full native samples](docs/host-performance-master-activities-ci.json).
+  - [ ] Investigate remaining block aggregate temporary allocation/copying and
+    shared storage registry costs. Locally, blocks/allocation remain 3.475x/2.795x slower than
     pre-Phase-2; this repair does not close the no-slowdown goal. Phase 2's small
     differences still need longer workloads before attribution.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is
     8.044x/8.091x/3.901x slower. Full suites and relocated installs pass.
-    Preserve all samples and hashes; Windows omitted its current revision,
-    so retain that provenance limit and fix revision capture for future runs.
+    Preserve all samples and hashes; the initial Windows report omitted its
+    current revision. Retain that historical limit; the latest run confirms
+    corrected revision capture.
     The regressions above keep the no-slowdown goal open.
     [Cross-host evidence](docs/host-performance-ci.json).
   [Contract, commands and evidence](docs/host-validation.md).

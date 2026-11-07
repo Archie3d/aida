@@ -38,7 +38,7 @@
     },
     "address_undefined_distinct_checks_passed": 11,
     "thread_sanitizer_distinct_checks_passed": 5,
-    "native_ci_confirmation": "pending for the new master layout and optimization"
+    "native_ci_confirmation": "Confirmed on Ubuntu amd64/arm64 and MSYS2 UCRT64 at a0d1fdaf0c9e7524e85f2ab5213164ab6383723a; all suites pass and report master_bytes=16. Full evidence: host-performance-master-activities-ci.json"
   },
   "comparisons": {
     "master-activities-vs-previous": {
