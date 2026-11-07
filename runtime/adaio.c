@@ -13,6 +13,8 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #ifdef _WIN32
 #include <conio.h>
 #include <windows.h>
@@ -20,7 +22,6 @@
 #else
 #include <poll.h>
 #include <termios.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #endif
 #include <limits.h>
@@ -48,6 +49,7 @@ static _Thread_local AdaFile* activeFile;
 static AdaFile wideStandard[2][3];
 static AdaFile* wideCurrent[2][3];
 static void prepare(void);
+static int streamWriteFits(AdaFile* file, int64_t length);
 
 void __ada_io_lock(void)
 {
@@ -506,10 +508,66 @@ static const char* modeString(int mode, int create)
     }
 }
 
+static int64_t streamTell(FILE* stream)
+{
+#ifdef _WIN32
+    return _ftelli64(stream);
+#else
+    return ftello(stream);
+#endif
+}
+
+static int streamSeek(FILE* stream, int64_t offset, int origin)
+{
+#ifdef _WIN32
+    return _fseeki64(stream, offset, origin);
+#else
+    return fseeko(stream, (off_t)offset, origin);
+#endif
+}
+
+/* Stream append is an initial position, not O_APPEND. Open must not truncate.
+   Prefer update access so Set_Mode can retain the same external file even
+   after a rename. Pipes/devices retain their requested one-way access. */
+static FILE* openStreamFile(AdaFile* file, int mode, int create)
+{
+    struct stat status;
+    int exists = stat(file->name, &status) == 0;
+    int regular = exists && S_ISREG(status.st_mode);
+    int access = regular || (create && !exists) ? O_RDWR : mode == ADA_MODE_IN ? O_RDONLY : O_WRONLY;
+    int flags = create ? O_CREAT | O_TRUNC : 0;
+#ifdef _WIN32
+    flags |= O_BINARY;
+    int descriptor = _open(file->name, flags | access, _S_IREAD | _S_IWRITE);
+#else
+    int descriptor = open(file->name, flags | access, 0666);
+#endif
+    if (descriptor < 0 && access == O_RDWR) {
+        access = mode == ADA_MODE_IN ? O_RDONLY : O_WRONLY;
+#ifdef _WIN32
+        descriptor = _open(file->name, flags | access, _S_IREAD | _S_IWRITE);
+#else
+        descriptor = open(file->name, flags | access, 0666);
+#endif
+    }
+    if (descriptor < 0) { return NULL; }
+    const char* stdioMode = access == O_RDWR ? "r+b" : access == O_RDONLY ? "rb" : "wb";
+#ifdef _WIN32
+    FILE* result = _fdopen(descriptor, stdioMode);
+    if (result == NULL) { _close(descriptor); }
+#else
+    FILE* result = fdopen(descriptor, stdioMode);
+    if (result == NULL) { close(descriptor); }
+#endif
+    file->canRead = access != O_WRONLY;
+    file->canWrite = access != O_RDONLY;
+    return result;
+}
+
 /* Create truncates or makes the file, Open insists that it is already there.
    An empty name asks for a scratch file that lives only as long as it is
    open, which is what Ada does for an anonymous file. */
-static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, int length, int create)
+static void openFile(AdaFileRef handle, int mode, const char* name, int length, int create, int streamIo)
 {
     AdaFile* file;
 
@@ -543,6 +601,8 @@ static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, i
     file->mode = mode;
     file->owner = handle;
     file->text = 0;
+    file->streamIo = streamIo;
+    file->canRead = file->canWrite = 1;
     file->textWidth = 1;
     resetInput(file);
     file->column = file->line = file->page = 1;
@@ -550,8 +610,14 @@ static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, i
     file->lineLength = file->pageLength = 0;
     file->isStandard = 0;
 
+    int openError = 0;
     if (length == 0) {
         file->stream = iotmpfile();
+    } else if (streamIo) {
+        __ada_io_unlock();
+        file->stream = openStreamFile(file, mode, create);
+        openError = errno;
+        __ada_io_lock();
     } else {
         file->stream = iofopen(file->name, modeString(mode, create));
     }
@@ -559,13 +625,32 @@ static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, i
         /* Opening something that is not there is Name_Error; failing to make
            it is the environment refusing the request. */
         *handle = NULL;
-        __ada_raise(create ? ADA_USE_ERROR : ADA_NAME_ERROR);
+        int inaccessible = streamIo && openError != ENOENT && openError != ENOTDIR && openError != ENAMETOOLONG;
+        __ada_raise(create || inaccessible ? ADA_USE_ERROR : ADA_NAME_ERROR);
         return;
     }
 
     setvbuf(file->stream, NULL, _IONBF, 0);
+    if (streamIo && mode == ADA_MODE_APPEND) {
+        // Nonpositionable external streams have no current index to set.
+        __ada_io_unlock();
+        int failed = streamTell(file->stream) >= 0 && streamSeek(file->stream, 0, SEEK_END) != 0;
+        __ada_io_lock();
+        if (failed) {
+            iofclose(file->stream);
+            file->stream = NULL;
+            *handle = NULL;
+            __ada_raise(ADA_USE_ERROR);
+            return;
+        }
+    }
     file->isOpen = 1;
     *handle = file;
+}
+
+static void __ada_file_openImpl(AdaFileRef handle, int mode, const char* name, int length, int create)
+{
+    openFile(handle, mode, name, length, create, 0);
 }
 
 static void __ada_file_closeImpl(AdaFileRef handle)
@@ -1523,6 +1608,7 @@ static void __ada_stream_writeImpl(AdaFile* stream, const void* item, int64_t si
         return;
     }
     if (size < 0 || (uint64_t)size > SIZE_MAX) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    if (!streamWriteFits(stream, size)) { return; }
     if (fwrite(item, 1, (size_t)size, stream->stream) != (size_t)size) {
         __ada_raise(ADA_DEVICE_ERROR);
     }
@@ -1567,74 +1653,167 @@ static void __ada_stream_read_arrayImpl(void* descriptor, AdaFile* stream, int64
     *result = (AdaArrayResult) { buffer, size == 0 ? 1 : size, first, last, __ada_array_length(first, last), elementSize };
 }
 
-/* Read and Write over a Stream_Element_Array work in bytes, since a stream
-   element is one byte wide. */
+/* All helpers below run under the public operation's file mutex. */
+static int streamPosition(AdaFile* file, int index)
+{
+    if (index <= 0) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+    if (streamSeek(file->stream, (int64_t)index - 1, SEEK_SET) != 0) {
+        __ada_raise(ADA_USE_ERROR);
+        return 0;
+    }
+    resetInput(file);
+    clearerr(file->stream);
+    return 1;
+}
+
+static int streamWriteFits(AdaFile* file, int64_t length)
+{
+    if (length < 0) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+    if (file->streamIo) {
+        int64_t position = streamTell(file->stream);
+        if (position >= 0 && (position > INT_MAX || length > INT_MAX - position)) {
+            __ada_raise(ADA_CONSTRAINT_ERROR);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* Read returns a short Last at EOF, including First - 1 for an empty result.
+   Unlike a scalar Read attribute, an element-array Read does not raise End_Error. */
 static void __ada_stream_elements_readImpl(AdaFileRef handle, void* item, int length, int first, int* last)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
-    size_t got;
-
-    if (file == 0) {
-        *last = 0;
-        return;
-    }
-    got = inputBytes(file, item, (size_t)length);
-    *last = (int)((long long)first + (long long)got - 1);
-    if (inputError(file)) {
-        __ada_raise(ADA_DEVICE_ERROR);
-    }
+    if (file == NULL) { return; }
+    if (length < 0) { __ada_raise(ADA_CONSTRAINT_ERROR); return; }
+    size_t got = length == 0 ? 0 : inputBytes(file, item, (size_t)length);
+    int64_t final = (int64_t)first + (int64_t)got - 1;
+    if (inputError(file)) { __ada_raise(ADA_DEVICE_ERROR); return; }
+    if (final < INT_MIN || final > INT_MAX) { __ada_raise(ADA_CONSTRAINT_ERROR); return; }
+    *last = (int)final;
 }
 
 static void __ada_stream_elements_writeImpl(AdaFileRef handle, const void* item, int length)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
-
-    if (file == 0) {
-        return;
-    }
-    if (fwrite(item, 1, (size_t)length, file->stream) != (size_t)length) {
+    if (file == NULL || !streamWriteFits(file, length)) { return; }
+    if (length != 0 && fwrite(item, 1, (size_t)length, file->stream) != (size_t)length) {
         __ada_raise(ADA_DEVICE_ERROR);
+    }
+}
+
+static void __ada_stream_elements_read_atImpl(AdaFileRef handle, void* item, int length, int first, int* last, int from)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_IN);
+    if (file != NULL && streamPosition(file, from)) {
+        __ada_stream_elements_readImpl(handle, item, length, first, last);
+    }
+}
+
+static void __ada_stream_elements_write_atImpl(AdaFileRef handle, const void* item, int length, int to)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_OUT);
+    if (file != NULL && streamPosition(file, to)) {
+        __ada_stream_elements_writeImpl(handle, item, length);
     }
 }
 
 static void __ada_stream_set_indexImpl(AdaFileRef handle, int index)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
-
-    if (file != 0 && fseek(file->stream, (long)index - 1, SEEK_SET) != 0) {
-        __ada_raise(ADA_USE_ERROR);
-    }
+    if (file != NULL) { streamPosition(file, index); }
 }
 
 static int __ada_stream_indexImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
-    long position;
-
-    if (file == 0) {
-        return 1;
-    }
-    position = ftell(file->stream);
-    return position < 0 ? 1 : (int)position + 1;
+    if (file == NULL) { return 1; }
+    int64_t position = streamTell(file->stream);
+    if (position < 0) { __ada_raise(ADA_USE_ERROR); return 1; }
+    if (position >= INT_MAX) { __ada_raise(ADA_CONSTRAINT_ERROR); return 1; }
+    return (int)position + 1;
 }
 
 static int __ada_stream_sizeImpl(AdaFileRef handle)
 {
     AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
-    long here;
-    long end;
-
-    if (file == 0) {
-        return 0;
-    }
-    here = ftell(file->stream);
-    if (here < 0 || fseek(file->stream, 0, SEEK_END) != 0) {
+    if (file == NULL) { return 0; }
+    int64_t here = streamTell(file->stream);
+    if (here < 0 || streamSeek(file->stream, 0, SEEK_END) != 0) {
         __ada_raise(ADA_USE_ERROR);
         return 0;
     }
-    end = ftell(file->stream);
-    fseek(file->stream, here, SEEK_SET);
-    return end < 0 ? 0 : (int)end;
+    int64_t end = streamTell(file->stream);
+    // Seeking discards stdio EOF and pushback. Restoring the logical position
+    // preserves the next byte, even after End_Of_File has looked ahead.
+    int restored = streamSeek(file->stream, here, SEEK_SET) == 0;
+    if (!restored || end < 0) { __ada_raise(ADA_USE_ERROR); return 0; }
+    if (end > INT_MAX) { __ada_raise(ADA_CONSTRAINT_ERROR); return 0; }
+    return (int)end;
+}
+
+static void streamChangeMode(AdaFile* file, int mode, int reset)
+{
+    if (mode < ADA_MODE_IN || mode > ADA_MODE_APPEND) {
+        __ada_raise(ADA_CONSTRAINT_ERROR);
+        return;
+    }
+    if ((mode == ADA_MODE_IN && !file->canRead) || (mode != ADA_MODE_IN && !file->canWrite)) {
+        __ada_raise(ADA_USE_ERROR);
+        return;
+    }
+    if (file->mode != ADA_MODE_IN && fflush(file->stream) != 0) {
+        __ada_raise(ADA_DEVICE_ERROR);
+        return;
+    }
+    int64_t here = streamTell(file->stream);
+    if (here >= 0) {
+        int origin = mode == ADA_MODE_APPEND ? SEEK_END : SEEK_SET;
+        int64_t offset = mode == ADA_MODE_APPEND || reset ? 0 : here;
+        if (streamSeek(file->stream, offset, origin) != 0) { __ada_raise(ADA_USE_ERROR); return; }
+    } else if (reset) {
+        __ada_raise(ADA_USE_ERROR);
+        return;
+    }
+    // Commit only after all host operations succeed. Neither the AdaFile nor
+    // its FILE is replaced, so borrowed handles and tagged stream views survive.
+    file->mode = mode;
+    resetInput(file);
+    clearerr(file->stream);
+}
+
+static void __ada_stream_set_modeImpl(AdaFileRef handle, int mode)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
+    if (file != NULL) { streamChangeMode(file, mode, 0); }
+}
+
+static void __ada_stream_resetImpl(AdaFileRef handle, int mode)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
+    if (file != NULL) { streamChangeMode(file, mode, 1); }
+}
+
+static void __ada_stream_reset_sameImpl(AdaFileRef handle)
+{
+    AdaFile* file = __ada_file_checked(handle, ADA_MODE_ANY);
+    if (file != NULL) { streamChangeMode(file, file->mode, 1); }
+}
+
+static void __ada_stream_createImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
+{
+    (void)form;
+    if (formLength != 0) { __ada_raise(ADA_USE_ERROR); return; }
+    if (mode < ADA_MODE_IN || mode > ADA_MODE_APPEND) { __ada_raise(ADA_CONSTRAINT_ERROR); return; }
+    openFile(handle, mode, name, length, 1, 1);
+}
+
+static void __ada_stream_openImpl(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength)
+{
+    (void)form;
+    if (formLength != 0) { __ada_raise(ADA_USE_ERROR); return; }
+    if (mode < ADA_MODE_IN || mode > ADA_MODE_APPEND) { __ada_raise(ADA_CONSTRAINT_ERROR); return; }
+    openFile(handle, mode, name, length, 0, 1);
 }
 
 static void __ada_text_set_line_lengthImpl(AdaFileRef handle, int to)

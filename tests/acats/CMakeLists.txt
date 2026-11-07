@@ -1,6 +1,6 @@
 # Explicit selection and expectations: never silently discover new cases.
 function(add_acats_test name)
-    cmake_parse_arguments(ACATS "" "REJECTION;TEST_NAME" "SOURCES" ${ARGN})
+    cmake_parse_arguments(ACATS "" "REJECTION;TEST_NAME;STDOUT" "SOURCES" ${ARGN})
     string(REPLACE ";" "|" sources "${ACATS_SOURCES}")
     add_test(NAME acats.${name}
         COMMAND ${CMAKE_COMMAND}
@@ -11,6 +11,7 @@ function(add_acats_test name)
             -DREJECTION=${ACATS_REJECTION}
             -DSOURCE_LIST=${sources}
             -DEXPECTED_TEST_NAME=${ACATS_TEST_NAME}
+            -DEXPECTED_OUTPUT_FILE=${ACATS_STDOUT}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/RunAcats.cmake
     )
     set_tests_properties(acats.${name} PROPERTIES TIMEOUT 60 LABELS "acats")
@@ -26,6 +27,11 @@ add_acats_test(c3a0015 SOURCES c3a0015.a)
 add_acats_test(cxa5011 SOURCES cxa5011.a)
 add_acats_test(cxa5012 SOURCES cxa5012.a)
 add_acats_test(c390012 SOURCES c390012.a)
+add_acats_test(cxac002 SOURCES cxac002.a)
+add_acats_test(cxac005 SOURCES cxac005.a)
+add_acats_test(cxac006 SOURCES cxac006.a)
+add_acats_test(cxac008 SOURCES cxac008.a)
+add_acats_test(cxaa019 SOURCES cxaa019.a STDOUT stream_io/cxaa019.expected)
 add_acats_test(cd3014a)
 add_acats_test(cd3014d)
 add_acats_test(c354002)

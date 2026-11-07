@@ -155,7 +155,8 @@ Supported:
 - Expanded/wide exception names, occurrence results and streams ([contract](docs/exceptions-library.md))
 - Narrow and wide text I/O, nested numeric/enumeration generics and scoped file cleanup
   ([narrow](docs/text-io.md), [wide](docs/wide-text-io.md)); bounded/unbounded string adapters
-  and type-aware streams ([streaming](docs/streaming.md))
+  and type-aware streams ([streaming](docs/streaming.md)); positioned stream-file I/O
+  with mode changes and flush ([contract](docs/stream-io.md))
 - Limited/private context clauses and incomplete views ([limits](docs/context-views.md))
 - Separate compilation and incremental builds, including subprogram/package
   subunits ([limits](docs/subunits.md))

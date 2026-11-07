@@ -1119,3 +1119,17 @@ trace alternatives this case requires. Harness self-tests accept each alternativ
 check trace reset and reject an unmatched trace. Other TCTouch protocol gaps
 remain separate roadmap work. All 145 original backfill outcomes are unchanged.
 See the [implementation contract](../../docs/dispatching-constructors.md).
+
+### Stream_IO completion
+
+Unchanged CXAC002, CXAC005, CXAC006, CXAC008 and CXAA019 pass as regular C-tests.
+They cover general stream-file operations, positions, Set_Mode/Reset, preserving
+Out_File contents, and Flush with an `in` file parameter. The sources come from
+`tests/cxa/` at ACATS revision `2785c30c1f8577d97ac7b3043882f6818781e9c5`.
+The [manifest](stream_io/manifest.json) records original SHA-256/git blobs,
+Ada 2005 eligibility and support inputs; `baseline.stream_io_acats_sources`
+checks the bytes. CXAA019 intentionally writes two informational text lines;
+its exact output is pinned in `stream_io/cxaa019.expected`, including the full
+successful REPORT protocol. A harness negative control rejects incomplete
+expected-output files. No upstream source is edited or reduced.
+See the [stream-file contract](../../docs/stream-io.md).

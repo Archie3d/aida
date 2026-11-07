@@ -1,0 +1,4 @@
+TEST CXAA019
+   - CXAA019 About to flush Standard_Output
+   - CXAA019 About to flush a Text_IO file passed as 'in' parameter
+PASSED

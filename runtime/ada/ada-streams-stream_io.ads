@@ -21,13 +21,13 @@ package Ada.Streams.Stream_IO is
                       Mode : in File_Mode := Out_File;
                       Name : in String := "";
                       Form : in String := "");
-    pragma Import (C, Create, "__ada_binary_create");
+    pragma Import (C, Create, "__ada_stream_create");
 
     procedure Open (File : in out File_Type;
                     Mode : in File_Mode;
                     Name : in String;
                     Form : in String := "");
-    pragma Import (C, Open, "__ada_binary_open");
+    pragma Import (C, Open, "__ada_stream_open");
 
     procedure Close (File : in out File_Type);
     pragma Import (C, Close, "__ada_file_close");
@@ -36,10 +36,10 @@ package Ada.Streams.Stream_IO is
     pragma Import (C, Delete, "__ada_file_delete");
 
     procedure Reset (File : in out File_Type; Mode : in File_Mode);
-    pragma Import (C, Reset, "__ada_file_reset");
+    pragma Import (C, Reset, "__ada_stream_reset");
 
     procedure Reset (File : in out File_Type);
-    pragma Import (C, Reset, "__ada_file_reset_same");
+    pragma Import (C, Reset, "__ada_stream_reset_same");
 
     function Is_Open (File : in File_Type) return Boolean;
     pragma Import (C, Is_Open, "__ada_file_is_open");
@@ -63,8 +63,23 @@ package Ada.Streams.Stream_IO is
                     Item : out Stream_Element_Array;
                     Last : out Stream_Element_Offset);
 
+    procedure Read (File : in File_Type;
+                    Item : out Stream_Element_Array;
+                    Last : out Stream_Element_Offset;
+                    From : in Positive_Count);
+
     procedure Write (File : in File_Type; Item : in Stream_Element_Array);
     pragma Import (C, Write, "__ada_stream_elements_write");
+
+    procedure Write (File : in File_Type; Item : in Stream_Element_Array;
+                     To : in Positive_Count);
+    pragma Import (C, Write, "__ada_stream_elements_write_at");
+
+    procedure Set_Mode (File : in out File_Type; Mode : in File_Mode);
+    pragma Import (C, Set_Mode, "__ada_stream_set_mode");
+
+    procedure Flush (File : in File_Type);
+    pragma Import (C, Flush, "__ada_text_flush");
 
     procedure Set_Index (File : in File_Type; To : in Positive_Count);
     pragma Import (C, Set_Index, "__ada_stream_set_index");

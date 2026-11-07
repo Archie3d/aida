@@ -1,15 +1,21 @@
 # Exercise grading failures with real compiler/program invocations. In
 # particular, an exit code of zero alone must not imply a conformance pass.
-foreach(scenario failed missing_result wrong_rejection changed_rejection unexpected_pass)
+foreach(scenario failed missing_result wrong_rejection changed_rejection unexpected_pass bad_output_expectation)
     set(root "${WORKDIR}/${scenario}")
     file(MAKE_DIRECTORY "${root}/upstream")
     file(COPY "${ROOT}/support" DESTINATION "${root}")
     set(rejection "")
+    set(expected_file "")
     set(expected "ACATS c53007a failed")
     if(scenario STREQUAL "failed")
         set(body "Failed (\"deliberate failure\"); Result;")
     elseif(scenario STREQUAL "missing_result")
         set(body "null;")
+    elseif(scenario STREQUAL "bad_output_expectation")
+        set(body "null;")
+        set(expected_file "incomplete.expected")
+        file(WRITE "${root}/${expected_file}" "TEST C53007A\n")
+        set(expected "Expected ACATS output must retain the successful REPORT protocol")
     elseif(scenario STREQUAL "unexpected_pass")
         set(body "Result;")
         set(rejection "goto target 'Finish' does not denote a label")
@@ -29,6 +35,7 @@ foreach(scenario failed missing_result wrong_rejection changed_rejection unexpec
     execute_process(
         COMMAND "${CMAKE_COMMAND}" "-DADA=${ADA}" -DNAME=c53007a
             "-DROOT=${root}" "-DWORKDIR=${root}/work"
+            "-DEXPECTED_OUTPUT_FILE=${expected_file}"
             "-DREJECTION=${rejection}" -P "${ROOT}/RunAcats.cmake"
         TIMEOUT 55
         RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors

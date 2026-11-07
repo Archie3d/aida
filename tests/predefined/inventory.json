@@ -746,51 +746,19 @@
       "status": "resolves"
     }
   ],
-  "partial_apis": [
-    {
-      "unit": "ada.streams.stream_io",
-      "rm": "A.12.1",
-      "missing": [
-        "Read with From",
-        "Write with To",
-        "Set_Mode",
-        "Flush"
-      ],
-      "note": "Existing sequential I/O, indexing and file stream views remain supported."
-    }
-  ],
+  "partial_apis": [],
   "separate_owners": {
     "annexes": "Specialized-needs annexes are selected subsets, not full annex claims.",
     "hosts": "Native Windows/MSYS2 and other target execution remain in the existing host-validation item."
   },
-  "api_gap_probes": [
-    {
-      "id": "stream_read_from",
-      "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Read (File, Data, Last, From => 1);\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:9:13: error: no visible subprogram matches this call\n"
-    },
-    {
-      "id": "stream_write_to",
-      "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Write (File, Data, To => 1);\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:9:14: error: no visible subprogram matches this call\n"
-    },
-    {
-      "id": "stream_set_mode",
-      "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Set_Mode (File, IO.In_File);\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:9:7: error: 'Set_Mode' is not declared in 'IO'\n"
-    },
-    {
-      "id": "stream_flush",
-      "source": "with Ada.Streams;\nwith Ada.Streams.Stream_IO;\nprocedure API_Probe is\n    package IO renames Ada.Streams.Stream_IO;\n    File : IO.File_Type;\n    Data : Ada.Streams.Stream_Element_Array (1 .. 1);\n    Last : Ada.Streams.Stream_Element_Offset;\nbegin\n    IO.Flush (File);\nend API_Probe;\n",
-      "diagnostic": "api_probe.adb:9:7: error: 'Flush' is not declared in 'IO'\n"
-    }
-  ],
+  "api_gap_probes": [],
   "implemented_api_controls": {
     "standard_and_system": "standardfacilities / standardfacilityerrors: J.5 and 13.7; whole/separate/deterministic and four workers",
     "storage_elements": "storageelements / storageelementerrors / runtime.storage_elements: 13.7.1; whole/separate/deterministic, foreign bytes and concurrent calls",
     "address_conversions": "addressconversions / addressconversionerrors / runtime.address_conversions; definite fixed-layout actuals, no conversion ownership or lifetime extension",
     "storage_io": "storageio / storageioerrors / storageioprofileerrors: native representation buffers, runtime-sized inline arrays/records, checked Read and controlled assignment; dependent-storage and runtime-resource parts diagnosed",
     "storage_pools": "storagepools / storagepoolerrors / runtime.storage_pools: native size/alignment, specified/shared/derived/default pools, callback exceptions, finalization/master lifetime and concurrent callers; unsupported arena-result paths diagnosed",
-    "random": "randomlibrary / randomlibraryerrors / runtime.random: complete profiles, inline finalized generators, all reset forms, versioned states, unbiased full-width discrete ranges, default/seed reproducibility and concurrent independent/synchronized generators"
+    "random": "randomlibrary / randomlibraryerrors / runtime.random: complete profiles, inline finalized generators, all reset forms, versioned states, unbiased full-width discrete ranges, default/seed reproducibility and concurrent independent/synchronized generators",
+    "stream_io": "streamoperations / streamoperationstasking / runtime.stream_operations: positioned reads/writes, mode/flush, nontruncating reset/open, stream views, EOF, bounds, errors and four shared-file workers"
   }
 }

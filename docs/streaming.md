@@ -14,8 +14,8 @@ stream adapter. The adapter is owned by the runtime file slot and holds its
 tag and file handle. Calls use the ordinary locked file operations. Closing
 a file invalidates its stream aliases (RM A.12.1); the adapter is not an
 independently owned file. File objects now close through scope/collection
-finalization ([file contract](text-io.md)); positioned Read/Write overloads,
-Flush and Set_Mode remain with the Phase 8 predefined-environment inventory.
+finalization ([file contract](text-io.md)); positioned Read/Write, Flush,
+Set_Mode and nontruncating reset/open follow the [stream-file contract](stream-io.md).
 
 ## Values and attributes
 

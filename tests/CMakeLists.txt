@@ -2573,5 +2573,34 @@ if(Python3_Interpreter_FOUND)
     set_tests_properties(baseline.dispatching_constructor_acats_sources PROPERTIES TIMEOUT 30 LABELS baseline)
 endif()
 
+
+foreach(stream_case streamoperations streamoperationstasking)
+    add_ada_test(${stream_case} SOURCES io/${stream_case}.adb)
+    add_determinism_test(${stream_case} SOURCE io/${stream_case}.adb)
+    add_test(NAME runtime.${stream_case}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada>
+            -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE}
+            -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart>
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/io/${stream_case}.adb
+            -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/io/${stream_case}.expected
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${stream_case}-modes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(ada.${stream_case} determinism.${stream_case}
+        runtime.${stream_case}_modes PROPERTIES TIMEOUT 120)
+endforeach()
+add_executable(stream_operations_test StreamOperationsTest.c)
+target_link_libraries(stream_operations_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.stream_operations COMMAND stream_operations_test)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME baseline.stream_io_acats_sources
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/acats/stream_io/check.py)
+    set_tests_properties(baseline.stream_io_acats_sources PROPERTIES TIMEOUT 30 LABELS baseline)
+endif()
+
 add_subdirectory(robustness)
 aida_finalize_tests()

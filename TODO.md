@@ -1277,12 +1277,22 @@ Ada 2005 additions and track annex packages separately.
     Ada 2005 C390012 PASS; Release 1,866/1,866, 26 focused ASan/UBSan and
     one native TSan check pass. All 145 original backfill outcomes unchanged.
     [Contract and evidence](docs/dispatching-constructors.md).
-  - [ ] **Complete Ada.Streams.Stream_IO operations (A.12.1).** Add positioned
+  - [x] **Complete Ada.Streams.Stream_IO operations (A.12.1).** Add positioned
     Read/Write overloads, Set_Mode and Flush. Preserve atomicity of positioning
     plus transfer under the file lock, Count/Positive_Count checks, EOF/Last,
     append/reset semantics, stream-view identity and borrowed/owned file lifetime.
     Check null/sliced buffers, nonpositionable files, mode/device errors and
     concurrent calls; retain explicit host limits.
+    Added positioned Read/Write, Set_Mode and Flush. Seek plus transfer holds
+    one file lock; mode/reset retain the descriptor, owner and stream view.
+    Open/Reset preserve contents, append selects an initial/current end position,
+    and checked counts/Last avoid truncation or integer wrapping. Whole/separate/
+    deterministic programs and four Ada/native workers cover null/sliced buffers,
+    EOF, errors, ownership, nonpositionable streams and sparse count boundaries.
+    Unchanged CXAC002/CXAC005/CXAC006/CXAC008/CXAA019 PASS; all four API-gap
+    guards replaced with executable controls. Release 1,879/1,879, 18 focused
+    ASan/UBSan and one native TSan check pass; all 145 original backfill outcomes
+    unchanged. [Contract](docs/stream-io.md).
   - [ ] **Text_Streams children (A.12.2–A.12.4).** Implement Text_IO.Text_Streams,
     Wide_Text_IO.Text_Streams and Wide_Wide_Text_IO.Text_Streams, including their
     Stream_Access types and Stream functions. Define raw stream/text interleaving

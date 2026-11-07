@@ -36,6 +36,8 @@ typedef struct AdaFile
     int mutexReady;
     struct AdaFile* self; /* Immutable handle snapshot, initialized before publication. */
     int text;
+    int streamIo;
+    int canRead, canWrite; /* Physical capabilities, independent of the Ada mode. */
     int textWidth; /* Native character width; wide external text is UTF-8. */
     unsigned char utf8Pending[4];
     int utf8Count;
@@ -148,6 +150,13 @@ void __ada_stream_read_array(void* descriptor, AdaFile* stream, int64_t elementS
 
 void __ada_stream_elements_read(AdaFileRef handle, void* item, int length, int first, int* last);
 void __ada_stream_elements_write(AdaFileRef handle, const void* item, int length);
+void __ada_stream_elements_read_at(AdaFileRef handle, void* item, int length, int first, int* last, int from);
+void __ada_stream_elements_write_at(AdaFileRef handle, const void* item, int length, int to);
+void __ada_stream_create(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
+void __ada_stream_open(AdaFileRef handle, int mode, const char* name, int length, const char* form, int formLength);
+void __ada_stream_set_mode(AdaFileRef handle, int mode);
+void __ada_stream_reset(AdaFileRef handle, int mode);
+void __ada_stream_reset_same(AdaFileRef handle);
 void __ada_stream_set_index(AdaFileRef handle, int index);
 int __ada_stream_index(AdaFileRef handle);
 int __ada_stream_size(AdaFileRef handle);

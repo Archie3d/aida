@@ -27,4 +27,18 @@ package body Ada.Streams.Stream_IO is
     begin
         Read_Elements (File, Item, Item'First, Last);
     end Read;
+
+    procedure Read (File : in File_Type;
+                    Item : out Stream_Element_Array;
+                    Last : out Stream_Element_Offset;
+                    From : in Positive_Count) is
+        procedure Read_Elements (File : in File_Type;
+                                 Item : out Stream_Element_Array;
+                                 First : in Stream_Element_Offset;
+                                 Last : out Stream_Element_Offset;
+                                 From : in Positive_Count);
+        pragma Import (C, Read_Elements, "__ada_stream_elements_read_at");
+    begin
+        Read_Elements (File, Item, Item'First, Last, From);
+    end Read;
 end Ada.Streams.Stream_IO;

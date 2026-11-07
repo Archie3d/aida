@@ -1,0 +1,72 @@
+{
+  "repository": "https://github.com/simonjwright/ACATS",
+  "revision": "2785c30c1f8577d97ac7b3043882f6818781e9c5",
+  "cases": [
+    {
+      "id": "cxac002",
+      "source": "upstream/cxac002.a",
+      "original_path": "tests/cxa/cxac002.a",
+      "sha256": "3f9fe11fd05f6a5910708a97e4e7ab1ff3cf39b1def18d31085a5217278d780a",
+      "git_blob": "e4b303c4bc9d4970b55ecff4004b74f0fab7e061",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxac005",
+      "source": "upstream/cxac005.a",
+      "original_path": "tests/cxa/cxac005.a",
+      "sha256": "37f025a3b5ee94aa4c4300a1135c5bf24675745083cfea85b39022248a866ff4",
+      "git_blob": "50323576ac6a45244f8c6015746eac6b5a7f5f40",
+      "language": "Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxac006",
+      "source": "upstream/cxac006.a",
+      "original_path": "tests/cxa/cxac006.a",
+      "sha256": "57dfe6e0b164802f3f4d4cfb4c3fdfc25bf1710dd8674aad9272c2765a13cbd8",
+      "git_blob": "9364676d259cf6caeea85cbc3839cab2b88f1b47",
+      "language": "Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxac008",
+      "source": "upstream/cxac008.a",
+      "original_path": "tests/cxa/cxac008.a",
+      "sha256": "f39d5f2cd7a6f87cdb7a62944e477e69ebeca9dc713c06a43b656f8bca9781d8",
+      "git_blob": "0d654a9d1455a5dc4672a1e6c723f7962bd650ae",
+      "language": "Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ]
+    },
+    {
+      "id": "cxaa019",
+      "source": "upstream/cxaa019.a",
+      "original_path": "tests/cxa/cxaa019.a",
+      "sha256": "ae2db99cb3491fda22debdd88d2ed477953f6a9fa487dababf9065fdc6c4ba8e",
+      "git_blob": "04c257e97b63fdcb59ebaaf99d47d057a03da926",
+      "language": "Ada 95; eligible for Ada 2005",
+      "outcome": "PASS",
+      "support": [
+        "support/report.ads",
+        "support/report.adb"
+      ],
+      "expected_stdout_file": "stream_io/cxaa019.expected"
+    }
+  ]
+}

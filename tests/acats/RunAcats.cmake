@@ -79,8 +79,17 @@ if(DEFINED EXPECTED_TEST_NAME AND NOT EXPECTED_TEST_NAME STREQUAL "")
     set(test_name "${EXPECTED_TEST_NAME}")
 endif()
 string(REPLACE "\r\n" "\n" output "${output}")
+set(expected_output "TEST ${test_name}\nPASSED\n")
+if(DEFINED EXPECTED_OUTPUT_FILE AND NOT EXPECTED_OUTPUT_FILE STREQUAL "")
+    file(READ "${ROOT}/${EXPECTED_OUTPUT_FILE}" expected_output)
+    if(NOT expected_output MATCHES "^TEST ${test_name}\n"
+            OR NOT expected_output MATCHES "\nPASSED\n$"
+            OR expected_output MATCHES "(^|\n)FAILED ")
+        message(FATAL_ERROR "Expected ACATS output must retain the successful REPORT protocol")
+    endif()
+endif()
 if(NOT status STREQUAL "0" OR NOT errors STREQUAL ""
-        OR NOT output STREQUAL "TEST ${test_name}\nPASSED\n")
+        OR NOT output STREQUAL expected_output)
     message(FATAL_ERROR "ACATS ${NAME} failed (${status}):\n${output}${errors}")
 endif()
 message(STATUS "PASS ${NAME}")
