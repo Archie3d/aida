@@ -240,3 +240,18 @@ matching compiler/runtime builds on the same host/toolchain. The collector
 rejects failed workloads; an identical-driver control is labeled as a harness
 check. Current-only collection and entry models do not prove Phase 2's broad
 no-slowdown goal. Native comparisons on other hosts remain open.
+
+The CI workflow now builds the pinned pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2` and collects 21 alternating trials.
+Use `--revision` and `--baseline-revision` to record the corresponding compiler
+revisions; build options and compiler versions are captured from each build.
+For manual reproduction, check out that revision with its QBE submodule into a
+separate directory, configure Release, build target `ada`, then pass its driver
+and build directory to the collector. Both compilers must use their own runtimes
+and predefined sources; compilation remains outside the timed interval.
+
+[Matched Darwin arm64 results](../../docs/host-validation.md#matched-historical-comparison)
+and [full samples](../../docs/host-performance-darwin-arm64.json) cover pre-Phase-2,
+end-of-Phase-2 and current builds. Current scalar/image workloads improve, but
+block/allocation regressions remain open; the large differences arise after
+Phase 2. This is workload-specific evidence, not a phase-wide no-slowdown result.

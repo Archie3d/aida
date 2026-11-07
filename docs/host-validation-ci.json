@@ -5,6 +5,219 @@
   "runs": [
     {
       "artifact": "host-ubuntu-24",
+      "junit_sha256": "54335e640b2aeeea1bfe3d39d2aaffb069fe6d52c790d6735fded06f5c77bc29",
+      "timestamp": "2026-11-07T19:41:16",
+      "tests": 1938,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1938,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib64",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "299676c06cf9c16055fd0e976817393e38d2cda5372a79371b146d2561092a7a",
+      "performance": {
+        "sha256": "db4f9d9679bd25a28b1ef462d099ed1dd9138e97c610798894c9f44f48655220",
+        "host": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "comparison": "current-only; no no-slowdown conclusion",
+        "runs": 11,
+        "median_seconds": {
+          "contextcalls": 0.01030408899998747,
+          "imagecalls": 0.013839808000000176,
+          "blockcalls": 0.011998333000008188,
+          "allocationcalls": 0.01732347799998024
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "8d8644db73cd72d53ebca5aab0282ac211e74ea448fcdc35155de09c5fef2846",
+            "runtime/libadart.a": "8731ae82364bb4e371b445c04f6d9b2bfbff7598cb0ca144f6bb55e1bd7a3ff2",
+            "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
+          }
+        }
+      },
+      "disabled": 0
+    },
+    {
+      "artifact": "host-ubuntu-24-arm",
+      "junit_sha256": "be3d5c96279eb9bb8b5e9fe0664236deb4aaafab258e19faa5d46bd3879b4c3a",
+      "timestamp": "2026-11-07T19:41:28",
+      "tests": 1938,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1938,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "92494bebd7a5ff7a65eb9a6c354c360818e92ec03ddc106dec9651685c5b2948",
+      "performance": {
+        "sha256": "84b40c9134cff98ff571b8920d275782df1d89017bf886a153e88af76376b10a",
+        "host": {
+          "system": "Linux",
+          "machine": "aarch64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3"
+        },
+        "comparison": "current-only; no no-slowdown conclusion",
+        "runs": 11,
+        "median_seconds": {
+          "contextcalls": 0.014284880999980487,
+          "imagecalls": 0.028830962000029103,
+          "blockcalls": 0.02012700800003131,
+          "allocationcalls": 0.0299154879999719
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "a5c4fde7d4ee8741d8560bfb82cdead21cb4bc27817fe181266ebdde7a11d394",
+            "runtime/libadart.a": "cf89586691e7a310a2ec753188fd609db19d201c83fc0e383155b3f91a6bdeb7",
+            "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
+          }
+        }
+      },
+      "disabled": 0
+    },
+    {
+      "artifact": "host-windows-ucrt64",
+      "junit_sha256": "e6e8def2ab5d739affecce6d4be0ef217b756400c8182c752277543ebf514219",
+      "timestamp": "2026-11-07T19:43:24",
+      "tests": 1937,
+      "failures": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1937,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 32,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48
+      },
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "nt",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides"
+        ]
+      },
+      "installation_sha256": "ac7abbac209b67134e3758b47fa1de08e5a288d1d3d255a9fcc8a5a97421788d",
+      "performance": {
+        "sha256": "328d0a5ad3f203debeb8bb175c74b85c93d3bce16ae70f48a33fe8c454d43c23",
+        "host": {
+          "system": "Windows",
+          "machine": "AMD64",
+          "release": "2025Server",
+          "python": "3.14.10"
+        },
+        "comparison": "current-only; no no-slowdown conclusion",
+        "runs": 11,
+        "median_seconds": {
+          "contextcalls": 0.01577909999991789,
+          "imagecalls": 0.035080100000186576,
+          "blockcalls": 0.03068329999996422,
+          "allocationcalls": 0.033700299999964045
+        },
+        "build_components_sha256": {
+          "current": {
+            "adac/adac.exe": "c4b3fbab32603b04fcd2e01a1f955b5908c2a5767fd09e5bedfb10139e50524b",
+            "runtime/libadart.a": "817c4a113d1fe34ef8d4f1efef5243cfd8c4d8e8afae75b3dd817234929e1aef",
+            "qbe/qbe.exe": "1102a6db200a9a0a7748060e307fdcaa691f726991277fe92c546bf986923d86"
+          }
+        }
+      },
+      "previously_failed_tests_confirmed_pass": [
+        "loading.sources",
+        "loading.completions",
+        "runtime.discreteranges_modes",
+        "runtime.accesssubtypes_modes",
+        "runtime.genericchildren_modes",
+        "loading.system_spec",
+        "host.install_relocation",
+        "acats.support_protocol"
+      ],
+      "disabled": 0
+    }
+  ],
+  "windows_fix_verification": "Confirmed by native MSYS2 UCRT64 rerun: all eight formerly failing tests and the new harness regression pass",
+  "historical_performance_comparisons": "Native Darwin arm64 pairs recorded in host-performance-darwin-arm64.json; Linux/MSYS2 paired CI pending; local block/allocation regressions remain open",
+  "local_repair_validation": {
+    "host": "Darwin arm64",
+    "release_tests": {
+      "total": 1938,
+      "passed": 1938
+    },
+    "asan_ubsan_focused_tests": {
+      "total": 9,
+      "passed": 9
+    },
+    "portable_harness_regressions": 7,
+    "whole_separate_registrations_checked": 309,
+    "native_windows_rerun": "confirmed; 1,937/1,937 native tests pass"
+  },
+  "previous_runs": [
+    {
+      "artifact": "host-ubuntu-24",
       "junit_sha256": "052727c0acb420565ece38d0f812d828a1050f2e9f9dd82372656dc19fa85439",
       "timestamp": "2026-11-07T19:10:03",
       "tests": 1937,
@@ -129,21 +342,5 @@
         "status": "Not collected: performance step followed failing CTest step"
       }
     }
-  ],
-  "windows_fix_verification": "Patches prepared and checked locally; native MSYS2 rerun required",
-  "historical_performance_comparisons": "Pending; supplied timings are current-only",
-  "local_repair_validation": {
-    "host": "Darwin arm64",
-    "release_tests": {
-      "total": 1938,
-      "passed": 1938
-    },
-    "asan_ubsan_focused_tests": {
-      "total": 9,
-      "passed": 9
-    },
-    "portable_harness_regressions": 7,
-    "whole_separate_registrations_checked": 309,
-    "native_windows_rerun": "pending"
-  }
+  ]
 }

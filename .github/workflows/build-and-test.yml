@@ -41,12 +41,22 @@ jobs:
         run: cmake --build 'build with spaces' --parallel 3
       - name: Run complete native suite
         run: ctest --test-dir 'build with spaces' --output-on-failure --parallel 3 --output-junit "$PWD/build with spaces/results.xml"
-      - name: Record native ABI and current performance samples
+      - name: Check out pre-Phase-2 performance baseline
+        uses: actions/checkout@v7
+        with:
+          ref: 3d2aac5980f57fb68524a15b154f65cf0882bdc2
+          submodules: recursive
+          path: performance-baseline
+      - name: Build matching baseline compiler and runtime
+        run: |
+          cmake -S ../performance-baseline -B ../performance-baseline-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=${{ matrix.libdir }}
+          cmake --build ../performance-baseline-build --target ada --parallel 3
+      - name: Record native ABI and paired performance samples
         run: |
           mkdir -p 'build with spaces/host evidence'
           'build with spaces/tests/host_abi_report' > 'build with spaces/host evidence/abi.json'
           cmake --build 'build with spaces' --target context_access_benchmark --parallel 3
-          python3 -B tests/host/measure.py --ada 'build with spaces/ada/ada' --build 'build with spaces' --context-probe 'build with spaces/tests/context_access_benchmark' --work 'build with spaces/host evidence' --runs 11
+          python3 -B tests/host/measure.py --ada 'build with spaces/ada/ada' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada --baseline-build ../performance-baseline-build --revision "$(git rev-parse HEAD)" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark' --work 'build with spaces/host evidence' --runs 21
       - name: Preserve validation evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -88,12 +98,22 @@ jobs:
         run: cmake --build 'build with spaces' --parallel 3
       - name: Run complete native suite including threading
         run: ctest --test-dir 'build with spaces' --output-on-failure --parallel 3 --output-junit "$PWD/build with spaces/results.xml"
-      - name: Record native LLP64 ABI and current performance samples
+      - name: Check out pre-Phase-2 performance baseline
+        uses: actions/checkout@v7
+        with:
+          ref: 3d2aac5980f57fb68524a15b154f65cf0882bdc2
+          submodules: recursive
+          path: performance-baseline
+      - name: Build matching baseline compiler and runtime
+        run: |
+          cmake -G 'MinGW Makefiles' -S ../performance-baseline -B ../performance-baseline-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+          cmake --build ../performance-baseline-build --target ada --parallel 3
+      - name: Record native LLP64 ABI and paired performance samples
         run: |
           mkdir -p 'build with spaces/host evidence'
           'build with spaces/tests/host_abi_report.exe' > 'build with spaces/host evidence/abi.json'
           cmake --build 'build with spaces' --target context_access_benchmark --parallel 3
-          python -B tests/host/measure.py --ada 'build with spaces/ada/ada.exe' --build 'build with spaces' --context-probe 'build with spaces/tests/context_access_benchmark.exe' --work 'build with spaces/host evidence' --runs 11
+          python -B tests/host/measure.py --ada 'build with spaces/ada/ada.exe' --build 'build with spaces' --baseline-ada ../performance-baseline-build/ada/ada.exe --baseline-build ../performance-baseline-build --revision "$(git rev-parse HEAD)" --baseline-revision 3d2aac5980f57fb68524a15b154f65cf0882bdc2 --context-probe 'build with spaces/tests/context_access_benchmark.exe' --work 'build with spaces/host evidence' --runs 21
       - name: Preserve validation evidence
         if: always()
         uses: actions/upload-artifact@v7

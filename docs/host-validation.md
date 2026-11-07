@@ -1,10 +1,12 @@
 # Host and target validation
 
-Phase 8 has successful native **Darwin arm64 and Linux amd64/arm64** evidence.
-The supplied MSYS2 run passed 1,928/1,936 tests, including threading and mixed
-ABI controls. Its eight failures have [targeted fixes](msys2-ci-fixes.md) awaiting
-a native rerun. The roadmap item remains open for that confirmation and matched
-historical performance comparisons. [Pinned CI results](host-validation-ci.json).
+Phase 8 has successful native **Darwin arm64, Linux amd64/arm64 and Windows
+amd64 (MSYS2 UCRT64)** evidence. The corrected CI runs pass 1,938/1,938 tests
+on each Ubuntu architecture and 1,937/1,937 on Windows, with no failures,
+disabled tests or skips. All eight [MSYS2 fixes](msys2-ci-fixes.md) are confirmed.
+The roadmap item remains open for cross-host historical performance comparisons
+and the local block/allocation regressions described below.
+[Pinned current and previous CI results](host-validation-ci.json).
 
 ## Native evidence
 
@@ -36,7 +38,8 @@ are rejected by the test before installation; the tested layouts use relative
 The shared path parser fixes Windows drive-letter splitting in PATH,
 ADA_INCLUDE_PATH and ADA_RUNTIME, preserves spaces, recognizes both directory
 separators and supports `.exe` discovery for bare PATH invocations. Lexical
-Windows controls run locally; native Windows process/path behavior is pending.
+Windows controls run locally; native MSYS2 source-alias, PATH and relocation
+checks also pass.
 
 ## Native matrix
 
@@ -51,17 +54,18 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 
 | Host | Prepared runner | Execution status |
 | --- | --- | --- |
-| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,937/1,937 PASS |
-| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,937/1,937 PASS |
+| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,938/1,938 PASS |
+| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,938/1,938 PASS |
 | Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
-| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | 1,928/1,936 PASS; threading/ABI pass; eight fixes await rerun |
+| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,937/1,937 PASS; all eight fixes confirmed |
 
 Runner labels follow GitHub's [native runner inventory](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Windows uses the documented [MSYS2 UCRT64 setup](https://github.com/msys2/setup-msys2).
 The workflow preserves JUnit, CTest diagnostics, relocation logs, ABI facts and
-current timing samples per runner. The user supplied completed native Linux/MSYS2 run artifacts; the corrected
-MSYS2 job has not yet run.
+current timing samples per runner. The user supplied successful native
+Linux/MSYS2 rerun artifacts. Linux has one more test overall: its POSIX host and
+terminal checks are replaced by the native Windows host-library check on MSYS2.
 Cross-assembly controls elsewhere in the suite are not native execution evidence.
 The driver continues to target its build host/toolchain; no cross-compilation
 option, 32-bit target or big-endian target is added.
@@ -89,9 +93,45 @@ Eleven local runs after build/test work finished gave these current-only medians
 These are current compiler/runtime measurements, not an actual pre-Phase-2
 comparison or proof of the no-slowdown goal. A three-run identical-driver paired
 control exercised the comparison harness and is explicitly labeled as such.
-CI likewise records current-only samples until a matching baseline toolchain
-is supplied. The existing [historical locking costs and performance limits](../tests/benchmarks/README.md)
+All three CI jobs now have successful current-only timing records, including
+Windows; matched cross-host comparisons are still required. The existing [historical locking costs and performance limits](../tests/benchmarks/README.md)
 remain applicable; they are not replaced with a no-regression claim.
+
+### Matched historical comparison
+
+Native Darwin arm64 measurements now compare the pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2`, the end-of-Phase-2 revision
+`ac72cd62f6fe75a03d1e97b61e61b3f516a85d30`, and current compiler revision
+`cf5f8706b4106695fb0561ca4f3af97cecb8f058`. Each compiler uses its own matching
+runtime and library sources. All builds use Release, the same Apple toolchain,
+and QBE revision `e786f06032fefa2e3790d6b1c9e31ed138f475a6`. Each pair validates
+both programs, warms them once and alternates execution order for 21 trials;
+builds finish before timing starts.
+
+| Workload | Pre-Phase-2 median (s), current pair | Current median (s) | Current / pre | End Phase 2 / pre, separate pair |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar calls | 0.018836 | 0.014231 | 0.756 | 0.894 |
+| Images | 0.030324 | 0.023696 | 0.781 | 0.867 |
+| Block scopes | 0.004661 | 0.022396 | 4.805 | 1.036 |
+| Allocation/deallocation | 0.006477 | 0.024913 | 3.847 | 1.049 |
+
+[Full samples, component hashes, revisions and build flags](host-performance-darwin-arm64.json)
+are retained in the repository, independently of downloaded CI artifacts.
+The large block/allocation regressions appear after Phase 2; this comparison
+does not isolate an individual later commit. Generated code brackets these
+scopes with master hooks. Unlike Phase 2's empty hooks, current master await/leave
+performs shared-table locking and lookup, including a second await inside leave;
+allocation also uses access-collection bookkeeping. These are investigation
+targets, not a measured attribution of all overhead. The small Phase-2-only
+differences need longer workloads before interpreting them as regressions.
+No broad no-slowdown claim is supported.
+
+The CI workflow now checks out the pinned pre-Phase-2 revision with its QBE
+submodule and builds its `ada` target separately in Release. The existing native
+suites still run against current code; timing collection then alternates current
+and historical binaries for 21 trials. The next Linux/MSYS2 artifacts will
+contain paired measurements, subject to successful historical builds and workload
+validation. macOS CI entries remain commented out.
 
 ## Reproduce
 

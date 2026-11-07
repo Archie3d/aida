@@ -3,6 +3,7 @@
 
 import argparse
 from collections import defaultdict
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -14,6 +15,23 @@ import time
 
 kSources = Path(__file__).resolve().parents[1] / 'benchmarks'
 kWorkloads = ['contextcalls', 'imagecalls', 'blockcalls', 'allocationcalls']
+
+
+def buildConfiguration(build):
+    cache = {}
+    for line in (build / 'CMakeCache.txt').read_text().splitlines():
+        if not line or line.startswith(('#', '//')) or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        name = key.split(':', 1)[0]
+        if name == 'CMAKE_BUILD_TYPE' or name.startswith(('CMAKE_C_FLAGS', 'CMAKE_CXX_FLAGS')):
+            if not name.endswith('-ADVANCED'):
+                cache[name] = value
+        elif name in ('CMAKE_C_COMPILER', 'CMAKE_CXX_COMPILER'):
+            version = subprocess.run([value, '--version'], capture_output=True,
+                                     text=True, check=True, timeout=30)
+            cache[name] = dict(path=value, version=version.stdout.strip())
+    return cache
 
 
 def command(args, work, environment):
@@ -33,6 +51,8 @@ def main():
     parser.add_argument('--context-probe', type=Path)
     parser.add_argument('--build', type=Path)
     parser.add_argument('--baseline-build', type=Path)
+    parser.add_argument('--revision', help='revision used to build the current compiler')
+    parser.add_argument('--baseline-revision', help='revision used to build the baseline compiler')
     parser.add_argument('--work', type=Path, required=True)
     parser.add_argument('--runs', type=int, default=11)
     args = parser.parse_args()
@@ -86,10 +106,12 @@ def main():
                 probes[str(mode)].append(float(output))
     builds = {'current': args.build, 'baseline': args.baseline_build}
     components = {}
+    configurations = {}
     for label, build in builds.items():
         if build is None:
             continue
         components[label] = {}
+        configurations[label] = buildConfiguration(build.resolve())
         for component in ['adac/adac' + suffix, 'runtime/libadart.a', 'qbe/qbe' + suffix]:
             path = build.resolve() / component
             components[label][component] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -98,7 +120,9 @@ def main():
         comparison = 'paired'
         if compilers['current'] == compilers['baseline']:
             comparison = 'identical-driver harness control; not a historical baseline'
-    report = dict(schema=1, build_components_sha256=components,
+    report = dict(schema=2, recorded_at=datetime.now(timezone.utc).isoformat(),
+                  revisions=dict(current=args.revision, baseline=args.baseline_revision),
+                  build_configuration=configurations, build_components_sha256=components,
                   context_probe_sha256=hashlib.sha256(args.context_probe.read_bytes()).hexdigest() if args.context_probe else None, host=dict(system=platform.system(), machine=platform.machine(),
                                     release=platform.release(), python=platform.python_version()),
                   driver_sha256={label: hashlib.sha256(path.read_bytes()).hexdigest()

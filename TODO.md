@@ -1351,7 +1351,9 @@ Ada 2005 additions and track annex packages separately.
   [Audit and evidence](docs/legality-audit.md).
 - [ ] Validate supported hosts and targets: ABI widths, installation and
   relocation, library lookup, paths with spaces. Local validation and preparation
-  for other hosts are complete; native cross-host evidence remains required.
+  for other hosts are complete; native runs now pass on all active CI hosts.
+  Cross-host historical performance evidence and local block/allocation
+  regression investigation remain required.
   - [x] Darwin arm64: mixed C/Ada register/stack ABI, descriptor/trace layouts,
     moved installs, PATH/symlink invocation, library/runtime/include overrides
     and spaced paths. Full Release suite from spaced source/build paths with
@@ -1372,9 +1374,25 @@ Ada 2005 additions and track annex packages separately.
     affected/harness checks pass locally in Release and ASan/UBSan; the full
     Darwin arm64 regression suite passes 1,938/1,938.
     [Failure analysis and pinned results](docs/msys2-ci-fixes.md).
-  - [ ] Confirm the corrected full MSYS2 run. Collect matched before/after
-    performance evidence on other hosts/targets; current-only timing records
-    and entry-cost models do not close the no-slowdown goal.
+  - [x] Confirm corrected native CI: Ubuntu amd64/arm64 each pass 1,938/1,938;
+    MSYS2 UCRT64 passes 1,937/1,937. No failures, disabled tests or skips; all
+    eight former MSYS2 failures and the new harness control pass. Relocated
+    installs, LLP64 ABI, threading and current timing collection are confirmed.
+    [Pinned current and previous runs](docs/host-validation-ci.json).
+  - [x] Record native Darwin arm64 historical comparisons: matching Release
+    builds before Phase 2, at its end and current; 21 alternating trials per
+    pair. Preserve all samples, build flags and component hashes. Scalar/image
+    workloads improve, but current blocks/allocation are 4.805x/3.847x slower
+    than pre-Phase-2; the large regressions arise after Phase 2. Prepare CI to
+    build the pinned historical baseline and collect paired results.
+    [Measurements and limits](docs/host-validation.md#matched-historical-comparison).
+  - [ ] Investigate later block/allocation regressions, beginning with master
+    await/leave locking and access-collection bookkeeping. Preserve task,
+    accessibility and cleanup semantics; Phase 2's small differences need
+    longer workload measurements before attribution.
+  - [ ] Collect matched before/after performance evidence on other hosts/targets
+    using the updated CI jobs; current-only records and entry-cost models do
+    not close the no-slowdown goal.
   [Contract, commands and evidence](docs/host-validation.md).
 - [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
   preserving receiver binding, lifetime and reduced-profile conformance.

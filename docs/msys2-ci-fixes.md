@@ -1,10 +1,14 @@
 # MSYS2 CI failure triage
 
-The supplied 2026-11-07 artifacts show **1,937/1,937 PASS** on Ubuntu amd64
-and arm64. MSYS2 UCRT64 reports **1,928/1,936 PASS** with eight failures.
+The initial 2026-11-07 artifacts showed **1,937/1,937 PASS** on Ubuntu amd64
+and arm64. MSYS2 UCRT64 reported **1,928/1,936 PASS** with eight failures.
 Its native threading, LLP64 layout, mixed C/Ada register/stack calls and Windows
 host-library checks passed. [Pinned result summary](host-validation-ci.json).
-These counts describe the supplied run, before the repairs below.
+These counts describe the initial run, before the repairs below. The subsequent
+native rerun confirms **1,938/1,938 PASS** on each Ubuntu architecture and
+**1,937/1,937 PASS** on MSYS2, with no skipped or disabled tests. All eight
+previously failing tests and the new harness regression pass. The pinned JSON
+retains both runs and their artifact hashes.
 
 | Failed tests | Cause | Repair |
 | --- | --- | --- |
@@ -29,9 +33,9 @@ The copied-file rejection control remains distinct from aliases of one source.
 
 Local validation passes all 1,938 tests on Darwin arm64, plus the nine focused
 affected/harness checks in ASan/UBSan. The portable protocol test contains seven
-regressions. Native MSYS2 confirmation remains pending;
-macOS execution does not exercise the Windows file-handle resolver. Rebuild and
-run the full MSYS2 CI job with these changes. A focused check is also available:
+regressions. The successful native MSYS2 rerun confirms the Windows file-handle
+resolver, all three raw-QBE mode tests, cache invalidation, installed PATH lookup
+and CRLF grading. A focused check remains available:
 
 ```sh
 ctest --test-dir 'build with spaces' --output-on-failure \
@@ -40,4 +44,5 @@ ctest --test-dir 'build with spaces' --output-on-failure \
 
 The uploaded Ubuntu timing records contain current-only samples. They are
 host execution evidence, not matched pre/post-Phase-2 performance comparisons.
-Windows timing collection did not run because its preceding CTest step failed.
+Windows timing collection was blocked in the initial failed run; the successful
+rerun includes current-only Windows samples. Historical comparisons remain open.

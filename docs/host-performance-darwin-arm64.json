@@ -1,0 +1,617 @@
+{
+  "schema": 1,
+  "description": "Matched native Darwin arm64 Release comparisons; timings include startup and are not conformance grades.",
+  "qbe_revision": "e786f06032fefa2e3790d6b1c9e31ed138f475a6",
+  "comparisons": {
+    "end_phase2_vs_before_phase2": {
+      "schema": 2,
+      "recorded_at": "2026-11-07T20:06:22.464747+00:00",
+      "revisions": {
+        "current": "ac72cd62f6fe75a03d1e97b61e61b3f516a85d30",
+        "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+      },
+      "build_configuration": {
+        "current": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        },
+        "baseline": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        }
+      },
+      "build_components_sha256": {
+        "current": {
+          "adac/adac": "fbb68e7b4c032cfb9bb6ac5b6c225f2582ef6f17b0c25e0761830057a06749b7",
+          "runtime/libadart.a": "f53182c6e9e7d9ab7cce9fa7d8fbb4da449290d1bc4e5f2762684d84b1834a7d",
+          "qbe/qbe": "1059763513d5b88e23fe7e02e47ccc2c9e03c06e8ac32dfd4e58e6a7d7085bf1"
+        },
+        "baseline": {
+          "adac/adac": "534eac7be460766f165d7b82d60e1770a690afa1d6ab431b421fd629b37d711c",
+          "runtime/libadart.a": "2029b6c84028b44df738f2687a01988bc09ce11a4040cf904513f1e38d3d234c",
+          "qbe/qbe": "12c1e11bfd38149498d92e9b28261bdf33dad7c78c6b0eeffba8657d69a6dd28"
+        }
+      },
+      "context_probe_sha256": null,
+      "host": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "release": "27.0.0",
+        "python": "3.15.0"
+      },
+      "driver_sha256": {
+        "current": "bbc4082ff1bcb8dd80355253f6b27837645c49a9f3cadd03acd2faf07a5d7623",
+        "baseline": "202fdd0788980f7feadcfcbd0423548840cff2ec184431bddf20365b4d420ca8"
+      },
+      "comparison": "paired",
+      "runs": 21,
+      "workloads": {
+        "contextcalls": {
+          "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+          "samples_seconds": {
+            "current": [
+              0.016786916996352375,
+              0.016506334010045975,
+              0.016546999977435917,
+              0.016709541028831154,
+              0.016909666010178626,
+              0.01644162501906976,
+              0.01678112498484552,
+              0.01656750001711771,
+              0.016269417013972998,
+              0.016544290992897004,
+              0.016462167026475072,
+              0.016866665973793715,
+              0.016528167005162686,
+              0.016497708042152226,
+              0.016576417023316026,
+              0.016279458010103554,
+              0.01589579094434157,
+              0.015892083989456296,
+              0.015817125036846846,
+              0.015830624965019524,
+              0.015701457974500954
+            ],
+            "baseline": [
+              0.01845650002360344,
+              0.019042709027417004,
+              0.01853141695028171,
+              0.019063582993112504,
+              0.018645750009454787,
+              0.018725458008702844,
+              0.018387041985988617,
+              0.01863929198589176,
+              0.018193333002272993,
+              0.018590250052511692,
+              0.01899891596985981,
+              0.018283375015016645,
+              0.01849333301652223,
+              0.018583750003017485,
+              0.018056375032756478,
+              0.017957915959414095,
+              0.018044833035673946,
+              0.017924875020980835,
+              0.0178697090013884,
+              0.017821416025981307,
+              0.017990834021475166
+            ]
+          },
+          "median_seconds": {
+            "current": 0.016506334010045975,
+            "baseline": 0.01845650002360344
+          },
+          "current_over_baseline": 0.8943371705868687
+        },
+        "imagecalls": {
+          "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+          "samples_seconds": {
+            "current": [
+              0.027488374966196716,
+              0.026682333031203598,
+              0.026747541967779398,
+              0.02698441600659862,
+              0.02683420799439773,
+              0.026692749990615994,
+              0.026887000014539808,
+              0.026534165954217315,
+              0.02633324998896569,
+              0.026116584020201117,
+              0.025868290977086872,
+              0.02719641604926437,
+              0.027115041972137988,
+              0.02709033398423344,
+              0.027101250016130507,
+              0.027126000029966235,
+              0.026822584040928632,
+              0.026858708006329834,
+              0.026949500024784356,
+              0.02772862499114126,
+              0.027672333002556115
+            ],
+            "baseline": [
+              0.03084083297289908,
+              0.03134708298603073,
+              0.031000166956800967,
+              0.030928625026717782,
+              0.031023125047795475,
+              0.031644833041355014,
+              0.030767958029173315,
+              0.030964208010118455,
+              0.030265541980043054,
+              0.0302931250189431,
+              0.030450207996182144,
+              0.03147395799169317,
+              0.030513166973832995,
+              0.0314447499695234,
+              0.03069141600281,
+              0.030949584033805877,
+              0.0312666249810718,
+              0.03130074997898191,
+              0.03138908394612372,
+              0.03475545800756663,
+              0.03140475001418963
+            ]
+          },
+          "median_seconds": {
+            "current": 0.026887000014539808,
+            "baseline": 0.031000166956800967
+          },
+          "current_over_baseline": 0.8673179099972946
+        },
+        "blockcalls": {
+          "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+          "samples_seconds": {
+            "current": [
+              0.005288666987325996,
+              0.005308917025104165,
+              0.005082875024527311,
+              0.004354832984972745,
+              0.004500083974562585,
+              0.004430458007846028,
+              0.004541333008091897,
+              0.005344541976228356,
+              0.005605792044661939,
+              0.004938166995998472,
+              0.004417249991092831,
+              0.004821374954190105,
+              0.005264499981421977,
+              0.005080875009298325,
+              0.004759625007864088,
+              0.004802957992069423,
+              0.005568208987824619,
+              0.004715291957836598,
+              0.004973834031261504,
+              0.004570541030261666,
+              0.004546125011984259
+            ],
+            "baseline": [
+              0.00455000001238659,
+              0.004852457961533219,
+              0.00433412502752617,
+              0.003995667037088424,
+              0.004335957986768335,
+              0.004602374974638224,
+              0.005119999987073243,
+              0.004755457979626954,
+              0.004886707989498973,
+              0.005044624966103584,
+              0.004116249969229102,
+              0.0040998749900609255,
+              0.0047705830074846745,
+              0.004758750030305237,
+              0.004140542005188763,
+              0.004374500014819205,
+              0.0046536659938283265,
+              0.004074707976542413,
+              0.005005207960493863,
+              0.005033791996538639,
+              0.004844709008466452
+            ]
+          },
+          "median_seconds": {
+            "current": 0.004821374954190105,
+            "baseline": 0.0046536659938283265
+          },
+          "current_over_baseline": 1.0360380312175808
+        },
+        "allocationcalls": {
+          "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+          "samples_seconds": {
+            "current": [
+              0.00695583299966529,
+              0.00651283300248906,
+              0.007161000045016408,
+              0.0066390830324962735,
+              0.006680916994810104,
+              0.007223332999274135,
+              0.007027666957583278,
+              0.007161500048823655,
+              0.006936000019777566,
+              0.007134999963454902,
+              0.007166750030592084,
+              0.006363250024151057,
+              0.006714334012940526,
+              0.006393874995410442,
+              0.006598041974939406,
+              0.0068250829936005175,
+              0.006721542042214423,
+              0.006856041960418224,
+              0.006522250012494624,
+              0.006880124972667545,
+              0.006637832964770496
+            ],
+            "baseline": [
+              0.006362417014315724,
+              0.006264458002988249,
+              0.0071258340030908585,
+              0.00683395896339789,
+              0.006991500034928322,
+              0.0068507500109262764,
+              0.006753916037268937,
+              0.006408541987184435,
+              0.006887874973472208,
+              0.006506957986857742,
+              0.006425708008464426,
+              0.006277583015616983,
+              0.0067414590157568455,
+              0.006268457975238562,
+              0.006540500035043806,
+              0.006599041982553899,
+              0.0064724579569883645,
+              0.00667137501295656,
+              0.006226667028386146,
+              0.006357124948408455,
+              0.005990459001623094
+            ]
+          },
+          "median_seconds": {
+            "current": 0.0068250829936005175,
+            "baseline": 0.006506957986857742
+          },
+          "current_over_baseline": 1.0488899739917332
+        }
+      },
+      "context_probe_samples_seconds": {},
+      "context_probe_median_seconds": {}
+    },
+    "current_vs_before_phase2": {
+      "schema": 2,
+      "recorded_at": "2026-11-07T20:06:26.904527+00:00",
+      "revisions": {
+        "current": "cf5f8706b4106695fb0561ca4f3af97cecb8f058",
+        "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+      },
+      "build_configuration": {
+        "current": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        },
+        "baseline": {
+          "CMAKE_BUILD_TYPE": "Release",
+          "CMAKE_CXX_COMPILER": {
+            "path": "/usr/bin/c++",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_CXX_FLAGS": "",
+          "CMAKE_CXX_FLAGS_DEBUG": "-g",
+          "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+          "CMAKE_C_COMPILER": {
+            "path": "/usr/bin/cc",
+            "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          },
+          "CMAKE_C_FLAGS": "",
+          "CMAKE_C_FLAGS_DEBUG": "-g",
+          "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+          "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+          "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+        }
+      },
+      "build_components_sha256": {
+        "current": {
+          "adac/adac": "d46c51d2c40a2fd527e5aa885071da6379bb8d7790e59e4bcc75993f454a8adb",
+          "runtime/libadart.a": "f5e69f8caacd7d7d3b57f99e7cca0697dd00708c58ecfd7e8794c29cca66d769",
+          "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+        },
+        "baseline": {
+          "adac/adac": "534eac7be460766f165d7b82d60e1770a690afa1d6ab431b421fd629b37d711c",
+          "runtime/libadart.a": "2029b6c84028b44df738f2687a01988bc09ce11a4040cf904513f1e38d3d234c",
+          "qbe/qbe": "12c1e11bfd38149498d92e9b28261bdf33dad7c78c6b0eeffba8657d69a6dd28"
+        }
+      },
+      "context_probe_sha256": null,
+      "host": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "release": "27.0.0",
+        "python": "3.15.0"
+      },
+      "driver_sha256": {
+        "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+        "baseline": "202fdd0788980f7feadcfcbd0423548840cff2ec184431bddf20365b4d420ca8"
+      },
+      "comparison": "paired",
+      "runs": 21,
+      "workloads": {
+        "contextcalls": {
+          "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+          "samples_seconds": {
+            "current": [
+              0.014758666977286339,
+              0.014220125041902065,
+              0.01407095801550895,
+              0.014574791013728827,
+              0.014327666023746133,
+              0.014563917007762939,
+              0.014461916987784207,
+              0.014009167032781988,
+              0.014508374966681004,
+              0.014513125002849847,
+              0.014332707971334457,
+              0.014230750035494566,
+              0.014336999971419573,
+              0.01415958401048556,
+              0.014597667031921446,
+              0.013987125013954937,
+              0.013541667023673654,
+              0.013839041988831013,
+              0.013528707961086184,
+              0.013980583986267447,
+              0.01374666701303795
+            ],
+            "baseline": [
+              0.018835957976989448,
+              0.018598915950860828,
+              0.018560709024313837,
+              0.019185249984730035,
+              0.0186195409623906,
+              0.018808291002642363,
+              0.018823750026058406,
+              0.01929424999980256,
+              0.019217624969314784,
+              0.01944212499074638,
+              0.018992458004504442,
+              0.019472291984129697,
+              0.019536958017852157,
+              0.01914266700623557,
+              0.019399958022404462,
+              0.018537167052272707,
+              0.01822041702689603,
+              0.018316208967007697,
+              0.018733999982941896,
+              0.018895375018473715,
+              0.018583084049168974
+            ]
+          },
+          "median_seconds": {
+            "current": 0.014230750035494566,
+            "baseline": 0.018835957976989448
+          },
+          "current_over_baseline": 0.7555097570762932
+        },
+        "imagecalls": {
+          "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+          "samples_seconds": {
+            "current": [
+              0.024539582955185324,
+              0.024030416971072555,
+              0.023456458991859108,
+              0.023742166988085955,
+              0.02412212500348687,
+              0.023792374995537102,
+              0.023475874972064048,
+              0.023795625020284206,
+              0.02382770797703415,
+              0.02350816602120176,
+              0.023369541973806918,
+              0.02357745898189023,
+              0.023519499984104186,
+              0.023780625022482127,
+              0.02341475000139326,
+              0.023621124972123653,
+              0.02369624999118969,
+              0.02386641694465652,
+              0.023687415989115834,
+              0.023699042038060725,
+              0.023441500030457973
+            ],
+            "baseline": [
+              0.031311542028561234,
+              0.031000457995105535,
+              0.03059708297951147,
+              0.030402708041947335,
+              0.03032433398766443,
+              0.03039970900863409,
+              0.03037558397045359,
+              0.030839333019685,
+              0.03040854202117771,
+              0.030274791992269456,
+              0.030289041984360665,
+              0.030239208019338548,
+              0.030156125023495406,
+              0.030531708034686744,
+              0.029857290966901928,
+              0.030298041994683444,
+              0.030040584038943052,
+              0.03077820799080655,
+              0.030122958996798843,
+              0.03024795901728794,
+              0.030234167003072798
+            ]
+          },
+          "median_seconds": {
+            "current": 0.02369624999118969,
+            "baseline": 0.03032433398766443
+          },
+          "current_over_baseline": 0.7814268897324846
+        },
+        "blockcalls": {
+          "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+          "samples_seconds": {
+            "current": [
+              0.02329716697568074,
+              0.022395916981622577,
+              0.022808500041719526,
+              0.02215316699584946,
+              0.022769541945308447,
+              0.022609416977502406,
+              0.022605624981224537,
+              0.022188417031429708,
+              0.023498791037127376,
+              0.02205595903797075,
+              0.022216833021957427,
+              0.02244658302515745,
+              0.022609165986068547,
+              0.02195304201450199,
+              0.02226779196644202,
+              0.02214491699123755,
+              0.022265625011641532,
+              0.022012875007931143,
+              0.022227624955121428,
+              0.02266533300280571,
+              0.02289866702631116
+            ],
+            "baseline": [
+              0.005384665972087532,
+              0.004800082999281585,
+              0.004925082961563021,
+              0.0042975409887731075,
+              0.004621208005119115,
+              0.005013291025534272,
+              0.0047250420320779085,
+              0.004192999971564859,
+              0.0053599170059897006,
+              0.0048187499633058906,
+              0.004643834021408111,
+              0.00409633299568668,
+              0.0046613329905085266,
+              0.004147708008531481,
+              0.004291958990506828,
+              0.004390374990180135,
+              0.005062040989287198,
+              0.004478375019971281,
+              0.004931250005029142,
+              0.004968834051396698,
+              0.004451333952601999
+            ]
+          },
+          "median_seconds": {
+            "current": 0.022395916981622577,
+            "baseline": 0.0046613329905085266
+          },
+          "current_over_baseline": 4.804616410633067
+        },
+        "allocationcalls": {
+          "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+          "samples_seconds": {
+            "current": [
+              0.026593208021949977,
+              0.025128083012532443,
+              0.024942082993220538,
+              0.024826791021041572,
+              0.024945500015746802,
+              0.024475582991726696,
+              0.025033542013261467,
+              0.02448820899007842,
+              0.025149583001621068,
+              0.024491958029102534,
+              0.02473941701464355,
+              0.02438687498215586,
+              0.0247339999768883,
+              0.02451824996387586,
+              0.024770334013737738,
+              0.025159458979032934,
+              0.02491270797327161,
+              0.025018916989210993,
+              0.025122500024735928,
+              0.024704375013243407,
+              0.02493012504419312
+            ],
+            "baseline": [
+              0.007063959026709199,
+              0.007055083988234401,
+              0.006583416019566357,
+              0.00603829202009365,
+              0.006611582997720689,
+              0.006050708005204797,
+              0.00650783401215449,
+              0.005960166978184134,
+              0.00645416701445356,
+              0.00603920902358368,
+              0.006782834010664374,
+              0.006014040962327272,
+              0.006613709032535553,
+              0.006584583024960011,
+              0.006509708007797599,
+              0.006832083046901971,
+              0.006335125013720244,
+              0.006385165965184569,
+              0.006476624985225499,
+              0.006082374951802194,
+              0.0064189579570665956
+            ]
+          },
+          "median_seconds": {
+            "current": 0.02491270797327161,
+            "baseline": 0.006476624985225499
+          },
+          "current_over_baseline": 3.846557123517661
+        }
+      },
+      "context_probe_samples_seconds": {},
+      "context_probe_median_seconds": {}
+    }
+  }
+}
