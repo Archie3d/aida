@@ -1,0 +1,131 @@
+name: Build and Profile
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: 'Baseline commit, tag or branch; use the pre-batch commit for a matched comparison'
+        required: true
+        type: string
+        default: 3d2aac5980f57fb68524a15b154f65cf0882bdc2
+
+permissions:
+  contents: read
+
+jobs:
+  posix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            libdir: lib64
+          - os: ubuntu-24.04-arm
+            libdir: lib
+#          - os: macos-15-intel
+#            libdir: lib
+#          - os: macos-15
+#            libdir: lib64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: source with spaces
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          path: source with spaces
+      - name: Configure Release
+        run: cmake -S . -B 'build with spaces' -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=${{ matrix.libdir }}
+      - name: Build
+        run: cmake --build 'build with spaces' --target ada host_abi_report context_access_benchmark --parallel 3
+      - name: Check out selected performance baseline
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          submodules: recursive
+          path: performance-baseline
+      - name: Build matching baseline compiler and runtime
+        run: |
+          cmake -S ../performance-baseline -B ../performance-baseline-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=${{ matrix.libdir }}
+          cmake --build ../performance-baseline-build --target ada --parallel 3
+      - name: Record native ABI and extended paired performance samples
+        run: |
+          mkdir -p 'build with spaces/host evidence'
+          'build with spaces/tests/host_abi_report' > 'build with spaces/host evidence/abi.json'
+          baseline_revision="$(git -C ../performance-baseline rev-parse HEAD)"
+          python3 -B tests/host/measure.py \
+            --ada 'build with spaces/ada/ada' --build 'build with spaces' \
+            --baseline-ada ../performance-baseline-build/ada/ada --baseline-build ../performance-baseline-build \
+            --revision "$GITHUB_SHA" --baseline-revision "$baseline_revision" \
+            --context-probe 'build with spaces/tests/context_access_benchmark' \
+            --suite extended --repetitions 128 --batch-sizes 32 512 4096 \
+            --batch-objects 65536 --throughput-objects 4194304 --runs 11 \
+            --work 'build with spaces/host evidence'
+      - name: Preserve profiling evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: profile-${{ matrix.os }}
+          path: source with spaces/build with spaces/host evidence/*.json
+          if-no-files-found: warn
+
+  msys2:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+        working-directory: source with spaces
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          path: source with spaces
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-make
+            mingw-w64-ucrt-x86_64-python
+      - name: Configure Release
+        run: cmake -G 'MinGW Makefiles' -S . -B 'build with spaces' -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+      - name: Build
+        run: cmake --build 'build with spaces' --target ada host_abi_report context_access_benchmark --parallel 3
+      - name: Check out selected performance baseline
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          submodules: recursive
+          path: performance-baseline
+      - name: Build matching baseline compiler and runtime
+        run: |
+          cmake -G 'MinGW Makefiles' -S ../performance-baseline -B ../performance-baseline-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
+          cmake --build ../performance-baseline-build --target ada --parallel 3
+      - name: Record native LLP64 ABI and extended paired performance samples
+        run: |
+          mkdir -p 'build with spaces/host evidence'
+          'build with spaces/tests/host_abi_report.exe' > 'build with spaces/host evidence/abi.json'
+          baseline_revision="$(git -C ../performance-baseline rev-parse HEAD)"
+          python -B tests/host/measure.py \
+            --ada 'build with spaces/ada/ada.exe' --build 'build with spaces' \
+            --baseline-ada ../performance-baseline-build/ada/ada.exe --baseline-build ../performance-baseline-build \
+            --revision "$GITHUB_SHA" --baseline-revision "$baseline_revision" \
+            --context-probe 'build with spaces/tests/context_access_benchmark.exe' \
+            --suite extended --repetitions 128 --batch-sizes 32 512 4096 \
+            --batch-objects 65536 --throughput-objects 4194304 --runs 11 \
+            --work 'build with spaces/host evidence'
+      - name: Preserve profiling evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: profile-windows-ucrt64
+          path: source with spaces/build with spaces/host evidence/*.json
+          if-no-files-found: warn

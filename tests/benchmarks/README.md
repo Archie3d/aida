@@ -372,5 +372,19 @@ long allocation and throughput are essentially unchanged. The short 32-live
 permuted case is 3.1% slower, while its long throughput control is unchanged.
 [Full local evidence](../../docs/host-performance-block-masters.json) retains all
 samples, source/build hashes, codegen controls and the unchanged runtime payloads.
-Local 1,953 tests, 27 ASan/UBSan and 15 TSan checks pass. Native CI and historical
-no-slowdown remain open; the measurement protocol and CI matrix are unchanged.
+Local 1,953 tests, 27 ASan/UBSan and 15 TSan checks pass.
+[Native confirmation](../../docs/host-performance-block-masters-ci.json) now passes
+1,953 on each Ubuntu architecture and 1,952 on MSYS2. All 21 cases/11 pairs
+validate; historical block ratios are 1.908/1.735/1.592, allocation
+4.901/5.454/3.185. Runner CPUs changed on amd64/Windows, limiting cross-run
+attribution, including the higher Windows allocation ratio. The measurement
+protocol/CI matrix are unchanged; historical no-slowdown remains open.
+
+Routine [Build and Test](../../.github/workflows/build-and-test.yml) CI builds and
+runs tests without timing collection or a historical-baseline build. The separate
+[Build and Profile](../../.github/workflows/build-and-profile.yml) workflow is
+manual-only. It builds only the compiler/runtime and profiling probes, then
+records the existing extended 21-case/11-pair measurements in `profile-*`
+artifacts. Select `baseline_ref` as the pre-batch commit for a same-run comparison;
+it defaults to pre-Phase-2 for historical tracking and records the resolved SHA.
+Use local profiling between native checkpoints. Mac runners remain commented.

@@ -5,14 +5,14 @@
   "runs": [
     {
       "artifact": "host-ubuntu-24",
-      "junit_sha256": "333741c26c46cc42edbc14ba66f1567e571cc252b7e6c65507b7d335b87f3374",
-      "timestamp": "2026-11-08T15:21:27",
-      "tests": 1946,
+      "junit_sha256": "651b9d2bd26607841ef8939076595d89c81eeb932fea67073c1d88562d70f9c8",
+      "timestamp": "2026-11-08T17:13:51",
+      "tests": 1953,
       "failures": 0,
       "disabled": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1946,
+      "passed": 1953,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -43,7 +43,7 @@
       },
       "installation_sha256": "299676c06cf9c16055fd0e976817393e38d2cda5372a79371b146d2561092a7a",
       "performance": {
-        "sha256": "fe4fdce76963bfee39b194a5c811c9b774002fb66c786228321cf07e200ee7c2",
+        "sha256": "a8d6323982f28ff9e3be309faeffe91d36219706a5fc28c1db2ae398390fed0d",
         "schema": 3,
         "suite": "extended",
         "host": {
@@ -55,19 +55,19 @@
           "logical_cpus": 4,
           "available_cpus": 4,
           "cpu_models": [
-            "model name\t: AMD EPYC 9V45 96-Core Processor"
+            "model name\t: AMD EPYC 9V74 80-Core Processor"
           ]
         },
         "comparison": "paired",
         "runs": 11,
         "revisions": {
-          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "current": "a815b029c5c72d6b326b69c6ac0408ac1d051db1",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
         "build_components_sha256": {
           "current": {
-            "adac/adac": "af90b9061d1d72c219eb6c8a9b3b1452b6c21d93a34eae3ff0b9a3677f2f5272",
+            "adac/adac": "6e8deb54918f70785aba1f3d7631310b3c938bc143eb66a11e884c783fa6c5cf",
             "runtime/libadart.a": "631e6335d18f376ae0354e800ab5e2100ddd2013736c2cc3dc4b506686cc7321",
             "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
           },
@@ -79,125 +79,125 @@
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.01099949399997513,
-            "baseline": 0.015917169999966063
+            "current": 0.015096840999945016,
+            "baseline": 0.024272604999964642
           },
           "imagecalls": {
-            "current": 0.013669336000020849,
-            "baseline": 0.015626838000002863
+            "current": 0.022384829000088757,
+            "baseline": 0.029037667000011425
           },
           "blockcalls": {
-            "current": 0.0031601909999494637,
-            "baseline": 0.0017262380000033772
+            "current": 0.00417904300002192,
+            "baseline": 0.0025510880000183533
           },
           "allocationcalls": {
-            "current": 0.009320236000007753,
-            "baseline": 0.002341583000031733
+            "current": 0.016396719999988818,
+            "baseline": 0.00394109399996978
           },
           "startup": {
-            "current": 0.0005514800000128162,
-            "baseline": 0.0005338539999684144
+            "current": 0.0008028610000110348,
+            "baseline": 0.0007967620000499664
           },
           "contextcalls-long": {
-            "current": 1.1080207030000224,
-            "baseline": 1.5836810220000075
+            "current": 1.9485633499999722,
+            "baseline": 2.7031858349999993
           },
           "imagecalls-long": {
-            "current": 1.5511084500000152,
-            "baseline": 1.9041306990000066
+            "current": 2.7083042330000353,
+            "baseline": 3.6041785060000393
           },
           "blockcalls-long": {
-            "current": 0.30995828299995765,
-            "baseline": 0.1266051110000035
+            "current": 0.42448174999992716,
+            "baseline": 0.22243358699995497
           },
           "allocationcalls-long": {
-            "current": 1.0519420189999664,
-            "baseline": 0.21977155899998024
+            "current": 2.084020840999983,
+            "baseline": 0.42524859299999207
           },
           "allocationbatch-fifo-32": {
-            "current": 0.008298534999994445,
-            "baseline": 0.0018035029999623475
+            "current": 0.013518408999971143,
+            "baseline": 0.0030611569999337007
           },
           "allocationbatch-lifo-32": {
-            "current": 0.007994712000026993,
-            "baseline": 0.0022242679999635584
+            "current": 0.013207179000005453,
+            "baseline": 0.0037751129999605837
           },
           "allocationbatch-permuted-32": {
-            "current": 0.00850063500001852,
-            "baseline": 0.0026229619999753595
+            "current": 0.013344997999979569,
+            "baseline": 0.004703715000005104
           },
           "allocationbatch-fifo-512": {
-            "current": 0.007406457000001865,
-            "baseline": 0.0018182350000301994
+            "current": 0.013273058999971,
+            "baseline": 0.0032336670000177037
           },
           "allocationbatch-lifo-512": {
-            "current": 0.007022876999997152,
-            "baseline": 0.002171841000006225
+            "current": 0.013161326000044937,
+            "baseline": 0.0038171969999893918
           },
           "allocationbatch-permuted-512": {
-            "current": 0.007621075999963978,
-            "baseline": 0.002679236000005858
+            "current": 0.013237967000009121,
+            "baseline": 0.004727890999902229
           },
           "allocationbatch-fifo-4096": {
-            "current": 0.008095282000056159,
-            "baseline": 0.001968668000017715
+            "current": 0.014218335000009574,
+            "baseline": 0.0031863759999168906
           },
           "allocationbatch-lifo-4096": {
-            "current": 0.007602247999955125,
-            "baseline": 0.0022549049999724957
+            "current": 0.013462956000012127,
+            "baseline": 0.003880602999970506
           },
           "allocationbatch-permuted-4096": {
-            "current": 0.008249451000040153,
-            "baseline": 0.0027614179999773114
+            "current": 0.01391861299998709,
+            "baseline": 0.004834231000018008
           },
           "allocationbatch-throughput-fifo-32": {
-            "current": 0.5006793860000016,
-            "baseline": 0.07800409199995784
+            "current": 0.8032755030000089,
+            "baseline": 0.14053188000002592
           },
           "allocationbatch-throughput-lifo-32": {
-            "current": 0.4451233120000211,
-            "baseline": 0.09882006399999455
+            "current": 0.7817039189999377,
+            "baseline": 0.1865946419999318
           },
           "allocationbatch-throughput-permuted-32": {
-            "current": 0.5000103599999761,
-            "baseline": 0.1268581169999834
+            "current": 0.7928927729999486,
+            "baseline": 0.24278043100002833
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.6910458328960852,
-          "imagecalls": 0.8747346072198575,
-          "blockcalls": 1.8306809373581634,
-          "allocationcalls": 3.980314172028686,
-          "startup": 1.0330165177097943,
-          "contextcalls-long": 0.6996489113702451,
-          "imagecalls-long": 0.8146018814856626,
-          "blockcalls-long": 2.448228831772432,
-          "allocationcalls-long": 4.786524806879406,
-          "allocationbatch-fifo-32": 4.601342498552925,
-          "allocationbatch-lifo-32": 3.5943114769254314,
-          "allocationbatch-permuted-32": 3.240853279650401,
-          "allocationbatch-fifo-512": 4.073432202041458,
-          "allocationbatch-lifo-512": 3.2336054987344944,
-          "allocationbatch-permuted-512": 2.8444959682339723,
-          "allocationbatch-fifo-4096": 4.112060540417843,
-          "allocationbatch-lifo-4096": 3.371427177662852,
-          "allocationbatch-permuted-4096": 2.987396692607904,
-          "allocationbatch-throughput-fifo-32": 6.418629755991163,
-          "allocationbatch-throughput-lifo-32": 4.504381944136827,
-          "allocationbatch-throughput-permuted-32": 3.9414928411718546
+          "contextcalls": 0.6219703653549756,
+          "imagecalls": 0.7708893762050495,
+          "blockcalls": 1.6381414518009003,
+          "allocationcalls": 4.160448850018433,
+          "startup": 1.0076547324805725,
+          "contextcalls-long": 0.7208395829730192,
+          "imagecalls-long": 0.7514345442356416,
+          "blockcalls-long": 1.9083527614919644,
+          "allocationcalls-long": 4.900711901943958,
+          "allocationbatch-fifo-32": 4.416110967279342,
+          "allocationbatch-lifo-32": 3.4984857407297083,
+          "allocationbatch-permuted-32": 2.837118745494803,
+          "allocationbatch-fifo-512": 4.104646211220367,
+          "allocationbatch-lifo-512": 3.4479032651659094,
+          "allocationbatch-permuted-512": 2.7999729689798003,
+          "allocationbatch-fifo-4096": 4.462227621718349,
+          "allocationbatch-lifo-4096": 3.46929484930936,
+          "allocationbatch-permuted-4096": 2.8791783015613532,
+          "allocationbatch-throughput-fifo-32": 5.715966391397175,
+          "allocationbatch-throughput-lifo-32": 4.189315998688877,
+          "allocationbatch-throughput-permuted-32": 3.265884197231103
         }
       }
     },
     {
       "artifact": "host-ubuntu-24-arm",
-      "junit_sha256": "2f872fe445529856686f4b9027569d3634a94fe371d4110dd68cdac9df2af7f5",
-      "timestamp": "2026-11-08T15:21:48",
-      "tests": 1946,
+      "junit_sha256": "880abb9abb125462c67743b860014a3c16ab2e63b6a5852a24b20c7a51c8541a",
+      "timestamp": "2026-11-08T17:13:40",
+      "tests": 1953,
       "failures": 0,
       "disabled": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1946,
+      "passed": 1953,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -228,7 +228,7 @@
       },
       "installation_sha256": "92494bebd7a5ff7a65eb9a6c354c360818e92ec03ddc106dec9651685c5b2948",
       "performance": {
-        "sha256": "cf5cf7d1777aa02539295765ef687b329a9a3a6fc6ee9e8c639848c6a73e21e1",
+        "sha256": "36615751d306b1e2ff9c7ffcbe4b575098beb58fe51905ebf9694ae7b5e19899",
         "schema": 3,
         "suite": "extended",
         "host": {
@@ -247,13 +247,13 @@
         "comparison": "paired",
         "runs": 11,
         "revisions": {
-          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "current": "a815b029c5c72d6b326b69c6ac0408ac1d051db1",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
         "build_components_sha256": {
           "current": {
-            "adac/adac": "fa45d48cb32b52e20f3c1005ac95566200fe41b5ac8881ea79b1d3105dfe8592",
+            "adac/adac": "8fa2198a935af13e9644dee3ccb05e15f42fc587c54fd13c94ebc7b44691ad7d",
             "runtime/libadart.a": "43a60a1477e9674401f578427c76f86a8ea3b3cb1e38e70ed4892ad705284cab",
             "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
           },
@@ -265,125 +265,125 @@
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.014337621999970906,
-            "baseline": 0.015637601999969775
+            "current": 0.014292312000009133,
+            "baseline": 0.015657101999977385
           },
           "imagecalls": {
-            "current": 0.02825401399996963,
-            "baseline": 0.031098885000005794
+            "current": 0.02823967800003402,
+            "baseline": 0.031025332000012895
           },
           "blockcalls": {
-            "current": 0.004249117000028946,
-            "baseline": 0.0021727189999865004
+            "current": 0.00319515399996817,
+            "baseline": 0.0021291630000064288
           },
           "allocationcalls": {
-            "current": 0.01670811400003913,
-            "baseline": 0.003648376000001008
+            "current": 0.016652738000004774,
+            "baseline": 0.003590683999959765
           },
           "startup": {
-            "current": 0.0007007499999645006,
-            "baseline": 0.0007017419999897356
+            "current": 0.0006812670000044818,
+            "baseline": 0.00067069800002173
           },
           "contextcalls-long": {
-            "current": 1.7391703330000041,
-            "baseline": 1.8844171299999743
+            "current": 1.7395966889999954,
+            "baseline": 1.884340039000051
           },
           "imagecalls-long": {
-            "current": 3.528459188999989,
-            "baseline": 3.863810373999968
+            "current": 3.5294330899999977,
+            "baseline": 3.8636616260000096
           },
           "blockcalls-long": {
-            "current": 0.43454414200004976,
-            "baseline": 0.18115145799993115
+            "current": 0.31411437199994907,
+            "baseline": 0.18109066599993184
           },
           "allocationcalls-long": {
-            "current": 1.9730557089999365,
-            "baseline": 0.36177071700001306
+            "current": 1.9730109559999391,
+            "baseline": 0.3617322329999979
           },
           "allocationbatch-fifo-32": {
-            "current": 0.014431777000027068,
-            "baseline": 0.0028034270000034667
+            "current": 0.014444341000057648,
+            "baseline": 0.002813882000054946
           },
           "allocationbatch-lifo-32": {
-            "current": 0.01313834399991265,
-            "baseline": 0.0031866599999830214
+            "current": 0.013176622999935717,
+            "baseline": 0.0031743640000740925
           },
           "allocationbatch-permuted-32": {
-            "current": 0.014181495999991967,
-            "baseline": 0.0035482780000393177
+            "current": 0.014238493999982893,
+            "baseline": 0.003606761000014558
           },
           "allocationbatch-fifo-512": {
-            "current": 0.012651759000050333,
-            "baseline": 0.0028391529999680643
+            "current": 0.012646256000039102,
+            "baseline": 0.00280712999995103
           },
           "allocationbatch-lifo-512": {
-            "current": 0.01312283300001127,
-            "baseline": 0.003156773999990037
+            "current": 0.013065116000007038,
+            "baseline": 0.003109474999973827
           },
           "allocationbatch-permuted-512": {
-            "current": 0.013456901000040489,
-            "baseline": 0.0035943069999575528
+            "current": 0.013464880000015,
+            "baseline": 0.003561190999903374
           },
           "allocationbatch-fifo-4096": {
-            "current": 0.013495307000084722,
-            "baseline": 0.002938818999950854
+            "current": 0.013461007999922003,
+            "baseline": 0.0028969159999405747
           },
           "allocationbatch-lifo-4096": {
-            "current": 0.014044697000031192,
-            "baseline": 0.003223922000074708
+            "current": 0.013993351000067378,
+            "baseline": 0.003243718000021545
           },
           "allocationbatch-permuted-4096": {
-            "current": 0.01409208600000511,
-            "baseline": 0.0036612380000633493
+            "current": 0.014095634000000246,
+            "baseline": 0.0036494500000117114
           },
           "allocationbatch-throughput-fifo-32": {
-            "current": 0.8644910470000013,
-            "baseline": 0.12664964500004317
+            "current": 0.8650196600000299,
+            "baseline": 0.12671366600000056
           },
           "allocationbatch-throughput-lifo-32": {
-            "current": 0.7816171880000411,
-            "baseline": 0.14749324900003558
+            "current": 0.7816051669999524,
+            "baseline": 0.14742405499998767
           },
           "allocationbatch-throughput-permuted-32": {
-            "current": 0.8514417530000173,
-            "baseline": 0.1742898420000074
+            "current": 0.8516093360000241,
+            "baseline": 0.1742620339999803
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.9168683280210495,
-          "imagecalls": 0.9085217685445753,
-          "blockcalls": 1.9556679902257708,
-          "allocationcalls": 4.579603089164745,
-          "startup": 0.9985863750135384,
-          "contextcalls-long": 0.922922162674263,
-          "imagecalls-long": 0.9132071316810482,
-          "blockcalls-long": 2.398789095035685,
-          "allocationcalls-long": 5.453884508291657,
-          "allocationbatch-fifo-32": 5.147905402926212,
-          "allocationbatch-lifo-32": 4.122919922421172,
-          "allocationbatch-permuted-32": 3.9967262993020345,
-          "allocationbatch-fifo-512": 4.45617372511895,
-          "allocationbatch-lifo-512": 4.1570391165324745,
-          "allocationbatch-permuted-512": 3.7439486944769627,
-          "allocationbatch-fifo-4096": 4.592085120012633,
-          "allocationbatch-lifo-4096": 4.356400992240425,
-          "allocationbatch-permuted-4096": 3.8489947934991604,
-          "allocationbatch-throughput-fifo-32": 6.8258465864606785,
-          "allocationbatch-throughput-lifo-32": 5.299342127854628,
-          "allocationbatch-throughput-permuted-32": 4.885205834313518
+          "contextcalls": 0.9128325280137906,
+          "imagecalls": 0.9102135635493693,
+          "blockcalls": 1.5006619972066595,
+          "allocationcalls": 4.6377620531885775,
+          "startup": 1.0157582100772768,
+          "contextcalls-long": 0.9231861834890132,
+          "imagecalls-long": 0.9134943562989926,
+          "blockcalls-long": 1.7345696436947629,
+          "allocationcalls-long": 5.454341018042345,
+          "allocationbatch-fifo-32": 5.133243327110233,
+          "allocationbatch-lifo-32": 4.150948977378827,
+          "allocationbatch-permuted-32": 3.947723178753852,
+          "allocationbatch-fifo-512": 4.505048216598346,
+          "allocationbatch-lifo-512": 4.201711221385285,
+          "allocationbatch-permuted-512": 3.781004725773019,
+          "allocationbatch-fifo-4096": 4.64666838810588,
+          "allocationbatch-lifo-4096": 4.313985062812006,
+          "allocationbatch-permuted-4096": 3.862399539644333,
+          "allocationbatch-throughput-fifo-32": 6.826569598262796,
+          "allocationbatch-throughput-lifo-32": 5.3017478524791475,
+          "allocationbatch-throughput-permuted-32": 4.886947067311979
         }
       }
     },
     {
       "artifact": "host-windows-ucrt64",
-      "junit_sha256": "298c15067d1332e65b222993804ef3f7a78521d9d211117dbc89d39a82c239bb",
-      "timestamp": "2026-11-08T15:23:32",
-      "tests": 1945,
+      "junit_sha256": "69bb8ef3d92bc160c30e8c1d048881fbd13ab10ac7c763676f2b74c101d896ce",
+      "timestamp": "2026-11-08T17:16:11",
+      "tests": 1952,
       "failures": 0,
       "disabled": 0,
       "skipped": 0,
       "failed_tests": [],
-      "passed": 1945,
+      "passed": 1952,
       "threading_passed": true,
       "mixed_abi_passed": true,
       "abi": {
@@ -413,7 +413,7 @@
       },
       "installation_sha256": "ac7abbac209b67134e3758b47fa1de08e5a288d1d3d255a9fcc8a5a97421788d",
       "performance": {
-        "sha256": "411cc4ea674736e94bfa7a579e434e5c27e5df798d534e56e485112f04b04324",
+        "sha256": "54c83c4f0b3eb0334a694ef1a7a1db9c08a50a347e289c8016a8c2b4caf13546",
         "schema": 3,
         "suite": "extended",
         "host": {
@@ -421,142 +421,142 @@
           "machine": "AMD64",
           "release": "2025Server",
           "python": "3.14.10",
-          "processor": "AMD64 Family 25 Model 17 Stepping 1, AuthenticAMD",
+          "processor": "Intel64 Family 6 Model 106 Stepping 6, GenuineIntel",
           "logical_cpus": 4
         },
         "comparison": "paired",
         "runs": 11,
         "revisions": {
-          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "current": "a815b029c5c72d6b326b69c6ac0408ac1d051db1",
           "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
         },
         "collector_sha256": "a19bed42500672f94d0ef35283a388b75c8217ac401a9e7350a9fe6675e5df8b",
         "build_components_sha256": {
           "current": {
-            "adac/adac.exe": "bd60f0f63081bd5c79f022162c13b1baa0c99a212255ec2ee4a7d7337036fa39",
+            "adac/adac.exe": "5471d573c0047e41e7a815a0d9062e9b047dca2c4fea23caac54fb69dd1dd11d",
             "runtime/libadart.a": "c486245d2d60fe27fd42376091f524e7f4fd7b55f2b60f811b8fda50c0472c79",
-            "qbe/qbe.exe": "405937a6e9bba513661938fe9dd84689c2ffd48764612761e250271411929b41"
+            "qbe/qbe.exe": "36d0cc8aad2eab68b77b93c3ebf5b747857dde83faea26b1fd0370de27c1626e"
           },
           "baseline": {
-            "adac/adac.exe": "44ee6b8b4cfd28b111091fbf2238fe895e2e78ab1af8f524d3e1133c8d281cbe",
+            "adac/adac.exe": "848642ab7857e1795aa1cbe32cb8bc7db26d353115b40ac3228b6286a537be6d",
             "runtime/libadart.a": "21ae890cf35b620325cce7a220abc2ba31af73a1cf49a72566a2d94a49816433",
-            "qbe/qbe.exe": "2fc695c78b0252295dabece5fe30f52badc52514d48ecb30e1bdad4507d2c8b7"
+            "qbe/qbe.exe": "f5e35d78fcb5c1d1672991e14859a07cf510ee61bb35256fd222162d6309a7f3"
           }
         },
         "median_seconds": {
           "contextcalls": {
-            "current": 0.015975100000105158,
-            "baseline": 0.02191749999997228
+            "current": 0.021189599999843267,
+            "baseline": 0.025153300000056333
           },
           "imagecalls": {
-            "current": 0.03509559999997691,
-            "baseline": 0.0331397999998444
+            "current": 0.04219829999988178,
+            "baseline": 0.04929010000000744
           },
           "blockcalls": {
-            "current": 0.00818370000001778,
-            "baseline": 0.005499500000041735
+            "current": 0.010190599999987171,
+            "baseline": 0.00765529999989667
           },
           "allocationcalls": {
-            "current": 0.01743680000004133,
-            "baseline": 0.00863589999994474
+            "current": 0.024971800000002986,
+            "baseline": 0.011769199999889679
           },
           "startup": {
-            "current": 0.005256400000007488,
-            "baseline": 0.00404290000005858
+            "current": 0.0075077000001329,
+            "baseline": 0.005867600000101447
           },
           "contextcalls-long": {
-            "current": 1.3483492000000297,
-            "baseline": 2.331230900000037
+            "current": 1.6842229999999745,
+            "baseline": 2.4565377000001263
           },
           "imagecalls-long": {
-            "current": 3.764100399999961,
-            "baseline": 3.69304000000011
+            "current": 4.388675700000022,
+            "baseline": 5.4087414999999055
           },
           "blockcalls-long": {
-            "current": 0.37968419999992875,
-            "baseline": 0.19238189999987299
+            "current": 0.32490899999993417,
+            "baseline": 0.20411319999993793
           },
           "allocationcalls-long": {
-            "current": 1.575766600000179,
-            "baseline": 0.553638600000113
+            "current": 2.221252800000002,
+            "baseline": 0.697321699999975
           },
           "allocationbatch-fifo-32": {
-            "current": 0.015282100000149512,
-            "baseline": 0.006984200000033525
+            "current": 0.02263049999987743,
+            "baseline": 0.009920899999997346
           },
           "allocationbatch-lifo-32": {
-            "current": 0.015036199999940436,
-            "baseline": 0.007768800000121701
+            "current": 0.022153900000148496,
+            "baseline": 0.011488099999951373
           },
           "allocationbatch-permuted-32": {
-            "current": 0.015547299999980169,
-            "baseline": 0.008472299999993993
+            "current": 0.02237990000003265,
+            "baseline": 0.011746800000082658
           },
           "allocationbatch-fifo-512": {
-            "current": 0.021433199999819408,
-            "baseline": 0.007381200000054378
+            "current": 0.026804500000025655,
+            "baseline": 0.009793400000035035
           },
           "allocationbatch-lifo-512": {
-            "current": 0.02005789999998342,
-            "baseline": 0.007976800000051298
+            "current": 0.026289199999837365,
+            "baseline": 0.010915199999999459
           },
           "allocationbatch-permuted-512": {
-            "current": 0.017679300000054354,
-            "baseline": 0.00855239999987134
+            "current": 0.02428220000001602,
+            "baseline": 0.012015400000109366
           },
           "allocationbatch-fifo-4096": {
-            "current": 0.020573600000034276,
-            "baseline": 0.007632199999989098
+            "current": 0.026814000000058513,
+            "baseline": 0.010209199999962948
           },
           "allocationbatch-lifo-4096": {
-            "current": 0.020885200000066106,
-            "baseline": 0.007780899999943358
+            "current": 0.027847300000075847,
+            "baseline": 0.010977000000139014
           },
           "allocationbatch-permuted-4096": {
-            "current": 0.02059729999996307,
-            "baseline": 0.008464300000014191
+            "current": 0.02817900000013651,
+            "baseline": 0.01198700000009012
           },
           "allocationbatch-throughput-fifo-32": {
-            "current": 0.6428985000000011,
-            "baseline": 0.18863600000008773
+            "current": 0.9421681000001172,
+            "baseline": 0.24577130000011493
           },
           "allocationbatch-throughput-lifo-32": {
-            "current": 0.6197359000000233,
-            "baseline": 0.23543080000013106
+            "current": 0.9093654000000697,
+            "baseline": 0.3266722999999274
           },
           "allocationbatch-throughput-permuted-32": {
-            "current": 0.6474110000001474,
-            "baseline": 0.27892419999989215
+            "current": 0.9640790000000834,
+            "baseline": 0.37860070000010637
           }
         },
         "current_over_baseline": {
-          "contextcalls": 0.7288741872989786,
-          "imagecalls": 1.0590166506780878,
-          "blockcalls": 1.4880807346041776,
-          "allocationcalls": 2.019106288881634,
-          "startup": 1.3001558287198114,
-          "contextcalls-long": 0.5783850926135238,
-          "imagecalls-long": 1.0192417087277281,
-          "blockcalls-long": 1.9735962686727775,
-          "allocationcalls-long": 2.846200752620676,
-          "allocationbatch-fifo-32": 2.1880959880983015,
-          "allocationbatch-lifo-32": 1.93545978783144,
-          "allocationbatch-permuted-32": 1.8350743009561974,
-          "allocationbatch-fifo-512": 2.9037554868668387,
-          "allocationbatch-lifo-512": 2.5145296359259888,
-          "allocationbatch-permuted-512": 2.0671741265984185,
-          "allocationbatch-fifo-4096": 2.6956316658451906,
-          "allocationbatch-lifo-4096": 2.684162500509985,
-          "allocationbatch-permuted-4096": 2.433432179852857,
-          "allocationbatch-throughput-fifo-32": 3.4081431964190405,
-          "allocationbatch-throughput-lifo-32": 2.6323484437876368,
-          "allocationbatch-throughput-permuted-32": 2.3211001411867374
+          "contextcalls": 0.8424182910312289,
+          "imagecalls": 0.8561212089217797,
+          "blockcalls": 1.331182318148828,
+          "allocationcalls": 2.121792475294588,
+          "startup": 1.2795180312228331,
+          "contextcalls-long": 0.6856084480201089,
+          "imagecalls-long": 0.8114042240695175,
+          "blockcalls-long": 1.5918078791574135,
+          "allocationcalls-long": 3.185406104528343,
+          "allocationbatch-fifo-32": 2.2810934491712933,
+          "allocationbatch-lifo-32": 1.9284215840950436,
+          "allocationbatch-permuted-32": 1.9051912009973073,
+          "allocationbatch-fifo-512": 2.7369963444697207,
+          "allocationbatch-lifo-512": 2.4084945763557855,
+          "allocationbatch-permuted-512": 2.0209231486088686,
+          "allocationbatch-fifo-4096": 2.6264545704027573,
+          "allocationbatch-lifo-4096": 2.5368771066523808,
+          "allocationbatch-permuted-4096": 2.3507966964148377,
+          "allocationbatch-throughput-fifo-32": 3.8335155488036095,
+          "allocationbatch-throughput-lifo-32": 2.783723627623988,
+          "allocationbatch-throughput-permuted-32": 2.5464268819360676
         }
       }
     }
   ],
   "windows_fix_verification": "Confirmed by native MSYS2 UCRT64 rerun: all eight formerly failing tests and the new harness regression pass",
-  "historical_performance_comparisons": "Empty finalization entry confirmed on all active native hosts at 4711d164d76344320b0fcb4aa191d7740852f184: 21 validated cases, 11 paired trials. Historical long allocation ratios are lower on all hosts than in the preceding CI run; long block/allocation gaps remain. Native pairs use the historical baseline; separate CI runs do not isolate the repair cost. Full reports in host-performance-finalization-entry-ci.json; earlier extended reports retained separately.",
+  "historical_performance_comparisons": "Conservative lexical-block master elision confirmed on all active native hosts at a815b029c5c72d6b326b69c6ac0408ac1d051db1: 21 validated cases, 11 paired trials. Historical long block ratios are lower on all hosts than in the preceding CI run; allocation ratios vary, and long block/allocation gaps remain. Native pairs use the historical baseline; separate CI runs do not isolate the repair cost. Full reports in host-performance-block-masters-ci.json; earlier extended reports retained separately.",
   "local_repair_validation": {
     "host": "Darwin arm64",
     "release_tests": {
@@ -3124,6 +3124,557 @@
           "allocationbatch-throughput-fifo-32": 4.295319948602188,
           "allocationbatch-throughput-lifo-32": 3.2189066744796615,
           "allocationbatch-throughput-permuted-32": 2.8503426382563095
+        }
+      }
+    },
+    {
+      "artifact": "host-ubuntu-24",
+      "junit_sha256": "333741c26c46cc42edbc14ba66f1567e571cc252b7e6c65507b7d335b87f3374",
+      "timestamp": "2026-11-08T15:21:27",
+      "tests": 1946,
+      "failures": 0,
+      "disabled": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1946,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "abi_sha256": "27cc8a1519390d31656e7984f42f4bd2b9a9407706a0d2b2377392b25cbdaa9b",
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib64",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "299676c06cf9c16055fd0e976817393e38d2cda5372a79371b146d2561092a7a",
+      "performance": {
+        "sha256": "fe4fdce76963bfee39b194a5c811c9b774002fb66c786228321cf07e200ee7c2",
+        "schema": 3,
+        "suite": "extended",
+        "host": {
+          "system": "Linux",
+          "machine": "x86_64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3",
+          "processor": "x86_64",
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cpu_models": [
+            "model name\t: AMD EPYC 9V45 96-Core Processor"
+          ]
+        },
+        "comparison": "paired",
+        "runs": 11,
+        "revisions": {
+          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "af90b9061d1d72c219eb6c8a9b3b1452b6c21d93a34eae3ff0b9a3677f2f5272",
+            "runtime/libadart.a": "631e6335d18f376ae0354e800ab5e2100ddd2013736c2cc3dc4b506686cc7321",
+            "qbe/qbe": "f37eb33947433ef918eccfd98c8be137e37f0078eb14eafa0ceea292415a294d"
+          },
+          "baseline": {
+            "adac/adac": "02d92f25dcbe900493b5f2012324bc23a4261c4ac3ad657241b7e73bfb0bccbe",
+            "runtime/libadart.a": "40e7eb26a3cfd952aba0de924067839203896e36ff9b856a0e76351671fa5e45",
+            "qbe/qbe": "2f86de4df41dcdd24e114c94dff700f5515990c7ee1071ffa57abdbfda8992ce"
+          }
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.01099949399997513,
+            "baseline": 0.015917169999966063
+          },
+          "imagecalls": {
+            "current": 0.013669336000020849,
+            "baseline": 0.015626838000002863
+          },
+          "blockcalls": {
+            "current": 0.0031601909999494637,
+            "baseline": 0.0017262380000033772
+          },
+          "allocationcalls": {
+            "current": 0.009320236000007753,
+            "baseline": 0.002341583000031733
+          },
+          "startup": {
+            "current": 0.0005514800000128162,
+            "baseline": 0.0005338539999684144
+          },
+          "contextcalls-long": {
+            "current": 1.1080207030000224,
+            "baseline": 1.5836810220000075
+          },
+          "imagecalls-long": {
+            "current": 1.5511084500000152,
+            "baseline": 1.9041306990000066
+          },
+          "blockcalls-long": {
+            "current": 0.30995828299995765,
+            "baseline": 0.1266051110000035
+          },
+          "allocationcalls-long": {
+            "current": 1.0519420189999664,
+            "baseline": 0.21977155899998024
+          },
+          "allocationbatch-fifo-32": {
+            "current": 0.008298534999994445,
+            "baseline": 0.0018035029999623475
+          },
+          "allocationbatch-lifo-32": {
+            "current": 0.007994712000026993,
+            "baseline": 0.0022242679999635584
+          },
+          "allocationbatch-permuted-32": {
+            "current": 0.00850063500001852,
+            "baseline": 0.0026229619999753595
+          },
+          "allocationbatch-fifo-512": {
+            "current": 0.007406457000001865,
+            "baseline": 0.0018182350000301994
+          },
+          "allocationbatch-lifo-512": {
+            "current": 0.007022876999997152,
+            "baseline": 0.002171841000006225
+          },
+          "allocationbatch-permuted-512": {
+            "current": 0.007621075999963978,
+            "baseline": 0.002679236000005858
+          },
+          "allocationbatch-fifo-4096": {
+            "current": 0.008095282000056159,
+            "baseline": 0.001968668000017715
+          },
+          "allocationbatch-lifo-4096": {
+            "current": 0.007602247999955125,
+            "baseline": 0.0022549049999724957
+          },
+          "allocationbatch-permuted-4096": {
+            "current": 0.008249451000040153,
+            "baseline": 0.0027614179999773114
+          },
+          "allocationbatch-throughput-fifo-32": {
+            "current": 0.5006793860000016,
+            "baseline": 0.07800409199995784
+          },
+          "allocationbatch-throughput-lifo-32": {
+            "current": 0.4451233120000211,
+            "baseline": 0.09882006399999455
+          },
+          "allocationbatch-throughput-permuted-32": {
+            "current": 0.5000103599999761,
+            "baseline": 0.1268581169999834
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.6910458328960852,
+          "imagecalls": 0.8747346072198575,
+          "blockcalls": 1.8306809373581634,
+          "allocationcalls": 3.980314172028686,
+          "startup": 1.0330165177097943,
+          "contextcalls-long": 0.6996489113702451,
+          "imagecalls-long": 0.8146018814856626,
+          "blockcalls-long": 2.448228831772432,
+          "allocationcalls-long": 4.786524806879406,
+          "allocationbatch-fifo-32": 4.601342498552925,
+          "allocationbatch-lifo-32": 3.5943114769254314,
+          "allocationbatch-permuted-32": 3.240853279650401,
+          "allocationbatch-fifo-512": 4.073432202041458,
+          "allocationbatch-lifo-512": 3.2336054987344944,
+          "allocationbatch-permuted-512": 2.8444959682339723,
+          "allocationbatch-fifo-4096": 4.112060540417843,
+          "allocationbatch-lifo-4096": 3.371427177662852,
+          "allocationbatch-permuted-4096": 2.987396692607904,
+          "allocationbatch-throughput-fifo-32": 6.418629755991163,
+          "allocationbatch-throughput-lifo-32": 4.504381944136827,
+          "allocationbatch-throughput-permuted-32": 3.9414928411718546
+        }
+      }
+    },
+    {
+      "artifact": "host-ubuntu-24-arm",
+      "junit_sha256": "2f872fe445529856686f4b9027569d3634a94fe371d4110dd68cdac9df2af7f5",
+      "timestamp": "2026-11-08T15:21:48",
+      "tests": 1946,
+      "failures": 0,
+      "disabled": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1946,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 64,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "abi_sha256": "27cc8a1519390d31656e7984f42f4bd2b9a9407706a0d2b2377392b25cbdaa9b",
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "posix",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides",
+          "symlink invocation"
+        ]
+      },
+      "installation_sha256": "92494bebd7a5ff7a65eb9a6c354c360818e92ec03ddc106dec9651685c5b2948",
+      "performance": {
+        "sha256": "cf5cf7d1777aa02539295765ef687b329a9a3a6fc6ee9e8c639848c6a73e21e1",
+        "schema": 3,
+        "suite": "extended",
+        "host": {
+          "system": "Linux",
+          "machine": "aarch64",
+          "release": "7.0.0-1017-azure",
+          "python": "3.12.3",
+          "processor": "aarch64",
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cpu_models": [
+            "CPU implementer\t: 0x41",
+            "CPU part\t: 0xd49"
+          ]
+        },
+        "comparison": "paired",
+        "runs": 11,
+        "revisions": {
+          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+        "build_components_sha256": {
+          "current": {
+            "adac/adac": "fa45d48cb32b52e20f3c1005ac95566200fe41b5ac8881ea79b1d3105dfe8592",
+            "runtime/libadart.a": "43a60a1477e9674401f578427c76f86a8ea3b3cb1e38e70ed4892ad705284cab",
+            "qbe/qbe": "9edecb78260acb7d68cb0dbf7fae228d5bb24a6d1151595920f15c4a23fa8306"
+          },
+          "baseline": {
+            "adac/adac": "8fb9c2ae7c7cb663b1903b604271b59df1e9accd32403c91f83a8eb59193312e",
+            "runtime/libadart.a": "e4d401545a367b7db0f58f7efea701d6521d83d143032dcb9cc0417234de95cc",
+            "qbe/qbe": "d92821d07f351b3d88d912e5ba1e8875c489254c1c8f303aab83018d1eb70da0"
+          }
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.014337621999970906,
+            "baseline": 0.015637601999969775
+          },
+          "imagecalls": {
+            "current": 0.02825401399996963,
+            "baseline": 0.031098885000005794
+          },
+          "blockcalls": {
+            "current": 0.004249117000028946,
+            "baseline": 0.0021727189999865004
+          },
+          "allocationcalls": {
+            "current": 0.01670811400003913,
+            "baseline": 0.003648376000001008
+          },
+          "startup": {
+            "current": 0.0007007499999645006,
+            "baseline": 0.0007017419999897356
+          },
+          "contextcalls-long": {
+            "current": 1.7391703330000041,
+            "baseline": 1.8844171299999743
+          },
+          "imagecalls-long": {
+            "current": 3.528459188999989,
+            "baseline": 3.863810373999968
+          },
+          "blockcalls-long": {
+            "current": 0.43454414200004976,
+            "baseline": 0.18115145799993115
+          },
+          "allocationcalls-long": {
+            "current": 1.9730557089999365,
+            "baseline": 0.36177071700001306
+          },
+          "allocationbatch-fifo-32": {
+            "current": 0.014431777000027068,
+            "baseline": 0.0028034270000034667
+          },
+          "allocationbatch-lifo-32": {
+            "current": 0.01313834399991265,
+            "baseline": 0.0031866599999830214
+          },
+          "allocationbatch-permuted-32": {
+            "current": 0.014181495999991967,
+            "baseline": 0.0035482780000393177
+          },
+          "allocationbatch-fifo-512": {
+            "current": 0.012651759000050333,
+            "baseline": 0.0028391529999680643
+          },
+          "allocationbatch-lifo-512": {
+            "current": 0.01312283300001127,
+            "baseline": 0.003156773999990037
+          },
+          "allocationbatch-permuted-512": {
+            "current": 0.013456901000040489,
+            "baseline": 0.0035943069999575528
+          },
+          "allocationbatch-fifo-4096": {
+            "current": 0.013495307000084722,
+            "baseline": 0.002938818999950854
+          },
+          "allocationbatch-lifo-4096": {
+            "current": 0.014044697000031192,
+            "baseline": 0.003223922000074708
+          },
+          "allocationbatch-permuted-4096": {
+            "current": 0.01409208600000511,
+            "baseline": 0.0036612380000633493
+          },
+          "allocationbatch-throughput-fifo-32": {
+            "current": 0.8644910470000013,
+            "baseline": 0.12664964500004317
+          },
+          "allocationbatch-throughput-lifo-32": {
+            "current": 0.7816171880000411,
+            "baseline": 0.14749324900003558
+          },
+          "allocationbatch-throughput-permuted-32": {
+            "current": 0.8514417530000173,
+            "baseline": 0.1742898420000074
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.9168683280210495,
+          "imagecalls": 0.9085217685445753,
+          "blockcalls": 1.9556679902257708,
+          "allocationcalls": 4.579603089164745,
+          "startup": 0.9985863750135384,
+          "contextcalls-long": 0.922922162674263,
+          "imagecalls-long": 0.9132071316810482,
+          "blockcalls-long": 2.398789095035685,
+          "allocationcalls-long": 5.453884508291657,
+          "allocationbatch-fifo-32": 5.147905402926212,
+          "allocationbatch-lifo-32": 4.122919922421172,
+          "allocationbatch-permuted-32": 3.9967262993020345,
+          "allocationbatch-fifo-512": 4.45617372511895,
+          "allocationbatch-lifo-512": 4.1570391165324745,
+          "allocationbatch-permuted-512": 3.7439486944769627,
+          "allocationbatch-fifo-4096": 4.592085120012633,
+          "allocationbatch-lifo-4096": 4.356400992240425,
+          "allocationbatch-permuted-4096": 3.8489947934991604,
+          "allocationbatch-throughput-fifo-32": 6.8258465864606785,
+          "allocationbatch-throughput-lifo-32": 5.299342127854628,
+          "allocationbatch-throughput-permuted-32": 4.885205834313518
+        }
+      }
+    },
+    {
+      "artifact": "host-windows-ucrt64",
+      "junit_sha256": "298c15067d1332e65b222993804ef3f7a78521d9d211117dbc89d39a82c239bb",
+      "timestamp": "2026-11-08T15:23:32",
+      "tests": 1945,
+      "failures": 0,
+      "disabled": 0,
+      "skipped": 0,
+      "failed_tests": [],
+      "passed": 1945,
+      "threading_passed": true,
+      "mixed_abi_passed": true,
+      "abi": {
+        "pointer_bits": 64,
+        "int_bits": 32,
+        "long_bits": 32,
+        "size_bits": 64,
+        "ptrdiff_bits": 64,
+        "little_endian": true,
+        "trace_bytes": 24,
+        "array_result_bytes": 48,
+        "master_bytes": 16
+      },
+      "abi_sha256": "d2a3306a5d1930ff288546ea58f73aeed50a48f209c366d4118428da40221860",
+      "installation": {
+        "outcome": "PASS",
+        "native_paths": "nt",
+        "libdir": "lib",
+        "checks": [
+          "relocation",
+          "absolute and PATH invocation",
+          "standalone frontend",
+          "spaced source/output/install paths",
+          "ADA_INCLUDE_PATH",
+          "library and runtime overrides"
+        ]
+      },
+      "installation_sha256": "ac7abbac209b67134e3758b47fa1de08e5a288d1d3d255a9fcc8a5a97421788d",
+      "performance": {
+        "sha256": "411cc4ea674736e94bfa7a579e434e5c27e5df798d534e56e485112f04b04324",
+        "schema": 3,
+        "suite": "extended",
+        "host": {
+          "system": "Windows",
+          "machine": "AMD64",
+          "release": "2025Server",
+          "python": "3.14.10",
+          "processor": "AMD64 Family 25 Model 17 Stepping 1, AuthenticAMD",
+          "logical_cpus": 4
+        },
+        "comparison": "paired",
+        "runs": 11,
+        "revisions": {
+          "current": "4711d164d76344320b0fcb4aa191d7740852f184",
+          "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+        },
+        "collector_sha256": "a19bed42500672f94d0ef35283a388b75c8217ac401a9e7350a9fe6675e5df8b",
+        "build_components_sha256": {
+          "current": {
+            "adac/adac.exe": "bd60f0f63081bd5c79f022162c13b1baa0c99a212255ec2ee4a7d7337036fa39",
+            "runtime/libadart.a": "c486245d2d60fe27fd42376091f524e7f4fd7b55f2b60f811b8fda50c0472c79",
+            "qbe/qbe.exe": "405937a6e9bba513661938fe9dd84689c2ffd48764612761e250271411929b41"
+          },
+          "baseline": {
+            "adac/adac.exe": "44ee6b8b4cfd28b111091fbf2238fe895e2e78ab1af8f524d3e1133c8d281cbe",
+            "runtime/libadart.a": "21ae890cf35b620325cce7a220abc2ba31af73a1cf49a72566a2d94a49816433",
+            "qbe/qbe.exe": "2fc695c78b0252295dabece5fe30f52badc52514d48ecb30e1bdad4507d2c8b7"
+          }
+        },
+        "median_seconds": {
+          "contextcalls": {
+            "current": 0.015975100000105158,
+            "baseline": 0.02191749999997228
+          },
+          "imagecalls": {
+            "current": 0.03509559999997691,
+            "baseline": 0.0331397999998444
+          },
+          "blockcalls": {
+            "current": 0.00818370000001778,
+            "baseline": 0.005499500000041735
+          },
+          "allocationcalls": {
+            "current": 0.01743680000004133,
+            "baseline": 0.00863589999994474
+          },
+          "startup": {
+            "current": 0.005256400000007488,
+            "baseline": 0.00404290000005858
+          },
+          "contextcalls-long": {
+            "current": 1.3483492000000297,
+            "baseline": 2.331230900000037
+          },
+          "imagecalls-long": {
+            "current": 3.764100399999961,
+            "baseline": 3.69304000000011
+          },
+          "blockcalls-long": {
+            "current": 0.37968419999992875,
+            "baseline": 0.19238189999987299
+          },
+          "allocationcalls-long": {
+            "current": 1.575766600000179,
+            "baseline": 0.553638600000113
+          },
+          "allocationbatch-fifo-32": {
+            "current": 0.015282100000149512,
+            "baseline": 0.006984200000033525
+          },
+          "allocationbatch-lifo-32": {
+            "current": 0.015036199999940436,
+            "baseline": 0.007768800000121701
+          },
+          "allocationbatch-permuted-32": {
+            "current": 0.015547299999980169,
+            "baseline": 0.008472299999993993
+          },
+          "allocationbatch-fifo-512": {
+            "current": 0.021433199999819408,
+            "baseline": 0.007381200000054378
+          },
+          "allocationbatch-lifo-512": {
+            "current": 0.02005789999998342,
+            "baseline": 0.007976800000051298
+          },
+          "allocationbatch-permuted-512": {
+            "current": 0.017679300000054354,
+            "baseline": 0.00855239999987134
+          },
+          "allocationbatch-fifo-4096": {
+            "current": 0.020573600000034276,
+            "baseline": 0.007632199999989098
+          },
+          "allocationbatch-lifo-4096": {
+            "current": 0.020885200000066106,
+            "baseline": 0.007780899999943358
+          },
+          "allocationbatch-permuted-4096": {
+            "current": 0.02059729999996307,
+            "baseline": 0.008464300000014191
+          },
+          "allocationbatch-throughput-fifo-32": {
+            "current": 0.6428985000000011,
+            "baseline": 0.18863600000008773
+          },
+          "allocationbatch-throughput-lifo-32": {
+            "current": 0.6197359000000233,
+            "baseline": 0.23543080000013106
+          },
+          "allocationbatch-throughput-permuted-32": {
+            "current": 0.6474110000001474,
+            "baseline": 0.27892419999989215
+          }
+        },
+        "current_over_baseline": {
+          "contextcalls": 0.7288741872989786,
+          "imagecalls": 1.0590166506780878,
+          "blockcalls": 1.4880807346041776,
+          "allocationcalls": 2.019106288881634,
+          "startup": 1.3001558287198114,
+          "contextcalls-long": 0.5783850926135238,
+          "imagecalls-long": 1.0192417087277281,
+          "blockcalls-long": 1.9735962686727775,
+          "allocationcalls-long": 2.846200752620676,
+          "allocationbatch-fifo-32": 2.1880959880983015,
+          "allocationbatch-lifo-32": 1.93545978783144,
+          "allocationbatch-permuted-32": 1.8350743009561974,
+          "allocationbatch-fifo-512": 2.9037554868668387,
+          "allocationbatch-lifo-512": 2.5145296359259888,
+          "allocationbatch-permuted-512": 2.0671741265984185,
+          "allocationbatch-fifo-4096": 2.6956316658451906,
+          "allocationbatch-lifo-4096": 2.684162500509985,
+          "allocationbatch-permuted-4096": 2.433432179852857,
+          "allocationbatch-throughput-fifo-32": 3.4081431964190405,
+          "allocationbatch-throughput-lifo-32": 2.6323484437876368,
+          "allocationbatch-throughput-permuted-32": 2.3211001411867374
         }
       }
     }

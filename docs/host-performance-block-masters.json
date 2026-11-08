@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Conservative lexical-block master elision: explicit default-sensitive call effects, late removal of proven block records/hooks; runtime and function/task/library/collection policies unchanged. Native CI confirmation pending.",
+  "description": "Conservative lexical-block master elision: explicit default-sensitive call effects, late removal of proven block records/hooks; runtime and function/task/library/collection policies unchanged. Native CI confirmation retained separately in host-performance-block-masters-ci.json.",
   "source_base_revision": "96413db3ae80312de26326e6df0930178bfa8c39",
   "source_sha256": {
     "adac/QbeEmitter.h": "eb96215aa8f4922610473458dacbfcfeb71e41aff586ce16446fec224887d57e",
@@ -73,7 +73,7 @@
     "reference": "docs/lexical-master-elision.md"
   },
   "limits": [
-    "Local Darwin arm64 correctness and matched performance evidence; native CI confirmation pending.",
+    "Local Darwin arm64 correctness and matched performance evidence; native confirmation retained separately in host-performance-block-masters-ci.json.",
     "Not an interprocedural-purity proof: unknown and source calls retain masters even when the callee might be harmless.",
     "Whole-program timing differences include generated-code layout; not isolated helper timings.",
     "Historical no-slowdown goal remains open."
@@ -5041,5 +5041,15 @@
     "adareal.c.o": "d5412c78162187b5ff085951742b8ff9e0cb0867727723fd5ab293f1d5e35202",
     "adarealvalue.c.o": "80e9417028cc318d85003b2c75a0e0fd503ce79a08805855291d5f8bd47b6642",
     "adahost.c.o": "60e95b8247310b88100bbf5c9def39bac9e252c8d30b05364c87c0a06dbe0fa1"
+  },
+  "native_ci_confirmation": {
+    "revision": "a815b029c5c72d6b326b69c6ac0408ac1d051db1",
+    "report": "host-performance-block-masters-ci.json",
+    "ubuntu_amd64_passed": 1953,
+    "ubuntu_arm64_passed": 1953,
+    "msys2_ucrt64_passed": 1952,
+    "cases_per_host": 21,
+    "pairs_per_case": 11,
+    "outcome": "Confirmed: new proof/codegen/retention controls, ABI and installs pass. Historical block ratios are lower across hosts; changed runner CPUs and variable allocation ratios prevent isolated cross-run repair attribution. Historical no-slowdown remains open."
   }
 }

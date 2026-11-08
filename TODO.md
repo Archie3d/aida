@@ -1506,10 +1506,25 @@ Ada 2005 additions and track annex packages separately.
     21-case/11-pair measurements reduce long block time about 35%; allocation
     and throughput controls are essentially unchanged.
     [Proof](docs/lexical-master-elision.md), [samples and limits](docs/host-validation.md#conservative-lexical-block-master-elision).
-  - [ ] Confirm conservative lexical-block master elision on native CI,
-    including whole/per-unit/determinism, observer-retention controls and all
-    21 timing cases. Function/task/library/collection master policies remain
-    unchanged; historical no-slowdown remains open.
+  - [x] Confirm conservative lexical-block master elision on native CI at
+    `a815b029c5c72d6b326b69c6ac0408ac1d051db1`: Ubuntu amd64/arm64 each
+    pass 1,953/1,953; MSYS2 passes 1,952/1,952, without failures, disabled
+    tests or skips. Whole/per-unit/determinism, observer-retention, ABI and
+    installs pass; all 21 timing cases validate over 11 pairs. Historical long
+    block ratios are 1.908x/1.735x/1.592x; allocation 4.901x/5.454x/3.185x.
+    The amd64 and Windows runner CPUs changed; separate CI ratios do not
+    isolate the repair or establish uniform allocation stability.
+    [Full native reports](docs/host-performance-block-masters-ci.json).
+  - [x] Separate routine build/test CI from manual native profiling. Keep
+    push/PR/manual correctness jobs and `host-*` diagnostics, with no timing
+    collection or baseline build. Add manual-only `build-and-profile.yml`,
+    `profile-*` evidence and a resolved `baseline_ref` for same-run pre-batch
+    comparisons (historical baseline remains the default). Keep macOS entries
+    commented; profile locally between native milestones.
+  - [ ] Profile remaining aggregate/array-index helper work in the block kernel
+    and allocation overhead using matched same-host builds. Retain small/LIFO,
+    throughput and scaling controls; distinguish runner/CPU variation from
+    code changes. Historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

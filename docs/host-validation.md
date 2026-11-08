@@ -54,21 +54,50 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 
 | Host | Prepared runner | Execution status |
 | --- | --- | --- |
-| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,946/1,946 PASS |
-| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,946/1,946 PASS |
+| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,953/1,953 PASS |
+| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,953/1,953 PASS |
 | Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
-| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,945/1,945 PASS; all eight fixes confirmed |
+| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,952/1,952 PASS; all eight fixes confirmed |
 
 Runner labels follow GitHub's [native runner inventory](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Windows uses the documented [MSYS2 UCRT64 setup](https://github.com/msys2/setup-msys2).
-The workflow preserves JUnit, CTest diagnostics, relocation logs, ABI facts and
-current timing samples per runner. The user supplied successful native
+The build/test workflow preserves JUnit, CTest diagnostics, relocation logs and
+ABI facts and the tested commit SHA (`revision.txt`) per runner. It does not
+build the performance baseline or collect timings. The user supplied successful native
 Linux/MSYS2 rerun artifacts. Linux has one more test overall: its POSIX host and
 terminal checks are replaced by the native Windows host-library check on MSYS2.
 Cross-assembly controls elsewhere in the suite are not native execution evidence.
 The driver continues to target its build host/toolchain; no cross-compilation
 option, 32-bit target or big-endian target is added.
+
+## Routine tests and manual profiling
+
+[Build and Test](../.github/workflows/build-and-test.yml) retains its push-to-master,
+pull-request and manual triggers. It builds Release and runs the full native
+suite, including ABI, installation and measurement-tool protocol tests. Those
+protocol tests validate the tooling without collecting performance samples.
+
+[Build and Profile](../.github/workflows/build-and-profile.yml) runs only through
+`workflow_dispatch`; it has no push or pull-request trigger. Use local matched
+profiling for routine tuning and run native profiling at milestones, or sooner
+for ABI, platform, tasking or lifetime changes. Both workflows retain Ubuntu
+amd64/arm64 and MSYS2, with macOS entries commented for consistency.
+
+The manual workflow builds the candidate compiler/runtime, ABI probe and context
+benchmark, plus a separately checked-out matching baseline compiler/runtime. It
+runs the unchanged extended 21-case/11-pair suite without repeating the full
+CTest suite. Set `baseline_ref` to the pre-batch commit for a same-run comparison
+on the allocated CPU. The default remains historical pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2` for milestone tracking. A branch/tag
+input is resolved to its actual checked-out commit SHA in the report.
+
+Validation artifacts keep the `host-*` prefix; measurement artifacts use
+`profile-*` and contain `abi.json`/`timings.json`. Both may be downloaded into
+`build/ci-artefacts`; test-only runs contain no timing report. Previously archived
+profiling reports remain separate when test-only artifacts replace the download
+folder. Workflow/YAML
+and shell checks are local; the new manual workflow has not yet run on GitHub.
 
 ## Performance evidence
 
@@ -804,8 +833,60 @@ studies separate; the overall historical no-slowdown goal remains open.
 
 [Complete local reports](host-performance-block-masters.json) retain every input,
 sample, executable/build/source hash, order, dispersion, proof boundary and
-validation result. Native Ubuntu amd64/arm64 and MSYS2 confirmation is pending.
-The existing extended CI workflow is sufficient; macOS entries remain commented.
+validation result. Native confirmation is recorded below; macOS workflow entries
+remain commented.
+
+## Lexical-block master native CI confirmation
+
+Revision `a815b029c5c72d6b326b69c6ac0408ac1d051db1` passes 1,953/1,953 tests
+on each Ubuntu architecture and 1,952/1,952 on MSYS2 UCRT64, with no failures,
+disabled tests or skips. All seven new registrations pass: primitive-block and
+source/imported-call fixtures in normal/deterministic/whole/per-unit modes, plus
+the codegen retention control for source calls, managed cleanup, tasking and
+anonymous access. Mixed ABI, layout and relocated-install checks pass. Layout
+remains 24-byte traces, 48-byte array results and 16-byte masters, with the
+expected native C widths.
+
+All 21 timing cases validate over 11 alternating pairs per host with matching
+Release configurations. Inputs/parameters, every sample, medians, MADs, ratios
+and execution order verify. Windows collector and checked-in input hashes match
+the CRLF checkout; generated sources match LF hashes. Startup is included without
+subtraction. Each native pair uses the pre-Phase-2 baseline
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2`.
+
+| Host | Long block / historical | Long allocation / historical | 32-live LIFO throughput / historical | 4,096-live FIFO / LIFO |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 1.908 | 4.901 | 4.189 | 1.056 |
+| Ubuntu arm64 | 1.735 | 5.454 | 5.302 | 0.962 |
+| MSYS2 UCRT64 | 1.592 | 3.185 | 2.784 | 0.963 |
+
+Block ratios are lower on every host than the preceding CI run
+(2.448/2.399/1.974), consistent with the matched local block improvement. These
+jobs do not provide a controlled pair against the immediately preceding compiler.
+The amd64 runner changed from AMD EPYC 9V45 to 9V74, and Windows changed from AMD
+to Intel (family/model descriptions are retained in the raw reports). The arm64
+CPU implementer/part remains 0x41/0xd49. Release toolchain configurations agree
+across the two runs, but CPU/VM differences can reweight even historical-normalized
+ratios; do not pool wall times or assign an exact cross-run repair gain.
+
+Allocation ratios are 4.901/5.454/3.185 versus 4.787/5.454/2.846 previously.
+The roughly 12% higher Windows ratio is retained as variability requiring a
+same-host controlled check before attribution, not dismissed as a proven noise
+effect or treated as an isolated regression. Local allocation-unit SSA controls
+remain byte-identical, but no native SSA identity claim is made from these
+artifacts. Large-live-set release orders remain close; historical block and
+allocation gaps remain open.
+
+[Complete native reports](host-performance-block-masters-ci.json) preserve all
+samples, sources, hashes, CPU descriptions and parameters. [Pinned validation
+summaries](host-validation-ci.json) retain this run and 27 earlier host records.
+`build/ci-artefacts` can be overwritten again. This review changes documentation
+and retained evidence only; no local compiler/sanitizer rerun was needed.
+
+Native proof/functional confirmation is complete. The next investigation is
+remaining aggregate/array-index helper work and allocation overhead, with matched
+same-host builds and all existing small/LIFO, throughput and scaling controls.
+The historical no-slowdown goal remains open.
 
 ## Reproduce
 

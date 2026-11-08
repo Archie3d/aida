@@ -82,5 +82,9 @@ purity, function-master elision or task-lifetime shortcut is assumed.
 Local validation passes 1,953 Release tests, 27 ASan/UBSan and 15 TSan focused
 checks. The matched 21-case/11-pair suite reduces long block time about 35%, with
 long allocation essentially unchanged. [Complete reports](host-performance-block-masters.json)
-retain every sample and the unchanged-code controls. Native CI confirmation and
-the historical no-slowdown goal remain open.
+retain every sample and the unchanged-code controls.
+[Native confirmation](host-performance-block-masters-ci.json) now passes 1,953
+tests on each Ubuntu architecture and 1,952 on MSYS2, including all seven new
+registrations and 21 timing cases over 11 pairs. Historical block ratios are
+1.908/1.735/1.592; CPU changes limit cross-run speedup attribution. The historical
+no-slowdown goal remains open.

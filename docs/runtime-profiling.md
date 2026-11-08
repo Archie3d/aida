@@ -124,4 +124,6 @@ The lexical-block investigation now has a
 [matched production validation](host-validation.md#conservative-lexical-block-master-elision).
 Long block time improves about 35% locally; source/unknown calls and managed,
 accessibility and tasking paths retain masters. This does not enable general
-benchmark-style master omission. Native CI confirmation remains pending.
+benchmark-style master omission.
+[Native confirmation](host-performance-block-masters-ci.json) now passes all three
+hosts; runner CPU changes and historical performance gaps remain explicit limits.
