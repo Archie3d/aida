@@ -52,11 +52,11 @@ original counts below describe its historical starting state.
 
 Ada 2012 additions are outside this language target. Specialized-needs annex
 facilities retain their separate matrix scope, including full tasking/priority
-services in Phase 9. The missing families and partial APIs now have explicit
-[Phase 8 implementation items](../TODO.md#predefined-library-implementation),
-added after the audit; Standard/System, Storage_Elements and
-[Address_To_Access_Conversions](address-conversions.md) are complete for their
-documented target choices/restrictions, while the remaining items stay open.
+services in Phase 9. Facilities identified by this audit were subsequently
+implemented for their documented target choices and restrictions. The
+[archived Phase 8 checklist](roadmap-history.md#predefined-library-implementation)
+preserves the dependency order and per-family completion criteria; current
+restrictions remain in the coverage matrix and feature contracts.
 
 ## Supported API repairs
 

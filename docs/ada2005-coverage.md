@@ -261,7 +261,7 @@ file/formatting calls and POSIX terminal behavior. All originally missing invent
 and known semantic defects remain explicit; CXAC004 now passes after the
 unbounded-string composite-equality repair.
 
-The missing families and partial APIs have explicit, dependency-ordered
-[Phase 8 implementation items](../TODO.md#predefined-library-implementation),
-with per-family completion criteria. The completed environment audit does not
-mark those implementation items complete.
+The [archived Phase 8 implementation checklist](roadmap-history.md#predefined-library-implementation)
+preserves the dependency order and completion criteria for the facilities found
+by the audit. Their implementation status is recorded above; the audit itself
+is evidence of the earlier starting state.
