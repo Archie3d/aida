@@ -563,7 +563,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
                 Value index = wideBound(emitExpr(argument));
                 std::string offset = newTemp(), next = newTemp();
                 emitCallInstruction(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
-                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")", CallEffects::CheckException);
+                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")", CallEffects::CheckException, MasterEffects::Independent);
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
                 if (dimension->packedBoolean) {

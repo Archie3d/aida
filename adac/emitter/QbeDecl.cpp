@@ -723,7 +723,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
         if (!finalizationMark.empty()) {
             emitCallInstruction("call $__ada_finalize_to(l " + m_context->temporaryFinalizationChain + ", l " + finalizationMark + ")", CallEffects::DeferredCheck);
         }
-        emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")", CallEffects::RuntimeHook);
+        emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + temporaryMark + ")", CallEffects::RuntimeHook, MasterEffects::Independent);
         if (!finalizationMark.empty()) {
             emitExceptionCheck();
         }

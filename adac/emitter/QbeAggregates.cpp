@@ -317,7 +317,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
             // Keep a separate, zeroed temporary: component evaluation can read
             // the destination or raise before the final copy commits it.
             buffer = allocScratch(scratchBytes, typeAlignment(type));
-            emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(scratchBytes) + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(scratchBytes) + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
         } else {
             buffer = newTemp();
             emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)
@@ -395,7 +395,7 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
             + ", l " + elementSize + ")", CallEffects::CheckException);
     }
     if (!address.name.empty() && !needsFinalization(type) && !hasLimitedParts(type)) {
-        emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck);
+        emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
     }
     Value result { buffer, 'l', resultFirst, resultLast };
     result.innerBounds = resultShape.innerBounds;

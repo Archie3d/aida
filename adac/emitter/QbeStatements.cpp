@@ -396,11 +396,12 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Block: {
         auto* block = static_cast<BlockStmt*>(statement);
         auto checkpoint = storageCheckpoint();
+        std::size_t observingCalls = m_context->masterObservingCalls;
         std::string master = allocScratch(kAdaMasterBytes);
-        emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook);
+        emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook, MasterEffects::ScopeHook);
         m_context->blockMasters.push_back({ master, checkpoint });
         emitLocalDeclarations(block->declarations);
-        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + master + ")", CallEffects::CheckedRuntimeHook);
+        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + master + ")", CallEffects::CheckedRuntimeHook, MasterEffects::ScopeHook);
         if (block->handlers.empty()) {
             emitStatements(block->body);
         } else {
@@ -420,6 +421,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
         m_context->blockMasters.pop_back();
         if (!m_context->terminated && !checkpoint.finalization.empty()) {
             emitExceptionCheck();
+        }
+        if (m_context->masterObservingCalls == observingCalls) {
+            m_context->elidedBlockMasters.push_back(master);
         }
         break;
     }

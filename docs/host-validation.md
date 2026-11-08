@@ -744,6 +744,69 @@ establish a safe optimization for arbitrary ancestry, accessibility, collection
 ownership, dependent tasks or exceptional/finalization paths. Keep hooks where
 those properties cannot be proved.
 
+## Conservative lexical-block master elision
+
+The measured empty-block cost now has a conservative compiler repair, documented
+in the [master-observation proof](lexical-master-elision.md). All source/foreign/
+indirect and unclassified runtime calls default to potentially observing master
+ancestry. Only audited primitive emission sites are independent. Candidate
+lifecycle hooks have their own classification. No purity is inferred from symbol
+text; a source import named `__ada_array_offset` retains its master.
+
+A block can omit its record/hooks only when no observing call is emitted across
+its declarations, branches, nested blocks and exits. The evidence is monotonic
+and independent of lexical-stack copies during transfer emission. The emitter
+retains block depths, storage checkpoints, cleanup and exception checks, and
+filters only exact proven record/hook lines after return plans are expanded.
+Function/task/library/collection master policies and runtime sources are unchanged.
+
+Two new fixtures run normally, deterministically and in whole/per-unit modes.
+They cover nested primitive blocks, goto, early return, exception propagation,
+source/imported calls and a pure child within an observing parent. The codegen
+control also retains masters for controlled cleanup, tasking and anonymous access.
+The preserved pre-change compiler runs both new programs successfully. Local
+Release passes 1,953/1,953 with no failures, disabled tests or skips; 27 ASan/UBSan
+and 15 TSan focused checks pass. Mixed ABI, layout and relocated installs pass.
+The layout probe remains 24-byte traces, 48-byte array results and 16-byte masters.
+
+Matched Release measurements use revision
+`96413db3ae80312de26326e6df0930178bfa8c39` as the immediate baseline, unchanged
+sources/collector, 21 cases, 11 alternating pairs, one warmup, 128 long-kernel
+activations and the same live-set/allocation counts as CI. Startup is included
+without subtraction. All 19 runtime object payloads are byte-identical between
+these builds; their archive container hashes differ and are retained unmodified.
+Main-unit SSA also matches exactly for scalar, image, allocation, long allocation
+and the LIFO throughput control.
+
+| Workload | Before (s) | Elided blocks (s) | After / before |
+| --- | ---: | ---: | ---: |
+| Short blocks | 0.007056 | 0.005622 | 0.7968 |
+| Long blocks | 0.406865 | 0.266297 | 0.6545 |
+| Long allocation | 1.307053 | 1.306801 | 0.9998 |
+| 32-live FIFO throughput | 0.570814 | 0.575329 | 1.0079 |
+| 32-live LIFO throughput | 0.487981 | 0.488558 | 1.0012 |
+| 32-live permuted throughput | 0.557196 | 0.556747 | 0.9992 |
+| 4,096-live FIFO | 0.011977 | 0.011919 | 0.9952 |
+| 4,096-live LIFO | 0.011490 | 0.011488 | 0.9998 |
+| 4,096-live permuted | 0.012157 | 0.012193 | 1.0030 |
+
+Long blocks improve about 35%, consistent with the earlier diagnostic experiment.
+Other long controls and throughput medians differ by less than 1% in this run.
+The short 32-live permuted batch is 3.1% slower; its long throughput counterpart
+is essentially unchanged. Keep all samples rather than claiming a uniform gain.
+These whole-program differences include generated-code/layout effects.
+
+A separate paired comparison uses pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2` with identical final current build
+components and inputs over all 21 cases/11 pairs. Long blocks remain 1.758x
+historical, long allocation 3.319x and 32-live LIFO throughput 3.338x. Keep the two
+studies separate; the overall historical no-slowdown goal remains open.
+
+[Complete local reports](host-performance-block-masters.json) retain every input,
+sample, executable/build/source hash, order, dispersion, proof boundary and
+validation result. Native Ubuntu amd64/arm64 and MSYS2 confirmation is pending.
+The existing extended CI workflow is sufficient; macOS entries remain commented.
+
 ## Reproduce
 
 ```sh

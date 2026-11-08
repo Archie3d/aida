@@ -178,3 +178,10 @@ publication, array view precedence and failed index enable/growth with recovery.
 Its instrumented allocator checks complete reclamation, including index memory.
 The concurrent shared-collection control exceeds the index threshold and retains
 reentrant/failing finalizers and creator-context disposal coverage.
+
+[Conservative lexical-block elision](lexical-master-elision.md) now omits only
+unobserved primitive block masters. Source calls, collection creation, access-level
+queries, tag ownership, tasking and finalization retain their original ancestry.
+Function/task/library/collection policies and runtime synchronization are unchanged.
+The compiler keeps lexical cleanup depths/checkpoints even when a proven record's
+hooks disappear; unknown operations remain conservative.

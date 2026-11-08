@@ -1494,12 +1494,22 @@ Ada 2005 additions and track annex packages separately.
     ratios are 2.448x/2.399x/1.974x; allocation 4.787x/5.454x/2.846x.
     Allocation ratios are lower on all hosts than the preceding CI run, while
     cross-run differences do not isolate the repair. [Full native reports](docs/host-performance-finalization-entry-ci.json).
-  - [ ] Investigate the measured empty lexical-master hook overhead. Establish
-    a conservative proof before omitting hooks, preserving current-master
-    ancestry, accessibility identities, collection parentage, dependent-task
-    activation/await and finalization order across calls and exceptional exits.
-    Retain hooks where the proof is absent; benchmark-only master omission is
-    not a generally valid optimization. Historical no-slowdown remains open.
+  - [x] Establish and implement a conservative lexical-block master proof.
+    Calls default to master-observing; only audited primitive emission sites
+    are independent, with candidate lifecycle hooks classified separately.
+    Retain unknown/source calls, accessibility, collection/tag ownership,
+    tasking and finalization. Preserve transfer depths, checkpoints and all
+    exception checks; filter only proven records/hooks after exit expansion.
+    Add primitive/nested/return/goto/exception and runtime-named-import controls,
+    plus managed/tasking/access retention checks. Local 1,953/1,953,
+    27 ASan/UBSan and 15 TSan checks pass; ABI/install checks pass. Matched
+    21-case/11-pair measurements reduce long block time about 35%; allocation
+    and throughput controls are essentially unchanged.
+    [Proof](docs/lexical-master-elision.md), [samples and limits](docs/host-validation.md#conservative-lexical-block-master-elision).
+  - [ ] Confirm conservative lexical-block master elision on native CI,
+    including whole/per-unit/determinism, observer-retention controls and all
+    21 timing cases. Function/task/library/collection master policies remain
+    unchanged; historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

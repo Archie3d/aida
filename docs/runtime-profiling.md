@@ -118,3 +118,10 @@ benchmark-only 27% guard result remains separate.
 [Native CI confirmation](host-performance-finalization-entry-ci.json) now passes
 all three hosts; historical block/allocation gaps remain. Conservative proof of
 empty lexical-master lowering is the next investigation.
+
+The lexical-block investigation now has a
+[conservative observation proof](lexical-master-elision.md) and
+[matched production validation](host-validation.md#conservative-lexical-block-master-elision).
+Long block time improves about 35% locally; source/unknown calls and managed,
+accessibility and tasking paths retain masters. This does not enable general
+benchmark-style master omission. Native CI confirmation remains pending.

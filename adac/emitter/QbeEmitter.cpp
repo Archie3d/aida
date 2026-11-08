@@ -123,8 +123,11 @@ void QbeEmitter::line(const std::string& text)
 // Call effects are chosen at the emission site, never inferred from QBE text.
 // Some calls deliberately defer the exception check until a protected action
 // has released its resource or a construction transaction has been cleaned up.
-void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects effects)
+void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects effects, MasterEffects masters)
 {
+    if (masters == MasterEffects::MayObserve) {
+        ++m_context->masterObservingCalls;
+    }
     if (m_context->terminated) {
         label(newLabel("unreachable"));
     }

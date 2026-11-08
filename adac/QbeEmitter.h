@@ -110,6 +110,8 @@ private:
             StorageCheckpoint storage;
         };
         std::vector<BlockMaster> blockMasters;
+        std::size_t masterObservingCalls = 0;
+        std::vector<std::string> elidedBlockMasters;
         std::unordered_map<std::string, std::size_t> transferMasterDepth;
         std::string temporaryFinalizationChain;
         bool initializingTemporary = false;
@@ -184,7 +186,14 @@ private:
         RuntimeHook, // Keep the triggering location; caller controls checks.
         CheckedRuntimeHook // Keep the triggering location and check immediately.
     };
-    void emitCallInstruction(const std::string& instruction, CallEffects effects);
+    enum class MasterEffects
+    {
+        MayObserve, // Includes unknown/source calls and callbacks; retain ancestry.
+        Independent, // Audited primitive: cannot observe/publish master ancestry.
+        ScopeHook // Candidate lifecycle bookkeeping, not evidence of scope use.
+    };
+    void emitCallInstruction(const std::string& instruction, CallEffects effects,
+                             MasterEffects masters = MasterEffects::MayObserve);
     void emitReturn(const std::string& operand = "");
     std::string functionExitActions(const FunctionContext& context);
     std::string sourceLocationData(const SourceLocation& location);

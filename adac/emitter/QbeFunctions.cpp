@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 
 using QbeSupport::isUnconstrainedArray;
 
@@ -586,6 +587,26 @@ void QbeEmitter::finishFunction(const std::string& signature)
             }
         }
         text = filtered;
+    }
+    // Decide only after all declarations, branches and unwind edges have been
+    // emitted. Keep lexical transfer depths/checkpoints intact; remove just the
+    // exact record/hook lines for blocks with no master-observing calls. This
+    // runs after return-offset insertion so filtering cannot invalidate offsets.
+    std::unordered_set<std::string> elided;
+    for (const std::string& record : context.elidedBlockMasters) {
+        elided.insert("    " + record + " =l alloc8 " + std::to_string(kAdaMasterBytes));
+        elided.insert("    call $__ada_master_enter(l %.taskContext, l " + record + ", w 1)");
+        for (const char* hook : {"activate", "await", "leave"}) {
+            elided.insert("    call $__ada_master_" + std::string(hook) + "(l %.taskContext, l " + record + ")");
+        }
+    }
+    if (!elided.empty()) {
+        std::istringstream lines(text);
+        std::string filtered, current;
+        while (std::getline(lines, current)) {
+            if (elided.find(current) == elided.end()) { filtered += current + "\n"; }
+        }
+        text = std::move(filtered);
     }
     m_functions.push_back(text);
 }

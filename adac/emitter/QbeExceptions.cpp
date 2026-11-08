@@ -51,7 +51,7 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Ex
         emitCallInstruction("call $__ada_raise_message(l " + exception->exceptionObject + ", l " + text.name
              + ", w " + length.name + ")", CallEffects::DeferredCheck);
     } else {
-        emitCallInstruction("call $__ada_raise(l " + exception->exceptionObject + ")", CallEffects::DeferredCheck);
+        emitCallInstruction("call $__ada_raise(l " + exception->exceptionObject + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
     }
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
@@ -299,7 +299,7 @@ void QbeEmitter::checkNotNull(const Value& pointer)
 
 void QbeEmitter::raiseConstraintError()
 {
-    emitCallInstruction("call $__ada_raise(l $__ada_exc_constraint_error)", CallEffects::DeferredCheck);
+    emitCallInstruction("call $__ada_raise(l $__ada_exc_constraint_error)", CallEffects::DeferredCheck, MasterEffects::Independent);
     if (!m_context->handlerLabels.empty()) {
         jump(m_context->handlerLabels.back());
     } else {

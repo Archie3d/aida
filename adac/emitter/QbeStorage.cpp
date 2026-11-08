@@ -75,8 +75,8 @@ void QbeEmitter::rewindStorage(const StorageCheckpoint& checkpoint, bool checkEx
     if (!checkpoint.finalization.empty()) {
         emitCallInstruction("call $__ada_finalize_to(l " + m_context->finalizationChain + ", l " + checkpoint.finalization + ")", CallEffects::DeferredCheck);
     }
-    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.temporary + ")", CallEffects::RuntimeHook);
-    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.local + ")", CallEffects::RuntimeHook);
+    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(true) + ", l " + checkpoint.temporary + ")", CallEffects::RuntimeHook, MasterEffects::Independent);
+    emitCallInstruction("call $__ada_array_rewind(l " + storageArena(false) + ", l " + checkpoint.local + ")", CallEffects::RuntimeHook, MasterEffects::Independent);
     if (!checkpoint.finalization.empty() && checkException) {
         emitExceptionCheck();
     }
@@ -89,9 +89,9 @@ void QbeEmitter::emitBlockExits(std::size_t depth)
     // inner scope before awaiting the next outer scope.
     for (std::size_t i = m_context->blockMasters.size(); i > depth; --i) {
         const auto& master = m_context->blockMasters[i - 1];
-        emitCallInstruction("call $__ada_master_await(l %.taskContext, l " + master.record + ")", CallEffects::RuntimeHook);
+        emitCallInstruction("call $__ada_master_await(l %.taskContext, l " + master.record + ")", CallEffects::RuntimeHook, MasterEffects::ScopeHook);
         rewindStorage(master.storage, false);
-        emitCallInstruction("call $__ada_master_leave(l %.taskContext, l " + master.record + ")", CallEffects::RuntimeHook);
+        emitCallInstruction("call $__ada_master_leave(l %.taskContext, l " + master.record + ")", CallEffects::RuntimeHook, MasterEffects::ScopeHook);
     }
 }
 
@@ -393,7 +393,7 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
         std::string size = newTemp();
         line(sizeSlot + " =l add " + targetTag + ", 8");
         line(size + " =l loadl " + sizeSlot);
-        emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
+        emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
         return;
     }
     if (hasRuntimeLayout(type)) {
@@ -403,9 +403,9 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
             line(target + " =l add " + destination.name + ", 8");
             line(value + " =l add " + source.name + ", 8");
             line(payload + " =l sub " + size + ", 8");
-            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + payload + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + payload + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
         } else {
-            emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
         }
         return;
     }
@@ -421,12 +421,12 @@ void QbeEmitter::copyInto(const Value& destination, const Value& source, Type* t
             std::string value = newTemp();
             line(target + " =l add " + destination.name + ", 8");
             line(value + " =l add " + source.name + ", 8");
-            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + std::to_string(size - 8) + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memmove(l " + target + ", l " + value + ", l " + std::to_string(size - 8) + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
         }
         return;
     }
     // Source and destination may refer to overlapping slices of the same array.
-    emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")", CallEffects::DeferredCheck);
+    emitCallInstruction("call $memmove(l " + destination.name + ", l " + source.name + ", l " + std::to_string(size) + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
 }
 
 Value QbeEmitter::recordConstrained(Expr* object, const Value* evaluated)
@@ -603,7 +603,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             std::string elementSize = arrayElementSize(target, type);
             std::string size = newTemp();
             emitCallInstruction(size + " =l call $__ada_array_size(l " + target.first + ", l " + target.last + ", l " + elementSize + ")", CallEffects::CheckException);
-            emitCallInstruction("call $memmove(l " + target.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memmove(l " + target.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
             return;
         }
         if (!type->constrained) {
@@ -622,7 +622,7 @@ void QbeEmitter::assignInto(const Value& address, Type* type, Expr* value, bool 
             std::string size = newTemp();
             line(wide + " =l copy " + targetLength.name);
             emitCallInstruction(size + " =l call $__ada_array_size(l " + address.first + ", l " + address.last + ", l " + arrayElementSize(address, type) + ")", CallEffects::CheckException);
-            emitCallInstruction("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck);
+            emitCallInstruction("call $memmove(l " + address.name + ", l " + source.name + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
             return;
         }
         Value source = emitExpr(value);

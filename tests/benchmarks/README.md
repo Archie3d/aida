@@ -364,3 +364,13 @@ now passes 1,946 tests on each Ubuntu architecture and 1,945 on MSYS2, with all
 than the preceding CI run, consistent with the local result, but cross-run
 comparisons do not isolate the repair. The historical no-slowdown goal remains
 open; conservative empty-master proof is the next investigation.
+
+The following [conservative block-master repair](../../docs/lexical-master-elision.md)
+uses default-sensitive call effects and preserves lexical cleanup metadata.
+Matched 21-case/11-pair production measurements reduce long blocks about 35%;
+long allocation and throughput are essentially unchanged. The short 32-live
+permuted case is 3.1% slower, while its long throughput control is unchanged.
+[Full local evidence](../../docs/host-performance-block-masters.json) retains all
+samples, source/build hashes, codegen controls and the unchanged runtime payloads.
+Local 1,953 tests, 27 ASan/UBSan and 15 TSan checks pass. Native CI and historical
+no-slowdown remain open; the measurement protocol and CI matrix are unchanged.
