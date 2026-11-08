@@ -397,7 +397,9 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
             + ", l " + elementSize + ")", CallEffects::CheckException);
     }
     if (!address.name.empty() && !needsFinalization(type) && !hasLimitedParts(type)) {
-        emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
+        if (!emitScratchCopy(address.name, buffer, knownBytes)) {
+            emitCallInstruction("call $memmove(l " + address.name + ", l " + buffer + ", l " + size + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
+        }
     }
     Value result { buffer, 'l', resultFirst, resultLast };
     result.innerBounds = resultShape.innerBounds;

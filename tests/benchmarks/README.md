@@ -412,3 +412,9 @@ retain zeroing and failure branches; proven offset folding/copy/both reduce
 final diagnostic block time 8.2%/6.7%/27.7%. Twenty-three protocol controls and
 both host protocol CTests pass. The matched 21-case production report above is
 retained with exact component hashes; these probes are not production speedups.
+
+The [offset/copy implementation batch](../../docs/performance-wrap-up.md) is
+closed. Further profiling is deferred in favor of compiler functionality; existing
+reports are retained without a new production speedup claim. Fixed-corpus helper
+probes require their recorded older compiler shapes and are not adapted to each
+subsequent functional change. Routine correctness CI remains separate.

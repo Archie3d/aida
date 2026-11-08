@@ -6,6 +6,31 @@
 using QbeSupport::constantValue;
 using QbeSupport::isLiteralOperand;
 
+void QbeEmitter::emitArrayOffset(const std::string& offset, const Value& originalIndex, const Value& index,
+    const Value& axis, const std::string& stride)
+{
+    if (isLiteralOperand(originalIndex.name) && isLiteralOperand(axis.first)
+        && isLiteralOperand(axis.last) && isLiteralOperand(stride)) {
+        long long value = std::stoll(originalIndex.name), first = std::stoll(axis.first);
+        long long last = std::stoll(axis.last), elementSize = std::stoll(stride);
+        bool exactIndex = originalIndex.type == 'l'
+            || (originalIndex.type == 'w' && value >= INT32_MIN && value <= INT32_MAX);
+        __int128 distance = (__int128)value - first;
+        __int128 bytes = distance * elementSize;
+        if (exactIndex && value >= first && value <= last && elementSize >= 0
+            && distance <= INT64_MAX && bytes <= INT64_MAX) {
+            if (m_context->terminated) { label(newLabel("unreachable")); }
+            emitSourceLocation();
+            line(offset + " =l copy " + std::to_string((long long)bytes));
+            // A preceding deferred operation may already have raised.
+            emitExceptionCheck();
+            return;
+        }
+    }
+    emitCallInstruction(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
+        + ", l " + axis.last + ", l " + stride + ")", CallEffects::CheckException, MasterEffects::Independent);
+}
+
 Value QbeEmitter::wideBound(Value value)
 {
     if (value.type != 'l') {

@@ -3,6 +3,182 @@
 
 #include <unordered_set>
 
+Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& types,
+    const std::vector<ParameterMode>& modes, Type* result, Scope* scope,
+    DeclList& expansion, const std::string& qbeName)
+{
+    int errors = m_diagnostics.errorCount();
+    Symbol* chosen = nullptr;
+    for (Symbol* candidate : prefixedOperations(name, scope)) {
+        bool matches = SemaSupport::profileTypeMatches(candidate->returnType, result)
+            && candidate->parameters.size() == types.size() + 1;
+        for (std::size_t i = 0; matches && i < types.size(); ++i) {
+            matches = SemaSupport::profileTypeMatches(candidate->parameters[i + 1]->type, types[i])
+                && candidate->parameters[i + 1]->mode == modes[i];
+        }
+        if (!matches) { continue; }
+        if (chosen != nullptr) {
+            m_diagnostics.error(name->location, "ambiguous prefixed view profile");
+            return nullptr;
+        }
+        chosen = candidate;
+    }
+    if (chosen == nullptr) {
+        m_diagnostics.error(name->location, "no subprogram matches the reduced prefixed view profile");
+        return nullptr;
+    }
+    Symbol* view = m_symbolTable.createSymbol(SymbolKind::Subprogram, qbeName, chosen->displayName);
+    view->qbeName = qbeName;
+    view->location = name->location;
+    view->returnType = chosen->returnType;
+    view->owner = m_currentSubprogram;
+    view->level = view->owner != nullptr ? view->owner->level + 1 : 0;
+    view->accessibilityLevel = m_accessibilityLevel;
+    view->declarationScope = scope;
+    view->hasBody = true;
+    view->noReturn = chosen->noReturn;
+    view->intrinsicRenaming = true;
+    view->usesFinalization = true;
+    Scope* operandsScope = m_symbolTable.createScope(scope);
+    auto call = std::make_unique<CallExpr>();
+    call->location = name->location;
+    auto selected = std::make_unique<SelectedExpr>();
+    selected->location = name->location;
+    selected->selector = name->selector;
+    selected->selectorLower = name->selectorLower;
+    selected->prefix = std::move(name->prefix);
+    call->callee = std::move(selected);
+    for (std::size_t i = 1; i < chosen->parameters.size(); ++i) {
+        Symbol* parameter = m_symbolTable.createSymbol(SymbolKind::Parameter,
+            chosen->parameters[i]->name, chosen->parameters[i]->displayName);
+        *parameter = *chosen->parameters[i];
+        // Synthetic operands must not hide names in the receiver expression.
+        parameter->name = "$prefixed_operand_" + std::to_string(i);
+        parameter->owner = view;
+        parameter->level = view->level;
+        parameter->isUplevel = false;
+        parameter->frameOffset = -1;
+        view->parameters.push_back(parameter);
+        operandsScope->add(parameter);
+        auto operand = std::make_unique<IdentifierExpr>();
+        operand->location = name->location;
+        operand->name = parameter->displayName;
+        operand->lower = parameter->name;
+        Association argument;
+        argument.value = std::move(operand);
+        call->arguments.push_back(std::move(argument));
+    }
+    Symbol* saved = m_currentSubprogram;
+    m_currentSubprogram = view;
+    analyzeCall(call.get(), operandsScope, result);
+    m_currentSubprogram = saved;
+    if (m_diagnostics.errorCount() != errors) { return nullptr; }
+
+    ExprPtr receiver = std::move(call->arguments.front().value);
+    ExprPtr* value = &receiver;
+    for (;;) {
+        if ((*value)->kind == ExprKind::Qualified) {
+            value = &static_cast<QualifiedExpr*>(value->get())->operand;
+        } else if ((*value)->kind == ExprKind::Selected && static_cast<SelectedExpr*>(value->get())->symbol == nullptr
+            && !static_cast<SelectedExpr*>(value->get())->isDereference) {
+            value = &static_cast<SelectedExpr*>(value->get())->prefix;
+        } else if ((*value)->kind == ExprKind::Call && static_cast<CallExpr*>(value->get())->form == CallForm::Indexing) {
+            value = &static_cast<CallExpr*>(value->get())->callee;
+        } else {
+            break;
+        }
+    }
+    Type* receiverLayout = (*value)->type;
+    if ((*value)->kind != ExprKind::Aggregate && isComposite(receiverLayout) && !receiverLayout->tagged
+        && !needsFinalization(receiverLayout) && SemaSupport::objectView(value->get()) == 0) {
+        m_diagnostics.error(name->location, "binding this temporary receiver layout is not yet supported");
+        return nullptr;
+    }
+    if ((*value)->kind == ExprKind::Aggregate) {
+        // Materialize an aggregate value as an ordinary constant object. Its
+        // controlled components must outlive declaration-temporary cleanup.
+        Type* type = (*value)->type;
+        if (type->kind != TypeKind::Record || hasRuntimeLayout(type)) {
+            m_diagnostics.error(name->location, "binding this aggregate receiver layout is not yet supported");
+            return nullptr;
+        }
+        std::string valueName = qbeName + ".value";
+        Symbol* storage = m_symbolTable.createSymbol(SymbolKind::Object, valueName, valueName);
+        storage->type = type;
+        storage->location = name->location;
+        storage->owner = saved;
+        storage->level = saved != nullptr ? saved->level : 0;
+        storage->isGlobal = saved == nullptr;
+        storage->isConstant = true;
+        storage->qbeName = valueName;
+        scope->add(storage);
+        auto object = std::make_unique<ObjectDecl>();
+        object->location = name->location;
+        object->isConstant = true;
+        object->symbols.push_back(storage);
+        object->initializer = std::move(*value);
+        auto reference = std::make_unique<IdentifierExpr>();
+        reference->location = name->location;
+        reference->name = reference->lower = valueName;
+        reference->symbol = storage;
+        reference->type = type;
+        *value = std::move(reference);
+        expansion.push_back(std::move(object));
+    }
+    std::string bindingName = qbeName + ".receiver";
+    Symbol* binding = m_symbolTable.createSymbol(SymbolKind::Object, bindingName, bindingName);
+    binding->location = name->location;
+    binding->type = receiver->type;
+    binding->objectReference = binding->type->kind != TypeKind::Access;
+    binding->boundReceiver = true;
+    binding->isConstant = binding->objectReference ? SemaSupport::objectView(receiver.get()) != 2 : true;
+    binding->aliased = binding->objectReference;
+    binding->sharedAlias = binding->objectReference ? receiver.get() : nullptr;
+    binding->owner = saved;
+    binding->level = saved != nullptr ? saved->level : 0;
+    binding->isGlobal = saved == nullptr;
+    binding->isUplevel = !binding->isGlobal;
+    binding->qbeName = bindingName;
+    if (saved != nullptr) { saved->needsFrame = true; saved->usesFinalization = true; }
+    else { m_finalizingUnits.insert(m_currentUnit); }
+    scope->add(binding);
+    auto identifier = [&]() {
+        auto expression = std::make_unique<IdentifierExpr>();
+        expression->location = name->location;
+        expression->name = expression->lower = bindingName;
+        expression->symbol = binding;
+        expression->type = binding->type;
+        return expression;
+    };
+    call->arguments.front().value = identifier();
+    call->resolvedArguments.front() = call->arguments.front().value.get();
+    name->prefix = identifier();
+    name->symbol = view;
+    auto object = std::make_unique<ObjectDecl>();
+    object->location = name->location;
+    object->isRenaming = binding->objectReference;
+    object->isConstant = binding->isConstant;
+    object->symbols.push_back(binding);
+    object->initializer = std::move(receiver);
+    expansion.push_back(std::move(object));
+    auto body = std::make_unique<SubprogramBody>();
+    body->location = name->location;
+    body->symbol = view;
+    if (result != nullptr) {
+        auto statement = std::make_unique<ReturnStmt>();
+        statement->location = name->location;
+        statement->value = std::move(call);
+        body->body.push_back(std::move(statement));
+    } else {
+        auto statement = std::make_unique<ProcedureCallStmt>();
+        statement->location = name->location;
+        statement->call = std::move(call);
+        body->body.push_back(std::move(statement));
+    }
+    expansion.push_back(std::move(body));
+    return view;
+}
+
 void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 {
     SubprogramSpec& spec = decl->spec;
@@ -50,12 +226,17 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 
     // Resolve the target before adding the new name, so it cannot hide its target.
     Expr* name = decl->renamedName.get();
+    Symbol* prefixedView = nullptr;
     if (name->kind == ExprKind::Selected
         && !prefixedOperations(static_cast<SelectedExpr*>(name), scope).empty()) {
-        m_diagnostics.error(name->location, "renaming prefixed views is not yet supported");
-        return;
+        std::vector<ParameterMode> modes;
+        for (const ParameterDecl& parameter : spec.parameters) { modes.push_back(parameter.mode); }
+        prefixedView = bindPrefixedView(static_cast<SelectedExpr*>(name), types, modes, result, scope,
+            decl->renamingExpansion, "$" + mangle(spec.lower) + ".prefixed."
+                + std::to_string(decl->location.line) + "." + std::to_string(decl->location.column));
+        if (prefixedView == nullptr) { return; }
     }
-    std::vector<Symbol*> candidates = expressionNames(name, scope);
+    std::vector<Symbol*> candidates = prefixedView != nullptr ? std::vector<Symbol*> { prefixedView } : expressionNames(name, scope);
     std::string operation;
     Scope* operatorScope = nullptr;
     if (name->kind == ExprKind::StringLiteral) {
@@ -395,7 +576,7 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
     m_currentSubprogram = saved;
-    alias->intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr;
+    alias->intrinsicRenaming = intrinsic || enumeration || attributeType != nullptr || prefixedView != nullptr;
     for (Symbol* complement : scope->lookupLocal("/=")) {
         if (complement->negatedEquality == alias) {
             complement->intrinsicRenaming = alias->intrinsicRenaming;

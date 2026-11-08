@@ -1487,7 +1487,7 @@ add_ada_error_test(scalardynamicerrors SOURCES types/scalardynamicerrors.adb)
 foreach(dynamic_case importedcontrolled exceptionlibrary exceptionlibrarytasking streammemory streamrecords streamclasswide streamsizes pragmaunitbundle pragmasuppressed pragmaunsuppressed pragmanoreturn pragmapolicies pragmaignore pragmalibrary_main genericcontractlibrary_main genericcontractnested genericcontractreplay genericcontractregions genericlimitedcleanup genericlimitedtagged genericlimitedobjects genericlimitedarrays genericlimitedlibrary_main genericaccesslifetime genericaccessobjectlibrary_main genericaccessobjects genericanonymousobjects genericaccesscallbacks genericpackagepartial genericpackagepartialtypes genericpackagepartialoverloads genericpartialpackagelibrary_main genericpackages genericpackagecontracts genericpackagecallables genericpackagelibrary_main genericarrayconstraints genericarraycomponents genericarrayconstraintlibrary_main genericliterals genericliterallibrary_main genericattributes genericattributenumeric genericattributelibrary_main genericnull genericnullcomposites genericnulllibrary_main genericabstract genericabstractinterfaces genericabstractoperators genericabstractlibrary_main genericclasswide genericclasswideinterfaces genericclasswidelibrary_main genericsynchronized genericsynchronizednested genericsynchronizedlibrary_main genericdiscriminantviews genericdiscriminants genericdefinite genericdiscriminantlibrary_main genericinterfacelibrary_main genericinterfaceformals genericinterfacecategories genericinterfacenested genericderiveddiscriminants genericderivedlibrary_main genericderived genericderivedtagged genericderivednested genericaccess genericaccessmatching genericprivatearrays importedcallbacks inheritedcallbacks inheritedcallbacklibrary callbackextensiontasking nullexclusions nullexclusiontasking anonymousarrayobjects anonymousaccess anonymousaccessrecords anonymousaccessarrays anonymouscoextensions anonymousprotected anonymousdispatch anonymousaccesstasking generalaccess generalaccessarrays generalaccesschecks generalaccesstasking recordcontrolled controlledvariants controlledvariantlimited scalardynamic scalarstreams scalartasking
     runtimearraylibrary runtimearraylibrarytasking runtimearraylibrarylifetime runtimearraylibraryworkers
     runtimecomponents runtimeallocators runtimecomponentstreams runtimecomponentcleanup runtimecomponenttasking runtimecomponentchecks
-    emptymasterblocks blockmastercalls aggregatezeroing aggregatetemporaries aggregatetemporarycleanup boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
+    emptymasterblocks blockmastercalls constantarrayoffsets aggregatezeroing aggregatetemporaries aggregatetemporarycleanup boxaggregates boxcleanup boxchecks boxtasking defaultdiscriminants defaultdiscriminantstasking defaultdiscriminantslibrary
     runtimediscriminants discriminantcomponents discriminantcleanup discriminanttasking controlledadjustment operatorvisibility arrayindexlegality enclosingnames caseselector realnumbers supportedrejections abstractsubprograms abstractinheritance controllingaccessresults overridingnull classwideconstraints taggedvariantgroups taggedviews taggedruntime taggeddependent privatedelayed taggedinstances taggedcontrolled interfaces interfacediamonds interfaceownership interfacecategories interfaceprofiles interfacegenerics)
     add_ada_test(${dynamic_case} SOURCES ${dynamic_case}.adb)
     add_determinism_test(${dynamic_case} SOURCE ${dynamic_case}.adb)
@@ -1664,7 +1664,7 @@ set_tests_properties(semantics.unit_renaming PROPERTIES TIMEOUT 30)
 add_ada_error_test(iofileprivacyerrors SOURCES io/iofileprivacyerrors.adb)
 
 # Phase 6e: tagged prefixed calls through ordinary call lowering.
-foreach(prefixed_case prefixedcalls prefixedcleanup)
+foreach(prefixed_case prefixedcalls prefixedcleanup prefixedviews prefixedviewcleanup)
     add_ada_test(${prefixed_case} SOURCES ${prefixed_case}.adb)
     add_determinism_test(${prefixed_case} SOURCE ${prefixed_case}.adb)
     ada_test_fixture(source_path "${prefixed_case}.adb")
@@ -2381,6 +2381,12 @@ add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedcon
 # The environment audit distinguishes resolution from full API availability.
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME codegen.constant_array_offsets
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckArrayOffsets.py
+            --adac $<TARGET_FILE:adac>
+            --source ${CMAKE_CURRENT_SOURCE_DIR}/ada/arrays/constantarrayoffsets.adb
+            --work ${ADA_TEST_WORK_DIR}/constant-array-offsets)
+    set_tests_properties(codegen.constant_array_offsets PROPERTIES TIMEOUT 30)
     add_test(NAME codegen.aggregate_zeroing
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckAggregateZeroing.py
             --adac $<TARGET_FILE:adac>

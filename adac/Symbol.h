@@ -73,6 +73,7 @@ struct Symbol
     Expr* sharedAlias = nullptr;
     bool classWideObject = false;
     bool objectReference = false; // A slot holding a renamed or generic actual object address.
+    bool boundReceiver = false; // A prefixed view owns its receiver result for the enclosing master.
     ParameterMode mode = ParameterMode::In;
     bool hasStaticValue = false;
     long long staticValue = 0;

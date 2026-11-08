@@ -70,7 +70,7 @@ public:
 
 private:
     static constexpr long long kArrayStackLimit = 65536;
-    static constexpr long long kInlineScratchZeroLimit = 32;
+    static constexpr long long kInlineScratchLimit = 32;
     static constexpr long long kFrameStackLimit = INT32_MAX - 16;
 
     struct ArrayAggregatePlan
@@ -103,6 +103,7 @@ private:
         std::string frameAllocation;
         std::string arrayArena;
         std::string temporaryArena;
+        std::unordered_map<std::string, long long> stackAlignments;
         std::string finalizationChain;
         bool hasMaster = false;
         struct BlockMaster
@@ -268,6 +269,9 @@ private:
     long long reserveFrame(long long size, long long alignment = 8);
     std::string allocScratch(long long size, long long alignment = 1);
     void emitScratchZero(const std::string& buffer, long long size, long long alignment);
+    bool emitScratchCopy(const std::string& destination, const std::string& source, long long size);
+    void emitArrayOffset(const std::string& offset, const Value& originalIndex, const Value& index,
+        const Value& axis, const std::string& stride);
     std::string storageArena(bool temporary, bool allocate = false);
     StorageCheckpoint storageCheckpoint();
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);

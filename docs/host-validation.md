@@ -943,6 +943,20 @@ with helper fallback and the existing evaluation, location and exception contrac
 matrices, census/fault controls and collector sources. Native checkpoints remain
 pending while work continues locally; historical no-slowdown is still open.
 
+## Optimization batch closed; functional work resumed
+
+The [performance batch wrap-up](performance-wrap-up.md) implements constant
+unpacked offsets with a proven valid result and bounded copies between known
+stack buffers. Runtime fallback, source locations, exception barriers, exact byte
+coverage and overlap semantics remain explicit. Further profiling is deferred at
+the user's request; existing reports remain historical evidence, with no new
+production speedup claim. The no-slowdown goal and native checkpoints stay open
+without blocking functional work.
+
+[Bound prefixed views](prefixed-views.md) now support renaming and generic actuals
+for the documented tagged receiver surface; unchanged ACATS C413005 passes.
+Array/runtime aggregate receiver layouts remain diagnosed and tracked separately.
+
 ## Reproduce
 
 ```sh

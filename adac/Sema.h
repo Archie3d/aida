@@ -79,6 +79,9 @@ private:
     Scope* subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false, Scope* profileScope = nullptr);
     void analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope);
+    Symbol* bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& types,
+        const std::vector<ParameterMode>& modes, Type* result, Scope* scope,
+        DeclList& expansion, const std::string& qbeName);
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);

@@ -125,6 +125,7 @@ add_acats_test(c413001)
 add_acats_test(c413002)
 add_acats_test(c413003)
 add_acats_test(c413004)
+add_acats_test(c413005)
 
 # Limited dependencies still include their packages in the executable partition.
 add_acats_test(ca200031 TEST_NAME CA20003 SOURCES ca200030.ada ca200031.ada)

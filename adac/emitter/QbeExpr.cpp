@@ -560,10 +560,10 @@ Value QbeEmitter::emitAddress(Expr* expr)
             Value axis = base;
             Type* dimension = array;
             for (Expr* argument : call->resolvedArguments) {
-                Value index = wideBound(emitExpr(argument));
+                Value originalIndex = emitExpr(argument);
+                Value index = wideBound(originalIndex);
                 std::string offset = newTemp(), next = newTemp();
-                emitCallInstruction(offset + " =l call $__ada_array_offset(l " + index.name + ", l " + axis.first
-                     + ", l " + axis.last + ", l " + arrayElementSize(axis, dimension) + ")", CallEffects::CheckException, MasterEffects::Independent);
+                emitArrayOffset(offset, originalIndex, index, axis, arrayElementSize(axis, dimension));
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
                 if (dimension->packedBoolean) {

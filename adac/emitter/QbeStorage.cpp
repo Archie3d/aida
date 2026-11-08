@@ -30,13 +30,14 @@ std::string QbeEmitter::allocScratch(long long size, long long alignment)
         return temp;
     }
     const char* instruction = size <= 4 && alignment <= 4 ? "alloc4" : "alloc8";
+    m_context->stackAlignments[temp] = size <= 4 && alignment <= 4 ? 4 : 8;
     m_context->prologue << "    " << temp << " =l " << instruction << " " << size << "\n";
     return temp;
 }
 
 void QbeEmitter::emitScratchZero(const std::string& buffer, long long size, long long alignment)
 {
-    if (size <= 0 || size > kInlineScratchZeroLimit || (alignment != 4 && alignment != 8)) {
+    if (size <= 0 || size > kInlineScratchLimit || (alignment != 4 && alignment != 8)) {
         emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(size) + ")",
             CallEffects::DeferredCheck, MasterEffects::Independent);
         return;
@@ -61,6 +62,49 @@ void QbeEmitter::emitScratchZero(const std::string& buffer, long long size, long
         line(std::string(instruction) + " 0, " + address);
         offset += width;
     }
+}
+
+bool QbeEmitter::emitScratchCopy(const std::string& destination, const std::string& source, long long size)
+{
+    auto from = m_context->stackAlignments.find(source);
+    auto to = m_context->stackAlignments.find(destination);
+    if (size <= 0 || size > kInlineScratchLimit || from == m_context->stackAlignments.end()
+        || to == m_context->stackAlignments.end()) { return false; }
+    if (m_context->terminated) { label(newLabel("unreachable")); }
+    emitSourceLocation();
+    struct Chunk
+    {
+        std::string value;
+        long long offset;
+        long long width;
+    };
+    std::vector<Chunk> chunks;
+    long long alignment = std::min(from->second, to->second);
+    for (long long offset = 0; offset < size;) {
+        long long width = alignment;
+        while (width > size - offset || offset % width != 0) { width /= 2; }
+        std::string address = source;
+        if (offset != 0) {
+            address = newTemp();
+            line(address + " =l add " + source + ", " + std::to_string(offset));
+        }
+        std::string value = newTemp();
+        const char* load = width == 8 ? "loadl" : width == 4 ? "loadw" : width == 2 ? "loaduh" : "loadub";
+        line(value + " =" + (width == 8 ? "l " : "w ") + load + " " + address);
+        chunks.push_back({ value, offset, width });
+        offset += width;
+    }
+    // Read the entire source before writing, including for overlapping views.
+    for (const Chunk& chunk : chunks) {
+        std::string address = destination;
+        if (chunk.offset != 0) {
+            address = newTemp();
+            line(address + " =l add " + destination + ", " + std::to_string(chunk.offset));
+        }
+        const char* store = chunk.width == 8 ? "storel" : chunk.width == 4 ? "storew" : chunk.width == 2 ? "storeh" : "storeb";
+        line(std::string(store) + " " + chunk.value + ", " + address);
+    }
+    return true;
 }
 
 std::string QbeEmitter::storageArena(bool temporary, bool allocate)

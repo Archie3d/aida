@@ -1302,10 +1302,18 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
             operatorScope = expandedScope(prefix, actualScope);
         }
     }
+    Symbol* prefixedView = nullptr;
     if (actual->kind == ExprKind::Selected
         && !prefixedOperations(static_cast<SelectedExpr*>(actual), actualScope).empty()) {
-        m_diagnostics.error(actual->location, "prefixed views as generic actuals are not yet supported");
-        return false;
+        std::vector<Type*> types;
+        std::vector<ParameterMode> modes;
+        for (Symbol* parameter : wrapper->parameters) {
+            types.push_back(parameter->type);
+            modes.push_back(parameter->mode);
+        }
+        prefixedView = bindPrefixedView(static_cast<SelectedExpr*>(actual), types, modes, wrapper->returnType,
+            actualScope, decl->expansion, wrapper->qbeName + ".prefixed");
+        if (prefixedView == nullptr) { return false; }
     }
     std::vector<Symbol*> candidates;
     Symbol* attributeProfile = nullptr;
@@ -1321,7 +1329,8 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         m_instanceFirstSymbol = previousFirst;
         if (attributeProfile == nullptr) { return false; }
     }
-    const auto actualCandidates = namedDefault && literalDefault != nullptr ? std::vector<Symbol*> { literalDefault }
+    const auto actualCandidates = prefixedView != nullptr ? std::vector<Symbol*> { prefixedView }
+        : namedDefault && literalDefault != nullptr ? std::vector<Symbol*> { literalDefault }
         : attributeProfile != nullptr ? std::vector<Symbol*> { attributeProfile }
         : namedDefault && formal.abstract
         ? (abstractDefault != nullptr ? std::vector<Symbol*> { abstractDefault } : std::vector<Symbol*> {})

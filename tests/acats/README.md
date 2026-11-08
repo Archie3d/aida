@@ -328,9 +328,14 @@ overloads, private tagged views, single evaluation, null checks and concurrent
 workers; `prefixedcleanup` adds controlled-temporary lifetime checks.
 
 [C413005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c413005.a)
-was assessed and deferred: it needs prefixed-view renaming and generic
-subprogram actuals, now explicitly diagnosed and tracked in Phase 8.
-It is not counted as a pass or weakened to fit the implemented call subset.
+now passes unchanged after bound prefixed-view renaming and generic actuals were
+implemented. It checks omitted receiver profiles, object/class-wide views and
+single evaluation of function prefixes at renaming/instantiation. The source was
+retrieved from the same pinned snapshot on 2026-11-08, with all notices retained;
+Git blob `dfc2212ae2b210a21dedd0e27658053240923a4a`, SHA-256
+`0f269d3249f840d52c2a6d78b5c040dd9edc1642e03df3b22081ab4305f300f0`.
+[Local cases](../../docs/prefixed-views.md) add controlled receiver lifetime,
+access dispatch, failed elaboration, completion and rejection controls.
 
 | Source | Git blob | SHA-256 |
 | --- | --- | --- |

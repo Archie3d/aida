@@ -622,6 +622,7 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                         emitCallInstruction(slot + " =l call $__ada_array_local(l " + storageArena(false, true)
                              + ", l 1, l 1, l " + std::to_string(size) + ")", CallEffects::CheckException);
                     } else {
+                        m_context->stackAlignments[slot] = size <= 4 && typeAlignment(symbol->type) <= 4 ? 4 : 8;
                         m_context->prologue << "    " << slot << " =l " << (size <= 4 && typeAlignment(symbol->type) <= 4 ? "alloc4" : "alloc8") << " "
                                             << size << "\n";
                     }
@@ -851,7 +852,25 @@ void QbeEmitter::initializeObject(const Value& address, Symbol* symbol, Expr* in
 // array allocation or copy is performed, and the actual is evaluated once.
 void QbeEmitter::emitObjectReference(ObjectDecl* object, Symbol* symbol)
 {
+    std::string savedOwner = m_context->resultTargetOwner;
+    std::string savedArena = m_context->resultTargetArena;
+    if (symbol->boundReceiver) {
+        // Construct the receiver result in the enclosing master's storage,
+        // rather than the declaration list's short-lived temporary storage.
+        if (symbol->isGlobal) {
+            std::string owner = newTemp(), arena = newTemp();
+            emitCallInstruction(owner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
+            emitCallInstruction(arena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
+            m_context->resultTargetOwner = owner;
+            m_context->resultTargetArena = arena;
+        } else {
+            m_context->resultTargetOwner = m_context->finalizationChain;
+            m_context->resultTargetArena = storageArena(false, true);
+        }
+    }
     Value actual = emitAddress(object->initializer.get());
+    m_context->resultTargetOwner = savedOwner;
+    m_context->resultTargetArena = savedArena;
     if (symbol->needsAccessibility && symbol->owner != nullptr && !symbol->isGlobal) {
         if (actual.accessLevel.empty()) {
             Expr* source = object->initializer.get();

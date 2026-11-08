@@ -1,3 +1,9 @@
 prefixedviewerrors.adb:5:25: error: 'Access of an intrinsic prefixed view is not allowed
-prefixedviewerrors.adb:6:75: error: renaming prefixed views is not yet supported
-prefixedviewerrors.adb:14:46: error: prefixed views as generic actuals are not yet supported
+prefixedviewerrors.adb:6:75: error: no subprogram matches the reduced prefixed view profile
+prefixedviewerrors.adb:14:46: error: no subprogram matches the reduced prefixed view profile
+prefixedviewerrors.adb:17:36: error: 'Access of intrinsic subprograms is not allowed
+prefixedviewerrors.adb:18:60: error: no subprogram matches the reduced prefixed view profile
+prefixedviewerrors.adb:20:54: error: object 'Access requires an aliased object view
+prefixedviewerrors.adb:23:42: error: binding this aggregate receiver layout is not yet supported
+prefixedviewerrors.adb:28:69: error: binding this temporary receiver layout is not yet supported
+prefixedviewerrors.adb:32:71: error: binding this temporary receiver layout is not yet supported

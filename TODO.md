@@ -1550,13 +1550,17 @@ Ada 2005 additions and track annex packages separately.
     preceding full 21-case small/LIFO/throughput/scaling report with exact current
     component hashes. Twenty-three Python controls and both host protocol CTests
     pass. [Samples, selection and limits](docs/residual-helper-profiling.md).
-  - [ ] Fold proven-valid constant unpacked array offsets, retaining helper
-    fallback for unproven/dynamic/null/packed/overflow cases. Preserve operand
-    evaluation/widening, access checks, source locations and pending-exception
-    barriers. Validate correctness/sanitizers and matched 21-case production
-    performance; keep small-copy lowering separate. Continue locally; collect
-    native correctness at routine checkpoints and native profiling at manual
-    milestones. Historical no-slowdown remains open.
+  - [x] Implement proven-valid constant unpacked array offset folding and
+    bounded aggregate copies between known stack buffers. Preserve evaluation,
+    widening, locations, pending exceptions, exact byte coverage and overlap
+    semantics; retain helper fallbacks. Add constant/extreme/null/packed codegen
+    controls and executable dirty-memory/canary/overlap tests. The functional
+    batch passes 1,968 distinct Release checks, 82 ASan/UBSan and 43 TSan checks.
+    Profiling is deferred in favor of functional work; no new speedup claim is made.
+    [Implementation and follow-up policy](docs/performance-wrap-up.md).
+  - [ ] Performance follow-up — deferred: matched production measurements for
+    the latest offset/copy changes, native milestone checks and the historical
+    no-slowdown goal. This does not gate further Phase 8 functional work.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is
@@ -1567,8 +1571,14 @@ Ada 2005 additions and track annex packages separately.
     The regressions above keep the no-slowdown goal open.
     [Cross-host evidence](docs/host-performance-ci.json).
   [Contract, commands and evidence](docs/host-validation.md).
-- [ ] Prefixed-view renaming and generic subprogram actuals (ACATS C413005),
-  preserving receiver binding, lifetime and reduced-profile conformance.
+- [x] Prefixed-view renaming and generic subprogram actuals for supported tagged
+  receivers: capture once at elaboration, preserve object/access/class-wide
+  dispatch, reduced profiles, defaults and completion checks; retain receiver
+  results for their enclosing master/library lifetime. Unchanged ACATS C413005
+  passes alongside C413001–C413004. Add whole/separate/determinism, controlled
+  lifetime/failed elaboration, library and legality controls. Array/runtime-layout
+  aggregate receiver extensions remain explicitly diagnosed and tracked below.
+  [Contract](docs/prefixed-views.md).
 - [ ] Serialized semantic interfaces, so clients compile without dependency
   sources. `.ali` files hold only build metadata today.
 - [ ] Robust artifact publication and concurrent builds: interrupted writes,
@@ -1578,6 +1588,10 @@ Ada 2005 additions and track annex packages separately.
 - [x] Driver external linkage: accept ordered `.o`/`.a` inputs for executable
   builds, retaining Ada binding/runtime linkage; diagnose inputs in nonlinking
   modes (`driver.external_linkage`).
+- [ ] Extend bound prefixed temporary receiver layouts: array/runtime aggregate
+  receivers and subobjects of unmanaged enclosing composite function results.
+  Preserve lifetime and component identity; retain explicit diagnostics until
+  owning construction paths are available.
 - [x] Lowering layer decision: see the Phase 5 prelude. Reopen before select
   emission if the existing contracts cannot express its cleanup/cancellation
   paths without duplication, or when an independent backend needs a separate

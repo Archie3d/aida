@@ -147,3 +147,8 @@ initialization and compares offset/copy interactions. It selects proven constant
 offset folding as the next repair (8.2% diagnostic block reduction); combining
 folding and copy gives 27.7%, with nonadditive effects. The existing 21-case report
 is retained through exact component hashes. No new production gain is claimed.
+
+The selected offset fold and bounded stack-copy lowering are now
+[implemented](performance-wrap-up.md). Further profiling is deferred so Phase 8
+functional work can proceed. Existing diagnostic results remain opportunities,
+not measurements of the final compiler; historical no-slowdown stays open.

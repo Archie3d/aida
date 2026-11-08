@@ -109,6 +109,9 @@ ctest --test-dir build --output-on-failure \
     -R '^host\.(measurement_protocol|harness_protocol)$'
 ```
 
-Use the recorded post-zeroing Release build without competing validation load.
+Use the recorded post-zeroing Release build at `7be7a73f84cac226420f830589d43506b770f839`
+without competing validation load. The production findings are now
+[implemented](performance-wrap-up.md); later IR intentionally fails the fixed
+probe shapes. Further profiling is deferred while functional work continues.
 The original `helpers` suite continues to require its older pre-zeroing IR shapes;
 `cleanup` remains the default. Native profiling is a manual milestone checkpoint.

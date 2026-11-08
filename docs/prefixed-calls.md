@@ -38,8 +38,9 @@ in whole-program, per-unit and deterministic-IR modes. `prefixederrors` and
 pass the four combinations of value/access receivers and value/access formals;
 they also cover nested package bodies in a library package body.
 
-Interface receivers await Phase 6f. Prefixed-view renaming and generic
-subprogram actuals are explicitly diagnosed and remain for the Phase 8 audit
-(C413005). Taking `'Access` of a prefixed view is rejected because its Ada 2005
-convention is intrinsic; it must not produce an unbound ordinary callback.
-These view restrictions do not restrict ordinary prefixed calls.
+Interface receivers are supported by Phase 6f. [Bound prefixed views](prefixed-views.md)
+now support renaming and generic subprogram actuals with receiver capture and
+reduced profiles; unchanged C413005 passes. Aggregate receiver array/runtime
+layouts remain explicitly diagnosed. Taking `Access` of a prefixed view or its
+Intrinsic renaming remains illegal. These restrictions do not restrict ordinary
+prefixed calls.
