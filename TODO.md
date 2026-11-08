@@ -1443,9 +1443,16 @@ Ada 2005 additions and track annex packages separately.
     Repeated blocks/allocation are 2.691x/4.060x historical; at 4,096 live objects,
     current FIFO takes 1.057s versus 0.013892s LIFO for 65,536 allocations.
     [Protocol, evidence and limits](docs/host-validation.md#extended-and-batched-measurements).
-  - [ ] Confirm the extended schema-3 suite on native CI, then address measured
-    non-LIFO lookup/unlink scaling while preserving owned/borrowed precedence,
-    synchronization and callback/finalization behavior. The linked registry's
+  - [x] Confirm the extended schema-3 suite on native CI: Ubuntu amd64/arm64
+    each pass 1,946/1,946; MSYS2 passes 1,945/1,945, without failures, disabled
+    tests or skips. All 21 cases validate with both compilers over 11 pairs;
+    inputs, hashes, parameters, dispersion and order agree. Non-LIFO scaling
+    reproduces on all hosts: 4,096-live FIFO is about 43–66x current LIFO.
+    Long block ratios are 2.434x/2.384x/1.971x historical; allocation
+    5.303x/5.959x/3.874x. ABI/installation checks remain unchanged.
+    [Full native reports](docs/host-performance-extended-ci.json).
+  - [ ] Address measured non-LIFO lookup/unlink scaling while preserving
+    owned/borrowed precedence, synchronization and callback/finalization behavior. The linked registry's
     traversals are a supported investigation target, not isolated attribution
     of all measured time. Long block/allocation regressions keep the
     no-slowdown goal open.

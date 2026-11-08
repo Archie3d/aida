@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Native Darwin arm64 extended measurement protocol. Original short sources unchanged; long kernels repeat in nested activations. Generated sources and every timing sample retained. Native CI confirmation pending.",
+  "description": "Native Darwin arm64 extended measurement protocol. Original short sources unchanged; long kernels repeat in nested activations. Generated sources and every timing sample retained. Native CI confirmation is recorded in host-performance-extended-ci.json.",
   "source_base_revision": "eec5df13c5e34b2806586ad7f24cada5b62bff28",
   "protocol_sources_sha256": {
     "tests/host/measure.py": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
@@ -14,7 +14,7 @@
     "protocol_ctests_passed": 2,
     "python_measurement_controls_passed": 7,
     "tiny_suite": "Current and historical compiler smoke runs pass all generated families and release orders",
-    "native_ci_confirmation": "pending for schema-3 extended suite; existing compiler/runtime unchanged"
+    "native_ci_confirmation": "Confirmed at 62540d0fdd5204ed8c2bce91dcc3cb63d242cbbd: Ubuntu amd64/arm64 each 1,946/1,946; MSYS2 1,945/1,945. All 21 cases and 11 pairs validate; non-LIFO scaling reproduces across hosts. Full reports: host-performance-extended-ci.json"
   },
   "exploratory_32_repetitions": {
     "schema": 3,

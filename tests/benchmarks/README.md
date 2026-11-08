@@ -319,5 +319,9 @@ live objects, current FIFO takes 1.057s versus 0.013892s LIFO for the same total
 allocations, consistent with linked-record lookup/unlink costs. The cases also
 include array/index work; they are not isolated helper profiles. Generated long
 kernels add nested activations, so do not pool their medians with short runs.
-All 21 paired cases validate locally. CI now collects the same protocol; native
-confirmation and subsequent registry tuning remain open.
+All 21 paired cases now validate on all active native CI hosts, with 11 pairs
+per case. [Full native reports](../../docs/host-performance-extended-ci.json)
+confirm 1,946 tests on each Ubuntu architecture and 1,945 on MSYS2, with no skips.
+At 4,096 live objects, current FIFO is about 43–66x LIFO across those hosts.
+The long block/allocation gaps remain; the next step is lookup/unlink scaling
+while preserving synchronization, ownership precedence and callback behavior.

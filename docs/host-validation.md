@@ -1,8 +1,8 @@
 # Host and target validation
 
 Phase 8 has successful native **Darwin arm64, Linux amd64/arm64 and Windows
-amd64 (MSYS2 UCRT64)** evidence. The latest CI runs pass 1,945/1,945 tests
-on each Ubuntu architecture and 1,944/1,944 on Windows, with no failures,
+amd64 (MSYS2 UCRT64)** evidence. The latest CI runs pass 1,946/1,946 tests
+on each Ubuntu architecture and 1,945/1,945 on Windows, with no failures,
 disabled tests or skips. All eight [MSYS2 fixes](msys2-ci-fixes.md) are confirmed.
 Matched comparisons now cover all active CI hosts. The roadmap item remains
 open for the block/allocation regressions described below.
@@ -54,11 +54,11 @@ was introduced. Installation and ABI checks belong to the normal CTest suite.
 
 | Host | Prepared runner | Execution status |
 | --- | --- | --- |
-| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,945/1,945 PASS |
-| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,945/1,945 PASS |
+| Linux amd64 | ubuntu-24.04, lib64 | Native CI: 1,946/1,946 PASS |
+| Linux arm64 | ubuntu-24.04-arm, lib | Native CI: 1,946/1,946 PASS |
 | Darwin amd64 | Manual validation | Unvalidated; no CI job |
 | Darwin arm64 | Local development, lib/lib64 | Local native pass; no CI job |
-| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,944/1,944 PASS; all eight fixes confirmed |
+| Windows amd64 | windows-2025, MSYS2 UCRT64/GCC, lib | Native CI: 1,945/1,945 PASS; all eight fixes confirmed |
 
 Runner labels follow GitHub's [native runner inventory](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 Windows uses the documented [MSYS2 UCRT64 setup](https://github.com/msys2/setup-msys2).
@@ -479,7 +479,46 @@ not repeated for this tooling change.
 All active CI jobs now collect this 21-case, 11-trial protocol using the existing
 historical checkout. Their artifact names and `host evidence/timings.json` paths
 are unchanged; reports use schema 3. macOS entries stay commented out. Native
-Linux/MSYS2 confirmation is pending. The next optimization target is non-LIFO
+Linux/MSYS2 confirmation now passes at revision
+`62540d0fdd5204ed8c2bce91dcc3cb63d242cbbd`: Ubuntu amd64/arm64 each pass
+1,946/1,946 tests; MSYS2 passes 1,945/1,945, without failures, disabled tests or
+skips. Every host supplies all 21 validated cases and 11 sample pairs. Generated
+sources, original kernel/template/collector hashes (including Windows checkout
+line endings), parameters, medians, dispersion and execution order agree with
+the protocol. Within-host compiler/Release configurations match, and ABI and
+relocated-install checks remain unchanged.
+
+| Host | Long scalar ratio | Long image ratio | Long block ratio | Long allocation ratio |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.696 | 0.822 | 2.434 | 5.303 |
+| Ubuntu arm64 | 0.923 | 0.920 | 2.384 | 5.959 |
+| MSYS2 UCRT64 amd64 | 0.602 | 0.990 | 1.971 | 3.874 |
+
+Ratios compare current/historical medians for the same generated long input.
+Startup-control medians are about 0.5–0.7 ms on Ubuntu and 3.3–4.2 ms on MSYS2;
+the historical long block medians are 122–181 ms. Startup remains included and
+is not subtracted. These generated long cases should not be pooled with the
+earlier short-case observations.
+
+| Host, 4,096 live objects and 65,536 allocations | Current FIFO (s) | Current LIFO (s) | Current permuted (s) |
+| --- | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.401102 | 0.008314 | 0.392330 |
+| Ubuntu arm64 | 0.863443 | 0.013009 | 0.767055 |
+| MSYS2 UCRT64 amd64 | 0.816080 | 0.018930 | 0.624698 |
+
+All three hosts reproduce the live-set/order pattern: FIFO/permuted release
+grows sharply from 32 to 4,096 live objects while LIFO stays comparatively flat.
+At 4,096 objects FIFO is about 43–66x current LIFO within the same host/run.
+The long 32-live throughput ratios also retain historical gaps: FIFO
+8.200/7.608/5.419, LIFO 4.887/5.573/3.491 and permuted 4.818/5.425/3.633
+on Ubuntu amd64/arm64/MSYS2 respectively.
+
+[Full unmodified native reports](host-performance-extended-ci.json) retain every
+generated input and sample, executable/build hashes, CPU descriptions and
+parameters. Prior local and native evidence remains separate. The consistent
+order/scaling result supports investigating the linked lookup/unlink paths;
+it does not isolate every array, arithmetic, allocation or cache contribution.
+Native extended confirmation is complete. The next optimization target is non-LIFO
 lookup/unlink scaling, retaining ownership precedence, locks and callback rules.
 The longer block/allocation gaps keep the overall no-slowdown goal open.
 
