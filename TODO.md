@@ -121,7 +121,24 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
   such as execution-time clocks, timers, timing events and Ravenscar restrictions;
   do not infer annex or profile compliance from the minimal tasking subset.
 
-### Deferred host/performance follow-up
+### Phase 10 - Diagnostics quality follow-up
+
+- [ ] **Audit and improve compiler diagnostics.** Replace ambiguous wording with
+  clear explanations of the problem and, where useful, expected/actual types and
+  notes pointing to related declarations. Point at the offending token or source
+  span, including errors in generic instances and separately compiled units.
+  Improve recovery to reduce misleading cascades without hiding independent
+  errors. Add focused regression cases asserting message, file, line and column,
+  with legal counterparts; preserve existing legality and ACATS grading controls.
+- [ ] **Readable terminal diagnostics.** Add Rust-style source snippets with line
+  numbers, highlighted error spans, caret/arrow markers and related-location
+  labels. Use color when supported, with automatic terminal detection and an
+  explicit override; keep plain-text output suitable for redirected logs, CI and
+  existing tooling. Handle terminal width, tabs, Unicode display columns and
+  multiline spans. Test both rich and plain rendering without relying on color
+  alone to convey meaning.
+
+### Phase 11 - Deferred host/performance follow-up
 
 These remain open but do not gate the functional items above.
 
