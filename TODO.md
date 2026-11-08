@@ -1433,11 +1433,22 @@ Ada 2005 additions and track annex packages separately.
     are 2.211x/1.966x/1.495x; allocation 5.669x/5.046x/2.347x. Separate CI runs
     do not show a uniform isolated speedup, especially on Ubuntu amd64.
     [Full native samples](docs/host-performance-coallocation-ci.json).
-  - [ ] Measure longer workloads and batches with multiple live objects before
-    further registry indexing or aggregate construction tuning. Local matched
-    blocks/allocation remain 1.474x/2.420x historical, and native ratios vary;
-    the no-slowdown goal remains open. Phase 2's small differences still need
-    longer workloads before attribution.
+  - [x] Add and execute extended local measurements: unchanged short kernels,
+    startup control, 128 repeated kernel activations, equal-allocation batches
+    at 32/512/4,096 live objects in FIFO/LIFO/permuted order, and long throughput
+    at 32 live objects. Preserve generated sources, parameters, executable/
+    collector hashes, every sample, order and dispersion. All 21 cases validate
+    with both compiler/runtime builds over 11 alternating trials. Seven Python
+    protocol controls and two host CTests pass. Prepare the same suite for CI.
+    Repeated blocks/allocation are 2.691x/4.060x historical; at 4,096 live objects,
+    current FIFO takes 1.057s versus 0.013892s LIFO for 65,536 allocations.
+    [Protocol, evidence and limits](docs/host-validation.md#extended-and-batched-measurements).
+  - [ ] Confirm the extended schema-3 suite on native CI, then address measured
+    non-LIFO lookup/unlink scaling while preserving owned/borrowed precedence,
+    synchronization and callback/finalization behavior. The linked registry's
+    traversals are a supported investigation target, not isolated attribution
+    of all measured time. Long block/allocation regressions keep the
+    no-slowdown goal open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

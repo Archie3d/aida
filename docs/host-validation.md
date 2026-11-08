@@ -126,10 +126,11 @@ targets, not a measured attribution of all overhead. The small Phase-2-only
 differences need longer workloads before interpreting them as regressions.
 No broad no-slowdown claim is supported.
 
-The CI workflow now checks out the pinned pre-Phase-2 revision with its QBE
-submodule and builds its `ada` target separately in Release. The existing native
-suites still run against current code; timing collection then alternates current
-and historical binaries for 21 trials. The supplied Linux/MSYS2 artifacts confirm successful historical builds and
+The initial paired CI workflow checked out the pinned pre-Phase-2 revision
+with its QBE submodule and built its `ada` target separately in Release. Native
+suites ran against current code; timing collection alternated current and
+historical binaries for 21 trials. The extended protocol below supersedes that
+short-only collection. The supplied Linux/MSYS2 artifacts confirm successful historical builds and
 workload validation. macOS CI entries remain commented out.
 
 ### Native CI historical comparisons
@@ -399,6 +400,88 @@ with multiple live objects are the next measurement targets: the current
 allocation workload releases each object immediately and does not characterize
 the linked registry's scaling. Remaining aggregate helper/copy and registry costs
 need measurement before further tuning. The overall performance item stays open.
+
+### Extended and batched measurements
+
+Schema 3 adds an extended suite while retaining the four original short inputs
+byte-for-byte. Long cases wrap each unchanged kernel in a nested procedure and
+invoke it 128 times in one process, validating every activation. This retains
+each kernel's initialization/cleanup and adds wrapper activation/static-link
+structure; compare each long case with its historical counterpart rather than
+pooling its timings with the old top-level short case.
+
+The suite has 21 cases: four short kernels, an empty-program startup control,
+four long kernels, nine live-set scaling cases and three long batch-throughput
+cases. Scaling holds total object allocations at 65,536 while varying the live
+set across 32, 512 and 4,096 objects and release order across FIFO, LIFO and a
+coprime permutation. Throughput holds 32 objects live for 4,194,304 allocations
+per order. Each batch checks its checksum and cleared access values. Its pointer
+table lives on the heap, avoiding a new large stack frame in the historical
+Windows compiler. Input limits keep the permutation and checksum arithmetic
+valid; every compiler/program invocation retains a finite deadline.
+
+Generated Ada sources, source/kernel/template/executable/collector hashes, exact
+parameters, execution order, every sample, paired ratios and median absolute
+deviation are retained. CPU descriptions/counts/affinity are recorded where
+available, without promising identical hardware across runner instances.
+Startup remains included; the startup control is never subtracted. A preliminary
+32-repeat run left the fastest historical long block case around 41 ms, so the
+final protocol uses 128 repeats and dedicated long-throughput batches.
+
+[Full local reports, generated sources and protocol validation](host-performance-extended-darwin-arm64.json)
+preserve both the preliminary and final runs. Native Darwin arm64 Release uses
+compiler source revision `eec5df13c5e34b2806586ad7f24cada5b62bff28` (production
+code unchanged since `b067332b07ec37154bfb1d0bc7b4d1068bb415ee`) and the pinned
+pre-Phase-2 baseline, with matching flags/toolchains and 11 alternating trials.
+Both compiler/runtime builds validate all 21 cases. No compiler/runtime tuning
+is included in this measurement change.
+
+| Repeated kernel | Current median (s) | Historical median (s) | Current / historical |
+| --- | ---: | ---: | ---: |
+| Scalar calls | 1.265531 | 1.857699 | 0.681 |
+| Images | 2.552664 | 3.432846 | 0.744 |
+| Block scopes | 0.401992 | 0.149389 | 2.691 |
+| Allocation/deallocation | 1.564795 | 0.385394 | 4.060 |
+
+The empty-program medians are 0.003562/0.003230 seconds (current/historical).
+That control is a large fraction of the short baseline block time, but roughly
+2% of the long baseline block time. It is a diagnostic, not an exact startup
+cost model for every linked program. Long kernel/throughput median absolute
+deviations are below 0.5% of their medians in this local run; this is observed
+dispersion, not a confidence interval or a cross-host guarantee.
+
+| Live objects, 65,536 allocations total | Current FIFO (s) | Current LIFO (s) | Current permuted (s) |
+| --- | ---: | ---: | ---: |
+| 32 | 0.016008 | 0.013571 | 0.015598 |
+| 512 | 0.075078 | 0.013984 | 0.052359 |
+| 4,096 | 1.057078 | 0.013892 | 0.863151 |
+
+The historical scaling cases remain around 5–6 ms, where startup is still a
+large fraction; avoid treating the large cross-build ratios as isolated registry
+costs. Within current code, the live-set/order pattern is consistent with the
+linear traversals in `findAllocationLocked` and `unlinkAllocation`. These cases
+also include allocation, array access, index arithmetic and cleanup, so they do
+not attribute all time to those helpers.
+
+| 32-live throughput, 4,194,304 allocations | Current median (s) | Historical median (s) | Ratio |
+| --- | ---: | ---: | ---: |
+| FIFO | 0.760860 | 0.121326 | 6.271 |
+| LIFO | 0.619334 | 0.143738 | 4.309 |
+| Permuted | 0.718148 | 0.169991 | 4.225 |
+
+Seven Python measurement protocol controls pass, including invalid configurations,
+unchanged short inputs, generated-source/metadata agreement, failed/noisy runs
+and finite deadlines. Both host protocol CTests pass. Small integration runs and
+the final full extended suite validate generated families/orders with both
+compilers. Compiler/runtime code is unchanged, so the full compiler suite was
+not repeated for this tooling change.
+
+All active CI jobs now collect this 21-case, 11-trial protocol using the existing
+historical checkout. Their artifact names and `host evidence/timings.json` paths
+are unchanged; reports use schema 3. macOS entries stay commented out. Native
+Linux/MSYS2 confirmation is pending. The next optimization target is non-LIFO
+lookup/unlink scaling, retaining ownership precedence, locks and callback rules.
+The longer block/allocation gaps keep the overall no-slowdown goal open.
 
 ## Reproduce
 

@@ -2716,6 +2716,9 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME host.harness_protocol
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/test_harness.py)
     set_tests_properties(host.harness_protocol PROPERTIES TIMEOUT 30 LABELS "host")
+    add_test(NAME host.measurement_protocol
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/test_measure.py)
+    set_tests_properties(host.measurement_protocol PROPERTIES TIMEOUT 30 LABELS "host")
     add_test(NAME host.install_relocation
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/host/check_install.py
             --cmake ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}

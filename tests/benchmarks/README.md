@@ -247,7 +247,8 @@ no-slowdown goal. Native historical pairs now cover all active CI hosts;
 block/allocation regressions and the Windows revision-field limitation.
 
 The CI workflow now builds the pinned pre-Phase-2 revision
-`3d2aac5980f57fb68524a15b154f65cf0882bdc2` and collects 21 alternating trials.
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2`; the current extended protocol
+collects 11 alternating trials per case (the earlier short pairs used 21).
 Use `--revision` and `--baseline-revision` to record the corresponding compiler
 revisions; build options and compiler versions are captured from each build.
 For manual reproduction, check out that revision with its QBE submodule into a
@@ -295,3 +296,28 @@ pairs do not reproduce a uniform speedup across separate runs; Ubuntu amd64
 block/allocation ratios are worse this time. Longer runs and batches with
 multiple live objects are needed before tuning registry scaling. The immediate
 allocate/free workload does not exercise long registry searches.
+
+The [extended schema-3 protocol](../../docs/host-validation.md#extended-and-batched-measurements)
+keeps the short sources unchanged, repeats each kernel 128 times per process,
+adds a startup control, and measures FIFO/LIFO/permuted batches. Scaling cases
+perform 65,536 allocations at 32/512/4,096 live objects; throughput cases perform
+4,194,304 allocations at 32 live objects. Pointer tables are heap-backed for the
+historical Windows compiler. Every generated source, parameter, sample, order,
+dispersion and executable hash is retained; startup is never subtracted.
+
+```sh
+python3 -B tests/host/measure.py --ada build/ada/ada --build build \
+    --baseline-ada /path/to/before/ada --baseline-build /path/to/before/build \
+    --suite extended --repetitions 128 --batch-sizes 32 512 4096 \
+    --batch-objects 65536 --throughput-objects 4194304 --runs 11 \
+    --work build/host-evidence-extended
+```
+
+[Local full reports](../../docs/host-performance-extended-darwin-arm64.json) show
+repeated block/allocation ratios of 2.691/4.060 against pre-Phase-2. At 4,096
+live objects, current FIFO takes 1.057s versus 0.013892s LIFO for the same total
+allocations, consistent with linked-record lookup/unlink costs. The cases also
+include array/index work; they are not isolated helper profiles. Generated long
+kernels add nested activations, so do not pool their medians with short runs.
+All 21 paired cases validate locally. CI now collects the same protocol; native
+confirmation and subsequent registry tuning remain open.
