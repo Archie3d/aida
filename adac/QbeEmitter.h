@@ -70,6 +70,7 @@ public:
 
 private:
     static constexpr long long kArrayStackLimit = 65536;
+    static constexpr long long kInlineScratchZeroLimit = 32;
     static constexpr long long kFrameStackLimit = INT32_MAX - 16;
 
     struct ArrayAggregatePlan
@@ -194,6 +195,7 @@ private:
     };
     void emitCallInstruction(const std::string& instruction, CallEffects effects,
                              MasterEffects masters = MasterEffects::MayObserve);
+    void emitSourceLocation();
     void emitReturn(const std::string& operand = "");
     std::string functionExitActions(const FunctionContext& context);
     std::string sourceLocationData(const SourceLocation& location);
@@ -265,6 +267,7 @@ private:
     Value allocatedArrayView(Value pointer, Type* type);
     long long reserveFrame(long long size, long long alignment = 8);
     std::string allocScratch(long long size, long long alignment = 1);
+    void emitScratchZero(const std::string& buffer, long long size, long long alignment);
     std::string storageArena(bool temporary, bool allocate = false);
     StorageCheckpoint storageCheckpoint();
     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);

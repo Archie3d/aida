@@ -138,10 +138,14 @@ allocation opportunities separate. Historical no-slowdown remains open.
 
 ## Reproduce
 
-Use a matching Release build without concurrent validation load:
+Use a matching pre-repair Release build without concurrent validation load.
+The fixed QBE shapes are those from `36ce98fbbb8ea5c2324ba712fc84a0936dd6fdb1`;
+the helper probes intentionally reject later IR that already inlines zeroing.
+The resulting production repair is tracked in [inline scratch zeroing](inline-scratch-zeroing.md).
 
 ```sh
-python3 -B tests/host/profile_runtime.py --build build --suite helpers \
+python3 -B tests/host/profile_runtime.py \
+    --build build/host-performance/before-inline-zero-build --suite helpers \
     --work build/host-performance/helper-profile/manual --runs 11 --repetitions 128
 ctest --test-dir build --output-on-failure \
     -R '^host\.(measurement_protocol|harness_protocol)$'

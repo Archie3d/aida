@@ -1532,13 +1532,22 @@ Ada 2005 additions and track annex packages separately.
     including small/LIFO, throughput and scaling cases. Twenty Python controls
     and both host protocol CTests pass; production components are unchanged.
     [Method, samples and limits](docs/helper-profiling.md).
-  - [ ] Inline zeroing for small, statically sized and suitably aligned aggregate
-    scratch buffers, preserving every initialized byte. Bound code size and retain
-    memset/runtime allocation for dynamic, large or unsupported cases. Preserve
-    source locations, destination isolation, evaluation order, checks and pre-copy
-    exception barriers. Validate correctness/sanitizers and all 21 production
-    cases using same-host before/after builds; native profiling stays a manual
-    milestone checkpoint. Historical no-slowdown remains open.
+  - [x] Inline zeroing for small, statically sized aggregate scratch buffers up
+    to 32 bytes, preserving every initialized byte and alignment. Keep source
+    locations, destination isolation, evaluation order, checks and the pre-copy
+    exception barrier; retain memset/runtime allocation fallbacks. Exact byte/
+    canary controls and whole/separate/determinism fixtures pass. All 1,957
+    distinct local correctness checks, 59 ASan/UBSan and 20 focused TSan checks
+    pass. Matched 21-case/11-pair production measurements reduce long block time
+    24.7%; long allocation ratio is 0.9987, throughput 0.9904–1.0007. Native
+    correctness confirmation remains for the next routine CI checkpoint; native
+    profiling stays manual. [Evidence and limits](docs/inline-scratch-zeroing.md).
+  - [ ] Reassess residual checked-offset/small-copy work against the updated
+    local production baseline and select the next repair. Preserve bounds,
+    null/packed/overflow behavior, overlapping-copy semantics and exception
+    barriers; retain the small/LIFO, throughput and scaling controls. Collect
+    native correctness at routine CI checkpoints and native profiling at manual
+    milestones. Historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

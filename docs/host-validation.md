@@ -910,6 +910,23 @@ barrier, with existing fallbacks for unsupported sizes/alignment and allocation.
 the routine path, with manual native profiling at milestones. Historical
 no-slowdown remains open.
 
+## Inline scratch zeroing
+
+[Small aggregate scratch zeroing](inline-scratch-zeroing.md) now uses exact aligned
+stores up to 32 bytes, retaining initialization, source locations, separate
+scratch storage and the commit exception barrier. Null/tail/threshold/canary
+controls and static/dynamic/large fallbacks pass. All 1,957 distinct local
+correctness checks, 59 ASan/UBSan and 20 focused TSan checks pass; the report
+records the corrected stale codegen test invocation from the full run.
+
+The matched 21-case/11-pair production comparison uses identical backend/runtime
+bytes and matching Release flags. Long block time falls 24.7% (0.266976s to
+0.200988s); long allocation ratio is 0.9987. Scaling ratios are 0.9919–1.0185 and
+throughput 0.9904–1.0007. [Full reports](host-performance-inline-zeroing.json)
+retain the working-tree patch and all samples. Native correctness confirmation
+remains for a routine CI checkpoint; native profiling remains manual. Residual
+helper/allocation overhead and historical no-slowdown stay open.
+
 ## Reproduce
 
 ```sh

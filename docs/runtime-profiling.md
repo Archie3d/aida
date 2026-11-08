@@ -135,3 +135,9 @@ reduces diagnostic block time about 26%, selecting small known-size zeroing as
 the next repair while preserving all initialized bytes. The production
 compiler/runtime are unchanged; complete sample sets and the 21-case same-build
 control remain separate from actual before/after optimization evidence.
+
+The resulting [small scratch zeroing repair](inline-scratch-zeroing.md) preserves
+all zero initialization and reduces matched local production long block time
+24.7%. The 21-case control suite, correctness/sanitizer results, source patch and
+samples are archived separately from the diagnostic probes. Native confirmation
+and historical no-slowdown remain open.

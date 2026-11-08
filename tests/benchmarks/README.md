@@ -397,3 +397,11 @@ bytes and existing fallbacks in the planned production repair. All 21 ordinary c
 same-build harness control; no new historical or production speedup is claimed.
 Twenty protocol controls and both host protocol CTests pass. Native profiling
 remains manual; zero/lock omissions are diagnostic-only.
+
+The [production scratch zeroing repair](../../docs/inline-scratch-zeroing.md)
+reduces local long block time 24.7% against the immediately preceding compiler,
+using all 21 cases and 11 alternating pairs. Long allocation is 0.9987 of baseline;
+throughput ratios are 0.9904–1.0007. Backend/runtime bytes are identical between
+builds. [Raw evidence](../../docs/host-performance-inline-zeroing.json) includes
+the working-tree patch and full validation results. Native and historical
+performance claims remain separate.

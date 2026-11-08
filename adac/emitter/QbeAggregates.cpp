@@ -316,8 +316,10 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add
         if (scratchBytes >= 0) {
             // Keep a separate, zeroed temporary: component evaluation can read
             // the destination or raise before the final copy commits it.
-            buffer = allocScratch(scratchBytes, typeAlignment(type));
-            emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(scratchBytes) + ")", CallEffects::DeferredCheck, MasterEffects::Independent);
+            // allocScratch guarantees four or eight byte stack alignment.
+            long long alignment = scratchBytes <= 4 && typeAlignment(type) <= 4 ? 4 : 8;
+            buffer = allocScratch(scratchBytes, alignment);
+            emitScratchZero(buffer, scratchBytes, alignment);
         } else {
             buffer = newTemp();
             emitCallInstruction(buffer + " =l call $__ada_array_local(l " + storageArena(true, true)

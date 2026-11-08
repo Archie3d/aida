@@ -132,13 +132,20 @@ void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects
         label(newLabel("unreachable"));
     }
     bool publishLocation = effects == CallEffects::DeferredCheck || effects == CallEffects::CheckException;
-    if (publishLocation && m_context->sourceLocation.line > 0) {
-        m_context->body << "    storel " << sourceLocationData(m_context->sourceLocation)
-                        << ", %.traceLocation\n";
+    if (publishLocation) {
+        emitSourceLocation();
     }
     line(instruction);
     if (effects == CallEffects::CheckException || effects == CallEffects::CheckedRuntimeHook) {
         emitExceptionCheck();
+    }
+}
+
+void QbeEmitter::emitSourceLocation()
+{
+    if (m_context->sourceLocation.line > 0) {
+        m_context->body << "    storel " << sourceLocationData(m_context->sourceLocation)
+                        << ", %.traceLocation\n";
     }
 }
 

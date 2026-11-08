@@ -34,6 +34,35 @@ std::string QbeEmitter::allocScratch(long long size, long long alignment)
     return temp;
 }
 
+void QbeEmitter::emitScratchZero(const std::string& buffer, long long size, long long alignment)
+{
+    if (size <= 0 || size > kInlineScratchZeroLimit || (alignment != 4 && alignment != 8)) {
+        emitCallInstruction("call $memset(l " + buffer + ", w 0, l " + std::to_string(size) + ")",
+            CallEffects::DeferredCheck, MasterEffects::Independent);
+        return;
+    }
+    if (m_context->terminated) {
+        label(newLabel("unreachable"));
+    }
+    // Retain the location published by the former memset call. Stores cannot
+    // observe master ancestry or raise an Ada exception.
+    emitSourceLocation();
+    for (long long offset = 0; offset < size;) {
+        long long width = alignment;
+        while (width > size - offset || offset % width != 0) {
+            width /= 2;
+        }
+        std::string address = buffer;
+        if (offset != 0) {
+            address = newTemp();
+            line(address + " =l add " + buffer + ", " + std::to_string(offset));
+        }
+        const char* instruction = width == 8 ? "storel" : width == 4 ? "storew" : width == 2 ? "storeh" : "storeb";
+        line(std::string(instruction) + " 0, " + address);
+        offset += width;
+    }
+}
+
 std::string QbeEmitter::storageArena(bool temporary, bool allocate)
 {
     if (allocate) {

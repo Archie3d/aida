@@ -1,0 +1,4591 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-11-08T19:58:35.007150+00:00",
+  "description": "Matched local production compiler repair: preserve exact small aggregate scratch zeroing using aligned stores. Darwin arm64; native CI checkpoint and historical no-slowdown remain open.",
+  "build_and_source_controls": {
+    "source_base_revision": "36ce98fbbb8ea5c2324ba712fc84a0936dd6fdb1",
+    "fresh_baseline_components_before_dependency_pinning": {
+      "ada/ada": "d561eddec4f356a562c303eb1275c511de38751da391d060b0b29c32e7b30249",
+      "adac/adac": "ad92e649b334da56618dd12aa0ba979478aebe15a7c521f423feba81b2e9b4e2",
+      "qbe/qbe": "149c3af2fffdd633559ed297c05a91b159bf68025d4fecb67b50d1a60db855f6",
+      "runtime/libadart.a": "19c8351920bd5f5d3f2d4c160018da6d769b5152740851766270c9e9e78ea0c1"
+    },
+    "dependency_pinning": "Fresh baseline dependency binaries differed byte-for-byte. Copy current QBE and runtime archive into the baseline build to hold these dependencies exactly constant. Baseline compiler was built before source edits; adart/adamaster/adalock object hashes matched before pinning.",
+    "baseline_components": {
+      "ada/ada": "d561eddec4f356a562c303eb1275c511de38751da391d060b0b29c32e7b30249",
+      "adac/adac": "ad92e649b334da56618dd12aa0ba979478aebe15a7c521f423feba81b2e9b4e2",
+      "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214",
+      "runtime/libadart.a": "18033054056c1d7146e8927e120d9040af82665ed5481fff7020d65dd8b0ef6c"
+    },
+    "current_components": {
+      "ada/ada": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "adac/adac": "0a9aa2208ed61c988908b2dab9d4895617db47baaf4cc5e79097a6e4e91ca473",
+      "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214",
+      "runtime/libadart.a": "18033054056c1d7146e8927e120d9040af82665ed5481fff7020d65dd8b0ef6c"
+    },
+    "source_sha256": {
+      "adac/QbeEmitter.h": "3792257157515c3d64544b07ac01b9b3263d2db8f67784b8ee3730fcb74202c2",
+      "adac/emitter/QbeEmitter.cpp": "50c5894b6639f930251db1b27ed8679755242753cba71d51c950552a134a3516",
+      "adac/emitter/QbeStorage.cpp": "d1dcea9548d895cfea3d0d78785bde8995b97ce843c7d329f6c3bcecf399c21d",
+      "adac/emitter/QbeAggregates.cpp": "06f06832932eeebe96befefb398486967e1544987fef73db82880c592143eb94",
+      "tests/CheckAggregateZeroing.py": "4b788be789290c55cba51f2f6559721a94432fe543bc9163a3805aa8e297e82b",
+      "tests/ada/arrays/aggregatezeroing.adb": "2925e0ca570c9cbcae9c007993be51529347e0701c2b1335eb2aed5f6dd7b16f",
+      "tests/CMakeLists.txt": "85a26e3826089abd2a16587fbb07865cfd4ad1b4550d2600228581de474ee380",
+      "tests/ada/arrays/aggregatezeroing.expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "production_patch": "diff --git a/adac/QbeEmitter.h b/adac/QbeEmitter.h\nindex 1fc23cf..736271b 100644\n--- a/adac/QbeEmitter.h\n+++ b/adac/QbeEmitter.h\n@@ -70,6 +70,7 @@ public:\n \n private:\n     static constexpr long long kArrayStackLimit = 65536;\n+    static constexpr long long kInlineScratchZeroLimit = 32;\n     static constexpr long long kFrameStackLimit = INT32_MAX - 16;\n \n     struct ArrayAggregatePlan\n@@ -194,6 +195,7 @@ private:\n     };\n     void emitCallInstruction(const std::string& instruction, CallEffects effects,\n                              MasterEffects masters = MasterEffects::MayObserve);\n+    void emitSourceLocation();\n     void emitReturn(const std::string& operand = \"\");\n     std::string functionExitActions(const FunctionContext& context);\n     std::string sourceLocationData(const SourceLocation& location);\n@@ -265,6 +267,7 @@ private:\n     Value allocatedArrayView(Value pointer, Type* type);\n     long long reserveFrame(long long size, long long alignment = 8);\n     std::string allocScratch(long long size, long long alignment = 1);\n+    void emitScratchZero(const std::string& buffer, long long size, long long alignment);\n     std::string storageArena(bool temporary, bool allocate = false);\n     StorageCheckpoint storageCheckpoint();\n     void rewindStorage(const StorageCheckpoint& checkpoint, bool checkException = true);\ndiff --git a/adac/emitter/QbeAggregates.cpp b/adac/emitter/QbeAggregates.cpp\nindex 555cae0..5f69c44 100644\n--- a/adac/emitter/QbeAggregates.cpp\n+++ b/adac/emitter/QbeAggregates.cpp\n@@ -316,8 +316,10 @@ Value QbeEmitter::emitDynamicAggregateInto(AggregateExpr* expr, const Value& add\n         if (scratchBytes >= 0) {\n             // Keep a separate, zeroed temporary: component evaluation can read\n             // the destination or raise before the final copy commits it.\n-            buffer = allocScratch(scratchBytes, typeAlignment(type));\n-            emitCallInstruction(\"call $memset(l \" + buffer + \", w 0, l \" + std::to_string(scratchBytes) + \")\", CallEffects::DeferredCheck, MasterEffects::Independent);\n+            // allocScratch guarantees four or eight byte stack alignment.\n+            long long alignment = scratchBytes <= 4 && typeAlignment(type) <= 4 ? 4 : 8;\n+            buffer = allocScratch(scratchBytes, alignment);\n+            emitScratchZero(buffer, scratchBytes, alignment);\n         } else {\n             buffer = newTemp();\n             emitCallInstruction(buffer + \" =l call $__ada_array_local(l \" + storageArena(true, true)\ndiff --git a/adac/emitter/QbeEmitter.cpp b/adac/emitter/QbeEmitter.cpp\nindex e8d9ccf..1524015 100644\n--- a/adac/emitter/QbeEmitter.cpp\n+++ b/adac/emitter/QbeEmitter.cpp\n@@ -132,9 +132,8 @@ void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects\n         label(newLabel(\"unreachable\"));\n     }\n     bool publishLocation = effects == CallEffects::DeferredCheck || effects == CallEffects::CheckException;\n-    if (publishLocation && m_context->sourceLocation.line > 0) {\n-        m_context->body << \"    storel \" << sourceLocationData(m_context->sourceLocation)\n-                        << \", %.traceLocation\\n\";\n+    if (publishLocation) {\n+        emitSourceLocation();\n     }\n     line(instruction);\n     if (effects == CallEffects::CheckException || effects == CallEffects::CheckedRuntimeHook) {\n@@ -142,6 +141,14 @@ void QbeEmitter::emitCallInstruction(const std::string& instruction, CallEffects\n     }\n }\n \n+void QbeEmitter::emitSourceLocation()\n+{\n+    if (m_context->sourceLocation.line > 0) {\n+        m_context->body << \"    storel \" << sourceLocationData(m_context->sourceLocation)\n+                        << \", %.traceLocation\\n\";\n+    }\n+}\n+\n void QbeEmitter::emitReturn(const std::string& operand)\n {\n     emitBlockExits(0);\ndiff --git a/adac/emitter/QbeStorage.cpp b/adac/emitter/QbeStorage.cpp\nindex adbe129..e442cdf 100644\n--- a/adac/emitter/QbeStorage.cpp\n+++ b/adac/emitter/QbeStorage.cpp\n@@ -34,6 +34,35 @@ std::string QbeEmitter::allocScratch(long long size, long long alignment)\n     return temp;\n }\n \n+void QbeEmitter::emitScratchZero(const std::string& buffer, long long size, long long alignment)\n+{\n+    if (size <= 0 || size > kInlineScratchZeroLimit || (alignment != 4 && alignment != 8)) {\n+        emitCallInstruction(\"call $memset(l \" + buffer + \", w 0, l \" + std::to_string(size) + \")\",\n+            CallEffects::DeferredCheck, MasterEffects::Independent);\n+        return;\n+    }\n+    if (m_context->terminated) {\n+        label(newLabel(\"unreachable\"));\n+    }\n+    // Retain the location published by the former memset call. Stores cannot\n+    // observe master ancestry or raise an Ada exception.\n+    emitSourceLocation();\n+    for (long long offset = 0; offset < size;) {\n+        long long width = alignment;\n+        while (width > size - offset || offset % width != 0) {\n+            width /= 2;\n+        }\n+        std::string address = buffer;\n+        if (offset != 0) {\n+            address = newTemp();\n+            line(address + \" =l add \" + buffer + \", \" + std::to_string(offset));\n+        }\n+        const char* instruction = width == 8 ? \"storel\" : width == 4 ? \"storew\" : width == 2 ? \"storeh\" : \"storeb\";\n+        line(std::string(instruction) + \" 0, \" + address);\n+        offset += width;\n+    }\n+}\n+\n std::string QbeEmitter::storageArena(bool temporary, bool allocate)\n {\n     if (allocate) {\n"
+  },
+  "validation": {
+    "release": {
+      "distinct_tests_passed": 1957,
+      "tests": [
+        "acats.b_grading_harness",
+        "acats.backfill_c34001a",
+        "acats.backfill_c34001c",
+        "acats.backfill_c34001d",
+        "acats.backfill_c34002a",
+        "acats.backfill_c34002c",
+        "acats.backfill_c35003a",
+        "acats.backfill_c35003d",
+        "acats.backfill_c35502a",
+        "acats.backfill_c35502g",
+        "acats.backfill_c36104a",
+        "acats.backfill_c36104b",
+        "acats.backfill_c36180a",
+        "acats.backfill_c37002a",
+        "acats.backfill_c37003a",
+        "acats.backfill_c37003b",
+        "acats.backfill_c37005a",
+        "acats.backfill_c37006a",
+        "acats.backfill_c37008a",
+        "acats.backfill_c37008b",
+        "acats.backfill_c390010",
+        "acats.backfill_c390011",
+        "acats.backfill_c391001",
+        "acats.backfill_c391003",
+        "acats.backfill_c392004",
+        "acats.backfill_c392010",
+        "acats.backfill_c392011",
+        "acats.backfill_c392d01",
+        "acats.backfill_c392d02",
+        "acats.backfill_c393001",
+        "acats.backfill_c393012",
+        "acats.backfill_c393013",
+        "acats.backfill_c393a02",
+        "acats.backfill_c393a03",
+        "acats.backfill_c393a06",
+        "acats.backfill_c394002",
+        "acats.backfill_c394003",
+        "acats.backfill_c3a0001",
+        "acats.backfill_c3a0002",
+        "acats.backfill_c3a0003",
+        "acats.backfill_c3a0004",
+        "acats.backfill_c3a0005",
+        "acats.backfill_c3a0007",
+        "acats.backfill_c3a0008",
+        "acats.backfill_c3a0019",
+        "acats.backfill_c3a0021",
+        "acats.backfill_c3a0022",
+        "acats.backfill_c3a0023",
+        "acats.backfill_c3a0024",
+        "acats.backfill_c41103a",
+        "acats.backfill_c41104a",
+        "acats.backfill_c41105a",
+        "acats.backfill_c41107a",
+        "acats.backfill_c41204a",
+        "acats.backfill_c41205a",
+        "acats.backfill_c41206a",
+        "acats.backfill_c41207a",
+        "acats.backfill_c432001",
+        "acats.backfill_c432004",
+        "acats.backfill_c43204a",
+        "acats.backfill_c460004",
+        "acats.backfill_c460005",
+        "acats.backfill_c460006",
+        "acats.backfill_c49020a",
+        "acats.backfill_c49021a",
+        "acats.backfill_c49022b",
+        "acats.backfill_c49022c",
+        "acats.backfill_c540001",
+        "acats.backfill_c540002",
+        "acats.backfill_c54a03a",
+        "acats.backfill_c54a07a",
+        "acats.backfill_c640001",
+        "acats.backfill_c64002b",
+        "acats.backfill_c64004g",
+        "acats.backfill_c64005a",
+        "acats.backfill_c64005b",
+        "acats.backfill_c64005c",
+        "acats.backfill_c65003a",
+        "acats.backfill_c65003b",
+        "acats.backfill_c730004",
+        "acats.backfill_c73002a",
+        "acats.backfill_c760001",
+        "acats.backfill_c760002",
+        "acats.backfill_c760009",
+        "acats.backfill_c760010",
+        "acats.backfill_c760011",
+        "acats.backfill_c760013",
+        "acats.backfill_c761004",
+        "acats.backfill_c761006",
+        "acats.backfill_c83007a",
+        "acats.backfill_c83022a",
+        "acats.backfill_c83024a",
+        "acats.backfill_c840001",
+        "acats.backfill_c84002a",
+        "acats.backfill_c84005a",
+        "acats.backfill_c84008a",
+        "acats.backfill_c84009a",
+        "acats.backfill_c85005f",
+        "acats.backfill_c940005",
+        "acats.backfill_c940010",
+        "acats.backfill_ca1003a",
+        "acats.backfill_ca1004a",
+        "acats.backfill_ca1005a",
+        "acats.backfill_cc3603a",
+        "acats.backfill_cc3606a",
+        "acats.backfill_cc3606b",
+        "acats.backfill_cd2a22e",
+        "acats.backfill_cd2a22i",
+        "acats.backfill_cd2a22j",
+        "acats.backfill_cd2a24a",
+        "acats.backfill_cd2a24e",
+        "acats.backfill_cd2a24i",
+        "acats.backfill_cd2a24j",
+        "acats.c354002",
+        "acats.c354003",
+        "acats.c35507a",
+        "acats.c35a08b",
+        "acats.c36203a",
+        "acats.c37108b",
+        "acats.c37206a",
+        "acats.c37211a",
+        "acats.c37306a",
+        "acats.c390012",
+        "acats.c3a0006",
+        "acats.c3a0009",
+        "acats.c3a0013",
+        "acats.c3a0015",
+        "acats.c3a0020",
+        "acats.c3a0025",
+        "acats.c3a0030",
+        "acats.c3a2002",
+        "acats.c3a2003",
+        "acats.c3a2004",
+        "acats.c3a2a01",
+        "acats.c413001",
+        "acats.c413002",
+        "acats.c413003",
+        "acats.c413004",
+        "acats.c433001",
+        "acats.c45347a",
+        "acats.c45503a",
+        "acats.c45504a",
+        "acats.c45523a",
+        "acats.c45611a",
+        "acats.c460001",
+        "acats.c460002",
+        "acats.c48005b",
+        "acats.c49022a",
+        "acats.c51004a",
+        "acats.c52005a",
+        "acats.c53007a",
+        "acats.c59002a",
+        "acats.c59002b",
+        "acats.c650003",
+        "acats.c651001",
+        "acats.c760007",
+        "acats.c761002",
+        "acats.c761012",
+        "acats.c85011a",
+        "acats.c96006a",
+        "acats.c96007a",
+        "acats.c96008a",
+        "acats.c96008b",
+        "acats.ca1006a",
+        "acats.ca110232",
+        "acats.ca120012",
+        "acats.ca12002",
+        "acats.ca200031",
+        "acats.ca2009a",
+        "acats.ca2009d",
+        "acats.ca21001",
+        "acats.cb41001",
+        "acats.cb41003",
+        "acats.cb41004",
+        "acats.cc1204a",
+        "acats.cc1302a",
+        "acats.cc3240a",
+        "acats.cc3601a",
+        "acats.cc51b03",
+        "acats.cc54001",
+        "acats.cc54002",
+        "acats.cc54003",
+        "acats.cc54004",
+        "acats.cc60001",
+        "acats.cc70001",
+        "acats.cc70002",
+        "acats.cc70003",
+        "acats.cc70a02",
+        "acats.cc70b01",
+        "acats.cd1009n",
+        "acats.cd1c03h",
+        "acats.cd1c04e",
+        "acats.cd2a22a",
+        "acats.cd3014a",
+        "acats.cd3014d",
+        "acats.cd4031a",
+        "acats.cd4051a",
+        "acats.cd4051b",
+        "acats.cd70001",
+        "acats.cd72a01",
+        "acats.cdd1001",
+        "acats.cdd2b01",
+        "acats.ce3402a",
+        "acats.ce3704a",
+        "acats.ce3804a",
+        "acats.ce3904a",
+        "acats.cxa3004",
+        "acats.cxa4010",
+        "acats.cxa4011",
+        "acats.cxa4012",
+        "acats.cxa4013",
+        "acats.cxa4014",
+        "acats.cxa4015",
+        "acats.cxa4016",
+        "acats.cxa4017",
+        "acats.cxa4018",
+        "acats.cxa4019",
+        "acats.cxa4020",
+        "acats.cxa4021",
+        "acats.cxa4022",
+        "acats.cxa4023",
+        "acats.cxa4025",
+        "acats.cxa4029",
+        "acats.cxa4030",
+        "acats.cxa4031",
+        "acats.cxa4032",
+        "acats.cxa4033",
+        "acats.cxa4034",
+        "acats.cxa5011",
+        "acats.cxa5012",
+        "acats.cxa5015",
+        "acats.cxa9001",
+        "acats.cxa9002",
+        "acats.cxaa019",
+        "acats.cxab001",
+        "acats.cxac002",
+        "acats.cxac004",
+        "acats.cxac005",
+        "acats.cxac006",
+        "acats.cxac008",
+        "acats.cxag001",
+        "acats.cxah001",
+        "acats.cxah002",
+        "acats.cxai001",
+        "acats.cxai002",
+        "acats.cxai003",
+        "acats.cxai004",
+        "acats.cxai005",
+        "acats.cxai006",
+        "acats.cxaia01",
+        "acats.cxaia02",
+        "acats.cxaia03",
+        "acats.cxaia04",
+        "acats.cxaia05",
+        "acats.cxaia06",
+        "acats.cxf2002",
+        "acats.cxf2003",
+        "acats.harness",
+        "acats.legality_b33101a",
+        "acats.legality_b33102a",
+        "acats.legality_b34001b",
+        "acats.legality_b34002b",
+        "acats.legality_b36001a",
+        "acats.legality_b36002a",
+        "acats.legality_b37004a",
+        "acats.legality_b3a0001",
+        "acats.legality_b43002d",
+        "acats.legality_b43002e",
+        "acats.legality_b43002f",
+        "acats.legality_b460001",
+        "acats.legality_b64002a",
+        "acats.legality_b64002c",
+        "acats.legality_b64003a",
+        "acats.legality_b840001",
+        "acats.legality_bc60001",
+        "acats.support_protocol",
+        "ada.abstractinheritance",
+        "ada.abstractsubprograms",
+        "ada.access",
+        "ada.accesschecks",
+        "ada.accesssubtypes",
+        "ada.addressconversions",
+        "ada.aggregateaudit",
+        "ada.aggregateauditchecks",
+        "ada.aggregatecleanup",
+        "ada.aggregatetemporaries",
+        "ada.aggregatetemporarycleanup",
+        "ada.aggregatezeroing",
+        "ada.anonymousaccess",
+        "ada.anonymousaccessarrays",
+        "ada.anonymousaccessrecords",
+        "ada.anonymousaccesstasking",
+        "ada.anonymousarrayobjects",
+        "ada.anonymouscoextensions",
+        "ada.anonymousdispatch",
+        "ada.anonymousprotected",
+        "ada.arithmetic",
+        "ada.arraycompare",
+        "ada.arrayconversionchecks",
+        "ada.arrayconversions",
+        "ada.arraydescriptors",
+        "ada.arraydescriptorstreams",
+        "ada.arraydescriptortasking",
+        "ada.arrayidentity",
+        "ada.arrayindexlegality",
+        "ada.arraylifetimes",
+        "ada.attributeaudit",
+        "ada.attributebounds",
+        "ada.basepower",
+        "ada.basepower_driver",
+        "ada.bases",
+        "ada.basicvectors",
+        "ada.blockmastercalls",
+        "ada.booleanarrayoperators",
+        "ada.booleanoperators",
+        "ada.boundedstrings",
+        "ada.boxaggregates",
+        "ada.boxchecks",
+        "ada.boxcleanup",
+        "ada.boxtasking",
+        "ada.bundle_client",
+        "ada.bundle_main",
+        "ada.calendarchecks",
+        "ada.calendarchildren",
+        "ada.calendarlibrary",
+        "ada.calendartasking",
+        "ada.callbackchecks",
+        "ada.callbackdereference",
+        "ada.callbackextensiontasking",
+        "ada.callbacklibrary",
+        "ada.callbackrenames",
+        "ada.callbacks",
+        "ada.cases",
+        "ada.caseselector",
+        "ada.categorization",
+        "ada.characterhandling",
+        "ada.checkedtasking",
+        "ada.checks",
+        "ada.child_main",
+        "ada.classwidechecks",
+        "ada.classwideconstraints",
+        "ada.classwidedispatch",
+        "ada.classwideframes",
+        "ada.classwidelibrary",
+        "ada.classwideobjects",
+        "ada.commandline",
+        "ada.commandlinefailure",
+        "ada.completion_main",
+        "ada.componentequality",
+        "ada.composite",
+        "ada.compositereturns",
+        "ada.concatenation",
+        "ada.concattasking",
+        "ada.containercursors",
+        "ada.containerdiscriminants",
+        "ada.containerfamilies",
+        "ada.containergenerics",
+        "ada.containerlifetime",
+        "ada.containersets",
+        "ada.containersorting",
+        "ada.containerstorage",
+        "ada.containertasking",
+        "ada.control",
+        "ada.controlledadjustment",
+        "ada.controlledaggregates",
+        "ada.controlledallocationfailures",
+        "ada.controlledallocationglobalfailure",
+        "ada.controlledallocationglobals",
+        "ada.controlledallocations",
+        "ada.controlledancestor",
+        "ada.controlledarrays",
+        "ada.controlledcompletion",
+        "ada.controlledconversions",
+        "ada.controlledcopies",
+        "ada.controlledcopylibrary",
+        "ada.controlleddynamic",
+        "ada.controlledelaborationfailure",
+        "ada.controlledexceptions",
+        "ada.controlledglobals",
+        "ada.controlledlibrary",
+        "ada.controlledlifetimes",
+        "ada.controlledlimitedresults",
+        "ada.controlledmainfailure",
+        "ada.controlledparts",
+        "ada.controlledresultdispatch",
+        "ada.controlledresultfailures",
+        "ada.controlledresultglobals",
+        "ada.controlledresults",
+        "ada.controlledshutdownfailure",
+        "ada.controlledvariantlimited",
+        "ada.controlledvariants",
+        "ada.controlledviews",
+        "ada.controlledwideallocationfailures",
+        "ada.controlledwideallocationglobals",
+        "ada.controlledwideallocations",
+        "ada.controllingaccessresults",
+        "ada.decimalchecks",
+        "ada.decimalpoint",
+        "ada.decimalstreams",
+        "ada.decimaltasking",
+        "ada.defaultcalls",
+        "ada.defaultdiscriminants",
+        "ada.defaultdiscriminantslibrary",
+        "ada.defaultdiscriminantstasking",
+        "ada.derivedaccess",
+        "ada.derivedcategories",
+        "ada.derivedconstraints",
+        "ada.derivedlibrary",
+        "ada.derivedprofiles",
+        "ada.derivedscalaroperations",
+        "ada.derivedtypes",
+        "ada.directio",
+        "ada.directorieslibrary",
+        "ada.discreteattributes",
+        "ada.discreteranges",
+        "ada.discriminantcleanup",
+        "ada.discriminantcomponents",
+        "ada.discriminanttasking",
+        "ada.dispatchingconstructor",
+        "ada.dispatchingconstructorcontrolled",
+        "ada.dispatchingconstructordiscriminants",
+        "ada.dispatchingconstructorinterfaces",
+        "ada.dispatchingconstructorlibrary",
+        "ada.dispatchingconstructorownership",
+        "ada.dynamicarrayfailures",
+        "ada.dynamicarrays",
+        "ada.dynamicarrayvalues",
+        "ada.elaborationblockfailure",
+        "ada.elaborationblocks",
+        "ada.elaborationbodyfailure",
+        "ada.elaborationchecks",
+        "ada.elaborationfailure",
+        "ada.elaborationlibrarycheck",
+        "ada.elaborationorder",
+        "ada.emptymasterblocks",
+        "ada.enclosingnames",
+        "ada.entryexceptions",
+        "ada.entrygenerics",
+        "ada.entrylibrary",
+        "ada.entryproducer",
+        "ada.enumio",
+        "ada.enumstreams",
+        "ada.environmentvariables",
+        "ada.ep_main",
+        "ada.exceptiondiagnostics",
+        "ada.exceptionlibrary",
+        "ada.exceptionlibrarytasking",
+        "ada.exceptionmessages",
+        "ada.extendedreturns",
+        "ada.filesnapshots",
+        "ada.fixedchecks",
+        "ada.fixedoperators",
+        "ada.fixedpoint",
+        "ada.fixedrounding",
+        "ada.fixedstreams",
+        "ada.fixedstringchecks",
+        "ada.fixedstrings",
+        "ada.fixedtasking",
+        "ada.fixedtext",
+        "ada.fixedtextchecks",
+        "ada.fixedwide",
+        "ada.fixedwidechecks",
+        "ada.floatattributes",
+        "ada.floatattributetasking",
+        "ada.floats",
+        "ada.forwardcontracts",
+        "ada.forwardelaboration",
+        "ada.forwardlibrary",
+        "ada.functionfallthrough",
+        "ada.generalaccess",
+        "ada.generalaccessarrays",
+        "ada.generalaccesschecks",
+        "ada.generalaccesstasking",
+        "ada.generic_composite_checks",
+        "ada.generic_composite_library",
+        "ada.generic_composites",
+        "ada.generic_contracts",
+        "ada.generic_defaults",
+        "ada.generic_dynamic_objects",
+        "ada.generic_fixed",
+        "ada.generic_library",
+        "ada.generic_object_checks",
+        "ada.generic_object_library",
+        "ada.generic_object_nested",
+        "ada.generic_objects",
+        "ada.generic_subprograms",
+        "ada.genericabstract",
+        "ada.genericabstractinterfaces",
+        "ada.genericabstractlibrary_main",
+        "ada.genericabstractoperators",
+        "ada.genericaccess",
+        "ada.genericaccesscallbacks",
+        "ada.genericaccesslifetime",
+        "ada.genericaccessmatching",
+        "ada.genericaccessobjectlibrary_main",
+        "ada.genericaccessobjects",
+        "ada.genericanonymousobjects",
+        "ada.genericarraycomponents",
+        "ada.genericarrayconstraintlibrary_main",
+        "ada.genericarrayconstraints",
+        "ada.genericattributelibrary_main",
+        "ada.genericattributenumeric",
+        "ada.genericattributes",
+        "ada.genericcapacity",
+        "ada.genericchildlate",
+        "ada.genericchildren",
+        "ada.genericclasswide",
+        "ada.genericclasswideinterfaces",
+        "ada.genericclasswidelibrary_main",
+        "ada.genericcontractlibrary_main",
+        "ada.genericcontractnested",
+        "ada.genericcontractregions",
+        "ada.genericcontractreplay",
+        "ada.genericdefinite",
+        "ada.genericderived",
+        "ada.genericderiveddiscriminants",
+        "ada.genericderivedlibrary_main",
+        "ada.genericderivednested",
+        "ada.genericderivedtagged",
+        "ada.genericdiscriminantlibrary_main",
+        "ada.genericdiscriminants",
+        "ada.genericdiscriminantviews",
+        "ada.genericelaborationorder",
+        "ada.genericgrouped",
+        "ada.genericinterfacecategories",
+        "ada.genericinterfaceformals",
+        "ada.genericinterfacelibrary_main",
+        "ada.genericinterfacenested",
+        "ada.genericlimitedarrays",
+        "ada.genericlimitedcleanup",
+        "ada.genericlimitedlibrary_main",
+        "ada.genericlimitedobjects",
+        "ada.genericlimitedtagged",
+        "ada.genericliterallibrary_main",
+        "ada.genericliterals",
+        "ada.genericnull",
+        "ada.genericnullcomposites",
+        "ada.genericnulllibrary_main",
+        "ada.genericpackagecallables",
+        "ada.genericpackagecontracts",
+        "ada.genericpackagelibrary_main",
+        "ada.genericpackagepartial",
+        "ada.genericpackagepartialoverloads",
+        "ada.genericpackagepartialtypes",
+        "ada.genericpackages",
+        "ada.genericpartialpackagelibrary_main",
+        "ada.genericprivatearrays",
+        "ada.generics",
+        "ada.genericsynchronized",
+        "ada.genericsynchronizedlibrary_main",
+        "ada.genericsynchronizednested",
+        "ada.gotocleanup",
+        "ada.gotostatements",
+        "ada.groupedfieldchecks",
+        "ada.groupedfields",
+        "ada.handlerchoices",
+        "ada.hello",
+        "ada.hostlibrarytasking",
+        "ada.imageresults",
+        "ada.importconventions",
+        "ada.importedcallbacks",
+        "ada.importedcontrolled",
+        "ada.importedfloatabi",
+        "ada.incremental",
+        "ada.inferredaggregatechecks",
+        "ada.inferredaggregates",
+        "ada.inferredmatrices",
+        "ada.inferredmatrixchecks",
+        "ada.inheritedcallbacklibrary",
+        "ada.inheritedcallbacks",
+        "ada.integerconversions",
+        "ada.integerdivision",
+        "ada.integerliteralbounds",
+        "ada.integerloops",
+        "ada.integerstatic",
+        "ada.integerwidth",
+        "ada.interactioncalls",
+        "ada.interactionownership",
+        "ada.interfacecategories",
+        "ada.interfacediamonds",
+        "ada.interfacegenerics",
+        "ada.interfaceownership",
+        "ada.interfaceprofiles",
+        "ada.interfaces",
+        "ada.iofilelifetime",
+        "ada.iolibrarytasking",
+        "ada.legalityaudit",
+        "ada.lengthcheckstorage",
+        "ada.librarycollectiontasking",
+        "ada.limitedresults",
+        "ada.limitedwith",
+        "ada.load_main",
+        "ada.localgenericstate",
+        "ada.localpackagefailure",
+        "ada.localpackages",
+        "ada.localpackagestartup",
+        "ada.longintegerio",
+        "ada.loopedges",
+        "ada.matrices",
+        "ada.matrixshapes",
+        "ada.membership",
+        "ada.modular",
+        "ada.modularchecks",
+        "ada.modulario",
+        "ada.modulartasking",
+        "ada.modularwide",
+        "ada.modularwidechecks",
+        "ada.namedoperators",
+        "ada.nestedcaptures",
+        "ada.nestedoverloads",
+        "ada.nestedvariants",
+        "ada.nullexclusions",
+        "ada.nullexclusiontasking",
+        "ada.numberexceptiondeclarations",
+        "ada.numerics32",
+        "ada.numerics64",
+        "ada.occurrencebindings",
+        "ada.occurrencenowith",
+        "ada.opaquecontrolled",
+        "ada.operatorprofiles",
+        "ada.operators",
+        "ada.operatorunits",
+        "ada.operatorvisibility",
+        "ada.overflow32",
+        "ada.overflow64",
+        "ada.overloads",
+        "ada.overridingnull",
+        "ada.packagedeclarationfailure",
+        "ada.packagehandlerfailure",
+        "ada.packagehandlers",
+        "ada.packages",
+        "ada.packedstorage",
+        "ada.parameterless",
+        "ada.pragmaignore",
+        "ada.pragmalibrary_main",
+        "ada.pragmanoreturn",
+        "ada.pragmapolicies",
+        "ada.pragmas",
+        "ada.pragmasuppressed",
+        "ada.pragmaunitbundle",
+        "ada.pragmaunsuppressed",
+        "ada.predefinedprofiles",
+        "ada.prefixedcalls",
+        "ada.prefixedcleanup",
+        "ada.primitiveaudit",
+        "ada.primitivechecks",
+        "ada.primitives",
+        "ada.primitiveseparate",
+        "ada.primitivevisibility",
+        "ada.private",
+        "ada.privateaggregateresolution",
+        "ada.privatecontrolled",
+        "ada.privatedelayed",
+        "ada.privatewith",
+        "ada.profiledefaults",
+        "ada.protectedcleanup",
+        "ada.protectedconcurrency",
+        "ada.protectedentries",
+        "ada.protectedgenerics",
+        "ada.protectedlibrary",
+        "ada.protectedobjects",
+        "ada.randomlibrary",
+        "ada.ranges",
+        "ada.realedges",
+        "ada.realnumbers",
+        "ada.realtasking",
+        "ada.realvalue",
+        "ada.realvaluetasking",
+        "ada.recordcompare",
+        "ada.recordcontrolled",
+        "ada.recordrenames",
+        "ada.renamelibrary",
+        "ada.renamemain",
+        "ada.renaminglibrary",
+        "ada.reportfilenames",
+        "ada.reraise",
+        "ada.reservedwordboundaries",
+        "ada.returncleanup",
+        "ada.reverseloops",
+        "ada.runtimeaggregatechecks",
+        "ada.runtimeaggregates",
+        "ada.runtimeallocators",
+        "ada.runtimearraylibrary",
+        "ada.runtimearraylibrarybounds",
+        "ada.runtimearraylibraryfailure",
+        "ada.runtimearraylibrarylifetime",
+        "ada.runtimearraylibraryoverflow",
+        "ada.runtimearraylibraryshape",
+        "ada.runtimearraylibrarytasking",
+        "ada.runtimearraylibraryworkers",
+        "ada.runtimearraytypechecks",
+        "ada.runtimearraytypes",
+        "ada.runtimecomponentchecks",
+        "ada.runtimecomponentcleanup",
+        "ada.runtimecomponentlate",
+        "ada.runtimecomponents",
+        "ada.runtimecomponentstreams",
+        "ada.runtimecomponenttasking",
+        "ada.runtimediscriminants",
+        "ada.runtimematrices",
+        "ada.runtimematrixchecks",
+        "ada.runtimescalarchecks",
+        "ada.runtimescalars",
+        "ada.savedoccurrences",
+        "ada.scalarcopy",
+        "ada.scalarcopychecks",
+        "ada.scalardynamic",
+        "ada.scalarstreams",
+        "ada.scalartasking",
+        "ada.seqio",
+        "ada.sharedcollections",
+        "ada.sharedconcurrency",
+        "ada.sharedlibrary",
+        "ada.sharedscalars",
+        "ada.sharedtaskcollections",
+        "ada.shortcircuit",
+        "ada.signeddivision",
+        "ada.sizeclauses",
+        "ada.sliceassignment",
+        "ada.standardfacilities",
+        "ada.staticarithmetic",
+        "ada.storage",
+        "ada.storageelements",
+        "ada.storageio",
+        "ada.storagepools",
+        "ada.streambounds",
+        "ada.streamclasswide",
+        "ada.streamcontainers",
+        "ada.streamio",
+        "ada.streammemory",
+        "ada.streamoperations",
+        "ada.streamoperationstasking",
+        "ada.streamrawedges",
+        "ada.streamrecords",
+        "ada.streamresults",
+        "ada.streamsizes",
+        "ada.stringhashes",
+        "ada.stringmappingcallbacks",
+        "ada.stringmappingtasking",
+        "ada.stringmaps",
+        "ada.strings",
+        "ada.subprogramcompletions",
+        "ada.subprogramrenames",
+        "ada.subprograms",
+        "ada.subunits",
+        "ada.supportedrejections",
+        "ada.taggedcontrolled",
+        "ada.taggeddependent",
+        "ada.taggedequality",
+        "ada.taggedincomplete",
+        "ada.taggedinstances",
+        "ada.taggedlayout",
+        "ada.taggedrecords",
+        "ada.taggedruntime",
+        "ada.taggedvariantgroups",
+        "ada.taggedviews",
+        "ada.taskactivationfailure",
+        "ada.taskallocations",
+        "ada.taskidentity",
+        "ada.taskidentitylifecycle",
+        "ada.taskidentityobjects",
+        "ada.tasklibrarymain",
+        "ada.tasks",
+        "ada.textfileedges",
+        "ada.textfiles",
+        "ada.textgetstrings",
+        "ada.textinputgrammar",
+        "ada.textiolibrary",
+        "ada.textstreams",
+        "ada.textstreamsvalues",
+        "ada.textstringio",
+        "ada.timedelays",
+        "ada.timelibrary",
+        "ada.timevalues",
+        "ada.typedeclarations",
+        "ada.typeio",
+        "ada.unboundedequality",
+        "ada.unboundedstrings",
+        "ada.uncheckedaccess",
+        "ada.uncheckedaccessir",
+        "ada.unhandledmessage",
+        "ada.unhandledreraise",
+        "ada.unicodeunitbundle",
+        "ada.unitrenaming",
+        "ada.unsupportedcontexterrors",
+        "ada.valuebased",
+        "ada.valueparsing",
+        "ada.variants",
+        "ada.vectoraggregates",
+        "ada.vectorlifetime",
+        "ada.visibilityconformance",
+        "ada.wideattributes",
+        "ada.wideboundedstrings",
+        "ada.widefixedstringchecks",
+        "ada.widefixedstrings",
+        "ada.widefoundation",
+        "ada.widehashes",
+        "ada.wideiolibrary",
+        "ada.wideoverloads",
+        "ada.widestringlimits",
+        "ada.widestringmappingcallbacks",
+        "ada.widestringmappingtasking",
+        "ada.widestringmaps",
+        "ada.widetextstreams",
+        "ada.widetextstringio",
+        "ada.wideunboundedstrings",
+        "ada.widewideboundedstrings",
+        "ada.widewidefixedstringchecks",
+        "ada.widewidefixedstrings",
+        "ada.widewidehashes",
+        "ada.widewideiolibrary",
+        "ada.widewidestringlimits",
+        "ada.widewidestringmappingcallbacks",
+        "ada.widewidestringmappingtasking",
+        "ada.widewidestringmaps",
+        "ada.widewidetextstreams",
+        "ada.widewidetextstringio",
+        "ada.widewideunboundedstrings",
+        "ada.windowsfloatparameters",
+        "ada.windowsstackframes",
+        "baseline.acats_b394a01",
+        "baseline.acats_b394a02",
+        "baseline.acats_b394a03",
+        "baseline.acats_b394a04",
+        "baseline.acats_b394a05",
+        "baseline.acats_b_grades",
+        "baseline.acats_bc60001",
+        "baseline.acats_cc3605a",
+        "baseline.acats_metadata",
+        "baseline.acats_runner",
+        "baseline.dispatching_constructor_acats_sources",
+        "baseline.predefined_inventory",
+        "baseline.random_acats",
+        "baseline.storage_elements_acats",
+        "baseline.storage_io_acats_sources",
+        "baseline.storage_pools_acats",
+        "baseline.stream_io_acats_sources",
+        "baseline.text_streams_acats_sources",
+        "binding.elaboration_order",
+        "codegen.aggregate_storage",
+        "codegen.aggregate_zeroing",
+        "codegen.block_masters",
+        "determinism.abortdeferral",
+        "determinism.abstractinheritance",
+        "determinism.abstractsubprograms",
+        "determinism.accesssubtypes",
+        "determinism.addressconversions",
+        "determinism.aggregateaudit",
+        "determinism.aggregatecleanup",
+        "determinism.aggregatetemporaries",
+        "determinism.aggregatetemporarycleanup",
+        "determinism.aggregatezeroing",
+        "determinism.alignmentclauses",
+        "determinism.anonymousaccess",
+        "determinism.anonymousaccessarrays",
+        "determinism.anonymousaccessrecords",
+        "determinism.anonymousaccesstasking",
+        "determinism.anonymousarrayobjects",
+        "determinism.anonymouscoextensions",
+        "determinism.anonymousdispatch",
+        "determinism.anonymousprotected",
+        "determinism.arrayconversionchecks",
+        "determinism.arrayconversions",
+        "determinism.arraydescriptors",
+        "determinism.arraydescriptorstreams",
+        "determinism.arraydescriptortasking",
+        "determinism.arrayindexlegality",
+        "determinism.attributeaudit",
+        "determinism.attributebounds",
+        "determinism.basicvectors",
+        "determinism.blockmastercalls",
+        "determinism.booleanarrayoperators",
+        "determinism.boundedstrings",
+        "determinism.boxaggregates",
+        "determinism.boxchecks",
+        "determinism.boxcleanup",
+        "determinism.boxtasking",
+        "determinism.bundle_main",
+        "determinism.calendarchecks",
+        "determinism.calendarchildren",
+        "determinism.calendarlibrary",
+        "determinism.calendartasking",
+        "determinism.callbackdereference",
+        "determinism.callbackextensiontasking",
+        "determinism.caseselector",
+        "determinism.categorization",
+        "determinism.checkedarithmetic",
+        "determinism.checkedtasking",
+        "determinism.classwideconstraints",
+        "determinism.classwidedispatch",
+        "determinism.classwideframes",
+        "determinism.classwideobjects",
+        "determinism.completion_main",
+        "determinism.componentequality",
+        "determinism.concatenation",
+        "determinism.concattasking",
+        "determinism.containercursors",
+        "determinism.containerdiscriminants",
+        "determinism.containerfamilies",
+        "determinism.containergenerics",
+        "determinism.containerlifetime",
+        "determinism.containersets",
+        "determinism.containersorting",
+        "determinism.containerstorage",
+        "determinism.containertasking",
+        "determinism.controlledadjustment",
+        "determinism.controlledallocations",
+        "determinism.controlledcompletion",
+        "determinism.controlledconversions",
+        "determinism.controlledcopies",
+        "determinism.controlledcopylibrary",
+        "determinism.controlleddynamic",
+        "determinism.controlledglobals",
+        "determinism.controlledlibrary",
+        "determinism.controlledlifetimes",
+        "determinism.controlledlimitedresults",
+        "determinism.controlledresults",
+        "determinism.controlledvariantlimited",
+        "determinism.controlledvariants",
+        "determinism.controlledwideallocations",
+        "determinism.controllingaccessresults",
+        "determinism.decimalpoint",
+        "determinism.decimalstreams",
+        "determinism.decimaltasking",
+        "determinism.defaultdiscriminants",
+        "determinism.defaultdiscriminantslibrary",
+        "determinism.defaultdiscriminantstasking",
+        "determinism.derivedaccess",
+        "determinism.derivedcategories",
+        "determinism.derivedconstraints",
+        "determinism.derivedlibrary",
+        "determinism.derivedprofiles",
+        "determinism.derivedscalaroperations",
+        "determinism.derivedtypes",
+        "determinism.directorieslibrary",
+        "determinism.discreteranges",
+        "determinism.discriminantcleanup",
+        "determinism.discriminantcomponents",
+        "determinism.discriminanttasking",
+        "determinism.dispatchingconstructor",
+        "determinism.dispatchingconstructorcontrolled",
+        "determinism.dispatchingconstructordiscriminants",
+        "determinism.dispatchingconstructorinterfaces",
+        "determinism.dispatchingconstructorlibrary",
+        "determinism.dispatchingconstructorownership",
+        "determinism.elaborationblocks",
+        "determinism.elaborationchecks",
+        "determinism.elaborationlibrarycheck",
+        "determinism.emptymasterblocks",
+        "determinism.enclosingnames",
+        "determinism.entryexceptions",
+        "determinism.entrygenerics",
+        "determinism.entrylibrary",
+        "determinism.entryproducer",
+        "determinism.enumrepresentation",
+        "determinism.enumstreams",
+        "determinism.enumtasking",
+        "determinism.environmentvariables",
+        "determinism.ep_main",
+        "determinism.exceptionlibrary",
+        "determinism.exceptionlibrarytasking",
+        "determinism.extendedreturns",
+        "determinism.filesnapshots",
+        "determinism.fixedoperators",
+        "determinism.fixedpoint",
+        "determinism.fixedstreams",
+        "determinism.fixedstrings",
+        "determinism.fixedtasking",
+        "determinism.fixedtext",
+        "determinism.fixedwide",
+        "determinism.floatattributes",
+        "determinism.floatattributetasking",
+        "determinism.forwardcontracts",
+        "determinism.forwardelaboration",
+        "determinism.forwardlibrary",
+        "determinism.generalaccess",
+        "determinism.generalaccessarrays",
+        "determinism.generalaccesschecks",
+        "determinism.generalaccesstasking",
+        "determinism.generalfreezing",
+        "determinism.generatedcontexts",
+        "determinism.generic_composites",
+        "determinism.generic_contracts",
+        "determinism.generic_dynamic_objects",
+        "determinism.generic_fixed",
+        "determinism.generic_library",
+        "determinism.generic_objects",
+        "determinism.generic_subprograms",
+        "determinism.genericabstract",
+        "determinism.genericabstractinterfaces",
+        "determinism.genericabstractlibrary_main",
+        "determinism.genericabstractoperators",
+        "determinism.genericaccess",
+        "determinism.genericaccesscallbacks",
+        "determinism.genericaccesslifetime",
+        "determinism.genericaccessmatching",
+        "determinism.genericaccessobjectlibrary_main",
+        "determinism.genericaccessobjects",
+        "determinism.genericanonymousobjects",
+        "determinism.genericarraycomponents",
+        "determinism.genericarrayconstraintlibrary_main",
+        "determinism.genericarrayconstraints",
+        "determinism.genericattributelibrary_main",
+        "determinism.genericattributenumeric",
+        "determinism.genericattributes",
+        "determinism.genericchildlate",
+        "determinism.genericchildren",
+        "determinism.genericclasswide",
+        "determinism.genericclasswideinterfaces",
+        "determinism.genericclasswidelibrary_main",
+        "determinism.genericcontractlibrary_main",
+        "determinism.genericcontractnested",
+        "determinism.genericcontractregions",
+        "determinism.genericcontractreplay",
+        "determinism.genericdefinite",
+        "determinism.genericderived",
+        "determinism.genericderiveddiscriminants",
+        "determinism.genericderivedlibrary_main",
+        "determinism.genericderivednested",
+        "determinism.genericderivedtagged",
+        "determinism.genericdiscriminantlibrary_main",
+        "determinism.genericdiscriminants",
+        "determinism.genericdiscriminantviews",
+        "determinism.genericelaborationorder",
+        "determinism.genericgrouped",
+        "determinism.genericinterfacecategories",
+        "determinism.genericinterfaceformals",
+        "determinism.genericinterfacelibrary_main",
+        "determinism.genericinterfacenested",
+        "determinism.genericlimitedarrays",
+        "determinism.genericlimitedcleanup",
+        "determinism.genericlimitedlibrary_main",
+        "determinism.genericlimitedobjects",
+        "determinism.genericlimitedtagged",
+        "determinism.genericliterallibrary_main",
+        "determinism.genericliterals",
+        "determinism.genericnull",
+        "determinism.genericnullcomposites",
+        "determinism.genericnulllibrary_main",
+        "determinism.genericpackagecallables",
+        "determinism.genericpackagecontracts",
+        "determinism.genericpackagelibrary_main",
+        "determinism.genericpackagepartial",
+        "determinism.genericpackagepartialoverloads",
+        "determinism.genericpackagepartialtypes",
+        "determinism.genericpackages",
+        "determinism.genericpartialpackagelibrary_main",
+        "determinism.genericprivatearrays",
+        "determinism.generics",
+        "determinism.genericsynchronized",
+        "determinism.genericsynchronizedlibrary_main",
+        "determinism.genericsynchronizednested",
+        "determinism.gotocleanup",
+        "determinism.gotostatements",
+        "determinism.hostabi",
+        "determinism.hostlibrarytasking",
+        "determinism.imageresults",
+        "determinism.importedcallbackabi",
+        "determinism.importedcallbacks",
+        "determinism.importedcontrolled",
+        "determinism.inheritedcallbacklibrary",
+        "determinism.inheritedcallbacks",
+        "determinism.interactioncalls",
+        "determinism.interactionownership",
+        "determinism.interfacecategories",
+        "determinism.interfacediamonds",
+        "determinism.interfacegenerics",
+        "determinism.interfaceownership",
+        "determinism.interfaceprofiles",
+        "determinism.interfaces",
+        "determinism.iofilelifetime",
+        "determinism.iolibrarytasking",
+        "determinism.legalityaudit",
+        "determinism.lengthcheckstorage",
+        "determinism.librarycollectiontasking",
+        "determinism.limitedresults",
+        "determinism.limitedwith",
+        "determinism.load_main",
+        "determinism.masterhooks",
+        "determinism.modulario",
+        "determinism.modulartasking",
+        "determinism.modularwide",
+        "determinism.namedoperators",
+        "determinism.nestedvariants",
+        "determinism.nullexclusions",
+        "determinism.nullexclusiontasking",
+        "determinism.numberexceptiondeclarations",
+        "determinism.opaquecontrolled",
+        "determinism.operatorvisibility",
+        "determinism.overridingnull",
+        "determinism.packages",
+        "determinism.packedstorage",
+        "determinism.pragmaignore",
+        "determinism.pragmaimport",
+        "determinism.pragmalibrary_main",
+        "determinism.pragmanoreturn",
+        "determinism.pragmapolicies",
+        "determinism.pragmasuppressed",
+        "determinism.pragmaunitbundle",
+        "determinism.pragmaunsuppressed",
+        "determinism.predefinedprofiles",
+        "determinism.prefixedcalls",
+        "determinism.prefixedcleanup",
+        "determinism.primitiveaudit",
+        "determinism.primitivechecks",
+        "determinism.primitives",
+        "determinism.primitiveseparate",
+        "determinism.private",
+        "determinism.privateaggregateresolution",
+        "determinism.privatecontrolled",
+        "determinism.privatedelayed",
+        "determinism.privatewith",
+        "determinism.profiledefaults",
+        "determinism.protectedcleanup",
+        "determinism.protectedconcurrency",
+        "determinism.protectedentries",
+        "determinism.protectedgenerics",
+        "determinism.protectedlibrary",
+        "determinism.protectedobjects",
+        "determinism.randomlibrary",
+        "determinism.realedges",
+        "determinism.realnumbers",
+        "determinism.realtasking",
+        "determinism.realvalue",
+        "determinism.realvaluetasking",
+        "determinism.recordbits",
+        "determinism.recordcontrolled",
+        "determinism.recorddependent",
+        "determinism.recordfreezing",
+        "determinism.recordrepack",
+        "determinism.recordrepresentation",
+        "determinism.renaminglibrary",
+        "determinism.returncleanup",
+        "determinism.runtimeallocators",
+        "determinism.runtimearraylibrary",
+        "determinism.runtimearraylibrarybounds",
+        "determinism.runtimearraylibraryfailure",
+        "determinism.runtimearraylibrarylifetime",
+        "determinism.runtimearraylibraryoverflow",
+        "determinism.runtimearraylibraryshape",
+        "determinism.runtimearraylibrarytasking",
+        "determinism.runtimearraylibraryworkers",
+        "determinism.runtimecomponentchecks",
+        "determinism.runtimecomponentcleanup",
+        "determinism.runtimecomponentlate",
+        "determinism.runtimecomponents",
+        "determinism.runtimecomponentstreams",
+        "determinism.runtimecomponenttasking",
+        "determinism.runtimediscriminants",
+        "determinism.scalardynamic",
+        "determinism.scalarstreams",
+        "determinism.scalartasking",
+        "determinism.sharedcollections",
+        "determinism.sharedconcurrency",
+        "determinism.sharedimports",
+        "determinism.sharedlibrary",
+        "determinism.sharedscalars",
+        "determinism.sharedtaskcollections",
+        "determinism.sizeclauses",
+        "determinism.sizestorage",
+        "determinism.sizestreams",
+        "determinism.sizetasking",
+        "determinism.standardfacilities",
+        "determinism.staticarithmetic",
+        "determinism.storageelements",
+        "determinism.storageio",
+        "determinism.storagepools",
+        "determinism.streamclasswide",
+        "determinism.streamcontainers",
+        "determinism.streammemory",
+        "determinism.streamoperations",
+        "determinism.streamoperationstasking",
+        "determinism.streamrecords",
+        "determinism.streamresults",
+        "determinism.streamsizes",
+        "determinism.stringhashes",
+        "determinism.stringmappingcallbacks",
+        "determinism.stringmappingtasking",
+        "determinism.subunits",
+        "determinism.supportedrejections",
+        "determinism.taggedcontrolled",
+        "determinism.taggeddependent",
+        "determinism.taggedincomplete",
+        "determinism.taggedinstances",
+        "determinism.taggedlayout",
+        "determinism.taggedrecords",
+        "determinism.taggedruntime",
+        "determinism.taggedvariantgroups",
+        "determinism.taggedviews",
+        "determinism.taskactivationfailure",
+        "determinism.taskallocations",
+        "determinism.taskconcurrency",
+        "determinism.taskidentity",
+        "determinism.taskidentitylifecycle",
+        "determinism.taskidentityobjects",
+        "determinism.tasklibrarymain",
+        "determinism.tasks",
+        "determinism.textgetstrings",
+        "determinism.textinputgrammar",
+        "determinism.textiolibrary",
+        "determinism.textstreams",
+        "determinism.textstreamsvalues",
+        "determinism.textstringio",
+        "determinism.timedelays",
+        "determinism.timelibrary",
+        "determinism.timevalues",
+        "determinism.unboundedequality",
+        "determinism.unboundedstrings",
+        "determinism.uncheckedaccess",
+        "determinism.uncheckedaccessir",
+        "determinism.unicodeunitbundle",
+        "determinism.unitrenaming",
+        "determinism.vectoraggregates",
+        "determinism.vectorlifetime",
+        "determinism.visibilityconformance",
+        "determinism.wideattributes",
+        "determinism.wideboundedstrings",
+        "determinism.widefixedstringchecks",
+        "determinism.widefixedstrings",
+        "determinism.widefoundation",
+        "determinism.widehashes",
+        "determinism.wideiolibrary",
+        "determinism.wideoverloads",
+        "determinism.widestringlimits",
+        "determinism.widestringmappingcallbacks",
+        "determinism.widestringmappingtasking",
+        "determinism.widestringmaps",
+        "determinism.widetextstreams",
+        "determinism.widetextstringio",
+        "determinism.wideunboundedstrings",
+        "determinism.widewideboundedstrings",
+        "determinism.widewidefixedstringchecks",
+        "determinism.widewidefixedstrings",
+        "determinism.widewidehashes",
+        "determinism.widewideiolibrary",
+        "determinism.widewidestringlimits",
+        "determinism.widewidestringmappingcallbacks",
+        "determinism.widewidestringmappingtasking",
+        "determinism.widewidestringmaps",
+        "determinism.widewidetextstreams",
+        "determinism.widewidetextstringio",
+        "determinism.widewideunboundedstrings",
+        "determinism.windowsfloatparameters",
+        "determinism.windowsstackframes",
+        "driver.external_linkage",
+        "driver.windows_stack_probes",
+        "elaboration.forward_modes",
+        "elaboration.pragmas",
+        "error.abstractcallerrors",
+        "error.abstractdeclarationerrors",
+        "error.abstractoverrideerrors",
+        "error.abstractuseerrors",
+        "error.accessparameterlegalityerrors",
+        "error.accessresultcontexterrors",
+        "error.accessresultlegalityerrors",
+        "error.accesssubtypeerrors",
+        "error.addressconversionerrors",
+        "error.addressconversionprofileerrors",
+        "error.aggregateauditerrors",
+        "error.aggregateboxerrors",
+        "error.aggregateoverloaderrors",
+        "error.alignmenterrors",
+        "error.anonymousaccesserrors",
+        "error.anonymousaccessmodeerrors",
+        "error.anonymousarrayconstanterrors",
+        "error.anonymousarrayerrors",
+        "error.arrayconversionerrors",
+        "error.arraydescriptorerrors",
+        "error.arrayframeerrors",
+        "error.arrayidentityerrors",
+        "error.arrayindexerrors",
+        "error.arrayliteralambiguity",
+        "error.attributeauditerrors",
+        "error.baseerrors",
+        "error.basepowererrors",
+        "error.bitsizeerrors",
+        "error.booleanarrayerrors",
+        "error.boxpositionalerrors",
+        "error.callbackdereferenceerrors",
+        "error.callbackerrors",
+        "error.callbackextensionerrors",
+        "error.callbackprofileerrors",
+        "error.caseerrors",
+        "error.caseselectorerrors",
+        "error.categorizationerrors",
+        "error.categorizationplacementerrors",
+        "error.classwideerrors",
+        "error.closingnameerrors",
+        "error.comparisonerrors",
+        "error.concaterrors",
+        "error.containererrors",
+        "error.controlledcomponenterrors",
+        "error.controlledconstructionerrors",
+        "error.controllederrors",
+        "error.controlledresulterrors",
+        "error.currentallocatorerrors",
+        "error.deallocationformalerrors",
+        "error.decimalerrors",
+        "error.declarationerrors",
+        "error.defaultbindingerrors",
+        "error.defaultdiscriminanterrors",
+        "error.defaulterrors",
+        "error.delimitererrors",
+        "error.derivedcategoryerrors",
+        "error.derivedtypeerrors",
+        "error.discreterangeerrors",
+        "error.discriminantcategoryerrors",
+        "error.discriminantcomponenterrors",
+        "error.discriminantconversionerrors",
+        "error.dispatchingconstructorerrors",
+        "error.dispatchingconstructorintrinsicerrors",
+        "error.duplicatedeclarationerrors",
+        "error.duplicateexceptionerrors",
+        "error.duplicatenumbererrors",
+        "error.duplicateprofileerrors",
+        "error.duplicatetypeerrors",
+        "error.dynamicaggregateerrors",
+        "error.dynamicarrayerrors",
+        "error.elaborationblockerrors",
+        "error.elaborationgenericerrors",
+        "error.enclosingnameerrors",
+        "error.entryerrors",
+        "error.enumrepresentationerrors",
+        "error.exceptionmessageerrors",
+        "error.exceptionusageerrors",
+        "error.fixeddecimalerrors",
+        "error.fixederrors",
+        "error.fixedoperatorerrors",
+        "error.fixedtexterrors",
+        "error.fixedwideerrors",
+        "error.floatattributeerrors",
+        "error.floaterrors",
+        "error.generalaccesserrors",
+        "error.generalaccesssyntaxerrors",
+        "error.generalfreezingerrors",
+        "error.generic_composite_errors",
+        "error.generic_contract_errors",
+        "error.generic_fixed_decimal",
+        "error.generic_fixed_errors",
+        "error.generic_fixed_instance_errors",
+        "error.generic_fixed_syntax",
+        "error.generic_fixed_trailing",
+        "error.generic_object_errors",
+        "error.generic_object_modes",
+        "error.generic_separate_contract_errors",
+        "error.generic_subprogram_errors",
+        "error.genericabstractaccesserrors",
+        "error.genericabstractcallerrors",
+        "error.genericabstracterrors",
+        "error.genericabstractsyntaxerrors",
+        "error.genericaccesscontracterrors",
+        "error.genericaccesserrors",
+        "error.genericaccessobjecterrors",
+        "error.genericaccesssyntaxerrors",
+        "error.genericarrayconstrainterrors",
+        "error.genericattributeaccesserrors",
+        "error.genericattributeerrors",
+        "error.genericattributestaticerrors",
+        "error.genericcapacityerrors",
+        "error.genericchilddirecterrors",
+        "error.genericchilderrors",
+        "error.genericchildinstancekinderrors",
+        "error.genericchildnamespace",
+        "error.genericchildparenterrors",
+        "error.genericchildvisibility",
+        "error.genericclasswideerrors",
+        "error.genericcontracterrors",
+        "error.genericdefiniteerrors",
+        "error.genericderivedancestorerrors",
+        "error.genericderiveddiscriminanterrors",
+        "error.genericderivederrors",
+        "error.genericderivedsyntaxerrors",
+        "error.genericdiscriminantdefaulterrors",
+        "error.genericdiscriminanterrors",
+        "error.genericdiscriminantsyntaxerrors",
+        "error.genericerrors",
+        "error.genericformalerrors",
+        "error.genericformalsyntaxerrors",
+        "error.genericgroupedduplicate",
+        "error.genericgroupederrors",
+        "error.genericgroupedmodes",
+        "error.genericinterfaceerrors",
+        "error.genericinterfaceobligationerrors",
+        "error.genericinterfaceprogenitorerrors",
+        "error.genericinterfacesyntaxerrors",
+        "error.genericlimitederrors",
+        "error.genericliteralerrors",
+        "error.genericnullaccesserrors",
+        "error.genericnullcontracterrors",
+        "error.genericnulllegalityerrors",
+        "error.genericnullmatchingerrors",
+        "error.genericpackageboxerrors",
+        "error.genericpackagecontracterrors",
+        "error.genericpackageerrors",
+        "error.genericpackagepartialerrors",
+        "error.genericpackagepartialsyntaxerrors",
+        "error.genericprivateerrors",
+        "error.genericsynchronizederrors",
+        "error.gotoerrors",
+        "error.gotoparsererrors",
+        "error.groupedfielderrors",
+        "error.handlerchoiceerrors",
+        "error.handleremptyerrors",
+        "error.handlerothererrors",
+        "error.handlerparterrors",
+        "error.hostlibraryerrors",
+        "error.identifiererrors",
+        "error.importconventionerrors",
+        "error.importconventionsyntaxerrors",
+        "error.inferredmatrixerrors",
+        "error.integerliteralerrors",
+        "error.interactionerrors",
+        "error.interfacecategoryerrors",
+        "error.interfaceconversionerrors",
+        "error.interfaceerrors",
+        "error.interfaceprivacyerrors",
+        "error.ioerrors",
+        "error.iofileprivacyerrors",
+        "error.librarycollectionerrors",
+        "error.limitedprivateerrors",
+        "error.matrixaggregateerrors",
+        "error.matrixerrors",
+        "error.missingbodyerrors",
+        "error.modularerrors",
+        "error.modularwideerrors",
+        "error.namedoperatorerrors",
+        "error.nestedoverloaderrors",
+        "error.nestedvariantserrors",
+        "error.nullexclusionerrors",
+        "error.nullexclusiongenericerrors",
+        "error.nullexclusionsyntaxerrors",
+        "error.nullformaldefaulterrors",
+        "error.nullgenericcompletionerrors",
+        "error.nullgenericerrors",
+        "error.nullprocedureerrors",
+        "error.numericattributecategoryerrors",
+        "error.numericseparatorerrors",
+        "error.occurrencebindingerrors",
+        "error.opaquecontrollederrors",
+        "error.operatorambiguity",
+        "error.operatorchildvisibilityerrors",
+        "error.operatorclosingerrors",
+        "error.operatordesignatorerrors",
+        "error.operatorerrors",
+        "error.operatorvisibilityerrors",
+        "error.overloaderrors",
+        "error.overridinglegalityerrors",
+        "error.packederrors",
+        "error.parameterlesserrors",
+        "error.pragmaargumenterrors",
+        "error.pragmacheckerrors",
+        "error.pragmacontrollederrors",
+        "error.pragmaelaborationerrors",
+        "error.pragmaignoredtypeerrors",
+        "error.pragmaimportaccesserrors",
+        "error.pragmanoreturnerrors",
+        "error.pragmaplacementerrors",
+        "error.pragmarepresentationerrors",
+        "error.pragmasyntaxerrors",
+        "error.pragmataskingerrors",
+        "error.pragmaunknownerrors",
+        "error.predefinedprofileerrors",
+        "error.preelaborableactualerrors",
+        "error.preelaborableerrors",
+        "error.preelaborablegenericerrors",
+        "error.prefixederrors",
+        "error.prefixedviewerrors",
+        "error.primitiveauditerrors",
+        "error.primitiveerrors",
+        "error.primitiveplacementerrors",
+        "error.privatecompletionerrors",
+        "error.privatecontrollederrors",
+        "error.privateerrors",
+        "error.profileconformanceerrors",
+        "error.protectedcompletionerrors",
+        "error.protectederrors",
+        "error.protectedgenericerrors",
+        "error.protectedindicatorerrors",
+        "error.protectedlegalityerrors",
+        "error.protectednullerrors",
+        "error.protectedoverridingerrors",
+        "error.protectedsyntaxerrors",
+        "error.randomlibraryerrors",
+        "error.realedgeerrors",
+        "error.realnumbererrors",
+        "error.realvalueerrors",
+        "error.recordfreezingerrors",
+        "error.recordrecoveryaccess",
+        "error.recordrecoveryerrors",
+        "error.recordrecoverymissingsemicolon",
+        "error.recordrenameerrors",
+        "error.recordrepresentationerrors",
+        "error.renamingparsererrors",
+        "error.renamingvisibilityerrors",
+        "error.representationerrors",
+        "error.requiredcompletionerrors",
+        "error.reservedconstructerrors",
+        "error.reservedgenericerrors",
+        "error.reservedworderrors",
+        "error.returnerrors",
+        "error.returnusageerrors",
+        "error.runtimearraylibraryerrors",
+        "error.runtimearraytypeerrors",
+        "error.runtimecomponenterrors",
+        "error.runtimematrixerrors",
+        "error.runtimescalarerrors",
+        "error.runtimescalarlibraryerrors",
+        "error.savedoccurrenceerrors",
+        "error.scalarcopyerrors",
+        "error.scalardynamicerrors",
+        "error.sharedcompletionerrors",
+        "error.sharederrors",
+        "error.sharedsyntaxerrors",
+        "error.sizelayouterrors",
+        "error.sizerangeerrors",
+        "error.sizestorageerrors",
+        "error.sizevalueerrors",
+        "error.standardfacilityerrors",
+        "error.staticarithmeticerrors",
+        "error.storageelementerrors",
+        "error.storageioerrors",
+        "error.storageioprofileerrors",
+        "error.storagepoolerrors",
+        "error.storagepoolprofileerrors",
+        "error.streamerrors",
+        "error.stringliteralerrors",
+        "error.stringmappingerrors",
+        "error.subprogramrenameerrors",
+        "error.subprogramstuberrors",
+        "error.supportedrejectionerrors",
+        "error.taggederrors",
+        "error.taggedviewerrors",
+        "error.taskerrors",
+        "error.taskidentityerrors",
+        "error.tasklegalityerrors",
+        "error.timeerrors",
+        "error.uncheckedaccesserrors",
+        "error.uncheckedconversionerrors",
+        "error.uncheckedsharederrors",
+        "error.unitrenamingerrors",
+        "error.unsupportedconstructerrors",
+        "error.unsupportedrecoveryerrors",
+        "error.varianterrors",
+        "error.visibilityerrors",
+        "error.wideambiguityerrors",
+        "error.widehashcategoryerrors",
+        "error.widehashparenterrors",
+        "error.wideprofileerrors",
+        "error.widestringcategoryerrors",
+        "error.widestringmappingerrors",
+        "error.widewidestringcategoryerrors",
+        "error.widewidestringmappingerrors",
+        "harness.exit_status",
+        "host.abi_layout",
+        "host.abi_modes",
+        "host.harness_protocol",
+        "host.install_relocation",
+        "host.measurement_protocol",
+        "host.paths",
+        "ir.hello",
+        "loading.bundles",
+        "loading.child",
+        "loading.completions",
+        "loading.context_dependencies",
+        "loading.cycles",
+        "loading.dispatching_constructor_profiles",
+        "loading.identity",
+        "loading.sources",
+        "loading.system_spec",
+        "robustness.ir_instrumentation",
+        "robustness.malformed_fuzz",
+        "robustness.process_protocol",
+        "runtime.abort_deferral",
+        "runtime.abortdeferral_modes",
+        "runtime.abstractinheritance_modes",
+        "runtime.abstractsubprograms_modes",
+        "runtime.access_levels",
+        "runtime.accesssubtypes_modes",
+        "runtime.address_conversions",
+        "runtime.addressconversions_modes",
+        "runtime.aggregatetemporaries_modes",
+        "runtime.aggregatetemporarycleanup_modes",
+        "runtime.aggregatezeroing_modes",
+        "runtime.alignmentclauses_modes",
+        "runtime.anonymousaccess_modes",
+        "runtime.anonymousaccessarrays_modes",
+        "runtime.anonymousaccessrecords_modes",
+        "runtime.anonymousaccesstasking_modes",
+        "runtime.anonymousarrayobjects_modes",
+        "runtime.anonymouscoextensions_modes",
+        "runtime.anonymousdispatch_modes",
+        "runtime.anonymousprotected_modes",
+        "runtime.array_descriptors",
+        "runtime.array_storage",
+        "runtime.arraydescriptors_modes",
+        "runtime.arraydescriptortasking_modes",
+        "runtime.arrayindexlegality_modes",
+        "runtime.basicvectors_modes",
+        "runtime.blocking_io",
+        "runtime.blockmastercalls_modes",
+        "runtime.booleanarrayoperators_modes",
+        "runtime.boxaggregates_modes",
+        "runtime.boxchecks_modes",
+        "runtime.boxcleanup_modes",
+        "runtime.boxtasking_modes",
+        "runtime.calendar_library",
+        "runtime.calendarchecks_modes",
+        "runtime.calendarchildren_modes",
+        "runtime.calendarlibrary_modes",
+        "runtime.calendartasking_modes",
+        "runtime.callbackdereference_modes",
+        "runtime.callbackextensiontasking_modes",
+        "runtime.caseselector_modes",
+        "runtime.categorization_modes",
+        "runtime.checkedarithmetic_modes",
+        "runtime.checkedtasking_modes",
+        "runtime.classwideconstraints_modes",
+        "runtime.commandline_arguments",
+        "runtime.componentequality_modes",
+        "runtime.concatenation",
+        "runtime.concatenation_modes",
+        "runtime.concattasking_modes",
+        "runtime.containercursors_modes",
+        "runtime.containerdiscriminants_modes",
+        "runtime.containerfamilies_modes",
+        "runtime.containergenerics_modes",
+        "runtime.containerlifetime_modes",
+        "runtime.containersets_modes",
+        "runtime.containersorting_modes",
+        "runtime.containerstorage_modes",
+        "runtime.containertasking_modes",
+        "runtime.controlledadjustment_modes",
+        "runtime.controlledvariantlimited_modes",
+        "runtime.controlledvariants_modes",
+        "runtime.controllingaccessresults_modes",
+        "runtime.decimal",
+        "runtime.decimalchecks_modes",
+        "runtime.decimalpoint_modes",
+        "runtime.decimalstreams_modes",
+        "runtime.decimaltasking_modes",
+        "runtime.defaultdiscriminants_modes",
+        "runtime.defaultdiscriminantslibrary_modes",
+        "runtime.defaultdiscriminantstasking_modes",
+        "runtime.derivedscalaroperations_modes",
+        "runtime.directorieslibrary_modes",
+        "runtime.discreteranges_modes",
+        "runtime.discriminantcleanup_modes",
+        "runtime.discriminantcomponents_modes",
+        "runtime.discriminanttasking_modes",
+        "runtime.dispatching_constructor",
+        "runtime.dispatchingconstructor_modes",
+        "runtime.dispatchingconstructorcontrolled_modes",
+        "runtime.dispatchingconstructordiscriminants_modes",
+        "runtime.dispatchingconstructorinterfaces_modes",
+        "runtime.dispatchingconstructorlibrary_modes",
+        "runtime.dispatchingconstructorownership_modes",
+        "runtime.dynamic_layout",
+        "runtime.emptymasterblocks_modes",
+        "runtime.enclosingnames_modes",
+        "runtime.entry_lifecycle",
+        "runtime.entryexceptions_modes",
+        "runtime.entrygenerics_modes",
+        "runtime.entrylibrary_modes",
+        "runtime.entryproducer_modes",
+        "runtime.enumeration",
+        "runtime.enumrepresentation_modes",
+        "runtime.enumstreams_modes",
+        "runtime.enumtasking_modes",
+        "runtime.environmentvariables_modes",
+        "runtime.exception_library",
+        "runtime.exception_partitions",
+        "runtime.exceptionlibrary_modes",
+        "runtime.exceptionlibrarytasking_modes",
+        "runtime.extendedreturns_modes",
+        "runtime.fixed_arithmetic",
+        "runtime.fixed_text",
+        "runtime.fixedstreams_modes",
+        "runtime.fixedtasking_modes",
+        "runtime.fixedwide_modes",
+        "runtime.float_attributes",
+        "runtime.float_formatting",
+        "runtime.floatattributes_modes",
+        "runtime.floatattributetasking_modes",
+        "runtime.generalaccess_modes",
+        "runtime.generalaccessarrays_modes",
+        "runtime.generalaccesschecks_modes",
+        "runtime.generalaccesstasking_modes",
+        "runtime.generalfreezing_modes",
+        "runtime.generated_contexts",
+        "runtime.genericabstract_modes",
+        "runtime.genericabstractinterfaces_modes",
+        "runtime.genericabstractlibrary_main_modes",
+        "runtime.genericabstractoperators_modes",
+        "runtime.genericaccess_modes",
+        "runtime.genericaccesscallbacks_modes",
+        "runtime.genericaccesslifetime_modes",
+        "runtime.genericaccessmatching_modes",
+        "runtime.genericaccessobjectlibrary_main_modes",
+        "runtime.genericaccessobjects_modes",
+        "runtime.genericanonymousobjects_modes",
+        "runtime.genericarraycomponents_modes",
+        "runtime.genericarrayconstraintlibrary_main_modes",
+        "runtime.genericarrayconstraints_modes",
+        "runtime.genericattributelibrary_main_modes",
+        "runtime.genericattributenumeric_modes",
+        "runtime.genericattributes_modes",
+        "runtime.genericchildren_modes",
+        "runtime.genericclasswide_modes",
+        "runtime.genericclasswideinterfaces_modes",
+        "runtime.genericclasswidelibrary_main_modes",
+        "runtime.genericcontractlibrary_main_modes",
+        "runtime.genericcontractnested_modes",
+        "runtime.genericcontractregions_modes",
+        "runtime.genericcontractreplay_modes",
+        "runtime.genericdefinite_modes",
+        "runtime.genericderived_modes",
+        "runtime.genericderiveddiscriminants_modes",
+        "runtime.genericderivedlibrary_main_modes",
+        "runtime.genericderivednested_modes",
+        "runtime.genericderivedtagged_modes",
+        "runtime.genericdiscriminantlibrary_main_modes",
+        "runtime.genericdiscriminants_modes",
+        "runtime.genericdiscriminantviews_modes",
+        "runtime.genericgrouped_modes",
+        "runtime.genericinterfacecategories_modes",
+        "runtime.genericinterfaceformals_modes",
+        "runtime.genericinterfacelibrary_main_modes",
+        "runtime.genericinterfacenested_modes",
+        "runtime.genericlimitedarrays_modes",
+        "runtime.genericlimitedcleanup_modes",
+        "runtime.genericlimitedlibrary_main_modes",
+        "runtime.genericlimitedobjects_modes",
+        "runtime.genericlimitedtagged_modes",
+        "runtime.genericliterallibrary_main_modes",
+        "runtime.genericliterals_modes",
+        "runtime.genericnull_modes",
+        "runtime.genericnullcomposites_modes",
+        "runtime.genericnulllibrary_main_modes",
+        "runtime.genericpackagecallables_modes",
+        "runtime.genericpackagecontracts_modes",
+        "runtime.genericpackagelibrary_main_modes",
+        "runtime.genericpackagepartial_modes",
+        "runtime.genericpackagepartialoverloads_modes",
+        "runtime.genericpackagepartialtypes_modes",
+        "runtime.genericpackages_modes",
+        "runtime.genericpartialpackagelibrary_main_modes",
+        "runtime.genericprivatearrays_modes",
+        "runtime.genericsynchronized_modes",
+        "runtime.genericsynchronizedlibrary_main_modes",
+        "runtime.genericsynchronizednested_modes",
+        "runtime.gotocleanup_modes",
+        "runtime.gotostatements_modes",
+        "runtime.host_library",
+        "runtime.hostlibrarytasking_modes",
+        "runtime.importedcallbackabi_modes",
+        "runtime.importedcallbacks_modes",
+        "runtime.importedcontrolled_modes",
+        "runtime.inheritedcallbacklibrary_modes",
+        "runtime.inheritedcallbacks_modes",
+        "runtime.interface_maps",
+        "runtime.interfacecategories_modes",
+        "runtime.interfacediamonds_modes",
+        "runtime.interfacegenerics_modes",
+        "runtime.interfaceownership_modes",
+        "runtime.interfaceprofiles_modes",
+        "runtime.interfaces_modes",
+        "runtime.iofilelifetime_modes",
+        "runtime.iolibrarytasking_modes",
+        "runtime.legalityaudit_modes",
+        "runtime.lengthcheckstorage_modes",
+        "runtime.librarycollectiontasking_modes",
+        "runtime.limitedresults_modes",
+        "runtime.limitedwith_modes",
+        "runtime.masterfailure",
+        "runtime.masterhooks",
+        "runtime.masterlibraryfailure",
+        "runtime.modular",
+        "runtime.modulario_modes",
+        "runtime.modulartasking_modes",
+        "runtime.modularwide_modes",
+        "runtime.namedoperators_modes",
+        "runtime.nullexclusions_modes",
+        "runtime.nullexclusiontasking_modes",
+        "runtime.numerics_precision",
+        "runtime.operatorvisibility_modes",
+        "runtime.overridingnull_modes",
+        "runtime.packedstorage_modes",
+        "runtime.pragmaignore_modes",
+        "runtime.pragmaimport_modes",
+        "runtime.pragmalibrary_main_modes",
+        "runtime.pragmanoreturn_modes",
+        "runtime.pragmapolicies_modes",
+        "runtime.pragmasuppressed_modes",
+        "runtime.pragmaunitbundle_modes",
+        "runtime.pragmaunsuppressed_modes",
+        "runtime.predefined_formatting",
+        "runtime.predefined_terminal",
+        "runtime.predefinedprofiles_modes",
+        "runtime.prefixedcalls_modes",
+        "runtime.prefixedcleanup_modes",
+        "runtime.privatedelayed_modes",
+        "runtime.privatewith_modes",
+        "runtime.protected_lifecycle",
+        "runtime.protectedcleanup_modes",
+        "runtime.protectedconcurrency_modes",
+        "runtime.protectedentries_modes",
+        "runtime.protectedgenerics_modes",
+        "runtime.protectedlibrary_modes",
+        "runtime.protectedobjects_modes",
+        "runtime.random",
+        "runtime.randomlibrary_modes",
+        "runtime.real_arithmetic",
+        "runtime.real_value",
+        "runtime.realedges_modes",
+        "runtime.realnumbers_modes",
+        "runtime.realtasking_modes",
+        "runtime.realvalue_modes",
+        "runtime.realvaluetasking_modes",
+        "runtime.recordbits_modes",
+        "runtime.recordcontrolled_modes",
+        "runtime.recorddependent_modes",
+        "runtime.recordfreezing_modes",
+        "runtime.recordrepack_modes",
+        "runtime.recordrepresentation_modes",
+        "runtime.renaminglibrary_modes",
+        "runtime.result_buffers",
+        "runtime.returncleanup_modes",
+        "runtime.runtimeallocators_modes",
+        "runtime.runtimearraylibrary_modes",
+        "runtime.runtimearraylibrarylifetime_modes",
+        "runtime.runtimearraylibrarytasking_modes",
+        "runtime.runtimearraylibraryworkers_modes",
+        "runtime.runtimecomponentchecks_modes",
+        "runtime.runtimecomponentcleanup_modes",
+        "runtime.runtimecomponents_modes",
+        "runtime.runtimecomponentstreams_modes",
+        "runtime.runtimecomponenttasking_modes",
+        "runtime.runtimediscriminants_modes",
+        "runtime.scalar_bounds",
+        "runtime.scalardynamic_modes",
+        "runtime.scalarstreams_modes",
+        "runtime.scalartasking_modes",
+        "runtime.shared_collections",
+        "runtime.shared_tables",
+        "runtime.sharedcollections_modes",
+        "runtime.sharedconcurrency_modes",
+        "runtime.sharedimports_modes",
+        "runtime.sharedlibrary_modes",
+        "runtime.sharedscalars_modes",
+        "runtime.sharedtaskcollections_modes",
+        "runtime.sizestorage_modes",
+        "runtime.sizestreams_modes",
+        "runtime.sizetasking_modes",
+        "runtime.standardfacilities_modes",
+        "runtime.storage_elements",
+        "runtime.storage_pools",
+        "runtime.storageelements_modes",
+        "runtime.storageio_modes",
+        "runtime.storagepools_modes",
+        "runtime.stream_dispatch",
+        "runtime.stream_operations",
+        "runtime.streamclasswide_modes",
+        "runtime.streammemory_modes",
+        "runtime.streamoperations_modes",
+        "runtime.streamoperationstasking_modes",
+        "runtime.streamrecords_modes",
+        "runtime.streamsizes_modes",
+        "runtime.string_get",
+        "runtime.stringhashes_modes",
+        "runtime.stringmappingcallbacks_modes",
+        "runtime.stringmappingtasking_modes",
+        "runtime.subunits_modes",
+        "runtime.supportedrejections_modes",
+        "runtime.taggedcontrolled_modes",
+        "runtime.taggeddependent_modes",
+        "runtime.taggedincomplete_modes",
+        "runtime.taggedinstances_modes",
+        "runtime.taggedruntime_modes",
+        "runtime.taggedvariantgroups_modes",
+        "runtime.taggedviews_modes",
+        "runtime.task_context",
+        "runtime.taskidentity_modes",
+        "runtime.taskidentitylifecycle_modes",
+        "runtime.taskidentityobjects_modes",
+        "runtime.tasking",
+        "runtime.tasking_lifecycle",
+        "runtime.text_io_library",
+        "runtime.text_streams",
+        "runtime.text_streams_standard",
+        "runtime.textgetstrings_modes",
+        "runtime.textinputgrammar_modes",
+        "runtime.textiolibrary_modes",
+        "runtime.textstreams_modes",
+        "runtime.textstreamsvalues_modes",
+        "runtime.textstringio_modes",
+        "runtime.threading",
+        "runtime.time_lifecycle",
+        "runtime.timedelays_modes",
+        "runtime.timelibrary_modes",
+        "runtime.timevalues_modes",
+        "runtime.unboundedequality_modes",
+        "runtime.unboundedstrings_modes",
+        "runtime.uncheckedaccess_modes",
+        "runtime.uncheckedaccessir_modes",
+        "runtime.unitrenaming_modes",
+        "runtime.vectoraggregates_modes",
+        "runtime.vectorlifetime_modes",
+        "runtime.wide_characters",
+        "runtime.wide_text_io",
+        "runtime.wideattributes_modes",
+        "runtime.wideboundedstrings_modes",
+        "runtime.widefixedstringchecks_modes",
+        "runtime.widefixedstrings_modes",
+        "runtime.widefoundation_modes",
+        "runtime.widehashes_modes",
+        "runtime.wideiolibrary_modes",
+        "runtime.wideoverloads_modes",
+        "runtime.widestringlimits_modes",
+        "runtime.widestringmappingcallbacks_modes",
+        "runtime.widestringmappingtasking_modes",
+        "runtime.widestringmaps_modes",
+        "runtime.widetextstreams_modes",
+        "runtime.widetextstringio_modes",
+        "runtime.wideunboundedstrings_modes",
+        "runtime.widewideboundedstrings_modes",
+        "runtime.widewidefixedstringchecks_modes",
+        "runtime.widewidefixedstrings_modes",
+        "runtime.widewidehashes_modes",
+        "runtime.widewideiolibrary_modes",
+        "runtime.widewidestringlimits_modes",
+        "runtime.widewidestringmappingcallbacks_modes",
+        "runtime.widewidestringmappingtasking_modes",
+        "runtime.widewidestringmaps_modes",
+        "runtime.widewidetextstreams_modes",
+        "runtime.widewidetextstringio_modes",
+        "runtime.widewideunboundedstrings_modes",
+        "runtime.windowsstackframes_modes",
+        "semantics.categorization",
+        "semantics.context_views",
+        "semantics.interaction_modes",
+        "semantics.pragmapolicies",
+        "semantics.returns",
+        "semantics.shared_ir",
+        "semantics.string_line_endings",
+        "semantics.subunits",
+        "semantics.type_storage",
+        "semantics.unchecked_access",
+        "semantics.unicode_source",
+        "semantics.unit_renaming",
+        "semantics.visibility_conformance",
+        "semantics.windows_float_abi",
+        "semantics.windows_float_assembly",
+        "separate.binding",
+        "separate.compiler",
+        "separate.generic",
+        "separate.order",
+        "separate.paths"
+      ],
+      "runs": [
+        {
+          "file": "build/inline-zero-full.log",
+          "sha256": "df351c129a33fc61d52f848431d957858425a99b771f6ff113a7aa0d6625b75b",
+          "passed": 1956,
+          "summary": "\n\nThe following tests FAILED:\n\t1558 - codegen.aggregate_zeroing (Failed)\nErrors while running CTest\n"
+        },
+        {
+          "file": "build/inline-zero-boundary-final.log",
+          "sha256": "add5f72a112259de389d7d6cb56c98d85c9f5a0f498e49c2099296f407b80d22",
+          "passed": 4,
+          "summary": "\n\nTotal Test time (real) =   0.96 sec\n"
+        }
+      ],
+      "note": "Full run: 1956/1957 pass. Only codegen.aggregate_zeroing used a stale pre-regeneration command lacking newly required --qbe/--cc; corrected boundary rerun passes 4/4. All 1957 distinct checks pass."
+    },
+    "asan_ubsan": {
+      "distinct_tests_passed": 59,
+      "tests": [
+        "ada.aggregateaudit",
+        "ada.aggregateauditchecks",
+        "ada.aggregatecleanup",
+        "ada.aggregatetemporaries",
+        "ada.aggregatetemporarycleanup",
+        "ada.aggregatezeroing",
+        "ada.boxaggregates",
+        "ada.boxchecks",
+        "ada.boxcleanup",
+        "ada.boxtasking",
+        "ada.controlledaggregates",
+        "ada.inferredaggregatechecks",
+        "ada.inferredaggregates",
+        "ada.privateaggregateresolution",
+        "ada.runtimeaggregatechecks",
+        "ada.runtimeaggregates",
+        "ada.vectoraggregates",
+        "codegen.aggregate_storage",
+        "codegen.aggregate_zeroing",
+        "determinism.aggregateaudit",
+        "determinism.aggregatecleanup",
+        "determinism.aggregatetemporaries",
+        "determinism.aggregatetemporarycleanup",
+        "determinism.aggregatezeroing",
+        "determinism.boxaggregates",
+        "determinism.boxchecks",
+        "determinism.boxcleanup",
+        "determinism.boxtasking",
+        "determinism.privateaggregateresolution",
+        "determinism.vectoraggregates",
+        "error.aggregateauditerrors",
+        "error.aggregateboxerrors",
+        "error.aggregateoverloaderrors",
+        "error.boxpositionalerrors",
+        "error.dynamicaggregateerrors",
+        "error.genericpackageboxerrors",
+        "error.matrixaggregateerrors",
+        "robustness.ir_instrumentation",
+        "robustness.process_protocol",
+        "robustness.sanitized_tasking",
+        "runtime.abort_deferral",
+        "runtime.aggregatetemporaries_modes",
+        "runtime.aggregatetemporarycleanup_modes",
+        "runtime.aggregatezeroing_modes",
+        "runtime.array_storage",
+        "runtime.blocking_io",
+        "runtime.boxaggregates_modes",
+        "runtime.boxchecks_modes",
+        "runtime.boxcleanup_modes",
+        "runtime.boxtasking_modes",
+        "runtime.entry_lifecycle",
+        "runtime.protected_lifecycle",
+        "runtime.shared_collections",
+        "runtime.shared_tables",
+        "runtime.task_context",
+        "runtime.tasking",
+        "runtime.threading",
+        "runtime.time_lifecycle",
+        "runtime.vectoraggregates_modes"
+      ],
+      "runs": [
+        {
+          "file": "build/inline-zero-asan.log",
+          "sha256": "04701a0e46f3b424082099bc2f3e0ab2666b0ee38d013939bea344d3e8d00959",
+          "passed": 59,
+          "summary": "\n\nTotal Test time (real) =  74.15 sec\n"
+        },
+        {
+          "file": "build/inline-zero-asan-ubsan-boundary-final.log",
+          "sha256": "2648f7da3797d30b2ab46db431a617fe7a3cfd05cc3022ca5876c9142dfff9f7",
+          "passed": 4,
+          "summary": "\n\nTotal Test time (real) =   1.43 sec\n"
+        }
+      ]
+    },
+    "tsan": {
+      "distinct_tests_passed": 20,
+      "tests": [
+        "ada.aggregatezeroing",
+        "codegen.aggregate_zeroing",
+        "determinism.aggregatezeroing",
+        "robustness.ir_instrumentation",
+        "robustness.process_protocol",
+        "robustness.sanitized_tasking",
+        "runtime.abort_deferral",
+        "runtime.aggregatetemporaries_modes",
+        "runtime.aggregatetemporarycleanup_modes",
+        "runtime.aggregatezeroing_modes",
+        "runtime.array_storage",
+        "runtime.blocking_io",
+        "runtime.entry_lifecycle",
+        "runtime.protected_lifecycle",
+        "runtime.shared_collections",
+        "runtime.shared_tables",
+        "runtime.task_context",
+        "runtime.tasking",
+        "runtime.threading",
+        "runtime.time_lifecycle"
+      ],
+      "runs": [
+        {
+          "file": "build/inline-zero-tsan-final.log",
+          "sha256": "52a8c2dfc9d9e2a8f91c596657cd714ebc45d460bb39d2599952883b1366ec3b",
+          "passed": 19,
+          "summary": "\n\nTotal Test time (real) =  37.82 sec\n"
+        },
+        {
+          "file": "build/inline-zero-tsan-boundary-final.log",
+          "sha256": "2653d4c69a1ad33d1874542f6a4d36cc73528fdb276dd34a415ae1833c76c059",
+          "passed": 4,
+          "summary": "\n\nTotal Test time (real) =   2.28 sec\n"
+        }
+      ],
+      "note": "19/19 focused selection plus 4/4 final boundary checks; determinism.aggregatezeroing adds one distinct check."
+    }
+  },
+  "test_sources": {
+    "tests/CheckAggregateZeroing.py": "\"\"\"Check exact initialization coverage independently of aggregate value stores.\"\"\"\nimport argparse\nimport os\nfrom pathlib import Path\nimport re\nimport subprocess\n\n\ndef check(ir):\n    functions = dict(re.findall(r'^function \\$aggregatezeroing__(\\w+)\\([^\\n]*\\) \\{\\n(.*?)^\\}', ir, re.M | re.S))\n    machineControl = ['export function w $main() {', '@start', '    %wrong.0 =w copy 0']\n    checked = 0\n    for size in (0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32):\n        body = functions['check' + str(size)]\n        assert 'call $memset' not in body and 'call $__ada_array_local' not in body, size\n        # Examine initialization before any aggregate component is evaluated.\n        region = re.search(r'^@aggregateboundsready\\.\\d+\\n(.*?)    jmp @aggregatefill', body, re.M | re.S)[1]\n        assert re.match(r'    storel \\$[^,]+, %\\.traceLocation\\n', region), size\n        stores = re.findall(r'^    store([bwhl]) 0, (%[\\w.]+)$', region, re.M)\n        # The final zero initializes the separate loop counter, not scratch.\n        counter = stores.pop()[1]\n        assert re.search(r'=l loadl ' + re.escape(counter) + r'\\n', body), size\n        base = stores[0][1]\n        allocation = re.search(re.escape(base) + r' =l alloc([48]) (\\d+)\\n', body)\n        assert int(allocation[2]) == max(1, size), size\n        alignment = int(allocation[1])\n        addresses = {base: 0}\n        for target, origin, offset in re.findall(r'(%[\\w.]+) =l add (%[\\w.]+), (\\d+)\\n', region):\n            assert origin == base, size\n            addresses[target] = int(offset)\n        covered = []\n        for kind, address in stores:\n            width = {'b': 1, 'h': 2, 'w': 4, 'l': 8}[kind]\n            offset = addresses[address]\n            assert alignment >= width and offset % width == 0, (size, width, offset)\n            covered.extend(range(offset, offset + width))\n        assert sorted(covered) == list(range(max(1, size))), (size, covered)\n        # Execute the actual emitted zero instructions on dirty memory, with\n        # canaries on both sides. Aggregate assignments otherwise overwrite it.\n        prefix = '%control.' + str(size)\n        count = max(1, size)\n        machineControl.append(f'    {prefix}.raw =l alloc8 {count + 16}')\n        machineControl.append(f'    {base} =l add {prefix}.raw, 8')\n        for offset in range(count + 16):\n            machineControl.extend([f'    {prefix}.p{offset} =l add {prefix}.raw, {offset}',\n                                   f'    storeb 255, {prefix}.p{offset}'])\n        initialization = region.splitlines()[1:-1] # Exclude trace publication and loop counter.\n        machineControl.extend(initialization)\n        for offset in range(count + 16):\n            expected = 0 if 8 <= offset < 8 + count else 255\n            machineControl.extend([f'    {prefix}.v{offset} =w loadub {prefix}.p{offset}',\n                                   f'    {prefix}.bad{offset} =w cnew {prefix}.v{offset}, {expected}',\n                                   f'    %wrong.{checked + 1} =w or %wrong.{checked}, {prefix}.bad{offset}'])\n            checked += 1\n    assert re.search(r'call \\$memset\\(l %[^,]+, w 0, l 33\\)', functions['check33'])\n    for name in ('check65537', 'dynamic'):\n        assert 'call $__ada_array_local' in functions[name], name\n    machineControl.extend([f'    ret %wrong.{checked}', '}'])\n    return '\\n'.join(machineControl) + '\\n'\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--adac', type=Path, required=True)\n    parser.add_argument('--qbe', type=Path, required=True)\n    parser.add_argument('--cc', type=Path, required=True)\n    parser.add_argument('--source', type=Path, required=True)\n    parser.add_argument('--work', type=Path, required=True)\n    args = parser.parse_args()\n    args.work.mkdir(parents=True, exist_ok=True)\n    subprocess.run([str(args.adac), '-D', str(args.work), str(args.source)], check=True, timeout=25)\n    control = args.work / 'zero-control.ssa'\n    control.write_text(check((args.work / 'aggregatezeroing.ssa').read_text()))\n    assembly = control.with_suffix('.s')\n    program = args.work / ('zero-control.exe' if os.name == 'nt' else 'zero-control')\n    target = ['-t', 'amd64_win'] if os.name == 'nt' else []\n    subprocess.run([str(args.qbe), *target, '-o', str(assembly), str(control)], check=True, timeout=10)\n    subprocess.run([str(args.cc), str(assembly), '-o', str(program)], check=True, timeout=10)\n    result = subprocess.run([str(program.resolve())], capture_output=True, check=True, timeout=10)\n    assert not result.stdout and not result.stderr\n\n\nif __name__ == '__main__':\n    main()\n",
+    "tests/ada/arrays/aggregatezeroing.adb": "procedure AggregateZeroing is\n    type Byte is mod 2 ** 8;\n    for Byte'Size use 8;\n    type Bytes is array (Integer range <>) of Byte;\n\n    procedure Check0 (Seed : Byte) is\n        Items : Bytes (1 .. 0) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check0;\n\n    procedure Check1 (Seed : Byte) is\n        Items : Bytes (1 .. 1) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check1;\n\n    procedure Check2 (Seed : Byte) is\n        Items : Bytes (1 .. 2) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check2;\n\n    procedure Check3 (Seed : Byte) is\n        Items : Bytes (1 .. 3) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check3;\n\n    procedure Check4 (Seed : Byte) is\n        Items : Bytes (1 .. 4) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check4;\n\n    procedure Check5 (Seed : Byte) is\n        Items : Bytes (1 .. 5) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check5;\n\n    procedure Check7 (Seed : Byte) is\n        Items : Bytes (1 .. 7) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check7;\n\n    procedure Check8 (Seed : Byte) is\n        Items : Bytes (1 .. 8) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check8;\n\n    procedure Check9 (Seed : Byte) is\n        Items : Bytes (1 .. 9) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check9;\n\n    procedure Check15 (Seed : Byte) is\n        Items : Bytes (1 .. 15) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check15;\n\n    procedure Check16 (Seed : Byte) is\n        Items : Bytes (1 .. 16) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check16;\n\n    procedure Check17 (Seed : Byte) is\n        Items : Bytes (1 .. 17) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check17;\n\n    procedure Check31 (Seed : Byte) is\n        Items : Bytes (1 .. 31) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check31;\n\n    procedure Check32 (Seed : Byte) is\n        Items : Bytes (1 .. 32) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check32;\n\n    procedure Check33 (Seed : Byte) is\n        Items : Bytes (1 .. 33) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check33;\n\n    procedure Check65537 (Seed : Byte) is\n        Items : Bytes (1 .. 65537) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Check65537;\n\n    procedure Dynamic (Count : Integer; Seed : Byte) is\n        Items : Bytes (1 .. Count) := (others => Seed);\n    begin\n        for I in Items'Range loop\n            if Items (I) /= Seed then\n                raise Program_Error;\n            end if;\n        end loop;\n    end Dynamic;\nbegin\n    Check0 (173);\n    Check1 (173);\n    Check2 (173);\n    Check3 (173);\n    Check4 (173);\n    Check5 (173);\n    Check7 (173);\n    Check8 (173);\n    Check9 (173);\n    Check15 (173);\n    Check16 (173);\n    Check17 (173);\n    Check31 (173);\n    Check32 (173);\n    Check33 (173);\n    Check65537 (173);\n    Dynamic (32, 219);\nend AggregateZeroing;\n"
+  },
+  "performance": {
+    "schema": 3,
+    "recorded_at": "2026-11-08T19:57:33.490193+00:00",
+    "suite": "extended",
+    "process_startup_included": true,
+    "startup_control_subtracted": false,
+    "warmup_runs_per_program": 1,
+    "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+    "revisions": {
+      "current": "36ce98fbbb8ea5c2324ba712fc84a0936dd6fdb1+inline-scratch-zeroing-working-tree",
+      "baseline": "36ce98fbbb8ea5c2324ba712fc84a0936dd6fdb1"
+    },
+    "build_configuration": {
+      "current": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      },
+      "baseline": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      }
+    },
+    "build_components_sha256": {
+      "current": {
+        "adac/adac": "0a9aa2208ed61c988908b2dab9d4895617db47baaf4cc5e79097a6e4e91ca473",
+        "runtime/libadart.a": "18033054056c1d7146e8927e120d9040af82665ed5481fff7020d65dd8b0ef6c",
+        "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+      },
+      "baseline": {
+        "adac/adac": "ad92e649b334da56618dd12aa0ba979478aebe15a7c521f423feba81b2e9b4e2",
+        "runtime/libadart.a": "18033054056c1d7146e8927e120d9040af82665ed5481fff7020d65dd8b0ef6c",
+        "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+      }
+    },
+    "context_probe_sha256": null,
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0",
+      "processor": "arm",
+      "logical_cpus": 10
+    },
+    "driver_sha256": {
+      "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "baseline": "d561eddec4f356a562c303eb1275c511de38751da391d060b0b29c32e7b30249"
+    },
+    "comparison": "paired",
+    "runs": 11,
+    "workloads": {
+      "contextcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/contextcalls.adb",
+        "executable_sha256": {
+          "current": "29f487d02099cae54f65e9918558308bcd0e4a4992574fa677b5327aa50d0870",
+          "baseline": "879e8c3f0057aabf115a32cdf8edfda4c68f0420d1a762bc60d79c69d65eee21"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0318702079821378,
+            0.014138333965092897,
+            0.014087541960179806,
+            0.014019292080774903,
+            0.013571958988904953,
+            0.013761000009253621,
+            0.013897750061005354,
+            0.013703334028832614,
+            0.013978916918858886,
+            0.014017374953255057,
+            0.0136824999935925
+          ],
+          "baseline": [
+            0.020389124983921647,
+            0.014375708997249603,
+            0.01389687496703118,
+            0.013895208016037941,
+            0.013861667015589774,
+            0.013958708033896983,
+            0.01391037495341152,
+            0.014398916973732412,
+            0.013915457995608449,
+            0.013945291982963681,
+            0.013993666041642427
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013978916918858886,
+          "baseline": 0.013945291982963681
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00015941704623401165,
+          "baseline": 4.841701593250036e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0024112034324044,
+        "paired_sample_ratios": [
+          1.5630983677460335,
+          0.9834877686935566,
+          1.0137201344619535,
+          1.0089299897197468,
+          0.9791000587188399,
+          0.9858362232261573,
+          0.9990924117826839,
+          0.9516919955737829,
+          1.004560318695257,
+          1.0051689825053098,
+          0.9777637934817112
+        ]
+      },
+      "imagecalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/imagecalls.adb",
+        "executable_sha256": {
+          "current": "83e190da04fa77c5462672485370a19929538663faa67b5973421ad6a349ee17",
+          "baseline": "db0b673eb4fb30bade9873eea380bddf1c9563dbe36453c80f1fef5fd6921a22"
+        },
+        "samples_seconds": {
+          "current": [
+            0.025860916008241475,
+            0.02416487503796816,
+            0.02482150006107986,
+            0.02415675006341189,
+            0.02460350003093481,
+            0.024483917048200965,
+            0.024880959070287645,
+            0.024184082983992994,
+            0.024326291983015835,
+            0.024349792045541108,
+            0.02440649992786348
+          ],
+          "baseline": [
+            0.02507816592697054,
+            0.02440633298829198,
+            0.02457187499385327,
+            0.024165790993720293,
+            0.024567375076003373,
+            0.024108708021230996,
+            0.024357832968235016,
+            0.02447966707404703,
+            0.02443374996073544,
+            0.024401625036261976,
+            0.02446279104333371
+          ]
+        },
+        "median_seconds": {
+          "current": 0.02440649992786348,
+          "baseline": 0.02443374996073544
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00022241694387048483,
+          "baseline": 7.591699250042439e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9988847379990484,
+        "paired_sample_ratios": [
+          1.0312124133619005,
+          0.9901067501439217,
+          1.0101589751408484,
+          0.9996258789827839,
+          1.0014704442301907,
+          1.0155632158570898,
+          1.0214767094730814,
+          0.9879253223027935,
+          0.995602067718124,
+          0.9978758385704296,
+          0.9976989087070843
+        ]
+      },
+      "blockcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/blockcalls.adb",
+        "executable_sha256": {
+          "current": "3f92135d8dada4a527f77a4ff2a696d688ea87ad79e62b528ea49c114f02ffb8",
+          "baseline": "3e8a8bf4c922765fb8786120c6d0630e00e04a31fad91795581acbe173e30a6b"
+        },
+        "samples_seconds": {
+          "current": [
+            0.005176250007934868,
+            0.00562404200900346,
+            0.005564584047533572,
+            0.00547904206905514,
+            0.005425291950814426,
+            0.004902250017039478,
+            0.004797250032424927,
+            0.005011625005863607,
+            0.005171666038222611,
+            0.00549095799215138,
+            0.005387707962654531
+          ],
+          "baseline": [
+            0.006335834041237831,
+            0.005954500054940581,
+            0.0059944590320810676,
+            0.005473500001244247,
+            0.00549341703299433,
+            0.00534233299549669,
+            0.005933874985203147,
+            0.005704584065824747,
+            0.005385208060033619,
+            0.0054260409669950604,
+            0.005896374932490289
+          ]
+        },
+        "median_seconds": {
+          "current": 0.005387707962654531,
+          "baseline": 0.005704584065824747
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00021145795471966267,
+          "baseline": 0.00024991598911583424
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9444523738253644,
+        "paired_sample_ratios": [
+          0.816980049389612,
+          0.9445028057959404,
+          0.9282879435413777,
+          1.0010125272329649,
+          0.9875987783613125,
+          0.917623446754783,
+          0.8084514831181082,
+          0.8785259272253437,
+          0.9603465605357362,
+          1.011963976230771,
+          0.9137322548752973
+        ]
+      },
+      "allocationcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/allocationcalls.adb",
+        "executable_sha256": {
+          "current": "350c067cf91c067e75dc6c6d9cb84fc8545161c2553f1204a982db481c802c63",
+          "baseline": "09a7548bc3fb6976cd223a19042ac6d55359f671514d17c125468b6b84bda393"
+        },
+        "samples_seconds": {
+          "current": [
+            0.015037958044558764,
+            0.01400554203428328,
+            0.014211625093594193,
+            0.014470583060756326,
+            0.014138416037894785,
+            0.014303292031399906,
+            0.014118249993771315,
+            0.013619582983665168,
+            0.013661416945979,
+            0.014257582952268422,
+            0.013654749956913292
+          ],
+          "baseline": [
+            0.015092375106178224,
+            0.014363709022291005,
+            0.014164083986543119,
+            0.014082749956287444,
+            0.014783208025619388,
+            0.01409454201348126,
+            0.0137352499878034,
+            0.013814250007271767,
+            0.014202667050994933,
+            0.013812708086334169,
+            0.013896291959099472
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014138416037894785,
+          "baseline": 0.01409454201348126
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00016487599350512028,
+          "baseline": 0.0002691670088097453
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0031128378894156,
+        "paired_sample_ratios": [
+          0.9963944004017509,
+          0.9750644497565437,
+          1.0033564547552982,
+          1.027539586066124,
+          0.956383486817802,
+          1.0148106989016727,
+          1.0278844583322482,
+          0.9859082452175018,
+          0.961890953081378,
+          1.0322076498796349,
+          0.9826182406862851
+        ]
+      },
+      "startup": {
+        "kind": "startup",
+        "parameters": {},
+        "source_sha256": "a963314062aa823f1a19ea9390168147fe2885057bc2cfc0a6673008fa785660",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/startupprobe.adb",
+        "executable_sha256": {
+          "current": "95f9f3ef53aeb9ccf13813dd6a8047a376b59328f95e3525ed04ac8c5a4d474e",
+          "baseline": "adc96720d3f80fab18dd46fa2cf34cd97d785d5f65f42d9feae3ec0abe6248bc"
+        },
+        "samples_seconds": {
+          "current": [
+            0.004017916042357683,
+            0.0035011249128729105,
+            0.003731417004019022,
+            0.003522832994349301,
+            0.004168666899204254,
+            0.003467499976977706,
+            0.003266416024416685,
+            0.0030862910207360983,
+            0.003225458087399602,
+            0.003085833042860031,
+            0.003327416954562068
+          ],
+          "baseline": [
+            0.0041614590445533395,
+            0.003605542005971074,
+            0.0036333330208435655,
+            0.003757541999220848,
+            0.003951749997213483,
+            0.0039054169319570065,
+            0.003303915960714221,
+            0.003148250048980117,
+            0.00332958297803998,
+            0.0031692920019850135,
+            0.0036529579665511847
+          ]
+        },
+        "median_seconds": {
+          "current": 0.003467499976977706,
+          "baseline": 0.0036333330208435655
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00024204188957810402,
+          "baseline": 0.00030375004280358553
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9543578739095715,
+        "paired_sample_ratios": [
+          0.9655065685715374,
+          0.9710398345310524,
+          1.0269955940214597,
+          0.937536558494831,
+          1.0548913524751633,
+          0.8878693459343763,
+          0.988649851647731,
+          0.9803195339378807,
+          0.9687273477408054,
+          0.9736663712044489,
+          0.9108829023027426
+        ]
+      },
+      "contextcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "generated_source": "procedure ContextcallsLong is\n    procedure Contextcalls is\n        function Next (Value : Integer) return Integer is\n        begin\n            return Value + 1;\n        end Next;\n        Value : Integer := 0;\n    begin\n        for I in 1 .. 2_000_000 loop\n            Value := Next (Value);\n        end loop;\n        if Value /= 2_000_000 then\n            raise Program_Error;\n        end if;\n    end Contextcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Contextcalls;\n    end loop;\nend ContextcallsLong;\n",
+        "source_sha256": "79ca3def6f31f3c06c2010f8348812ff8aa8155e9664653d9433c9ed7f51d1f1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/contextcalls-long/contextcallslong.adb",
+        "executable_sha256": {
+          "current": "5f33ab2a65222808b06117b38802426815ae56a7f43e8ab72dac54ece36b0acd",
+          "baseline": "b0ef7cabda4319379ec16a3c1eae25030d264336b1b34090ac551909e5eb7285"
+        },
+        "samples_seconds": {
+          "current": [
+            1.2792129160370678,
+            1.2810516249155626,
+            1.2815765839768574,
+            1.2809220830677077,
+            1.2793771249707788,
+            1.2805100000696257,
+            1.2808460829546675,
+            1.281716875033453,
+            1.3027355839731172,
+            1.3007989999605343,
+            1.292379750055261
+          ],
+          "baseline": [
+            1.2788794579682872,
+            1.2819705840665847,
+            1.280717583023943,
+            1.2805861659580842,
+            1.2795704579912126,
+            1.279992583906278,
+            1.2832324580522254,
+            1.2799474589992315,
+            1.3024308750173077,
+            1.3022155419457704,
+            1.2837344580329955
+          ]
+        },
+        "median_seconds": {
+          "current": 1.2810516249155626,
+          "baseline": 1.280717583023943
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0006652501178905368,
+          "baseline": 0.0012530010426416993
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0002608240068283,
+        "paired_sample_ratios": [
+          1.0002607423762286,
+          0.9992831667415433,
+          1.0006707184818109,
+          1.0002623151167436,
+          0.9998489078743368,
+          1.0004042337196741,
+          0.9981403407600988,
+          1.001382413021551,
+          1.0002339540329197,
+          0.9989122062058026,
+          1.006734486223508
+        ]
+      },
+      "imagecalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "generated_source": "procedure ImagecallsLong is\n    procedure Imagecalls is\n        type Fixed is delta 0.125 range -1000.0 .. 1000.0;\n        Count : Integer := 0;\n        procedure Consume (Text : String) is\n        begin\n            Count := Count + Text'Length;\n        end Consume;\n    begin\n        for I in 1 .. 200_000 loop\n            Consume (Integer'Image (123));\n            Consume (Fixed'Image (123.125));\n        end loop;\n        if Count /= 200_000 * (9 + Fixed'Aft) then\n            raise Program_Error;\n        end if;\n    end Imagecalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Imagecalls;\n    end loop;\nend ImagecallsLong;\n",
+        "source_sha256": "aabfe882f291ef4ac69f6b37cb0a3de568f9a5c3974f39167466ba3710e5ef5d",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/imagecalls-long/imagecallslong.adb",
+        "executable_sha256": {
+          "current": "06bc6f8e67f600fa3dddc3cb01a035b42b5e788b14c0f8c1bb6ac1d88d6fda54",
+          "baseline": "9d20f1e248dd2d45d82c691c137114aa10bfb63bb7c40182f1d678fab74aa0f0"
+        },
+        "samples_seconds": {
+          "current": [
+            2.629322874941863,
+            2.586353625054471,
+            2.595768375089392,
+            2.596366708050482,
+            2.5595244170399383,
+            2.5888670838903636,
+            2.584103458910249,
+            2.5898343750741333,
+            2.582629333017394,
+            2.569513500086032,
+            2.5739062499487773
+          ],
+          "baseline": [
+            2.6396341249346733,
+            2.6042710829060525,
+            2.571361583075486,
+            2.566541332984343,
+            2.5689732501050457,
+            2.592648582998663,
+            2.5934055829420686,
+            2.6020853749942034,
+            2.574432124965824,
+            2.567621666006744,
+            2.557816082960926
+          ]
+        },
+        "median_seconds": {
+          "current": 2.586353625054471,
+          "baseline": 2.574432124965824
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.009414750034920871,
+          "baseline": 0.01661604200489819
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0046307300056727,
+        "paired_sample_ratios": [
+          0.9960936821147266,
+          0.9931199720454648,
+          1.0094917774981744,
+          1.0116208434607434,
+          0.996321941824532,
+          0.9985414532717249,
+          0.9964131626410448,
+          0.9952918532044333,
+          1.0031840839663537,
+          1.0007368040643738,
+          1.0062905879336037
+        ]
+      },
+      "blockcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "generated_source": "procedure BlockcallsLong is\n    procedure Blockcalls is\n        type Values is array (1 .. 4) of Integer;\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 200_000 loop\n            declare\n                Local : Integer := I;\n                Items : Values := (others => Local);\n            begin\n                Total := Total + Long_Integer (Items (2));\n            end;\n        end loop;\n        if Total /= 20_000_100_000 then\n            raise Program_Error;\n        end if;\n    end Blockcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Blockcalls;\n    end loop;\nend BlockcallsLong;\n",
+        "source_sha256": "40d4e06794b586718bf953c7e9067ddae358d194cc0af0c9348ae89d7dab41e4",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/blockcalls-long/blockcallslong.adb",
+        "executable_sha256": {
+          "current": "2002d8c390bdc0ebdaa24fa8eb326a49a62336214900c6f4f822fbdff217fb2a",
+          "baseline": "e86f664fc2efd85fcd5401b24cd8b2b1bfeceb19e12c7669a15317aa5a0d720d"
+        },
+        "samples_seconds": {
+          "current": [
+            0.20159712503664196,
+            0.20060308394022286,
+            0.2009876670781523,
+            0.20181337499525398,
+            0.20100545801687986,
+            0.20168062497396022,
+            0.20148529193829745,
+            0.19986362499184906,
+            0.19865249993745238,
+            0.19743766693864018,
+            0.19778024998959154
+          ],
+          "baseline": [
+            0.2678025000495836,
+            0.267372666974552,
+            0.2659149169921875,
+            0.26658420800231397,
+            0.26761895907111466,
+            0.2676158749964088,
+            0.26697595801670104,
+            0.2736717910738662,
+            0.2640368329593912,
+            0.2634533329401165,
+            0.2622401249827817
+          ]
+        },
+        "median_seconds": {
+          "current": 0.2009876670781523,
+          "baseline": 0.26697595801670104
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0006929578958079219,
+          "baseline": 0.0008265420328825712
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.7528305865862994,
+        "paired_sample_ratios": [
+          0.752782834362324,
+          0.7502752102903468,
+          0.7558344953023348,
+          0.7570342463552914,
+          0.7510882588982287,
+          0.7536198103967734,
+          0.7546945179449203,
+          0.7303040777699455,
+          0.7523666213948457,
+          0.749421784629759,
+          0.7541952247108542
+        ]
+      },
+      "allocationcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationcallsLong is\n    procedure Allocationcalls is\n        type Pointer is access Integer;\n        procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 100_000 loop\n            declare\n                Item : Pointer := new Integer'(I);\n            begin\n                Total := Total + Long_Integer (Item.all);\n                Free (Item);\n            end;\n        end loop;\n        if Total /= 5_000_050_000 then\n            raise Program_Error;\n        end if;\n    end Allocationcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Allocationcalls;\n    end loop;\nend AllocationcallsLong;\n",
+        "source_sha256": "44815c2edd8943ef2aca8dad2abaeadd9859d99d58fde3780b38abc7c9f8e90a",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationcalls-long/allocationcallslong.adb",
+        "executable_sha256": {
+          "current": "5d114f90182481cfa2c5c063d32a9cdef9ca3238ef7f9a4c3a676af386d7f1e2",
+          "baseline": "6858d8e609eeb6fd9d1dce6ae97c14da3e5745bd3af59674609e83345071d0ab"
+        },
+        "samples_seconds": {
+          "current": [
+            1.3011322499951348,
+            1.2993704580003396,
+            1.3012767500476912,
+            1.2895353330532089,
+            1.291643708012998,
+            1.2972665420966223,
+            1.3097819160902873,
+            1.298600957961753,
+            1.2994744159514084,
+            1.298826833954081,
+            1.2998905420536175
+          ],
+          "baseline": [
+            1.299125749967061,
+            1.3021188749698922,
+            1.2874957910971716,
+            1.3244656670140103,
+            1.2931878749513999,
+            1.2895816669333726,
+            1.3010896670166403,
+            1.3012244999408722,
+            1.298832458909601,
+            1.3105328750098124,
+            1.3013412079308182
+          ]
+        },
+        "median_seconds": {
+          "current": 1.2993704580003396,
+          "baseline": 1.3010896670166403
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0017617919947952032,
+          "baseline": 0.0022572081070393324
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9986786390977627,
+        "paired_sample_ratios": [
+          1.0015445002365049,
+          0.9978892733817285,
+          1.0107036924282105,
+          0.9736268482975845,
+          0.9988059221955976,
+          1.0059592000726285,
+          1.0066807456042426,
+          0.9979837899000223,
+          1.000494257005516,
+          0.9910677242219934,
+          0.9988852532538278
+        ]
+      },
+      "allocationbatch-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "c3031bab6bff306a0fe07a1c4502fc6ee624f0b12ca43ef9913fa2d11d18180b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "42b90203e6c789201700c2b61aa00be76f56f717b0ba5841c2eb7cd044a9eb8d",
+          "baseline": "4a1fdff3bfe0cc6d7878052f83f9d04770631fc8a7d4480e13e293a821b8e2c2"
+        },
+        "samples_seconds": {
+          "current": [
+            0.031645541079342365,
+            0.012177875032648444,
+            0.012222209013998508,
+            0.01210291706956923,
+            0.01214529201388359,
+            0.012137582991272211,
+            0.012041249894537032,
+            0.012079040985554457,
+            0.012079957989044487,
+            0.01273687498178333,
+            0.01229145796969533
+          ],
+          "baseline": [
+            0.014369625016115606,
+            0.012737332959659398,
+            0.012301625101827085,
+            0.011952542001381516,
+            0.012004708987660706,
+            0.012229957967065275,
+            0.01215950003825128,
+            0.011861415929161012,
+            0.011953540961258113,
+            0.012355374987237155,
+            0.012396374950185418
+          ]
+        },
+        "median_seconds": {
+          "current": 0.01214529201388359,
+          "baseline": 0.012229957967065275
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 6.625102832913399e-05,
+          "baseline": 0.00022524897940456867
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9930771672797498,
+        "paired_sample_ratios": [
+          2.2022523930757925,
+          0.9560773100002316,
+          0.993544260439478,
+          1.012581011484447,
+          1.0117106567403995,
+          0.9924468280232994,
+          0.9902750817597551,
+          1.0183473084236443,
+          1.0105756970420812,
+          1.0308772493704366,
+          0.9915364789374559
+        ]
+      },
+      "allocationbatch-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "197a07b34334743fb060f2aa2cf955ff60159b0254b6228114277df2b930c3c1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "5fff4f795091be743247fb601091523403184b35601acd1135ae84836c3ccf4f",
+          "baseline": "24a5b8dca0075bf07f240f1727c0d1e5f6c0fa0203206a8c61a4539305e3326b"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011649709078483284,
+            0.010963749955408275,
+            0.010931874974630773,
+            0.01126820791978389,
+            0.011113874963484704,
+            0.011141750030219555,
+            0.01114299998153001,
+            0.010769082931801677,
+            0.010708624962717295,
+            0.010657374979928136,
+            0.01096058392431587
+          ],
+          "baseline": [
+            0.010721375001594424,
+            0.011697666952386498,
+            0.011297666002064943,
+            0.011338874930515885,
+            0.01112095802091062,
+            0.01099800004158169,
+            0.010985709028318524,
+            0.011039249948225915,
+            0.011573166004382074,
+            0.010541916941292584,
+            0.010691458941437304
+          ]
+        },
+        "median_seconds": {
+          "current": 0.010963749955408275,
+          "baseline": 0.011039249948225915
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00017925002612173557,
+          "baseline": 0.0002996249822899699
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.993160767880813,
+        "paired_sample_ratios": [
+          1.0865872219515502,
+          0.9372595407301716,
+          0.9676224250772405,
+          0.9937677228856443,
+          0.9993630892758881,
+          1.0130705572007972,
+          1.014317778925878,
+          0.9755266872576197,
+          0.925297793072576,
+          1.0109522811912228,
+          1.0251719605670941
+        ]
+      },
+      "allocationbatch-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "99d41b05ce6aa5bb2bea763a67fb1198ebaf77428b6ed51bb694ce459df88084",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "05181299b5f162412d72ced3cb5871fa17ada9c73663da04da3a681cd27f6ff7",
+          "baseline": "6c6bb9aad3fc152f05f90baf01f596b6e30218df3a131db07de08d4a9ff83ff7"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014261667034588754,
+            0.012260291958227754,
+            0.012845374993048608,
+            0.012674708967097104,
+            0.012322750058956444,
+            0.012636292027309537,
+            0.012652750010602176,
+            0.012415750068612397,
+            0.012049540993757546,
+            0.01215295901056379,
+            0.012366874958388507
+          ],
+          "baseline": [
+            0.013202582951635122,
+            0.012611791957169771,
+            0.012495292001403868,
+            0.012444708961993456,
+            0.012697665952146053,
+            0.01263408304657787,
+            0.012159000034444034,
+            0.01272870902903378,
+            0.012129124952480197,
+            0.012164041050709784,
+            0.012167667038738728
+          ]
+        },
+        "median_seconds": {
+          "current": 0.012415750068612397,
+          "baseline": 0.012495292001403868
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00023699994198977947,
+          "baseline": 0.0002334170276299119
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9936342477804813,
+        "paired_sample_ratios": [
+          1.0802179457484467,
+          0.9721292580677093,
+          1.0280171917235235,
+          1.0184817504214905,
+          0.9704736370760924,
+          1.000174842980177,
+          1.0406077781692118,
+          0.9754131420784673,
+          0.9934386067391962,
+          0.9990889507771477,
+          1.0163719075329356
+        ]
+      },
+      "allocationbatch-fifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "ba8513ef40ca906ac52290d2d9611513ef7107e19a061cf9be17a43fcaa9f845",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-fifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "af1616378940c4f856bb063447ac17d4abce13fee4571615f1caf179d5bf8c6a",
+          "baseline": "3c1a8b81d08f6b8dfdeaa12c17261c10c2671567bcce6f9a2e38ee6141609fb8"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011684875003993511,
+            0.011219542007893324,
+            0.011296166921965778,
+            0.01171500002965331,
+            0.011161624919623137,
+            0.01202962500974536,
+            0.011572916992008686,
+            0.011138874921016395,
+            0.011465708026662469,
+            0.011768916971050203,
+            0.010995457996614277
+          ],
+          "baseline": [
+            0.011696540983393788,
+            0.011270957998931408,
+            0.01099500001873821,
+            0.011217165971174836,
+            0.011168124969117343,
+            0.011491000070236623,
+            0.011230750009417534,
+            0.01087108300998807,
+            0.011319917044602334,
+            0.011338082957081497,
+            0.011257917038165033
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011465708026662469,
+          "baseline": 0.011257917038165033
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00024929200299084187,
+          "baseline": 8.016591891646385e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.018457320994018,
+        "paired_sample_ratios": [
+          0.9990026128735974,
+          0.9954381880366373,
+          1.0273912599103505,
+          1.0443814471282475,
+          0.9994179820236448,
+          1.0468736346894518,
+          1.0304669752513615,
+          1.0246334160802824,
+          1.012879156400678,
+          1.037998841215006,
+          0.9766867138333847
+        ]
+      },
+      "allocationbatch-lifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "f2fe087e37b800b4ef29a59a3c9590a792b6dd0e07103f67890d620b95d94c3e",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-lifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "d11f708ab2d582902a768948c9db598bcff59b2cf96eef6feb075e2fa44a4ca5",
+          "baseline": "f1c502be9ddb4f0511581355bacc836269d83c1c926d1da981c65f023ce9e8cb"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011318375007249415,
+            0.011153999948874116,
+            0.011093834065832198,
+            0.011186874937266111,
+            0.011154041974805295,
+            0.011419040965847671,
+            0.011188791948370636,
+            0.010924916947260499,
+            0.011115666944533587,
+            0.010914166923612356,
+            0.011446958058513701
+          ],
+          "baseline": [
+            0.011178583954460919,
+            0.01156641694251448,
+            0.01107504207175225,
+            0.010841332958079875,
+            0.010937292012386024,
+            0.010890915989875793,
+            0.011008958099409938,
+            0.011141124996356666,
+            0.011111458064988256,
+            0.010889041936025023,
+            0.010957875056192279
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011154041974805295,
+          "baseline": 0.011008958099409938
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 6.02079089730978e-05,
+          "baseline": 0.0001180421095341444
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0131787108357815,
+        "paired_sample_ratios": [
+          1.0125052558855374,
+          0.9643435823133395,
+          1.0016967876020875,
+          1.0318726470741506,
+          1.0198175162712864,
+          1.0484922458737926,
+          1.0163352287597802,
+          0.9805936968513619,
+          1.0003787873311238,
+          1.0023073643884326,
+          1.0446330150520418
+        ]
+      },
+      "allocationbatch-permuted-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 257) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "75d2e304b1e1388162993b01f19b06b9255715fcb180dcd24fdf0e9447bb8fec",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-permuted-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "aafe348b1c9482836623843bdb1255df928edcbbebe0d2b14813bf587954084b",
+          "baseline": "e70cb412096b3527c5a243575749d4b74dd89b979a6843d3cef188e67038e138"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011975166969932616,
+            0.01124191703274846,
+            0.01167779101524502,
+            0.011690041981637478,
+            0.01182733301538974,
+            0.011227500042878091,
+            0.011448915931396186,
+            0.011319249984808266,
+            0.011441790964454412,
+            0.0112146669998765,
+            0.010855084052309394
+          ],
+          "baseline": [
+            0.011759915971197188,
+            0.01136470795609057,
+            0.011365666054189205,
+            0.011408374994061887,
+            0.011681500007398427,
+            0.011881166021339595,
+            0.011480499990284443,
+            0.01107875001616776,
+            0.011113041895441711,
+            0.011274417047388852,
+            0.011246958980336785
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011441790964454412,
+          "baseline": 0.011365666054189205
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00022712396457791328,
+          "baseline": 0.00011870707385241985
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.006697795791488,
+        "paired_sample_ratios": [
+          1.0183037871412202,
+          0.989195417619482,
+          1.0274620914927173,
+          1.0246894923880219,
+          1.0124840994648763,
+          0.9449830111550109,
+          0.9972488951774762,
+          1.0217082223436338,
+          1.0295822756816517,
+          0.9947003869680171,
+          0.965157254622115
+        ]
+      },
+      "allocationbatch-fifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "95651db3bee2f75637325b0c9e81010fa9a55e0f7896026a3f846ea2ce0ca385",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-fifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "54b778868c8515026ee0ab64a0f81c298a3b7e607ab1b9b3b582c58c8b93b333",
+          "baseline": "bb954e62c50f61210a47b9efae3fc756d524e2b65f8264b81e7e5c3b07dc3926"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014002291020005941,
+            0.011683791992254555,
+            0.011511582997627556,
+            0.011389249935746193,
+            0.011470834026113153,
+            0.011499625048600137,
+            0.01132004102692008,
+            0.011974417022429407,
+            0.011624292004853487,
+            0.01142995897680521,
+            0.011396959074772894
+          ],
+          "baseline": [
+            0.01174899993930012,
+            0.012769875000230968,
+            0.011593583039939404,
+            0.011217292048968375,
+            0.011446750024333596,
+            0.011774500017054379,
+            0.011743583949282765,
+            0.011593916919082403,
+            0.011530166026204824,
+            0.011414416949264705,
+            0.011610875022597611
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011499625048600137,
+          "baseline": 0.011593916919082403
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0001103751128539443,
+          "baseline": 0.0001496670302003622
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9918671255676267,
+        "paired_sample_ratios": [
+          1.1917857768616218,
+          0.9149495975523042,
+          0.9929271182145019,
+          1.0153297146964835,
+          1.0021040034707107,
+          0.9766550623758029,
+          0.9639341001697738,
+          1.0328189434168482,
+          1.008163453885637,
+          1.0013616137915398,
+          0.9815762423238228
+        ]
+      },
+      "allocationbatch-lifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "14c8eb7c39cb906abaaaaa14618ca53bcb90ce99afccb2047955c018f1935164",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-lifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "3a9b4b77e00685653256667090a449776f35684f4ff496405f1119ac2cd9e2c2",
+          "baseline": "5f98428973936fdce60466b4ba414b9c965ef0596373997af64610d05c45c9cb"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011582333943806589,
+            0.011334541020914912,
+            0.011295333039015532,
+            0.011296999990008771,
+            0.011343832942657173,
+            0.011024042032659054,
+            0.011149083031341434,
+            0.01094620896037668,
+            0.011212000041268766,
+            0.011188250035047531,
+            0.01116400002501905
+          ],
+          "baseline": [
+            0.011316541000269353,
+            0.01140550000127405,
+            0.011248665978200734,
+            0.011103666969574988,
+            0.011218999978154898,
+            0.01118074997793883,
+            0.011331250076182187,
+            0.011084583937190473,
+            0.011124458047561347,
+            0.011026333086192608,
+            0.011377291986718774
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011212000041268766,
+          "baseline": 0.011218999978154898
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 8.499994874000549e-05,
+          "baseline": 0.00011225009802728891
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.999376064096643,
+        "paired_sample_ratios": [
+          1.023487118858219,
+          0.9937785296259515,
+          1.0041486751322544,
+          1.017411637161267,
+          1.011126924391242,
+          0.9859841293661888,
+          0.9839234820857355,
+          0.9875164482854856,
+          1.0078693266074754,
+          1.014684568984922,
+          0.9812528357408151
+        ]
+      },
+      "allocationbatch-permuted-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 2049) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "8ef7a4ae29636169df535108228b64a3968a07b461a89276f643f87362401392",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-permuted-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "e451d4cdb349adf5edfae73d5b64d535d18c27db7cba28595067be8207c5a896",
+          "baseline": "fc093f3d9282fd858d9cf18eca584dbc60ab33733ce7e0593f71e7c1f3805fc9"
+        },
+        "samples_seconds": {
+          "current": [
+            0.011941457982175052,
+            0.011765083996579051,
+            0.011733833001926541,
+            0.011826958041638136,
+            0.011859957943670452,
+            0.01186304201837629,
+            0.01189016702119261,
+            0.011718833004124463,
+            0.012013041996397078,
+            0.011778000043705106,
+            0.01222745911218226
+          ],
+          "baseline": [
+            0.012736083008348942,
+            0.012671417091041803,
+            0.01173158292658627,
+            0.011506375041790307,
+            0.01166570803616196,
+            0.011781290988437831,
+            0.011986500001512468,
+            0.011553124990314245,
+            0.011719917063601315,
+            0.011817416991107166,
+            0.011851084069348872
+          ]
+        },
+        "median_seconds": {
+          "current": 0.011859957943670452,
+          "baseline": 0.011781290988437831
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 8.195789996534586e-05,
+          "baseline": 0.00011558295227587223
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0066772780088213,
+        "paired_sample_ratios": [
+          0.9376083662729753,
+          0.9284742118461641,
+          1.0001917963973277,
+          1.0278613376222743,
+          1.0166513602866063,
+          1.0069390553224338,
+          0.991963210252559,
+          1.0143431334767987,
+          1.02501083678366,
+          0.9966645039747923,
+          1.0317587016201182
+        ]
+      },
+      "allocationbatch-throughput-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "fifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "6c86b79ad417a796f2fecdcf88916236aa8464516f60fcd07fc1967b64e7e55b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-throughput-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "f38547a7cffba2a2a6be8dabc8564d8bd664d6b56dab9d434c0a322a2b7b9431",
+          "baseline": "2d7a45ea85123e23be98172a121bebe542ec3ae2ed3c875fcea07ae21b1b3528"
+        },
+        "samples_seconds": {
+          "current": [
+            0.5677963750204071,
+            0.5667619580635801,
+            0.5683919169241562,
+            0.5733976670308039,
+            0.5717015829868615,
+            0.5688536670058966,
+            0.5680554580176249,
+            0.566141042043455,
+            0.5654162500286475,
+            0.5665270830504596,
+            0.5674351250054315
+          ],
+          "baseline": [
+            0.5681265409803018,
+            0.5661953749367967,
+            0.5664686249801889,
+            0.5725820000516251,
+            0.5735001671127975,
+            0.574407042004168,
+            0.5673741670325398,
+            0.5707507079932839,
+            0.5653100409545004,
+            0.5660339168971404,
+            0.5671925420174375
+          ]
+        },
+        "median_seconds": {
+          "current": 0.5677963750204071,
+          "baseline": 0.5673741670325398
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.001057291985489428,
+          "baseline": 0.0013402501353994012
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0007441438338223,
+        "paired_sample_ratios": [
+          0.9994188513718705,
+          1.001000684837538,
+          1.003395231190491,
+          1.0014245417758596,
+          0.9968638472504886,
+          0.9903319865667121,
+          1.0012007790002995,
+          0.9919235037551926,
+          1.0001878775653228,
+          1.0008712660824683,
+          1.000427690722327
+        ]
+      },
+      "allocationbatch-throughput-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "lifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "0b2385f6a98de7be4ded676c6f1a426ec4ebb68745c536ab137c86a6f04e78f9",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-throughput-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "5c5ae8b4838e239708437f3cf4f2f594d577efab2bcf76faf6695be241d18a73",
+          "baseline": "eb37e9e241f0de550f8886d4a49920a60859e66b88357bed42a542389746d720"
+        },
+        "samples_seconds": {
+          "current": [
+            0.4884257500525564,
+            0.4826987909618765,
+            0.48237866698764265,
+            0.4867696249857545,
+            0.47788291692268103,
+            0.4774737919215113,
+            0.478516791947186,
+            0.4773230419959873,
+            0.4769487089943141,
+            0.47714616695884615,
+            0.47780229209456593
+          ],
+          "baseline": [
+            0.4914595000445843,
+            0.48253770801238716,
+            0.483842583023943,
+            0.48453966702800244,
+            0.477806624956429,
+            0.4780644580023363,
+            0.4779792911140248,
+            0.4774787910282612,
+            0.47712570894509554,
+            0.48293079202994704,
+            0.48335137497633696
+          ]
+        },
+        "median_seconds": {
+          "current": 0.47788291692268103,
+          "baseline": 0.48253770801238716
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0007367499638348818,
+          "baseline": 0.004473250010050833
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9903535184661949,
+        "paired_sample_ratios": [
+          0.9938270600288475,
+          1.0003338245836846,
+          0.9969743960377545,
+          1.004602219610687,
+          1.0001596712189977,
+          0.9987644635133655,
+          1.0011245274495228,
+          0.9996738095278778,
+          0.9996290286868574,
+          0.9880218342533392,
+          0.9885195674015768
+        ]
+      },
+      "allocationbatch-throughput-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "permuted",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "39351961ddaad4de2f8ddd50c5405aaad34f68291979a1002d712b2710d63216",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/inline-scratch-zeroing/sources/allocationbatch-throughput-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "7477ea7e6761db278fcaddc83d2198445becf90d90c73f7f971b02068b57dcbe",
+          "baseline": "3177f810e5bc994b927c2a8a556f6b7e9b664176e83a80531b86844f8f9a0f56"
+        },
+        "samples_seconds": {
+          "current": [
+            0.5623332499526441,
+            0.5587425839621574,
+            0.561790750012733,
+            0.5539109579985961,
+            0.5547088750172406,
+            0.5535863341065124,
+            0.5522432499565184,
+            0.5544589170021936,
+            0.5534254160011187,
+            0.5541136249667034,
+            0.5521256669890136
+          ],
+          "baseline": [
+            0.5601479168981314,
+            0.5605678749270737,
+            0.5605286669451743,
+            0.5580430419649929,
+            0.55626704194583,
+            0.5537278749980032,
+            0.5547447080025449,
+            0.5538031250471249,
+            0.5540927909314632,
+            0.5521317919483408,
+            0.5478018750436604
+          ]
+        },
+        "median_seconds": {
+          "current": 0.5541136249667034,
+          "baseline": 0.5547447080025449
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0006882089655846357,
+          "baseline": 0.0026129160542041063
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.998862390164813,
+        "paired_sample_ratios": [
+          1.003901349962371,
+          0.9967438537837121,
+          1.0022515941502812,
+          0.9925954027634737,
+          0.9971988868455358,
+          0.9997443854682385,
+          0.9954907942158954,
+          1.0011841608062666,
+          0.9987955538471767,
+          1.0035894202204316,
+          1.0078929849318397
+        ]
+      }
+    },
+    "context_probe_samples_seconds": {},
+    "context_probe_median_seconds": {}
+  },
+  "limits": [
+    "Current compiler is the documented working-tree patch on the recorded base, not a committed revision.",
+    "Same-host before/after comparison; no native Linux/Windows speedup claim and no historical-baseline comparison.",
+    "ASan/UBSan instrument native compiler/runtime; generated Ada accesses use the existing TSan adapter.",
+    "Full Release run had one stale test-command failure; final registered boundary rerun passed and all 1957 distinct checks pass."
+  ]
+}
