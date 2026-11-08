@@ -127,3 +127,11 @@ accessibility and tasking paths retain masters. This does not enable general
 benchmark-style master omission.
 [Native confirmation](host-performance-block-masters-ci.json) now passes all three
 hosts; runner CPU changes and historical performance gaps remain explicit limits.
+
+The following [helper/allocation study](helper-profiling.md) adds a pinned-corpus
+`--suite helpers` mode, a rebuilt-lock object control, explicit offset-failure
+parity and a separate one-activation census. Equivalent inline scratch zeroing
+reduces diagnostic block time about 26%, selecting small known-size zeroing as
+the next repair while preserving all initialized bytes. The production
+compiler/runtime are unchanged; complete sample sets and the 21-case same-build
+control remain separate from actual before/after optimization evidence.

@@ -1521,10 +1521,24 @@ Ada 2005 additions and track annex packages separately.
     `profile-*` evidence and a resolved `baseline_ref` for same-run pre-batch
     comparisons (historical baseline remains the default). Keep macOS entries
     commented; profile locally between native milestones.
-  - [ ] Profile remaining aggregate/array-index helper work in the block kernel
-    and allocation overhead using matched same-host builds. Retain small/LIFO,
-    throughput and scaling controls; distinguish runner/CPU variation from
-    code changes. Historical no-slowdown remains open.
+  - [x] Profile remaining aggregate/array-index helper work and allocation
+    overhead locally with fixed-corpus controls. Eight block/seven allocation
+    variants, 11 trials and 128 activations identify equivalent inline scratch
+    zeroing (26% diagnostic block reduction), small copy (20%) and checked
+    offset (7%). An independent control verifies all 16 zeroed bytes. Allocation
+    guards/lock probes retain separate single-thread-only limits. Verify
+    identical object/rebuilt-lock controls and matching offset failures.
+    Retain the full 21-case/11-pair suite as an identical-build harness control,
+    including small/LIFO, throughput and scaling cases. Twenty Python controls
+    and both host protocol CTests pass; production components are unchanged.
+    [Method, samples and limits](docs/helper-profiling.md).
+  - [ ] Inline zeroing for small, statically sized and suitably aligned aggregate
+    scratch buffers, preserving every initialized byte. Bound code size and retain
+    memset/runtime allocation for dynamic, large or unsupported cases. Preserve
+    source locations, destination isolation, evaluation order, checks and pre-copy
+    exception barriers. Validate correctness/sanitizers and all 21 production
+    cases using same-host before/after builds; native profiling stays a manual
+    milestone checkpoint. Historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

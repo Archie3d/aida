@@ -888,6 +888,28 @@ remaining aggregate/array-index helper work and allocation overhead, with matche
 same-host builds and all existing small/LIFO, throughput and scaling controls.
 The historical no-slowdown goal remains open.
 
+## Remaining helper diagnosis
+
+[Local helper profiling](helper-profiling.md) now separates aggregate zeroing,
+small copies, checked offsets and allocation call/lock overhead. The pinned-corpus
+eight-block/seven-allocation-variant, 11-trial study selects equivalent inline
+scratch zeroing as the next production target: it reduces diagnostic long block
+time about 26%, versus 29% for omitting zeroing. Copy and offset probes reduce it
+about 20% and 7%; gains are not additive.
+Allocation guard/lock diagnostics retain their single-thread and callback limits.
+The full 21-case/11-pair suite remains as an identical-build control, not a new
+historical comparison; production component hashes are unchanged. Twenty
+Python controls and both host protocol CTests pass. Full compiler/sanitizer suites
+were not repeated for tooling only. Complete samples, fault parity and census
+predicates are [archived](host-performance-helper-profile.json).
+
+The next repair preserves all zero initialization while inlining small, known-size
+scratch zeroing. A separate executable checks that all 16 bytes are cleared. Keep
+source locations, scratch isolation, component checks and the pre-copy exception
+barrier, with existing fallbacks for unsupported sizes/alignment and allocation. Local profiling remains
+the routine path, with manual native profiling at milestones. Historical
+no-slowdown remains open.
+
 ## Reproduce
 
 ```sh

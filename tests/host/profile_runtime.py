@@ -20,6 +20,7 @@ import subprocess
 import sys
 
 import measure
+import profile_helpers
 
 kRoot = Path(__file__).resolve().parents[2]
 kVariants = ('control', 'control-copy', 'no-lexical-masters', 'guard-finalization',
@@ -129,6 +130,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--work', type=Path, required=True)
+    parser.add_argument('--suite', choices=['cleanup', 'helpers'], default='cleanup')
     parser.add_argument('--runs', type=int, default=11)
     parser.add_argument('--repetitions', type=int, default=128)
     args = parser.parse_args()
@@ -142,12 +144,16 @@ def main():
         validateWork(build, work)
     except ValueError as error:
         parser.error(str(error))
+    kernels = {name: (measure.kSources / (name + '.adb')).read_text() for name in ('blockcalls', 'allocationcalls')}
+    if args.suite == 'helpers':
+        for name, text in kernels.items(): profile_helpers.validateKernel(name, text)
     work.mkdir(parents=True, exist_ok=True)
     cache = cacheValues(build)
     if cache['CMAKE_BUILD_TYPE'] != 'Release':
         parser.error('a matching Release build is required')
     cc, ar = cache['CMAKE_C_COMPILER'], cache['CMAKE_AR']
     flags = shlex.split(cache.get('CMAKE_C_FLAGS', '')) + shlex.split(cache['CMAKE_C_FLAGS_RELEASE'])
+    flags += ['-fPIC'] # Runtime target uses CMAKE_POSITION_INDEPENDENT_CODE.
     if any('sanitize' in flag for flag in flags):
         parser.error('do not mix sanitizer builds and profiling')
     suffix = '.exe' if os.name == 'nt' else ''
@@ -160,8 +166,14 @@ def main():
     archive = work / 'census-runtime.a'
     shutil.copyfile(runtime, archive)
     members = run([ar, 't', archive], environment).stdout.splitlines()
+    entriesByUnit = {unit: dict(entries) for unit, entries in kEntries.items()}
+    if args.suite == 'helpers':
+        for name in ('__ada_master_activate', '__ada_master_await', '__ada_task_discard'):
+            entriesByUnit['adamaster'][name] = 'master == NULL || !(atomic_load(&master->activities) & kMasterDependents)'
+        entriesByUnit['adamaster']['__ada_task_create'] = '0'
+        entriesByUnit['adart'].update({'collectionOpen': '0', 'registerAllocation': '0', 'findAllocationLocked': '0'})
     instrumented = {}
-    for unit, entries in kEntries.items():
+    for unit, entries in entriesByUnit.items():
         member = [name for name in members if name in (unit + '.c.o', unit + '.c.obj')]
         if len(member) != 1:
             raise ValueError('unexpected archive member for ' + unit)
@@ -173,13 +185,34 @@ def main():
         instrumented[unit] = dict(source_sha256=sha(source), object_sha256=sha(obj))
     counters = work / 'counters.o'
     run([cc, *flags, '-std=c11', '-c', Path(__file__).with_name('ProfileCounters.c'), '-o', counters], environment)
+    runtimeVariants = {}
+    if args.suite == 'helpers':
+        for variant in ('rebuilt-locks', 'no-storage-locks'):
+            directory = work / 'runtime-variants' / variant
+            directory.mkdir(parents=True, exist_ok=True)
+            source = directory / 'adalock.c'
+            text = (kRoot / 'runtime/adalock.c').read_text()
+            source.write_text(profile_helpers.withoutStorageLocks(text) if variant == 'no-storage-locks' else text)
+            member = next(name for name in members if name in ('adalock.c.o', 'adalock.c.obj'))
+            obj = directory / member
+            run([cc, *flags, '-std=c11', '-I', kRoot / 'runtime', '-c', source, '-o', obj], environment)
+            original = subprocess.run([ar, 'p', str(runtime), member], capture_output=True, check=True).stdout
+            if variant == 'rebuilt-locks' and hashlib.sha256(original).hexdigest() != sha(obj):
+                raise RuntimeError('rebuilt lock object differs; review compiler flags before timing')
+            library = directory / 'libadart.a'
+            shutil.copyfile(runtime, library)
+            run([ar, 'r', library, obj], environment)
+            runtimeVariants[variant] = dict(path=library, source_sha256=sha(source), object_sha256=sha(obj), archive_sha256=sha(library))
     census = {}
+    censusSources = {}
+    failureControls = {}
+    driverControls = {}
     censusExecutables = {}
     workloads = {}
     for kernel in ('blockcalls', 'allocationcalls'):
         directory = work / kernel
         directory.mkdir(exist_ok=True)
-        filename, text = measure.longSource((measure.kSources / (kernel + '.adb')).read_text(), args.repetitions)
+        filename, text = measure.longSource(kernels[kernel], args.repetitions)
         source = directory / filename
         source.write_bytes(text.encode())
         control = directory / ('control' + suffix)
@@ -191,17 +224,54 @@ def main():
         programs = {'control': control}
         metadata = {'control': dict(changes={}, ir_sha256=sha(mainObject.with_suffix('.ssa')),
                                     object_sha256=sha(mainObject))}
-        for variant in kVariants[1:]:
-            rewritten, changes = transform(original, variant)
+        def buildVariant(rewritten, variant, library=runtime):
             ir = directory / (variant + '.ssa')
             ir.write_bytes(rewritten.encode())
             assembly, obj = ir.with_suffix('.s'), ir.with_suffix('.o')
             run([qbe, '-o', assembly, ir], environment)
             run([cc, '-c', assembly, '-o', obj], environment)
             program = directory / (variant + suffix)
-            run([cc, '-o', program, *otherObjects, obj, runtime, *links], environment)
+            run([cc, '-o', program, *otherObjects, obj, library, *links], environment)
+            return program, dict(ir_sha256=sha(ir), object_sha256=sha(obj), runtime_sha256=sha(library))
+        if args.suite == 'helpers':
+            result = run([control], environment)
+            if result.stdout or result.stderr:
+                raise RuntimeError('driver control must validate silently')
+            driverControls[kernel] = dict(executable_sha256=sha(control), object_sha256=sha(mainObject))
+            # Use the same object order/link pipeline for every timed helper probe.
+            control, details = buildVariant(original, 'control')
+            if details['object_sha256'] != sha(mainObject):
+                raise RuntimeError('recompiled control object differs from the driver object')
+            metadata['control'] = dict(changes={}, **details)
+        variants = profile_helpers.kVariants[kernel] if args.suite == 'helpers' else kVariants
+        for variant in variants[1:]:
+            if variant in runtimeVariants:
+                rewritten, changes = original, {'runtime-lock-wrapper': 2}
+            elif args.suite == 'helpers' and kernel == 'blockcalls':
+                rewritten, changes = profile_helpers.transform(original, variant)
+            else:
+                rewritten, changes = transform(original, variant)
+            library = runtimeVariants[variant]['path'] if variant in runtimeVariants else runtime
+            program, details = buildVariant(rewritten, variant, library)
             programs[variant] = program
-            metadata[variant] = dict(changes=changes, ir_sha256=sha(ir), object_sha256=sha(obj))
+            metadata[variant] = dict(changes=changes, **details)
+        if args.suite == 'helpers' and kernel == 'blockcalls':
+            checks = []
+            for index in (0, 5):
+                bad = profile_helpers.faultIndex(original, index)
+                outcomes = []
+                for variant in ('control', 'inline-checked-offset'):
+                    rewritten, _ = profile_helpers.transform(bad, variant)
+                    program, details = buildVariant(rewritten, 'bad-' + str(index) + '-' + variant)
+                    result = subprocess.run([str(program)], capture_output=True, text=True, timeout=60, env=environment)
+                    if result.returncode == 0 or 'CONSTRAINT_ERROR' not in result.stderr:
+                        raise RuntimeError('offset failure control did not raise Constraint_Error')
+                    outcomes.append(dict(status=result.returncode, stdout=result.stdout, stderr=result.stderr,
+                                         executable_sha256=sha(program), **details))
+                if any(outcomes[0][key] != outcomes[1][key] for key in ('status', 'stdout', 'stderr')):
+                    raise RuntimeError('offset probe changed failure behavior')
+                checks.append(dict(index=index, outcomes=outcomes))
+            failureControls[kernel] = checks
         # Identical QBE/object controls catch unintended transformations before timing.
         assert metadata['control']['object_sha256'] == metadata['control-copy']['object_sha256']
         for program in programs.values():
@@ -209,11 +279,25 @@ def main():
             if result.stdout or result.stderr:
                 raise RuntimeError('benchmark validation must be silent')
         countsProgram = directory / ('census' + suffix)
-        run([cc, '-o', countsProgram, *otherObjects, mainObject, counters, archive, *links], environment)
+        censusObjects, censusMain = otherObjects, mainObject
+        if args.suite == 'helpers':
+            name, censusText = measure.longSource(kernels[kernel], 1)
+            censusSource = directory / 'census-source' / name
+            censusSource.parent.mkdir(exist_ok=True)
+            censusSource.write_bytes(censusText.encode())
+            censusBuild = directory / 'census-build'
+            run([ada, '-o', censusBuild, censusSource], environment)
+            objectDirectory = Path(str(censusBuild) + '.adaobj')
+            censusMain = objectDirectory / (censusSource.stem + '.o')
+            censusObjects = sorted(p for p in objectDirectory.glob('*.o') if p != censusMain)
+            censusSources[kernel] = dict(repetitions=1, generated_source=censusText, source_sha256=sha(censusSource))
+        run([cc, '-o', countsProgram, *censusObjects, censusMain, counters, archive, *links], environment)
         result = run([countsProgram], environment)
         if result.stderr:
             raise RuntimeError('noisy census: ' + result.stderr)
         census[kernel] = json.loads(result.stdout)
+        if args.suite == 'helpers' and census[kernel].get('__ada_task_create', {}).get('calls', 0) != 0:
+            raise RuntimeError('single-thread diagnostic unexpectedly created an Ada task')
         censusExecutables[kernel] = sha(countsProgram)
         samples = {name: [] for name in programs}
         orders = []
@@ -245,13 +329,17 @@ def main():
                 'No sampling percentages: census counters are untimed, single-thread and perturb execution.',
                 'Master omission is benchmark-only, not a generally valid compiler optimization.',
                 'Cleanup guards retain nonempty calls and exception checks; no exception branches are removed.',
-                'Variant differences include code-generation/layout effects, not isolated helper timings.'],
+                'Variant differences include code-generation/layout effects, not isolated helper timings.',
+                'Helper-suite zero omission and storage-lock omission require the pinned single-thread corpus; not production repairs.',
+                'Helper-suite census uses one kernel activation, while timed repetitions are recorded separately.'],
         source_base_revision=run(['git', '-C', kRoot, 'rev-parse', 'HEAD'], environment).stdout.strip(),
-        census_predicates=kEntries, census_executable_sha256=censusExecutables, census_runtime_sha256=sha(archive),
+        suite=args.suite, driver_controls=driverControls, census_sources=censusSources, failure_controls=failureControls,
+        runtime_variants={name: {k: str(v) if isinstance(v, Path) else v for k,v in info.items()} for name,info in runtimeVariants.items()},
+        census_predicates=entriesByUnit, census_executable_sha256=censusExecutables, census_runtime_sha256=sha(archive),
         census_untimed=True, census_scope='Selected runtime function entries, including runtime-internal calls; empty means the recorded owner/checkpoint or zero-activity predicate.',
         build_configuration=measure.buildConfiguration(build), host=measure.hostInformation(), runs=args.runs,
         process_startup_included=True, startup_subtracted=False,
-        source_sha256={str(p.relative_to(kRoot)):sha(p) for p in [Path(__file__),Path(__file__).with_name('ProfileCounters.c'),Path(__file__).with_name('measure.py'),*[kRoot/'runtime'/f'{u}.c' for u in kEntries]]},
+        source_sha256={str(p.relative_to(kRoot)):sha(p) for p in [Path(__file__),Path(__file__).with_name('ProfileCounters.c'),Path(__file__).with_name('measure.py'),Path(__file__).with_name('profile_helpers.py'),*[kRoot/'runtime'/f'{u}.c' for u in kEntries]]},
         build_components_sha256={str(p.relative_to(build)):sha(p) for p in [ada,build/('adac/adac'+suffix),qbe,runtime]},
         census_instrumentation=instrumented, census=census, workloads=workloads)
     (work/'profile.json').write_text(json.dumps(report,indent=2)+'\n')

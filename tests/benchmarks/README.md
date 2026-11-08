@@ -388,3 +388,12 @@ records the existing extended 21-case/11-pair measurements in `profile-*`
 artifacts. Select `baseline_ref` as the pre-batch commit for a same-run comparison;
 it defaults to pre-Phase-2 for historical tracking and records the resolved SHA.
 Use local profiling between native checkpoints. Mac runners remain commented.
+
+[Remaining helper profiling](../../docs/helper-profiling.md) uses
+`profile_runtime.py --suite helpers` for fixed-corpus array/aggregate probes and
+single-thread allocation diagnostics. The local 11-trial study selects equivalent
+inline scratch zeroing (26% diagnostic block reduction), retaining all initialized
+bytes and existing fallbacks in the planned production repair. All 21 ordinary cases remain in a
+same-build harness control; no new historical or production speedup is claimed.
+Twenty protocol controls and both host protocol CTests pass. Native profiling
+remains manual; zero/lock omissions are diagnostic-only.

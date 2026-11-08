@@ -1,0 +1,13 @@
+export function w $main() {
+@start
+    %scratch =l alloc8 16
+    %tail =l add %scratch, 8
+    storel -1, %scratch
+    storel -1, %tail
+    call $memset(l %scratch, w 0, l 16)
+    %head =l loadl %scratch
+    %last =l loadl %tail
+    %bits =l or %head, %last
+    %wrong =w cnel %bits, 0
+    ret %wrong
+}

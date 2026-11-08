@@ -158,5 +158,82 @@ class RuntimeProfileTests(unittest.TestCase):
                     run.assert_not_called()
 
 
+class HelperProfileTests(unittest.TestCase):
+    def testFixedCorpusIsRequiredForUnsafeDiagnosticOmissions(self):
+        import profile_helpers as helpers
+        for name in helpers.kKernelHashes:
+            text = (Path(__file__).parents[1] / 'benchmarks' / (name + '.adb')).read_text()
+            helpers.validateKernel(name, text)
+            with self.assertRaises(ValueError):
+                helpers.validateKernel(name, text + '\n')
+        with self.assertRaises(ValueError):
+            helpers.validateKernel('other', '')
+
+    def testCheckedOffsetRetainsBothBoundsAndOriginalExceptionCheck(self):
+        import profile_helpers as helpers
+        source = ('    %result =l call $__ada_array_offset(l %index, l 1, l 4, l 4)\n'
+                  '    jnz %exception, @failed, @ready\n')
+        result, changes = helpers.transform(source, 'inline-checked-offset')
+        self.assertEqual(changes, {'checked-offset': 1})
+        self.assertIn('csgel %index, 1', result)
+        self.assertIn('cslel %index, 4', result)
+        self.assertIn('call $__ada_raise(l $__ada_exc_constraint_error)', result)
+        self.assertIn('%result =l phi ', result)
+        self.assertIn('jnz %exception, @failed, @ready', result)
+        self.assertIn('l 0, l 1, l 4, l 4', helpers.faultIndex(source, 0))
+
+    def testUnsupportedOffsetShapesCannotSilentlyBecomeUncheckedOffsets(self):
+        import profile_helpers as helpers
+        args = [('1','4','-1'), ('1','4','9223372036854775807'), ('4','1','4'),
+                ('1','1','9223372036854775808'), ('%first','4','4')]
+        for first,last,stride in args:
+            with self.subTest(args=(first,last,stride)), self.assertRaises(ValueError):
+                helpers.transform(f'    %r =l call $__ada_array_offset(l %i, l {first}, l {last}, l {stride})\n', 'inline-checked-offset')
+
+    def testSmallCopyLoadsAllSourceWordsBeforeWriting(self):
+        import profile_helpers as helpers
+        source = ('    %src =l alloc8 16\n    %dst =l alloc8 16\n'
+                  '    call $memmove(l %dst, l %src, l 16)\n')
+        result, changes = helpers.transform(source, 'inline-small-copy')
+        self.assertEqual(changes, {'small-copy': 1})
+        self.assertLess(result.rindex(' =l loadl '), result.index('    storel '))
+        with self.assertRaises(ValueError):
+            helpers.transform(source.replace('alloc8 16', 'alloc4 16'), 'inline-small-copy')
+
+    def testZeroOmissionRequiresTheReviewedScratchShape(self):
+        import profile_helpers as helpers
+        source = '    %scratch =l alloc8 16\n    call $memset(l %scratch, w 0, l 16)\n'
+        result, changes = helpers.transform(source, 'omit-aggregate-zero')
+        self.assertEqual(changes, {'aggregate-zero': 1})
+        self.assertNotIn('memset', result)
+        with self.assertRaises(ValueError):
+            helpers.transform(source.replace('l 16)', 'l 8)'), 'omit-aggregate-zero')
+
+    def testInlineZeroKeepsAllBytesAndOriginalSourceLocation(self):
+        import profile_helpers as helpers
+        source = ('    %scratch =l alloc8 16\n'
+                  '    storel $location, %.traceLocation\n'
+                  '    call $memset(l %scratch, w 0, l 16)\n')
+        result, changes = helpers.transform(source, 'inline-aggregate-zero')
+        self.assertEqual(changes, {'inline-zero': 1})
+        self.assertIn('storel $location, %.traceLocation', result)
+        self.assertEqual(result.count('storel 0,'), 2)
+        self.assertIn('add %scratch, 8', result)
+        self.assertIn('storel 0, %.helper.zero.0.next', result)
+        with self.assertRaises(ValueError):
+            helpers.transform(source.replace('alloc8 16', 'alloc8 8'), 'inline-aggregate-zero')
+
+    def testStorageLockDiagnosticKeepsAllOtherMutexOperations(self):
+        import profile_helpers as helpers
+        source = ('void __ada_mutex_lock(AdaMutex* mutex)\n{\n    pthread_mutex_lock(mutex);\n}\n'
+                  'void __ada_mutex_unlock(AdaMutex* mutex)\n{\n    pthread_mutex_unlock(mutex);\n}\n')
+        result = helpers.withoutStorageLocks(source)
+        self.assertEqual(result.count('mutex == &__ada_main_context.sharedStorageMutex'), 2)
+        self.assertIn('pthread_mutex_lock(mutex);', result)
+        self.assertIn('pthread_mutex_unlock(mutex);', result)
+        with self.assertRaises(ValueError):
+            helpers.withoutStorageLocks(source.replace('__ada_mutex_unlock', 'missing'))
+
+
 if __name__ == '__main__':
     unittest.main()
