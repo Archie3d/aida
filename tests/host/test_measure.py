@@ -88,5 +88,75 @@ class MeasurementTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs['timeout'], 60)
 
 
+class RuntimeProfileTests(unittest.TestCase):
+    def testControlCopiesAreByteIdentical(self):
+        import profile_runtime as profile
+        source = 'export function $probe() {\n@start\n    ret\n}\n'
+        for variant in ('control', 'control-copy'):
+            self.assertEqual(profile.transform(source, variant), (source, {}))
+
+    def testMasterExperimentRetainsRealCleanupAndExceptionBranches(self):
+        import profile_runtime as profile
+        source = ('    call $__ada_master_enter(l %context, l %master, w 1)\n'
+                  '    call $__ada_master_activate(l %context, l %master)\n'
+                  '    jnz %exception, @failed, @ok\n'
+                  '    call $__ada_finalize_to(l %owner, l %mark)\n'
+                  '    call $__ada_master_await(l %context, l %master)\n'
+                  '    call $__ada_master_leave(l %context, l %master)\n')
+        result, changes = profile.transform(source, 'no-lexical-masters')
+        self.assertEqual(sum(changes.values()), 4)
+        self.assertIn('call $__ada_finalize_to(l %owner, l %mark)', result)
+        self.assertIn('jnz %exception, @failed, @ok', result)
+        with self.assertRaises(ValueError):
+            profile.transform(source.replace('w 1)', 'w 2)'), 'no-lexical-masters')
+
+    def testGuardKeepsTheNonemptyCallAndUsesDistinctLabels(self):
+        import profile_runtime as profile
+        source = ('    call $__ada_finalize_to(l %owner, l %mark)\n'
+                  '    call $__ada_array_rewind(l %arena, l 0)\n'
+                  '    jnz %exception, @failed, @ok\n')
+        result, changes = profile.transform(source, 'guard-cleanup')
+        self.assertEqual(sum(changes.values()), 2)
+        self.assertIn('call $__ada_finalize_to(l %owner, l %mark)', result)
+        self.assertIn('call $__ada_array_rewind(l %arena, l 0)', result)
+        self.assertIn('ceql %.profile.0.head, %mark', result)
+        self.assertIn('ceql %.profile.1.head, 0', result)
+        self.assertIn('jnz %exception, @failed, @ok', result)
+        with self.assertRaises(ValueError):
+            profile.transform(source.replace('l %owner, l %mark', 'w %owner, l %mark'), 'guard-cleanup')
+
+    def testCensusFailsIfAnEntryIsMissingOrAmbiguous(self):
+        import profile_runtime as profile
+        source = 'void probe(int value)\n{\n    (void)value;\n}\n'
+        with self.assertRaises(ValueError):
+            profile.instrument(source, {'missing': '0'})
+        with self.assertRaises(ValueError):
+            profile.instrument(source + source, {'probe': '0'})
+        self.assertIn('__ada_profile_count("probe", value == 0);',
+                      profile.instrument(source, {'probe': 'value == 0'}))
+
+    def testDiagnosticWorkCannotOverwriteSourcesOrBuildProducts(self):
+        import profile_runtime as profile
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'repo'
+            build = root / 'build'
+            with patch.object(profile, 'kRoot', root):
+                for work in (root, root / 'runtime', root / 'qbe', root / 'tests/host',
+                             build, build / 'runtime', build / 'runtime/nested', build / 'tests/nested'):
+                    with self.subTest(work=work), self.assertRaises(ValueError):
+                        profile.validateWork(build, work)
+                profile.validateWork(build, build / 'host performance/profiling')
+                profile.validateWork(build, Path(temporary) / 'external diagnostics')
+
+    def testInvalidProfileSettingsDoNotCompileOrWrite(self):
+        import profile_runtime as profile
+        for options in (['--runs', '2'], ['--runs', '4'], ['--repetitions', '0'], ['--repetitions', '1025']):
+            with patch.object(sys, 'argv', ['profile', '--build', 'unused', '--work', 'unused'] + options):
+                with contextlib.redirect_stderr(io.StringIO()), patch.object(profile.subprocess, 'run') as run:
+                    with self.assertRaises(SystemExit):
+                        profile.main()
+                    run.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

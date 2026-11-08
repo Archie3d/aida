@@ -1,0 +1,1979 @@
+{
+  "schema": 1,
+  "description": "Local Darwin arm64 runtime-entry census and matched diagnostic QBE ablations. Production compiler/runtime unchanged. Full samples retained from exploratory and verified collectors.",
+  "source_base_revision": "72e7924b325b2eb9f0c28cfdab09549a7f655156",
+  "validation": {
+    "python_protocol_controls_passed": 13,
+    "host_ctests_passed": 2,
+    "production_compiler_runtime_unchanged": true,
+    "identical_object_control_verified": true,
+    "all_samples_medians_dispersion_ratios_and_order_verified": true,
+    "census_identical_across_studies": true,
+    "census_is_untimed": true,
+    "previous_registry_runtime_hash_matches": true
+  },
+  "sampling_attempts": [
+    {
+      "kernel": "blockcalls",
+      "repetitions": 4096,
+      "sample_status": 255,
+      "sample_stdout": "",
+      "sample_stderr": "sample[55301]: sample cannot examine process 55300 (blockcalls) for unknown reasons, even though it appears to exist; try running with `sudo`.\n",
+      "program_status": 0,
+      "program_stdout": "",
+      "program_stderr": "",
+      "source_sha256": "59ce629d2cf6e3ab63e84c830b2bf0e23e6a15cda05501e8271f030c77f45e73",
+      "executable_sha256": "3b6438a9105a2c834c4ceae3ca5e7f550b389e62eb96bf1bdcdcf86a20bb038e"
+    },
+    {
+      "kernel": "allocationcalls",
+      "repetitions": 1024,
+      "sample_status": 255,
+      "sample_stdout": "",
+      "sample_stderr": "sample[55367]: sample cannot examine process 55366 (allocationcalls) for unknown reasons, even though it appears to exist; try running with `sudo`.\n",
+      "program_status": 0,
+      "program_stdout": "",
+      "program_stderr": "",
+      "source_sha256": "c3601253712bb9d9e2dfca19c83f022934bd7821fb9e843fedd0bef21316ae97",
+      "executable_sha256": "40513f38556928f1955ee0079368e4d1b4bec38319047f885fb925c5a4468d4e"
+    }
+  ],
+  "assembly_inspection": {
+    "source": "runtime/adart.c",
+    "source_sha256": "1bf07ccbed9a0b0db87a86eb4e2669d91408da443d6c38ec9717b50c4a917712",
+    "command": [
+      "/usr/bin/cc",
+      "-O3",
+      "-DNDEBUG",
+      "-S",
+      "runtime/adart.c",
+      "-o",
+      "build/host-performance/runtime-profile/adart-original.s"
+    ],
+    "assembly_sha256": "c65d8ec5651e5fa07700c43cf90781f78c34de105a36ca6d5452e14eb9feaa7d",
+    "function": "__ada_finalize_to",
+    "empty_path_entry_excerpt": "___ada_finalize_to:                     ; @__ada_finalize_to\n\t.cfi_startproc\n; %bb.0:\n\tstp\tx28, x27, [sp, #-96]!           ; 16-byte Folded Spill\n\tstp\tx26, x25, [sp, #16]             ; 16-byte Folded Spill\n\tstp\tx24, x23, [sp, #32]             ; 16-byte Folded Spill\n\tstp\tx22, x21, [sp, #48]             ; 16-byte Folded Spill\n\tstp\tx20, x19, [sp, #64]             ; 16-byte Folded Spill\n\tstp\tx29, x30, [sp, #80]             ; 16-byte Folded Spill\n\tadd\tx29, sp, #80\n\tsub\tsp, sp, #560\n\t.cfi_def_cfa w29, 16\n\t.cfi_offset w30, -8\n\t.cfi_offset w29, -16\n\t.cfi_offset w19, -24\n\t.cfi_offset w20, -32\n\t.cfi_offset w21, -40\n\t.cfi_offset w22, -48\n\t.cfi_offset w23, -56\n\t.cfi_offset w24, -64\n\t.cfi_offset w25, -72\n\t.cfi_offset w26, -80\n\t.cfi_offset w27, -88\n\t.cfi_offset w28, -96\n\tmov\tx20, x1\n\tmov\tx21, x0\nLloh312:\n\tadrp\tx8, ___stack_chk_guard@GOTPAGE\nLloh313:\n\tldr\tx8, [x8, ___stack_chk_guard@GOTPAGEOFF]\nLloh314:\n\tldr\tx8, [x8]\n\tstur\tx8, [x29, #-96]\nLloh315:\n\tadrp\tx0, _currentTaskContext@TLVPPAGE\nLloh316:\n\tldr\tx0, [x0, _currentTaskContext@TLVPPAGEOFF]\n\tldr\tx8, [x0]\n\tblr\tx8\n\tldr\tx26, [x21]\n\tcmp\tx26, x1\n\tb.eq\tLBB83_52\n",
+    "stack_before_empty_comparison_bytes": 656,
+    "limits": "Apple clang arm64 assembly from matching Release flags; not an assembly claim about GCC/Linux or Windows."
+  },
+  "selection": {
+    "next_repair": "Make __ada_finalize_to empty-chain entry small: check owner/checkpoint before TLS and isolate nonempty finalization from the heavy frame.",
+    "reason": "Guarding empty calls reduced the long allocation workload by about 27%; census confirms approximately 17 mostly-empty finalization calls per allocation.",
+    "requirements": [
+      "Preserve pending exception/message/trace restoration, abort deferral and reentrant/failing finalizers.",
+      "Verify a small empty-path entry in generated code, not just source reordering.",
+      "Measure matching before/after production builds with all 21 cases, including small-registry/LIFO, throughput and scaling controls.",
+      "Run full correctness/sanitizer controls and confirm on native CI before claiming a repair."
+    ],
+    "deferred": "Lexical-master omission reduced blocks about 34% and allocation about 11%, but needs ownership/accessibility/activation proof and is not a production optimization."
+  },
+  "exploratory": {
+    "schema": 1,
+    "recorded_at": "2026-11-08T14:38:32.477239+00:00",
+    "description": "Diagnostic-only generated QBE ablations; not production builds or correctness/performance claims for arbitrary Ada.",
+    "census_untimed": true,
+    "census_scope": "Selected runtime function entries, including runtime-internal calls; empty means the recorded owner/checkpoint or zero-activity predicate.",
+    "build_configuration": {
+      "CMAKE_BUILD_TYPE": "Release",
+      "CMAKE_CXX_COMPILER": {
+        "path": "/usr/bin/c++",
+        "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "CMAKE_CXX_FLAGS": "",
+      "CMAKE_CXX_FLAGS_DEBUG": "-g",
+      "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+      "CMAKE_C_COMPILER": {
+        "path": "/usr/bin/cc",
+        "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "CMAKE_C_FLAGS": "",
+      "CMAKE_C_FLAGS_DEBUG": "-g",
+      "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+      "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+      "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+    },
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0",
+      "processor": "arm",
+      "logical_cpus": 10
+    },
+    "runs": 11,
+    "process_startup_included": true,
+    "startup_subtracted": false,
+    "source_sha256": {
+      "tests/host/profile_runtime.py": "784451c7d1a9905e93c8fb4d8fc535025f88ecbf3fe75063aceaae1944667041",
+      "tests/host/ProfileCounters.c": "695a65a4e93667e08fd11df356dc8e69083eccf986ed8dff3da44764b2ed793a",
+      "tests/host/measure.py": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+      "runtime/adart.c": "1bf07ccbed9a0b0db87a86eb4e2669d91408da443d6c38ec9717b50c4a917712",
+      "runtime/adamaster.c": "96e2a733150dc36fca53ec0633ec73dd322af09f19de6f41ddda2dc3e7c217f3",
+      "runtime/adalock.c": "60a6a7a3cf0c36ca0ed9594f0471ab51a05310a35dcbc7bff8e60f8d5af802b8"
+    },
+    "build_components_sha256": {
+      "ada/ada": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+      "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214",
+      "runtime/libadart.a": "f557fb400c5f6ea3b976f4b70b911683aaf5de6a57702c2aef8d925aa5055098"
+    },
+    "census_instrumentation": {
+      "adart": {
+        "source_sha256": "c14c30d62d15c62fb0598b1ee3c1ead7625195587b64c6435c0c7700ffff5cac",
+        "object_sha256": "07d6f4b62b34a533e09c76c5d1540f6352e583f1ed341ff586cd4735fcc6b276"
+      },
+      "adamaster": {
+        "source_sha256": "d5872e7ef5fd478528d599563858977916e9490d63b0dba68eb6b4c4b4437d4c",
+        "object_sha256": "c4a26acab610d269a3d3e934277244c7c1f7bebe6552f817144e6af816669d61"
+      },
+      "adalock": {
+        "source_sha256": "706746bdc1691d156ae0f56c3da8a00545799d26f16f38e40794318cbd54ba91",
+        "object_sha256": "c530ab8e9060ba1b1a16f46feb8a43292ee7856808fd899e0dcc9f756a2aea22"
+      }
+    },
+    "census": {
+      "blockcalls": {
+        "__ada_task_context": {
+          "calls": 137,
+          "empty": 0
+        },
+        "__ada_master_enter": {
+          "calls": 25600130,
+          "empty": 0
+        },
+        "__ada_trace_enter": {
+          "calls": 132,
+          "empty": 0
+        },
+        "__ada_trace_leave_context": {
+          "calls": 132,
+          "empty": 0
+        },
+        "__ada_master_activate": {
+          "calls": 25600130,
+          "empty": 25600130
+        },
+        "__ada_array_offset": {
+          "calls": 25600000,
+          "empty": 0
+        },
+        "__ada_master_await": {
+          "calls": 51200260,
+          "empty": 51200260
+        },
+        "__ada_master_leave": {
+          "calls": 25600130,
+          "empty": 25600130
+        },
+        "__ada_finalize_to": {
+          "calls": 1,
+          "empty": 1
+        },
+        "__ada_array_rewind": {
+          "calls": 1,
+          "empty": 1
+        }
+      },
+      "allocationcalls": {
+        "__ada_task_context": {
+          "calls": 256002188,
+          "empty": 0
+        },
+        "__ada_master_enter": {
+          "calls": 25600258,
+          "empty": 0
+        },
+        "__ada_trace_enter": {
+          "calls": 12800134,
+          "empty": 0
+        },
+        "__ada_trace_leave_context": {
+          "calls": 12800134,
+          "empty": 0
+        },
+        "__ada_master_activate": {
+          "calls": 38400130,
+          "empty": 25600002
+        },
+        "__ada_mutex_lock": {
+          "calls": 51200897,
+          "empty": 0
+        },
+        "__ada_mutex_unlock": {
+          "calls": 51200897,
+          "empty": 0
+        },
+        "__ada_finalize_to": {
+          "calls": 217601025,
+          "empty": 217600897
+        },
+        "__ada_collection_allocate_aligned": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_collection_activate": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_array_rewind": {
+          "calls": 64000385,
+          "empty": 64000257
+        },
+        "__ada_deallocate": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_task_discard": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_master_await": {
+          "calls": 51200516,
+          "empty": 51200002
+        },
+        "__ada_master_leave": {
+          "calls": 25600258,
+          "empty": 25600001
+        }
+      }
+    },
+    "workloads": {
+      "blockcalls": {
+        "generated_source": "procedure BlockcallsLong is\n    procedure Blockcalls is\n        type Values is array (1 .. 4) of Integer;\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 200_000 loop\n            declare\n                Local : Integer := I;\n                Items : Values := (others => Local);\n            begin\n                Total := Total + Long_Integer (Items (2));\n            end;\n        end loop;\n        if Total /= 20_000_100_000 then\n            raise Program_Error;\n        end if;\n    end Blockcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Blockcalls;\n    end loop;\nend BlockcallsLong;\n",
+        "source_sha256": "40d4e06794b586718bf953c7e9067ddae358d194cc0af0c9348ae89d7dab41e4",
+        "kernel_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "repetitions": 128,
+        "variants": {
+          "control": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "control-copy": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "no-lexical-masters": {
+            "changes": {
+              "__ada_master_enter": 3,
+              "__ada_master_activate": 3,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "b108201334a1fb8a3a477407f41fe940e5ee88d5ecf20cce023746a3d5cdc6f5",
+            "object_sha256": "f209fad9ead10e50efc84bbde666e7a422eafda553691731fb2f7156fae4ae5c"
+          },
+          "guard-finalization": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "guard-rewind": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "guard-cleanup": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "masters-and-cleanup": {
+            "changes": {
+              "__ada_master_enter": 3,
+              "__ada_master_activate": 3,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "b108201334a1fb8a3a477407f41fe940e5ee88d5ecf20cce023746a3d5cdc6f5",
+            "object_sha256": "f209fad9ead10e50efc84bbde666e7a422eafda553691731fb2f7156fae4ae5c"
+          }
+        },
+        "executable_sha256": {
+          "control": "aed0c739f9fcef0c16b4d395c2acac3bbafbee97fd81fe79c4427b22a0f79e03",
+          "control-copy": "2f2c6ff51f4cf3d38a636875ff4b6a8c701d2b7bd2a516baaba1bbde4ef39c03",
+          "no-lexical-masters": "63005dc95f5073d5085d432790ced943399ebf6956ac37cb1204f145b00ddbcd",
+          "guard-finalization": "17c4ad0589271d74cddf749201ea59d5e239d074898b32ba04e51a0cc413ef38",
+          "guard-rewind": "4c75ced8d06c44f7de9327ef8e8de5a9351430fad9e64373d43cb231fb0094ee",
+          "guard-cleanup": "9b0951ea6f466f354d4bee5f826beb70cff1fbf0f453ff7d79ff0906e9610b37",
+          "masters-and-cleanup": "7a9cf919461e27289b0d6432dd560b65fc5f22e116a0d9d50fba1c6e7968f751"
+        },
+        "samples_seconds": {
+          "control": [
+            0.3968758329283446,
+            0.3973510410869494,
+            0.3975599160185084,
+            0.3963727919617668,
+            0.3974186669802293,
+            0.3973987919744104,
+            0.39644629205577075,
+            0.39644258306361735,
+            0.3972923329565674,
+            0.39688912499696016,
+            0.3965479590697214
+          ],
+          "control-copy": [
+            0.3975217919796705,
+            0.396975832991302,
+            0.3972357090096921,
+            0.3967681659851223,
+            0.39669629104901105,
+            0.3986945420037955,
+            0.3961180420592427,
+            0.39670670800842345,
+            0.39720424998085946,
+            0.39656554197426885,
+            0.3965212079929188
+          ],
+          "no-lexical-masters": [
+            0.26050537498667836,
+            0.2606836250051856,
+            0.26062937499955297,
+            0.2604770000325516,
+            0.26045612490270287,
+            0.2640704580117017,
+            0.26051720895338804,
+            0.26067583297844976,
+            0.2610697499476373,
+            0.26036054093856364,
+            0.2609467920847237
+          ],
+          "guard-finalization": [
+            0.39869862503837794,
+            0.39660474995616823,
+            0.398700459045358,
+            0.39716999989468604,
+            0.39740370807703584,
+            0.3967832080088556,
+            0.3967095830012113,
+            0.3963552090572193,
+            0.4028232499258593,
+            0.39680883393157274,
+            0.3979736249893904
+          ],
+          "guard-rewind": [
+            0.3981107920408249,
+            0.3965961670037359,
+            0.39628270803950727,
+            0.39865683298557997,
+            0.3973070839419961,
+            0.3973088749917224,
+            0.39624295895919204,
+            0.4248517910018563,
+            0.39899620902724564,
+            0.39726095797959715,
+            0.3979763750685379
+          ],
+          "guard-cleanup": [
+            0.39789141702931374,
+            0.3985517079709098,
+            0.39852712501306087,
+            0.3967822080012411,
+            0.3967973329126835,
+            0.3987981249811128,
+            0.3976009999169037,
+            0.39678983308840543,
+            0.3986752920318395,
+            0.3983522499911487,
+            0.3962993751047179
+          ],
+          "masters-and-cleanup": [
+            0.26182549993973225,
+            0.26139066694304347,
+            0.2614654590142891,
+            0.2603779580676928,
+            0.2601262499811128,
+            0.261027832981199,
+            0.2609289169777185,
+            0.26085791597142816,
+            0.26200345798861235,
+            0.26072266697883606,
+            0.2607631660066545
+          ]
+        },
+        "median_seconds": {
+          "control": 0.39688912499696016,
+          "control-copy": 0.3967681659851223,
+          "no-lexical-masters": 0.26062937499955297,
+          "guard-finalization": 0.39716999989468604,
+          "guard-rewind": 0.3973088749917224,
+          "guard-cleanup": 0.39789141702931374,
+          "masters-and-cleanup": 0.2609289169777185
+        },
+        "execution_order": [
+          [
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup"
+          ],
+          [
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control"
+          ],
+          [
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control"
+          ],
+          [
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters"
+          ],
+          [
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters"
+          ]
+        ],
+        "median_absolute_deviation_seconds": {
+          "control": 0.00044654193334281445,
+          "control-copy": 0.00024695799220353365,
+          "no-lexical-masters": 0.00015237496700137854,
+          "guard-finalization": 0.0005652499385178089,
+          "guard-rewind": 0.0008019170491024852,
+          "guard-cleanup": 0.0007838750025257468,
+          "masters-and-cleanup": 0.0004617499653249979
+        },
+        "current_over_control": {
+          "control": 1.0,
+          "control-copy": 0.9996952322343456,
+          "no-lexical-masters": 0.6566805653885054,
+          "guard-finalization": 1.0007076910906239,
+          "guard-rewind": 1.0010576001415141,
+          "guard-cleanup": 1.0025253703596975,
+          "masters-and-cleanup": 0.6574352899684943
+        },
+        "paired_sample_ratios": {
+          "control": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "control-copy": [
+            1.001627609941779,
+            0.9990557264059985,
+            0.9991845078043502,
+            1.0009974802291517,
+            0.9981823301439079,
+            1.0032605786820523,
+            0.9991720190020548,
+            1.0006662375740896,
+            0.999778291780633,
+            0.9991847017156397,
+            0.9999325401223464
+          ],
+          "no-lexical-masters": [
+            0.6563901184522672,
+            0.6560537108247871,
+            0.6555725678023823,
+            0.657151563666551,
+            0.6553696304246825,
+            0.6644973848554273,
+            0.6571311528794406,
+            0.6575374193256606,
+            0.6571225475327204,
+            0.6560032123343208,
+            0.658045984392127
+          ],
+          "guard-finalization": [
+            1.004592852370435,
+            0.9981218342130432,
+            1.002868858204499,
+            1.0020112579598959,
+            0.9999623598375307,
+            0.9984509666914275,
+            1.0006641276528916,
+            0.9997796048907692,
+            1.013921529590395,
+            0.9997976990037506,
+            1.0035951916711752
+          ],
+          "guard-rewind": [
+            1.0031117014693693,
+            0.9981002337853487,
+            0.9967873824107015,
+            1.0057623557169724,
+            0.9997192305054992,
+            0.9997737361448904,
+            0.9994871106108111,
+            1.0716603340607336,
+            1.004288721249661,
+            1.00093686865983,
+            1.0036021267192181
+          ],
+          "guard-cleanup": [
+            1.002558946694929,
+            1.0030216779618242,
+            1.0024328634643023,
+            1.0010329065157273,
+            0.9984365755331348,
+            1.0035212311535977,
+            1.0029126463893638,
+            1.0008759150495505,
+            1.0034809608959236,
+            1.0036864829546532,
+            0.9993731301364237
+          ],
+          "masters-and-cleanup": [
+            0.6597164105656302,
+            0.6578330994880803,
+            0.6576756068187634,
+            0.6569016929214664,
+            0.6545395865716933,
+            0.6568410328685833,
+            0.6581696492220234,
+            0.6579967115428873,
+            0.6594727263897513,
+            0.6569156234271548,
+            0.6575829229291453
+          ]
+        }
+      },
+      "allocationcalls": {
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationcallsLong is\n    procedure Allocationcalls is\n        type Pointer is access Integer;\n        procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 100_000 loop\n            declare\n                Item : Pointer := new Integer'(I);\n            begin\n                Total := Total + Long_Integer (Item.all);\n                Free (Item);\n            end;\n        end loop;\n        if Total /= 5_000_050_000 then\n            raise Program_Error;\n        end if;\n    end Allocationcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Allocationcalls;\n    end loop;\nend AllocationcallsLong;\n",
+        "source_sha256": "44815c2edd8943ef2aca8dad2abaeadd9859d99d58fde3780b38abc7c9f8e90a",
+        "kernel_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "repetitions": 128,
+        "variants": {
+          "control": {
+            "changes": {},
+            "ir_sha256": "8dab290e1f0773c16eca70d037771378446254fb811e03755fa9b3dda540cbb2",
+            "object_sha256": "464f94240e0965ca3255b1e9d3230727531b1d6dac30e425cd11fe09f59db855"
+          },
+          "control-copy": {
+            "changes": {},
+            "ir_sha256": "8dab290e1f0773c16eca70d037771378446254fb811e03755fa9b3dda540cbb2",
+            "object_sha256": "464f94240e0965ca3255b1e9d3230727531b1d6dac30e425cd11fe09f59db855"
+          },
+          "no-lexical-masters": {
+            "changes": {
+              "__ada_master_enter": 4,
+              "__ada_master_activate": 4,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "35b69c18ce86f231ceade44084fe743a5e01ed9bcd0fde9d7d91c44b14b52f86",
+            "object_sha256": "c53d7c5c44d2327c8ba48bfbd77dee2caf1198e445e6c78ed3a7eae08e4d8f47"
+          },
+          "guard-finalization": {
+            "changes": {
+              "__ada_finalize_to": 50
+            },
+            "ir_sha256": "0444004a37aa8b073b434fd9840568abb39eb934ccf9a6b1ba8b5ecb99878aca",
+            "object_sha256": "3004042eca3b7159f3c468e525663073a1255c7117d8f7e7ab2033f8f04c244f"
+          },
+          "guard-rewind": {
+            "changes": {
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "898f79521768be2ddb9594091cf6466fcffb0b96ae6c46c8d84a81db6c49af21",
+            "object_sha256": "ba162129448ef6a7a49d2c32c96d0a9005d84c20eb4e590b32afe09a0c40d894"
+          },
+          "guard-cleanup": {
+            "changes": {
+              "__ada_finalize_to": 50,
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "54f42967cb87028ae026ba30fd8ea0a394bf6aa67f48057e6dba11ffc80110da",
+            "object_sha256": "9e26a48b00d616a3814af4e77a0711072c809fa59df456de0b1370ae3d8f6538"
+          },
+          "masters-and-cleanup": {
+            "changes": {
+              "__ada_master_enter": 4,
+              "__ada_master_activate": 4,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18,
+              "__ada_finalize_to": 50,
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "4d1dc631a5be59f2033c1eec57e4dd0dee878fb897919f313a60362c71a289eb",
+            "object_sha256": "5e8ffa127c8af71c7bf62e54b29956c8c09bd596bfc6f6decf87a85760a4bca1"
+          }
+        },
+        "executable_sha256": {
+          "control": "9d6839c036d55e54838974898002292df7efd6d61c288be56c58499e1a05f43c",
+          "control-copy": "e8a0e4200db7ed650681a68afdeeefb24322838bba6d580d8b3e813236cea3c1",
+          "no-lexical-masters": "76e0ff53b2973cda5d4aea6f1bffb19cd882ab999d9a4698d035da97a43e82d8",
+          "guard-finalization": "abd2bc2efc85b1750a586c21daeb5e538130b9bfd49a7d2593f856e10010817f",
+          "guard-rewind": "c3121dc453c3cf22ac0e6b4b4b9ebe6d63c13f7b27a8bc453a5cbf625f74216c",
+          "guard-cleanup": "150d03aa9ff92eaa6e31c35036cb77366ca04da992b337d4dbf062f7e11fc87b",
+          "masters-and-cleanup": "b27a08ccbb75b87c5058281b8891afd6a1ea999b5d1f98cfeb2264955cca60d3"
+        },
+        "samples_seconds": {
+          "control": [
+            1.5906622919719666,
+            1.5909080000128597,
+            1.5892551669385284,
+            1.5881634160177782,
+            1.5913205420365557,
+            1.5950319579569623,
+            1.589334208983928,
+            1.596058708964847,
+            1.598008125089109,
+            1.5974019999848679,
+            1.6237718330230564
+          ],
+          "control-copy": [
+            1.625324000022374,
+            1.5915442910045385,
+            1.5905859170015901,
+            1.5982662909664214,
+            1.597815083921887,
+            1.6498428749619052,
+            1.5984679580433294,
+            1.6090947919292375,
+            1.5953836659900844,
+            1.5969545419793576,
+            1.5934142919722944
+          ],
+          "no-lexical-masters": [
+            1.4191995000001043,
+            1.420050041982904,
+            1.4199923330452293,
+            1.420455583021976,
+            1.4217040000949055,
+            1.4239400420337915,
+            1.4221467500319704,
+            1.440491999965161,
+            1.4240805419394746,
+            1.4211231670342386,
+            1.4305625830311328
+          ],
+          "guard-finalization": [
+            1.1650077500380576,
+            1.164926249999553,
+            1.1644337499747053,
+            1.1649947499390692,
+            1.1695890000555664,
+            1.1648129590321332,
+            1.1831967920297757,
+            1.2029156669741496,
+            1.1723255419638008,
+            1.16496433399152,
+            1.1681659169262275
+          ],
+          "guard-rewind": [
+            1.53429495904129,
+            1.5339575000107288,
+            1.534031540970318,
+            1.5323735000565648,
+            1.5341412919806316,
+            1.531923291971907,
+            1.532628833083436,
+            1.5330135410185903,
+            1.5368355830432847,
+            1.5353004169883206,
+            1.5340157080208883
+          ],
+          "guard-cleanup": [
+            1.12129120901227,
+            1.122026790981181,
+            1.1225732910679653,
+            1.1232740000123158,
+            1.122431542025879,
+            1.1250482089817524,
+            1.122291750041768,
+            1.123688458930701,
+            1.1683953339233994,
+            1.1218923329142854,
+            1.122785667073913
+          ],
+          "masters-and-cleanup": [
+            0.9841214580228552,
+            0.9816928750369698,
+            0.987561458023265,
+            0.9809540829155594,
+            0.9800448749447241,
+            0.9806670829420909,
+            0.9833623330341652,
+            0.9815654589328915,
+            0.9917579999892041,
+            0.9828575409483165,
+            0.9825879589188844
+          ]
+        },
+        "median_seconds": {
+          "control": 1.5913205420365557,
+          "control-copy": 1.597815083921887,
+          "no-lexical-masters": 1.4217040000949055,
+          "guard-finalization": 1.1650077500380576,
+          "guard-rewind": 1.5340157080208883,
+          "guard-cleanup": 1.1225732910679653,
+          "masters-and-cleanup": 0.9825879589188844
+        },
+        "execution_order": [
+          [
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup"
+          ],
+          [
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control"
+          ],
+          [
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control"
+          ],
+          [
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters"
+          ],
+          [
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters"
+          ]
+        ],
+        "median_absolute_deviation_seconds": {
+          "control": 0.0031571260187774897,
+          "control-copy": 0.004400791949592531,
+          "no-lexical-masters": 0.0017116670496761799,
+          "guard-finalization": 0.0005740000633522868,
+          "guard-rewind": 0.0010021670022979379,
+          "guard-cleanup": 0.0006809581536799669,
+          "masters-and-cleanup": 0.0015334991039708257
+        },
+        "current_over_control": {
+          "control": 1.0,
+          "control-copy": 1.0040812279573916,
+          "no-lexical-masters": 0.893411454536635,
+          "guard-finalization": 0.7321012450119525,
+          "guard-rewind": 0.9639891319807075,
+          "guard-cleanup": 0.705435053098295,
+          "masters-and-cleanup": 0.6174670237470689
+        },
+        "paired_sample_ratios": {
+          "control": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "control-copy": [
+            1.0217907397600008,
+            1.000399954611878,
+            1.0008373419767609,
+            1.0063613573053933,
+            1.0040812279573916,
+            1.0343635227692547,
+            1.0057469027016293,
+            1.008167671333873,
+            0.9983576684887768,
+            0.9997198839080491,
+            0.9813043061633581
+          ],
+          "no-lexical-masters": [
+            0.8922066658414983,
+            0.8926034955958644,
+            0.8934954956167551,
+            0.8944014001932376,
+            0.893411454536635,
+            0.8927344903218627,
+            0.8948066064350043,
+            0.9025307101011456,
+            0.891159762945551,
+            0.8896465429789752,
+            0.8810120695145842
+          ],
+          "guard-finalization": [
+            0.7324042041593762,
+            0.7322398592439894,
+            0.7326914986331738,
+            0.7335484108179633,
+            0.7349801433209292,
+            0.7302756243982182,
+            0.7444606586466174,
+            0.7536788341290543,
+            0.7336167592379601,
+            0.7292868883365338,
+            0.719415063846375
+          ],
+          "guard-rewind": [
+            0.9645636077405234,
+            0.9642025183092482,
+            0.9652518820658669,
+            0.9648714260771079,
+            0.9640680500593887,
+            0.9604342310069514,
+            0.9643213015991494,
+            0.9604994681009286,
+            0.9617195049978778,
+            0.9611233847227338,
+            0.944723683970386
+          ],
+          "guard-cleanup": [
+            0.7049209720198932,
+            0.7052744665135328,
+            0.7063518272087429,
+            0.7072786016119526,
+            0.7053459767379127,
+            0.7053452461371366,
+            0.7061395543478906,
+            0.7040395523166498,
+            0.7311573173999018,
+            0.7023231052201718,
+            0.6914676337152414
+          ],
+          "masters-and-cleanup": [
+            0.6186866080812325,
+            0.617064516005347,
+            0.6213989286098469,
+            0.617665709348249,
+            0.6158689271304654,
+            0.6148259776551459,
+            0.6187259592573895,
+            0.6149933291423244,
+            0.6206213750846237,
+            0.6152850321695021,
+            0.6051268650778058
+          ]
+        }
+      }
+    }
+  },
+  "verified": {
+    "schema": 1,
+    "recorded_at": "2026-11-08T14:45:12.604256+00:00",
+    "description": "Diagnostic-only generated QBE ablations; not production builds or correctness/performance claims for arbitrary Ada.",
+    "limits": [
+      "POSIX hosts only; Windows uses the existing unmodified host suite.",
+      "No sampling percentages: census counters are untimed, single-thread and perturb execution.",
+      "Master omission is benchmark-only, not a generally valid compiler optimization.",
+      "Cleanup guards retain nonempty calls and exception checks; no exception branches are removed.",
+      "Variant differences include code-generation/layout effects, not isolated helper timings."
+    ],
+    "source_base_revision": "72e7924b325b2eb9f0c28cfdab09549a7f655156",
+    "census_predicates": {
+      "adart": {
+        "__ada_task_context": "0",
+        "__ada_trace_enter": "0",
+        "__ada_trace_leave_context": "0",
+        "__ada_finalize_to": "*owner == checkpoint",
+        "__ada_array_rewind": "*owner == checkpoint",
+        "__ada_array_offset": "0",
+        "__ada_collection_allocate_aligned": "0",
+        "__ada_collection_activate": "0",
+        "__ada_deallocate": "0"
+      },
+      "adamaster": {
+        "__ada_master_enter": "0",
+        "__ada_master_activate": "master == NULL || atomic_load(&master->activities) == 0",
+        "__ada_master_await": "master == NULL || atomic_load(&master->activities) == 0",
+        "__ada_master_leave": "master == NULL || atomic_load(&master->activities) == 0",
+        "__ada_task_discard": "master == NULL || atomic_load(&master->activities) == 0"
+      },
+      "adalock": {
+        "__ada_mutex_lock": "0",
+        "__ada_mutex_unlock": "0"
+      }
+    },
+    "census_executable_sha256": {
+      "blockcalls": "9d4efd7610124d0755868dc531ad539705ef0ed215d112da366a2f4fc35426b8",
+      "allocationcalls": "ad351770df35c1a6f2b5c6aa879b5c3ad936cf8fe7fce4c9f6bbbaaab5b10e5a"
+    },
+    "census_runtime_sha256": "75e2cc953ac216eb16a5ed61a870fec1bb1316c8ed42224990809f79cbe61fa2",
+    "census_untimed": true,
+    "census_scope": "Selected runtime function entries, including runtime-internal calls; empty means the recorded owner/checkpoint or zero-activity predicate.",
+    "build_configuration": {
+      "CMAKE_BUILD_TYPE": "Release",
+      "CMAKE_CXX_COMPILER": {
+        "path": "/usr/bin/c++",
+        "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "CMAKE_CXX_FLAGS": "",
+      "CMAKE_CXX_FLAGS_DEBUG": "-g",
+      "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+      "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+      "CMAKE_C_COMPILER": {
+        "path": "/usr/bin/cc",
+        "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "CMAKE_C_FLAGS": "",
+      "CMAKE_C_FLAGS_DEBUG": "-g",
+      "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+      "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+      "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+    },
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0",
+      "processor": "arm",
+      "logical_cpus": 10
+    },
+    "runs": 11,
+    "process_startup_included": true,
+    "startup_subtracted": false,
+    "source_sha256": {
+      "tests/host/profile_runtime.py": "5ca59fa287a90289dff2ed4060b1a79221a75eff882241ba9cd892826e7d9bef",
+      "tests/host/ProfileCounters.c": "695a65a4e93667e08fd11df356dc8e69083eccf986ed8dff3da44764b2ed793a",
+      "tests/host/measure.py": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+      "runtime/adart.c": "1bf07ccbed9a0b0db87a86eb4e2669d91408da443d6c38ec9717b50c4a917712",
+      "runtime/adamaster.c": "96e2a733150dc36fca53ec0633ec73dd322af09f19de6f41ddda2dc3e7c217f3",
+      "runtime/adalock.c": "60a6a7a3cf0c36ca0ed9594f0471ab51a05310a35dcbc7bff8e60f8d5af802b8"
+    },
+    "build_components_sha256": {
+      "ada/ada": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+      "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214",
+      "runtime/libadart.a": "f557fb400c5f6ea3b976f4b70b911683aaf5de6a57702c2aef8d925aa5055098"
+    },
+    "census_instrumentation": {
+      "adart": {
+        "source_sha256": "c14c30d62d15c62fb0598b1ee3c1ead7625195587b64c6435c0c7700ffff5cac",
+        "object_sha256": "07d6f4b62b34a533e09c76c5d1540f6352e583f1ed341ff586cd4735fcc6b276"
+      },
+      "adamaster": {
+        "source_sha256": "d5872e7ef5fd478528d599563858977916e9490d63b0dba68eb6b4c4b4437d4c",
+        "object_sha256": "c4a26acab610d269a3d3e934277244c7c1f7bebe6552f817144e6af816669d61"
+      },
+      "adalock": {
+        "source_sha256": "706746bdc1691d156ae0f56c3da8a00545799d26f16f38e40794318cbd54ba91",
+        "object_sha256": "c530ab8e9060ba1b1a16f46feb8a43292ee7856808fd899e0dcc9f756a2aea22"
+      }
+    },
+    "census": {
+      "blockcalls": {
+        "__ada_task_context": {
+          "calls": 137,
+          "empty": 0
+        },
+        "__ada_master_enter": {
+          "calls": 25600130,
+          "empty": 0
+        },
+        "__ada_trace_enter": {
+          "calls": 132,
+          "empty": 0
+        },
+        "__ada_trace_leave_context": {
+          "calls": 132,
+          "empty": 0
+        },
+        "__ada_master_activate": {
+          "calls": 25600130,
+          "empty": 25600130
+        },
+        "__ada_array_offset": {
+          "calls": 25600000,
+          "empty": 0
+        },
+        "__ada_master_await": {
+          "calls": 51200260,
+          "empty": 51200260
+        },
+        "__ada_master_leave": {
+          "calls": 25600130,
+          "empty": 25600130
+        },
+        "__ada_finalize_to": {
+          "calls": 1,
+          "empty": 1
+        },
+        "__ada_array_rewind": {
+          "calls": 1,
+          "empty": 1
+        }
+      },
+      "allocationcalls": {
+        "__ada_task_context": {
+          "calls": 256002188,
+          "empty": 0
+        },
+        "__ada_master_enter": {
+          "calls": 25600258,
+          "empty": 0
+        },
+        "__ada_trace_enter": {
+          "calls": 12800134,
+          "empty": 0
+        },
+        "__ada_trace_leave_context": {
+          "calls": 12800134,
+          "empty": 0
+        },
+        "__ada_master_activate": {
+          "calls": 38400130,
+          "empty": 25600002
+        },
+        "__ada_mutex_lock": {
+          "calls": 51200897,
+          "empty": 0
+        },
+        "__ada_mutex_unlock": {
+          "calls": 51200897,
+          "empty": 0
+        },
+        "__ada_finalize_to": {
+          "calls": 217601025,
+          "empty": 217600897
+        },
+        "__ada_collection_allocate_aligned": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_collection_activate": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_array_rewind": {
+          "calls": 64000385,
+          "empty": 64000257
+        },
+        "__ada_deallocate": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_task_discard": {
+          "calls": 12800000,
+          "empty": 0
+        },
+        "__ada_master_await": {
+          "calls": 51200516,
+          "empty": 51200002
+        },
+        "__ada_master_leave": {
+          "calls": 25600258,
+          "empty": 25600001
+        }
+      }
+    },
+    "workloads": {
+      "blockcalls": {
+        "generated_source": "procedure BlockcallsLong is\n    procedure Blockcalls is\n        type Values is array (1 .. 4) of Integer;\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 200_000 loop\n            declare\n                Local : Integer := I;\n                Items : Values := (others => Local);\n            begin\n                Total := Total + Long_Integer (Items (2));\n            end;\n        end loop;\n        if Total /= 20_000_100_000 then\n            raise Program_Error;\n        end if;\n    end Blockcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Blockcalls;\n    end loop;\nend BlockcallsLong;\n",
+        "source_sha256": "40d4e06794b586718bf953c7e9067ddae358d194cc0af0c9348ae89d7dab41e4",
+        "kernel_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "repetitions": 128,
+        "variants": {
+          "control": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "control-copy": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "no-lexical-masters": {
+            "changes": {
+              "__ada_master_enter": 3,
+              "__ada_master_activate": 3,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "b108201334a1fb8a3a477407f41fe940e5ee88d5ecf20cce023746a3d5cdc6f5",
+            "object_sha256": "f209fad9ead10e50efc84bbde666e7a422eafda553691731fb2f7156fae4ae5c"
+          },
+          "guard-finalization": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "guard-rewind": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "guard-cleanup": {
+            "changes": {},
+            "ir_sha256": "11c0c085b37f1217e1b0a87533e3f1afb115955a180f2d32fba136a179045234",
+            "object_sha256": "232128153bc5fc84aff741c571f173f05080259067d7996d9b1e273804690a67"
+          },
+          "masters-and-cleanup": {
+            "changes": {
+              "__ada_master_enter": 3,
+              "__ada_master_activate": 3,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "b108201334a1fb8a3a477407f41fe940e5ee88d5ecf20cce023746a3d5cdc6f5",
+            "object_sha256": "f209fad9ead10e50efc84bbde666e7a422eafda553691731fb2f7156fae4ae5c"
+          }
+        },
+        "executable_sha256": {
+          "control": "aed0c739f9fcef0c16b4d395c2acac3bbafbee97fd81fe79c4427b22a0f79e03",
+          "control-copy": "2f2c6ff51f4cf3d38a636875ff4b6a8c701d2b7bd2a516baaba1bbde4ef39c03",
+          "no-lexical-masters": "63005dc95f5073d5085d432790ced943399ebf6956ac37cb1204f145b00ddbcd",
+          "guard-finalization": "17c4ad0589271d74cddf749201ea59d5e239d074898b32ba04e51a0cc413ef38",
+          "guard-rewind": "4c75ced8d06c44f7de9327ef8e8de5a9351430fad9e64373d43cb231fb0094ee",
+          "guard-cleanup": "9b0951ea6f466f354d4bee5f826beb70cff1fbf0f453ff7d79ff0906e9610b37",
+          "masters-and-cleanup": "7a9cf919461e27289b0d6432dd560b65fc5f22e116a0d9d50fba1c6e7968f751"
+        },
+        "samples_seconds": {
+          "control": [
+            0.3986409999197349,
+            0.3982335419859737,
+            0.3985724999802187,
+            0.39796112501062453,
+            0.3985341660445556,
+            0.39872591698076576,
+            0.3980036659631878,
+            0.3981910420116037,
+            0.39770404202863574,
+            0.39787166693713516,
+            0.3982231670524925
+          ],
+          "control-copy": [
+            0.39833875000476837,
+            0.4314797919942066,
+            0.3980678749503568,
+            0.3982334170723334,
+            0.398107249988243,
+            0.3993952500168234,
+            0.3991017499938607,
+            0.39750070800073445,
+            0.39765954203903675,
+            0.3982045410666615,
+            0.39820570801384747
+          ],
+          "no-lexical-masters": [
+            0.2609944170108065,
+            0.2611759169958532,
+            0.26137108309194446,
+            0.2615727090742439,
+            0.26116674998775125,
+            0.2611722090514377,
+            0.26144491601735353,
+            0.26159345800988376,
+            0.2614497080212459,
+            0.2609638749854639,
+            0.2609072499908507
+          ],
+          "guard-finalization": [
+            0.3984156249789521,
+            0.40079704101663083,
+            0.397751749958843,
+            0.40087633300572634,
+            0.3981909160502255,
+            0.39804058300796896,
+            0.3978049169527367,
+            0.3981699579162523,
+            0.39808154199272394,
+            0.4003404580289498,
+            0.397735791048035
+          ],
+          "guard-rewind": [
+            0.3992448339704424,
+            0.39843620895408094,
+            0.4010326670249924,
+            0.397965291980654,
+            0.39923104201443493,
+            0.39818999997805804,
+            0.3978672499069944,
+            0.3972393339499831,
+            0.39786066696979105,
+            0.39770695799961686,
+            0.3993551670573652
+          ],
+          "guard-cleanup": [
+            0.4011638330994174,
+            0.3981914159376174,
+            0.3997633339604363,
+            0.3980580830248073,
+            0.39842266601044685,
+            0.3983288750750944,
+            0.39786154206376523,
+            0.3999552089953795,
+            0.3995182500220835,
+            0.39838366594631225,
+            0.4001772499177605
+          ],
+          "masters-and-cleanup": [
+            0.2612300419714302,
+            0.26199050003197044,
+            0.26120041694957763,
+            0.2611310000065714,
+            0.2615009170258418,
+            0.26116358407307416,
+            0.26125358301214874,
+            0.26193954108748585,
+            0.2634811670286581,
+            0.2608939999481663,
+            0.26141079200897366
+          ]
+        },
+        "median_seconds": {
+          "control": 0.3982231670524925,
+          "control-copy": 0.39820570801384747,
+          "no-lexical-masters": 0.2611759169958532,
+          "guard-finalization": 0.3981699579162523,
+          "guard-rewind": 0.39818999997805804,
+          "guard-cleanup": 0.39842266601044685,
+          "masters-and-cleanup": 0.26125358301214874
+        },
+        "execution_order": [
+          [
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup"
+          ],
+          [
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control"
+          ],
+          [
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control"
+          ],
+          [
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters"
+          ],
+          [
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters"
+          ]
+        ],
+        "median_absolute_deviation_seconds": {
+          "control": 0.0003109989920631051,
+          "control-copy": 0.0001378330634906888,
+          "no-lexical-masters": 0.0002120420103892684,
+          "guard-finalization": 0.0003650409635156393,
+          "guard-rewind": 0.0004830419784411788,
+          "guard-cleanup": 0.0005611239466816187,
+          "masters-and-cleanup": 0.00015720899682492018
+        },
+        "current_over_control": {
+          "control": 1.0,
+          "control-copy": 0.9999561576520667,
+          "no-lexical-masters": 0.6558531461868109,
+          "guard-finalization": 0.9998663836244536,
+          "guard-rewind": 0.9999167123432824,
+          "guard-cleanup": 1.0005009727571377,
+          "masters-and-cleanup": 0.6560481775730319
+        },
+        "paired_sample_ratios": {
+          "control": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "control-copy": [
+            0.9992417992252995,
+            1.083484303814378,
+            0.9987339190990674,
+            1.0006842177403674,
+            0.9989287842983458,
+            1.001678679532863,
+            1.002758979689334,
+            0.9982663246079525,
+            0.9998881077763957,
+            1.0008366369289092,
+            0.9999561576520667
+          ],
+          "no-lexical-masters": [
+            0.6547104213148093,
+            0.6558360596482657,
+            0.655767979739988,
+            0.6572820625815162,
+            0.6553183446724945,
+            0.6550168873623443,
+            0.6568907233169433,
+            0.6569546534456209,
+            0.6573976635681787,
+            0.6558996195793377,
+            0.6551784817593466
+          ],
+          "guard-finalization": [
+            0.9994346418435932,
+            1.0064371750753918,
+            0.9979407760911341,
+            1.0073253587144322,
+            0.9991387187760165,
+            0.9982811903023855,
+            0.9995006352266376,
+            0.9999470503021743,
+            1.0009491982082017,
+            1.0062049934613835,
+            0.9987761234283157
+          ],
+          "guard-rewind": [
+            1.0015147314270962,
+            1.0005089148621096,
+            1.0061724455272147,
+            1.0000104707966875,
+            1.0017485978098084,
+            0.9986559263396626,
+            0.9996572492470307,
+            0.9976099209645383,
+            1.0003938228546947,
+            0.9995860249643151,
+            1.0028426271963315
+          ],
+          "guard-cleanup": [
+            1.0063285843156886,
+            0.9998942177292596,
+            1.0029877474744913,
+            1.0002436368984036,
+            0.9997202246542237,
+            0.9990042234809369,
+            0.9996429080644806,
+            1.0044304537210669,
+            1.004561703683457,
+            1.0012868446077563,
+            1.0049070044812596
+          ],
+          "masters-and-cleanup": [
+            0.655301491878728,
+            0.6578815504224858,
+            0.6553397862685988,
+            0.6561721323900668,
+            0.6561568349866553,
+            0.6549952560161082,
+            0.6564099915509638,
+            0.6578237917262153,
+            0.6625056302789267,
+            0.6557239975305613,
+            0.6564429536931369
+          ]
+        }
+      },
+      "allocationcalls": {
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationcallsLong is\n    procedure Allocationcalls is\n        type Pointer is access Integer;\n        procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 100_000 loop\n            declare\n                Item : Pointer := new Integer'(I);\n            begin\n                Total := Total + Long_Integer (Item.all);\n                Free (Item);\n            end;\n        end loop;\n        if Total /= 5_000_050_000 then\n            raise Program_Error;\n        end if;\n    end Allocationcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Allocationcalls;\n    end loop;\nend AllocationcallsLong;\n",
+        "source_sha256": "44815c2edd8943ef2aca8dad2abaeadd9859d99d58fde3780b38abc7c9f8e90a",
+        "kernel_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "repetitions": 128,
+        "variants": {
+          "control": {
+            "changes": {},
+            "ir_sha256": "8dab290e1f0773c16eca70d037771378446254fb811e03755fa9b3dda540cbb2",
+            "object_sha256": "464f94240e0965ca3255b1e9d3230727531b1d6dac30e425cd11fe09f59db855"
+          },
+          "control-copy": {
+            "changes": {},
+            "ir_sha256": "8dab290e1f0773c16eca70d037771378446254fb811e03755fa9b3dda540cbb2",
+            "object_sha256": "464f94240e0965ca3255b1e9d3230727531b1d6dac30e425cd11fe09f59db855"
+          },
+          "no-lexical-masters": {
+            "changes": {
+              "__ada_master_enter": 4,
+              "__ada_master_activate": 4,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18
+            },
+            "ir_sha256": "35b69c18ce86f231ceade44084fe743a5e01ed9bcd0fde9d7d91c44b14b52f86",
+            "object_sha256": "c53d7c5c44d2327c8ba48bfbd77dee2caf1198e445e6c78ed3a7eae08e4d8f47"
+          },
+          "guard-finalization": {
+            "changes": {
+              "__ada_finalize_to": 50
+            },
+            "ir_sha256": "0444004a37aa8b073b434fd9840568abb39eb934ccf9a6b1ba8b5ecb99878aca",
+            "object_sha256": "3004042eca3b7159f3c468e525663073a1255c7117d8f7e7ab2033f8f04c244f"
+          },
+          "guard-rewind": {
+            "changes": {
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "898f79521768be2ddb9594091cf6466fcffb0b96ae6c46c8d84a81db6c49af21",
+            "object_sha256": "ba162129448ef6a7a49d2c32c96d0a9005d84c20eb4e590b32afe09a0c40d894"
+          },
+          "guard-cleanup": {
+            "changes": {
+              "__ada_finalize_to": 50,
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "54f42967cb87028ae026ba30fd8ea0a394bf6aa67f48057e6dba11ffc80110da",
+            "object_sha256": "9e26a48b00d616a3814af4e77a0711072c809fa59df456de0b1370ae3d8f6538"
+          },
+          "masters-and-cleanup": {
+            "changes": {
+              "__ada_master_enter": 4,
+              "__ada_master_activate": 4,
+              "__ada_master_await": 18,
+              "__ada_master_leave": 18,
+              "__ada_finalize_to": 50,
+              "__ada_array_rewind": 17
+            },
+            "ir_sha256": "4d1dc631a5be59f2033c1eec57e4dd0dee878fb897919f313a60362c71a289eb",
+            "object_sha256": "5e8ffa127c8af71c7bf62e54b29956c8c09bd596bfc6f6decf87a85760a4bca1"
+          }
+        },
+        "executable_sha256": {
+          "control": "9d6839c036d55e54838974898002292df7efd6d61c288be56c58499e1a05f43c",
+          "control-copy": "e8a0e4200db7ed650681a68afdeeefb24322838bba6d580d8b3e813236cea3c1",
+          "no-lexical-masters": "76e0ff53b2973cda5d4aea6f1bffb19cd882ab999d9a4698d035da97a43e82d8",
+          "guard-finalization": "abd2bc2efc85b1750a586c21daeb5e538130b9bfd49a7d2593f856e10010817f",
+          "guard-rewind": "c3121dc453c3cf22ac0e6b4b4b9ebe6d63c13f7b27a8bc453a5cbf625f74216c",
+          "guard-cleanup": "150d03aa9ff92eaa6e31c35036cb77366ca04da992b337d4dbf062f7e11fc87b",
+          "masters-and-cleanup": "b27a08ccbb75b87c5058281b8891afd6a1ea999b5d1f98cfeb2264955cca60d3"
+        },
+        "samples_seconds": {
+          "control": [
+            1.5944138340419158,
+            1.5946343750692904,
+            1.5989217499736696,
+            1.595685416017659,
+            1.5997165829176083,
+            1.5998049170011654,
+            1.598850333946757,
+            1.5941277920501307,
+            1.601082665962167,
+            1.5975634580245242,
+            1.608832582947798
+          ],
+          "control-copy": [
+            1.6003077920759097,
+            1.5977961670141667,
+            1.602525790920481,
+            1.6003868750995025,
+            1.596778583014384,
+            1.5959429580252618,
+            1.6013485830044374,
+            1.6124086249619722,
+            1.605075417086482,
+            1.6027223330456764,
+            1.600058958050795
+          ],
+          "no-lexical-masters": [
+            1.4284963749814779,
+            1.42602050001733,
+            1.42899529193528,
+            1.4241272090002894,
+            1.4586259580682963,
+            1.4304022080032155,
+            1.4308003339683637,
+            1.4297297920566052,
+            1.4262623749673367,
+            1.4267306250985712,
+            1.431379749905318
+          ],
+          "guard-finalization": [
+            1.1688984170323238,
+            1.1749095839913934,
+            1.172017415985465,
+            1.1678372089518234,
+            1.1746249169809744,
+            1.1676900410093367,
+            1.1691635829629377,
+            1.16978120803833,
+            1.1715895840898156,
+            1.1745236250571907,
+            1.184584999922663
+          ],
+          "guard-rewind": [
+            1.5414892500266433,
+            1.5374152089934796,
+            1.5384801250183955,
+            1.5398767919978127,
+            1.5402396670542657,
+            1.5372134170029312,
+            1.536446958896704,
+            1.5396455419249833,
+            1.5427103330148384,
+            1.5398582919733599,
+            1.54352570802439
+          ],
+          "guard-cleanup": [
+            1.1285335419233888,
+            1.1249976659892127,
+            1.1282140420516953,
+            1.1268076670821756,
+            1.5643435419769958,
+            1.1268359159585088,
+            1.1233747500227764,
+            1.1302559589967132,
+            1.1253059590235353,
+            1.1261764169903472,
+            1.1253955829888582
+          ],
+          "masters-and-cleanup": [
+            0.9833787500392646,
+            0.9863825000356883,
+            0.9834777920041233,
+            0.9912655829684809,
+            0.9835591249866411,
+            0.9865593330468982,
+            0.983903166023083,
+            0.9920848340261728,
+            0.9839013749733567,
+            0.9854994158959016,
+            0.9838401249144226
+          ]
+        },
+        "median_seconds": {
+          "control": 1.598850333946757,
+          "control-copy": 1.6003868750995025,
+          "no-lexical-masters": 1.42899529193528,
+          "guard-finalization": 1.1715895840898156,
+          "guard-rewind": 1.5398582919733599,
+          "guard-cleanup": 1.1268076670821756,
+          "masters-and-cleanup": 0.983903166023083
+        },
+        "execution_order": [
+          [
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup"
+          ],
+          [
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy"
+          ],
+          [
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization"
+          ],
+          [
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup"
+          ],
+          [
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters",
+            "control-copy",
+            "control"
+          ],
+          [
+            "control-copy",
+            "no-lexical-masters",
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control"
+          ],
+          [
+            "control-copy",
+            "control",
+            "masters-and-cleanup",
+            "guard-cleanup",
+            "guard-rewind",
+            "guard-finalization",
+            "no-lexical-masters"
+          ],
+          [
+            "guard-finalization",
+            "guard-rewind",
+            "guard-cleanup",
+            "masters-and-cleanup",
+            "control",
+            "control-copy",
+            "no-lexical-masters"
+          ]
+        ],
+        "median_absolute_deviation_seconds": {
+          "control": 0.0022323320154100657,
+          "control-copy": 0.0023354579461738467,
+          "no-lexical-masters": 0.002264666836708784,
+          "guard-finalization": 0.00293404096737504,
+          "guard-rewind": 0.0016309580532833934,
+          "guard-cleanup": 0.0015017080586403608,
+          "masters-and-cleanup": 0.0005244159838184714
+        },
+        "current_over_control": {
+          "control": 1.0,
+          "control-copy": 1.0009610287593038,
+          "no-lexical-masters": 0.8937642639807377,
+          "guard-finalization": 0.7327700155634645,
+          "guard-rewind": 0.9631034620809219,
+          "guard-cleanup": 0.7047611919376183,
+          "masters-and-cleanup": 0.6153816558891545
+        },
+        "paired_sample_ratios": {
+          "control": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "control-copy": [
+            1.0036966300142118,
+            1.0019827692129983,
+            1.0022540446065424,
+            1.0029463571169166,
+            0.9981634247374832,
+            0.9975859813063065,
+            1.0015625284022136,
+            1.01146760818236,
+            1.0024937819946451,
+            1.003229214461084,
+            0.9945465892536017
+          ],
+          "no-lexical-masters": [
+            0.8959382717849173,
+            0.8942617331671194,
+            0.8937243438953858,
+            0.8924861972822148,
+            0.9118027365872604,
+            0.8941103960878584,
+            0.8948932264575619,
+            0.8968727596285734,
+            0.8908112024997956,
+            0.8930666371543092,
+            0.8897008707286743
+          ],
+          "guard-finalization": [
+            0.7331210957127172,
+            0.7367893244746722,
+            0.7330048615604643,
+            0.7318718321474583,
+            0.7342706386394147,
+            0.7298952694795887,
+            0.7312526745870335,
+            0.7338064199570419,
+            0.7317483406678139,
+            0.7351968519044334,
+            0.7363009753023502
+          ],
+          "guard-rewind": [
+            0.9668062438463004,
+            0.9641176893146277,
+            0.9621985097417872,
+            0.9650252966783844,
+            0.9628203417414934,
+            0.9608755421782539,
+            0.9609698458166435,
+            0.9658231602279009,
+            0.9635419618310277,
+            0.9638792651638891,
+            0.9594072897232421
+          ],
+          "guard-cleanup": [
+            0.7078046601380157,
+            0.7054894109756846,
+            0.705609290805053,
+            0.7061590309538215,
+            0.9778879325760953,
+            0.7043583276833296,
+            0.7026140759840412,
+            0.7090121410800734,
+            0.7028406358689075,
+            0.704933761055681,
+            0.6995106855225681
+          ],
+          "masters-and-cleanup": [
+            0.6167650637766684,
+            0.6185634246049837,
+            0.6150881317489857,
+            0.6212161701912244,
+            0.6148333620401673,
+            0.6166747723817501,
+            0.6153816558891545,
+            0.6223370792314589,
+            0.6145225327151258,
+            0.6168765384221584,
+            0.6115242414544916
+          ]
+        }
+      }
+    }
+  }
+}

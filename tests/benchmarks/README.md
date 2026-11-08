@@ -339,3 +339,13 @@ now passes all tests on Ubuntu amd64/arm64 and MSYS2. All 21 cases validate over
 block/allocation gaps remain, and these CI pairs use the pre-Phase-2 baseline,
 so cross-run differences do not isolate the repair's cost. Remaining overhead
 profiling is the next step.
+
+The next [local runtime profiling study](../../docs/runtime-profiling.md) uses
+untimed source-entry counters and seven generated-QBE variants over 11 trials,
+with byte-identical copy controls. It selects the empty finalization entry path:
+the allocation kernel makes about 17 mostly-empty calls per object, and guarding
+those entries reduces diagnostic time about 27%. Master omission reduces blocks
+about 34% but is not a valid general optimization. Production builds and this
+21-case measurement suite are unchanged; the diagnostic helper is POSIX-only.
+[Every diagnostic sample and census](../../docs/host-performance-runtime-profile.json)
+is retained. Thirteen protocol controls and both host protocol CTests pass.

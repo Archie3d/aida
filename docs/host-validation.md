@@ -627,6 +627,18 @@ overwritten again. Indexed-registry native confirmation is complete; the next
 step is profiling the remaining long block/allocation overhead before choosing
 another repair. The historical no-slowdown goal remains open.
 
+## Remaining overhead profiling
+
+[Local diagnostic profiling](runtime-profiling.md) records two 11-trial studies
+and independent untimed source-entry censuses without modifying production
+compiler/runtime builds. The allocation kernel makes about 17 mostly-empty
+finalization entries per object; guarding those calls reduces diagnostic timing
+about 27%. Master omission reduces blocks about 34%, but requires ownership and
+accessibility proof. The selected next repair is a small empty-chain finalization
+entry before TLS/large-frame setup. Full reports, controls, reproduction and
+limits are retained separately. The existing 21-case suite remains the gate for
+any production repair; historical no-slowdown remains open.
+
 ## Reproduce
 
 ```sh

@@ -1469,10 +1469,20 @@ Ada 2005 additions and track annex packages separately.
     ratios are 1.020/0.980/0.966, confirming removal of measured order-dependent
     scaling. Long block ratios remain 2.419x/2.408x/2.009x historical;
     allocation 5.949x/6.797x/3.424x. [Full native reports](docs/host-performance-allocation-index-ci.json).
-  - [ ] Profile the remaining long block/allocation overhead and select the
-    next repair using matched measurements. Retain small-registry/LIFO and
-    throughput controls alongside scaling cases; historical regressions keep
-    the no-slowdown goal open.
+  - [x] Profile remaining long block/allocation overhead locally and select
+    the next repair. Two matched 11-trial diagnostic studies and independent
+    untimed censuses agree: allocation has about 17 mostly-empty finalization
+    entries per object; guarding them reduces its long kernel about 27%.
+    Master omission reduces blocks about 34%, but lacks general ownership/
+    accessibility proof. Add repeatable isolated probes and 13 Python controls;
+    both host protocol CTests pass. Production runtime/compiler unchanged.
+    [Method, full reports and limits](docs/runtime-profiling.md).
+  - [ ] Give `__ada_finalize_to` a small empty-chain entry path before TLS
+    acquisition and the heavy nonempty frame. Preserve pending occurrences,
+    abort deferral and reentrant/failing finalizers; inspect generated code.
+    Measure all 21 production cases, retaining small-registry/LIFO, throughput
+    and scaling controls, then confirm correctness/sanitizers and native CI.
+    Historical regressions keep the no-slowdown goal open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is
