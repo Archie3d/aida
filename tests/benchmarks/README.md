@@ -333,4 +333,9 @@ live objects FIFO/permuted improve about 75x/61x over the preceding compiler,
 while LIFO is about 2.8% slower. Long allocation is about 3.4% slower, and
 32-live LIFO throughput about 2.3% slower; long blocks are essentially unchanged.
 The optional index activates at 64 live records and falls back on allocation failure.
-Native CI confirmation and historical slowdowns remain open.
+[Native CI confirmation](../../docs/host-performance-allocation-index-ci.json)
+now passes all tests on Ubuntu amd64/arm64 and MSYS2. All 21 cases validate over
+11 pairs; 4,096-live FIFO/LIFO ratios are 1.020/0.980/0.966. Historical long
+block/allocation gaps remain, and these CI pairs use the pre-Phase-2 baseline,
+so cross-run differences do not isolate the repair's cost. Remaining overhead
+profiling is the next step.

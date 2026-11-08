@@ -575,8 +575,8 @@ helper or memory-layout contribution.
 
 [Full final local reports](host-performance-allocation-index.json) retain source,
 build, collector and executable hashes, every sample, dispersion, order and
-parameters. Native Ubuntu amd64/arm64 and MSYS2 confirmation is pending; the
-existing extended CI workflow is sufficient and macOS entries remain commented.
+parameters. Native confirmation is recorded below; macOS workflow entries
+remain commented.
 The separate matched comparison against pre-Phase-2 revision
 `3d2aac5980f57fb68524a15b154f65cf0882bdc2` also validates all 21 cases over
 11 pairs with the same final current compiler/runtime and inputs. Long blocks
@@ -584,6 +584,48 @@ remain 2.676x historical and long allocation 4.174x. At 4,096 live objects,
 current FIFO/LIFO/permuted take 0.014532/0.013771/0.014470 seconds versus
 0.005536/0.005716/0.006208 historically. The repair addresses order-dependent
 scaling; it does not achieve the overall historical no-slowdown goal.
+
+## Indexed registry native CI confirmation
+
+The user-provided native artifacts for revision
+`0a6ff951bf230c8430eba83e6bb2c9c677090b1d` pass 1,946/1,946 on each Ubuntu
+architecture and 1,945/1,945 on MSYS2 UCRT64, with no failures, disabled tests
+or skips. Allocation/index failure, alias/publication, concurrent collection,
+custom pool and measurement protocol controls pass. ABI probes remain 64-bit
+pointers, 24-byte traces, 48-byte array results and 16-byte masters; Windows
+retains its 32-bit C `long`. Mixed ABI and relocated installations pass,
+including spaced paths, library/runtime overrides and native path handling.
+
+All 21 cases validate over 11 alternating pairs per host, with one warmup per
+program. Build configurations match within each pair. Parameters, generated
+sources, medians, MADs, paired ratios and execution order verify. Windows
+collector and checked-in input hashes match the CRLF checkout; generated inputs
+match LF bytes. The source content agrees with the local measurement suite.
+Startup remains included, without subtraction.
+
+| Host | 4,096-live FIFO (s) | LIFO (s) | Permuted (s) | FIFO / LIFO | Long block / historical | Long allocation / historical |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 0.009385 | 0.009204 | 0.009596 | 1.020 | 2.419 | 5.949 |
+| Ubuntu arm64 | 0.016595 | 0.016932 | 0.017461 | 0.980 | 2.408 | 6.797 |
+| MSYS2 UCRT64 | 0.027268 | 0.028242 | 0.028859 | 0.966 | 2.009 | 3.424 |
+
+The three release orders now take similar time on every host, confirming the
+repair of measured non-LIFO scaling. These CI pairs compare the indexed build
+with pre-Phase-2 revision `3d2aac5980f57fb68524a15b154f65cf0882bdc2`, rather
+than the immediately preceding implementation. Earlier CI reports remain
+separate: their 43–66x FIFO/LIFO gap is absent here, but changes between runs
+cannot isolate this repair's whole-program cost. Historical long allocation
+ratios are higher on both Ubuntu hosts and lower on MSYS2 than the preceding
+CI run; this is not a uniform end-to-end speedup. The matched local preceding-build
+comparison above retains the small allocation/LIFO regressions.
+
+[Complete native timing reports](host-performance-allocation-index-ci.json)
+preserve every sample, generated input, executable/build hash, host description
+and parameter. [Pinned test/install/ABI summaries](host-validation-ci.json)
+retain the current run and 21 earlier host records. `build/ci-artefacts` can be
+overwritten again. Indexed-registry native confirmation is complete; the next
+step is profiling the remaining long block/allocation overhead before choosing
+another repair. The historical no-slowdown goal remains open.
 
 ## Reproduce
 

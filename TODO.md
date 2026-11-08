@@ -1461,9 +1461,18 @@ Ada 2005 additions and track annex packages separately.
     Matched 11-pair local measurements improve 4,096-live FIFO/permuted by
     about 75x/61x; long allocation is 3.4% slower and LIFO throughput 2.3%
     slower. [Samples and limits](docs/host-validation.md#allocation-registry-indexing-and-direct-unlinking).
-  - [ ] Confirm indexed registry behavior and extended measurements on native
-    CI. Preserve all samples and compare live-set scaling, LIFO and throughput
-    costs; historical block/allocation regressions keep the no-slowdown goal open.
+  - [x] Confirm indexed registry behavior and extended measurements on native
+    CI at `0a6ff951bf230c8430eba83e6bb2c9c677090b1d`: Ubuntu amd64/arm64
+    each pass 1,946/1,946; MSYS2 passes 1,945/1,945, without failures,
+    disabled tests or skips. All 21 cases validate over 11 pairs per host;
+    ABI/install checks remain unchanged. At 4,096 live objects FIFO/LIFO
+    ratios are 1.020/0.980/0.966, confirming removal of measured order-dependent
+    scaling. Long block ratios remain 2.419x/2.408x/2.009x historical;
+    allocation 5.949x/6.797x/3.424x. [Full native reports](docs/host-performance-allocation-index-ci.json).
+  - [ ] Profile the remaining long block/allocation overhead and select the
+    next repair using matched measurements. Retain small-registry/LIFO and
+    throughput controls alongside scaling cases; historical regressions keep
+    the no-slowdown goal open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

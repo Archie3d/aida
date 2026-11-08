@@ -41,7 +41,7 @@
     }
   },
   "limits": [
-    "Local Darwin arm64 validation; native CI pending.",
+    "Local Darwin arm64 validation; native CI confirmation retained separately in host-performance-allocation-index-ci.json.",
     "Hash collisions and same-address aliases retain bucket walks; deferred publication and finalization-owner classification retain global walks.",
     "Historical block/allocation no-slowdown goal remains open."
   ],
@@ -4966,5 +4966,15 @@
     "identical_current_build_components_across_comparisons": true,
     "identical_inputs_across_comparisons": true,
     "source_hashes_verified": true
+  },
+  "native_ci_confirmation": {
+    "revision": "0a6ff951bf230c8430eba83e6bb2c9c677090b1d",
+    "report": "host-performance-allocation-index-ci.json",
+    "ubuntu_amd64_passed": 1946,
+    "ubuntu_arm64_passed": 1946,
+    "msys2_ucrt64_passed": 1945,
+    "cases_per_host": 21,
+    "pairs_per_case": 11,
+    "outcome": "Confirmed: large-live-set FIFO/LIFO/permuted timings are similar on all active native hosts; historical long block/allocation regressions remain."
   }
 }
