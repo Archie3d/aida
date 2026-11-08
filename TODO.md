@@ -46,28 +46,6 @@ and contracts, rather than being repeated in this roadmap.
 
 ## Phase 8 — Functional work and tooling
 
-### Remaining work, in order
-
-- [ ] **Hierarchical unit source layouts.** Support deterministic unit-to-path
-  mapping for both flat (`ada-text_io.ads`) and hierarchical (`ada/text_io.ads`)
-  layouts, including bodies and deeper children, without recursive scanning.
-  Preserve search-directory precedence, allow mixed layouts, diagnose conflicting
-  files within a search directory and verify declared unit identities. Cover
-  separate compilation, caching and relocated installs; migrate the runtime into
-  subfolders in a separate change after loader support is validated.
-- [ ] **Serialized semantic interfaces.** Let clients compile without dependency
-  sources. `.ali` files currently hold build metadata only.
-- [ ] **Robust artifact publication and concurrent builds.** Handle interrupted
-  writes, changed/removed dependencies and search-path shadowing.
-- [ ] **Driver no-op builds and cleanup.** Skip scan, bind and link when nothing
-  changed; allow `--clean` without a source argument.
-- [ ] **Bound prefixed temporary receiver layouts.** Support array/runtime
-  aggregate receivers and subobjects of unmanaged enclosing composite function
-  results. Preserve lifetime and component identity; retain explicit diagnostics
-  until owning construction paths exist. [Current contract](docs/prefixed-views.md).
-
-### Completed work
-
 - [x] Ada 2005 coverage matrix, supported-surface audit, selected ACATS adoption
   and B-test grading; non-tasking legality findings repaired.
   [Coverage](docs/ada2005-coverage.md), [ACATS](docs/acats-adoption.md),
@@ -101,6 +79,23 @@ and contracts, rather than being repeated in this roadmap.
   Reopen the decision before select emission if cancellation/cleanup paths need
   duplication, or when another backend needs a shared representation.
   [Lowering decision](docs/lowering-decision.md).
+- [ ] **Hierarchical unit source layouts.** Support deterministic unit-to-path
+  mapping for both flat (`ada-text_io.ads`) and hierarchical (`ada/text_io.ads`)
+  layouts, including bodies and deeper children, without recursive scanning.
+  Preserve search-directory precedence, allow mixed layouts, diagnose conflicting
+  files within a search directory and verify declared unit identities. Cover
+  separate compilation, caching and relocated installs; migrate the runtime into
+  subfolders in a separate change after loader support is validated.
+- [ ] **Serialized semantic interfaces.** Let clients compile without dependency
+  sources. `.ali` files currently hold build metadata only.
+- [ ] **Robust artifact publication and concurrent builds.** Handle interrupted
+  writes, changed/removed dependencies and search-path shadowing.
+- [ ] **Driver no-op builds and cleanup.** Skip scan, bind and link when nothing
+  changed; allow `--clean` without a source argument.
+- [ ] **Bound prefixed temporary receiver layouts.** Support array/runtime
+  aggregate receivers and subobjects of unmanaged enclosing composite function
+  results. Preserve lifetime and component identity; retain explicit diagnostics
+  until owning construction paths exist. [Current contract](docs/prefixed-views.md).
 
 ## Phase 9 — Full tasking
 
