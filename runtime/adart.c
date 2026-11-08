@@ -74,7 +74,8 @@ int __ada_task_context_dispose(AdaTaskContext* context)
         || context->protectedActions != NULL || context->abortDeferralDepth != 0;
     if (environment) {
         live |= context->registeredAllocations != NULL || context->sharedFinalizations != NULL
-            || context->sharedMasters != NULL;
+            || context->sharedMasters != NULL || context->allocationIndex != NULL
+            || context->allocationCount != 0;
     }
     if (!live) {
         free(context->pendingMessage);
@@ -1444,13 +1445,16 @@ typedef struct AdaAllocation
 {
     struct AdaAllocation* next;
     struct AdaAllocation* registeredNext;
+    struct AdaAllocation* previous;
+    struct AdaAllocation* registeredPrevious;
+    struct AdaAllocation* hashNext;
     AdaCollection* collection;
     void* object;
     AdaFinalization* finalizations;
     void* arena;
-    int arenaOwnsObject;
-    int borrowed;
-    int coallocated;
+    unsigned char arenaOwnsObject;
+    unsigned char borrowed;
+    unsigned char coallocated;
     int constrained;
     const char* viewIdentity;
     int64_t size;
@@ -1458,6 +1462,99 @@ typedef struct AdaAllocation
     void* arrayBounds;
     int arrayRank;
 } AdaAllocation;
+
+typedef struct AdaAllocationIndex
+{
+    size_t capacity;
+    AdaAllocation* buckets[];
+} AdaAllocationIndex;
+
+enum { kAllocationIndexThreshold = 64 };
+
+/* All index/list operations below hold the shared storage mutex. Buckets
+   retain newest-registration order, including aliases and unpublished results. */
+static size_t allocationBucket(void* object, size_t capacity)
+{
+    uint64_t bits = (uintptr_t)object;
+    bits ^= bits >> 33;
+    bits *= UINT64_C(0xff51afd7ed558ccd);
+    bits ^= bits >> 33;
+    bits *= UINT64_C(0xc4ceb9fe1a85ec53);
+    bits ^= bits >> 33;
+    return (size_t)bits & (capacity - 1);
+}
+
+static AdaAllocation* allocationCandidatesLocked(void* object)
+{
+    AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+    return index != NULL ? index->buckets[allocationBucket(object, index->capacity)]
+        : __ada_main_context.registeredAllocations;
+}
+
+static AdaAllocation* nextAllocationCandidateLocked(AdaAllocation* allocation)
+{
+    return __ada_main_context.allocationIndex != NULL ? allocation->hashNext : allocation->registeredNext;
+}
+
+/* An optional cache must never turn an otherwise successful allocation into
+   Storage_Error. Failed enable/growth leaves the list/old index usable. */
+static int rebuildAllocationIndexLocked(void)
+{
+    AdaTaskContext* environment = &__ada_main_context;
+    AdaAllocationIndex* old = environment->allocationIndex;
+    if ((old == NULL && environment->allocationCount < kAllocationIndexThreshold)
+        || (old != NULL && environment->allocationCount <= old->capacity)) {
+        return 0;
+    }
+    size_t capacity = old != NULL ? old->capacity : 2 * kAllocationIndexThreshold;
+    while (capacity < environment->allocationCount) {
+        if (capacity > SIZE_MAX / 2) { return 0; }
+        capacity *= 2;
+    }
+    if (capacity > (SIZE_MAX - sizeof(AdaAllocationIndex)) / sizeof(AdaAllocation*)) { return 0; }
+    AdaAllocationIndex* index = calloc(1, sizeof *index + capacity * sizeof *index->buckets);
+    if (index == NULL) { return 0; }
+    index->capacity = capacity;
+    AdaAllocation* oldest = environment->registeredAllocations;
+    while (oldest != NULL && oldest->registeredNext != NULL) { oldest = oldest->registeredNext; }
+    for (AdaAllocation* allocation = oldest; allocation != NULL; allocation = allocation->registeredPrevious) {
+        size_t bucket = allocationBucket(allocation->object, capacity);
+        allocation->hashNext = index->buckets[bucket];
+        index->buckets[bucket] = allocation;
+    }
+    environment->allocationIndex = index;
+    free(old);
+    return 1;
+}
+
+static void unhashAllocationLocked(AdaAllocation* allocation)
+{
+    AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+    if (index == NULL) { return; }
+    AdaAllocation** link = &index->buckets[allocationBucket(allocation->object, index->capacity)];
+    while (*link != allocation) { link = &(*link)->hashNext; }
+    *link = allocation->hashNext;
+    allocation->hashNext = NULL;
+}
+
+/* Deferred construction publishes an address after registration. Insert at
+   its original position, rather than promoting an older owned/borrowed alias.
+   This cold publication path may walk the global list; direct allocators do not. */
+static void setAllocationObjectLocked(AdaAllocation* allocation, void* object)
+{
+    unhashAllocationLocked(allocation);
+    allocation->object = object;
+    AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+    if (index == NULL) { return; }
+    size_t bucket = allocationBucket(object, index->capacity);
+    AdaAllocation* previous = allocation->registeredPrevious;
+    while (previous != NULL && allocationBucket(previous->object, index->capacity) != bucket) {
+        previous = previous->registeredPrevious;
+    }
+    AdaAllocation** link = previous != NULL ? &previous->hashNext : &index->buckets[bucket];
+    allocation->hashNext = *link;
+    *link = allocation;
+}
 
 struct AdaCollection
 {
@@ -1580,14 +1677,14 @@ static int allocationOwnsChain(AdaFinalization** owner)
    borrowed view of the same object, irrespective of registration order. */
 static AdaAllocation* findAllocationLocked(void* address)
 {
-    AdaAllocation* allocation = __ada_main_context.registeredAllocations;
+    AdaAllocation* allocation = allocationCandidatesLocked(address);
     AdaAllocation* borrowed = NULL;
     while (allocation != NULL) {
         if (allocation->object == address) {
             if (!allocation->borrowed) { break; }
             if (borrowed == NULL) { borrowed = allocation; }
         }
-        allocation = allocation->registeredNext;
+        allocation = nextAllocationCandidateLocked(allocation);
     }
     if (allocation == NULL) { allocation = borrowed; }
     return allocation;
@@ -1617,16 +1714,17 @@ void __ada_collection_activate(void* owner)
 /* Called with the storage mutex held. Unlink before user code can reenter. */
 static void unlinkAllocation(AdaAllocation* allocation)
 {
-    AdaAllocation** link = &allocation->collection->allocations;
-    while (*link != allocation) {
-        link = &(*link)->next;
+    unhashAllocationLocked(allocation);
+    if (allocation->previous != NULL) { allocation->previous->next = allocation->next; }
+    else { allocation->collection->allocations = allocation->next; }
+    if (allocation->next != NULL) { allocation->next->previous = allocation->previous; }
+    if (allocation->registeredPrevious != NULL) { allocation->registeredPrevious->registeredNext = allocation->registeredNext; }
+    else { __ada_main_context.registeredAllocations = allocation->registeredNext; }
+    if (allocation->registeredNext != NULL) { allocation->registeredNext->registeredPrevious = allocation->registeredPrevious; }
+    if (--__ada_main_context.allocationCount == 0 && __ada_main_context.allocationIndex != NULL) {
+        free(__ada_main_context.allocationIndex);
+        __ada_main_context.allocationIndex = NULL;
     }
-    *link = allocation->next;
-    link = &__ada_main_context.registeredAllocations;
-    while (*link != allocation) {
-        link = &(*link)->registeredNext;
-    }
-    *link = allocation->registeredNext;
 }
 
 static void releaseAllocationStorage(AdaAllocation* allocation)
@@ -1732,9 +1830,18 @@ static int registerAllocation(AdaCollection* collection, AdaAllocation* allocati
     }
     allocation->collection = collection;
     allocation->next = collection->allocations;
+    if (allocation->next != NULL) { allocation->next->previous = allocation; }
     collection->allocations = allocation;
     allocation->registeredNext = __ada_main_context.registeredAllocations;
+    if (allocation->registeredNext != NULL) { allocation->registeredNext->registeredPrevious = allocation; }
     __ada_main_context.registeredAllocations = allocation;
+    ++__ada_main_context.allocationCount;
+    if (!rebuildAllocationIndexLocked() && __ada_main_context.allocationIndex != NULL) {
+        AdaAllocationIndex* index = __ada_main_context.allocationIndex;
+        size_t bucket = allocationBucket(allocation->object, index->capacity);
+        allocation->hashNext = index->buckets[bucket];
+        index->buckets[bucket] = allocation;
+    }
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     return 1;
 }
@@ -1839,14 +1946,14 @@ void __ada_array_borrow(void* owner, void* object, const void* descriptor, int r
         return;
     }
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    AdaAllocation* existing = __ada_main_context.registeredAllocations;
+    AdaAllocation* existing = allocationCandidatesLocked(object);
     while (existing != NULL) {
         if (existing->object == object && (!existing->borrowed || existing->collection == collection)
             && existing->arrayBounds != NULL && existing->arrayRank == rank
             && existing->viewIdentity != NULL && strcmp(existing->viewIdentity, identity) == 0) {
             break;
         }
-        existing = existing->registeredNext;
+        existing = nextAllocationCandidateLocked(existing);
     }
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     if (existing != NULL) { return; }
@@ -1869,9 +1976,9 @@ void __ada_array_borrow(void* owner, void* object, const void* descriptor, int r
 void* __ada_allocation_array_bounds(void* object, int rank)
 {
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    AdaAllocation* allocation = __ada_main_context.registeredAllocations;
+    AdaAllocation* allocation = allocationCandidatesLocked(object);
     while (allocation != NULL && (allocation->object != object || allocation->arrayBounds == NULL || allocation->arrayRank != rank)) {
-        allocation = allocation->registeredNext;
+        allocation = nextAllocationCandidateLocked(allocation);
     }
     void* bounds = allocation != NULL ? allocation->arrayBounds : NULL;
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
@@ -1883,8 +1990,8 @@ void* __ada_access_array_bounds(void* object, int rank, const char* identity)
 {
     void* bounds = NULL;
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
-         allocation = allocation->registeredNext) {
+    for (AdaAllocation* allocation = allocationCandidatesLocked(object); allocation != NULL;
+         allocation = nextAllocationCandidateLocked(allocation)) {
         if (allocation->object == object && allocation->arrayBounds != NULL && allocation->arrayRank == rank
             && allocation->viewIdentity != NULL && strcmp(allocation->viewIdentity, identity) == 0) {
             bounds = allocation->arrayBounds;
@@ -1900,11 +2007,11 @@ void __ada_object_borrow(void* owner, void* object, const char* identity, int co
 {
     AdaCollection* collection = owner;
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    AdaAllocation* existing = __ada_main_context.registeredAllocations;
+    AdaAllocation* existing = allocationCandidatesLocked(object);
     while (existing != NULL) {
         if (existing->object == object && existing->borrowed && existing->collection == collection
             && existing->viewIdentity != NULL && strcmp(existing->viewIdentity, identity) == 0) { break; }
-        existing = existing->registeredNext;
+        existing = nextAllocationCandidateLocked(existing);
     }
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     if (existing != NULL) { return; }
@@ -1921,8 +2028,8 @@ int __ada_access_constrained(void* object, const char* identity)
 {
     int constrained = 1;
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
-         allocation = allocation->registeredNext) {
+    for (AdaAllocation* allocation = allocationCandidatesLocked(object); allocation != NULL;
+         allocation = nextAllocationCandidateLocked(allocation)) {
         if (allocation->object == object && allocation->viewIdentity != NULL
             && strcmp(allocation->viewIdentity, identity) == 0) {
             constrained = allocation->constrained;
@@ -2216,7 +2323,7 @@ void* __ada_collection_result_arena(void* pending)
 void __ada_collection_finish(void* pending, void* object)
 {
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    ((AdaAllocation*)pending)->object = object;
+    setAllocationObjectLocked(pending, object);
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
     __ada_collection_activate(((AdaAllocation*)pending)->collection);
 }
@@ -2288,7 +2395,7 @@ void __ada_collection_finish_sized(void* pending, void* object, long size)
 {
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
     ((AdaAllocation*)pending)->size = size;
-    ((AdaAllocation*)pending)->object = object;
+    setAllocationObjectLocked(pending, object);
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
 }
 
@@ -2301,8 +2408,8 @@ void __ada_access_array_copy_bounds(void* object, int rank, const char* identity
 {
     int found = 0;
     __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
-    for (AdaAllocation* allocation = __ada_main_context.registeredAllocations; allocation != NULL;
-         allocation = allocation->registeredNext) {
+    for (AdaAllocation* allocation = allocationCandidatesLocked(object); allocation != NULL;
+         allocation = nextAllocationCandidateLocked(allocation)) {
         if (allocation->object == object && allocation->arrayBounds != NULL && allocation->arrayRank == rank
             && allocation->viewIdentity != NULL && strcmp(allocation->viewIdentity, identity) == 0) {
             memcpy(descriptor, allocation->arrayBounds, (size_t)adaArrayLocalSize(rank));

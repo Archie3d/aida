@@ -325,3 +325,12 @@ confirm 1,946 tests on each Ubuntu architecture and 1,945 on MSYS2, with no skip
 At 4,096 live objects, current FIFO is about 43–66x LIFO across those hosts.
 The long block/allocation gaps remain; the next step is lookup/unlink scaling
 while preserving synchronization, ownership precedence and callback behavior.
+
+The subsequent indexed-registry/direct-unlink repair has
+[matched local evidence](../../docs/host-validation.md#allocation-registry-indexing-and-direct-unlinking)
+and [full reports](../../docs/host-performance-allocation-index.json). At 4,096
+live objects FIFO/permuted improve about 75x/61x over the preceding compiler,
+while LIFO is about 2.8% slower. Long allocation is about 3.4% slower, and
+32-live LIFO throughput about 2.3% slower; long blocks are essentially unchanged.
+The optional index activates at 64 live records and falls back on allocation failure.
+Native CI confirmation and historical slowdowns remain open.

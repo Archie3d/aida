@@ -522,6 +522,69 @@ Native extended confirmation is complete. The next optimization target is non-LI
 lookup/unlink scaling, retaining ownership precedence, locks and callback rules.
 The longer block/allocation gaps keep the overall no-slowdown goal open.
 
+## Allocation registry indexing and direct unlinking
+
+The next repair replaces address scans with an optional hash index from 64 live
+records, and adds backward links for direct collection/global unlinking. Bucket
+order follows global registration order, including deferred publication, retaining
+owned-over-borrowed lookup and identity/rank view selection. Failed index enable
+or growth preserves the list or old table without failing object allocation.
+Small registries allocate no index; emptying a registry releases its table.
+Callbacks, finalizers and joins remain outside the storage mutex.
+
+The private allocation record grows from 104 to 120 bytes on Darwin arm64, and
+private context storage from 880 to 896 bytes. Successful table growth retains a
+power-of-two bucket array with at least one bucket per live record, plus its
+capacity word. No shrinking occurs before the registry empties. Generated-code
+ABI offsets and the host layout probe remain unchanged. Deferred publication and
+finalization-owner classification can still walk the global list; collisions and
+same-address aliases can still extend bucket traversal.
+
+Final local Release validation passes 1,946/1,946, with no failures, disabled
+tests or skips. Twenty ASan/UBSan and eight TSan focused checks pass. Controls
+cover 600 live records, resizes, arbitrary release order, owned/borrowed and array
+views, reverse deferred publication, optional-index allocation failure/recovery,
+complete reclamation, concurrent collection workers and reentrant finalizers.
+ABI, mixed-mode and relocated-install checks pass in the full suite.
+
+Matched Release comparisons against preserved revision
+`ca988b1418139eea1d4b2e9a706f878e9d4cbd6b` use the unchanged extended collector,
+21 cases, 11 alternating pairs, one warmup, 128 long-kernel activations and the
+same allocation counts as native CI. Medians include startup without subtraction.
+
+| Workload | Before (s) | Indexed (s) | Indexed / before |
+| --- | ---: | ---: | ---: |
+| 4,096-live FIFO, 65,536 allocations | 1.042738 | 0.013983 | 0.0134 |
+| 4,096-live LIFO, 65,536 allocations | 0.013686 | 0.014073 | 1.0282 |
+| 4,096-live permuted, 65,536 allocations | 0.846452 | 0.013950 | 0.0165 |
+| 32-live FIFO, 4,194,304 allocations | 0.760315 | 0.700675 | 0.9216 |
+| 32-live LIFO, 4,194,304 allocations | 0.614635 | 0.628471 | 1.0225 |
+| 32-live permuted, 4,194,304 allocations | 0.716021 | 0.690665 | 0.9646 |
+| Long blocks | 0.403005 | 0.403230 | 1.0006 |
+| Long allocation | 1.567601 | 1.620445 | 1.0337 |
+
+FIFO/permuted large-live-set timings improve about 75x/61x. Current FIFO is
+approximately equal to current LIFO, removing the measured order-dependent
+scaling in these workloads. Costs remain visible: long allocation is about 3.4%
+slower, long 32-live LIFO throughput about 2.3% slower and 4,096-live LIFO about
+2.8% slower. Long block timing is essentially unchanged. The initial implementation
+also called `free(NULL)` when emptying an unindexed registry; removing that call
+reduced the observed long allocation cost before the final validation/measurements.
+These whole-program timings include array/index work and do not isolate every
+helper or memory-layout contribution.
+
+[Full final local reports](host-performance-allocation-index.json) retain source,
+build, collector and executable hashes, every sample, dispersion, order and
+parameters. Native Ubuntu amd64/arm64 and MSYS2 confirmation is pending; the
+existing extended CI workflow is sufficient and macOS entries remain commented.
+The separate matched comparison against pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2` also validates all 21 cases over
+11 pairs with the same final current compiler/runtime and inputs. Long blocks
+remain 2.676x historical and long allocation 4.174x. At 4,096 live objects,
+current FIFO/LIFO/permuted take 0.014532/0.013771/0.014470 seconds versus
+0.005536/0.005716/0.006208 historically. The repair addresses order-dependent
+scaling; it does not achieve the overall historical no-slowdown goal.
+
 ## Reproduce
 
 ```sh

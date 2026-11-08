@@ -148,9 +148,109 @@ static int checkDefaultCollectionStorage(void)
     return 0;
 }
 
+/* Exercise the indexed path with alias precedence, deferred publication,
+   resizes and arbitrary unlink order. The payloads remain caller-owned. */
+static int checkAllocationIndex(void)
+{
+    enum { kObjects = 600 };
+    int* objects[kObjects];
+    AdaFinalization* owner = NULL;
+    void* arena = NULL;
+    void* collection = __ada_collection_create(&owner, &arena);
+    for (int i = 0; i < 256; ++i) {
+        objects[i] = __ada_collection_allocate(collection, sizeof(int));
+        CHECK(objects[i] != NULL && __ada_exception == NULL);
+        *objects[i] = i;
+    }
+    int value = 19;
+    void* older = __ada_collection_begin(collection);
+    void* newer = __ada_collection_begin(collection);
+    void* outer = __ada_collection_create(&owner, &arena);
+    __ada_object_borrow(outer, &value, "shared", 0);
+    int64_t bounds[] = {0, 1, 3, 3, 4};
+    __ada_array_borrow(outer, &value, bounds, 1, "array");
+    AdaFinalization* mark = owner;
+    void* inner = __ada_collection_create(&owner, &arena);
+    __ada_object_borrow(inner, &value, "shared", 2);
+    int64_t alternate[] = {0, 4, 6, 3, 4};
+    __ada_array_borrow(inner, &value, alternate, 1, "array");
+    __ada_collection_finish_sized(newer, &value, sizeof value);
+    __ada_collection_finish(older, &value);
+    for (int i = 256; i < kObjects; ++i) {
+        objects[i] = __ada_collection_allocate(collection, sizeof(int));
+        CHECK(objects[i] != NULL && __ada_exception == NULL);
+        *objects[i] = i;
+    }
+    CHECK(__ada_construction_owner(&value) == __ada_collection_result_owner(newer));
+    CHECK(__ada_access_constrained(&value, "shared") == 2);
+    CHECK(memcmp(__ada_allocation_array_bounds(&value, 1), alternate, sizeof alternate) == 0);
+    CHECK(memcmp(__ada_access_array_bounds(&value, 1, "array"), alternate, sizeof alternate) == 0);
+    int64_t saved[5];
+    __ada_access_array_copy_bounds(&value, 1, "array", saved);
+    CHECK(memcmp(saved, alternate, sizeof saved) == 0);
+    __ada_deallocate(&value);
+    CHECK(__ada_construction_owner(&value) == __ada_collection_result_owner(older));
+    __ada_deallocate(&value);
+    __ada_deallocate(&value);
+    CHECK(__ada_exception == ADA_PROGRAM_ERROR && value == 19);
+    __ada_exception = NULL;
+    __ada_finalize_to(&owner, mark);
+    CHECK(__ada_access_constrained(&value, "shared") == 0);
+    CHECK(memcmp(__ada_access_array_bounds(&value, 1, "array"), bounds, sizeof bounds) == 0);
+    for (int i = 0; i < kObjects; ++i) {
+        int n = i * 137 % kObjects;
+        CHECK(*objects[n] == n);
+        __ada_deallocate(objects[n]);
+        CHECK(__ada_exception == NULL);
+    }
+    __ada_finalize_to(&owner, NULL);
+    __ada_array_release(&arena);
+    CHECK(value == 19 && liveAllocations == 0 && __ada_exception == NULL);
+    CHECK(__ada_main_context.allocationIndex == NULL && __ada_main_context.allocationCount == 0);
+    return 0;
+}
+
+static int checkAllocationIndexFailure(void)
+{
+    enum { kObjects = 301 };
+    int* objects[kObjects];
+    AdaFinalization* owner = NULL;
+    void* arena = NULL;
+    void* collection = __ada_collection_create(&owner, &arena);
+    for (int i = 0; i < kObjects; ++i) {
+        // Permit the object allocation, fail optional index enable/growth.
+        // One successful allocation after the first failed enable and at the
+        // end verifies recovery includes records inserted during fallback.
+        failAfter = (i == kAllocationIndexThreshold || i == kObjects - 1) ? -1 : 1;
+        objects[i] = __ada_collection_allocate(collection, sizeof(int));
+        failAfter = -1;
+        CHECK(objects[i] != NULL && __ada_exception == NULL);
+        *objects[i] = i;
+        if (i == kAllocationIndexThreshold - 1) {
+            CHECK(__ada_main_context.allocationIndex == NULL);
+        }
+        if (i == kAllocationIndexThreshold) {
+            CHECK(__ada_main_context.allocationIndex != NULL);
+        }
+    }
+    for (int i = 0; i < kObjects; ++i) {
+        int n = i * 137 % kObjects;
+        CHECK(*objects[n] == n);
+        __ada_deallocate(objects[n]);
+        CHECK(__ada_exception == NULL);
+    }
+    __ada_finalize_to(&owner, NULL);
+    __ada_array_release(&arena);
+    CHECK(liveAllocations == 0 && __ada_exception == NULL);
+    CHECK(__ada_main_context.allocationIndex == NULL && __ada_main_context.allocationCount == 0);
+    return 0;
+}
+
 int main(void)
 {
     CHECK(checkDefaultCollectionStorage() == 0);
+    CHECK(checkAllocationIndex() == 0);
+    CHECK(checkAllocationIndexFailure() == 0);
     AdaArrayResult result = { 0 };
     __ada_array_result_cleanup(__ada_task_context(), &result);
     CHECK(liveAllocations == 0);

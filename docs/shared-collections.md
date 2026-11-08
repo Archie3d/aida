@@ -110,6 +110,24 @@ release and pool deallocation. All joins and user callbacks run after releasing
 the mutex; collection-wide cleanup and failed-result cleanup use the same
 unlink/finish helpers. Other registry lookups retain their existing locking.
 
+Address lookup uses an optional hash index once 64 records are live, with
+power-of-two bucket growth. Each bucket retains global newest-registration
+order, including borrowed aliases and deferred results published later. Owned
+lookup still prefers the newest owned record over any borrowed view; identity
+and rank queries retain their existing filters. Deferred publication restores
+its original registration position rather than promoting an older alias.
+
+Collection and global lists have backward links for direct unlinking. The
+index is built, queried, resized and removed under the existing storage mutex,
+and released when the last allocation leaves. Index allocation failure keeps
+the list or the previous table usable without raising `Storage_Error` for an
+otherwise successful object allocation. Registries below the threshold need no
+index allocation. Buckets can still contain collisions and same-address aliases;
+deferred publication and finalization-owner classification can still traverse
+the global list. This is expected lookup scaling, not a worst-case constant-time
+guarantee. Private record size and index memory costs are included in measured
+workloads; generated-code layout offsets are unchanged.
+
 ## Evidence and limits
 
 `runtime.shared_collections` runs four allocating workers, then four deallocating
@@ -143,3 +161,10 @@ allocators were added in later phases. Phase 8 adds
 [specified storage pools](storage-pools.md) to these collection/cleanup paths,
 with explicit limits on arena-based construction.
 Cross-host validation remains Phase 8 work; abort delivery remains Phase 9.
+
+`runtime.array_storage` additionally exercises 600 live records, permutation
+release, index resizing, owned/borrowed aliases, reverse-order deferred address
+publication, array view precedence and failed index enable/growth with recovery.
+Its instrumented allocator checks complete reclamation, including index memory.
+The concurrent shared-collection control exceeds the index threshold and retains
+reentrant/failing finalizers and creator-context disposal coverage.

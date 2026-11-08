@@ -5,6 +5,7 @@
 #define ADART_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include "adamaster.h"
 #include "adathread.h"
 #include "adaprotected.h"
@@ -171,6 +172,9 @@ typedef struct AdaTaskContext
     struct AdaAccessLevel* sharedAccessLevels;
     unsigned int nextAccessLevel;
     struct AdaFile* currentErrorFile; // Environment-owned selection, protected by the I/O table lock.
+    /* Optional allocation lookup acceleration, protected by sharedStorageMutex. */
+    struct AdaAllocationIndex* allocationIndex;
+    size_t allocationCount;
 } AdaTaskContext;
 
 /* Internal balanced regions. These never deliver abort or replace a pending

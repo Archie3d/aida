@@ -1,0 +1,4970 @@
+{
+  "source_base_revision": "ca988b1418139eea1d4b2e9a706f878e9d4cbd6b",
+  "source_sha256": {
+    "runtime/adart.c": "1bf07ccbed9a0b0db87a86eb4e2669d91408da443d6c38ec9717b50c4a917712",
+    "runtime/adart.h": "dba6f3dd3fbd5247da4a83aa48ba33ab49ed9c7457a76923383da2f6caede027",
+    "tests/ArrayStorageTest.c": "ee29ada0a49e47842883ca88fa941417def101a02fbfd3e3777c677b3b9482ce",
+    "tests/host/measure.py": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+    "tests/benchmarks/allocationbatch.adb.in": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32"
+  },
+  "validation": {
+    "asan_ubsan": {
+      "passed": 20,
+      "failed": 0
+    },
+    "thread_sanitizer": {
+      "passed": 8,
+      "failed": 0
+    },
+    "host_abi": {
+      "pointer_bits": 64,
+      "int_bits": 32,
+      "long_bits": 64,
+      "size_bits": 64,
+      "ptrdiff_bits": 64,
+      "little_endian": true,
+      "trace_bytes": 24,
+      "array_result_bytes": 48,
+      "master_bytes": 16
+    },
+    "release": {
+      "passed": 1946,
+      "failed": 0,
+      "disabled": 0,
+      "skipped": 0,
+      "seconds": 288.59
+    },
+    "logs_sha256": {
+      "build/allocation-index-final-ctest.log": "4e3b375e54fcc4c3f036c8ae3a30758e7e9a528f6151c0589542156465db7dff",
+      "build/allocation-index-final-asan-ctest.log": "5610454944cf20c320d195839d52d2ea9506ac35fe561b2a70f451186f2f21a0",
+      "build/allocation-index-final-tsan-ctest.log": "b51d6c313b6c7261eac552073304872aa8faf8562b77d836a44803c064a11649"
+    }
+  },
+  "limits": [
+    "Local Darwin arm64 validation; native CI pending.",
+    "Hash collisions and same-address aliases retain bucket walks; deferred publication and finalization-owner classification retain global walks.",
+    "Historical block/allocation no-slowdown goal remains open."
+  ],
+  "description": "Local Darwin arm64 allocation registry indexing/direct-unlink validation and matched Release measurements. Historical host reports remain separate; native CI confirmation is pending.",
+  "implementation": {
+    "threshold_live_records": 64,
+    "initial_buckets": 128,
+    "growth": "powers of two; load count at most capacity after successful growth",
+    "optional_index_failure": "retain linear lookup or previous table without raising Storage_Error",
+    "bucket_order": "newest global registration first; deferred publication retains original position",
+    "owned_lookup": "first owned matching address, otherwise newest borrowed matching address",
+    "small_registry": "no index allocation; default object/record remain one calloc",
+    "darwin_arm64_private_allocation_record_bytes": {
+      "before": 104,
+      "after": 120
+    },
+    "private_context_bytes": {
+      "before": 880,
+      "after": 896
+    },
+    "table_memory": "sizeof(size_t) + capacity * sizeof(void*)",
+    "locking": "all index/list changes and lookups under existing sharedStorageMutex; callbacks and joins remain outside lock"
+  },
+  "preceding_build_comparison": {
+    "schema": 3,
+    "recorded_at": "2026-11-08T13:42:15.183846+00:00",
+    "suite": "extended",
+    "process_startup_included": true,
+    "startup_control_subtracted": false,
+    "warmup_runs_per_program": 1,
+    "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+    "revisions": {
+      "current": "ca988b1418139eea1d4b2e9a706f878e9d4cbd6b+allocation-index",
+      "baseline": "ca988b1418139eea1d4b2e9a706f878e9d4cbd6b"
+    },
+    "build_configuration": {
+      "current": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      },
+      "baseline": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      }
+    },
+    "build_components_sha256": {
+      "current": {
+        "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+        "runtime/libadart.a": "f557fb400c5f6ea3b976f4b70b911683aaf5de6a57702c2aef8d925aa5055098",
+        "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+      },
+      "baseline": {
+        "adac/adac": "0f1461eed5d8898b0fc2a234f7c9656e89c82a133ab6c8652d4d8e63e9022725",
+        "runtime/libadart.a": "6bfb8784a7adb005670651d3e71bc948db8e0b06be0857ba3bed90dae8b11a3d",
+        "qbe/qbe": "1e2d94f7ab4491b7cc4c29926bd65606d3450b9c0fdb13e3d001935df89d4474"
+      }
+    },
+    "context_probe_sha256": null,
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0",
+      "processor": "arm",
+      "logical_cpus": 10
+    },
+    "driver_sha256": {
+      "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "baseline": "abf789704d7c26510b91a0dc67138070281236f3b188b238d1544b55d1b23c4e"
+    },
+    "comparison": "paired",
+    "runs": 11,
+    "workloads": {
+      "contextcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/contextcalls.adb",
+        "executable_sha256": {
+          "current": "3e874ce8f413e3731ed07651da02d919ca2c61b3917b7dc09cd2a0af59840b3a",
+          "baseline": "883cef96f0f715d399b1e3975f427b9fa4d8bf650d59560ffd69e46e3eb15e99"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014791541965678334,
+            0.014032583916559815,
+            0.013961208052933216,
+            0.013598249992355704,
+            0.013751332997344434,
+            0.013782499940134585,
+            0.013707833015359938,
+            0.01404754095710814,
+            0.013939833035692573,
+            0.013961583958007395,
+            0.013687332975678146
+          ],
+          "baseline": [
+            0.01425658306106925,
+            0.01447995810303837,
+            0.01352249993942678,
+            0.01377729105297476,
+            0.01356366602703929,
+            0.013690500054508448,
+            0.013511750032193959,
+            0.013448041980154812,
+            0.013939582975581288,
+            0.013856250094249845,
+            0.013600250007584691
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013939833035692573,
+          "baseline": 0.013690500054508448
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0001573330955579877,
+          "baseline": 0.0001680001150816679
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0182121164450832,
+        "paired_sample_ratios": [
+          1.03752364099571,
+          0.9691039032506122,
+          1.032442826065565,
+          0.9870046252248987,
+          1.0138360064256249,
+          1.006719979932058,
+          1.0145120345402172,
+          1.0445789043370035,
+          1.000017938851666,
+          1.0076019026100909,
+          1.0064030417120928
+        ]
+      },
+      "imagecalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/imagecalls.adb",
+        "executable_sha256": {
+          "current": "3b087568f4b2e70de821e89e699f80013a9c5c14563208600a435e94a4c37320",
+          "baseline": "260f8a3275549162b6ea920549fb0f0bd48368cbe3bfb2fa6390a5ae523643b9"
+        },
+        "samples_seconds": {
+          "current": [
+            0.024249000009149313,
+            0.024009125074371696,
+            0.02331658301409334,
+            0.023521707975305617,
+            0.023399541969411075,
+            0.02351587498560548,
+            0.02343858394306153,
+            0.023230916005559266,
+            0.02323749999050051,
+            0.023219082970172167,
+            0.02338687505107373
+          ],
+          "baseline": [
+            0.023617667029611766,
+            0.023749583982862532,
+            0.023248416953720152,
+            0.023481125012040138,
+            0.023408083012327552,
+            0.023507334059104323,
+            0.02332875004503876,
+            0.02343358297366649,
+            0.023309375043027103,
+            0.02323900000192225,
+            0.023831915925256908
+          ]
+        },
+        "median_seconds": {
+          "current": 0.023399541969411075,
+          "baseline": 0.02343358297366649
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00012216600589454174,
+          "baseline": 0.00012420793063938618
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9985473410406908,
+        "paired_sample_ratios": [
+          1.0267313862434415,
+          1.0109282373828714,
+          1.0029320732034737,
+          1.0017283227803042,
+          0.9996351242042342,
+          1.0003633302900141,
+          1.0047080918527878,
+          0.9913514306226678,
+          0.9969164744917477,
+          0.9991429479862113,
+          0.981325845744885
+        ]
+      },
+      "blockcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/blockcalls.adb",
+        "executable_sha256": {
+          "current": "19af646b0327354ae00bc70e7ddd3d5d9fd466831c15f19fb812f336705f3a70",
+          "baseline": "2fa51751f5b144c9cb50735cd271916fb6fd7b3bedf474f3f63bc9bfe35b942d"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0065286250319331884,
+            0.006389165995642543,
+            0.0062077910406515,
+            0.006280625006183982,
+            0.006307167001068592,
+            0.0061663329834118485,
+            0.006123792030848563,
+            0.006285541923716664,
+            0.006259583053179085,
+            0.00621916598174721,
+            0.0062897090101614594
+          ],
+          "baseline": [
+            0.0062611670000478625,
+            0.006398832891136408,
+            0.006220542010851204,
+            0.006346041918732226,
+            0.006207249942235649,
+            0.006166541948914528,
+            0.0063437080243602395,
+            0.006198749993927777,
+            0.006243249983526766,
+            0.0062465829541906714,
+            0.006423790939152241
+          ]
+        },
+        "median_seconds": {
+          "current": 0.006280625006183982,
+          "baseline": 0.0062465829541906714
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 6.145902443677187e-05,
+          "baseline": 4.783296026289463e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0054497078231344,
+        "paired_sample_ratios": [
+          1.0427169618512462,
+          0.9984892720815923,
+          0.9979501834120786,
+          0.9896916986389348,
+          1.0160968318921852,
+          0.999966113016921,
+          0.9653332100614994,
+          1.014001521254109,
+          1.002616116557148,
+          0.9956108847597921,
+          0.9791272894369012
+        ]
+      },
+      "allocationcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/allocationcalls.adb",
+        "executable_sha256": {
+          "current": "1da23802b5259d358c04ad4ef2ed4490356a0278a58d324f953b65913c0cd4ca",
+          "baseline": "d8d29ec01fc694cd6e49fd0cf82cad9a1be912e5ecab44aeafb25f545a5e182c"
+        },
+        "samples_seconds": {
+          "current": [
+            0.018094916944392025,
+            0.01682916609570384,
+            0.016315333894453943,
+            0.016210334026254714,
+            0.016249084030278027,
+            0.016252332949079573,
+            0.01621083403006196,
+            0.017309832968749106,
+            0.016313707921653986,
+            0.01663537509739399,
+            0.016260999953374267
+          ],
+          "baseline": [
+            0.016399458050727844,
+            0.01656441600061953,
+            0.01592479192186147,
+            0.01633066695649177,
+            0.015944750048220158,
+            0.015965958940796554,
+            0.015719042043201625,
+            0.015946459025144577,
+            0.016058666980825365,
+            0.016305457917042077,
+            0.015913499984890223
+          ]
+        },
+        "median_seconds": {
+          "current": 0.016313707921653986,
+          "baseline": 0.015965958940796554
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00010287389159202576,
+          "baseline": 9.27080400288105e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0217806510806473,
+        "paired_sample_ratios": [
+          1.1033850562878162,
+          1.015983062431806,
+          1.0245241491699706,
+          0.9926314748468237,
+          1.0190867828681855,
+          1.0179365366868927,
+          1.0312863840880833,
+          1.0854969709234348,
+          1.0158818251311363,
+          1.0202335427824503,
+          1.0218368032685452
+        ]
+      },
+      "startup": {
+        "kind": "startup",
+        "parameters": {},
+        "source_sha256": "a963314062aa823f1a19ea9390168147fe2885057bc2cfc0a6673008fa785660",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/startupprobe.adb",
+        "executable_sha256": {
+          "current": "d0d4181e5b9adc9f3cb6f475818c4d2ffa2518ca40ddc61200b5919f245660ca",
+          "baseline": "207b86f5abb890046fdcd2040ab6b9d74f38a0b1a54d3426a2c2d4a582b1bb8a"
+        },
+        "samples_seconds": {
+          "current": [
+            0.003416666993871331,
+            0.004411416943185031,
+            0.009479333995841444,
+            0.005341209005564451,
+            0.005172833101823926,
+            0.0031345420284196734,
+            0.0031090410193428397,
+            0.0031930420082062483,
+            0.003065541968680918,
+            0.0030580000020563602,
+            0.0030599579913541675
+          ],
+          "baseline": [
+            0.003089291974902153,
+            0.0031050830148160458,
+            0.007147333002649248,
+            0.009264957974664867,
+            0.00530312501359731,
+            0.003897208021953702,
+            0.0030859579565003514,
+            0.0031933330465108156,
+            0.0030747500713914633,
+            0.0030093329260125756,
+            0.002976916031911969
+          ]
+        },
+        "median_seconds": {
+          "current": 0.0031930420082062483,
+          "baseline": 0.0031050830148160458
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00013504200614988804,
+          "baseline": 9.575008880347013e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0283274208678164,
+        "paired_sample_ratios": [
+          1.105970889650062,
+          1.4207082136405866,
+          1.326275688054245,
+          0.5764957617908304,
+          0.9754311068588214,
+          0.8043045202519885,
+          1.0074800315389474,
+          0.9999088606480037,
+          0.9970052516475337,
+          1.0161720478392762,
+          1.02789529786934
+        ]
+      },
+      "contextcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "generated_source": "procedure ContextcallsLong is\n    procedure Contextcalls is\n        function Next (Value : Integer) return Integer is\n        begin\n            return Value + 1;\n        end Next;\n        Value : Integer := 0;\n    begin\n        for I in 1 .. 2_000_000 loop\n            Value := Next (Value);\n        end loop;\n        if Value /= 2_000_000 then\n            raise Program_Error;\n        end if;\n    end Contextcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Contextcalls;\n    end loop;\nend ContextcallsLong;\n",
+        "source_sha256": "79ca3def6f31f3c06c2010f8348812ff8aa8155e9664653d9433c9ed7f51d1f1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/contextcalls-long/contextcallslong.adb",
+        "executable_sha256": {
+          "current": "cad07e523df1b34241fc77d16b7f72f6eb9f6bda580ea2558e84bf3e8d760ec9",
+          "baseline": "a9e6e96ad0812c05b207e41ed44d1f7231cdde19cf3be12827eaa1da29856661"
+        },
+        "samples_seconds": {
+          "current": [
+            1.2987530420068651,
+            1.2970250410726294,
+            1.2962984580080956,
+            1.2996524579357356,
+            1.3083435409935191,
+            1.2875110409222543,
+            1.2865280420519412,
+            1.2791150830453262,
+            1.2758911659475416,
+            1.286031916970387,
+            1.2794953329721466
+          ],
+          "baseline": [
+            1.2989937911042944,
+            1.3004675840493292,
+            1.299745124997571,
+            1.2980015419889241,
+            1.296816417016089,
+            1.2956080420408398,
+            1.2804437089944258,
+            1.2843606669921428,
+            1.3201129999943078,
+            1.2861969579244033,
+            1.2890313749667257
+          ]
+        },
+        "median_seconds": {
+          "current": 1.2875110409222543,
+          "baseline": 1.296816417016089
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.008787417085841298,
+          "baseline": 0.003651167033240199
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9928244461037548,
+        "paired_sample_ratios": [
+          0.9998146649359851,
+          0.99735284214776,
+          0.9973481977941776,
+          1.0012718905898075,
+          1.0088887862816802,
+          0.9937504238505411,
+          1.004751738022356,
+          0.9959158014710141,
+          0.9665014782469706,
+          0.9998716829852541,
+          0.9926021645556724
+        ]
+      },
+      "imagecalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "generated_source": "procedure ImagecallsLong is\n    procedure Imagecalls is\n        type Fixed is delta 0.125 range -1000.0 .. 1000.0;\n        Count : Integer := 0;\n        procedure Consume (Text : String) is\n        begin\n            Count := Count + Text'Length;\n        end Consume;\n    begin\n        for I in 1 .. 200_000 loop\n            Consume (Integer'Image (123));\n            Consume (Fixed'Image (123.125));\n        end loop;\n        if Count /= 200_000 * (9 + Fixed'Aft) then\n            raise Program_Error;\n        end if;\n    end Imagecalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Imagecalls;\n    end loop;\nend ImagecallsLong;\n",
+        "source_sha256": "aabfe882f291ef4ac69f6b37cb0a3de568f9a5c3974f39167466ba3710e5ef5d",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/imagecalls-long/imagecallslong.adb",
+        "executable_sha256": {
+          "current": "97e60533b7f44d7989c62844cfe7ae584b4d1c3f65b1524b23b4af99131ff3a9",
+          "baseline": "fa14423bb0cbab96dfae563bdcc9b79af1dd22688dca753e3a21f89de12a983c"
+        },
+        "samples_seconds": {
+          "current": [
+            2.567319000023417,
+            2.588196541997604,
+            2.564501874963753,
+            2.566044417093508,
+            2.5658766250126064,
+            2.5936518330127,
+            2.5985534170176834,
+            2.5797199580119923,
+            2.5657073330366984,
+            2.5693538329796866,
+            2.5804849999258295
+          ],
+          "baseline": [
+            2.5657194580417126,
+            2.5837618749355897,
+            2.5620827090460807,
+            2.5652713329764083,
+            2.5640232079895213,
+            2.5664598749717698,
+            2.5931617920286953,
+            2.5939886670093983,
+            2.567349834018387,
+            2.5959990000119433,
+            2.5637240830110386
+          ]
+        },
+        "median_seconds": {
+          "current": 2.5693538329796866,
+          "baseline": 2.5664598749717698
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.004851958015933633,
+          "baseline": 0.0027357919607311487
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0011276069562351,
+        "paired_sample_ratios": [
+          1.0006234282460973,
+          1.0017163605922952,
+          1.0009442185098594,
+          1.0003013654373172,
+          1.0007228550105591,
+          1.0105951229965087,
+          1.0020791703030492,
+          0.9944993171408661,
+          0.9993602348383049,
+          0.9897360642156896,
+          1.006537722614481
+        ]
+      },
+      "blockcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "generated_source": "procedure BlockcallsLong is\n    procedure Blockcalls is\n        type Values is array (1 .. 4) of Integer;\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 200_000 loop\n            declare\n                Local : Integer := I;\n                Items : Values := (others => Local);\n            begin\n                Total := Total + Long_Integer (Items (2));\n            end;\n        end loop;\n        if Total /= 20_000_100_000 then\n            raise Program_Error;\n        end if;\n    end Blockcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Blockcalls;\n    end loop;\nend BlockcallsLong;\n",
+        "source_sha256": "40d4e06794b586718bf953c7e9067ddae358d194cc0af0c9348ae89d7dab41e4",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/blockcalls-long/blockcallslong.adb",
+        "executable_sha256": {
+          "current": "6a8b3fc0568947dc8ef3fa0bd384f6bf380098a6f25bfbf3e272a5c5d0d77ca4",
+          "baseline": "1b6767346cac9fafb237c6d047c9e8798ad860433a6b534d7fb85400ee0293b4"
+        },
+        "samples_seconds": {
+          "current": [
+            0.4065812920453027,
+            0.4051877080928534,
+            0.4029082499910146,
+            0.4045102499658242,
+            0.40323016699403524,
+            0.40239995904266834,
+            0.40234579099342227,
+            0.40376750007271767,
+            0.4048695000819862,
+            0.40243008406832814,
+            0.4027153750648722
+          ],
+          "baseline": [
+            0.4117066659964621,
+            0.40698016702663153,
+            0.4034466249868274,
+            0.4044867499032989,
+            0.4030045830877498,
+            0.4025427920278162,
+            0.4026155419414863,
+            0.40232650004327297,
+            0.40420941705815494,
+            0.4028377499198541,
+            0.4021203749580309
+          ]
+        },
+        "median_seconds": {
+          "current": 0.40323016699403524,
+          "baseline": 0.4030045830877498
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0008302079513669014,
+          "baseline": 0.0006780830444768071
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0005597551882837,
+        "paired_sample_ratios": [
+          0.9875509085121215,
+          0.9955957093760276,
+          0.9986655607892857,
+          1.0000580984730176,
+          1.0005597551882837,
+          0.9996451731642534,
+          0.9993300036387983,
+          1.0035816681955818,
+          1.0016330223789325,
+          0.9989880147736724,
+          1.0014796566995727
+        ]
+      },
+      "allocationcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationcallsLong is\n    procedure Allocationcalls is\n        type Pointer is access Integer;\n        procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 100_000 loop\n            declare\n                Item : Pointer := new Integer'(I);\n            begin\n                Total := Total + Long_Integer (Item.all);\n                Free (Item);\n            end;\n        end loop;\n        if Total /= 5_000_050_000 then\n            raise Program_Error;\n        end if;\n    end Allocationcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Allocationcalls;\n    end loop;\nend AllocationcallsLong;\n",
+        "source_sha256": "44815c2edd8943ef2aca8dad2abaeadd9859d99d58fde3780b38abc7c9f8e90a",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationcalls-long/allocationcallslong.adb",
+        "executable_sha256": {
+          "current": "41dff0d9fcaf5d2ebfc75665074a61c33047b9d3fd19fdbe38af0b478c750405",
+          "baseline": "27eb352bfb30fc1262c789bc60f9d1d53c96db6b8588a153db7ca96d040d0beb"
+        },
+        "samples_seconds": {
+          "current": [
+            1.630206040921621,
+            1.6202607080340385,
+            1.6399344170931727,
+            1.6173200830817223,
+            1.6166393749881536,
+            1.6153510410804302,
+            1.612910500029102,
+            1.6204452919773757,
+            1.6245253749657422,
+            1.6307428340660408,
+            1.632822374929674
+          ],
+          "baseline": [
+            1.5652235409943387,
+            1.5634790420299396,
+            1.5710415409412235,
+            1.5693107919069007,
+            1.562087459024042,
+            1.5647494998993352,
+            1.5676009169546887,
+            1.5625989169348031,
+            1.579813832999207,
+            1.5856259589781985,
+            1.582738000084646
+          ]
+        },
+        "median_seconds": {
+          "current": 1.6204452919773757,
+          "baseline": 1.5676009169546887
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.005094250896945596,
+          "baseline": 0.004121874924749136
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0337103496503086,
+        "paired_sample_ratios": [
+          1.0415164340589977,
+          1.0363175101665427,
+          1.0438517215214276,
+          1.030592596076195,
+          1.034922446658777,
+          1.0323384293679916,
+          1.0289037742861455,
+          1.0370193364501008,
+          1.0283017790024362,
+          1.0284536683020227,
+          1.031644134937273
+        ]
+      },
+      "allocationbatch-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "c3031bab6bff306a0fe07a1c4502fc6ee624f0b12ca43ef9913fa2d11d18180b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "288e65a3f240028a4cbb10b550209a82ff47f295cc9d5c73a27629ba3478f43a",
+          "baseline": "6ab4e6920bd75e826de9aafc471419544962fc2c80b7795a20076b8346d355d5"
+        },
+        "samples_seconds": {
+          "current": [
+            0.015552167082205415,
+            0.01468249992467463,
+            0.014956917031668127,
+            0.014662333065643907,
+            0.015154791995882988,
+            0.014711707946844399,
+            0.01457733300048858,
+            0.01551170798484236,
+            0.015147582977078855,
+            0.015330750029534101,
+            0.014756249962374568
+          ],
+          "baseline": [
+            0.015811749966815114,
+            0.01619516604114324,
+            0.015549749950878322,
+            0.015869832946918905,
+            0.015563166001811624,
+            0.015586582943797112,
+            0.01591720897704363,
+            0.015790625009685755,
+            0.015757791930809617,
+            0.015771750011481345,
+            0.01636991696432233
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014956917031668127,
+          "baseline": 0.015790625009685755
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0002744171069934964,
+          "baseline": 0.00012658396735787392
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9472023445869785,
+        "paired_sample_ratios": [
+          0.9835829123813304,
+          0.9065976778116548,
+          0.9618750834525985,
+          0.9239122500335184,
+          0.9737602229597051,
+          0.9438699938204942,
+          0.9158221784681305,
+          0.9823365430644885,
+          0.9612757322593096,
+          0.9720386145084592,
+          0.9014248511177734
+        ]
+      },
+      "allocationbatch-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "197a07b34334743fb060f2aa2cf955ff60159b0254b6228114277df2b930c3c1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "ee2f509e2c82ec173f34d90e2b963e1303d545861c4005c3ad9cd905d6104680",
+          "baseline": "1a26583684e138aee7e55e05fc0828c2fe07475306f7fbe97bbe8597f7049cda"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0149865000275895,
+            0.014209332992322743,
+            0.014297874993644655,
+            0.014332541031762958,
+            0.0138938749441877,
+            0.0135376249672845,
+            0.01410008396487683,
+            0.013709874940104783,
+            0.013448833022266626,
+            0.01351354201324284,
+            0.013501083012670279
+          ],
+          "baseline": [
+            0.014855082961730659,
+            0.01384533301461488,
+            0.014048291952349246,
+            0.013502332963980734,
+            0.013526041992008686,
+            0.013613291084766388,
+            0.013702915981411934,
+            0.013738499954342842,
+            0.013665999984368682,
+            0.013236709055490792,
+            0.01313375006429851
+          ]
+        },
+        "median_seconds": {
+          "current": 0.0138938749441877,
+          "baseline": 0.013665999984368682
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00038033293094486,
+          "baseline": 0.00016366702038794756
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0166745909614858,
+        "paired_sample_ratios": [
+          1.0088466059864758,
+          1.026290445836415,
+          1.0177660773382255,
+          1.0614862683357693,
+          1.027194426307144,
+          0.9944417468920091,
+          1.0289841946052691,
+          0.9979164381604113,
+          0.9841089592894443,
+          1.0209140320748542,
+          1.0279686263689676
+        ]
+      },
+      "allocationbatch-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "99d41b05ce6aa5bb2bea763a67fb1198ebaf77428b6ed51bb694ce459df88084",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "63c962eb9126ad97bed7b56e7e971441b5721401c624894ef11ec6629b3eb3c2",
+          "baseline": "0c187a50b036c0edc82126f1cea83805932ed460dd13bf4856dc2f7ee55cc51f"
+        },
+        "samples_seconds": {
+          "current": [
+            0.01701204210985452,
+            0.014916958985850215,
+            0.015137042035348713,
+            0.014877583016641438,
+            0.014568916987627745,
+            0.015110541018657386,
+            0.015127583057619631,
+            0.015029167057946324,
+            0.014633750077337027,
+            0.015295082936063409,
+            0.015126458019949496
+          ],
+          "baseline": [
+            0.016813000082038343,
+            0.015476750093512237,
+            0.015278959064744413,
+            0.015351499896496534,
+            0.015026332926936448,
+            0.01494270795956254,
+            0.01553899992723018,
+            0.015328249894082546,
+            0.01513191603589803,
+            0.015352416899986565,
+            0.015402458026073873
+          ]
+        },
+        "median_seconds": {
+          "current": 0.015110541018657386,
+          "baseline": 0.015351499896496534
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00018454191740602255,
+          "baseline": 0.00012525019701570272
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9843038869515194,
+        "paired_sample_ratios": [
+          1.0118385788880604,
+          0.9638301901704361,
+          0.9907116035330464,
+          0.9691289526723541,
+          0.9695590440107492,
+          1.0112317700077542,
+          0.9735235940834526,
+          0.9804881288990674,
+          0.9670784613541877,
+          0.9962654763548529,
+          0.9820807818039722
+        ]
+      },
+      "allocationbatch-fifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "ba8513ef40ca906ac52290d2d9611513ef7107e19a061cf9be17a43fcaa9f845",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-fifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "91cc5f0b7533f486f26564aace28af57adcbaf46ba2d6cd305af6fb20944526a",
+          "baseline": "5af2d18baabbf245fe0cebcd95b042a04889a6e7cc0b574c27d9887d1a59570b"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0140913330251351,
+            0.013964666984975338,
+            0.014202625025063753,
+            0.013976291986182332,
+            0.013649917091242969,
+            0.014341749949380755,
+            0.013727167039178312,
+            0.014210249995812774,
+            0.013912832946516573,
+            0.014085415983572602,
+            0.014176374999806285
+          ],
+          "baseline": [
+            0.0751995409373194,
+            0.07498166698496789,
+            0.07406341598834842,
+            0.0749474159674719,
+            0.07513191702309996,
+            0.0756197499576956,
+            0.07552874996326864,
+            0.07546024990733713,
+            0.07534983300138265,
+            0.07590095908381045,
+            0.07511887501459569
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014085415983572602,
+          "baseline": 0.0751995409373194
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00012074899859726429,
+          "baseline": 0.0002521249698475003
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.18730720703884524,
+        "paired_sample_ratios": [
+          0.1873858915825106,
+          0.18624108460772065,
+          0.1917630295002609,
+          0.186481305669674,
+          0.18167933991416968,
+          0.1896561408547905,
+          0.18174757355118612,
+          0.1883143776128826,
+          0.18464318223852302,
+          0.18557625823962742,
+          0.18871921334087868
+        ]
+      },
+      "allocationbatch-lifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "f2fe087e37b800b4ef29a59a3c9590a792b6dd0e07103f67890d620b95d94c3e",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-lifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "7a4a771c26ee353083d9b0da14c7daa59768b38ebeaa2f9b43cc21cf3c1ae838",
+          "baseline": "fe448901f3537fccc7fba6a6b9e84b664d40f5cbbbb191221ac7a72fa9ea5da0"
+        },
+        "samples_seconds": {
+          "current": [
+            0.013857166981324553,
+            0.013830458046868443,
+            0.01358062494546175,
+            0.013116916990838945,
+            0.013300791964866221,
+            0.013744750060141087,
+            0.013154500047676265,
+            0.013549417024478316,
+            0.013972791959531605,
+            0.013983582961373031,
+            0.013577749952673912
+          ],
+          "baseline": [
+            0.014050375088118017,
+            0.013674666988663375,
+            0.013102249940857291,
+            0.013195874984376132,
+            0.013345375075004995,
+            0.012913875048980117,
+            0.01318050001282245,
+            0.013360750046558678,
+            0.013475666986778378,
+            0.013381500029936433,
+            0.013482582988217473
+          ]
+        },
+        "median_seconds": {
+          "current": 0.01358062494546175,
+          "baseline": 0.013360750046558678
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00027654203586280346,
+          "baseline": 0.00016487506218254566
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0164567781102758,
+        "paired_sample_ratios": [
+          0.9862489004327825,
+          1.0113926765700563,
+          1.0365109051318524,
+          0.9940164639608459,
+          0.9966592838426643,
+          1.064339712751564,
+          0.9980273915920572,
+          1.014120987015114,
+          1.0368905652863774,
+          1.0449936800874078,
+          1.0070585113060018
+        ]
+      },
+      "allocationbatch-permuted-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 257) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "75d2e304b1e1388162993b01f19b06b9255715fcb180dcd24fdf0e9447bb8fec",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-permuted-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "4b3ca0f44fc45099433e4be9ca11e1e8c811fcb7013500b08eb70454bc5b27de",
+          "baseline": "7632e818f7ced425da94d7051f0f557f8f2131c92bdbc491671495c6416faa2a"
+        },
+        "samples_seconds": {
+          "current": [
+            0.01420779200270772,
+            0.014096874976530671,
+            0.01417762495111674,
+            0.014273458975367248,
+            0.014191374997608364,
+            0.014286624966189265,
+            0.013924208004027605,
+            0.014280750066973269,
+            0.014243125100620091,
+            0.014442999963648617,
+            0.014415916986763477
+          ],
+          "baseline": [
+            0.05186308303382248,
+            0.05254974996205419,
+            0.05171329202130437,
+            0.05132625007536262,
+            0.05201045796275139,
+            0.05295666598249227,
+            0.05199300008825958,
+            0.05237454199232161,
+            0.05252995900809765,
+            0.0521395409014076,
+            0.05234987509902567
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014243125100620091,
+          "baseline": 0.0521395409014076
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 5.175010301172733e-05,
+          "baseline": 0.0002764578675851226
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.27317319743096496,
+        "paired_sample_ratios": [
+          0.2739480796666507,
+          0.26825769840408237,
+          0.27415823663432554,
+          0.2780927684062141,
+          0.27285618226572583,
+          0.26977953957510264,
+          0.2678092816415839,
+          0.27266587016774113,
+          0.2711428938755591,
+          0.2770066577870213,
+          0.2753763396664109
+        ]
+      },
+      "allocationbatch-fifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "95651db3bee2f75637325b0c9e81010fa9a55e0f7896026a3f846ea2ce0ca385",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-fifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "66f06e6281aad19fda4dbc62d9d7d9e88466fb7e32aea2429531c16c8fa17514",
+          "baseline": "653554a8d6d1cd1d73490ed7f265f7adec51c96a0d97a20cd81a424494517e73"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014830125030130148,
+            0.014089541975408792,
+            0.013380666030570865,
+            0.013983124983496964,
+            0.013835959020070732,
+            0.01399541599676013,
+            0.013831083080731332,
+            0.014102708082646132,
+            0.013640791992656887,
+            0.014064792077988386,
+            0.013755999971181154
+          ],
+          "baseline": [
+            1.061234166030772,
+            1.0545652909204364,
+            1.0436849169200286,
+            1.0339750420534983,
+            1.073137833038345,
+            1.040091541945003,
+            1.0427381669869646,
+            1.0401666249381378,
+            1.031125208013691,
+            1.0394102920545265,
+            1.0435702500399202
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013983124983496964,
+          "baseline": 1.0427381669869646
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00014716596342623234,
+          "baseline": 0.003327874932438135
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.013410005911552836,
+        "paired_sample_ratios": [
+          0.013974413475206685,
+          0.01336052124673218,
+          0.012820599218831238,
+          0.013523658129819222,
+          0.012892993419957406,
+          0.01345594635890248,
+          0.013264195671188313,
+          0.013558124001031917,
+          0.013229035510569894,
+          0.013531511267016164,
+          0.0131816712585041
+        ]
+      },
+      "allocationbatch-lifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "14c8eb7c39cb906abaaaaa14618ca53bcb90ce99afccb2047955c018f1935164",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-lifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "bb2b6a5225ff8bac55a1255090d3b13e05711091cf941f0457d9cde71d5fee60",
+          "baseline": "219b8336776300c7a3044d6d77777d4d48f227faf76eb1aa13bd22cba2dc5db8"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014269832987338305,
+            0.014280959032475948,
+            0.014164875028654933,
+            0.01386887498665601,
+            0.013732666033320129,
+            0.014072541031055152,
+            0.014238249976187944,
+            0.01431145891547203,
+            0.014058582950383425,
+            0.013665708946064115,
+            0.013228749972768128
+          ],
+          "baseline": [
+            0.013572333031333983,
+            0.014579708920791745,
+            0.013762083020992577,
+            0.013702499913051724,
+            0.013673583045601845,
+            0.013862458057701588,
+            0.01368620793800801,
+            0.013771083089523017,
+            0.013383917044848204,
+            0.013260958017781377,
+            0.01339874998666346
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014072541031055152,
+          "baseline": 0.01368620793800801
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00020366604439914227,
+          "baseline": 0.00011387490667402744
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0282279134437418,
+        "paired_sample_ratios": [
+          1.051391308656664,
+          0.9795092007708222,
+          1.0292682442801675,
+          1.0121419503492068,
+          1.00432095870711,
+          1.0151548139932405,
+          1.0403356459788147,
+          1.0392398929289832,
+          1.050408703466592,
+          1.030521997561565,
+          0.987312248227294
+        ]
+      },
+      "allocationbatch-permuted-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 2049) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "8ef7a4ae29636169df535108228b64a3968a07b461a89276f643f87362401392",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-permuted-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "ae6fe7bb7c99139a99e6763a9a3af6b7b3cf055953fe6f6e5af7ee46a6057b12",
+          "baseline": "6da25773a1255e096100020b3a668c5012d962d5633a10a40b56278ac2d862cc"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014606749988161027,
+            0.01442870800383389,
+            0.013980999938212335,
+            0.013950249995104969,
+            0.01393820799421519,
+            0.013919875025749207,
+            0.01352866692468524,
+            0.014496292104013264,
+            0.01418125000782311,
+            0.013917958014644682,
+            0.013889499939978123
+          ],
+          "baseline": [
+            0.8792164160404354,
+            0.8896123750600964,
+            0.8464523330330849,
+            0.8473884999984875,
+            0.8454962919931859,
+            0.8461820000084117,
+            0.8462852908996865,
+            0.8472683749860153,
+            0.8445580420084298,
+            0.8483388340100646,
+            0.8431273329770193
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013950249995104969,
+          "baseline": 0.8464523330330849
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 6.075005512684584e-05,
+          "baseline": 0.0009560410398989916
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.016480845347920735,
+        "paired_sample_ratios": [
+          0.01661337268239684,
+          0.01621909542665611,
+          0.01651717337480109,
+          0.016462637851622802,
+          0.016485238464330868,
+          0.016450214050418032,
+          0.015985941230649187,
+          0.017109445521618267,
+          0.01679132670869951,
+          0.01640613096639115,
+          0.016473786813357528
+        ]
+      },
+      "allocationbatch-throughput-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "fifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "6c86b79ad417a796f2fecdcf88916236aa8464516f60fcd07fc1967b64e7e55b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-throughput-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "82a861f261fda8950829ebcf4e4ce40f43c688ce7020a6230ecbf5de76360248",
+          "baseline": "bf8254362de6cbe7c7197fd41f0d0b98bca8efe39959c70f04d80b4b257c53a1"
+        },
+        "samples_seconds": {
+          "current": [
+            0.7089822080451995,
+            0.699919666047208,
+            0.7006746249971911,
+            0.6994542090687901,
+            0.7001319580012932,
+            0.7089375000214204,
+            0.7091114169452339,
+            0.7086882500443608,
+            0.7066193330101669,
+            0.7003171660471708,
+            0.6996764580253512
+          ],
+          "baseline": [
+            0.7636525830021128,
+            0.755003625061363,
+            0.7532590000191703,
+            0.754256832995452,
+            0.7639788329834118,
+            0.7626587499398738,
+            0.7626689170720056,
+            0.7598907920764759,
+            0.7603150419890881,
+            0.7605517080519348,
+            0.7521966251078993
+          ]
+        },
+        "median_seconds": {
+          "current": 0.7006746249971911,
+          "baseline": 0.7603150419890881
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.001220415928401053,
+          "baseline": 0.0033375410130247474
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9215582834769789,
+        "paired_sample_ratios": [
+          0.9284093628780903,
+          0.9270414641920719,
+          0.9301908440249091,
+          0.9273422241214322,
+          0.9164284765157821,
+          0.9295605669997379,
+          0.9297762122883065,
+          0.932618551815585,
+          0.9293770266093304,
+          0.9208015163636304,
+          0.93017760871366
+        ]
+      },
+      "allocationbatch-throughput-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "lifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "0b2385f6a98de7be4ded676c6f1a426ec4ebb68745c536ab137c86a6f04e78f9",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-throughput-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "f6b8e38bec7efd85692243bea3b1d2a75fd10c2ca9be96bb7c63efd5a225cceb",
+          "baseline": "59e9f600bf9d9762a4c5a4c36426c43bfc597650aafc6e2ea435a57959ba3c68"
+        },
+        "samples_seconds": {
+          "current": [
+            0.6374884999822825,
+            0.6284477500012144,
+            0.6284861660096794,
+            0.6289412499172613,
+            0.628238832927309,
+            0.6305487910285592,
+            0.627780459006317,
+            0.6287919169990346,
+            0.6283877089153975,
+            0.626932792016305,
+            0.62847137497738
+          ],
+          "baseline": [
+            0.6216718750074506,
+            0.6174272920470685,
+            0.6143199580255896,
+            0.6146348749753088,
+            0.612936667050235,
+            0.6149785409215838,
+            0.6147362919291481,
+            0.6141165839508176,
+            0.614850917016156,
+            0.6143440419109538,
+            0.6136420420370996
+          ]
+        },
+        "median_seconds": {
+          "current": 0.62847137497738,
+          "baseline": 0.6146348749753088
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00032054202165454626,
+          "baseline": 0.0003436659462749958
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.022511739189266,
+        "paired_sample_ratios": [
+          1.025442079030264,
+          1.0178489971144746,
+          1.0230599833181715,
+          1.0232762173518501,
+          1.024965329535131,
+          1.0253183632775908,
+          1.0212191263935857,
+          1.0238966564846785,
+          1.0220163807593148,
+          1.0204913684296395,
+          1.024166096721554
+        ]
+      },
+      "allocationbatch-throughput-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "permuted",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "39351961ddaad4de2f8ddd50c5405aaad34f68291979a1002d712b2710d63216",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-paired/sources/allocationbatch-throughput-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "e6dc2c7e454f7223400f8b3478714035bcbf489f0c6b1d5bdc9e78fa3093930c",
+          "baseline": "4419b99986d9688700c06fb4fff63fb22a19a0f8ab5c50dc6b57960364a5d048"
+        },
+        "samples_seconds": {
+          "current": [
+            0.6985344999702647,
+            0.6972302079666406,
+            0.690082750050351,
+            0.6893454589881003,
+            0.6917070830240846,
+            0.6906649590237066,
+            0.6975802079541609,
+            0.6875166659010574,
+            0.6897178329527378,
+            0.698238915996626,
+            0.6896298750070855
+          ],
+          "baseline": [
+            0.7230747500434518,
+            0.7143240000586957,
+            0.7140097079100087,
+            0.7128290830878541,
+            0.7170029169647023,
+            0.7160205419640988,
+            0.7164187910966575,
+            0.7133018330205232,
+            0.716915832948871,
+            0.7231321251019835,
+            0.7137314579449594
+          ]
+        },
+        "median_seconds": {
+          "current": 0.6906649590237066,
+          "baseline": 0.7160205419640988
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0013195000356063247,
+          "baseline": 0.0020108340540900826
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.9645881906253138,
+        "paired_sample_ratios": [
+          0.9660612542870397,
+          0.9760699737224978,
+          0.9664893101668116,
+          0.9670557435759681,
+          0.9647200404041549,
+          0.9645881906253138,
+          0.9737045100203758,
+          0.9638509731423558,
+          0.9620624922115887,
+          0.9655758495007439,
+          0.9662315809824757
+        ]
+      }
+    },
+    "context_probe_samples_seconds": {},
+    "context_probe_median_seconds": {}
+  },
+  "historical_comparison": {
+    "schema": 3,
+    "recorded_at": "2026-11-08T13:45:37.594194+00:00",
+    "suite": "extended",
+    "process_startup_included": true,
+    "startup_control_subtracted": false,
+    "warmup_runs_per_program": 1,
+    "collector_sha256": "bd0f8b4cc303f53321e20dd405d9aa941ae26b2f7d14c9ab00117aa6537efc20",
+    "revisions": {
+      "current": "ca988b1418139eea1d4b2e9a706f878e9d4cbd6b+allocation-index",
+      "baseline": "3d2aac5980f57fb68524a15b154f65cf0882bdc2"
+    },
+    "build_configuration": {
+      "current": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      },
+      "baseline": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": {
+          "path": "/usr/bin/c++",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_CXX_FLAGS": "",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g",
+        "CMAKE_CXX_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+        "CMAKE_C_COMPILER": {
+          "path": "/usr/bin/cc",
+          "version": "Apple clang version 21.0.0 (clang-2100.4.1.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+        },
+        "CMAKE_C_FLAGS": "",
+        "CMAKE_C_FLAGS_DEBUG": "-g",
+        "CMAKE_C_FLAGS_MINSIZEREL": "-Os -DNDEBUG",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
+      }
+    },
+    "build_components_sha256": {
+      "current": {
+        "adac/adac": "f5f7c5a0c68cbf3ced5aa40636bca172dea4825760f64e83fe77abe54712110d",
+        "runtime/libadart.a": "f557fb400c5f6ea3b976f4b70b911683aaf5de6a57702c2aef8d925aa5055098",
+        "qbe/qbe": "89c5e3d14427db6acad91e78971b7128bc60029221313e89db4bda8241c0e214"
+      },
+      "baseline": {
+        "adac/adac": "534eac7be460766f165d7b82d60e1770a690afa1d6ab431b421fd629b37d711c",
+        "runtime/libadart.a": "2029b6c84028b44df738f2687a01988bc09ce11a4040cf904513f1e38d3d234c",
+        "qbe/qbe": "12c1e11bfd38149498d92e9b28261bdf33dad7c78c6b0eeffba8657d69a6dd28"
+      }
+    },
+    "context_probe_sha256": null,
+    "host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "release": "27.0.0",
+      "python": "3.15.0",
+      "processor": "arm",
+      "logical_cpus": 10
+    },
+    "driver_sha256": {
+      "current": "a420ce4fc80b3ab10b985bbee4d8f90572e690c9a93b4bf9417e4d4e5301cc2a",
+      "baseline": "202fdd0788980f7feadcfcbd0423548840cff2ec184431bddf20365b4d420ca8"
+    },
+    "comparison": "paired",
+    "runs": 11,
+    "workloads": {
+      "contextcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/contextcalls.adb",
+        "executable_sha256": {
+          "current": "3e874ce8f413e3731ed07651da02d919ca2c61b3917b7dc09cd2a0af59840b3a",
+          "baseline": "9256ac11bce275aa531c1f11c28eccb63f75e4c05fdefac77aa54eeeef1600bb"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014000915922224522,
+            0.013656291062943637,
+            0.01330658292863518,
+            0.013795666978694499,
+            0.01355954201426357,
+            0.013528999988920987,
+            0.013686166028492153,
+            0.013442500028759241,
+            0.013938750023953617,
+            0.013633582973852754,
+            0.014103541965596378
+          ],
+          "baseline": [
+            0.018714250065386295,
+            0.018334166961722076,
+            0.018178499885834754,
+            0.01837883295956999,
+            0.018340042093768716,
+            0.018511457950808108,
+            0.018166374997235835,
+            0.018532624933868647,
+            0.018334750086069107,
+            0.018171667004935443,
+            0.018426249967887998
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013656291062943637,
+          "baseline": 0.018340042093768716
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00013937591575086117,
+          "baseline": 0.00016154220793396235
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.7446161242772475,
+        "paired_sample_ratios": [
+          0.74814197060028,
+          0.7448547344122659,
+          0.7319956548782157,
+          0.7506280191480273,
+          0.7393408338397769,
+          0.7308446490207642,
+          0.7533790329977564,
+          0.725342474513304,
+          0.7602367067192475,
+          0.7502659480910506,
+          0.7654048973706024
+        ]
+      },
+      "imagecalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/imagecalls.adb",
+        "executable_sha256": {
+          "current": "3b087568f4b2e70de821e89e699f80013a9c5c14563208600a435e94a4c37320",
+          "baseline": "fcb2474b4d5b6279fdb27a8e53a564e658dafff6e69cd40f7350ea89863287e8"
+        },
+        "samples_seconds": {
+          "current": [
+            0.024684500065632164,
+            0.0241576669504866,
+            0.024311000015586615,
+            0.024486792040988803,
+            0.024610291002318263,
+            0.024184584035538137,
+            0.023939582984894514,
+            0.02397341700270772,
+            0.02403366705402732,
+            0.024153957958333194,
+            0.02423895802348852
+          ],
+          "baseline": [
+            0.03050824999809265,
+            0.030874415999278426,
+            0.031087875016964972,
+            0.0316678750095889,
+            0.033857792033813894,
+            0.031679124920628965,
+            0.030670124921016395,
+            0.030310624977573752,
+            0.030500250053592026,
+            0.03043270797934383,
+            0.030957749928347766
+          ]
+        },
+        "median_seconds": {
+          "current": 0.024184584035538137,
+          "baseline": 0.030874415999278426
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.000150916981510818,
+          "baseline": 0.00037416594568639994
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.783321182046111,
+        "paired_sample_ratios": [
+          0.8091090136987673,
+          0.7824493571328182,
+          0.7820090630935647,
+          0.77323761173032,
+          0.7268722950905918,
+          0.7634233614764246,
+          0.7805505535613307,
+          0.7909245362128029,
+          0.7879826234800611,
+          0.7936841497880395,
+          0.7829689844898288
+        ]
+      },
+      "blockcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/blockcalls.adb",
+        "executable_sha256": {
+          "current": "19af646b0327354ae00bc70e7ddd3d5d9fd466831c15f19fb812f336705f3a70",
+          "baseline": "e41101bf99265d702d6c822d24e8b496f010aa7bce7d0bb6f8a9225f268b271f"
+        },
+        "samples_seconds": {
+          "current": [
+            0.007552042021416128,
+            0.006953542004339397,
+            0.008726582978852093,
+            0.006697542034089565,
+            0.00697095796931535,
+            0.006817999994382262,
+            0.006820000009611249,
+            0.00670270889531821,
+            0.006883750087581575,
+            0.007242582971230149,
+            0.0067208330146968365
+          ],
+          "baseline": [
+            0.004808582947589457,
+            0.005402375012636185,
+            0.005145625094883144,
+            0.004997957963496447,
+            0.004533875035122037,
+            0.004488750011660159,
+            0.004629499977454543,
+            0.004202999989502132,
+            0.004937666933983564,
+            0.004826250020414591,
+            0.004477208014577627
+          ]
+        },
+        "median_seconds": {
+          "current": 0.006883750087581575,
+          "baseline": 0.004808582947589457
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00016291707288473845,
+          "baseline": 0.0002747079124674201
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.4315548182510607,
+        "paired_sample_ratios": [
+          1.5705337942027113,
+          1.2871268632916124,
+          1.6959228116968503,
+          1.3400556953472518,
+          1.5375275929120784,
+          1.518908376869184,
+          1.4731612577652755,
+          1.5947439714631506,
+          1.3941300982057063,
+          1.5006646859559065,
+          1.501121456232109
+        ]
+      },
+      "allocationcalls": {
+        "kind": "short",
+        "parameters": {
+          "repetitions": 1
+        },
+        "source_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/allocationcalls.adb",
+        "executable_sha256": {
+          "current": "1da23802b5259d358c04ad4ef2ed4490356a0278a58d324f953b65913c0cd4ca",
+          "baseline": "ae767ade74c8fc51f97806a98fa93a9c870d8b96102072c829b547d0fe0667ff"
+        },
+        "samples_seconds": {
+          "current": [
+            0.01687100005801767,
+            0.01669754204340279,
+            0.01701670791953802,
+            0.016104375012218952,
+            0.016600208939053118,
+            0.015892041963525116,
+            0.01633062504697591,
+            0.01601020898669958,
+            0.01595104206353426,
+            0.01548000006005168,
+            0.0157912919530645
+          ],
+          "baseline": [
+            0.006804541917517781,
+            0.006983916973695159,
+            0.006641749991104007,
+            0.006508958991616964,
+            0.006554667023010552,
+            0.00619304203428328,
+            0.006219625007361174,
+            0.006144374958239496,
+            0.006630832911469042,
+            0.006445041974075139,
+            0.006583250011317432
+          ]
+        },
+        "median_seconds": {
+          "current": 0.016104375012218952,
+          "baseline": 0.006554667023010552
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0003130830591544509,
+          "baseline": 0.00010962504893541336
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.456932587984039,
+        "paired_sample_ratios": [
+          2.4793733748019906,
+          2.390856321215428,
+          2.5620819727225936,
+          2.474185969363172,
+          2.5325785247026413,
+          2.5661124009090144,
+          2.6256607155010094,
+          2.6056692658754788,
+          2.4055864891338894,
+          2.401846275372482,
+          2.3987076179572844
+        ]
+      },
+      "startup": {
+        "kind": "startup",
+        "parameters": {},
+        "source_sha256": "a963314062aa823f1a19ea9390168147fe2885057bc2cfc0a6673008fa785660",
+        "source_file": "/Users/arthur/prj/aida/tests/benchmarks/startupprobe.adb",
+        "executable_sha256": {
+          "current": "d0d4181e5b9adc9f3cb6f475818c4d2ffa2518ca40ddc61200b5919f245660ca",
+          "baseline": "c9effc48bbeb40c3ae5648c5f6808c93c74f48cb499d9469424e5ef1b57da492"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0037254169583320618,
+            0.0035055839689448476,
+            0.0030717089539393783,
+            0.0030245831003412604,
+            0.0031339999986812472,
+            0.003331625019200146,
+            0.0037307499442249537,
+            0.0030495409155264497,
+            0.0034406670602038503,
+            0.003360208938829601,
+            0.0032660829601809382
+          ],
+          "baseline": [
+            0.0044673330849036574,
+            0.00392566598020494,
+            0.0028238750528544188,
+            0.0031131249852478504,
+            0.0032610000343993306,
+            0.002978708012960851,
+            0.0035981249529868364,
+            0.0031749579356983304,
+            0.003193875076249242,
+            0.0031449580565094948,
+            0.0031573750311508775
+          ]
+        },
+        "median_seconds": {
+          "current": 0.003331625019200146,
+          "baseline": 0.0031749579356983304
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00019762502051889896,
+          "baseline": 8.604209870100021e-05
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 1.0493446170547003,
+        "paired_sample_ratios": [
+          0.8339241528511198,
+          0.8929908929138791,
+          1.0877637630724648,
+          0.9715585190680865,
+          0.961054880595401,
+          1.1184798928608293,
+          1.0368594734677081,
+          0.9604980529783632,
+          1.0772703935071972,
+          1.0684431647266568,
+          1.0344298437650077
+        ]
+      },
+      "contextcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "0ecd280a224fd5e2c572ed08aec71c92eca7b459432a90bea34756d8feb2ac1a",
+        "generated_source": "procedure ContextcallsLong is\n    procedure Contextcalls is\n        function Next (Value : Integer) return Integer is\n        begin\n            return Value + 1;\n        end Next;\n        Value : Integer := 0;\n    begin\n        for I in 1 .. 2_000_000 loop\n            Value := Next (Value);\n        end loop;\n        if Value /= 2_000_000 then\n            raise Program_Error;\n        end if;\n    end Contextcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Contextcalls;\n    end loop;\nend ContextcallsLong;\n",
+        "source_sha256": "79ca3def6f31f3c06c2010f8348812ff8aa8155e9664653d9433c9ed7f51d1f1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/contextcalls-long/contextcallslong.adb",
+        "executable_sha256": {
+          "current": "cad07e523df1b34241fc77d16b7f72f6eb9f6bda580ea2558e84bf3e8d760ec9",
+          "baseline": "d0d9064c0314e14b50232578fc3ccbbf88a94b6269335190b8d2dff818666965"
+        },
+        "samples_seconds": {
+          "current": [
+            1.282214832957834,
+            1.250296000041999,
+            1.2504160410026088,
+            1.2526572500355542,
+            1.2528347909683362,
+            1.2518921670271084,
+            1.2525001249741763,
+            1.2489122919505462,
+            1.2545460000401363,
+            1.313985374988988,
+            1.2717560410965234
+          ],
+          "baseline": [
+            1.8607834168942645,
+            1.8563096249708906,
+            1.84465541690588,
+            1.8446772920433432,
+            1.8451809589751065,
+            1.843966625048779,
+            1.8770574999507517,
+            1.8600227909628302,
+            1.8510724590159953,
+            1.8548380420543253,
+            1.8583333340939134
+          ]
+        },
+        "median_seconds": {
+          "current": 1.2526572500355542,
+          "baseline": 1.8548380420543253
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.002241209032945335,
+          "baseline": 0.005945374839939177
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.6753458909265059,
+        "paired_sample_ratios": [
+          0.689072581643011,
+          0.6735384998402976,
+          0.6778588724716866,
+          0.6790657940218854,
+          0.6789766526011709,
+          0.678912595283004,
+          0.6672678514148012,
+          0.6714499940638113,
+          0.6777400819344672,
+          0.7084097614979278,
+          0.6843530263189335
+        ]
+      },
+      "imagecalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "d557e3552861f0872f102a831c29328343491f0cf1efd9e484a388de3d651cda",
+        "generated_source": "procedure ImagecallsLong is\n    procedure Imagecalls is\n        type Fixed is delta 0.125 range -1000.0 .. 1000.0;\n        Count : Integer := 0;\n        procedure Consume (Text : String) is\n        begin\n            Count := Count + Text'Length;\n        end Consume;\n    begin\n        for I in 1 .. 200_000 loop\n            Consume (Integer'Image (123));\n            Consume (Fixed'Image (123.125));\n        end loop;\n        if Count /= 200_000 * (9 + Fixed'Aft) then\n            raise Program_Error;\n        end if;\n    end Imagecalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Imagecalls;\n    end loop;\nend ImagecallsLong;\n",
+        "source_sha256": "aabfe882f291ef4ac69f6b37cb0a3de568f9a5c3974f39167466ba3710e5ef5d",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/imagecalls-long/imagecallslong.adb",
+        "executable_sha256": {
+          "current": "97e60533b7f44d7989c62844cfe7ae584b4d1c3f65b1524b23b4af99131ff3a9",
+          "baseline": "29e37f9182355d427c9513c17051746ba9aec17ca691127c929b3b1db2f8a407"
+        },
+        "samples_seconds": {
+          "current": [
+            2.566437124973163,
+            2.5333095410605893,
+            2.5362725409213454,
+            2.5342190410010517,
+            2.5355400000698864,
+            2.565783499972895,
+            2.619204207905568,
+            2.5562908339779824,
+            2.5638642499689013,
+            2.565455124946311,
+            2.5810701670125127
+          ],
+          "baseline": [
+            3.440158791025169,
+            3.3913093749433756,
+            3.402282750001177,
+            3.402723709004931,
+            3.4152564170071855,
+            3.429638000088744,
+            3.417507166042924,
+            3.399955999921076,
+            3.5564604160608724,
+            3.432287957984954,
+            3.3979919999837875
+          ]
+        },
+        "median_seconds": {
+          "current": 2.5638642499689013,
+          "baseline": 3.4152564170071855
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.017205917043611407,
+          "baseline": 0.015300417086109519
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 0.7507091523791454,
+        "paired_sample_ratios": [
+          0.7460228672201388,
+          0.7470004240184922,
+          0.745462011033759,
+          0.744761919486593,
+          0.7424157048482465,
+          0.7481207928960735,
+          0.7664078173501834,
+          0.7518599752577158,
+          0.7209033561544969,
+          0.7474475208229475,
+          0.7595868874985072
+        ]
+      },
+      "blockcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "e1ed9eddd193b088e6430f65d528a89a08196dd9622610f51b7b782426c81df7",
+        "generated_source": "procedure BlockcallsLong is\n    procedure Blockcalls is\n        type Values is array (1 .. 4) of Integer;\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 200_000 loop\n            declare\n                Local : Integer := I;\n                Items : Values := (others => Local);\n            begin\n                Total := Total + Long_Integer (Items (2));\n            end;\n        end loop;\n        if Total /= 20_000_100_000 then\n            raise Program_Error;\n        end if;\n    end Blockcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Blockcalls;\n    end loop;\nend BlockcallsLong;\n",
+        "source_sha256": "40d4e06794b586718bf953c7e9067ddae358d194cc0af0c9348ae89d7dab41e4",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/blockcalls-long/blockcallslong.adb",
+        "executable_sha256": {
+          "current": "6a8b3fc0568947dc8ef3fa0bd384f6bf380098a6f25bfbf3e272a5c5d0d77ca4",
+          "baseline": "5fb87ffe4aaf5817e27f9047738155d90574c32d97a811410caa32908b3e6b4c"
+        },
+        "samples_seconds": {
+          "current": [
+            0.4077496670652181,
+            0.40895258297678083,
+            0.4100541250081733,
+            0.40386929200030863,
+            0.4012145419837907,
+            0.40306541591417044,
+            0.4028335839975625,
+            0.4024006670806557,
+            0.4015796669991687,
+            0.40061804198194295,
+            0.4062878340482712
+          ],
+          "baseline": [
+            0.152054833015427,
+            0.15382849995512515,
+            0.1535343750147149,
+            0.15357729198876768,
+            0.1501522910548374,
+            0.15064970799721777,
+            0.15040195907931775,
+            0.14946991694159806,
+            0.14952841599006206,
+            0.14927133393939584,
+            0.1524545419961214
+          ]
+        },
+        "median_seconds": {
+          "current": 0.40306541591417044,
+          "baseline": 0.15064970799721777
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0018508739303797483,
+          "baseline": 0.0013783740578219295
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.6755140867688527,
+        "paired_sample_ratios": [
+          2.6815962306429886,
+          2.6584968526383634,
+          2.6707642830400244,
+          2.6297461478214292,
+          2.6720507503762456,
+          2.6755140867688527,
+          2.6783798991947934,
+          2.692184991565122,
+          2.685641149477959,
+          2.6838243580284065,
+          2.6649769087142547
+        ]
+      },
+      "allocationcalls-long": {
+        "kind": "long",
+        "parameters": {
+          "repetitions": 128
+        },
+        "kernel_sha256": "b98226f783afe91bb42e9f1ecdca3e6710825eebc7ee0fe5a806d9c8f76b81b6",
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationcallsLong is\n    procedure Allocationcalls is\n        type Pointer is access Integer;\n        procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n        Total : Long_Integer := 0;\n    begin\n        for I in 1 .. 100_000 loop\n            declare\n                Item : Pointer := new Integer'(I);\n            begin\n                Total := Total + Long_Integer (Item.all);\n                Free (Item);\n            end;\n        end loop;\n        if Total /= 5_000_050_000 then\n            raise Program_Error;\n        end if;\n    end Allocationcalls;\nbegin\n    for Trial in 1 .. 128 loop\n        Allocationcalls;\n    end loop;\nend AllocationcallsLong;\n",
+        "source_sha256": "44815c2edd8943ef2aca8dad2abaeadd9859d99d58fde3780b38abc7c9f8e90a",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationcalls-long/allocationcallslong.adb",
+        "executable_sha256": {
+          "current": "41dff0d9fcaf5d2ebfc75665074a61c33047b9d3fd19fdbe38af0b478c750405",
+          "baseline": "3ee931a71e50037183e2ec81c0dfd4ec45d2fb6d8bee711c1db755fc1c2525e9"
+        },
+        "samples_seconds": {
+          "current": [
+            1.633783790981397,
+            1.6140134580200538,
+            1.6187614999944344,
+            1.6225911249639466,
+            1.6216687499545515,
+            1.6259320829994977,
+            1.6132554160431027,
+            1.605925708077848,
+            1.6031027499120682,
+            1.6024141249945387,
+            1.6062998750712723
+          ],
+          "baseline": [
+            0.3890198749722913,
+            0.38755216693971306,
+            0.38653758296277374,
+            0.38769320806022733,
+            0.38881566701456904,
+            0.38674600003287196,
+            0.3837334580020979,
+            0.382316334056668,
+            0.3829952080268413,
+            0.386325667030178,
+            0.38669408299028873
+          ]
+        },
+        "median_seconds": {
+          "current": 1.6140134580200538,
+          "baseline": 0.38669408299028873
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.008087749942205846,
+          "baseline": 0.0009991250699386
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 4.1738767905082925,
+        "paired_sample_ratios": [
+          4.199743756274063,
+          4.164635359324741,
+          4.187850215202315,
+          4.185245166100203,
+          4.170790653592123,
+          4.204134193660178,
+          4.204104131139597,
+          4.2005155548489155,
+          4.185699236737497,
+          4.147832416398482,
+          4.153929283452761
+        ]
+      },
+      "allocationbatch-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "c3031bab6bff306a0fe07a1c4502fc6ee624f0b12ca43ef9913fa2d11d18180b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "288e65a3f240028a4cbb10b550209a82ff47f295cc9d5c73a27629ba3478f43a",
+          "baseline": "c8f7ef604f7f0d756caa5ce72b6ed48ae443f98e703a6facf51ba432cb762a4f"
+        },
+        "samples_seconds": {
+          "current": [
+            0.015208957949653268,
+            0.015340041019953787,
+            0.014878708985634148,
+            0.014406666974537075,
+            0.015092749963514507,
+            0.014813291025348008,
+            0.01518187508918345,
+            0.014837499940767884,
+            0.01493449998088181,
+            0.014561665942892432,
+            0.014878790942020714
+          ],
+          "baseline": [
+            0.005943041993305087,
+            0.005455542006529868,
+            0.005757375038228929,
+            0.005243958090431988,
+            0.005683499970473349,
+            0.00499545899219811,
+            0.005287833046168089,
+            0.005527292029000819,
+            0.0055288749281316996,
+            0.005649750004522502,
+            0.0054322079522535205
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014878790942020714,
+          "baseline": 0.005527292029000819
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00021395902149379253,
+          "baseline": 0.00015620794147253036
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.691877118841211,
+        "paired_sample_ratios": [
+          2.5591200544748554,
+          2.8118271294754815,
+          2.5842869166659503,
+          2.747288732307599,
+          2.655537968139993,
+          2.96535134178528,
+          2.8710957695960606,
+          2.684406733517587,
+          2.701182460267451,
+          2.5774000497785097,
+          2.738995096063716
+        ]
+      },
+      "allocationbatch-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "197a07b34334743fb060f2aa2cf955ff60159b0254b6228114277df2b930c3c1",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "ee2f509e2c82ec173f34d90e2b963e1303d545861c4005c3ad9cd905d6104680",
+          "baseline": "272dbb86ff00fc0ba00699c2e1af953af734ed3a199db6a683e0a4c7dbc9517a"
+        },
+        "samples_seconds": {
+          "current": [
+            0.013976083020679653,
+            0.01382595906034112,
+            0.013774749939329922,
+            0.01365804101806134,
+            0.013977582915686071,
+            0.013488291995599866,
+            0.014358749962411821,
+            0.013875041040591896,
+            0.013777374988421798,
+            0.013896708958782256,
+            0.01388008298818022
+          ],
+          "baseline": [
+            0.006264750030823052,
+            0.006432833033613861,
+            0.006237374967895448,
+            0.005897957948036492,
+            0.005742042092606425,
+            0.005398374982178211,
+            0.005614124936982989,
+            0.005890792002901435,
+            0.0058440410066396,
+            0.005809666006825864,
+            0.005588417057879269
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013875041040591896,
+          "baseline": 0.0058440410066396
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00010029110126197338,
+          "baseline": 0.0002299160696566105
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.3742203425383264,
+        "paired_sample_ratios": [
+          2.2309083286509837,
+          2.1492799499218345,
+          2.20842101208125,
+          2.3157237027449953,
+          2.434252952217801,
+          2.49858374791101,
+          2.557611404018408,
+          2.355377856450868,
+          2.357508267441807,
+          2.3919979121785664,
+          2.4837235382442144
+        ]
+      },
+      "allocationbatch-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 2048,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 2048;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "99d41b05ce6aa5bb2bea763a67fb1198ebaf77428b6ed51bb694ce459df88084",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "63c962eb9126ad97bed7b56e7e971441b5721401c624894ef11ec6629b3eb3c2",
+          "baseline": "7707c247f420210208ae916b23abdc54571a6e91c2dc918d08d0741056eac7b9"
+        },
+        "samples_seconds": {
+          "current": [
+            0.015147000085562468,
+            0.014859999995678663,
+            0.015311165945604444,
+            0.014729540911503136,
+            0.01506333309225738,
+            0.015118540963158011,
+            0.014894832973368466,
+            0.014318375033326447,
+            0.015195958083495498,
+            0.014480042038485408,
+            0.01469754206482321
+          ],
+          "baseline": [
+            0.006742749945260584,
+            0.006159708020277321,
+            0.00654670805670321,
+            0.005897209048271179,
+            0.006127666914835572,
+            0.006106041953898966,
+            0.006472749984823167,
+            0.006036457954905927,
+            0.006506250007078052,
+            0.005968416924588382,
+            0.006016041967086494
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014894832973368466,
+          "baseline": 0.006127666914835572
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00022370798978954554,
+          "baseline": 0.00015924999024719
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.430751080367453,
+        "paired_sample_ratios": [
+          2.2464128446894507,
+          2.4124520101862945,
+          2.3387580159355443,
+          2.4977138831158165,
+          2.4582493307180004,
+          2.4759969022984167,
+          2.301159941028587,
+          2.3719828979657964,
+          2.3355939392067695,
+          2.426111014267663,
+          2.4430584336400623
+        ]
+      },
+      "allocationbatch-fifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "ba8513ef40ca906ac52290d2d9611513ef7107e19a061cf9be17a43fcaa9f845",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-fifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "91cc5f0b7533f486f26564aace28af57adcbaf46ba2d6cd305af6fb20944526a",
+          "baseline": "c33728694685e81d7b76ac0f781fe5851cf2c64ba1df84e0ff0ddd307c454271"
+        },
+        "samples_seconds": {
+          "current": [
+            0.015021333005279303,
+            0.015223375055938959,
+            0.01400816603563726,
+            0.013922290992923081,
+            0.013870042050257325,
+            0.013803625013679266,
+            0.014044290990568697,
+            0.014287999947555363,
+            0.014041333924978971,
+            0.013683958095498383,
+            0.014139082981273532
+          ],
+          "baseline": [
+            0.0061822079587727785,
+            0.005540125072002411,
+            0.0055184169905260205,
+            0.005623916978947818,
+            0.0055179999908432364,
+            0.005942124989815056,
+            0.006004333030432463,
+            0.005180166917853057,
+            0.005489042028784752,
+            0.005201665917411447,
+            0.00545245804823935
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014041333924978971,
+          "baseline": 0.0055184169905260205
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0001712918747216463,
+          "baseline": 0.00010549998842179775
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.5444496037695292,
+        "paired_sample_ratios": [
+          2.4297683134329837,
+          2.74783959894188,
+          2.5384392045194084,
+          2.4755505895693024,
+          2.513599505848815,
+          2.323011555182533,
+          2.3390259866310505,
+          2.7582122688581405,
+          2.558066389607816,
+          2.6306876129230647,
+          2.5931575917102516
+        ]
+      },
+      "allocationbatch-lifo-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "f2fe087e37b800b4ef29a59a3c9590a792b6dd0e07103f67890d620b95d94c3e",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-lifo-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "7a4a771c26ee353083d9b0da14c7daa59768b38ebeaa2f9b43cc21cf3c1ae838",
+          "baseline": "d9ca012b11d49a5fe2503bd03d93e664b37695fe931457ce45e0535f1212dd75"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014436958939768374,
+            0.013495583087205887,
+            0.01370666699949652,
+            0.013506875024177134,
+            0.01388516603037715,
+            0.013649374945089221,
+            0.013746250071562827,
+            0.013461249996908009,
+            0.013974584056995809,
+            0.014123583910986781,
+            0.013763458002358675
+          ],
+          "baseline": [
+            0.006038374966010451,
+            0.0061928750947117805,
+            0.005975291016511619,
+            0.005356792011298239,
+            0.005823167040944099,
+            0.005486333975568414,
+            0.005553833092562854,
+            0.005344708100892603,
+            0.005806792061775923,
+            0.0053229579934850335,
+            0.00584887492004782
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013746250071562827,
+          "baseline": 0.005806792061775923
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00022833398543298244,
+          "baseline": 0.0002529589692130685
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.367270934678301,
+        "paired_sample_ratios": [
+          2.3908682420407654,
+          2.179211251770609,
+          2.293891119548933,
+          2.5214484705938194,
+          2.384469813891166,
+          2.48788626537725,
+          2.4750923987921873,
+          2.5186127554206164,
+          2.406592815504037,
+          2.653333715628258,
+          2.3531804305102404
+        ]
+      },
+      "allocationbatch-permuted-512": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 512,
+          "rounds": 128,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 512;\n    kRounds : constant Integer := 128;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 257) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "75d2e304b1e1388162993b01f19b06b9255715fcb180dcd24fdf0e9447bb8fec",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-permuted-512/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "4b3ca0f44fc45099433e4be9ca11e1e8c811fcb7013500b08eb70454bc5b27de",
+          "baseline": "b6becd065c877bdfc0d00f46ff1d40d6956eb7f8fa36663a58b31c9c26aa0f43"
+        },
+        "samples_seconds": {
+          "current": [
+            0.01572699996177107,
+            0.013801457942463458,
+            0.014317375025711954,
+            0.013834916986525059,
+            0.01383091602474451,
+            0.013908958062529564,
+            0.014033458079211414,
+            0.014189125038683414,
+            0.014055707957595587,
+            0.013348375097848475,
+            0.013783833011984825
+          ],
+          "baseline": [
+            0.006568749900907278,
+            0.0061800830299034715,
+            0.006382290972396731,
+            0.005871250061318278,
+            0.006160042015835643,
+            0.00612383394036442,
+            0.005961333983577788,
+            0.006275749998167157,
+            0.006760082906112075,
+            0.006042249966412783,
+            0.006299167056567967
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013908958062529564,
+          "baseline": 0.0061800830299034715
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00012512505054473877,
+          "baseline": 0.0001378330634906888
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.2506102256601577,
+        "paired_sample_ratios": [
+          2.394215063599674,
+          2.233215617926581,
+          2.2432971307065577,
+          2.356383537072289,
+          2.245263261060448,
+          2.271282696098363,
+          2.3540801635792623,
+          2.2609449138074926,
+          2.079221239267233,
+          2.209172935917654,
+          2.1881993108299618
+        ]
+      },
+      "allocationbatch-fifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "fifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "95651db3bee2f75637325b0c9e81010fa9a55e0f7896026a3f846ea2ce0ca385",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-fifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "66f06e6281aad19fda4dbc62d9d7d9e88466fb7e32aea2429531c16c8fa17514",
+          "baseline": "2a96c47c4b8d297ad9d20fec42fba55a411e172517c225eaee79fd8d1e711cb3"
+        },
+        "samples_seconds": {
+          "current": [
+            0.018881540978327394,
+            0.014719333034008741,
+            0.014738457975909114,
+            0.013874874915927649,
+            0.014548833016306162,
+            0.013920916942879558,
+            0.014123542001470923,
+            0.01453233405482024,
+            0.014430916984565556,
+            0.014887416968122125,
+            0.014392042066901922
+          ],
+          "baseline": [
+            0.006856790976598859,
+            0.00606912502553314,
+            0.005942165968008339,
+            0.00518929201643914,
+            0.005637792055495083,
+            0.005023750010877848,
+            0.005077791982330382,
+            0.005820958060212433,
+            0.005277042044326663,
+            0.005044208955951035,
+            0.005536041921004653
+          ]
+        },
+        "median_seconds": {
+          "current": 0.01453233405482024,
+          "baseline": 0.005536041921004653
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00020612392108887434,
+          "baseline": 0.00040612404700368643
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.6250404643220233,
+        "paired_sample_ratios": [
+          2.753699367935686,
+          2.4252809049218307,
+          2.4803174558332075,
+          2.673751038094114,
+          2.5805905704034617,
+          2.7710210326423117,
+          2.78143375124814,
+          2.496553643660832,
+          2.734660225055475,
+          2.9513878386339076,
+          2.5996988953960316
+        ]
+      },
+      "allocationbatch-lifo-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "lifo",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "14c8eb7c39cb906abaaaaa14618ca53bcb90ce99afccb2047955c018f1935164",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-lifo-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "bb2b6a5225ff8bac55a1255090d3b13e05711091cf941f0457d9cde71d5fee60",
+          "baseline": "80dd1db34f75b64f2422a2872b0363dcfca9f0c0f1673e6113ac76d5c96be502"
+        },
+        "samples_seconds": {
+          "current": [
+            0.0140056669479236,
+            0.013526333030313253,
+            0.014085083035752177,
+            0.013327582972124219,
+            0.013771250029094517,
+            0.013624208979308605,
+            0.013887624954804778,
+            0.013663792051374912,
+            0.014128208043985069,
+            0.013634667033329606,
+            0.014178333105519414
+          ],
+          "baseline": [
+            0.00628512492403388,
+            0.005854124901816249,
+            0.006065791007131338,
+            0.005559292039833963,
+            0.005715749925002456,
+            0.005175250000320375,
+            0.00552816700655967,
+            0.005138707929290831,
+            0.005824416992254555,
+            0.005293666967190802,
+            0.005802000057883561
+          ]
+        },
+        "median_seconds": {
+          "current": 0.013771250029094517,
+          "baseline": 0.005715749925002456
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.00023441691882908344,
+          "baseline": 0.00018758291844278574
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.409351390419447,
+        "paired_sample_ratios": [
+          2.228383225028178,
+          2.3105644749938103,
+          2.3220521477236584,
+          2.3973525543591103,
+          2.409351390419447,
+          2.6325702098382098,
+          2.512157273527709,
+          2.658993708027416,
+          2.425686221088409,
+          2.5756563678514017,
+          2.4436975119044297
+        ]
+      },
+      "allocationbatch-permuted-4096": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 4096,
+          "rounds": 16,
+          "allocations": 65536,
+          "order": "permuted",
+          "series": "scaling",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 4096;\n    kRounds : constant Integer := 16;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 2049) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "8ef7a4ae29636169df535108228b64a3968a07b461a89276f643f87362401392",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-permuted-4096/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "ae6fe7bb7c99139a99e6763a9a3af6b7b3cf055953fe6f6e5af7ee46a6057b12",
+          "baseline": "403da538a44a521f05ede18e48e052d1782a5d5d8af48701555cb5aa57ffc4f8"
+        },
+        "samples_seconds": {
+          "current": [
+            0.014544082921929657,
+            0.015436082961969078,
+            0.014662791043519974,
+            0.014204666018486023,
+            0.01427491707727313,
+            0.014822375029325485,
+            0.014946582959964871,
+            0.014470291091129184,
+            0.01423629093915224,
+            0.013730417005717754,
+            0.014075459097512066
+          ],
+          "baseline": [
+            0.006315167061984539,
+            0.006208208971656859,
+            0.006033458048477769,
+            0.0056392919505015016,
+            0.006224708980880678,
+            0.005866208113729954,
+            0.006536541972309351,
+            0.006533832987770438,
+            0.006252707913517952,
+            0.0061279169749468565,
+            0.006191333057358861
+          ]
+        },
+        "median_seconds": {
+          "current": 0.014470291091129184,
+          "baseline": 0.006208208971656859
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0002656250726431608,
+          "baseline": 0.00010695809032768011
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 2.330831832045648,
+        "paired_sample_ratios": [
+          2.303040090495909,
+          2.4863987395465306,
+          2.4302466223693013,
+          2.5188740258824165,
+          2.2932665801917542,
+          2.5267386942228454,
+          2.2866192894167656,
+          2.2146711001358073,
+          2.276820081164242,
+          2.2406336544461474,
+          2.2734133291024192
+        ]
+      },
+      "allocationbatch-throughput-fifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "fifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := I;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "6c86b79ad417a796f2fecdcf88916236aa8464516f60fcd07fc1967b64e7e55b",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-throughput-fifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "82a861f261fda8950829ebcf4e4ce40f43c688ce7020a6230ecbf5de76360248",
+          "baseline": "5b7b0cab8495b97e792f7fb0f611742d60622cff131c19fc4eb28b3c43edf75c"
+        },
+        "samples_seconds": {
+          "current": [
+            0.7106285420013592,
+            0.75219687493518,
+            0.7102607920533046,
+            0.7085443750256673,
+            0.7105010830564424,
+            0.7120923340553418,
+            0.7110556249972433,
+            0.7098410830367357,
+            0.714516207925044,
+            0.712498459033668,
+            0.709123459062539
+          ],
+          "baseline": [
+            0.12126620893832296,
+            0.11965166695881635,
+            0.12296683294698596,
+            0.12311012495774776,
+            0.12235274992417544,
+            0.12166066700592637,
+            0.12224745796993375,
+            0.1209678330924362,
+            0.12256579205859452,
+            0.12172525003552437,
+            0.12000308302231133
+          ]
+        },
+        "median_seconds": {
+          "current": 0.7106285420013592,
+          "baseline": 0.12172525003552437
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.0014637920539826155,
+          "baseline": 0.0007574169430881739
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 5.837971512023749,
+        "paired_sample_ratios": [
+          5.860070568898472,
+          6.286555750151674,
+          5.776035496982471,
+          5.755370447953363,
+          5.806989082768919,
+          5.85310233438597,
+          5.81652687757421,
+          5.868015197844526,
+          5.829654391524334,
+          5.853333296302386,
+          5.9092103402934795
+        ]
+      },
+      "allocationbatch-throughput-lifo-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "lifo",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := kLiveObjects - I + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "0b2385f6a98de7be4ded676c6f1a426ec4ebb68745c536ab137c86a6f04e78f9",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-throughput-lifo-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "f6b8e38bec7efd85692243bea3b1d2a75fd10c2ca9be96bb7c63efd5a225cceb",
+          "baseline": "774caa8397993586d4e033a737f713826adf172ff9b2cbd663a544ae395b7622"
+        },
+        "samples_seconds": {
+          "current": [
+            0.6515760000329465,
+            0.6431292499182746,
+            0.6390497500542551,
+            0.6381715419702232,
+            0.6371492919279262,
+            0.6311381250852719,
+            0.6295778339263052,
+            0.6290018750587478,
+            0.6308473750250414,
+            0.6304993330268189,
+            0.630452667013742
+          ],
+          "baseline": [
+            0.1469197500264272,
+            0.14735504204872996,
+            0.1443490000674501,
+            0.14518420805688947,
+            0.1442017089575529,
+            0.14279445901047438,
+            0.1421006249729544,
+            0.1420502500841394,
+            0.14245445909909904,
+            0.14253270800691098,
+            0.14148012502118945
+          ]
+        },
+        "median_seconds": {
+          "current": 0.6311381250852719,
+          "baseline": 0.14279445901047438
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.002136250026524067,
+          "baseline": 0.0013143339892849326
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 4.419906272686506,
+        "paired_sample_ratios": [
+          4.43491089466014,
+          4.364487573527299,
+          4.427115877184087,
+          4.3955988775319135,
+          4.418458675239951,
+          4.419906272686506,
+          4.430507142710533,
+          4.42802370771031,
+          4.428414378985425,
+          4.423541388101936,
+          4.456121783319878
+        ]
+      },
+      "allocationbatch-throughput-permuted-32": {
+        "kind": "batch",
+        "parameters": {
+          "live_objects": 32,
+          "rounds": 131072,
+          "allocations": 4194304,
+          "order": "permuted",
+          "series": "throughput",
+          "heap_pointer_table": true
+        },
+        "generated_source": "with Ada.Unchecked_Deallocation;\nprocedure AllocationBatch is\n    kLiveObjects : constant Integer := 32;\n    kRounds : constant Integer := 131072;\n    type Pointer is access Integer;\n    type PointerTable is array (1 .. kLiveObjects) of Pointer;\n    type TableAccess is access PointerTable;\n    procedure Free is new Ada.Unchecked_Deallocation (Integer, Pointer);\n    procedure FreeTable is new Ada.Unchecked_Deallocation (PointerTable, TableAccess);\n    Items : TableAccess := new PointerTable;\n    Total : Long_Integer := 0;\nbegin\n    for Round in 1 .. kRounds loop\n        for I in 1 .. kLiveObjects loop\n            Items (I) := new Integer'(I);\n        end loop;\n        for I in 1 .. kLiveObjects loop\n            declare\n                Position : Integer := ((I - 1) * 17) mod kLiveObjects + 1;\n            begin\n                Total := Total + Long_Integer (Items (Position).all);\n                Free (Items (Position));\n                if Items (Position) /= null then\n                    raise Program_Error;\n                end if;\n            end;\n        end loop;\n    end loop;\n    FreeTable (Items);\n    if Items /= null or Total /= Long_Integer (kRounds) * Long_Integer (kLiveObjects)\n        * Long_Integer (kLiveObjects + 1) / 2 then\n        raise Program_Error;\n    end if;\nend AllocationBatch;\n",
+        "template_sha256": "16e3b89f4a102ba00efdb04b42f7d4becad603b6b273aa2ecc23044be4d65a32",
+        "source_sha256": "39351961ddaad4de2f8ddd50c5405aaad34f68291979a1002d712b2710d63216",
+        "source_file": "/Users/arthur/prj/aida/build/host-performance/allocation-index-final-historical/sources/allocationbatch-throughput-permuted-32/allocationbatch.adb",
+        "executable_sha256": {
+          "current": "e6dc2c7e454f7223400f8b3478714035bcbf489f0c6b1d5bdc9e78fa3093930c",
+          "baseline": "47e548621e28a1c1372b41368cf3b3c4962c79db9061dcd29ebd7f8202b4f2fb"
+        },
+        "samples_seconds": {
+          "current": [
+            0.6996583750005811,
+            0.6991105830529705,
+            0.6893266669940203,
+            0.6891238749958575,
+            0.6987144170561805,
+            0.69281487504486,
+            0.6903291250346228,
+            0.6960863750427961,
+            0.6963065409800038,
+            0.6955652079777792,
+            0.6990367911057547
+          ],
+          "baseline": [
+            0.17276304098777473,
+            0.17151308408938348,
+            0.16926774999592453,
+            0.16916720801964402,
+            0.17036624997854233,
+            0.16937562497332692,
+            0.16908729099668562,
+            0.17046954191755503,
+            0.1707743750885129,
+            0.16998245904687792,
+            0.17014824994839728
+          ]
+        },
+        "median_seconds": {
+          "current": 0.6960863750427961,
+          "baseline": 0.17014824994839728
+        },
+        "median_absolute_deviation_seconds": {
+          "current": 0.003024208010174334,
+          "baseline": 0.0007726249750703573
+        },
+        "execution_order": [
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ],
+          [
+            "baseline",
+            "current"
+          ],
+          [
+            "current",
+            "baseline"
+          ]
+        ],
+        "current_over_baseline": 4.091058093479691,
+        "paired_sample_ratios": [
+          4.049815116707116,
+          4.076135571608235,
+          4.072404028591491,
+          4.073625633851184,
+          4.101249027575496,
+          4.0904048333634995,
+          4.082678958101909,
+          4.083347483736699,
+          4.077347907841009,
+          4.091982266158155,
+          4.108398360357859
+        ]
+      }
+    },
+    "context_probe_samples_seconds": {},
+    "context_probe_median_seconds": {}
+  },
+  "measurement_audit": {
+    "cases_per_comparison": 21,
+    "alternating_pairs_per_case": 11,
+    "warmup_runs_per_program": 1,
+    "startup_subtracted": false,
+    "matching_release_configuration": true,
+    "identical_current_build_components_across_comparisons": true,
+    "identical_inputs_across_comparisons": true,
+    "source_hashes_verified": true
+  }
+}

@@ -1451,11 +1451,19 @@ Ada 2005 additions and track annex packages separately.
     Long block ratios are 2.434x/2.384x/1.971x historical; allocation
     5.303x/5.959x/3.874x. ABI/installation checks remain unchanged.
     [Full native reports](docs/host-performance-extended-ci.json).
-  - [ ] Address measured non-LIFO lookup/unlink scaling while preserving
-    owned/borrowed precedence, synchronization and callback/finalization behavior. The linked registry's
-    traversals are a supported investigation target, not isolated attribution
-    of all measured time. Long block/allocation regressions keep the
-    no-slowdown goal open.
+  - [x] Implement indexed address lookup from 64 live allocation records and
+    direct unlinking from collection/global lists. Preserve registration-order
+    view precedence, owned-over-borrowed lookup, deferred publication, locking
+    and callbacks outside locks. Optional index enable/growth failure retains
+    a working list/old table without failing object allocation. Add large-live-set,
+    alias, resize, permutation-release and index-failure controls. Local Release
+    1,946/1,946, 20 ASan/UBSan and 8 TSan checks pass; ABI/install checks pass.
+    Matched 11-pair local measurements improve 4,096-live FIFO/permuted by
+    about 75x/61x; long allocation is 3.4% slower and LIFO throughput 2.3%
+    slower. [Samples and limits](docs/host-validation.md#allocation-registry-indexing-and-direct-unlinking).
+  - [ ] Confirm indexed registry behavior and extended measurements on native
+    CI. Preserve all samples and compare live-set scaling, LIFO and throughput
+    costs; historical block/allocation regressions keep the no-slowdown goal open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is
