@@ -159,6 +159,57 @@ class RuntimeProfileTests(unittest.TestCase):
 
 
 class HelperProfileTests(unittest.TestCase):
+    def testConstantOffsetControlRetainsExceptionChecksAndProvesOnlyValidCases(self):
+        import profile_helpers as helpers
+        source = ('    %result =l call $__ada_array_offset(l -2, l -4, l 4, l 8)\n'
+                  '    jnz %exception, @failed, @ready\n')
+        result = helpers.foldConstantOffset(source)
+        self.assertIn('%result =l copy 16', result)
+        self.assertIn('jnz %exception, @failed, @ready', result)
+        widened = '    %index =l extsw -2\n' + source.replace('l -2,', 'l %index,')
+        self.assertIn('%result =l copy 16', helpers.foldConstantOffset(widened))
+        with self.assertRaises(ValueError):
+            helpers.foldConstantOffset(widened.replace('extsw -2', 'extsw 4294967294'))
+        for args in ('l 0, l 1, l 4, l 4', 'l 5, l 1, l 4, l 4',
+                     'l 2, l 4, l 1, l 4', 'l 2, l 1, l 4, l -1',
+                     'l 2, l 0, l 4, l 9223372036854775807',
+                     'l 9223372036854775807, l -9223372036854775808, l 9223372036854775807, l 0',
+                     'l %index, l 1, l 4, l 4'):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                helpers.foldConstantOffset(f'    %result =l call $__ada_array_offset({args})\n')
+
+    def testResidualSuiteRequiresCompleteProductionInlineZeroing(self):
+        import profile_helpers as helpers
+        source = ('    %scratch =l alloc8 16\n    storel 0, %scratch\n'
+                  '    %tail =l add %scratch, 8\n    storel 0, %tail\n')
+        helpers.validateResidual(source)
+        for invalid in (source.replace('alloc8 16', 'alloc4 16'),
+                        source.replace('storel 0, %tail', 'storew 0, %tail'),
+                        source + source,
+                        source + '    call $memset(l %scratch, w 0, l 16)\n'):
+            with self.assertRaises(ValueError):
+                helpers.validateResidual(invalid)
+
+    def testResidualCombinedProbeRetainsZeroingAndExceptionBarrier(self):
+        import profile_helpers as helpers
+        zero = ('    %scratch =l alloc8 16\n    storel 0, %scratch\n'
+                '    %tail =l add %scratch, 8\n    storel 0, %tail\n')
+        source = (zero + '    %dest =l alloc8 16\n'
+                  '    %result =l call $__ada_array_offset(l %index, l 1, l 4, l 4)\n'
+                  '    jnz %exception, @failed, @ready\n'
+                  '    call $memmove(l %dest, l %scratch, l 16)\n')
+        for variant, offset in (('inline-offset-and-copy', 'checked-offset'),
+                                ('fold-offset-and-copy', 'constant-offset')):
+            proven = '    %index =l extsw 2\n' + source
+            result, changes = helpers.transform(proven, variant)
+            self.assertEqual(changes, {offset: 1, 'small-copy': 1})
+            self.assertIn(zero, result)
+            self.assertIn('jnz %exception, @failed, @ready', result)
+            if offset == 'checked-offset':
+                self.assertIn('call $__ada_raise(l $__ada_exc_constraint_error)', result)
+            self.assertLess(result.rindex(' =l loadl '), result.index('    storel %.helper.copy.'))
+            helpers.validateResidual(result)
+
     def testFixedCorpusIsRequiredForUnsafeDiagnosticOmissions(self):
         import profile_helpers as helpers
         for name in helpers.kKernelHashes:

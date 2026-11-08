@@ -141,3 +141,9 @@ all zero initialization and reduces matched local production long block time
 24.7%. The 21-case control suite, correctness/sanitizer results, source patch and
 samples are archived separately from the diagnostic probes. Native confirmation
 and historical no-slowdown remain open.
+
+The [post-zeroing residual study](residual-helper-profiling.md) retains production
+initialization and compares offset/copy interactions. It selects proven constant
+offset folding as the next repair (8.2% diagnostic block reduction); combining
+folding and copy gives 27.7%, with nonadditive effects. The existing 21-case report
+is retained through exact component hashes. No new production gain is claimed.

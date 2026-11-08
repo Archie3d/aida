@@ -927,6 +927,22 @@ retain the working-tree patch and all samples. Native correctness confirmation
 remains for a routine CI checkpoint; native profiling remains manual. Residual
 helper/allocation overhead and historical no-slowdown stay open.
 
+## Post-zeroing residual diagnosis
+
+[Local residual helper profiling](residual-helper-profiling.md) retains production
+zeroing and measures offset/copy probes against that updated compiler. The final
+seven-variant block study finds 8.2% lower diagnostic time for proven constant
+offset folding, 6.7% for small copy and 27.7% together. Allocation controls remain
+identical; the preceding 21-case report is retained with matching current
+component hashes, rather than retimed. Twenty-three Python protocol checks and
+both host protocol CTests pass; production compiler/runtime code is unchanged.
+
+The selected next repair is proven-valid constant unpacked indexing offsets,
+with helper fallback and the existing evaluation, location and exception contract.
+[Raw reports](host-performance-residual-helpers.json) preserve samples, both study
+matrices, census/fault controls and collector sources. Native checkpoints remain
+pending while work continues locally; historical no-slowdown is still open.
+
 ## Reproduce
 
 ```sh

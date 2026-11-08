@@ -1542,11 +1542,20 @@ Ada 2005 additions and track annex packages separately.
     24.7%; long allocation ratio is 0.9987, throughput 0.9904–1.0007. Native
     correctness confirmation remains for the next routine CI checkpoint; native
     profiling stays manual. [Evidence and limits](docs/inline-scratch-zeroing.md).
-  - [ ] Reassess residual checked-offset/small-copy work against the updated
-    local production baseline and select the next repair. Preserve bounds,
-    null/packed/overflow behavior, overlapping-copy semantics and exception
-    barriers; retain the small/LIFO, throughput and scaling controls. Collect
-    native correctness at routine CI checkpoints and native profiling at manual
+  - [x] Reassess residual offset/copy work after inline zeroing. The final
+    seven-variant/11-trial local study retains all production zero stores and
+    exception barriers: proven constant offset folding reduces diagnostic block
+    time 8.2%, small copy 6.7%, and both 27.7%. Earlier common probes reproduce
+    with identical objects; do not add gains or pool separate studies. Retain the
+    preceding full 21-case small/LIFO/throughput/scaling report with exact current
+    component hashes. Twenty-three Python controls and both host protocol CTests
+    pass. [Samples, selection and limits](docs/residual-helper-profiling.md).
+  - [ ] Fold proven-valid constant unpacked array offsets, retaining helper
+    fallback for unproven/dynamic/null/packed/overflow cases. Preserve operand
+    evaluation/widening, access checks, source locations and pending-exception
+    barriers. Validate correctness/sanitizers and matched 21-case production
+    performance; keep small-copy lowering separate. Continue locally; collect
+    native correctness at routine checkpoints and native profiling at manual
     milestones. Historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,

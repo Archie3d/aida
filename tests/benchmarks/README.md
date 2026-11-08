@@ -405,3 +405,10 @@ throughput ratios are 0.9904–1.0007. Backend/runtime bytes are identical betwe
 builds. [Raw evidence](../../docs/host-performance-inline-zeroing.json) includes
 the working-tree patch and full validation results. Native and historical
 performance claims remain separate.
+
+[Residual offset/copy probes](../../docs/residual-helper-profiling.md) use
+`profile_runtime.py --suite residual` against the post-zeroing compiler. They
+retain zeroing and failure branches; proven offset folding/copy/both reduce
+final diagnostic block time 8.2%/6.7%/27.7%. Twenty-three protocol controls and
+both host protocol CTests pass. The matched 21-case production report above is
+retained with exact component hashes; these probes are not production speedups.

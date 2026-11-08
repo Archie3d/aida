@@ -13,6 +13,11 @@ kVariants = {
     'allocationcalls': ('control', 'control-copy', 'rebuilt-locks', 'no-storage-locks',
                        'guard-finalization', 'guard-rewind', 'guard-cleanup'),
 }
+kResidualVariants = {
+    'blockcalls': ('control', 'control-copy', 'inline-checked-offset', 'fold-constant-offset',
+                   'inline-small-copy', 'inline-offset-and-copy', 'fold-offset-and-copy'),
+    'allocationcalls': ('control', 'control-copy'),
+}
 kOffsetCall = re.compile(r'    (%[\w.]+) =l call \$__ada_array_offset\(l ([^,]+), l (-?\d+), l (-?\d+), l (-?\d+)\)\n')
 
 
@@ -31,6 +36,38 @@ def faultIndex(source, index):
     return result
 
 
+def validateResidual(source):
+    buffers = set(re.findall(r'^    (%[\w.]+) =l alloc8 16$', source, re.MULTILINE))
+    zeros = re.findall(r'^    storel 0, (%[\w.]+)\n    (%[\w.]+) =l add \1, 8\n    storel 0, \2$', source, re.MULTILINE)
+    if len(zeros) != 1 or zeros[0][0] not in buffers or 'call $memset' in source:
+        raise ValueError('residual probes require the reviewed inline-zero production shape')
+
+
+def foldConstantOffset(source):
+    def replace(match):
+        result, index, first, last, stride = match.groups()
+        if re.fullmatch(r'-?\d+', index) is None:
+            # wideBound emits an explicit signed extension even for Integer
+            # literals. Accept only that reviewed, exact literal definition.
+            definitions = re.findall(r'^    ' + re.escape(index) + r' =l extsw (-?\d+)$',
+                                     source[:match.start()], re.MULTILINE)
+            if len(definitions) != 1 or not -(1 << 31) <= int(definitions[0]) < (1 << 31):
+                raise ValueError('constant-offset control requires a proven literal index')
+            index = definitions[0]
+        index, first, last, stride = map(int, (index, first, last, stride))
+        if not -(1 << 63) <= first <= index <= last < (1 << 63) or not 0 <= stride < (1 << 63):
+            raise ValueError('constant-offset control requires valid nonpacked bounds/stride')
+        distance = index - first
+        offset = distance * stride
+        if distance >= (1 << 63) or offset >= (1 << 63):
+            raise ValueError('constant-offset control requires a proven signed offset')
+        return f'    {result} =l copy {offset}\n'
+    result, count = kOffsetCall.subn(replace, source)
+    if count != 1:
+        raise ValueError('expected one constant offset for the control')
+    return result
+
+
 def withoutStorageLocks(source):
     for name in ('__ada_mutex_lock', '__ada_mutex_unlock'):
         pattern = r'(^void ' + name + r'\(AdaMutex\* mutex\)\n\{\n)'
@@ -44,11 +81,17 @@ def withoutStorageLocks(source):
 def transform(source, variant):
     if variant in ('control', 'control-copy'):
         return source, {}
-    if variant not in kVariants['blockcalls']:
+    if variant in ('fold-constant-offset', 'fold-offset-and-copy'):
+        folded = foldConstantOffset(source)
+        if variant == 'fold-constant-offset':
+            return folded, {'constant-offset': 1}
+        rewritten, changes = transform(folded, 'inline-small-copy')
+        return rewritten, {'constant-offset': 1, **changes}
+    if variant not in kVariants['blockcalls'] + kResidualVariants['blockcalls']:
         raise ValueError('unknown aggregate helper variant')
-    offsets = variant in ('inline-checked-offset', 'inline-offset-and-aggregate')
+    offsets = variant in ('inline-checked-offset', 'inline-offset-and-aggregate', 'inline-offset-and-copy')
     zero = variant in ('omit-aggregate-zero', 'inline-aggregate', 'inline-offset-and-aggregate')
-    copy = variant in ('inline-small-copy', 'inline-aggregate', 'inline-offset-and-aggregate')
+    copy = variant in ('inline-small-copy', 'inline-aggregate', 'inline-offset-and-aggregate', 'inline-offset-and-copy')
     buffers = set(re.findall(r'^    (%[\w.]+) =l alloc8 16$', source, re.MULTILINE))
     changes = Counter()
     lines = []

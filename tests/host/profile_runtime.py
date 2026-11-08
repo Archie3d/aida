@@ -130,7 +130,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--work', type=Path, required=True)
-    parser.add_argument('--suite', choices=['cleanup', 'helpers'], default='cleanup')
+    parser.add_argument('--suite', choices=['cleanup', 'helpers', 'residual'], default='cleanup')
     parser.add_argument('--runs', type=int, default=11)
     parser.add_argument('--repetitions', type=int, default=128)
     args = parser.parse_args()
@@ -144,8 +144,9 @@ def main():
         validateWork(build, work)
     except ValueError as error:
         parser.error(str(error))
+    helperSuite = args.suite in ('helpers', 'residual')
     kernels = {name: (measure.kSources / (name + '.adb')).read_text() for name in ('blockcalls', 'allocationcalls')}
-    if args.suite == 'helpers':
+    if helperSuite:
         for name, text in kernels.items(): profile_helpers.validateKernel(name, text)
     work.mkdir(parents=True, exist_ok=True)
     cache = cacheValues(build)
@@ -167,7 +168,7 @@ def main():
     shutil.copyfile(runtime, archive)
     members = run([ar, 't', archive], environment).stdout.splitlines()
     entriesByUnit = {unit: dict(entries) for unit, entries in kEntries.items()}
-    if args.suite == 'helpers':
+    if helperSuite:
         for name in ('__ada_master_activate', '__ada_master_await', '__ada_task_discard'):
             entriesByUnit['adamaster'][name] = 'master == NULL || !(atomic_load(&master->activities) & kMasterDependents)'
         entriesByUnit['adamaster']['__ada_task_create'] = '0'
@@ -206,6 +207,7 @@ def main():
     census = {}
     censusSources = {}
     failureControls = {}
+    constantOffsetControls = {}
     driverControls = {}
     censusExecutables = {}
     workloads = {}
@@ -220,6 +222,8 @@ def main():
         objects = Path(str(control) + '.adaobj')
         mainObject = objects / (source.stem + '.o')
         original = mainObject.with_suffix('.ssa').read_text()
+        if args.suite == 'residual' and kernel == 'blockcalls':
+            profile_helpers.validateResidual(original)
         otherObjects = sorted(p for p in objects.glob('*.o') if p != mainObject)
         programs = {'control': control}
         metadata = {'control': dict(changes={}, ir_sha256=sha(mainObject.with_suffix('.ssa')),
@@ -233,7 +237,7 @@ def main():
             program = directory / (variant + suffix)
             run([cc, '-o', program, *otherObjects, obj, library, *links], environment)
             return program, dict(ir_sha256=sha(ir), object_sha256=sha(obj), runtime_sha256=sha(library))
-        if args.suite == 'helpers':
+        if helperSuite:
             result = run([control], environment)
             if result.stdout or result.stderr:
                 raise RuntimeError('driver control must validate silently')
@@ -243,11 +247,12 @@ def main():
             if details['object_sha256'] != sha(mainObject):
                 raise RuntimeError('recompiled control object differs from the driver object')
             metadata['control'] = dict(changes={}, **details)
-        variants = profile_helpers.kVariants[kernel] if args.suite == 'helpers' else kVariants
+        variants = (profile_helpers.kResidualVariants[kernel] if args.suite == 'residual'
+                    else profile_helpers.kVariants[kernel] if helperSuite else kVariants)
         for variant in variants[1:]:
             if variant in runtimeVariants:
                 rewritten, changes = original, {'runtime-lock-wrapper': 2}
-            elif args.suite == 'helpers' and kernel == 'blockcalls':
+            elif helperSuite and kernel == 'blockcalls':
                 rewritten, changes = profile_helpers.transform(original, variant)
             else:
                 rewritten, changes = transform(original, variant)
@@ -255,10 +260,22 @@ def main():
             program, details = buildVariant(rewritten, variant, library)
             programs[variant] = program
             metadata[variant] = dict(changes=changes, **details)
-        if args.suite == 'helpers' and kernel == 'blockcalls':
+        if helperSuite and kernel == 'blockcalls':
+            if args.suite == 'residual':
+                details = metadata['fold-constant-offset']
+                constantOffsetControls[kernel] = dict(
+                    object_matches_inline_checked=details['object_sha256'] == metadata['inline-checked-offset']['object_sha256'],
+                    executable_sha256=sha(programs['fold-constant-offset']), **details)
             checks = []
             for index in (0, 5):
                 bad = profile_helpers.faultIndex(original, index)
+                if args.suite == 'residual':
+                    try:
+                        profile_helpers.foldConstantOffset(bad)
+                    except ValueError:
+                        pass
+                    else:
+                        raise RuntimeError('constant-offset control folded an invalid index')
                 outcomes = []
                 for variant in ('control', 'inline-checked-offset'):
                     rewritten, _ = profile_helpers.transform(bad, variant)
@@ -280,7 +297,7 @@ def main():
                 raise RuntimeError('benchmark validation must be silent')
         countsProgram = directory / ('census' + suffix)
         censusObjects, censusMain = otherObjects, mainObject
-        if args.suite == 'helpers':
+        if helperSuite:
             name, censusText = measure.longSource(kernels[kernel], 1)
             censusSource = directory / 'census-source' / name
             censusSource.parent.mkdir(exist_ok=True)
@@ -296,7 +313,7 @@ def main():
         if result.stderr:
             raise RuntimeError('noisy census: ' + result.stderr)
         census[kernel] = json.loads(result.stdout)
-        if args.suite == 'helpers' and census[kernel].get('__ada_task_create', {}).get('calls', 0) != 0:
+        if helperSuite and census[kernel].get('__ada_task_create', {}).get('calls', 0) != 0:
             raise RuntimeError('single-thread diagnostic unexpectedly created an Ada task')
         censusExecutables[kernel] = sha(countsProgram)
         samples = {name: [] for name in programs}
@@ -334,6 +351,7 @@ def main():
                 'Helper-suite census uses one kernel activation, while timed repetitions are recorded separately.'],
         source_base_revision=run(['git', '-C', kRoot, 'rev-parse', 'HEAD'], environment).stdout.strip(),
         suite=args.suite, driver_controls=driverControls, census_sources=censusSources, failure_controls=failureControls,
+        constant_offset_controls=constantOffsetControls,
         runtime_variants={name: {k: str(v) if isinstance(v, Path) else v for k,v in info.items()} for name,info in runtimeVariants.items()},
         census_predicates=entriesByUnit, census_executable_sha256=censusExecutables, census_runtime_sha256=sha(archive),
         census_untimed=True, census_scope='Selected runtime function entries, including runtime-internal calls; empty means the recorded owner/checkpoint or zero-activity predicate.',
