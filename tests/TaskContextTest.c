@@ -69,6 +69,45 @@ static void checkOccurrence(const AdaExceptionOccurrence* occurrence,
     CHECK(strcmp(occurrence->trace[0].location, location) == 0);
 }
 
+static void testEmptyFinalization(void)
+{
+    AdaTaskContext context = {0};
+    AdaTaskContext* previous = __ada_task_context_bind(&context);
+    AdaTraceFrame frame;
+    __ada_trace_enter(&frame, "empty cleanup", "empty:1");
+    int count = 0;
+    Object object = {&context, &count, 0};
+    AdaFinalization* owner = NULL;
+    AdaFinalization record;
+    __ada_finalization_push(&owner, &record, &object, finalizeObject);
+    __ada_raise_message(ADA_STORAGE_ERROR, "pending", 7);
+    __ada_abort_defer(&context);
+    char* message = context.pendingMessage;
+    const char* origin = context.pendingOrigin;
+    AdaFinalization* registered = context.registeredFinalizations;
+    AdaFinalization* empty = NULL;
+    __ada_finalize_to(&empty, NULL);
+    __ada_finalize_to(&owner, owner);
+    CHECK(empty == NULL && owner == &record && record.active && count == 0);
+    CHECK(context.exception == ADA_STORAGE_ERROR && context.pendingMessage == message);
+    CHECK(context.pendingMessageLength == 7 && memcmp(message, "pending", 7) == 0);
+    CHECK(context.pendingOrigin == origin && context.pendingTraceCount == 1);
+    CHECK(strcmp(context.pendingTrace[0].location, "empty:1") == 0);
+    CHECK(context.currentTrace == &frame && context.registeredFinalizations == registered);
+    CHECK(context.abortDeferralDepth == 1);
+    // Nonempty cleanup must still clear the exception for the callback and
+    // restore the complete pending occurrence and enclosing deferral afterwards.
+    __ada_finalize_to(&owner, NULL);
+    CHECK(owner == NULL && !record.active && count == 1);
+    CHECK(context.exception == ADA_STORAGE_ERROR && context.pendingMessage == message);
+    CHECK(context.pendingOrigin == origin && context.pendingTraceCount == 1);
+    CHECK(context.abortDeferralDepth == 1 && context.registeredFinalizations == NULL);
+    __ada_abort_undefer(&context);
+    __ada_trace_leave_context(&context, &frame);
+    CHECK(__ada_task_context_bind(previous) == &context);
+    CHECK(__ada_task_context_dispose(&context));
+}
+
 static void testBindings(void)
 {
     AdaTaskContext first = { 0 }, second = { 0 };
@@ -187,6 +226,7 @@ int main(void)
     CHECK(__ada_get_exit_status() == 0);
     CHECK(__ada_mutex_init(&rendezvous.mutex) == 0);
     CHECK(__ada_condition_init(&rendezvous.condition) == 0);
+    testEmptyFinalization();
     testBindings();
     __ada_raise_message(ADA_TASKING_ERROR, "main", 4);
     AdaThread workers[workerCount];

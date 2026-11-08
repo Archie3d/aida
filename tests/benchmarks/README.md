@@ -349,3 +349,12 @@ about 34% but is not a valid general optimization. Production builds and this
 21-case measurement suite are unchanged; the diagnostic helper is POSIX-only.
 [Every diagnostic sample and census](../../docs/host-performance-runtime-profile.json)
 is retained. Thirteen protocol controls and both host protocol CTests pass.
+
+The selected [empty finalization entry repair](../../docs/host-validation.md#empty-finalization-entry-path)
+now passes the local full suite and sanitizer controls. Its small public entry
+avoids TLS and the saved-occurrence frame for empty chains, with the nonempty
+algorithm retained in a private non-inlined helper. Matched 21-case/11-pair
+production runs reduce long allocation about 20% and 32-live LIFO throughput
+about 24%; long blocks are essentially unchanged. All inputs, samples and code
+inspection remain in [full local reports](../../docs/host-performance-finalization-entry.json).
+Native CI and the historical no-slowdown goal remain open.

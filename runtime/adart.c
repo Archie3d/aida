@@ -1325,12 +1325,10 @@ void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
     __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
 }
 
-void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
+// Inlining would pull the saved-occurrence frame back into the empty entry.
+static __attribute__((noinline)) void finalizeNonempty(AdaFinalization** owner, AdaFinalization* checkpoint)
 {
     AdaTaskContext* context = __ada_task_context();
-    if (*owner == checkpoint) {
-        return;
-    }
     __ada_abort_defer(context);
     /* Suspend the complete pending occurrence without allocating. Ada calls
        made by a finalizer must start with a clear pending exception status. */
@@ -1374,6 +1372,14 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
         memcpy(context->pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
     }
     __ada_abort_undefer(context);
+}
+
+void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
+{
+    // Keep empty cleanup outside TLS acquisition and the saved-occurrence frame.
+    if (*owner != checkpoint) {
+        finalizeNonempty(owner, checkpoint);
+    }
 }
 
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*))

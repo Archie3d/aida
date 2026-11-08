@@ -128,6 +128,16 @@ the global list. This is expected lookup scaling, not a worst-case constant-time
 guarantee. Private record size and index memory costs are included in measured
 workloads; generated-code layout offsets are unchanged.
 
+Empty finalization returns before acquiring the task context. The public
+`__ada_finalize_to` entry compares owner with checkpoint and calls a private
+non-inlined helper only when work remains. Keeping the helper out of line avoids
+pulling its saved-occurrence frame into the frequent empty path. The nonempty
+algorithm retains pending occurrence restoration, abort deferral, pop-before-call
+ordering, registry removal and reentrant/failing callbacks. No public ABI or
+registry synchronization changes. `runtime.task_context` checks both null and
+non-null empty checkpoints while a pending occurrence and enclosing abort
+deferral are active, then verifies normal nonempty cleanup of the same record.
+
 ## Evidence and limits
 
 `runtime.shared_collections` runs four allocating workers, then four deallocating

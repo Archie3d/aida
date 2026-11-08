@@ -639,6 +639,65 @@ entry before TLS/large-frame setup. Full reports, controls, reproduction and
 limits are retained separately. The existing 21-case suite remains the gate for
 any production repair; historical no-slowdown remains open.
 
+## Empty finalization entry path
+
+The selected repair moves the existing nonempty finalization algorithm into a
+private `finalizeNonempty` helper. Public `__ada_finalize_to` checks owner against
+checkpoint before calling it. A deliberate GCC/Clang `noinline` attribute keeps
+the saved-occurrence frame out of the empty path; an ordinary static helper was
+inlined by Apple clang and retained the heavy frame despite the earlier test.
+
+Matching Release `-O3 -DNDEBUG -fPIC` arm64 assembly now has only a load, compare,
+conditional branch, tail branch to the helper and return in the public entry.
+The empty path has no TLS resolution, stack guard, spills or stack allocation,
+compared with the former 656-byte frame and TLS lookup before the comparison.
+This assembly observation is local to Apple clang; native CI validation is pending.
+
+The nonempty algorithm, public ABI, allocation registry, locking and callback
+rules are unchanged. New task-context controls check null and non-null empty
+checkpoints with a pending message/trace, active record and enclosing abort
+deferral, then verify the same record's nonempty cleanup and occurrence restore.
+Local Release passes 1,946/1,946, with no failures, disabled tests or skips;
+20 ASan/UBSan and eight TSan focused checks pass. Mixed ABI, layout and relocated
+installation checks pass. Layout remains 24-byte traces, 48-byte array results
+and 16-byte masters.
+
+The matched comparison uses preserved Release revision
+`33320aa533d4a2522db8800ae7469592e9fb2ef0`, unchanged inputs/collector and the
+same extended protocol: 21 cases, 11 alternating pairs, one warmup, 128 repeated
+kernel activations, 65,536 allocations at 32/512/4,096 live objects and
+4,194,304 allocations for 32-live throughput. Startup is included, not subtracted.
+
+| Workload | Before (s) | Small entry (s) | After / before |
+| --- | ---: | ---: | ---: |
+| Long blocks | 0.407019 | 0.407936 | 1.0023 |
+| Long allocation | 1.633098 | 1.307821 | 0.8008 |
+| 32-live FIFO throughput | 0.710335 | 0.567149 | 0.7984 |
+| 32-live LIFO throughput | 0.638267 | 0.486539 | 0.7623 |
+| 32-live permuted throughput | 0.703403 | 0.558176 | 0.7935 |
+| 4,096-live FIFO | 0.014164 | 0.011827 | 0.8350 |
+| 4,096-live LIFO | 0.013903 | 0.011521 | 0.8286 |
+| 4,096-live permuted | 0.014451 | 0.012483 | 0.8638 |
+
+The long allocation workload improves about 20%, and 32-live throughput about
+20–24%, without reintroducing the measured non-LIFO scaling. Long blocks remain
+essentially unchanged, consistent with the diagnostic census. These are whole
+program measurements, including code-layout effects; the diagnostic 27% guard
+result was not a prediction of an identical runtime-wrapper gain.
+
+[Complete final local reports](host-performance-finalization-entry.json) preserve
+all samples, generated inputs, hashes, flags, order, dispersion, validation and
+before/after assembly entries. Native Ubuntu amd64/arm64 and MSYS2 confirmation
+remains open; the existing extended workflow is sufficient and macOS entries
+remain commented. A separate matched comparison with pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2` validates the same 21 inputs over
+11 pairs with the identical final current compiler/runtime hashes. Long blocks
+remain 2.692x historical and long allocation 3.345x; 32-live LIFO throughput
+remains 3.340x. At 4,096 live objects FIFO/LIFO/permuted take
+0.011764/0.011406/0.012137 seconds versus 0.005267/0.005804/0.005991
+historically. Reports stay separate rather than pooling their medians. The
+historical no-slowdown goal remains open.
+
 ## Reproduce
 
 ```sh

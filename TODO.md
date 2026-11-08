@@ -1477,11 +1477,17 @@ Ada 2005 additions and track annex packages separately.
     accessibility proof. Add repeatable isolated probes and 13 Python controls;
     both host protocol CTests pass. Production runtime/compiler unchanged.
     [Method, full reports and limits](docs/runtime-profiling.md).
-  - [ ] Give `__ada_finalize_to` a small empty-chain entry path before TLS
-    acquisition and the heavy nonempty frame. Preserve pending occurrences,
-    abort deferral and reentrant/failing finalizers; inspect generated code.
-    Measure all 21 production cases, retaining small-registry/LIFO, throughput
-    and scaling controls, then confirm correctness/sanitizers and native CI.
+  - [x] Give `__ada_finalize_to` a small empty-chain entry path before TLS
+    acquisition and the heavy nonempty frame. Keep the unchanged nonempty
+    algorithm in a private non-inlined helper; verify generated Release code
+    returns empty without stack/TLS setup. Add pending occurrence, active
+    checkpoint and enclosing abort-deferral controls. Local 1,946/1,946,
+    20 ASan/UBSan and 8 TSan checks pass; ABI/install checks pass. Matched
+    21-case/11-pair measurements reduce long allocation about 20% and 32-live
+    LIFO throughput about 24%; long block time is essentially unchanged.
+    [Full samples and limits](docs/host-validation.md#empty-finalization-entry-path).
+  - [ ] Confirm the empty finalization entry repair and extended measurements
+    on native CI, retaining small-registry/LIFO, throughput and scaling controls.
     Historical regressions keep the no-slowdown goal open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,

@@ -110,3 +110,8 @@ The helper requires the build's C compiler, archiver and QBE, and rejects work
 areas that could overwrite sources or compiler/runtime build products. It writes
 only diagnostic copies. There is no arbitrary-source option. Call-signature and definition checks fail
 on unexpected runtime/QBE shapes rather than silently changing the experiment.
+
+The selected entry-path repair now has
+[local correctness, assembly and matched production measurements](host-validation.md#empty-finalization-entry-path).
+It reduces long allocation about 20% and 32-live LIFO throughput about 24%; the
+benchmark-only 27% guard result remains separate. Native CI confirmation is pending.
