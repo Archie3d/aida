@@ -651,7 +651,8 @@ Matching Release `-O3 -DNDEBUG -fPIC` arm64 assembly now has only a load, compar
 conditional branch, tail branch to the helper and return in the public entry.
 The empty path has no TLS resolution, stack guard, spills or stack allocation,
 compared with the former 656-byte frame and TLS lookup before the comparison.
-This assembly observation is local to Apple clang; native CI validation is pending.
+This assembly observation is local to Apple clang; native functional and timing
+confirmation is recorded below. No native GCC assembly capture is claimed.
 
 The nonempty algorithm, public ABI, allocation registry, locking and callback
 rules are unchanged. New task-context controls check null and non-null empty
@@ -688,8 +689,7 @@ result was not a prediction of an identical runtime-wrapper gain.
 [Complete final local reports](host-performance-finalization-entry.json) preserve
 all samples, generated inputs, hashes, flags, order, dispersion, validation and
 before/after assembly entries. Native Ubuntu amd64/arm64 and MSYS2 confirmation
-remains open; the existing extended workflow is sufficient and macOS entries
-remain commented. A separate matched comparison with pre-Phase-2 revision
+is recorded below; macOS workflow entries remain commented. A separate matched comparison with pre-Phase-2 revision
 `3d2aac5980f57fb68524a15b154f65cf0882bdc2` validates the same 21 inputs over
 11 pairs with the identical final current compiler/runtime hashes. Long blocks
 remain 2.692x historical and long allocation 3.345x; 32-live LIFO throughput
@@ -697,6 +697,52 @@ remains 3.340x. At 4,096 live objects FIFO/LIFO/permuted take
 0.011764/0.011406/0.012137 seconds versus 0.005267/0.005804/0.005991
 historically. Reports stay separate rather than pooling their medians. The
 historical no-slowdown goal remains open.
+
+## Empty finalization entry native CI confirmation
+
+Revision `4711d164d76344320b0fcb4aa191d7740852f184` passes 1,946/1,946 tests
+on each Ubuntu architecture and 1,945/1,945 on MSYS2 UCRT64. There are no
+failures, disabled tests or skips. The task-context controls for empty null and
+non-null checkpoints, pending occurrences and enclosing abort deferral pass,
+alongside reentrant/failing finalizer, shared collection and pool controls.
+ABI probes and mixed-mode checks are unchanged: 24-byte traces, 48-byte array
+results, 16-byte masters, 64-bit pointers and the expected Windows 32-bit C
+`long`. Relocated installations, spaced paths and library/runtime overrides pass.
+
+All 21 cases validate over 11 alternating pairs per host. Release configurations
+match within pairs; input parameters/content, samples, medians, MADs, paired
+ratios and execution order verify. Windows collector and checked-in input hashes
+match the CRLF checkout; generated source hashes match LF bytes. Startup is
+included without subtraction. Native pairs compare with pre-Phase-2 revision
+`3d2aac5980f57fb68524a15b154f65cf0882bdc2`.
+
+| Host | Long block / historical | Long allocation / historical | 32-live LIFO throughput / historical | 4,096-live FIFO / LIFO |
+| --- | ---: | ---: | ---: | ---: |
+| Ubuntu amd64 | 2.448 | 4.787 | 4.504 | 1.065 |
+| Ubuntu arm64 | 2.399 | 5.454 | 5.299 | 0.961 |
+| MSYS2 UCRT64 | 1.974 | 2.846 | 2.632 | 0.985 |
+
+Historical long allocation ratios are lower on all three hosts than in the
+preceding indexed-registry CI report (5.949/6.797/3.424). Their normalized ratios
+are about 17–20% lower, consistent with the local matched repair result. These
+are separate CI runs; VM, toolchain and timing variation prevent attributing an
+exact isolated speedup to the repair from that comparison. The matched local
+preceding-build evidence remains separate. Long block ratios remain near their
+previous values, and the large-live-set release-order gap stays absent.
+
+[Complete native timing reports](host-performance-finalization-entry-ci.json)
+preserve every generated input, sample, hash, host description, parameter and
+order. [Pinned test/install/ABI summaries](host-validation-ci.json) retain this
+run and 24 earlier host records. `build/ci-artefacts` can be overwritten again.
+No compiler/runtime changes were made during this artifact review; full local
+suites were not repeated for documentation and evidence updates.
+
+Native confirmation of the finalization entry repair is complete. Historical
+block/allocation gaps keep the no-slowdown goal open. The next investigation is
+conservative empty lexical-master lowering: the diagnostic benefit does not
+establish a safe optimization for arbitrary ancestry, accessibility, collection
+ownership, dependent tasks or exceptional/finalization paths. Keep hooks where
+those properties cannot be proved.
 
 ## Reproduce
 

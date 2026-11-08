@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Darwin arm64 finalization empty-entry repair: original nonempty algorithm preserved in a private noinline helper; full native CI confirmation pending.",
+  "description": "Darwin arm64 finalization empty-entry repair: original nonempty algorithm preserved in a private noinline helper; native CI confirmation retained separately in host-performance-finalization-entry-ci.json.",
   "source_base_revision": "33320aa533d4a2522db8800ae7469592e9fb2ef0",
   "source_sha256": {
     "runtime/adart.c": "4a7a3dfcc5275e4c6a6355ae98b83297f12917b53c5dce898d298407909a0f6a",
@@ -51,7 +51,7 @@
         "build/host-performance/finalization-entry.s"
       ]
     },
-    "limits": "Apple clang Release arm64 only; GCC/Linux and Windows behavior must be validated on native CI."
+    "limits": "Apple clang Release arm64 assembly only; native functional/timing confirmation is retained separately, without a GCC/Linux or Windows assembly-shape claim."
   },
   "validation": {
     "release": {
@@ -80,7 +80,7 @@
     }
   },
   "limits": [
-    "Native CI confirmation is pending; local host is Darwin arm64.",
+    "Local host is Darwin arm64; native CI confirmation is retained separately in host-performance-finalization-entry-ci.json.",
     "Whole-program timing differences include helper entry and code-layout effects; they are not sampled CPU percentages.",
     "Historical block/allocation regressions keep the overall no-slowdown goal open."
   ],
@@ -4990,5 +4990,15 @@
     "slow_path": "Original nonempty finalization algorithm retained; explicit GCC/Clang noinline prevents reinlining the saved-occurrence frame.",
     "abi": "No header or layout changes.",
     "new_control": "Empty null/non-null checkpoints preserve pending message/trace, active registration and enclosing abort deferral; nonempty cleanup still restores pending state."
+  },
+  "native_ci_confirmation": {
+    "revision": "4711d164d76344320b0fcb4aa191d7740852f184",
+    "report": "host-performance-finalization-entry-ci.json",
+    "ubuntu_amd64_passed": 1946,
+    "ubuntu_arm64_passed": 1946,
+    "msys2_ucrt64_passed": 1945,
+    "cases_per_host": 21,
+    "pairs_per_case": 11,
+    "outcome": "Confirmed: functional, ABI and installation checks pass. Historical allocation ratios are lower on all hosts than in the preceding CI run; cross-run differences do not isolate repair cost. Historical no-slowdown remains open."
   }
 }

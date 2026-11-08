@@ -1486,9 +1486,20 @@ Ada 2005 additions and track annex packages separately.
     21-case/11-pair measurements reduce long allocation about 20% and 32-live
     LIFO throughput about 24%; long block time is essentially unchanged.
     [Full samples and limits](docs/host-validation.md#empty-finalization-entry-path).
-  - [ ] Confirm the empty finalization entry repair and extended measurements
-    on native CI, retaining small-registry/LIFO, throughput and scaling controls.
-    Historical regressions keep the no-slowdown goal open.
+  - [x] Confirm the empty finalization entry repair and extended measurements
+    on native CI at `4711d164d76344320b0fcb4aa191d7740852f184`: Ubuntu
+    amd64/arm64 each pass 1,946/1,946; MSYS2 passes 1,945/1,945, with no
+    failures, disabled tests or skips. All 21 cases validate over 11 pairs;
+    pending-state/abort controls, ABI and installs pass. Historical long block
+    ratios are 2.448x/2.399x/1.974x; allocation 4.787x/5.454x/2.846x.
+    Allocation ratios are lower on all hosts than the preceding CI run, while
+    cross-run differences do not isolate the repair. [Full native reports](docs/host-performance-finalization-entry-ci.json).
+  - [ ] Investigate the measured empty lexical-master hook overhead. Establish
+    a conservative proof before omitting hooks, preserving current-master
+    ancestry, accessibility identities, collection parentage, dependent-task
+    activation/await and finalization order across calls and exceptional exits.
+    Retain hooks where the proof is absent; benchmark-only master omission is
+    not a generally valid optimization. Historical no-slowdown remains open.
   - [x] Collect matched before/after performance evidence on all active CI hosts:
     21 samples per pair with matching Release flags/toolchains. Ubuntu amd64,
     arm64 and MSYS2 blocks are 9.800x/8.811x/5.451x slower; allocation is

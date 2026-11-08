@@ -114,4 +114,7 @@ on unexpected runtime/QBE shapes rather than silently changing the experiment.
 The selected entry-path repair now has
 [local correctness, assembly and matched production measurements](host-validation.md#empty-finalization-entry-path).
 It reduces long allocation about 20% and 32-live LIFO throughput about 24%; the
-benchmark-only 27% guard result remains separate. Native CI confirmation is pending.
+benchmark-only 27% guard result remains separate.
+[Native CI confirmation](host-performance-finalization-entry-ci.json) now passes
+all three hosts; historical block/allocation gaps remain. Conservative proof of
+empty lexical-master lowering is the next investigation.

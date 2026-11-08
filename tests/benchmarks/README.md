@@ -357,4 +357,10 @@ algorithm retained in a private non-inlined helper. Matched 21-case/11-pair
 production runs reduce long allocation about 20% and 32-live LIFO throughput
 about 24%; long blocks are essentially unchanged. All inputs, samples and code
 inspection remain in [full local reports](../../docs/host-performance-finalization-entry.json).
-Native CI and the historical no-slowdown goal remain open.
+[Native confirmation](../../docs/host-performance-finalization-entry-ci.json)
+now passes 1,946 tests on each Ubuntu architecture and 1,945 on MSYS2, with all
+21 cases and 11 pairs per host validated. Historical long allocation ratios are
+4.787/5.454/2.846; block ratios 2.448/2.399/1.974. Allocation ratios are lower
+than the preceding CI run, consistent with the local result, but cross-run
+comparisons do not isolate the repair. The historical no-slowdown goal remains
+open; conservative empty-master proof is the next investigation.
