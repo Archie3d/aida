@@ -311,12 +311,11 @@ std::vector<std::string> splitDottedName(const std::string& name)
     return parts;
 }
 
-// 0 is not an object name, 1 is a constant view, 2 is a variable view.
-int objectView(Expr* expr)
+ObjectView objectView(Expr* expr)
 {
-    if (expr->kind == ExprKind::Attribute && static_cast<AttributeExpr*>(expr)->lower == "storage_pool") { return 2; }
+    if (expr->kind == ExprKind::Attribute && static_cast<AttributeExpr*>(expr)->lower == "storage_pool") { return ObjectView::Variable; }
     if (expr->implicitCall != nullptr) {
-        return 0;
+        return ObjectView::NotObject;
     }
     Symbol* symbol = nullptr;
     if (expr->kind == ExprKind::Identifier) {
@@ -329,10 +328,11 @@ int objectView(Expr* expr)
             bool access = prefix != nullptr && prefix->kind == TypeKind::Access;
             Type* record = access ? baseType(prefix->target) : prefix;
             if (selected->recordType != nullptr) { record = selected->recordType; }
-            int view = access ? (prefix->accessConstant ? 1 : 2) : objectView(selected->prefix.get());
-            if (view != 0 && selected->fieldIndex >= 0 && record != nullptr
+            ObjectView view = access ? (prefix->accessConstant ? ObjectView::Constant : ObjectView::Variable)
+                : objectView(selected->prefix.get());
+            if (view != ObjectView::NotObject && selected->fieldIndex >= 0 && record != nullptr
                 && record->fields[selected->fieldIndex].isDiscriminant) {
-                return 1;
+                return ObjectView::Constant;
             }
             return view;
         }
@@ -344,22 +344,23 @@ int objectView(Expr* expr)
         if (call->form == CallForm::Indexing || call->form == CallForm::Slice) {
             Type* prefix = baseType(call->callee->type);
             return prefix != nullptr && prefix->kind == TypeKind::Access
-                ? (prefix->accessConstant ? 1 : 2) : objectView(call->callee.get());
+                ? (prefix->accessConstant ? ObjectView::Constant : ObjectView::Variable) : objectView(call->callee.get());
         }
     }
     if (symbol == nullptr) {
-        return 0;
+        return ObjectView::NotObject;
     }
     if (symbol->protectedField >= 0 && expr->protectedReceiver != nullptr
         && expr->protectedReceiver->mode == ParameterMode::In) {
-        return 1;
+        return ObjectView::Constant;
     }
     if (symbol->kind == SymbolKind::Object || symbol->kind == SymbolKind::Parameter
         || symbol->kind == SymbolKind::LoopParameter) {
         return symbol->isConstant || symbol->kind == SymbolKind::LoopParameter
-            || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In) ? 1 : 2;
+            || (symbol->kind == SymbolKind::Parameter && symbol->mode == ParameterMode::In)
+            ? ObjectView::Constant : ObjectView::Variable;
     }
-    return 0;
+    return ObjectView::NotObject;
 }
 
 } // namespace SemaSupport

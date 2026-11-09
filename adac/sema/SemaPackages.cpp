@@ -57,16 +57,18 @@ Symbol* Sema::declarePackagePath(const std::string& lower, const std::string& di
             }
         }
         m_namePrefix.push_back(symbol->name);
-        if (i + 1 == parts.size() || symbol->scope->m_libraryPackage.empty()) {
-            symbol->scope->m_libraryPackage = m_currentUnit->partKey.substr(0, m_currentUnit->partKey.rfind('.'));
-            std::replace(symbol->scope->m_libraryPackage.begin(), symbol->scope->m_libraryPackage.end(), '-', '.');
+        if (i + 1 == parts.size() || symbol->scope->libraryPackage().empty()) {
+            std::string libraryPackage = m_currentUnit->partKey.substr(0, m_currentUnit->partKey.rfind('.'));
+            std::replace(libraryPackage.begin(), libraryPackage.end(), '-', '.');
+            symbol->scope->setLibraryPackage(libraryPackage);
         }
-        symbol->scope->m_packageName.clear();
+        std::string packageName;
         for (const std::string& part : m_namePrefix) {
-            if (!symbol->scope->m_packageName.empty()) { symbol->scope->m_packageName += "."; }
-            symbol->scope->m_packageName += part;
+            if (!packageName.empty()) { packageName += "."; }
+            packageName += part;
         }
-        if (auto view = m_limitedPackageViews.find(symbol->scope->m_packageName); view != m_limitedPackageViews.end()) {
+        symbol->scope->setPackageName(packageName);
+        if (auto view = m_limitedPackageViews.find(packageName); view != m_limitedPackageViews.end()) {
             view->second->fullPackage = symbol;
         }
         ++pushed;
@@ -119,7 +121,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     bool savedVisiblePart = m_inVisiblePart;
     m_packageSpecScope = symbol->scope;
     m_inVisiblePart = true;
-    symbol->scope->m_publicChildPart = symbol->parentPackage != nullptr && !decl->privateUnit;
+    symbol->scope->setPublicChildPart(symbol->parentPackage != nullptr && !decl->privateUnit);
     analyzeDeclarativePart(decl->publicPart, symbol->scope, false);
     for (const DeclPtr& item : decl->publicPart) {
         if (item->kind != DeclKind::Type) { continue; }
@@ -136,13 +138,13 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
         }
     }
     m_inVisiblePart = false;
-    bool savedPrivateRegion = symbol->scope->m_privateRegion;
-    symbol->scope->m_privateRegion = true;
-    symbol->scope->m_publicChildPart = false;
+    bool savedPrivateRegion = symbol->scope->isPrivateRegion();
+    symbol->scope->setPrivateRegion(true);
+    symbol->scope->setPublicChildPart(false);
     analyzeDeclarativePart(decl->privatePart, symbol->scope, false);
     freezeDeclaredEntities(decl->publicPart);
     freezeDeclaredEntities(decl->privatePart);
-    symbol->scope->m_privateRegion = savedPrivateRegion;
+    symbol->scope->setPrivateRegion(savedPrivateRegion);
     for (const DeclPtr& item : decl->privatePart) {
         if (item->kind != DeclKind::Type) { continue; }
         auto* type = static_cast<TypeDecl*>(item.get());
@@ -185,10 +187,10 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
                 }
                 operation->pendingControlledResult = false;
             }
-            if (operation->pendingOverride == -1 && operation->overrides) {
+            if (operation->pendingOverride == OverridingIndicator::NotOverriding && operation->overrides) {
                 m_diagnostics.error(item->location, "subprogram marked not overriding overrides an inherited operation");
             }
-            operation->pendingOverride = 0;
+            operation->pendingOverride = OverridingIndicator::Unspecified;
         }
     }
     m_packageSpecScope = savedSpecScope;
@@ -214,7 +216,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
     for (const DeclPtr& item : decl->publicPart) {
         if (item->kind != DeclKind::Type) { continue; }
         Type* type = static_cast<TypeDecl*>(item.get())->declaredType;
-        if (decl->category == 2 && type != nullptr && type->privateTo == symbol
+        if (decl->category == PackageCategory::Pure && type != nullptr && type->privateTo == symbol
             && (streamAvailable(type, 0) || streamAvailable(type, 1)
                 || streamAvailable(type, 2) || streamAvailable(type, 3)) && !supportsExternalStreaming(type)) {
             m_diagnostics.error(item->location, "a partial view in a pure library unit with available stream attributes must support external streaming");
@@ -224,7 +226,7 @@ void Sema::analyzePackageSpec(PackageSpecDecl* decl, Scope* scope)
             m_diagnostics.error(item->location, "full view does not have the promised preelaborable initialization");
         }
     }
-    if (decl->category != 0 && m_recordContract == nullptr && m_replayContract == nullptr) {
+    if (decl->category != PackageCategory::Ordinary && m_recordContract == nullptr && m_replayContract == nullptr) {
         m_categorizedRegions.push_back({ &decl->publicPart, nullptr, decl->category, symbol });
         m_categorizedRegions.push_back({ &decl->privatePart, nullptr, decl->category, symbol });
     }
@@ -293,7 +295,7 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     Scope* bodyScope = libraryBody ? scope : m_symbolTable.createScope(subunitScope(decl->subunit, bodyParent));
     symbol->constructScope = bodyScope;
     bodyScope->setCompletionScope(symbol->scope);
-    bodyScope->m_privateRegion = true;
+    bodyScope->setPrivateRegion(true);
 
     int savedHandlerDepth = m_handlerDepth;
     m_handlerDepth = 0;
@@ -310,12 +312,13 @@ void Sema::analyzePackageBody(PackageBodyDecl* decl, Scope* scope)
     }
     analyzeBodyStatements(decl->body, decl->handlers, bodyScope, decl->lower, symbol);
     m_currentSubprogram = savedSubprogram;
-    int category = symbol->packageDeclaration != nullptr ? symbol->packageDeclaration->category : 0;
+    PackageCategory category = symbol->packageDeclaration != nullptr
+        ? symbol->packageDeclaration->category : PackageCategory::Ordinary;
     // In Ada 2005 a generic declaration establishes a template; it does not
     // elaborate the variables/access pools in a future instance. Its body
     // still obeys the explicit assume-the-worst preelaboration rule.
-    if (m_recordContract != nullptr && category == 2) { category = 1; }
-    if (category != 0 && (m_recordContract != nullptr || m_replayContract == nullptr)) {
+    if (m_recordContract != nullptr && category == PackageCategory::Pure) { category = PackageCategory::Preelaborate; }
+    if (category != PackageCategory::Ordinary && (m_recordContract != nullptr || m_replayContract == nullptr)) {
         m_categorizedRegions.push_back({ &decl->declarations, &decl->body, category, symbol });
         for (const auto& handler : decl->handlers) {
             m_categorizedRegions.push_back({ nullptr, &handler.body, category, symbol });
@@ -368,7 +371,7 @@ bool Sema::withinPackage(Symbol* package) const
     // A checked generic scope supports child lookup, not a full view of
     // the private formal types whose owner is the generic symbol.
     if (package != nullptr && package->kind == SymbolKind::Generic) { return false; }
-    if (m_unitScope != nullptr && m_unitScope->m_publicChildPart && !m_unitScope->privateVisible(package)) {
+    if (m_unitScope != nullptr && m_unitScope->isPublicChildPart() && !m_unitScope->privateVisible(package)) {
         return false;
     }
     for (const GenericContract* contract : {m_recordContract, m_replayContract}) {

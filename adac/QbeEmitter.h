@@ -20,10 +20,11 @@
 // that unconstrained arrays keep working at run time.
 struct Value
 {
-    std::string name;
-    char type = 'w';
-    std::string first;
-    std::string last;
+    std::string name;   // QBE operand spelling: a %temporary, $symbol or literal.
+    char type = 'w';    // QBE class letter: w/l (32/64-bit integer), s/d (float/double).
+                       // Addresses use l; the letter is emitted directly into IR.
+    std::string first;  // QBE operand for the inclusive lower bound of array axis 1.
+    std::string last;   // Inclusive upper-bound operand; both bounds are empty for scalars.
 
     // Bounds for dimensions 2 through rank; ordinary arrays of arrays keep
     // their component bounds in the component type instead.

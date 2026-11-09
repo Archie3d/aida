@@ -7,10 +7,16 @@
 #include <vector>
 #include <cstdint>
 
-
+/**
+ * @brief Tokenize Ada source code.
+ */
 class Lexer
 {
 public:
+
+    // source is the source text to tokenize. file is the dynamic source-table
+    // index returned by diagnostics.addFile(), not a file handle or enum; it is
+    // attached to token locations so diagnostics can name the original source.
     Lexer(std::string source, int file, Diagnostics& diagnostics);
 
     std::vector<Token> tokenize();

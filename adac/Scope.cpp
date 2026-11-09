@@ -54,7 +54,7 @@ bool Scope::usesType(Type* type) const
     type = rootType(type);
     if (type->classRoot != nullptr) { type = type->classRoot; }
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
-        if (scope->m_contextClause) { return false; }
+        if (scope->isContextClause()) { return false; }
     }
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
         for (Scope* used : scope->m_useScopes) {
@@ -116,8 +116,8 @@ bool Scope::libraryVisible(const std::string& name) const
 {
     bool privateRegion = false;
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
-        privateRegion = privateRegion || scope->m_privateRegion;
-        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)
+        privateRegion = privateRegion || scope->isPrivateRegion();
+        if (scope->isLibraryRegistry() || scope->m_visibleLibraries.contains(name)
             || scope->m_limitedLibraries.contains(name)
             || (privateRegion && (scope->m_privateLibraries.contains(name) || scope->m_privateLimitedLibraries.contains(name)))) {
             return true;
@@ -131,8 +131,8 @@ Symbol* Scope::limitedLibraryView(const std::string& name) const
     bool privateRegion = false;
     Symbol* limited = nullptr;
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
-        privateRegion = privateRegion || scope->m_privateRegion;
-        if (scope->m_isLibraryRegistry || scope->m_visibleLibraries.contains(name)
+        privateRegion = privateRegion || scope->isPrivateRegion();
+        if (scope->isLibraryRegistry() || scope->m_visibleLibraries.contains(name)
             || (privateRegion && scope->m_privateLibraries.contains(name))) { return nullptr; }
         if (auto found = scope->m_limitedLibraries.find(name); found != scope->m_limitedLibraries.end()) {
             limited = found->second;
@@ -165,7 +165,7 @@ bool Scope::privateVisible(Symbol* package) const
         if (enclosing->isRegion(package->scope)) {
             return true;
         }
-        if (enclosing->m_publicChildPart) {
+        if (enclosing->isPublicChildPart()) {
             return false;
         }
     }
@@ -194,17 +194,17 @@ std::vector<Symbol*> Scope::lookupVisibleLocal(const std::string& name, const Sc
             for (const Scope* scope = from; scope != nullptr; scope = scope->m_parent) {
                 immediate = immediate || scope->isRegion(symbol->declarationScope);
             }
-            const std::string& library = original->scope->m_libraryPackage;
+            const std::string& library = original->scope->libraryPackage();
             if (!immediate && !from->libraryVisible(library)) { symbol = nullptr; continue; }
             if (from->limitedLibraryView(library) == nullptr && original->fullPackage != nullptr) {
                 symbol = original->fullPackage;
                 continue;
             }
         }
-        const std::string& owner = symbol->scope->m_libraryPackage;
+        const std::string& owner = symbol->scope->libraryPackage();
         Symbol* limited = from->limitedLibraryView(owner.empty() ? symbol->libraryName : owner);
         if (limited == nullptr) { continue; }
-        std::string path = symbol->scope->m_packageName;
+        std::string path = symbol->scope->packageName();
         std::size_t start = owner.size();
         while (limited != nullptr && start < path.size()) {
             ++start;
@@ -261,7 +261,7 @@ std::vector<Symbol*> Scope::lookup(const std::string& name) const
     bool stopped = false;
     bool allowUse = true;
     for (const Scope* enclosing = this; enclosing != nullptr; enclosing = enclosing->m_parent) {
-        allowUse = allowUse && !enclosing->m_contextClause;
+        allowUse = allowUse && !enclosing->isContextClause();
     }
     for (const Scope* scope = this; scope != nullptr; scope = scope->m_parent) {
         for (Scope* used : scope->m_useScopes) {

@@ -9,7 +9,15 @@ struct Type;
 // Helpers shared by the semantic analyzer implementation.
 namespace SemaSupport {
 
-int objectView(Expr* expr);
+enum class ObjectView
+{
+    NotObject,
+    Constant,
+    Variable
+};
+
+// Classifies names for renaming, assignment and access-attribute legality.
+ObjectView objectView(Expr* expr);
 bool conformingExpressions(const Expr* left, const Expr* right);
 bool staticallyMatches(Type* actual, Type* formal);
 bool profileTypeMatches(Type* actual, Type* formal);

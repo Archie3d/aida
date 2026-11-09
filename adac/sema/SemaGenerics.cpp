@@ -401,7 +401,7 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
         owned->packageTemplate = decl->isPackage;
         owned->environment = scope;
         owned->bindings = m_symbolTable.createScope(scope);
-        owned->bindings->m_genericBindings = true;
+        owned->bindings->setGenericBindingScope(true);
         owned->unitName = decl->lower.substr(decl->lower.find_last_of('.') + 1);
         owned->valid = true;
         owned->checkMask = m_suppressedChecks;
@@ -703,13 +703,13 @@ void Sema::checkGenericContract(GenericDecl* decl, Scope* scope, GenericInstanti
     }
     if (!decl->isPackage && contract->parentPackage != nullptr) {
         for (DeclPtr& unit : declarations) {
-            bindings->m_publicChildPart = unit->kind == DeclKind::SubprogramDeclaration && !decl->privateUnit;
+            bindings->setPublicChildPart(unit->kind == DeclKind::SubprogramDeclaration && !decl->privateUnit);
             DeclList part;
             part.push_back(std::move(unit));
             analyzeDeclarativePart(part, bindings);
             contract->declarations.push_back(std::move(part.front()));
         }
-        bindings->m_publicChildPart = false;
+        bindings->setPublicChildPart(false);
     } else {
         analyzeDeclarativePart(declarations, bindings);
         for (DeclPtr& unit : declarations) { contract->declarations.push_back(std::move(unit)); }
@@ -2015,7 +2015,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     ScopedCheckPolicy instanceChecks(m_suppressedChecks, m_suppressedChecks | contract->checkMask);
     std::size_t firstSymbol = m_symbolTable.symbols().size();
     Scope* bindings = m_symbolTable.createScope(contract->environment);
-    bindings->m_genericBindings = true;
+    bindings->setGenericBindingScope(true);
     // The instance declaration can itself declare a primitive of an actual
     // tagged type. Register that declaration before applying its freezing point.
     std::unordered_set<Type*> instanceFreezeTypes;
@@ -2249,7 +2249,7 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
     for (DeclPtr& unit : expansion) {
         decl->expansion.push_back(std::move(unit));
     }
-    if (decl->category != 0) {
+    if (decl->category != PackageCategory::Ordinary) {
         m_categorizedRegions.push_back({ &decl->expansion, nullptr, decl->category, nullptr });
     }
     if (decl->symbol == nullptr) {
@@ -2348,7 +2348,7 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             child->hasBody = declaration->hasBody = true;
             declaration->tokens = original->generic->tokens;
             auto savedPrefix = m_namePrefix;
-            m_namePrefix = SemaSupport::splitDottedName(child->parentPackage->scope->m_packageName);
+            m_namePrefix = SemaSupport::splitDottedName(child->parentPackage->scope->packageName());
             checkGenericContract(declaration, genericChildEnvironment(original, child->parentPackage));
             m_namePrefix = std::move(savedPrefix);
             progress = true;
@@ -2544,7 +2544,7 @@ Symbol* Sema::genericChild(Symbol* parent, const std::string& name)
     parent->scope->add(child);
     m_genericChildDeclarations.push_back(std::move(copies.front()));
     auto savedPrefix = m_namePrefix;
-    m_namePrefix = SemaSupport::splitDottedName(parent->scope->m_packageName);
+    m_namePrefix = SemaSupport::splitDottedName(parent->scope->packageName());
     checkGenericContract(declaration, genericChildEnvironment(original, parent));
     m_namePrefix = std::move(savedPrefix);
     return child;

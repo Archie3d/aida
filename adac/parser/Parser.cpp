@@ -12,7 +12,9 @@ Parser::Parser(std::vector<Token> tokens, Diagnostics& diagnostics)
 Parser::NestingGuard::NestingGuard(Parser& parser)
     : m_parser(parser)
 {
-    if (parser.m_syntaxDepth >= kMaxSyntaxDepth) { parser.capacityError("syntax nesting"); }
+    if (parser.m_syntaxDepth >= kMaxSyntaxDepth) {
+        parser.capacityError("syntax nesting");
+    }
     ++parser.m_syntaxDepth;
 }
 

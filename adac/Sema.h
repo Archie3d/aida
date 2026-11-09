@@ -10,6 +10,9 @@
 #include <unordered_set>
 #include <vector>
 
+// Resolves names and overloads, builds scopes/types and checks Ada legality.
+// Annotates the parsed AST with symbols, types, calls and ownership information
+// used by lowering. Owns semantic state for the units analyzed together.
 class Sema
 {
 public:
@@ -49,7 +52,7 @@ private:
     {
         const DeclList* declarations;
         const StmtList* statements;
-        int category;
+        PackageCategory category;
         Symbol* owner;
     };
     std::vector<CategorizedRegion> m_categorizedRegions;
@@ -74,7 +77,7 @@ private:
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);
-    void checkOverridingIndicator(Symbol* symbol, int indicator, const SourceLocation& location);
+    void checkOverridingIndicator(Symbol* symbol, OverridingIndicator indicator, const SourceLocation& location);
     void inheritPrimitives(Type* type, Type* parent, Scope* scope, const SourceLocation& location);
     Scope* subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false, Scope* profileScope = nullptr);

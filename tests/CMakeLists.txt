@@ -847,6 +847,7 @@ add_test(NAME semantics.visibility_conformance
         -DCC=${CMAKE_C_COMPILER}
         -DRUNTIME=$<TARGET_FILE:adart>
         -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckVisibilityConformance.cmake
 )

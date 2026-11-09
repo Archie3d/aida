@@ -11,5 +11,5 @@ bool hasPreelaborableInitialization(Type* type, Symbol* owner = nullptr, Type* f
 bool preelaborableExpression(const Expr* expression, Symbol* owner = nullptr);
 bool supportsExternalStreaming(Type* type);
 bool pureExpression(const Expr* expression, Symbol* owner = nullptr);
-void checkCategorizedDeclarations(const DeclList& declarations, int category, Diagnostics& diagnostics, Symbol* owner = nullptr);
+void checkCategorizedDeclarations(const DeclList& declarations, PackageCategory category, Diagnostics& diagnostics, Symbol* owner = nullptr);
 void checkCategorizedStatements(const StmtList& statements, Diagnostics& diagnostics, Symbol* owner = nullptr);

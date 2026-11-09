@@ -30,7 +30,7 @@ void Sema::setupStandardScope()
 {
     m_standardScope = m_symbolTable.createScope(nullptr);
     m_globalScope = m_symbolTable.createScope(m_standardScope);
-    m_globalScope->m_isLibraryRegistry = true;
+    m_globalScope->setLibraryRegistry(true);
     Symbol* standard = m_symbolTable.createSymbol(SymbolKind::Package, "standard", "Standard");
     standard->scope = m_standardScope;
     m_standardScope->add(standard);
@@ -58,8 +58,7 @@ void Sema::setupStandardScope()
 
     const char* booleanLiterals[] = { "False", "True" };
     for (int i = 0; i < 2; ++i) {
-        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, toLower(booleanLiterals[i]),
-                                                    booleanLiterals[i]);
+        Symbol* symbol = m_symbolTable.createSymbol(SymbolKind::EnumerationLiteral, toLower(booleanLiterals[i]), booleanLiterals[i]);
         symbol->type = m_types.booleanType();
         symbol->enumerationValue = i;
         m_standardScope->add(symbol);
@@ -81,8 +80,8 @@ void Sema::setupStandardScope()
     // program ever names the package.
     Symbol* system = m_symbolTable.createSymbol(SymbolKind::Package, "system", "System");
     system->scope = m_symbolTable.createScope(m_standardScope);
-    system->scope->m_libraryPackage = "system";
-    system->scope->m_packageName = "system";
+    system->scope->setLibraryPackage("system");
+    system->scope->setPackageName("system");
     system->libraryName = "system";
     m_standardScope->add(system);
 
@@ -332,13 +331,13 @@ void Sema::analyze(CompilationUnit& unit)
             mention(clause.namesLower[i], clause.limited, clause.privateWith);
         }
     }
-    context->m_privateRegion = unit.units.front()->privateUnit;
-    if (!unit.isSpec && unit.units.front()->kind == DeclKind::PackageBody) { context->m_privateRegion = true; }
-    context->m_contextClause = true;
+    context->setPrivateRegion(unit.units.front()->privateUnit);
+    if (!unit.isSpec && unit.units.front()->kind == DeclKind::PackageBody) { context->setPrivateRegion(true); }
+    context->setContextClause(true);
     for (UseDecl& use : unit.useClauses) {
         analyzeUseClause(use, context);
     }
-    context->m_contextClause = false;
+    context->setContextClause(false);
     // A child subprogram is declared in its parent's namespace, but its
     // profile and body resolve in this compilation part's context.
     SubprogramSpec* childSpec = nullptr;
@@ -363,12 +362,12 @@ void Sema::analyze(CompilationUnit& unit)
             if (childParent != nullptr) {
                 m_packages.push_back(childParent);
             }
-            context->m_publicChildPart = unit.isSpec || existing == nullptr;
+            context->setPublicChildPart(unit.isSpec || existing == nullptr);
         }
     }
     analyzeDeclarativePart(unit.units, context);
     if (childSpec != nullptr) {
-        context->m_publicChildPart = false;
+        context->setPublicChildPart(false);
         auto local = context->lookupLocal(childSpec->lower);
         if (childParent != nullptr && !local.empty() && childParent->scope->lookupLocal(childSpec->lower).empty()) {
             childParent->scope->add(local.back());
@@ -459,7 +458,7 @@ Scope* Sema::subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* paren
 {
     if (!info) { return parent; }
     Scope* context = m_symbolTable.createScope(parent);
-    context->m_privateRegion = true;
+    context->setPrivateRegion(true);
     for (const WithClause& clause : info->withClauses) {
         for (const std::string& name : clause.namesLower) {
             for (std::size_t end = name.find('.');; end = name.find('.', end + 1)) {
@@ -483,8 +482,8 @@ Scope* Sema::subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* paren
             }
         }
     }
-    context->m_contextClause = true;
+    context->setContextClause(true);
     for (UseDecl use : info->useClauses) { analyzeUseClause(use, context); }
-    context->m_contextClause = false;
+    context->setContextClause(false);
     return context;
 }

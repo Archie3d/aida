@@ -501,7 +501,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 }
                 valid &= expr->taskCurrentInstance != nullptr;
             } else {
-                valid &= objectView(expr->prefix.get()) != 0
+                valid &= objectView(expr->prefix.get()) != SemaSupport::ObjectView::NotObject
                     || (prefixType != nullptr && prefixType->kind == TypeKind::Access);
             }
             if (!valid) {
@@ -1172,7 +1172,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->type = m_types.universalInteger();
         expr->isStatic = prefixIsType;
-        expr->alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != 0;
+        expr->alignmentObjectView = !prefixIsType && objectView(expr->prefix.get()) != SemaSupport::ObjectView::NotObject;
         expr->staticValue = prefixIsType && prefixType->alignment == 0 ? 0 : typeAlignment(prefixType);
         return expr->type;
     }

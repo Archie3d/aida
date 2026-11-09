@@ -15,8 +15,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
     decl->location = location;
 
     // A generic renaming has neither a formal part nor a subprogram profile.
-    if ((check(TokenKind::KwPackage) || check(TokenKind::KwProcedure) || check(TokenKind::KwFunction))
-        && peek(1).kind == TokenKind::Identifier) {
+    if ((check(TokenKind::KwPackage) || check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)) && peek(1).kind == TokenKind::Identifier) {
         std::size_t saved = m_position;
         decl->isPackage = check(TokenKind::KwPackage);
         decl->isFunction = check(TokenKind::KwFunction);
@@ -422,7 +421,7 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
             }
         }
     }
-    if (decl->category != 0) {
+    if (decl->category != PackageCategory::Ordinary) {
         for (std::size_t i = 0; i + 1 < decl->tokens.size(); ++i) {
             if (decl->tokens[i].kind != TokenKind::KwPragma
                 || (decl->tokens[i + 1].lower != "pure" && decl->tokens[i + 1].lower != "preelaborate")) { continue; }
@@ -471,8 +470,7 @@ DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const 
             if ((check(TokenKind::Identifier) || (check(TokenKind::StringLiteral)
                     && !operatorSymbol(current().text).empty())) && peek(1).kind == TokenKind::Arrow) {
                 association.name = current().text;
-                association.nameLower = current().kind == TokenKind::StringLiteral
-                    ? operatorSymbol(current().text) : current().lower;
+                association.nameLower = current().kind == TokenKind::StringLiteral ? operatorSymbol(current().text) : current().lower;
                 advance();
                 advance();
             }

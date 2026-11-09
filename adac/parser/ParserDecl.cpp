@@ -12,8 +12,7 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate, const std::string& stu
     DeclList declarations;
 
     while (true) {
-        if (check(TokenKind::EndOfFile) || check(TokenKind::KwBegin) || check(TokenKind::KwEnd)
-            || check(TokenKind::KwException)) {
+        if (check(TokenKind::EndOfFile) || check(TokenKind::KwBegin) || check(TokenKind::KwEnd) || check(TokenKind::KwException)) {
             break;
         }
         if (stopAtPrivate && check(TokenKind::KwPrivate)) {
@@ -100,7 +99,9 @@ DeclPtr Parser::parseObjectOrNumberDecl()
 
     bool aliased = match(TokenKind::KwAliased);
     bool isConstant = match(TokenKind::KwConstant);
-    if (aliased && isConstant && check(TokenKind::Assign)) { fail("an aliased constant requires a subtype"); }
+    if (aliased && isConstant && check(TokenKind::Assign)) {
+        fail("an aliased constant requires a subtype");
+    }
     if (isConstant && check(TokenKind::Assign)) {
         auto decl = std::make_unique<NumberDecl>();
         decl->location = location;
@@ -182,7 +183,9 @@ void Parser::appendDeclaration(DeclList& declarations, DeclPtr declaration)
             return;
         }
     }
-    if (declaration != nullptr) { declarations.push_back(std::move(declaration)); }
+    if (declaration != nullptr) {
+        declarations.push_back(std::move(declaration));
+    }
 }
 
 DeclPtr Parser::parseUseClause()
@@ -325,16 +328,21 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         return nullptr;
     }
     if (name.lower == "controlled" || name.lower == "preelaborable_initialization") {
-        if (!allowShared) { fail("pragma " + name.text + " is only allowed in a declarative part or package specification"); }
+        if (!allowShared) {
+            fail("pragma " + name.text + " is only allowed in a declarative part or package specification");
+        }
         auto pragma = std::make_unique<PragmaDecl>();
         pragma->location = location;
         pragma->name = name.text;
         pragma->lower = name.lower;
-        expect(TokenKind::LeftParen, name.lower == "controlled" ? "after pragma Controlled" : "after pragma Preelaborable_Initialization");
-        const Token& entity = expect(TokenKind::Identifier, name.lower == "controlled" ? "as Controlled type name" : "as Preelaborable_Initialization type name");
+        expect(TokenKind::LeftParen, name.lower == "controlled" ? "after pragma Controlled"
+                                                                : "after pragma Preelaborable_Initialization");
+        const Token& entity = expect(TokenKind::Identifier, name.lower == "controlled" ? "as Controlled type name"
+                                                                                       : "as Preelaborable_Initialization type name");
         pragma->entity = entity.text;
         pragma->entityLower = entity.lower;
-        expect(TokenKind::RightParen, name.lower == "controlled" ? "after Controlled type name" : "after Preelaborable_Initialization type name");
+        expect(TokenKind::RightParen, name.lower == "controlled" ? "after Controlled type name"
+                                                                 : "after Preelaborable_Initialization type name");
         expect(TokenKind::Semicolon, "after pragma");
         return pragma;
     }

@@ -98,7 +98,7 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
     }
     Type* receiverLayout = (*value)->type;
     bool unmanagedResult = isComposite(receiverLayout) && !receiverLayout->tagged
-        && !needsFinalization(receiverLayout) && SemaSupport::objectView(value->get()) == 0;
+        && !needsFinalization(receiverLayout) && SemaSupport::objectView(value->get()) == SemaSupport::ObjectView::NotObject;
     if ((*value)->kind == ExprKind::Aggregate || unmanagedResult) {
         // Retain the complete enclosing value, not a pointer into declaration
         // temporary storage. Ordinary object construction supplies array bounds,
@@ -138,7 +138,7 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
     binding->type = receiver->type;
     binding->objectReference = binding->type->kind != TypeKind::Access;
     binding->boundReceiver = true;
-    binding->isConstant = binding->objectReference ? SemaSupport::objectView(receiver.get()) != 2 : true;
+    binding->isConstant = binding->objectReference ? SemaSupport::objectView(receiver.get()) != SemaSupport::ObjectView::Variable : true;
     binding->aliased = binding->objectReference;
     binding->sharedAlias = binding->objectReference ? receiver.get() : nullptr;
     binding->owner = saved;

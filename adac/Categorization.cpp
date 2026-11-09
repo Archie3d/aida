@@ -332,9 +332,9 @@ void checkCategorizedStatements(const StmtList& statements, Diagnostics& diagnos
     }
 }
 
-void checkCategorizedDeclarations(const DeclList& declarations, int category, Diagnostics& diagnostics, Symbol* owner)
+void checkCategorizedDeclarations(const DeclList& declarations, PackageCategory category, Diagnostics& diagnostics, Symbol* owner)
 {
-    if (category == 0) { return; }
+    if (category == PackageCategory::Ordinary) { return; }
     for (const auto& declaration : declarations) {
         const Decl* item = declaration.get();
         bool valid = true;
@@ -345,16 +345,16 @@ void checkCategorizedDeclarations(const DeclList& declarations, int category, Di
             if (object->awaitsValue) { break; }
             bool reference = object->isRenaming || (!object->symbols.empty()
                 && object->symbols.front()->genericObject && object->symbols.front()->objectReference);
-            if (category == 2 && !object->isConstant && !reference) {
+            if (category == PackageCategory::Pure && !object->isConstant && !reference) {
                 diagnostics.error(item->location, "a pure library unit cannot elaborate a variable declaration");
             }
             valid = valid && object->preelaborableCreation && (reference
                 ? preelaborableName(object->initializer.get(), owner)
                 : preelaborableExpression(object->initializer.get(), owner));
-            if (category == 2 && (!object->pureDefaultCreation || !pureExpression(object->initializer.get(), owner))) { valid = false; }
+            if (category == PackageCategory::Pure && (!object->pureDefaultCreation || !pureExpression(object->initializer.get(), owner))) { valid = false; }
             if (!reference && object->initializer == nullptr) {
                 for (const Symbol* symbol : object->symbols) {
-                    if (category == 2) { valid = valid && pureInitialization(symbol->type, owner); }
+                    if (category == PackageCategory::Pure) { valid = valid && pureInitialization(symbol->type, owner); }
                 }
             }
             break;
@@ -362,7 +362,7 @@ void checkCategorizedDeclarations(const DeclList& declarations, int category, Di
         case DeclKind::Type: {
             Type* type = static_cast<const TypeDecl*>(item)->declaredType;
             valid = valid && constraints(type, owner);
-            if (category == 2 && type != nullptr && type->kind == TypeKind::Access
+            if (category == PackageCategory::Pure && type != nullptr && type->kind == TypeKind::Access
                 && !type->anonymousAccess && type->accessProfile == nullptr && !type->accessConstant && !type->zeroStorage) {
                 diagnostics.error(item->location, "a named access-to-variable type in a pure unit requires Storage_Size zero");
             }

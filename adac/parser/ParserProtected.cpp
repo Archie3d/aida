@@ -23,19 +23,19 @@ DeclPtr Parser::parseProtected()
         }
         bool privatePart = false;
         while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {
-            int indicator = 0;
+            OverridingIndicator indicator = OverridingIndicator::Unspecified;
             SourceLocation indicatorLocation = current().location;
             if (match(TokenKind::KwNot)) {
                 expect(TokenKind::KwOverriding, "after not");
-                indicator = -1;
+                indicator = OverridingIndicator::NotOverriding;
             } else if (match(TokenKind::KwOverriding)) {
-                indicator = 1;
+                indicator = OverridingIndicator::Overriding;
             }
-            if (indicator != 0 && (!check(TokenKind::KwProcedure) && !check(TokenKind::KwFunction)
+            if (indicator != OverridingIndicator::Unspecified && (!check(TokenKind::KwProcedure) && !check(TokenKind::KwFunction)
                 && !check(TokenKind::KwEntry))) {
                 fail("an overriding indicator requires a protected operation declaration");
             }
-            if (isBody && indicator != 0) {
+            if (isBody && indicator != OverridingIndicator::Unspecified) {
                 m_diagnostics.error(indicatorLocation, "an overriding indicator is not allowed on a protected operation body");
             }
             if (!isBody && match(TokenKind::KwPrivate)) {
@@ -51,7 +51,7 @@ DeclPtr Parser::parseProtected()
                 SubprogramSpec& spec = operation->kind == DeclKind::SubprogramDeclaration
                     ? static_cast<SubprogramDecl*>(operation.get())->spec
                     : static_cast<SubprogramBody*>(operation.get())->spec;
-                spec.overriding = isBody ? 0 : indicator;
+                spec.overriding = isBody ? OverridingIndicator::Unspecified : indicator;
                 if (spec.abstract) {
                     fail("a protected operation cannot be abstract");
                 }
@@ -99,7 +99,7 @@ DeclPtr Parser::parseProtected()
                 spec.name = entryName.text;
                 spec.lower = entryName.lower;
                 spec.entry = true;
-                spec.overriding = isBody ? 0 : indicator;
+                spec.overriding = isBody ? OverridingIndicator::Unspecified : indicator;
                 if (check(TokenKind::LeftParen)) {
                     if (peek(1).kind != TokenKind::Identifier || (peek(2).kind != TokenKind::Colon
                         && peek(2).kind != TokenKind::Comma)) {

@@ -285,8 +285,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
     if (decl->isRenaming) {
         Type* targetType = analyzeExpr(decl->initializer.get(), scope, type);
-        int view = objectView(decl->initializer.get());
-        if (view == 0) {
+        SemaSupport::ObjectView view = objectView(decl->initializer.get());
+        if (view == SemaSupport::ObjectView::NotObject) {
             m_diagnostics.error(decl->location, "an object renaming requires an object name");
             return;
         }
@@ -300,7 +300,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         }
         // A renaming inherits the object's constraints and constant/variable view.
         type = targetType;
-        decl->isConstant = view == 1;
+        decl->isConstant = view == SemaSupport::ObjectView::Constant;
     }
 
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
@@ -495,7 +495,7 @@ static bool isPrimitive(Symbol* symbol)
     return false;
 }
 
-void Sema::checkOverridingIndicator(Symbol* symbol, int indicator, const SourceLocation& location)
+void Sema::checkOverridingIndicator(Symbol* symbol, OverridingIndicator indicator, const SourceLocation& location)
 {
     if (!symbol->overrides && isPrimitive(symbol) && !operatorSymbol(symbol->name).empty()) {
         Scope* probes = m_symbolTable.createScope(symbol->declarationScope);
@@ -521,15 +521,17 @@ void Sema::checkOverridingIndicator(Symbol* symbol, int indicator, const SourceL
             symbol->overrides = symbol->overrides || matches;
         }
     }
-    if (indicator != 0 && !isPrimitive(symbol)) {
+    if (indicator != OverridingIndicator::Unspecified && !isPrimitive(symbol)) {
         m_diagnostics.error(location, "an overriding indicator requires a primitive operation");
     }
-    if (indicator == 1 && !symbol->overrides) {
+    if (indicator == OverridingIndicator::Overriding && !symbol->overrides) {
         m_diagnostics.error(location, "subprogram marked overriding does not override an inherited operation");
-    } else if (indicator == -1 && symbol->overrides) {
+    } else if (indicator == OverridingIndicator::NotOverriding && symbol->overrides) {
         m_diagnostics.error(location, "subprogram marked not overriding overrides an inherited operation");
     }
-    if (indicator == -1 && !symbol->overrides) { symbol->pendingOverride = -1; }
+    if (indicator == OverridingIndicator::NotOverriding && !symbol->overrides) {
+        symbol->pendingOverride = OverridingIndicator::NotOverriding;
+    }
 }
 
 Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal, Scope* profileScope)
@@ -550,7 +552,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (parameterType != nullptr && parameterType->anonymousAccess && parameterType->target != nullptr
             && parameterType->target->tagged && parameterType->target->classRoot == nullptr
             && rootType(parameterType->target)->declarationScope == scope
-            && (scope == m_packageSpecScope || spec.overriding == 1 || (isFormal && spec.abstract))) {
+            && (scope == m_packageSpecScope || spec.overriding == OverridingIndicator::Overriding || (isFormal && spec.abstract))) {
             parameterType->excludesNull = true;
         }
         if (parameterType != nullptr && (!parameterType->tagged || (isBody && !spec.nullProcedure))) {
@@ -663,9 +665,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     for (Type* parameter : parameterTypes) {
         pendingOverride = pendingOverride || incompletePrivate(parameter);
     }
-    if (spec.overriding == 1 && !overrides) {
+    if (spec.overriding == OverridingIndicator::Overriding && !overrides) {
         m_diagnostics.error(spec.location, "subprogram marked overriding does not override an inherited operation");
-    } else if (!pendingOverride && spec.overriding == -1 && overrides) {
+    } else if (!pendingOverride && spec.overriding == OverridingIndicator::NotOverriding && overrides) {
         m_diagnostics.error(spec.location, "subprogram marked not overriding overrides an inherited operation");
     }
     Symbol* contractDeclaration = nullptr;
@@ -704,7 +706,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
             m_diagnostics.error(spec.location, "instance visible part contains homographic declarations of '" + spec.name + "'");
             continue;
         }
-        if (spec.overriding != 0 && !isPrimitive(candidate) && (candidate->protectedType == nullptr || isBody)) {
+        if (spec.overriding != OverridingIndicator::Unspecified && !isPrimitive(candidate)
+            && (candidate->protectedType == nullptr || isBody)) {
             m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
         }
         if (candidate->nullProcedure) {
@@ -746,7 +749,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         if (isBody && candidate->abstract) {
             m_diagnostics.error(spec.location, "an abstract subprogram cannot have a body");
         }
-        if (spec.overriding == -1 && !candidate->overrides) { candidate->pendingOverride = -1; }
+        if (spec.overriding == OverridingIndicator::NotOverriding && !candidate->overrides) {
+            candidate->pendingOverride = OverridingIndicator::NotOverriding;
+        }
         candidate->hasBody = candidate->hasBody || isBody;
         candidate->nullProcedure = candidate->nullProcedure || spec.nullProcedure;
         for (std::size_t i = 0; i < spec.parameters.size(); ++i) {
@@ -774,7 +779,8 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     symbol->entry = spec.entry;
     symbol->requiresBody = !spec.abstract && !isFormal && m_recordContract == nullptr && m_instanceOwnerContract == nullptr;
     symbol->overrides = overrides;
-    symbol->pendingOverride = spec.overriding == -1 && !overrides ? -1 : 0;
+    symbol->pendingOverride = spec.overriding == OverridingIndicator::NotOverriding && !overrides
+        ? OverridingIndicator::NotOverriding : OverridingIndicator::Unspecified;
     symbol->declarationScope = scope;
     symbol->level = m_currentSubprogram != nullptr ? m_currentSubprogram->level + 1 : 0;
     symbol->owner = m_currentSubprogram;
@@ -857,7 +863,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     if (symbol->abstract && symbol->controllingType != nullptr && !symbol->controllingType->abstract) {
         m_diagnostics.error(spec.location, "an abstract primitive requires an abstract tagged type");
     }
-    if (spec.overriding != 0 && !isPrimitive(symbol)) {
+    if (spec.overriding != OverridingIndicator::Unspecified && !isPrimitive(symbol)) {
         m_diagnostics.error(spec.location, "an overriding indicator requires a primitive operation");
     }
     if (spec.lower == "=" && m_types.isBoolean(returnType)) {
@@ -945,7 +951,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     if (scope == m_protectedBodyScope && m_currentProtectedType != nullptr) {
         declareProtectedOperation(symbol, m_currentProtectedType);
     }
-    scope->m_publicChildPart = false;
+    scope->setPublicChildPart(false);
     symbol->hasBody = true;
     body->symbol = symbol;
     symbol->entryBarrierFunction = body->spec.entryBarrier;
@@ -960,7 +966,7 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
 
     Scope* inner = m_symbolTable.createScope(context);
     symbol->constructScope = inner;
-    inner->m_privateRegion = true;
+    inner->setPrivateRegion(true);
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {
         Symbol* parameter = symbol->parameters[i];
         body->spec.parameters[i].symbol = parameter;

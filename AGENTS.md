@@ -105,6 +105,7 @@ class Item
 } // namespace Base
 ```
 
+- Don't use `int` for enumerable types, use a correspondng `enum` type instead.
 
 - Ada runtime C exports must use `__ada_` prefix:
 ```c

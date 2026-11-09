@@ -36,8 +36,8 @@ void Sema::prepareLimitedViews(const std::vector<CompilationUnit*>& units)
         package->limitedView = true;
         package->privateUnit = declaration->privateUnit;
         package->scope = m_symbolTable.createScope(nullptr); // Limited views have no context clause.
-        package->scope->m_packageName = name;
-        package->scope->m_libraryPackage = owner;
+        package->scope->setPackageName(name);
+        package->scope->setLibraryPackage(owner);
         package->location = declaration->location;
         m_limitedPackageViews[name] = package;
         for (const DeclPtr& item : declaration->publicPart) {

@@ -1684,7 +1684,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
         if (type->kind != TypeKind::Access || type->isSubtype || type->parentType != nullptr
             || type->anonymousAccess || type->accessProfile != nullptr || type->storageSizeSpecified
             || type->storagePoolSpecified || m_storagePoolType == nullptr
-            || !isTaggedAncestor(m_storagePoolType, specific) || SemaSupport::objectView(decl->value.get()) != 2) {
+            || !isTaggedAncestor(m_storagePoolType, specific) || SemaSupport::objectView(decl->value.get()) != SemaSupport::ObjectView::Variable) {
             m_diagnostics.error(decl->location,
                 "Storage_Pool requires an unfrozen nonderived access-to-object first subtype, a single pool variable and no Storage_Size specification");
             return;

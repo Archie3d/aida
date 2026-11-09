@@ -132,11 +132,11 @@ Type* Sema::analyzeObjectAccess(AttributeExpr* expr, Scope* scope, Type* expecte
         return nullptr;
     }
     ObjectAccessView view = accessView(expr->prefix.get());
-    if (!view.aliased || SemaSupport::objectView(expr->prefix.get()) == 0) {
+    if (!view.aliased || SemaSupport::objectView(expr->prefix.get()) == SemaSupport::ObjectView::NotObject) {
         m_diagnostics.error(expr->location, "object " + attribute + " requires an aliased object view");
         return nullptr;
     }
-    if (!expected->accessConstant && SemaSupport::objectView(expr->prefix.get()) != 2) {
+    if (!expected->accessConstant && SemaSupport::objectView(expr->prefix.get()) != SemaSupport::ObjectView::Variable) {
         m_diagnostics.error(expr->location, "access-to-variable cannot designate a constant view");
         return nullptr;
     }
@@ -241,7 +241,7 @@ Type* Sema::resolveAnonymousAccess(SubtypeIndication* indication, Scope* scope)
     type->accessConstant = definition->accessConstant;
     if (!type->accessConstant && !type->accessParameter && !type->accessDiscriminant && m_accessibilityLevel == 0) {
         for (Symbol* package : m_packages) {
-            if (package->packageDeclaration != nullptr && package->packageDeclaration->category == 2) { type->zeroStorage = true; }
+            if (package->packageDeclaration != nullptr && package->packageDeclaration->category == PackageCategory::Pure) { type->zeroStorage = true; }
         }
     }
     type->accessProtected = definition->accessProtected;

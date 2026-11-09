@@ -52,7 +52,7 @@ std::vector<Symbol*> Sema::expandedDeclarations(Symbol* prefix, const std::strin
     // declarations of an instance. Only its current instance can select them.
     Scope* bindings = prefix->kind == SymbolKind::Package ? prefix->scope->parent() : prefix->declarationScope;
     if (result.empty() && from->immediateDepth(region) >= 0
-        && bindings != nullptr && bindings->m_genericBindings) {
+        && bindings != nullptr && bindings->isGenericBindingScope()) {
         result = bindings->lookupVisibleLocal(name, from);
         std::erase_if(result, [&](Symbol* symbol) { return expandedScope(symbol, from) == region; });
     }

@@ -158,11 +158,11 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(operation->location, "protected operation conflicts with the current instance name");
         }
         if (operation->kind == DeclKind::SubprogramDeclaration) {
-            int indicator = spec->overriding;
-            spec->overriding = 0;
+            OverridingIndicator indicator = spec->overriding;
+            spec->overriding = OverridingIndicator::Unspecified;
             Symbol* symbol = declareSubprogram(*spec, inner, false);
             spec->overriding = indicator;
-            if (indicator == 1) {
+            if (indicator == OverridingIndicator::Overriding) {
                 m_diagnostics.error(spec->location, "protected operation marked overriding implements no inherited operation");
             }
             declareProtectedOperation(symbol, type);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../support/Artifacts.h"
+#include "PackageCategory.h"
 
 #include <iosfwd>
 #include <string>
@@ -16,7 +17,7 @@ struct UnitPartRecord
     std::vector<std::string> dependencies;
     bool elaborateBody = false;
     std::vector<std::string> limitedDependencies;
-    int category = 0;
+    PackageCategory category = PackageCategory::Ordinary;
     std::string source;
     std::vector<std::string> semanticDependencies;
     bool clientNeedsBody = false;

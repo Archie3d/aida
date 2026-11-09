@@ -8,6 +8,9 @@
 #include <unordered_set>
 #include <vector>
 
+// A declaration region and its Ada visibility rules: local overload sets,
+// enclosing regions, use clauses, private/limited views and library context.
+// Scopes refer to symbols; SymbolTable owns both symbols and scopes.
 class Scope
 {
 public:
@@ -37,15 +40,31 @@ public:
     Scope* completionScope() const { return m_completionScope; }
     std::vector<Symbol*> lookupDeclaration(const std::string& name) const;
     const std::unordered_map<std::string, std::vector<Symbol*>>& declarations() const { return m_symbols; }
-    bool m_privateRegion = false;
-    std::string m_packageName;
-    std::string m_libraryPackage;
-    bool m_contextClause = false;
-    bool m_genericBindings = false;
-    bool m_isLibraryRegistry = false;
-    bool m_publicChildPart = false;
+
+    bool isPrivateRegion() const { return m_privateRegion; }
+    void setPrivateRegion(bool value) { m_privateRegion = value; }
+    const std::string& packageName() const { return m_packageName; }
+    void setPackageName(const std::string& name) { m_packageName = name; }
+    const std::string& libraryPackage() const { return m_libraryPackage; }
+    void setLibraryPackage(const std::string& name) { m_libraryPackage = name; }
+    bool isContextClause() const { return m_contextClause; }
+    void setContextClause(bool value) { m_contextClause = value; }
+    bool isGenericBindingScope() const { return m_genericBindings; }
+    void setGenericBindingScope(bool value) { m_genericBindings = value; }
+    bool isLibraryRegistry() const { return m_isLibraryRegistry; }
+    void setLibraryRegistry(bool value) { m_isLibraryRegistry = value; }
+    bool isPublicChildPart() const { return m_publicChildPart; }
+    void setPublicChildPart(bool value) { m_publicChildPart = value; }
 
 private:
+    bool m_privateRegion = false; // Private parts/bodies can use private-with visibility.
+    std::string m_packageName; // Dotted path including nested packages.
+    std::string m_libraryPackage; // Owning library unit, shared by its nested scopes.
+    bool m_contextClause = false; // Hide use-clause visibility while resolving context items.
+    bool m_genericBindings = false; // Region containing an instance's formal-to-actual bindings.
+    bool m_isLibraryRegistry = false; // Registry scope; its own lookups bypass library-context filtering.
+    bool m_publicChildPart = false; // Boundary preventing access to ancestor private declarations.
+
     friend class SymbolTable;
     Scope* m_parent = nullptr;
     const Scope* m_origin = nullptr;

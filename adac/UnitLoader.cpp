@@ -990,14 +990,14 @@ bool UnitLoader::orderUnits()
         unit->category = declaration->category;
     }
     for (CompilationUnit* unit : m_discoveredUnits) {
-        if (unit->category == 0) { continue; }
+        if (unit->category == PackageCategory::Ordinary) { continue; }
         std::vector<CompilationUnit*> semantic = dependencies[unit];
         for (const std::string& key : unit->limitedDependencies) { semantic.push_back(m_parts.at(key)); }
         for (CompilationUnit* dependency : semantic) {
             if (dependency->category < unit->category
                 && !predefinedHashParent(*unit->units.front(), dependency->partKey)) {
                 m_diagnostics.error(unit->units.front()->location,
-                    std::string(unit->category == 2 ? "pure" : "preelaborated")
+                    std::string(unit->category == PackageCategory::Pure ? "pure" : "preelaborated")
                     + " library unit cannot depend on '" + dependency->partKey + "' with a weaker categorization");
             }
         }
@@ -1020,9 +1020,9 @@ bool UnitLoader::orderUnits()
         }
     };
     for (CompilationUnit* unit : m_discoveredUnits) {
-        if (unit->category != 0) { continue; }
+        if (unit->category != PackageCategory::Ordinary) { continue; }
         for (CompilationUnit* prerequisite : m_discoveredUnits) {
-            if (prerequisite->category != 0
+            if (prerequisite->category != PackageCategory::Ordinary
                 && std::find(dependencies[unit].begin(), dependencies[unit].end(), prerequisite) == dependencies[unit].end()) {
                 dependencies[unit].push_back(prerequisite);
             }

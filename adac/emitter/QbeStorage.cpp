@@ -545,10 +545,10 @@ Value QbeEmitter::recordConstrained(Expr* object, const Value* evaluated)
             }
             return Value { "1", 'w' }; // Pool objects and constant views are constrained.
         }
-        return Value { SemaSupport::objectView(object) == 1 ? "1" : "0", 'w' };
+        return Value { SemaSupport::objectView(object) == SemaSupport::ObjectView::Constant ? "1" : "0", 'w' };
     }
     if (object->kind == ExprKind::Call && static_cast<CallExpr*>(object)->form == CallForm::Indexing) {
-        return Value { SemaSupport::objectView(object) == 1 ? "1" : "0", 'w' };
+        return Value { SemaSupport::objectView(object) == SemaSupport::ObjectView::Constant ? "1" : "0", 'w' };
     }
     return Value { "1", 'w' };
 }

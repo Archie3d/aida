@@ -3,6 +3,7 @@
 #include "Diagnostics.h"
 #include "CheckPolicy.h"
 #include "Interface.h"
+#include "PackageCategory.h"
 #include "Token.h"
 #include "ExactReal.h"
 #include "Unicode.h"
@@ -485,10 +486,16 @@ struct ParameterDecl
     Symbol* symbol = nullptr;
 };
 
+enum class OverridingIndicator
+{
+    Unspecified,
+    Overriding,
+    NotOverriding
+};
+
 struct SubprogramSpec
 {
-    // 0: omitted, 1: overriding, -1: not overriding.
-    int overriding = 0;
+    OverridingIndicator overriding = OverridingIndicator::Unspecified;
     bool abstract = false;
     bool nullProcedure = false;
     bool isFunction = false;
@@ -830,7 +837,8 @@ struct Decl : Node
     std::vector<Type*> scalarConstraints; // Elaborated once with this declaration.
     std::vector<Type*> discriminantConstraints;
     bool elaborateBody = false;
-    int category = 0; // 0: ordinary, 1: Preelaborate, 2: Pure.
+
+    PackageCategory category = PackageCategory::Ordinary;
 };
 
 struct ObjectDecl : Decl
@@ -1128,7 +1136,7 @@ struct GenericInstantiationDecl : Decl
     std::string genericName;
     std::string genericLower;
     Symbol* generic = nullptr;
-    int overriding = 0;
+    OverridingIndicator overriding = OverridingIndicator::Unspecified;
     bool isPackage = true;
     bool isFunction = false;
     std::vector<Association> arguments;
@@ -1245,7 +1253,7 @@ struct CompilationUnit
     // Declaration identity, independent of the source/object filename.
     std::string partKey;
     bool isSpec = false;
-    int category = 0;
+    PackageCategory category = PackageCategory::Ordinary;
 
     // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;

@@ -109,10 +109,10 @@ void Parser::parseCategory(Decl& decl, const std::string& name, bool inside)
     SourceLocation location = current().location;
     advance();
     const Token& pragma = advance();
-    if (decl.category != 0) {
+    if (decl.category != PackageCategory::Ordinary) {
         m_diagnostics.error(location, "a library unit may have only one categorization pragma");
     }
-    decl.category = pragma.lower == "pure" ? 2 : 1;
+    decl.category = pragma.lower == "pure" ? PackageCategory::Pure : PackageCategory::Preelaborate;
     if (match(TokenKind::LeftParen)) {
         if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
             if (advance().lower != "library_unit") { fail("expected Library_Unit pragma argument"); }

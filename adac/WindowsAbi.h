@@ -3,10 +3,13 @@
 #include <string>
 #include <string_view>
 
+// QBE entry-signature adaptation for the Windows x64 calling convention.
+// Stack-passed floating arguments arrive in integer carriers; the prologue
+// restores the original floating operand names before the function body.
 struct WindowsParameters
 {
-    std::string signature;
-    std::string prologue;
+    std::string signature; // Rewritten QBE function signature with carrier parameters.
+    std::string prologue;  // QBE instructions that recover the original float/double operands.
 };
 
 // Preserve the Windows stack ABI while avoiding QBE's integer classification
