@@ -21,16 +21,19 @@ bool split(const std::string& line, std::string& keyword, std::string& rest)
 
 } // namespace
 
-bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths, const std::string& compilerDigest)
+bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths, const std::string& compilerDigest, const Artifacts::FileInputs& inputs)
 {
     Artifacts::AtomicFile publication(path);
-    return writeManifest(publication.stream(), units, elaborations, searchPaths, compilerDigest) && publication.commit();
+    return writeManifest(publication.stream(), units, elaborations, searchPaths, compilerDigest, inputs) && publication.commit();
 }
 
-bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths, const std::string& compilerDigest)
+bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths, const std::string& compilerDigest, const Artifacts::FileInputs& inputs)
 {
-    out << "format 8\n";
+    out << "format 9\n";
     if (!compilerDigest.empty()) { out << "compiler " << compilerDigest << "\n"; }
+    for (const auto& [path, fingerprint] : inputs) {
+        out << "input " << (fingerprint.empty() ? "-" : fingerprint) << " " << path << "\n";
+    }
     for (const std::string& root : searchPaths) { out << "search " << root << "\n"; }
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
@@ -72,19 +75,19 @@ bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, cons
     return static_cast<bool>(out);
 }
 
-bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations, std::vector<std::string>* searchPaths, std::string* compilerDigest)
+bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations, std::vector<std::string>* searchPaths, std::string* compilerDigest, Artifacts::FileInputs* inputs)
 {
     std::ifstream in(Artifacts::nativePath(path));
     if (!in) {
         return false;
     }
-    return readManifest(in, units, elaborations, searchPaths, compilerDigest);
+    return readManifest(in, units, elaborations, searchPaths, compilerDigest, inputs);
 }
 
-bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations, std::vector<std::string>* searchPaths, std::string* compilerDigest)
+bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations, std::vector<std::string>* searchPaths, std::string* compilerDigest, Artifacts::FileInputs* inputs)
 {
     std::string line;
-    if (!std::getline(in, line) || line != "format 8") {
+    if (!std::getline(in, line) || line != "format 9") {
         return false;
     }
     bool inUnit = false;
@@ -110,6 +113,10 @@ bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<
         } else if (keyword == "compiler" && !inUnit && !seenCompiler) {
             seenCompiler = true;
             if (compilerDigest != nullptr) { *compilerDigest = rest; }
+        } else if (keyword == "input" && !inUnit) {
+            auto space = rest.find(' ');
+            if (space == std::string::npos || space == 0 || space + 1 == rest.size()) { return false; }
+            if (inputs != nullptr) { inputs->emplace_back(rest.substr(space + 1), rest.substr(0, space)); }
         } else if (keyword == "search" && !inUnit) {
             if (searchPaths != nullptr) { searchPaths->push_back(rest); }
         } else if (keyword == "elaborate" && !inUnit) {

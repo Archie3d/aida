@@ -130,7 +130,7 @@ Generated QBE accesses remain uninstrumented.
 ## Compatibility and validation
 
 This deliberately changes the internal Ada call/result ABI. Unit manifests use
-format 8, unit records format 4; previous records are rejected and the changed
+format 9, unit records format 4; previous records are rejected and the changed
 compiler digest invalidates cached units. Rebuild all compiler/runtime objects
 and dependent Ada units together. Raw stream bounds are now two signed 64-bit
 values; old serialized unconstrained-array streams must be regenerated. Raw

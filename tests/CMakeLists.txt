@@ -2389,6 +2389,13 @@ add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedcon
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
     add_executable(artifact_tool_hook artifacts/ToolHook.cpp)
+    add_test(NAME driver.noop_cleanup
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/driver/check_noop.py
+            --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --cc ${CMAKE_C_COMPILER} --ar ${CMAKE_AR} --ranlib ${CMAKE_RANLIB} --qbe ${QBE_EXECUTABLE}
+            --runtime $<TARGET_FILE:adart> --hook $<TARGET_FILE:artifact_tool_hook>
+            --work ${ADA_TEST_WORK_DIR}/noop-cleanup "--exe-suffix=${CMAKE_EXECUTABLE_SUFFIX}")
+    set_tests_properties(driver.noop_cleanup PROPERTIES TIMEOUT 180)
     add_test(NAME driver.artifact_publication
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/check.py
             --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>

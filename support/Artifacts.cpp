@@ -1,6 +1,8 @@
 #include "Artifacts.h"
+#include "../common/Digest.h"
 
 #include <atomic>
+#include <bit>
 #include <cerrno>
 #include <cstdlib>
 #include <system_error>
@@ -56,6 +58,110 @@ std::string pathText(const std::filesystem::path& path)
 {
     auto bytes = path.u8string();
     return std::string(bytes.begin(), bytes.end());
+}
+
+// A universal executable can have the same binary digest on different CPUs.
+// Keep the active ABI explicit instead of relying on executable identity alone.
+std::string targetIdentity()
+{
+    std::string target;
+#if defined(_WIN32)
+    target = "windows";
+#elif defined(__APPLE__)
+    target = "darwin";
+#elif defined(__linux__)
+    target = "linux";
+#else
+    target = "other";
+#endif
+#if defined(__aarch64__) || defined(_M_ARM64)
+    target += "-arm64";
+#elif defined(__x86_64__) || defined(_M_X64)
+    target += "-amd64";
+#else
+    target += "-other";
+#endif
+    target += "-pointer" + std::to_string(sizeof(void*) * 8);
+    target += std::endian::native == std::endian::little ? "-le" : "-be";
+    return target;
+}
+
+std::string fileFingerprint(const std::string& path, const std::string* knownDigest)
+{
+    std::error_code error;
+    auto native = nativePath(path);
+    auto absolute = std::filesystem::absolute(native, error);
+    if (error) { return {}; }
+    auto canonical = std::filesystem::weakly_canonical(absolute, error);
+    if (error == std::errc::not_a_directory || error == std::errc::no_such_file_or_directory) {
+        auto prefix = absolute;
+        std::vector<std::filesystem::path> suffix;
+        do {
+            if (prefix == prefix.parent_path()) { return {}; }
+            suffix.push_back(prefix.filename());
+            prefix = prefix.parent_path();
+            error.clear();
+            canonical = std::filesystem::weakly_canonical(prefix, error);
+        } while (error == std::errc::not_a_directory || error == std::errc::no_such_file_or_directory);
+        if (!error) { for (auto part = suffix.rbegin(); part != suffix.rend(); ++part) { canonical /= *part; } }
+    }
+    if (error) { return {}; }
+#ifdef _WIN32
+    // Resolve the existing prefix as well as the leaf: an absent probe under
+    // a directory symlink must notice when that directory is retargeted.
+    auto prefix = canonical;
+    std::vector<std::filesystem::path> suffix;
+    for (;;) {
+        HANDLE handle = CreateFileW(prefix.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+        if (handle != INVALID_HANDLE_VALUE) {
+            std::wstring resolved(32768, L'\0');
+            DWORD size = GetFinalPathNameByHandleW(handle, resolved.data(), static_cast<DWORD>(resolved.size()), FILE_NAME_NORMALIZED);
+            CloseHandle(handle);
+            if (size == 0 || size >= resolved.size()) { return {}; }
+            resolved.resize(size);
+            canonical = std::filesystem::path(resolved);
+            for (auto part = suffix.rbegin(); part != suffix.rend(); ++part) { canonical /= *part; }
+            break;
+        }
+        if (prefix == prefix.parent_path()) { return {}; }
+        suffix.push_back(prefix.filename());
+        prefix = prefix.parent_path();
+    }
+#endif
+    auto status = std::filesystem::status(native, error);
+    std::string kind;
+    if (status.type() == std::filesystem::file_type::not_found || error == std::errc::no_such_file_or_directory
+        || error == std::errc::not_a_directory) { kind = "missing"; }
+    else if (error) { return {}; }
+    else if (std::filesystem::is_regular_file(status)) { kind = "file"; }
+    else if (std::filesystem::is_directory(status)) { kind = "directory"; }
+    else { return {}; }
+    if (knownDigest != nullptr && kind != "file") { return {}; }
+    std::string state = kind;
+    state.push_back('\0');
+    state += pathText(canonical);
+    state.push_back('\0');
+    if (kind != "missing") { state += std::to_string(static_cast<unsigned>(status.permissions())); }
+    if (kind == "file") {
+        std::string content = knownDigest == nullptr ? digestOfFile(path) : *knownDigest;
+        if (content.empty()) { return {}; }
+        state.push_back('\0');
+        state += content;
+    }
+    return digestOf(state);
+}
+
+bool inputsMatch(const FileInputs& inputs, bool allowUnknown)
+{
+    for (const auto& [path, fingerprint] : inputs) {
+        if (fingerprint.empty() || fingerprint == "-") {
+            if (allowUnknown) { continue; }
+            return false;
+        }
+        if (fileFingerprint(path) != fingerprint) { return false; }
+    }
+    return true;
 }
 
 AtomicPath::AtomicPath(const std::string& destination)
@@ -125,16 +231,16 @@ DirectoryLock::~DirectoryLock()
     }
 }
 
-bool DirectoryLock::acquire(const std::string& directory, const std::string& inherited)
+std::string DirectoryLock::pathFor(const std::string& directory, std::string& message)
 {
     std::error_code error;
     auto absolute = std::filesystem::absolute(nativePath(directory), error);
-    if (error) { m_error = error.message(); return false; }
+    if (error) { message = error.message(); return {}; }
     auto root = std::filesystem::weakly_canonical(absolute, error);
-    if (error) { m_error = error.message(); return false; }
+    if (error) { message = error.message(); return {}; }
     auto parent = root.parent_path();
     std::filesystem::create_directories(parent, error);
-    if (error) { m_error = error.message(); return false; }
+    if (error) { message = error.message(); return {}; }
 #ifdef _WIN32
     // MinGW weakly_canonical can retain a directory symlink spelling. Use
     // the opened target so aliases select the same persistent guard file.
@@ -145,17 +251,24 @@ bool DirectoryLock::acquire(const std::string& directory, const std::string& inh
         directoryHandle = CreateFileW(parent.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
     }
-    if (directoryHandle == INVALID_HANDLE_VALUE) { m_error = "cannot resolve artifact directory"; return false; }
+    if (directoryHandle == INVALID_HANDLE_VALUE) { message = "cannot resolve artifact directory"; return {}; }
     std::wstring canonical(32768, L'\0');
     DWORD canonicalSize = GetFinalPathNameByHandleW(directoryHandle, canonical.data(),
         static_cast<DWORD>(canonical.size()), FILE_NAME_NORMALIZED);
     CloseHandle(directoryHandle);
-    if (canonicalSize == 0 || canonicalSize >= canonical.size()) { m_error = "cannot resolve artifact directory"; return false; }
+    if (canonicalSize == 0 || canonicalSize >= canonical.size()) { message = "cannot resolve artifact directory"; return {}; }
     canonical.resize(canonicalSize);
     root = missingRoot ? std::filesystem::path(canonical) / root.filename() : std::filesystem::path(canonical);
     parent = root.parent_path();
 #endif
-    auto lockPath = parent / ("." + pathText(root.filename()) + ".aida-lock");
+    return pathText(parent / ("." + pathText(root.filename()) + ".aida-lock"));
+}
+
+bool DirectoryLock::acquire(const std::string& directory, const std::string& inherited)
+{
+    std::string identity = pathFor(directory, m_error);
+    if (identity.empty()) { return false; }
+    auto lockPath = nativePath(identity);
     intptr_t borrowed = -1;
     if (!inherited.empty()) {
         char* end = nullptr;

@@ -72,7 +72,7 @@ bounds and token kinds, then verifies replayed declaration identities against
 the unit metadata. Imported compiled records must agree with the selected
 closure and their companion IR digests. Limits are 64 MiB of payload and one
 million tokens and 4,096 source streams per interface. Old compiler binaries and manifest formats are
-rejected; rebuild the producer and consumers together. Manifests use format 8;
+rejected; rebuild the producer and consumers together. Manifests use format 9;
 checksummed `.ali` records use format 4.
 
 [Artifact publication](artifact-publication.md) stages members and publishes a

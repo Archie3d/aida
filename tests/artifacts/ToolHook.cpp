@@ -46,6 +46,13 @@ int main(int argc, char** argv)
 {
     std::string tool = environment("AIDA_TEST_REAL_TOOL");
     if (tool.empty()) { return 90; }
+    std::string trace = environment("AIDA_TEST_TRACE");
+    if (!trace.empty()) {
+        std::ofstream log(trace, std::ios::app);
+        log << tool;
+        for (int i = 1; i < argc; ++i) { log << ' ' << argv[i]; }
+        log << '\n';
+    }
     std::string output;
     bool frontend = false;
     bool source = false;

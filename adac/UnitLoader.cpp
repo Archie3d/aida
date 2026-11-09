@@ -289,9 +289,25 @@ std::string UnitLoader::sourceProvenance(const std::string& path) const
 void UnitLoader::recordArtifactInput(const std::string& path, const std::string& digest)
 {
     auto [found, inserted] = m_artifactInputs.emplace(path, digest);
+    m_artifactFingerprints.emplace(path, Artifacts::fileFingerprint(path, &digest));
     if (!inserted && found->second != digest) {
         m_diagnostics.error(SourceLocation {}, "artifact changed while compiling: '" + path + "'");
     }
+}
+
+void UnitLoader::recordLookup(const std::string& path) const
+{
+    if (!m_lookupInputs.contains(path)) { m_lookupInputs.emplace(path, Artifacts::fileFingerprint(path)); }
+}
+
+Artifacts::FileInputs UnitLoader::inputSnapshot() const
+{
+    Artifacts::FileInputs result;
+    for (const auto& [path, input] : m_sourceInputs) { result.emplace_back(path, input.fingerprint); }
+    result.insert(result.end(), m_artifactFingerprints.begin(), m_artifactFingerprints.end());
+    result.insert(result.end(), m_lookupInputs.begin(), m_lookupInputs.end());
+    std::sort(result.begin(), result.end());
+    return result;
 }
 
 bool UnitLoader::validateInputs()
@@ -304,6 +320,11 @@ bool UnitLoader::validateInputs()
     for (const auto& [path, digest] : m_artifactInputs) {
         if (digest.empty() || digestOfFile(path) != digest) {
             m_diagnostics.error(SourceLocation {}, "artifact changed while compiling: '" + path + "'; retry the build");
+        }
+    }
+    for (const auto& [path, fingerprint] : m_lookupInputs) {
+        if (!fingerprint.empty() && Artifacts::fileFingerprint(path) != fingerprint) {
+            m_diagnostics.error(SourceLocation {}, "source lookup changed while compiling: '" + path + "'; retry the build");
         }
     }
     return !m_diagnostics.hasErrors();
@@ -331,6 +352,7 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
         std::string selected;
         for (const std::string& spelling : { key, hierarchicalKey(key) }) {
             std::string candidate = directory + "/" + spelling + extension;
+            recordLookup(candidate);
             std::ifstream probe(nativePath(candidate), std::ios::binary);
             if (!probe) { continue; }
             if (!selected.empty() && sourceIdentity(selected) != sourceIdentity(candidate)) {
@@ -368,7 +390,8 @@ bool UnitLoader::addSource(const std::string& path)
 
 bool UnitLoader::parseInto(const std::string& path, const std::string& contents, const std::string& key)
 {
-    m_sourceInputs.emplace(path, SourceInput { digestOf(contents), sourceIdentity(path) });
+    std::string digest = digestOf(contents);
+    m_sourceInputs.emplace(path, SourceInput { digest, sourceIdentity(path), Artifacts::fileFingerprint(path, &digest) });
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
     return parseTokens(path, lexer.tokenize(), key);
@@ -624,6 +647,7 @@ bool UnitLoader::importInterface(const std::string& key, const SourceLocation& f
         if (!byGroup) {
             for (const std::string& spelling : { key, hierarchicalKey(key) }) {
                 for (const char* extension : { ".ads", ".adb" }) {
+                    recordLookup(directory + "/" + spelling + extension);
                     std::ifstream source(nativePath(directory + "/" + spelling + extension), std::ios::binary);
                     if (source) { return true; }
                 }
@@ -634,6 +658,7 @@ bool UnitLoader::importInterface(const std::string& key, const SourceLocation& f
         candidates.push_back(key);
         std::string path;
         for (const std::string& candidate : candidates) {
+            recordLookup(directory + "/" + candidate + ".asi");
             std::ifstream probe(nativePath(directory + "/" + candidate + ".asi"), std::ios::binary);
             if (probe) { path = directory + "/" + candidate + ".asi"; break; }
         }

@@ -146,7 +146,7 @@ endif()
 # Remove explicit edges to exercise the binder's independent category check.
 string(REGEX REPLACE "requires [^\n]*\n" "" broken "${manifest}")
 string(REPLACE "elaborate ordinary.spec\n" "" broken "${broken}")
-string(REPLACE "format 8\n" "format 8\nelaborate ordinary.spec\n" broken "${broken}")
+string(REPLACE "format 9\n" "format 9\nelaborate ordinary.spec\n" broken "${broken}")
 file(WRITE "${work}/scan/units.manifest" "${broken}")
 execute_process(COMMAND "${ADAC}" --bind main -D "${work}/scan"
     RESULT_VARIABLE status ERROR_VARIABLE errors TIMEOUT 20)

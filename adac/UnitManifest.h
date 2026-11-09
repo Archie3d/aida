@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../support/Artifacts.h"
+
 #include <iosfwd>
 #include <string>
 #include <vector>
@@ -33,12 +35,12 @@ struct UnitRecord
     std::vector<UnitPartRecord> parts;
 };
 
-bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {});
-bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr);
+bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {}, const Artifacts::FileInputs& inputs = {});
+bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr, Artifacts::FileInputs* inputs = nullptr);
 
 // Unit metadata plus the independent specification/body elaboration sequence.
-bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {});
-bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr);
+bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {}, const Artifacts::FileInputs& inputs = {});
+bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr, Artifacts::FileInputs* inputs = nullptr);
 
 struct UnitRecordFile
 {

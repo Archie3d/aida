@@ -4,11 +4,19 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace Artifacts {
 
 std::filesystem::path nativePath(const std::string& path);
 std::string pathText(const std::filesystem::path& path);
+std::string targetIdentity();
+using FileInputs = std::vector<std::pair<std::string, std::string>>;
+// Captures content, canonical target and permissions, including absent probes.
+// A known digest must describe the bytes actually consumed/produced.
+std::string fileFingerprint(const std::string& path, const std::string* knownDigest = nullptr);
+bool inputsMatch(const FileInputs& inputs, bool allowUnknown = false);
 
 // A unique sibling staging directory keeps external tools on the destination
 // filesystem and preserves the output suffix (.s/.o/.exe).
@@ -56,6 +64,8 @@ public:
     DirectoryLock(const DirectoryLock&) = delete;
     DirectoryLock& operator=(const DirectoryLock&) = delete;
 
+    // Canonical guard path, also used to order acquisition of multiple locks.
+    static std::string pathFor(const std::string& directory, std::string& error);
     bool acquire(const std::string& directory, const std::string& inherited = {});
     std::string inheritedArgument() const;
     const std::string& error() const { return m_error; }

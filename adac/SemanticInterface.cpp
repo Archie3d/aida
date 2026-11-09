@@ -16,37 +16,6 @@ constexpr std::size_t kMaxTokens = 1000000;
 constexpr std::size_t kMaxSources = 4096;
 constexpr const char* kHeader = "AIDA semantic interface 1\n";
 
-// A universal executable can have the same binary digest on different CPUs.
-// Keep the active ABI explicit instead of relying on executable identity alone.
-std::string targetIdentity()
-{
-    std::string target;
-#if defined(_WIN32)
-    target = "windows";
-#elif defined(__APPLE__)
-    target = "darwin";
-#elif defined(__linux__)
-    target = "linux";
-#else
-    target = "other";
-#endif
-#if defined(__aarch64__) || defined(_M_ARM64)
-    target += "-arm64";
-#elif defined(__x86_64__) || defined(_M_X64)
-    target += "-amd64";
-#else
-    target += "-other";
-#endif
-    target += "-pointer" + std::to_string(sizeof(void*) * 8);
-    target += std::endian::native == std::endian::little ? "-le" : "-be";
-    return target;
-}
-
-std::filesystem::path nativePath(const std::string& path)
-{
-    return std::filesystem::path(std::u8string(path.begin(), path.end()));
-}
-
 void putInteger(std::ostream& out, uint64_t value)
 {
     for (int i = 0; i < 8; ++i) { out.put(static_cast<char>(value >> (i * 8))); }
@@ -98,7 +67,7 @@ bool writeSemanticInterface(const std::string& path, const SemanticInterface& se
     if (semanticInterface.sources.empty() || semanticInterface.sources.size() > kMaxSources) { return false; }
     std::ostringstream payload(std::ios::binary);
     putString(payload, semanticInterface.compilerDigest);
-    putString(payload, targetIdentity());
+    putString(payload, Artifacts::targetIdentity());
     std::ostringstream metadata;
     writeManifest(metadata, { semanticInterface.unit }, {});
     putString(payload, metadata.str());
@@ -134,9 +103,9 @@ bool readSemanticInterface(const std::string& path, const std::string& compilerD
 {
     error = "invalid or truncated semantic interface";
     std::error_code fileError;
-    auto size = std::filesystem::file_size(nativePath(path), fileError);
+    auto size = std::filesystem::file_size(Artifacts::nativePath(path), fileError);
     if (fileError || size > kMaxInterfaceBytes + 128) { return false; }
-    std::ifstream in(nativePath(path), std::ios::binary);
+    std::ifstream in(Artifacts::nativePath(path), std::ios::binary);
     std::string header;
     std::string checksum;
     if (!std::getline(in, header) || header + "\n" != kHeader) {
@@ -155,7 +124,7 @@ bool readSemanticInterface(const std::string& path, const std::string& compilerD
         error = "semantic interface was produced by a different compiler";
         return false;
     }
-    if (reader.string() != targetIdentity()) {
+    if (reader.string() != Artifacts::targetIdentity()) {
         error = "semantic interface was produced for a different target ABI";
         return false;
     }

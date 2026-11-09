@@ -5,8 +5,8 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** finish Phase 8 functional/tooling work, starting with driver
-no-op builds and cleanup. Further profiling is deferred and does not block this work.
+**Current focus:** finish Phase 8 functional/tooling work, starting with bound
+prefixed temporary receiver layouts. Further profiling is deferred and does not block this work.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -96,8 +96,12 @@ and contracts, rather than being repeated in this roadmap.
   exact dependency/provenance contracts and fixed scan-root replay. Interrupted
   groups fail closed and regenerate from sources.
   [Contract and validation](docs/artifact-publication.md).
-- [ ] **Driver no-op builds and cleanup.** Skip scan, bind and link when nothing
-  changed; allow `--clean` without a source argument.
+- [x] **Driver no-op builds and cleanup.** Checked whole-build receipts skip
+  all tools for unchanged file outputs. Content/provenance, lookup candidates,
+  tools, environment and required products invalidate stale receipts; `--force`
+  bypasses the shortcut. Source-free cleanup accepts `-D` or `-o`, coordinates
+  with active builds and reports filesystem errors.
+  [Contract and validation](docs/driver-builds.md).
 - [ ] **Bound prefixed temporary receiver layouts.** Support array/runtime
   aggregate receivers and subobjects of unmanaged enclosing composite function
   results. Preserve lifetime and component identity; retain explicit diagnostics

@@ -257,6 +257,7 @@ std::string libraryBesideExecutable(const std::string& executablePath)
 
 int main(int argc, char** argv)
 {
+    std::string buildInputsOutput;
     std::string inheritedLock;
     bool strictSearchRoots = false;
     std::vector<std::string> inputs;
@@ -303,6 +304,9 @@ int main(int argc, char** argv)
             includes.push_back(argv[++i]);
         } else if (argument.size() > 2 && argument.compare(0, 2, "-I") == 0) {
             includes.push_back(argument.substr(2));
+        } else if (argument == "--build-inputs") {
+            if (++i >= argc) { std::cerr << "adac: error: missing input snapshot filename\n"; return 2; }
+            buildInputsOutput = argv[i];
         } else if (argument == "--artifact-lock") {
             if (++i >= argc) { std::cerr << "adac: error: missing artifact lock handle\n"; return 2; }
             inheritedLock = argv[i];
@@ -349,7 +353,8 @@ int main(int argc, char** argv)
     if (executable.find_first_of("/\\") == std::string::npos) {
         executable = alongPath(executable);
     }
-    const std::string compilerDigest = digestOfFile(resolvedPath(executable));
+    const std::string compilerPath = resolvedPath(executable);
+    const std::string compilerDigest = digestOfFile(compilerPath);
 
     if (bindOnly) {
         if (artifacts.empty()) {
@@ -422,6 +427,12 @@ int main(int argc, char** argv)
     Diagnostics diagnostics;
     UnitLoader loader(diagnostics);
     loader.setCompilerDigest(compilerDigest);
+    auto inputSnapshot = [&]() {
+        auto inputs = loader.inputSnapshot();
+        inputs.emplace_back(executable, Artifacts::fileFingerprint(executable, &compilerDigest));
+        inputs.emplace_back(compilerPath, Artifacts::fileFingerprint(compilerPath, &compilerDigest));
+        return inputs;
+    };
 
     loader.setImplicitSourcePaths(!strictSearchRoots);
     if (strictSearchRoots || singleUnit) {
@@ -520,7 +531,7 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) {
             records.push_back(describe(unit, loader));
         }
-        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations, loader.searchPaths(), compilerDigest)) {
+        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations, loader.searchPaths(), compilerDigest, inputSnapshot())) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
@@ -652,7 +663,7 @@ int main(int argc, char** argv)
         if (!binder->finish()) { std::cerr << "adac: error: cannot stage binder\n"; return 2; }
         outputs.push_back(std::move(binder));
         Artifacts::AtomicPath manifest(artifacts + "/" + manifestName);
-        if (!manifest.valid() || !writeManifest(manifest.temporary(), records, elaborations, loader.searchPaths(), compilerDigest)) {
+        if (!manifest.valid() || !writeManifest(manifest.temporary(), records, elaborations, loader.searchPaths(), compilerDigest, inputSnapshot())) {
             std::cerr << "adac: error: cannot stage manifest\n";
             return 2;
         }
@@ -672,7 +683,20 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) { emitter.emitUnit(unit, *stream); }
         emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream);
         if (!loader.validateInputs()) { return 1; }
-        if (file && !file->commit()) { std::cerr << "adac: error: cannot publish '" << output << "'\n"; return 2; }
+        std::string outputDigest;
+        if (file) {
+            if (!file->finish()) { std::cerr << "adac: error: cannot finish output\n"; return 2; }
+            outputDigest = digestOfFile(file->temporary());
+            if (!file->commit()) { std::cerr << "adac: error: cannot publish '" << output << "'\n"; return 2; }
+        }
+        if (!buildInputsOutput.empty()) {
+            auto inputs = inputSnapshot();
+            if (file) { inputs.emplace_back(output, Artifacts::fileFingerprint(output, &outputDigest)); }
+            if (!writeManifest(buildInputsOutput, {}, {}, loader.searchPaths(), compilerDigest, inputs)) {
+                std::cerr << "adac: error: cannot publish input snapshot\n";
+                return 2;
+            }
+        }
     }
 
     return diagnostics.hasErrors() ? 1 : 0;

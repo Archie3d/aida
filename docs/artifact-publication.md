@@ -92,7 +92,7 @@ records are copied through a checked staging snapshot into the client's cache.
 Workspace edits and producer publications are not globally locked transactions;
 a build whose inputs change can fail and be retried.
 
-Manifests now use format 8 with a mandatory completion marker. Compiled records
+Manifests now use format 9 with a mandatory completion marker. Compiled records
 use format 4 with a checksum and strict field/framing checks. Native cache
 records use format 2. Previous formats are rebuilt or rejected. Source paths
 and object-group keys retain spaces without changing their identity.
@@ -111,9 +111,9 @@ object groups and colliding group/declaration names; unchanged ACATS CA110232 an
 CA120012 retain their cross-file limited-context controls. Executables from failed builds retain their
 previous behavior, and successful builds execute the expected new code.
 
-The driver still performs its normal scan, bind and link on unchanged builds.
-Skipping those operations and allowing `--clean` without a source argument
-remain the next roadmap item.
+The driver now skips scan, bind and link when its checked whole-build receipt
+is current. Source-free cleanup uses the same exclusion protocol; see
+[driver builds and cleanup](driver-builds.md).
 
 Validation on Darwin arm64 (2026-11-09): all 1,971 CTest checks passed. The
 publication, source-free interface, hierarchical-layout, separate-binding,

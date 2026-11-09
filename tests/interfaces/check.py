@@ -146,7 +146,7 @@ end Client;''')
     # overloads, tagged primitives, generic body/subunit replay and bundle aliases.
     run([args.adac, '--no-stdlib', '-c', '-I', package, '-D', work / 'frontend', source], environment)
     second = run(command, environment)
-    if 'client needs no compiling' not in second.stderr:
+    if 'no-op build' not in second.stderr and 'client needs no compiling' not in second.stderr:
         raise RuntimeError('unchanged interface client was recompiled')
     # Explicit custom-named source groups retain precedence when an imported
     # compiled record also names that group as a dependency.

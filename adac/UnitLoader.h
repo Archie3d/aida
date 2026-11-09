@@ -39,6 +39,7 @@ public:
     std::string sourceProvenance(const std::string& path) const;
     void recordArtifactInput(const std::string& path, const std::string& digest);
     bool validateInputs();
+    Artifacts::FileInputs inputSnapshot() const;
 
     void setCompilerDigest(const std::string& digest) { m_compilerDigest = digest; }
     const UnitRecord* importedRecord(const std::string& key) const;
@@ -80,6 +81,7 @@ private:
     bool loadSubunitParent(CompilationUnit& unit);
     void registerParts(const std::string& key);
     bool validateParts();
+    void recordLookup(const std::string& path) const;
     bool readFile(const std::string& path, std::string& contents) const;
     std::string findUnit(const std::string& key, const char* extension) const;
     bool loadPart(const std::string& path, const std::string& identity, const SourceLocation& from);
@@ -89,10 +91,13 @@ private:
     {
         std::string digest;
         std::string identity;
+        std::string fingerprint;
     };
     bool m_implicitSourcePaths = true;
     std::unordered_map<std::string, SourceInput> m_sourceInputs;
     std::unordered_map<std::string, std::string> m_artifactInputs;
+    std::unordered_map<std::string, std::string> m_artifactFingerprints;
+    mutable std::unordered_map<std::string, std::string> m_lookupInputs;
     std::string m_compilerDigest;
     std::unordered_map<std::string, UnitRecord> m_importedRecords;
     std::unordered_map<std::string, InterfaceSource> m_tokenSources;

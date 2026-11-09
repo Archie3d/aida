@@ -49,7 +49,10 @@ ada -o hello hello.adb
 `ada --help` lists driver options. The driver resolves dependencies, invokes
 the frontend, QBE, and the system C compiler, then links the runtime. For
 frontend-only use, `adac --help` describes its options. Executable builds keep
-per-unit artifacts in `<program>.adaobj` by default and reuse unchanged units.
+per-unit artifacts in `<program>.adaobj` by default. Unchanged file builds skip
+all tool invocations; `--force` bypasses that shortcut. `ada --clean -o program`
+or `ada --clean -D directory` removes artifacts without needing sources
+([build and cleanup contract](docs/driver-builds.md)).
 Shared build directories follow the [artifact publication rules](docs/artifact-publication.md).
 Library roots in `ADA_INCLUDE_PATH` support mixed [flat and hierarchical unit
 source layouts](docs/unit-source-layouts.md) and [compiled interfaces](docs/semantic-interfaces.md).
@@ -64,8 +67,8 @@ ada -o program main.adb helper.o libexample.a
 Declare C entry points with `pragma Import (C, Ada_Name, "c_symbol")`.
 External `.o`/`.a` inputs retain their order after the Ada objects and before the
 runtime; put archives after objects or archives that use them. The last Ada
-source selects the main program and default output name. At least one Ada source
-is required; `.o`/`.a` inputs cannot be used with `-S` or `--emit-ir`.
+source selects the main program and default output name. Compilation requires at
+least one Ada source; `.o`/`.a` inputs cannot be used with `-S` or `--emit-ir`.
 Use `--source file.a` for Ada sources with an archive extension (such as ACATS).
 For manual linking, `ada -S -o program.s main.adb` produces whole-program
 assembly; assemble it with `cc -c` and link with the AIDA runtime and its system

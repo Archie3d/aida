@@ -145,8 +145,8 @@ elseif(CASE STREQUAL "bundles")
     endfunction()
     build_bundle(42)
     build_bundle(42)
-    if(NOT commands MATCHES "bundle_parts needs no compiling"
-        OR NOT commands MATCHES "bundle_client needs no compiling")
+    if(NOT commands MATCHES "no-op build" AND (NOT commands MATCHES "bundle_parts needs no compiling"
+        OR NOT commands MATCHES "bundle_client needs no compiling"))
         message(FATAL_ERROR "unchanged bundle rebuilt: ${commands}")
     endif()
     file(READ "${work}/bundle_parts.adb" source)
