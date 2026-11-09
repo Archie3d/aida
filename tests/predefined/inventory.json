@@ -11,277 +11,277 @@
     },
     {
       "name": "ada.assertions",
-      "source": "runtime/ada/ada-assertions.ads",
+      "source": "runtime/ada/ada/assertions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.calendar",
-      "source": "runtime/ada/ada-calendar.ads",
+      "source": "runtime/ada/ada/calendar.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.calendar.arithmetic",
-      "source": "runtime/ada/ada-calendar-arithmetic.ads",
+      "source": "runtime/ada/ada/calendar/arithmetic.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.calendar.formatting",
-      "source": "runtime/ada/ada-calendar-formatting.ads",
+      "source": "runtime/ada/ada/calendar/formatting.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.calendar.time_zones",
-      "source": "runtime/ada/ada-calendar-time_zones.ads",
+      "source": "runtime/ada/ada/calendar/time_zones.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.characters",
-      "source": "runtime/ada/ada-characters.ads",
+      "source": "runtime/ada/ada/characters.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.characters.conversions",
-      "source": "runtime/ada/ada-characters-conversions.ads",
+      "source": "runtime/ada/ada/characters/conversions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.characters.handling",
-      "source": "runtime/ada/ada-characters-handling.ads",
+      "source": "runtime/ada/ada/characters/handling.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.characters.latin_1",
-      "source": "runtime/ada/ada-characters-latin_1.ads",
+      "source": "runtime/ada/ada/characters/latin_1.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.command_line",
-      "source": "runtime/ada/ada-command_line.ads",
+      "source": "runtime/ada/ada/command_line.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers",
-      "source": "runtime/ada/ada-containers.ads",
+      "source": "runtime/ada/ada/containers.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.doubly_linked_lists",
-      "source": "runtime/ada/ada-containers-doubly_linked_lists.ads",
+      "source": "runtime/ada/ada/containers/doubly_linked_lists.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.generic_array_sort",
-      "source": "runtime/ada/ada-containers-generic_array_sort.ads",
+      "source": "runtime/ada/ada/containers/generic_array_sort.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.generic_constrained_array_sort",
-      "source": "runtime/ada/ada-containers-generic_constrained_array_sort.ads",
+      "source": "runtime/ada/ada/containers/generic_constrained_array_sort.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.hashed_maps",
-      "source": "runtime/ada/ada-containers-hashed_maps.ads",
+      "source": "runtime/ada/ada/containers/hashed_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.hashed_sets",
-      "source": "runtime/ada/ada-containers-hashed_sets.ads",
+      "source": "runtime/ada/ada/containers/hashed_sets.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_doubly_linked_lists",
-      "source": "runtime/ada/ada-containers-indefinite_doubly_linked_lists.ads",
+      "source": "runtime/ada/ada/containers/indefinite_doubly_linked_lists.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_hashed_maps",
-      "source": "runtime/ada/ada-containers-indefinite_hashed_maps.ads",
+      "source": "runtime/ada/ada/containers/indefinite_hashed_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_hashed_sets",
-      "source": "runtime/ada/ada-containers-indefinite_hashed_sets.ads",
+      "source": "runtime/ada/ada/containers/indefinite_hashed_sets.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_ordered_maps",
-      "source": "runtime/ada/ada-containers-indefinite_ordered_maps.ads",
+      "source": "runtime/ada/ada/containers/indefinite_ordered_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_ordered_sets",
-      "source": "runtime/ada/ada-containers-indefinite_ordered_sets.ads",
+      "source": "runtime/ada/ada/containers/indefinite_ordered_sets.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.indefinite_vectors",
-      "source": "runtime/ada/ada-containers-indefinite_vectors.ads",
+      "source": "runtime/ada/ada/containers/indefinite_vectors.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.ordered_maps",
-      "source": "runtime/ada/ada-containers-ordered_maps.ads",
+      "source": "runtime/ada/ada/containers/ordered_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.ordered_sets",
-      "source": "runtime/ada/ada-containers-ordered_sets.ads",
+      "source": "runtime/ada/ada/containers/ordered_sets.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.containers.storage",
-      "source": "runtime/ada/ada-containers-storage.ads",
+      "source": "runtime/ada/ada/containers/storage.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.containers.vectors",
-      "source": "runtime/ada/ada-containers-vectors.ads",
+      "source": "runtime/ada/ada/containers/vectors.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.direct_io",
-      "source": "runtime/ada/ada-direct_io.ads",
+      "source": "runtime/ada/ada/direct_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.directories",
-      "source": "runtime/ada/ada-directories.ads",
+      "source": "runtime/ada/ada/directories.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.environment_variables",
-      "source": "runtime/ada/ada-environment_variables.ads",
+      "source": "runtime/ada/ada/environment_variables.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.exceptions",
-      "source": "runtime/ada/ada-exceptions.ads",
+      "source": "runtime/ada/ada/exceptions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.finalization",
-      "source": "runtime/ada/ada-finalization.ads",
+      "source": "runtime/ada/ada/finalization.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.float_text_io",
-      "source": "runtime/ada/ada-float_text_io.ads",
+      "source": "runtime/ada/ada/float_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.float_wide_text_io",
-      "source": "runtime/ada/ada-float_wide_text_io.ads",
+      "source": "runtime/ada/ada/float_wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.float_wide_wide_text_io",
-      "source": "runtime/ada/ada-float_wide_wide_text_io.ads",
+      "source": "runtime/ada/ada/float_wide_wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.integer_text_io",
-      "source": "runtime/ada/ada-integer_text_io.ads",
+      "source": "runtime/ada/ada/integer_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.integer_wide_text_io",
-      "source": "runtime/ada/ada-integer_wide_text_io.ads",
+      "source": "runtime/ada/ada/integer_wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.integer_wide_wide_text_io",
-      "source": "runtime/ada/ada-integer_wide_wide_text_io.ads",
+      "source": "runtime/ada/ada/integer_wide_wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.io_exceptions",
-      "source": "runtime/ada/ada-io_exceptions.ads",
+      "source": "runtime/ada/ada/io_exceptions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.io_handles",
-      "source": "runtime/ada/ada-io_handles.ads",
+      "source": "runtime/ada/ada/io_handles.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_float_text_io",
-      "source": "runtime/ada/ada-long_float_text_io.ads",
+      "source": "runtime/ada/ada/long_float_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_float_wide_text_io",
-      "source": "runtime/ada/ada-long_float_wide_text_io.ads",
+      "source": "runtime/ada/ada/long_float_wide_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_float_wide_wide_text_io",
-      "source": "runtime/ada/ada-long_float_wide_wide_text_io.ads",
+      "source": "runtime/ada/ada/long_float_wide_wide_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_integer_text_io",
-      "source": "runtime/ada/ada-long_integer_text_io.ads",
+      "source": "runtime/ada/ada/long_integer_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_integer_wide_text_io",
-      "source": "runtime/ada/ada-long_integer_wide_text_io.ads",
+      "source": "runtime/ada/ada/long_integer_wide_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.long_integer_wide_wide_text_io",
-      "source": "runtime/ada/ada-long_integer_wide_wide_text_io.ads",
+      "source": "runtime/ada/ada/long_integer_wide_wide_text_io.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.numerics",
-      "source": "runtime/ada/ada-numerics.ads",
+      "source": "runtime/ada/ada/numerics.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
@@ -290,11 +290,11 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.5.2",
-      "source": "runtime/ada/ada-numerics-discrete_random.ads"
+      "source": "runtime/ada/ada/numerics/discrete_random.ads"
     },
     {
       "name": "ada.numerics.elementary_functions",
-      "source": "runtime/ada/ada-numerics-elementary_functions.ads",
+      "source": "runtime/ada/ada/numerics/elementary_functions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
@@ -303,35 +303,35 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.5.2",
-      "source": "runtime/ada/ada-numerics-float_random.ads"
+      "source": "runtime/ada/ada/numerics/float_random.ads"
     },
     {
       "name": "ada.numerics.generic_elementary_functions",
-      "source": "runtime/ada/ada-numerics-generic_elementary_functions.ads",
+      "source": "runtime/ada/ada/numerics/generic_elementary_functions.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.numerics.long_elementary_functions",
-      "source": "runtime/ada/ada-numerics-long_elementary_functions.ads",
+      "source": "runtime/ada/ada/numerics/long_elementary_functions.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.numerics.random_engine",
-      "source": "runtime/ada/ada-numerics-random_engine.ads",
+      "source": "runtime/ada/ada/numerics/random_engine.ads",
       "scope": "implementation",
       "status": "resolves"
     },
     {
       "name": "ada.real_time",
-      "source": "runtime/ada/ada-real_time.ads",
+      "source": "runtime/ada/ada/real_time.ads",
       "scope": "annex_subset",
       "status": "resolves"
     },
     {
       "name": "ada.sequential_io",
-      "source": "runtime/ada/ada-sequential_io.ads",
+      "source": "runtime/ada/ada/sequential_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
@@ -340,203 +340,203 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.9",
-      "source": "runtime/ada/ada-storage_io.ads"
+      "source": "runtime/ada/ada/storage_io.ads"
     },
     {
       "name": "ada.streams",
-      "source": "runtime/ada/ada-streams.ads",
+      "source": "runtime/ada/ada/streams.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.streams.stream_io",
-      "source": "runtime/ada/ada-streams-stream_io.ads",
+      "source": "runtime/ada/ada/streams/stream_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings",
-      "source": "runtime/ada/ada-strings.ads",
+      "source": "runtime/ada/ada/strings.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.bounded",
-      "source": "runtime/ada/ada-strings-bounded.ads",
+      "source": "runtime/ada/ada/strings/bounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.bounded.hash",
-      "source": "runtime/ada/ada-strings-bounded-hash.ads",
+      "source": "runtime/ada/ada/strings/bounded/hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.fixed",
-      "source": "runtime/ada/ada-strings-fixed.ads",
+      "source": "runtime/ada/ada/strings/fixed.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.fixed.hash",
-      "source": "runtime/ada/ada-strings-fixed-hash.ads",
+      "source": "runtime/ada/ada/strings/fixed/hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.generic_hash",
-      "source": "runtime/ada/ada-strings-generic_hash.ads",
+      "source": "runtime/ada/ada/strings/generic_hash.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.strings.hash",
-      "source": "runtime/ada/ada-strings-hash.ads",
+      "source": "runtime/ada/ada/strings/hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.maps",
-      "source": "runtime/ada/ada-strings-maps.ads",
+      "source": "runtime/ada/ada/strings/maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.maps.constants",
-      "source": "runtime/ada/ada-strings-maps-constants.ads",
+      "source": "runtime/ada/ada/strings/maps/constants.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.unbounded",
-      "source": "runtime/ada/ada-strings-unbounded.ads",
+      "source": "runtime/ada/ada/strings/unbounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.unbounded.hash",
-      "source": "runtime/ada/ada-strings-unbounded-hash.ads",
+      "source": "runtime/ada/ada/strings/unbounded/hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_bounded",
-      "source": "runtime/ada/ada-strings-wide_bounded.ads",
+      "source": "runtime/ada/ada/strings/wide_bounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_bounded.wide_hash",
-      "source": "runtime/ada/ada-strings-wide_bounded-wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_bounded/wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_fixed",
-      "source": "runtime/ada/ada-strings-wide_fixed.ads",
+      "source": "runtime/ada/ada/strings/wide_fixed.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_fixed.wide_hash",
-      "source": "runtime/ada/ada-strings-wide_fixed-wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_fixed/wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_hash",
-      "source": "runtime/ada/ada-strings-wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_maps",
-      "source": "runtime/ada/ada-strings-wide_maps.ads",
+      "source": "runtime/ada/ada/strings/wide_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_maps.wide_constants",
-      "source": "runtime/ada/ada-strings-wide_maps-wide_constants.ads",
+      "source": "runtime/ada/ada/strings/wide_maps/wide_constants.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_support",
-      "source": "runtime/ada/ada-strings-wide_support.ads",
+      "source": "runtime/ada/ada/strings/wide_support.ads",
       "scope": "extension",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_unbounded",
-      "source": "runtime/ada/ada-strings-wide_unbounded.ads",
+      "source": "runtime/ada/ada/strings/wide_unbounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_unbounded.wide_hash",
-      "source": "runtime/ada/ada-strings-wide_unbounded-wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_unbounded/wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_bounded",
-      "source": "runtime/ada/ada-strings-wide_wide_bounded.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_bounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_bounded.wide_wide_hash",
-      "source": "runtime/ada/ada-strings-wide_wide_bounded-wide_wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_bounded/wide_wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_fixed",
-      "source": "runtime/ada/ada-strings-wide_wide_fixed.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_fixed.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_fixed.wide_wide_hash",
-      "source": "runtime/ada/ada-strings-wide_wide_fixed-wide_wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_fixed/wide_wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_hash",
-      "source": "runtime/ada/ada-strings-wide_wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_maps",
-      "source": "runtime/ada/ada-strings-wide_wide_maps.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_maps.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_maps.wide_wide_constants",
-      "source": "runtime/ada/ada-strings-wide_wide_maps-wide_wide_constants.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_maps/wide_wide_constants.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_unbounded",
-      "source": "runtime/ada/ada-strings-wide_wide_unbounded.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_unbounded.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.strings.wide_wide_unbounded.wide_wide_hash",
-      "source": "runtime/ada/ada-strings-wide_wide_unbounded-wide_wide_hash.ads",
+      "source": "runtime/ada/ada/strings/wide_wide_unbounded/wide_wide_hash.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.tags",
-      "source": "runtime/ada/ada-tags.ads",
+      "source": "runtime/ada/ada/tags.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
@@ -545,29 +545,29 @@
       "scope": "core",
       "status": "resolves",
       "rm": "3.9",
-      "source": "runtime/ada/ada-tags-generic_dispatching_constructor.ads"
+      "source": "runtime/ada/ada/tags/generic_dispatching_constructor.ads"
     },
     {
       "name": "ada.task_identification",
-      "source": "runtime/ada/ada-task_identification.ads",
+      "source": "runtime/ada/ada/task_identification.ads",
       "scope": "annex_subset",
       "status": "resolves"
     },
     {
       "name": "ada.text_io",
-      "source": "runtime/ada/ada-text_io.ads",
+      "source": "runtime/ada/ada/text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.text_io.bounded_io",
-      "source": "runtime/ada/ada-text_io-bounded_io.ads",
+      "source": "runtime/ada/ada/text_io/bounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.text_io.scanning",
-      "source": "runtime/ada/ada-text_io-scanning.ads",
+      "source": "runtime/ada/ada/text_io/scanning.ads",
       "scope": "extension",
       "status": "resolves"
     },
@@ -576,41 +576,41 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.12.2",
-      "source": "runtime/ada/ada-text_io-text_streams.ads"
+      "source": "runtime/ada/ada/text_io/text_streams.ads"
     },
     {
       "name": "ada.text_io.unbounded_io",
-      "source": "runtime/ada/ada-text_io-unbounded_io.ads",
+      "source": "runtime/ada/ada/text_io/unbounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.unchecked_conversion",
-      "source": "runtime/ada/ada-unchecked_conversion.ads",
+      "source": "runtime/ada/ada/unchecked_conversion.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.unchecked_deallocation",
-      "source": "runtime/ada/ada-unchecked_deallocation.ads",
+      "source": "runtime/ada/ada/unchecked_deallocation.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_characters",
-      "source": "runtime/ada/ada-wide_characters.ads",
+      "source": "runtime/ada/ada/wide_characters.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_text_io",
-      "source": "runtime/ada/ada-wide_text_io.ads",
+      "source": "runtime/ada/ada/wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_text_io.scanning",
-      "source": "runtime/ada/ada-wide_text_io-scanning.ads",
+      "source": "runtime/ada/ada/wide_text_io/scanning.ads",
       "scope": "extension",
       "status": "resolves"
     },
@@ -619,35 +619,35 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.12.3",
-      "source": "runtime/ada/ada-wide_text_io-text_streams.ads"
+      "source": "runtime/ada/ada/wide_text_io/text_streams.ads"
     },
     {
       "name": "ada.wide_text_io.wide_bounded_io",
-      "source": "runtime/ada/ada-wide_text_io-wide_bounded_io.ads",
+      "source": "runtime/ada/ada/wide_text_io/wide_bounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_text_io.wide_unbounded_io",
-      "source": "runtime/ada/ada-wide_text_io-wide_unbounded_io.ads",
+      "source": "runtime/ada/ada/wide_text_io/wide_unbounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_wide_characters",
-      "source": "runtime/ada/ada-wide_wide_characters.ads",
+      "source": "runtime/ada/ada/wide_wide_characters.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_wide_text_io",
-      "source": "runtime/ada/ada-wide_wide_text_io.ads",
+      "source": "runtime/ada/ada/wide_wide_text_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_wide_text_io.scanning",
-      "source": "runtime/ada/ada-wide_wide_text_io-scanning.ads",
+      "source": "runtime/ada/ada/wide_wide_text_io/scanning.ads",
       "scope": "extension",
       "status": "resolves"
     },
@@ -656,17 +656,17 @@
       "scope": "core",
       "status": "resolves",
       "rm": "A.12.4",
-      "source": "runtime/ada/ada-wide_wide_text_io-text_streams.ads"
+      "source": "runtime/ada/ada/wide_wide_text_io/text_streams.ads"
     },
     {
       "name": "ada.wide_wide_text_io.wide_wide_bounded_io",
-      "source": "runtime/ada/ada-wide_wide_text_io-wide_wide_bounded_io.ads",
+      "source": "runtime/ada/ada/wide_wide_text_io/wide_wide_bounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
     {
       "name": "ada.wide_wide_text_io.wide_wide_unbounded_io",
-      "source": "runtime/ada/ada-wide_wide_text_io-wide_wide_unbounded_io.ads",
+      "source": "runtime/ada/ada/wide_wide_text_io/wide_wide_unbounded_io.ads",
       "scope": "core_or_compatibility",
       "status": "resolves"
     },
@@ -711,21 +711,21 @@
       "scope": "core",
       "status": "resolves",
       "rm": "13.7.2",
-      "source": "runtime/ada/system-address_to_access_conversions.ads"
+      "source": "runtime/ada/system/address_to_access_conversions.ads"
     },
     {
       "name": "system.storage_elements",
       "scope": "core",
       "status": "resolves",
       "rm": "13.7.1",
-      "source": "runtime/ada/system-storage_elements.ads"
+      "source": "runtime/ada/system/storage_elements.ads"
     },
     {
       "name": "system.storage_pools",
       "scope": "core",
       "status": "resolves",
       "rm": "13.11",
-      "source": "runtime/ada/system-storage_pools.ads"
+      "source": "runtime/ada/system/storage_pools.ads"
     },
     {
       "name": "text_io",

@@ -755,6 +755,13 @@ foreach(loading_case cycles identity sources child bundles completions)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckUnitLoading.cmake)
     set_tests_properties(loading.${loading_case} PROPERTIES TIMEOUT 30)
 endforeach()
+add_test(NAME loading.hierarchical_layouts
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada>
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckHierarchicalLayouts.cmake)
+set_tests_properties(loading.hierarchical_layouts PROPERTIES TIMEOUT 180)
 add_ada_test(load_main SOURCES units/loading/load_main.adb)
 add_ada_test(child_main SOURCES units/loading/load_parent-child.ads units/loading/child_main.adb)
 add_determinism_test(load_main SOURCE units/loading/load_main.adb)

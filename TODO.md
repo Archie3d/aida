@@ -5,8 +5,8 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** finish Phase 8 functional/tooling work, starting with hierarchical
-unit source layouts. Further profiling is deferred and does not block this work.
+**Current focus:** finish Phase 8 functional/tooling work, starting with serialized
+semantic interfaces. Further profiling is deferred and does not block this work.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -79,13 +79,14 @@ and contracts, rather than being repeated in this roadmap.
   Reopen the decision before select emission if cancellation/cleanup paths need
   duplication, or when another backend needs a shared representation.
   [Lowering decision](docs/lowering-decision.md).
-- [ ] **Hierarchical unit source layouts.** Support deterministic unit-to-path
+- [x] **Hierarchical unit source layouts.** Support deterministic unit-to-path
   mapping for both flat (`ada-text_io.ads`) and hierarchical (`ada/text_io.ads`)
   layouts, including bodies and deeper children, without recursive scanning.
   Preserve search-directory precedence, allow mixed layouts, diagnose conflicting
   files within a search directory and verify declared unit identities. Cover
-  separate compilation, caching and relocated installs; migrate the runtime into
-  subfolders in a separate change after loader support is validated.
+  separate compilation, caching and relocated installs. Runtime sources migrated
+  into subfolders after loader support was validated.
+  [Contract and validation](docs/unit-source-layouts.md).
 - [ ] **Serialized semantic interfaces.** Let clients compile without dependency
   sources. `.ali` files currently hold build metadata only.
 - [ ] **Robust artifact publication and concurrent builds.** Handle interrupted

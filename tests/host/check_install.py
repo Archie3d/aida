@@ -55,6 +55,13 @@ def main():
         system = library / 'system.ads'
         system.write_text(system.read_text().replace('end System;',
                           '    Relocation_Probe : constant := 73;\nend System;'))
+        # Installation must preserve the repository's hierarchy, with no flat
+        # copies that could conceal a loader or packaging regression.
+        for extension in ['ads', 'adb']:
+            if not (library / 'ada' / ('text_io.' + extension)).is_file():
+                raise RuntimeError('installed runtime hierarchy is missing Text_IO')
+            if (library / ('ada-text_io.' + extension)).exists():
+                raise RuntimeError('installed runtime contains a stale flat Text_IO copy')
         source = root / 'source with spaces'
         source.mkdir()
         dependencies = root / 'dependency library with spaces'

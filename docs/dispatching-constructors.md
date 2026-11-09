@@ -1,6 +1,6 @@
 # Dispatching constructors (Ada 2005 3.9)
 
-[Ada.Tags.Generic_Dispatching_Constructor](../runtime/ada/ada-tags-generic_dispatching_constructor.ads)
+[Ada.Tags.Generic_Dispatching_Constructor](../runtime/ada/ada/tags/generic_dispatching_constructor.ads)
 provides the [RM 3.9](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-9.html)
 generic function with abstract tagged limited private T, limited private
 Parameters, and the abstract formal Constructor. Both type formals permit

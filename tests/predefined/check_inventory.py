@@ -51,11 +51,15 @@ def main():
     units = manifest['units']
     if manifest['schema'] != 1 or len({u['name'] for u in units}) != len(units):
         raise ValueError('invalid or duplicate unit metadata')
-    actual = {p.relative_to(root).as_posix() for p in (root / 'runtime/ada').glob('*.ads')}
+    actual = {p.relative_to(root).as_posix() for p in (root / 'runtime/ada').rglob('*.ads')}
     recorded = {u['source'] for u in units if u.get('source') != 'compiler builtin' and u['status'] == 'resolves'}
     if actual != recorded:
         raise ValueError(f'update inventory for source changes: {sorted(actual ^ recorded)}')
     for unit in units:
+        if unit['status'] == 'resolves' and unit.get('source') != 'compiler builtin':
+            expected = 'runtime/ada/' + unit['name'].lower().replace('.', '/') + '.ads'
+            if unit['source'] != expected:
+                raise ValueError(f'nonhierarchical runtime source: {unit}')
         if unit['status'] not in {'resolves', 'missing'}:
             raise ValueError(f'invalid unit status: {unit}')
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:

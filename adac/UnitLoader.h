@@ -12,11 +12,12 @@
 // draws on, so that a `with` clause means what it says rather than obliging the
 // caller to name every file on the command line.
 //
-// A unit is stored under the name GNAT gives it: lower cased, with each dot of
-// the name written as a dash, so Ada.Text_IO.Integer_IO lives in
-// ada-text_io-integer_io.ads with its body beside it in the .adb file.
-// Subunits use the same naming rule for Parent.Name and join the parent's
-// object group after expansion at their stubs.
+// Unit names are lower cased and mapped to either flat dash-separated names
+// (ada-text_io.ads) or hierarchical paths (ada/text_io.ads), with .adb bodies.
+// Each search directory is checked in order; distinct files at both spellings
+// in the same directory are an error. No recursive directory scan is needed.
+// Subunits use the same mapping for Parent.Name and join the parent's object
+// group after expansion at their stubs.
 class UnitLoader
 {
 public:

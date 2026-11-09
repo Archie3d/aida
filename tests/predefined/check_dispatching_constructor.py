@@ -10,7 +10,7 @@ parser.add_argument('--work', required=True, type=Path)
 args = parser.parse_args()
 args.work.mkdir(parents=True, exist_ok=True)
 root = Path(__file__).resolve().parents[2]
-spec = (root / 'runtime/ada/ada-tags-generic_dispatching_constructor.ads').read_text()
+spec = (root / 'runtime/ada/ada/tags/generic_dispatching_constructor.ads').read_text()
 main = args.work / 'profile.adb'
 main.write_text('''with Ada.Tags.Generic_Dispatching_Constructor;
 procedure Profile is

@@ -3,11 +3,11 @@ data $.ada_text_io_scanning.str.1 = { b "<unknown>" 0 }
 data $.ada_text_io_scanning.str.2 = { b "ada-text_io-scanning (body elaboration)" 0 }
 export data $ada__text_io__scanning__normalized.elaborated = align 4 { w 0 }
 export data $ada__text_io__scanning__normalized.access = align 8 { l $ada__text_io__scanning__normalized, l 0 }
-data $.ada_text_io_scanning.str.3 = { b "ada-text_io-scanning.ads:26:5" 0 }
-data $.ada_text_io_scanning.str.4 = { b "ada-text_io-scanning.adb:3:9" 0 }
-data $.ada_text_io_scanning.str.5 = { b "ada-text_io-scanning.adb:6:23" 0 }
-data $.ada_text_io_scanning.str.6 = { b "ada-text_io-scanning.adb:7:17" 0 }
-data $.ada_text_io_scanning.str.7 = { b "ada-text_io-scanning.adb:10:9" 0 }
+data $.ada_text_io_scanning.str.3 = { b "scanning.ads:26:5" 0 }
+data $.ada_text_io_scanning.str.4 = { b "scanning.adb:3:9" 0 }
+data $.ada_text_io_scanning.str.5 = { b "scanning.adb:6:23" 0 }
+data $.ada_text_io_scanning.str.6 = { b "scanning.adb:7:17" 0 }
+data $.ada_text_io_scanning.str.7 = { b "scanning.adb:10:9" 0 }
 data $.ada_text_io_scanning.str.8 = { b "Normalized" 0 }
 
 export function $ada_elab.ada_text_io_scanning_spec() {

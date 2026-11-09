@@ -48,6 +48,28 @@ std::string fileKey(const std::string& unitName)
     return key;
 }
 
+// The only hierarchical spelling: every unit separator becomes a directory.
+std::string hierarchicalKey(std::string key)
+{
+    std::replace(key.begin(), key.end(), '-', '/');
+    return key;
+}
+
+bool hasHierarchicalName(const std::string& path, const std::string& key)
+{
+    std::string expected = hierarchicalKey(key);
+    if (expected == key) { return false; }
+    auto actual = nativePath(path).replace_extension().lexically_normal();
+    auto suffix = nativePath(expected);
+    auto component = actual.end();
+    for (auto part = suffix.end(); part != suffix.begin();) {
+        if (component == actual.begin() || toLower(pathUtf8(*--component)) != pathUtf8(*--part)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::string directoryOf(const std::string& path)
 {
     std::size_t slash = path.find_last_of("/\\");
@@ -272,11 +294,19 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
         return explicitPath->second;
     }
     for (const std::string& directory : m_searchPaths) {
-        std::string candidate = directory + "/" + key + extension;
-        std::ifstream probe(nativePath(candidate), std::ios::binary);
-        if (probe) {
-            return candidate;
+        std::string selected;
+        for (const std::string& spelling : { key, hierarchicalKey(key) }) {
+            std::string candidate = directory + "/" + spelling + extension;
+            std::ifstream probe(nativePath(candidate), std::ios::binary);
+            if (!probe) { continue; }
+            if (!selected.empty() && sourceIdentity(selected) != sourceIdentity(candidate)) {
+                m_diagnostics.error(SourceLocation {}, "conflicting sources for '" + key + extension
+                    + "' in search directory '" + directory + "': '" + selected + "' and '" + candidate + "'");
+                return {};
+            }
+            selected = candidate;
         }
+        if (!selected.empty()) { return selected; }
     }
     return std::string();
 }
@@ -284,13 +314,6 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
 bool UnitLoader::addSource(const std::string& path)
 {
     addSearchPath(directoryOf(path));
-    std::string file = toLower(pathUtf8(nativePath(path).filename()));
-    auto [entry, inserted] = m_explicitPaths.emplace(file, path);
-    if (!inserted && sourceIdentity(entry->second) != sourceIdentity(path)) {
-        m_diagnostics.error(SourceLocation {}, "conflicting explicit sources for '" + file
-            + "': '" + entry->second + "' and '" + path + "'");
-        return false;
-    }
     if (!m_sources.contains(sourceIdentity(path))) {
         std::string contents;
         if (!readFile(path, contents)) {
@@ -298,6 +321,13 @@ bool UnitLoader::addSource(const std::string& path)
             return false;
         }
         parseInto(path, contents, toLower(pathUtf8(nativePath(path).stem())));
+    }
+    std::string file = sourceKey(path) + toLower(pathUtf8(nativePath(path).extension()));
+    auto [entry, inserted] = m_explicitPaths.emplace(file, path);
+    if (!inserted && sourceIdentity(entry->second) != sourceIdentity(path)) {
+        m_diagnostics.error(SourceLocation {}, "conflicting explicit sources for '" + file
+            + "': '" + entry->second + "' and '" + path + "'");
+        return false;
     }
     return true;
 }
@@ -316,6 +346,14 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
     Parser parser(std::move(tokens), m_diagnostics);
     auto units = parser.parseCompilation();
     auto& source = m_sources[sourceIdentity(path)];
+    std::string groupKey = key;
+    if (!units.empty()) {
+        const auto& first = *units.front();
+        std::string name = declarationName(*first.units.front());
+        if (!first.subunitParent.empty()) { name = first.subunitParent + "." + name; }
+        std::string nameKey = fileKey(name);
+        if (hasHierarchicalName(path, nameKey)) { groupKey = nameKey; }
+    }
     // Publish every item before following any edge, including forward
     // references within a bundle and references from other explicit sources.
     for (auto& unit : units) {
@@ -340,7 +378,7 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
             }
         }
         unit->fileName = path;
-        unit->unitKey = key;
+        unit->unitKey = groupKey;
         const Decl& decl = *unit->units.front();
         std::string nameKey = fileKey(declarationName(decl));
         if (unit->subunitParent.empty()) {
@@ -426,7 +464,8 @@ std::string UnitLoader::sourceKey(const std::string& path) const
 
 bool UnitLoader::loadSource(const std::string& path)
 {
-    addSearchPath(directoryOf(path));
+    // Discovered subdirectories are not library roots: adding one here can
+    // make Ada.Text_IO's body look like the body of the top-level Text_IO.
     std::string identity = sourceIdentity(path);
     if (!m_loadedSources.insert(identity).second) {
         return true;
@@ -958,7 +997,12 @@ std::vector<Token> UnitLoader::resolveSubunit(CompilationUnit& owner, const std:
     if (!m_subunits.contains(key)) {
         std::string path = findUnit(key, ".adb");
         if (!path.empty() && !m_sources.contains(sourceIdentity(path))) {
-            addSource(path);
+            std::string contents;
+            if (readFile(path, contents)) {
+                parseInto(path, contents, key);
+            } else {
+                m_diagnostics.error(location, "cannot read '" + path + "'");
+            }
         }
     }
     auto found = m_subunits.find(key);
