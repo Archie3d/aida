@@ -51,7 +51,7 @@ the frontend, QBE, and the system C compiler, then links the runtime. For
 frontend-only use, `adac --help` describes its options. Executable builds keep
 per-unit artifacts in `<program>.adaobj` by default and reuse unchanged units.
 Library roots in `ADA_INCLUDE_PATH` support mixed [flat and hierarchical unit
-source layouts](docs/unit-source-layouts.md).
+source layouts](docs/unit-source-layouts.md) and [compiled interfaces](docs/semantic-interfaces.md).
 
 Pass external C objects and static libraries directly when building an executable:
 

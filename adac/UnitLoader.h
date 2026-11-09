@@ -2,6 +2,7 @@
 
 #include "Ast.h"
 #include "Diagnostics.h"
+#include "SemanticInterface.h"
 
 #include <string>
 #include <unordered_map>
@@ -23,15 +24,18 @@ class UnitLoader
 public:
     explicit UnitLoader(Diagnostics& diagnostics);
 
-    // Reads only the specification of a unit reached through a with clause.
-    // The body still comes in when the specification declares a generic, since
-    // an instantiation parses the whole of it again.  Compiling one unit at a
-    // time needs no more of its dependencies than this.
+    // Source dependencies need only their specification unless they declare
+    // a generic. Imported replay interfaces conservatively include checked
+    // bodies too, so they retain their full compiled dependency contract.
     void setSpecificationsOnly(bool specificationsOnly) { m_specificationsOnly = specificationsOnly; }
 
     // The unit being compiled, which is read whole whatever the setting above
     // says, since its body is what there is to generate code from.
     void setTargetUnit(const std::string& key) { m_targetKey = key; }
+
+    void setCompilerDigest(const std::string& digest) { m_compilerDigest = digest; }
+    const UnitRecord* importedRecord(const std::string& key) const;
+    std::vector<InterfaceSource> interfaceSources(const LibraryUnit& unit) const;
 
     void addSearchPath(const std::string& directory);
 
@@ -61,6 +65,8 @@ public:
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
+    bool importInterface(const std::string& key, const SourceLocation& from);
+    bool parseTokens(const std::string& path, std::vector<Token> tokens, const std::string& key);
     void expandSubunits(CompilationUnit& unit);
     std::vector<Token> resolveSubunit(CompilationUnit& owner, const std::string& parent,
         const std::string& name, DeclKind kind, const SourceLocation& location);
@@ -72,6 +78,9 @@ private:
     bool loadPart(const std::string& path, const std::string& identity, const SourceLocation& from);
     bool parseInto(const std::string& path, const std::string& contents, const std::string& key);
 
+    std::string m_compilerDigest;
+    std::unordered_map<std::string, UnitRecord> m_importedRecords;
+    std::unordered_map<std::string, InterfaceSource> m_tokenSources;
     Diagnostics& m_diagnostics;
     std::vector<std::string> m_searchPaths;
     std::vector<CompilationUnitPtr> m_units;

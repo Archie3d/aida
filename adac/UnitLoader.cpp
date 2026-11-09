@@ -336,7 +336,12 @@ bool UnitLoader::parseInto(const std::string& path, const std::string& contents,
 {
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
-    auto tokens = lexer.tokenize();
+    return parseTokens(path, lexer.tokenize(), key);
+}
+
+bool UnitLoader::parseTokens(const std::string& path, std::vector<Token> tokens, const std::string& key)
+{
+    m_tokenSources.emplace(sourceIdentity(path), InterfaceSource { path, tokens });
     bool poolAttribute = false;
     for (std::size_t i = 0; i + 2 < tokens.size(); ++i) {
         if (tokens[i].kind == TokenKind::Tick
@@ -537,13 +542,145 @@ bool UnitLoader::loadPart(const std::string& path, const std::string& identity, 
     return true;
 }
 
+const UnitRecord* UnitLoader::importedRecord(const std::string& key) const
+{
+    auto found = m_importedRecords.find(key);
+    return found == m_importedRecords.end() ? nullptr : &found->second;
+}
+
+std::vector<InterfaceSource> UnitLoader::interfaceSources(const LibraryUnit& unit) const
+{
+    std::vector<InterfaceSource> result;
+    std::unordered_set<std::string> seen;
+    auto append = [&](const std::string& path) {
+        std::string identity = sourceIdentity(path);
+        if (seen.insert(identity).second) { result.push_back(m_tokenSources.at(identity)); }
+    };
+    for (const CompilationUnit* part : unit.parts) {
+        append(part->fileName);
+        for (const std::string& path : part->subunitSources) { append(path); }
+    }
+    return result;
+}
+
+bool UnitLoader::importInterface(const std::string& key, const SourceLocation& from)
+{
+    if (m_importedRecords.contains(key)) { return true; }
+    // Compiled records name object groups, which need not be declaration
+    // names for explicit bundles. Honor those source registrations too.
+    std::vector<std::string> registeredSources;
+    for (const auto& [identity, source] : m_sources) {
+        if (std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
+            return unit->unitKey == key && unit->subunitParent.empty();
+        })) { registeredSources.push_back(source.front()->fileName); }
+    }
+    if (!registeredSources.empty()) {
+        std::sort(registeredSources.begin(), registeredSources.end());
+        for (const std::string& source : registeredSources) { loadSource(source); }
+        return !m_diagnostics.hasErrors();
+    }
+    for (const std::string& directory : m_searchPaths) {
+        // Sources win within a root; an interface in an earlier root wins
+        // over sources in later roots. Explicit registrations win over both.
+        for (const std::string& spelling : { key, hierarchicalKey(key) }) {
+            for (const char* extension : { ".ads", ".adb" }) {
+                std::ifstream source(nativePath(directory + "/" + spelling + extension), std::ios::binary);
+                if (source) { return true; }
+            }
+        }
+        std::string path = directory + "/" + key + ".asi";
+        std::ifstream probe(nativePath(path), std::ios::binary);
+        if (!probe) { continue; }
+        probe.close();
+        SemanticInterface semanticInterface;
+        std::string error;
+        if (!readSemanticInterface(path, m_compilerDigest, semanticInterface, error)) {
+            m_diagnostics.error(from, error + ": '" + path + "'");
+            return false;
+        }
+        auto validKey = [](const std::string& value) {
+            return !value.empty() && value != "." && value != ".." && value.find('\0') == std::string::npos
+                && value.find_first_of("/\\\n\r") == std::string::npos;
+        };
+        if (!validKey(semanticInterface.unit.key) || (semanticInterface.unit.key != key
+            && std::none_of(semanticInterface.unit.parts.begin(), semanticInterface.unit.parts.end(), [&](const auto& part) {
+                return part.key == key + ".spec" || part.key == key + ".body";
+            }))) {
+            m_diagnostics.error(from, "semantic interface does not declare unit '" + key + "': '" + path + "'");
+            return false;
+        }
+        if (m_importedRecords.contains(semanticInterface.unit.key)) { return true; }
+        semanticInterface.unit.interfaceDirectory = pathUtf8(nativePath(directory).lexically_normal());
+        std::string groupKey = semanticInterface.unit.key;
+        m_importedRecords.emplace(groupKey, semanticInterface.unit);
+        std::vector<std::string> paths;
+        std::vector<CompilationUnit*> importedParts;
+        for (std::size_t i = 0; i < semanticInterface.sources.size(); ++i) {
+            auto& source = semanticInterface.sources[i];
+            int file = m_diagnostics.addFile(source.name);
+            for (Token& token : source.tokens) { token.location.file = file; }
+            std::string virtualPath = path + ".sources/" + std::to_string(i) + "/"
+                + pathUtf8(nativePath(source.name).filename());
+            parseTokens(virtualPath, std::move(source.tokens), groupKey);
+            for (CompilationUnit* unit : m_sources.at(sourceIdentity(virtualPath))) {
+                unit->unitKey = groupKey;
+                if (unit->subunitParent.empty()) { importedParts.push_back(unit); }
+            }
+            paths.push_back(virtualPath);
+        }
+        std::vector<std::string> identities;
+        for (const CompilationUnit* part : importedParts) { identities.push_back(part->partKey); }
+        std::vector<std::string> expected;
+        for (const auto& part : semanticInterface.unit.parts) { expected.push_back(part.key); }
+        std::sort(expected.begin(), expected.end());
+        std::sort(identities.begin(), identities.end());
+        if (identities != expected || m_diagnostics.hasErrors()) {
+            m_diagnostics.error(from, "semantic interface declarations do not match its unit metadata: '" + path + "'");
+            return false;
+        }
+        for (const std::string& source : paths) {
+            if (std::any_of(m_sources.at(sourceIdentity(source)).begin(), m_sources.at(sourceIdentity(source)).end(),
+                [](const CompilationUnit* unit) { return unit->subunitParent.empty(); })) {
+                loadSource(source);
+            }
+        }
+        UnitRecordFile compiled;
+        if (!readUnitRecord(directory + "/" + groupKey + ".ali", compiled)
+            || compiled.compilerDigest != m_compilerDigest || compiled.digest != semanticInterface.unit.digest) {
+            m_diagnostics.error(from, "missing or stale compiled semantic interface unit '" + groupKey + "'");
+            return false;
+        }
+        // Body-only context dependencies are part of the compiled artifact's
+        // contract too, even when they are absent from the public context.
+        for (const auto* dependencies : { &compiled.dependencies, &compiled.bodyDependencies }) {
+            for (const auto& dependency : *dependencies) {
+                if (!validKey(dependency.first)) {
+                    m_diagnostics.error(from, "invalid semantic interface dependency key");
+                    return false;
+                }
+                std::string name = dependency.first;
+                std::replace(name.begin(), name.end(), '-', '.');
+                loadUnit(name, from);
+            }
+        }
+        return !m_diagnostics.hasErrors();
+    }
+    return true;
+}
+
 bool UnitLoader::loadUnit(const std::string& name, const SourceLocation& from)
 {
     std::string key = fileKey(name);
-    std::string specPath = findUnit(key, ".ads");
-    std::string bodyPath = findUnit(key, ".adb");
+    if (!m_parts.contains(key + ".spec") && !m_parts.contains(key + ".body")) {
+        if (!importInterface(key, from)) { return false; }
+    }
+
     auto specPart = m_parts.find(key + ".spec");
     auto bodyPart = m_parts.find(key + ".body");
+    bool imported = (specPart != m_parts.end() && importedRecord(specPart->second->unitKey) != nullptr)
+        || (bodyPart != m_parts.end() && importedRecord(bodyPart->second->unitKey) != nullptr);
+    std::string specPath = imported ? std::string() : findUnit(key, ".ads");
+    std::string bodyPath = imported ? std::string() : findUnit(key, ".adb");
     if (specPart != m_parts.end()) {
         specPath = specPart->second->fileName;
     }

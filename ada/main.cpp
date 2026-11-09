@@ -54,7 +54,8 @@ bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::
     if (!readUnitRecord(directory + "/" + unit.key + ".ali", record)) {
         return false;
     }
-    return !compilerDigest.empty() && record.compilerDigest == compilerDigest
+    return !digestOfFile(directory + "/" + unit.key + ".asi").empty()
+        && !compilerDigest.empty() && record.compilerDigest == compilerDigest
         && unitRecordMatches(record, unit, scanned)
         && !record.irDigest.empty()
         && record.irDigest == digestOfFile(directory + "/" + unit.key + ".ssa");
@@ -246,6 +247,29 @@ int main(int argc, char** argv)
     // changes to an ordinary dependency body do not invalidate its clients.
     const std::string compilerDigest = programDigest(toolchain.adac());
     for (const UnitRecord& unit : scanned) {
+        if (!unit.interfaceDirectory.empty()) {
+            // The frontend validated the interface, dependency closure and IR.
+            // Reuse its compiled frontend artifacts; native objects may still
+            // need rebuilding for the selected assembler/toolchain.
+            for (const char* extension : { ".ali", ".ssa" }) {
+                std::string sourceName = unit.interfaceDirectory + "/" + unit.key + extension;
+                std::string destinationName = objectDirectory + "/" + unit.key + extension;
+                std::filesystem::path source = std::filesystem::path(std::u8string(sourceName.begin(), sourceName.end()));
+                std::filesystem::path destination = std::filesystem::path(std::u8string(destinationName.begin(), destinationName.end()));
+                std::error_code error;
+                bool same = std::filesystem::equivalent(source, destination, error);
+                if (!same) {
+                    error.clear();
+                    std::filesystem::copy_file(source, destination, std::filesystem::copy_options::overwrite_existing, error);
+                    if (error) {
+                        std::cerr << "ada: error: cannot copy compiled interface artifact '" << source.string() << "': " << error.message() << "\n";
+                        return 1;
+                    }
+                }
+            }
+            if (verbose) { std::cerr << "ada: " << unit.key << " uses a compiled semantic interface\n"; }
+            continue;
+        }
         if (isCurrent(objectDirectory, unit, scanned, compilerDigest)) {
             if (verbose) {
                 std::cerr << "ada: " << unit.key << " needs no compiling\n";

@@ -3,6 +3,7 @@
 #include "Lexer.h"
 #include "QbeEmitter.h"
 #include "Sema.h"
+#include "SemanticInterface.h"
 #include "UnitLoader.h"
 #include "UnitManifest.h"
 
@@ -48,7 +49,7 @@ void printUsage()
               << "  --scan          only work out which units the program is made of\n"
               << "  --bind <unit>   only write the entry point, for the program whose\n"
               << "                  main subprogram that unit holds\n"
-              << "  -I <dir>        another directory to look for units in\n"
+              << "  -I <dir>        another directory for sources or compiled .asi interfaces\n"
               << "  --stdlib <dir>  where the predefined environment lives\n"
               << "  --no-stdlib     leave the predefined environment out altogether\n";
 }
@@ -107,8 +108,9 @@ Symbol* mainIn(const LibraryUnit& unit)
 
 // What the driver has to know about a unit to tell whether anything has
 // reached it: its own text, and the declarations another unit compiles against.
-UnitRecord describe(const LibraryUnit& unit)
+UnitRecord describe(const LibraryUnit& unit, const UnitLoader& loader)
 {
+    if (const UnitRecord* imported = loader.importedRecord(unit.key)) { return *imported; }
     UnitRecord record;
     record.key = unit.key;
 
@@ -384,6 +386,7 @@ int main(int argc, char** argv)
 
     Diagnostics diagnostics;
     UnitLoader loader(diagnostics);
+    loader.setCompilerDigest(compilerDigest);
 
     // A unit is looked for beside the source that asked for it first, then
     // where the command line says, then the environment, then in the library
@@ -405,8 +408,8 @@ int main(int argc, char** argv)
     addSeparatedPaths(loader, std::getenv("ADA_INCLUDE_PATH"));
     addSeparatedPaths(loader, library.c_str());
 
-    // Compiling one unit needs no more of what it draws on than the
-    // declarations, so the bodies of its dependencies stay unread.
+    // Source-based dependency bodies stay unread unless needed for generics.
+    // Imported replay interfaces retain their full checked dependency closure.
     loader.setSpecificationsOnly(singleUnit);
 
     for (const std::string& path : inputs) {
@@ -459,6 +462,20 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::vector<UnitRecord> semanticInputs;
+    for (const LibraryUnit& unit : libraryUnits) { semanticInputs.push_back(describe(unit, loader)); }
+    for (const UnitRecord& unit : semanticInputs) {
+        if (unit.interfaceDirectory.empty()) { continue; }
+        UnitRecordFile compiled;
+        std::string base = unit.interfaceDirectory + "/" + unit.key;
+        if (!readUnitRecord(base + ".ali", compiled) || compiled.compilerDigest != compilerDigest
+            || !unitRecordMatches(compiled, unit, semanticInputs)
+            || compiled.irDigest != digestOfFile(base + ".ssa")) {
+            std::cerr << "adac: error: missing or stale semantic interface dependencies for unit '" << unit.key << "'\n";
+            return 1;
+        }
+    }
+
     if (scanOnly) {
         if (artifacts.empty() || !ensureDirectory(artifacts)) {
             std::cerr << "adac: error: '--scan' needs the directory named by '-D'\n";
@@ -466,7 +483,7 @@ int main(int argc, char** argv)
         }
         std::vector<UnitRecord> records;
         for (const LibraryUnit& unit : libraryUnits) {
-            records.push_back(describe(unit));
+            records.push_back(describe(unit, loader));
         }
         if (!writeManifest(artifacts + "/" + manifestName, records, elaborations)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
@@ -518,7 +535,7 @@ int main(int argc, char** argv)
         }
         record.compilerDigest = compilerDigest;
         record.irDigest = digestOfFile(path);
-        record.digest = describe(*target).digest;
+        record.digest = describe(*target, loader).digest;
         for (const LibraryUnit& unit : libraryUnits) {
             if (unit.key != target->key) {
                 bool readsBody = false;
@@ -526,9 +543,9 @@ int main(int argc, char** argv)
                     readsBody = readsBody || !part->isSpec;
                 }
                 if (readsBody) {
-                    record.bodyDependencies.emplace_back(unit.key, describe(unit).digest);
+                    record.bodyDependencies.emplace_back(unit.key, describe(unit, loader).digest);
                 } else {
-                    record.dependencies.emplace_back(unit.key, describe(unit).specDigest);
+                    record.dependencies.emplace_back(unit.key, describe(unit, loader).specDigest);
                 }
             }
         }
@@ -538,6 +555,25 @@ int main(int argc, char** argv)
         if (!writeUnitRecord(artifacts + "/" + target->key + ".ali", record)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << target->key << ".ali'\n";
             return 2;
+        }
+        SemanticInterface semanticInterface;
+        semanticInterface.compilerDigest = compilerDigest;
+        semanticInterface.unit = describe(*target, loader);
+        semanticInterface.unit.interfaceDirectory.clear();
+        semanticInterface.sources = loader.interfaceSources(*target);
+        std::vector<std::string> interfaceKeys = { target->key };
+        for (const CompilationUnit* part : target->parts) {
+            std::string key = part->partKey.substr(0, part->partKey.find_last_of('.'));
+            if (std::find(interfaceKeys.begin(), interfaceKeys.end(), key) == interfaceKeys.end()) {
+                interfaceKeys.push_back(key);
+            }
+        }
+        for (const std::string& key : interfaceKeys) {
+            std::string interfacePath = artifacts + "/" + key + ".asi";
+            if (!writeSemanticInterface(interfacePath, semanticInterface)) {
+                std::cerr << "adac: error: cannot write semantic interface '" << interfacePath << "'\n";
+                return 2;
+            }
         }
         return diagnostics.hasErrors() ? 1 : 0;
     }
@@ -557,7 +593,7 @@ int main(int argc, char** argv)
                 return 2;
             }
             emitter.emitUnit(unit, stream);
-            records.push_back(describe(unit));
+            records.push_back(describe(unit, loader));
         }
 
         std::string binderPath = artifacts + "/" + binderName + ".ssa";

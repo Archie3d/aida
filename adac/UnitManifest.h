@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -19,12 +20,16 @@ struct UnitPartRecord
 struct UnitRecord
 {
     std::string key;
+    std::string interfaceDirectory; // Precompiled dependency artifacts, empty for local sources.
     std::string digest;       // Over every source of the unit.
     std::string specDigest;   // Over the specification, or the whole unit if no spec exists.
     std::vector<std::string> sources;
     std::vector<std::string> withKeys;
     std::vector<UnitPartRecord> parts;
 };
+
+bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations);
+bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr);
 
 // Unit metadata plus the independent specification/body elaboration sequence.
 bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations);

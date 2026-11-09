@@ -23,12 +23,18 @@ bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units
     if (!out) {
         return false;
     }
-    out << "format 6\n";
+    return writeManifest(out, units, elaborations);
+}
+
+bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations)
+{
+    out << "format 7\n";
     for (const std::string& elaboration : elaborations) {
         out << "elaborate " << elaboration << "\n";
     }
     for (const UnitRecord& unit : units) {
         out << "unit " << unit.key << "\n";
+        if (!unit.interfaceDirectory.empty()) { out << "interface " << unit.interfaceDirectory << "\n"; }
         out << "digest " << unit.digest << "\n";
         if (!unit.specDigest.empty()) {
             out << "spec " << unit.specDigest << "\n";
@@ -63,8 +69,13 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
     if (!in) {
         return false;
     }
+    return readManifest(in, units, elaborations);
+}
+
+bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations)
+{
     std::string line;
-    if (!std::getline(in, line) || line != "format 6") {
+    if (!std::getline(in, line) || line != "format 7") {
         return false;
     }
     bool inUnit = false;
@@ -93,6 +104,8 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
             inUnit = true;
         } else if (!inUnit) {
             return false;
+        } else if (keyword == "interface" && units.back().interfaceDirectory.empty()) {
+            units.back().interfaceDirectory = rest;
         } else if (keyword == "digest" && units.back().digest.empty()) {
             units.back().digest = rest;
         } else if (keyword == "spec" && units.back().specDigest.empty()) {

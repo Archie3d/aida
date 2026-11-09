@@ -32,8 +32,8 @@ object-group keys, so `tree/leaf.ads` and `other/leaf.ads` produce distinct
 `tree-leaf.*` and `other-leaf.*` artifacts in the build directory. Manifests and
 cache digests retain the actual source paths, including subunit dependencies.
 Custom-named sources and bundles continue to use their source-group identity.
-Dependency sources are still required; `.ali` files are build metadata rather
-than serialized semantic interfaces.
+Clients may also use [serialized replay interfaces](semantic-interfaces.md)
+from artifact directories. `.ali` files remain build metadata.
 
 `loading.hierarchical_layouts` covers mixed/deep layouts, directory precedence,
 conflicts, aliases, declaration identity, equal leaf names, explicit targets,

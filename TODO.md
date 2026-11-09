@@ -5,8 +5,8 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** finish Phase 8 functional/tooling work, starting with serialized
-semantic interfaces. Further profiling is deferred and does not block this work.
+**Current focus:** finish Phase 8 functional/tooling work, starting with robust
+artifact publication and concurrent builds. Further profiling is deferred and does not block this work.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -87,8 +87,10 @@ and contracts, rather than being repeated in this roadmap.
   separate compilation, caching and relocated installs. Runtime sources migrated
   into subfolders after loader support was validated.
   [Contract and validation](docs/unit-source-layouts.md).
-- [ ] **Serialized semantic interfaces.** Let clients compile without dependency
-  sources. `.ali` files currently hold build metadata only.
+- [x] **Serialized semantic interfaces.** Source-free clients use versioned,
+  compiler/ABI-checked `.asi` replay interfaces with `.ali` build metadata and
+  compiled IR. Import reconstructs semantic state and conservatively retains
+  body dependencies. [Contract and validation](docs/semantic-interfaces.md).
 - [ ] **Robust artifact publication and concurrent builds.** Handle interrupted
   writes, changed/removed dependencies and search-path shadowing.
 - [ ] **Driver no-op builds and cleanup.** Skip scan, bind and link when nothing

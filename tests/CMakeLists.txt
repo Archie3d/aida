@@ -2388,6 +2388,11 @@ add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedcon
 # The environment audit distinguishes resolution from full API availability.
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME loading.semantic_interfaces
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/check.py
+            --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --work ${ADA_TEST_WORK_DIR}/semantic-interfaces "--exe-suffix=${CMAKE_EXECUTABLE_SUFFIX}")
+    set_tests_properties(loading.semantic_interfaces PROPERTIES TIMEOUT 180)
     add_test(NAME codegen.constant_array_offsets
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckArrayOffsets.py
             --adac $<TARGET_FILE:adac>
