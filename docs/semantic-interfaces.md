@@ -58,7 +58,9 @@ to create canonical scopes, types, layouts, private views, overloads, tagged
 primitives, defaults and generic templates. This is a serialized replay
 interface, not a serialized pointer graph or a parsing/analysis speedup.
 Imported source streams are held in memory; their original files are not opened.
-Diagnostic locations still name the producer's sources.
+Diagnostic locations still name the producer's sources. Serialized source paths
+use forward slashes on Windows, so explicit native paths and mixed-separator
+lookup paths produce identical interface bytes.
 
 For this initial implementation, imports replay ordinary bodies too. Dependency
 checking is therefore conservative: body changes may invalidate interface

@@ -333,6 +333,35 @@ procedure Root is begin Ada.Text_IO.Put_Line (Integer'Image (Data.N)); end Root;
         run([args.ada, '--clean', '-D', link], unavailable)
         if link.exists() or not (real / 'sentinel').exists():
             raise RuntimeError('cleanup followed a directory symlink')
+        dangling = work / 'dangling cache'
+        dangling.symlink_to(work / 'missing link target', target_is_directory=True)
+        run([args.ada, '--clean', '-D', dangling], unavailable)
+        if dangling.is_symlink():
+            raise RuntimeError('cleanup retained a dangling directory symlink')
+    nested = work / 'nested links cache'
+    nested.mkdir()
+    try:
+        (nested / 'external').symlink_to(real, target_is_directory=True)
+        (nested / 'dangling').symlink_to(work / 'missing link target', target_is_directory=True)
+    except OSError:
+        pass
+    else:
+        run([args.ada, '--clean', '-D', nested], unavailable)
+        if nested.exists() or not (real / 'sentinel').exists():
+            raise RuntimeError('cleanup followed a nested directory symlink')
+    if os.name == 'nt':
+        # Junctions are directory reparse points and do not require symlink
+        # privileges. Exercise both a selected junction and a nested one.
+        junction = work / 'junction cache'
+        run(['cmd', '/c', 'mklink', '/J', junction, real], unavailable)
+        run([args.ada, '--clean', '-D', junction], unavailable)
+        if junction.exists() or not (real / 'sentinel').exists():
+            raise RuntimeError('cleanup followed a selected directory junction')
+        nested.mkdir(exist_ok=True)
+        run(['cmd', '/c', 'mklink', '/J', nested / 'junction', real], unavailable)
+        run([args.ada, '--clean', '-D', nested], unavailable)
+        if nested.exists() or not (real / 'sentinel').exists():
+            raise RuntimeError('cleanup followed a nested directory junction')
     print('no-op execution, dependency/tool/artifact invalidation and source-free cleanup passed')
 
 

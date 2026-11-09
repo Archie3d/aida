@@ -16,6 +16,14 @@ constexpr std::size_t kMaxTokens = 1000000;
 constexpr std::size_t kMaxSources = 4096;
 constexpr const char* kHeader = "AIDA semantic interface 1\n";
 
+// Windows accepts mixed separators. Persist one spelling regardless of
+// whether a source came from explicit argv or directory + "/" + unit lookup.
+std::string sourcePath(const std::string& path)
+{
+    auto bytes = Artifacts::nativePath(path).generic_u8string();
+    return std::string(bytes.begin(), bytes.end());
+}
+
 void putInteger(std::ostream& out, uint64_t value)
 {
     for (int i = 0; i < 8; ++i) { out.put(static_cast<char>(value >> (i * 8))); }
@@ -69,14 +77,17 @@ bool writeSemanticInterface(const std::string& path, const SemanticInterface& se
     putString(payload, semanticInterface.compilerDigest);
     putString(payload, Artifacts::targetIdentity());
     std::ostringstream metadata;
-    writeManifest(metadata, { semanticInterface.unit }, {});
+    UnitRecord unit = semanticInterface.unit;
+    for (auto& path : unit.sources) { path = sourcePath(path); }
+    for (auto& part : unit.parts) { part.source = sourcePath(part.source); }
+    writeManifest(metadata, { unit }, {});
     putString(payload, metadata.str());
     putInteger(payload, semanticInterface.sources.size());
     std::size_t totalTokens = 0;
     for (const auto& source : semanticInterface.sources) {
         if (source.tokens.size() > kMaxTokens - totalTokens) { return false; }
         totalTokens += source.tokens.size();
-        putString(payload, source.name);
+        putString(payload, sourcePath(source.name));
         putInteger(payload, source.tokens.size());
         for (const Token& token : source.tokens) {
             if (token.subunit != nullptr) { return false; }

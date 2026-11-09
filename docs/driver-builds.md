@@ -66,8 +66,9 @@ Cleanup waits for active users of the same artifact directory and removes the
 selected tree, including abandoned staging files and receipts. Missing targets
 are a successful no-op; filesystem failures are reported. Regular files, the
 current directory and its ancestors are refused. A selected directory symlink
-is unlinked without following its target. The persistent sibling lock guard is
-retained. Sources and executables outside the selected directory are preserved.
+is unlinked without following its target. Links nested inside the selected tree
+are also removed as leaves; on Windows this includes directory junctions and
+other reparse points. The persistent sibling lock guard is retained. Sources and executables outside the selected directory are preserved.
 
 ## Validation
 

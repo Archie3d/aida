@@ -16,6 +16,13 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
+#   include <windows.h>
+#endif
+
 namespace {
 
 enum class Stage
@@ -66,6 +73,48 @@ bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::
         && unitArtifactsMatch(directory, unit, record);
 }
 
+bool isCleanupLink([[maybe_unused]] const std::filesystem::path& path, std::filesystem::file_status status)
+{
+#ifdef _WIN32
+    // MinGW's filesystem traversal can follow directory reparse points.
+    DWORD attributes = GetFileAttributesW(path.c_str());
+    return std::filesystem::is_symlink(status)
+        || (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0);
+#else
+    return std::filesystem::is_symlink(status);
+#endif
+}
+
+void removeArtifactTree(const std::filesystem::path& path, std::error_code& error)
+{
+#ifdef _WIN32
+    DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        DWORD failure = GetLastError();
+        if (failure != ERROR_FILE_NOT_FOUND && failure != ERROR_PATH_NOT_FOUND) {
+            error = std::error_code(failure, std::system_category());
+        }
+        return;
+    }
+    bool directory = (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    if (directory && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
+        std::filesystem::directory_iterator entry(path, error), end;
+        while (!error && entry != end) {
+            removeArtifactTree(entry->path(), error);
+            if (error) { return; }
+            entry.increment(error);
+        }
+        if (error) { return; }
+    }
+    // Remove the link itself, including directory junctions. Never enumerate a
+    // reparse point, even when it is nested inside the selected cache tree.
+    BOOL removed = directory ? RemoveDirectoryW(path.c_str()) : DeleteFileW(path.c_str());
+    if (!removed) { error = std::error_code(GetLastError(), std::system_category()); }
+#else
+    std::filesystem::remove_all(path, error);
+#endif
+}
+
 int cleanArtifacts(const std::string& directory)
 {
     auto path = Artifacts::nativePath(directory);
@@ -75,7 +124,7 @@ int cleanArtifacts(const std::string& directory)
         std::cerr << "ada: error: cannot inspect cleanup directory: " << error.message() << "\n";
         return 1;
     }
-    bool symlink = std::filesystem::is_symlink(status);
+    bool symlink = isCleanupLink(path, status);
     if (!symlink && std::filesystem::exists(status) && !std::filesystem::is_directory(status)) {
         std::cerr << "ada: error: cleanup target is not a directory\n";
         return 1;
@@ -108,13 +157,15 @@ int cleanArtifacts(const std::string& directory)
         return 1;
     }
     status = std::filesystem::symlink_status(path, error);
-    if (error == std::errc::no_such_file_or_directory || error == std::errc::not_a_directory) { return 0; }
-    if (error) { std::cerr << "ada: error: cannot inspect cleanup target: " << error.message() << "\n"; return 1; }
-    if (!std::filesystem::is_symlink(status) && std::filesystem::exists(status) && !std::filesystem::is_directory(status)) {
+    symlink = isCleanupLink(path, status);
+    if (!symlink && (error == std::errc::no_such_file_or_directory || error == std::errc::not_a_directory)) { return 0; }
+    if (error && !symlink) { std::cerr << "ada: error: cannot inspect cleanup target: " << error.message() << "\n"; return 1; }
+    error.clear();
+    if (!symlink && std::filesystem::exists(status) && !std::filesystem::is_directory(status)) {
         std::cerr << "ada: error: cleanup target became a nondirectory\n";
         return 1;
     }
-    std::filesystem::remove_all(path, error);
+    removeArtifactTree(path, error);
     if (error) { std::cerr << "ada: error: cannot clean '" << directory << "': " << error.message() << "\n"; return 1; }
     return 0;
 }

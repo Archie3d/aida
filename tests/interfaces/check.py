@@ -118,6 +118,13 @@ end Client;''')
     run([args.adac, '-c', '-I', library, '-D', work / 'deterministic', library / 'model.adb'], environment)
     if original != (work / 'deterministic/model.asi').read_bytes():
         raise RuntimeError('semantic interface is not deterministic')
+    if os.name == 'nt':
+        # Explicit native argv paths and forward-slash lookup paths name the
+        # same sources and must produce byte-identical replay metadata.
+        run([args.adac, '-c', '-I', library.as_posix(), '-D', work / 'forward separators',
+             (library / 'model.adb').as_posix()], environment)
+        if original != (work / 'forward separators/model.asi').read_bytes():
+            raise RuntimeError('semantic interface depends on source path separators')
     package = work / 'relocated library artifacts'
     package.mkdir()
     for artifact in objects.rglob('*'):
