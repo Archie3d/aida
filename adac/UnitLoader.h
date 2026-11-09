@@ -33,6 +33,13 @@ public:
     // says, since its body is what there is to generate code from.
     void setTargetUnit(const std::string& key) { m_targetKey = key; }
 
+    void setImplicitSourcePaths(bool enabled) { m_implicitSourcePaths = enabled; }
+    const std::vector<std::string>& searchPaths() const { return m_searchPaths; }
+    std::string sourceDigest(const std::string& path) const;
+    std::string sourceProvenance(const std::string& path) const;
+    void recordArtifactInput(const std::string& path, const std::string& digest);
+    bool validateInputs();
+
     void setCompilerDigest(const std::string& digest) { m_compilerDigest = digest; }
     const UnitRecord* importedRecord(const std::string& key) const;
     std::vector<InterfaceSource> interfaceSources(const LibraryUnit& unit) const;
@@ -65,7 +72,7 @@ public:
     std::vector<LibraryUnit> libraryUnits() const;
 
 private:
-    bool importInterface(const std::string& key, const SourceLocation& from);
+    bool importInterface(const std::string& key, const SourceLocation& from, bool byGroup = false);
     bool parseTokens(const std::string& path, std::vector<Token> tokens, const std::string& key);
     void expandSubunits(CompilationUnit& unit);
     std::vector<Token> resolveSubunit(CompilationUnit& owner, const std::string& parent,
@@ -78,6 +85,14 @@ private:
     bool loadPart(const std::string& path, const std::string& identity, const SourceLocation& from);
     bool parseInto(const std::string& path, const std::string& contents, const std::string& key);
 
+    struct SourceInput
+    {
+        std::string digest;
+        std::string identity;
+    };
+    bool m_implicitSourcePaths = true;
+    std::unordered_map<std::string, SourceInput> m_sourceInputs;
+    std::unordered_map<std::string, std::string> m_artifactInputs;
     std::string m_compilerDigest;
     std::unordered_map<std::string, UnitRecord> m_importedRecords;
     std::unordered_map<std::string, InterfaceSource> m_tokenSources;

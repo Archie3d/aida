@@ -1,6 +1,7 @@
 #include "SemanticInterface.h"
 
 #include "Digest.h"
+#include "../support/Artifacts.h"
 
 #include <bit>
 #include <cstdint>
@@ -121,10 +122,11 @@ bool writeSemanticInterface(const std::string& path, const SemanticInterface& se
     }
     std::string data = payload.str();
     if (data.size() > kMaxInterfaceBytes) { return false; }
-    std::ofstream out(nativePath(path), std::ios::binary);
+    Artifacts::AtomicFile publication(path, std::ios::binary);
+    auto& out = publication.stream();
     out << kHeader << digestOf(data) << '\n';
     out.write(data.data(), data.size());
-    return static_cast<bool>(out);
+    return publication.commit();
 }
 
 bool readSemanticInterface(const std::string& path, const std::string& compilerDigest,
@@ -190,6 +192,7 @@ bool readSemanticInterface(const std::string& path, const std::string& compilerD
         result.sources.push_back(std::move(source));
     }
     if (!reader.finished()) { return false; }
+    result.artifactDigest = digestOf(header + "\n" + checksum + "\n" + data);
     semanticInterface = std::move(result);
     return true;
 }

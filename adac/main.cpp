@@ -9,12 +9,14 @@
 
 #include "Digest.h"
 #include "../support/HostPaths.h"
+#include "../support/Artifacts.h"
 
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -126,7 +128,8 @@ UnitRecord describe(const LibraryUnit& unit, const UnitLoader& loader)
         }
         record.parts.push_back(UnitPartRecord {
             part->partKey, part->dependencies, part->units.front()->elaborateBody
-                && part->units.front()->kind != DeclKind::GenericInstantiation, part->limitedDependencies, part->category });
+                && part->units.front()->kind != DeclKind::GenericInstantiation, part->limitedDependencies, part->category,
+                part->fileName, part->semanticDependencies, part->clientNeedsBody });
         for (const WithClause& clause : part->withClauses) {
             for (const std::string& name : clause.names) {
                 std::string key = toLower(name);
@@ -146,15 +149,23 @@ UnitRecord describe(const LibraryUnit& unit, const UnitLoader& loader)
             && toLower(std::filesystem::path(right).extension().string()) != ".ads";
     });
     std::string specText;
+    std::string identity;
+    std::string specIdentity;
     for (const std::string& source : record.sources) {
-        std::string contents = digestOfFile(source);
+        std::string contents = loader.sourceDigest(source);
         text += contents;
+        std::string sourceIdentity = loader.sourceProvenance(source);
+        sourceIdentity.push_back('\0');
+        identity += sourceIdentity;
         if (std::any_of(unit.parts.begin(), unit.parts.end(), [&](const CompilationUnit* part) {
             return part->fileName == source && part->isSpec;
         })) {
             specText += contents;
+            specIdentity += sourceIdentity;
         }
     }
+    record.sourceIdentity = digestOf(identity);
+    record.specIdentity = specIdentity.empty() ? record.sourceIdentity : digestOf(specIdentity);
     record.digest = digestOf(text);
     if (!specText.empty()) {
         record.specDigest = digestOf(specText);
@@ -246,6 +257,8 @@ std::string libraryBesideExecutable(const std::string& executablePath)
 
 int main(int argc, char** argv)
 {
+    std::string inheritedLock;
+    bool strictSearchRoots = false;
     std::vector<std::string> inputs;
     std::vector<std::string> includes;
     std::string output;
@@ -290,6 +303,11 @@ int main(int argc, char** argv)
             includes.push_back(argv[++i]);
         } else if (argument.size() > 2 && argument.compare(0, 2, "-I") == 0) {
             includes.push_back(argument.substr(2));
+        } else if (argument == "--artifact-lock") {
+            if (++i >= argc) { std::cerr << "adac: error: missing artifact lock handle\n"; return 2; }
+            inheritedLock = argv[i];
+        } else if (argument == "--search-roots-only") {
+            strictSearchRoots = true;
         } else if (argument == "--stdlib") {
             if (i + 1 >= argc) {
                 std::cerr << "adac: error: missing directory after '--stdlib'\n";
@@ -309,6 +327,22 @@ int main(int argc, char** argv)
         } else {
             inputs.push_back(argument);
         }
+    }
+
+    if (output.empty() && artifacts.empty() && !inputs.empty()) { output = defaultOutputName(inputs.back()); }
+    std::string lockDirectory = artifacts;
+    if (lockDirectory.empty() && !output.empty() && output != "-") {
+        lockDirectory = HostPaths::directoryOf(output);
+        if (lockDirectory.empty()) { lockDirectory = "."; }
+    }
+    Artifacts::DirectoryLock buildLock;
+    if (!lockDirectory.empty() && !buildLock.acquire(lockDirectory, inheritedLock)) {
+        std::cerr << "adac: error: cannot lock artifact directory: " << buildLock.error() << "\n";
+        return 1;
+    }
+    if (lockDirectory.empty() && !inheritedLock.empty()) {
+        std::cerr << "adac: error: inherited artifact lock needs a file output or -D\n";
+        return 2;
     }
 
     std::string executable = argv[0];
@@ -341,8 +375,7 @@ int main(int argc, char** argv)
             if (!readUnitRecord(artifacts + "/" + unit.key + ".ali", compiled)
                 || compiled.compilerDigest != compilerDigest
                 || !unitRecordMatches(compiled, unit, units)
-                || compiled.irDigest.empty()
-                || compiled.irDigest != digestOfFile(artifacts + "/" + unit.key + ".ssa")) {
+                || !unitArtifactsMatch(artifacts, unit, compiled)) {
                 std::cerr << "adac: error: missing or stale compiled unit '" << unit.key << "'\n";
                 return 1;
             }
@@ -357,12 +390,14 @@ int main(int argc, char** argv)
         }
 
         std::string path = artifacts + "/" + binderName + ".ssa";
-        std::ofstream binder(path);
+        Artifacts::AtomicFile publication(path);
+        auto& binder = publication.stream();
         if (!binder) {
             std::cerr << "adac: error: cannot write '" << path << "'\n";
             return 2;
         }
         emitBinder(keys, record.mainName, binder);
+        if (!publication.commit()) { std::cerr << "adac: error: cannot publish binder\n"; return 2; }
         return 0;
     }
 
@@ -388,25 +423,18 @@ int main(int argc, char** argv)
     UnitLoader loader(diagnostics);
     loader.setCompilerDigest(compilerDigest);
 
-    // A unit is looked for beside the source that asked for it first, then
-    // where the command line says, then the environment, then in the library
-    // that came with the compiler.
-    // The driver supplies the scan's ordered search roots through -I when
-    // compiling one unit; keep those ahead of the target's own directory.
-    if (singleUnit) {
-        for (const std::string& directory : includes) {
-            loader.addSearchPath(directory);
+    loader.setImplicitSourcePaths(!strictSearchRoots);
+    if (strictSearchRoots || singleUnit) {
+        for (const std::string& directory : includes) { loader.addSearchPath(directory); }
+    }
+    if (!strictSearchRoots) {
+        for (const std::string& path : inputs) {
+            loader.addSearchPath(HostPaths::directoryOf(path).empty() ? "." : HostPaths::directoryOf(path));
         }
+        for (const std::string& directory : includes) { loader.addSearchPath(directory); }
+        addSeparatedPaths(loader, std::getenv("ADA_INCLUDE_PATH"));
+        addSeparatedPaths(loader, library.c_str());
     }
-    for (const std::string& path : inputs) {
-        std::size_t slash = path.find_last_of("/\\");
-        loader.addSearchPath(slash == std::string::npos ? "." : path.substr(0, slash));
-    }
-    for (const std::string& directory : includes) {
-        loader.addSearchPath(directory);
-    }
-    addSeparatedPaths(loader, std::getenv("ADA_INCLUDE_PATH"));
-    addSeparatedPaths(loader, library.c_str());
 
     // Source-based dependency bodies stay unread unless needed for generics.
     // Imported replay interfaces retain their full checked dependency closure.
@@ -468,13 +496,20 @@ int main(int argc, char** argv)
         if (unit.interfaceDirectory.empty()) { continue; }
         UnitRecordFile compiled;
         std::string base = unit.interfaceDirectory + "/" + unit.key;
-        if (!readUnitRecord(base + ".ali", compiled) || compiled.compilerDigest != compilerDigest
+        std::string metadataDigest;
+        if (!readUnitRecord(base + ".ali", compiled, &metadataDigest) || compiled.compilerDigest != compilerDigest
             || !unitRecordMatches(compiled, unit, semanticInputs)
-            || compiled.irDigest != digestOfFile(base + ".ssa")) {
+            || !unitArtifactsMatch(unit.interfaceDirectory, unit, compiled)) {
             std::cerr << "adac: error: missing or stale semantic interface dependencies for unit '" << unit.key << "'\n";
             return 1;
         }
+        loader.recordArtifactInput(base + ".ali", metadataDigest);
+        loader.recordArtifactInput(base + ".ssa", compiled.irDigest);
+        for (const auto& [key, digest] : compiled.interfaceDigests) {
+            loader.recordArtifactInput(unit.interfaceDirectory + "/" + key + ".asi", digest);
+        }
     }
+    if (!loader.validateInputs()) { return 1; }
 
     if (scanOnly) {
         if (artifacts.empty() || !ensureDirectory(artifacts)) {
@@ -485,7 +520,7 @@ int main(int argc, char** argv)
         for (const LibraryUnit& unit : libraryUnits) {
             records.push_back(describe(unit, loader));
         }
-        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations)) {
+        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations, loader.searchPaths(), compilerDigest)) {
             std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
             return 2;
         }
@@ -520,7 +555,8 @@ int main(int argc, char** argv)
         }
 
         std::string path = artifacts + "/" + target->key + ".ssa";
-        std::ofstream stream(path);
+        Artifacts::AtomicFile publication(path);
+        auto& stream = publication.stream();
         if (!stream) {
             std::cerr << "adac: error: cannot write '" << path << "'\n";
             return 2;
@@ -528,20 +564,23 @@ int main(int argc, char** argv)
         emitter.emitUnit(*target, stream);
 
         UnitRecordFile record;
-        stream.close();
-        if (!stream || diagnostics.hasErrors()) {
+        if (!publication.finish() || diagnostics.hasErrors()) {
             std::cerr << "adac: error: could not compile unit '" << target->key << "'\n";
             return 1;
         }
         record.compilerDigest = compilerDigest;
-        record.irDigest = digestOfFile(path);
+        record.irDigest = digestOfFile(publication.temporary());
         record.digest = describe(*target, loader).digest;
+        record.sourceIdentity = describe(*target, loader).sourceIdentity;
         for (const LibraryUnit& unit : libraryUnits) {
             if (unit.key != target->key) {
                 bool readsBody = false;
                 for (CompilationUnit* part : unit.parts) {
                     readsBody = readsBody || !part->isSpec;
                 }
+                const auto input = describe(unit, loader);
+                record.dependencySources.emplace_back(unit.key, readsBody ? input.sourceIdentity : input.specIdentity);
+                if (loader.importedRecord(unit.key) != nullptr) { record.replayDependencies.push_back(unit.key); }
                 if (readsBody) {
                     record.bodyDependencies.emplace_back(unit.key, describe(unit, loader).digest);
                 } else {
@@ -552,10 +591,6 @@ int main(int argc, char** argv)
         if (Symbol* main = mainIn(*target)) {
             record.mainName = main->qbeName;
         }
-        if (!writeUnitRecord(artifacts + "/" + target->key + ".ali", record)) {
-            std::cerr << "adac: error: cannot write '" << artifacts << "/" << target->key << ".ali'\n";
-            return 2;
-        }
         SemanticInterface semanticInterface;
         semanticInterface.compilerDigest = compilerDigest;
         semanticInterface.unit = describe(*target, loader);
@@ -563,18 +598,37 @@ int main(int argc, char** argv)
         semanticInterface.sources = loader.interfaceSources(*target);
         std::vector<std::string> interfaceKeys = { target->key };
         for (const CompilationUnit* part : target->parts) {
-            std::string key = part->partKey.substr(0, part->partKey.find_last_of('.'));
+            std::string key = interfaceAliasKey(part->partKey);
             if (std::find(interfaceKeys.begin(), interfaceKeys.end(), key) == interfaceKeys.end()) {
                 interfaceKeys.push_back(key);
             }
         }
+        std::error_code directoryError;
+        auto aliasDirectory = Artifacts::nativePath(artifacts + "/" + interfaceAliasKey("placeholder")).parent_path();
+        std::filesystem::create_directories(aliasDirectory, directoryError);
+        if (directoryError) { std::cerr << "adac: error: cannot create interface index directory\n"; return 2; }
+        std::vector<std::unique_ptr<Artifacts::AtomicPath>> interfaces;
         for (const std::string& key : interfaceKeys) {
-            std::string interfacePath = artifacts + "/" + key + ".asi";
-            if (!writeSemanticInterface(interfacePath, semanticInterface)) {
-                std::cerr << "adac: error: cannot write semantic interface '" << interfacePath << "'\n";
+            auto staged = std::make_unique<Artifacts::AtomicPath>(artifacts + "/" + key + ".asi");
+            if (!staged->valid() || !writeSemanticInterface(staged->temporary(), semanticInterface)) {
+                std::cerr << "adac: error: cannot stage semantic interface for '" << key << "'\n";
                 return 2;
             }
+            record.interfaceDigests.emplace_back(key, digestOfFile(staged->temporary()));
+            interfaces.push_back(std::move(staged));
         }
+        Artifacts::AtomicPath metadata(artifacts + "/" + target->key + ".ali");
+        if (!metadata.valid() || !writeUnitRecord(metadata.temporary(), record)) {
+            std::cerr << "adac: error: cannot stage compiled unit metadata\n";
+            return 2;
+        }
+        if (!loader.validateInputs()) { return 1; }
+        if (!publication.commit()) { std::cerr << "adac: error: cannot publish unit IR\n"; return 2; }
+        for (const auto& stagedInterface : interfaces) {
+            if (!stagedInterface->commit()) { std::cerr << "adac: error: cannot publish unit interface\n"; return 2; }
+        }
+        // Publish the complete group's checksummed commit record last.
+        if (!metadata.commit()) { std::cerr << "adac: error: cannot publish compiled unit metadata\n"; return 2; }
         return diagnostics.hasErrors() ? 1 : 0;
     }
 
@@ -585,46 +639,40 @@ int main(int argc, char** argv)
         }
 
         std::vector<UnitRecord> records;
+        std::vector<std::unique_ptr<Artifacts::AtomicFile>> outputs;
         for (const LibraryUnit& unit : libraryUnits) {
-            std::string path = artifacts + "/" + unit.key + ".ssa";
-            std::ofstream stream(path);
-            if (!stream) {
-                std::cerr << "adac: error: cannot write '" << path << "'\n";
-                return 2;
-            }
-            emitter.emitUnit(unit, stream);
+            auto staged = std::make_unique<Artifacts::AtomicFile>(artifacts + "/" + unit.key + ".ssa");
+            emitter.emitUnit(unit, staged->stream());
+            if (!staged->finish()) { std::cerr << "adac: error: cannot stage unit IR\n"; return 2; }
+            outputs.push_back(std::move(staged));
             records.push_back(describe(unit, loader));
         }
-
-        std::string binderPath = artifacts + "/" + binderName + ".ssa";
-        std::ofstream binder(binderPath);
-        if (!binder) {
-            std::cerr << "adac: error: cannot write '" << binderPath << "'\n";
+        auto binder = std::make_unique<Artifacts::AtomicFile>(artifacts + "/" + binderName + ".ssa");
+        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder->stream());
+        if (!binder->finish()) { std::cerr << "adac: error: cannot stage binder\n"; return 2; }
+        outputs.push_back(std::move(binder));
+        Artifacts::AtomicPath manifest(artifacts + "/" + manifestName);
+        if (!manifest.valid() || !writeManifest(manifest.temporary(), records, elaborations, loader.searchPaths(), compilerDigest)) {
+            std::cerr << "adac: error: cannot stage manifest\n";
             return 2;
         }
-        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder);
-
-        // The driver reads this rather than guessing what was produced, so a
-        // unit that stops being part of the program stops being linked too.
-        if (!writeManifest(artifacts + "/" + manifestName, records, elaborations)) {
-            std::cerr << "adac: error: cannot write '" << artifacts << "/" << manifestName << "'\n";
-            return 2;
+        if (!loader.validateInputs()) { return 1; }
+        for (const auto& file : outputs) {
+            if (!file->commit()) { std::cerr << "adac: error: cannot publish IR\n"; return 2; }
         }
+        if (!manifest.commit()) { std::cerr << "adac: error: cannot publish manifest\n"; return 2; }
     } else {
         std::ostream* stream = &std::cout;
-        std::ofstream file;
+        std::unique_ptr<Artifacts::AtomicFile> file;
         if (output != "-") {
-            file.open(output);
-            if (!file) {
-                std::cerr << "adac: error: cannot write '" << output << "'\n";
-                return 2;
-            }
-            stream = &file;
+            file = std::make_unique<Artifacts::AtomicFile>(output);
+            if (!file->stream()) { std::cerr << "adac: error: cannot stage '" << output << "'\n"; return 2; }
+            stream = &file->stream();
         }
-        for (const LibraryUnit& unit : libraryUnits) {
-            emitter.emitUnit(unit, *stream);
-        }
+        for (const LibraryUnit& unit : libraryUnits) { emitter.emitUnit(unit, *stream); }
         emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream);
+        if (!loader.validateInputs()) { return 1; }
+        if (file && !file->commit()) { std::cerr << "adac: error: cannot publish '" << output << "'\n"; return 2; }
     }
 
     return diagnostics.hasErrors() ? 1 : 0;

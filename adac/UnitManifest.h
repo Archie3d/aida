@@ -15,12 +15,17 @@ struct UnitPartRecord
     bool elaborateBody = false;
     std::vector<std::string> limitedDependencies;
     int category = 0;
+    std::string source;
+    std::vector<std::string> semanticDependencies;
+    bool clientNeedsBody = false;
 };
 
 struct UnitRecord
 {
     std::string key;
     std::string interfaceDirectory; // Precompiled dependency artifacts, empty for local sources.
+    std::string sourceIdentity;
+    std::string specIdentity;
     std::string digest;       // Over every source of the unit.
     std::string specDigest;   // Over the specification, or the whole unit if no spec exists.
     std::vector<std::string> sources;
@@ -28,18 +33,22 @@ struct UnitRecord
     std::vector<UnitPartRecord> parts;
 };
 
-bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations);
-bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr);
+bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {});
+bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr);
 
 // Unit metadata plus the independent specification/body elaboration sequence.
-bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations);
-bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr);
+bool writeManifest(const std::string& path, const std::vector<UnitRecord>& units, const std::vector<std::string>& elaborations, const std::vector<std::string>& searchPaths = {}, const std::string& compilerDigest = {});
+bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::vector<std::string>* elaborations = nullptr, std::vector<std::string>* searchPaths = nullptr, std::string* compilerDigest = nullptr);
 
 struct UnitRecordFile
 {
     std::string digest;
     std::string compilerDigest;
     std::string irDigest;
+    std::string sourceIdentity;
+    std::vector<std::pair<std::string, std::string>> interfaceDigests;
+    std::vector<std::pair<std::string, std::string>> dependencySources;
+    std::vector<std::string> replayDependencies;
 
     // Full-unit digests for dependencies whose bodies were read (e.g. generics).
     std::vector<std::pair<std::string, std::string>> bodyDependencies;
@@ -54,7 +63,9 @@ struct UnitRecordFile
 };
 
 bool writeUnitRecord(const std::string& path, const UnitRecordFile& record);
-bool readUnitRecord(const std::string& path, UnitRecordFile& record);
+bool readUnitRecord(const std::string& path, UnitRecordFile& record, std::string* fileDigest = nullptr);
+std::string interfaceAliasKey(const std::string& partKey);
+bool unitArtifactsMatch(const std::string& directory, const UnitRecord& unit, const UnitRecordFile& record);
 
 // Validate all recorded semantic inputs against a fresh scan.
 bool unitRecordMatches(const UnitRecordFile& record, const UnitRecord& unit, const std::vector<UnitRecord>& scanned);

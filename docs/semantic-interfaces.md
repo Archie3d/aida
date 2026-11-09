@@ -10,8 +10,9 @@ and templates needed to reconstruct the semantic environment.
 
 Build the library and its dependency closure with the same compiler used by its
 clients. Package the `.asi`, `.ali` and `.ssa` files together in a directory.
-Preserve the generated artifact names, including aliases for declarations in
-custom-named source bundles. Native `.o` files are not required: the driver
+Preserve the generated artifact names and the `.aida-interfaces` subdirectory.
+The latter indexes declared specification/body identities separately from
+object-group names, including custom bundles and split spec/body groups. Native `.o` files are not required: the driver
 uses packaged frontend IR and builds native objects in the client's build
 directory with its configured toolchain.
 
@@ -30,8 +31,12 @@ without rewriting the original source paths stored for diagnostics.
 Search roots retain their existing precedence. Within a root, Ada sources take
 precedence over `.asi` files. An interface in an earlier root wins over source
 files in later roots. Explicit source registrations take precedence over
-lookup. Interfaces use flat, lower-cased unit keys (`ada-text_io.asi`) in the
-artifact directory, regardless of the producer's source layout. An invalid
+lookup. Object-group interfaces use flat keys (`ada-text_io.asi`) regardless of the
+producer's source layout. Declaration lookup first selects role-qualified
+indexes such as `.aida-interfaces/ada-text_io.spec.asi` or `.body.asi`, then
+falls back to an object-group interface. Unsafe index filename bytes are escaped.
+This separates object-group names from declaration names and prevents separately
+published specifications and bodies from overwriting each other's indexes. An invalid
 selected interface produces a diagnostic rather than falling through to a
 later root. Missing/stale companion artifacts or dependency fingerprints are
 errors. A source override that changes a compiled dependent's contract requires
@@ -67,13 +72,14 @@ bounds and token kinds, then verifies replayed declaration identities against
 the unit metadata. Imported compiled records must agree with the selected
 closure and their companion IR digests. Limits are 64 MiB of payload and one
 million tokens and 4,096 source streams per interface. Old compiler binaries and manifest formats are
-rejected; rebuild the producer and consumers together. Manifests use format 7;
-`.ali` records retain format 3.
+rejected; rebuild the producer and consumers together. Manifests use format 8;
+checksummed `.ali` records use format 4.
 
-Atomic publication, recovery from interrupted writes and concurrent writers
-remain the next roadmap item. Installed runtimes continue to ship hierarchical
-Ada sources; this change supports packaging compiled interfaces without adding
-an installation-wide precompilation step.
+[Artifact publication](artifact-publication.md) stages members and publishes a
+checksummed commit record last, verifies the full alias set and dependency
+provenance, and coordinates concurrent writers. Installed runtimes continue to
+ship hierarchical Ada sources; interface packaging does not add an
+installation-wide precompilation step.
 
 ## Validation
 

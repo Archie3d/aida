@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <string>
 
@@ -27,7 +28,7 @@ inline std::string digestOf(const std::string& text)
 // Empty when the file cannot be read, which counts as out of date.
 inline std::string digestOfFile(const std::string& path)
 {
-    std::ifstream input(path, std::ios::binary);
+    std::ifstream input(std::filesystem::path(std::u8string(path.begin(), path.end())), std::ios::binary);
     if (!input) {
         return std::string();
     }

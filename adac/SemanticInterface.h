@@ -16,6 +16,7 @@ struct InterfaceSource
 
 struct SemanticInterface
 {
+    std::string artifactDigest; // Digest of the exact bytes read; not serialized.
     std::string compilerDigest;
     UnitRecord unit;
     std::vector<InterfaceSource> sources;

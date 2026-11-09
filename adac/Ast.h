@@ -1250,6 +1250,8 @@ struct CompilationUnit
     // Required library-item elaborations, kept separate for specs and bodies.
     std::vector<std::string> dependencies;
     std::vector<std::string> limitedDependencies;
+    std::vector<std::string> semanticDependencies;
+    bool clientNeedsBody = false;
 };
 
 // Shared with retained generic tokens so each instance reparses the same body

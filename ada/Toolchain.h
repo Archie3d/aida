@@ -17,6 +17,7 @@ public:
     // The directory the predefined environment is read from.
     const std::string& library() const { return m_library; }
 
+    void setArtifactLock(const std::string& argument) { m_artifactLock = argument; }
     void setVerbose(bool verbose) { m_verbose = verbose; }
 
     // Runs a program and returns its exit status, or -1 when it cannot start.
@@ -30,6 +31,7 @@ private:
     bool adoptInstall(const std::string& binDirectory);
     void applyEnvironment();
 
+    std::string m_artifactLock;
     std::string m_adac;
     std::string m_qbe;
     std::string m_compiler;

@@ -216,8 +216,12 @@ void Toolchain::applyEnvironment()
     }
 }
 
-int Toolchain::run(const std::vector<std::string>& command) const
+int Toolchain::run(const std::vector<std::string>& input) const
 {
+    std::vector<std::string> command = input;
+    if (!command.empty() && command.front() == m_adac && !m_artifactLock.empty()) {
+        command.insert(command.end(), { "--artifact-lock", m_artifactLock });
+    }
     if (command.empty()) {
         return -1;
     }
@@ -251,7 +255,7 @@ int Toolchain::run(const std::vector<std::string>& command) const
         mutableCommandLine.data(),
         nullptr,
         nullptr,
-        FALSE,
+        m_artifactLock.empty() ? FALSE : TRUE,
         0,
         nullptr,
         nullptr,

@@ -2,6 +2,7 @@
 
 #include "Lexer.h"
 #include "Parser.h"
+#include "Digest.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -275,6 +276,39 @@ void UnitLoader::addSearchPath(const std::string& directory)
     m_searchPaths.push_back(directory);
 }
 
+std::string UnitLoader::sourceDigest(const std::string& path) const
+{
+    return m_sourceInputs.at(path).digest;
+}
+
+std::string UnitLoader::sourceProvenance(const std::string& path) const
+{
+    return m_sourceInputs.at(path).identity;
+}
+
+void UnitLoader::recordArtifactInput(const std::string& path, const std::string& digest)
+{
+    auto [found, inserted] = m_artifactInputs.emplace(path, digest);
+    if (!inserted && found->second != digest) {
+        m_diagnostics.error(SourceLocation {}, "artifact changed while compiling: '" + path + "'");
+    }
+}
+
+bool UnitLoader::validateInputs()
+{
+    for (const auto& [path, input] : m_sourceInputs) {
+        if (sourceIdentity(path) != input.identity || digestOfFile(path) != input.digest) {
+            m_diagnostics.error(SourceLocation {}, "source changed while compiling: '" + path + "'; retry the build");
+        }
+    }
+    for (const auto& [path, digest] : m_artifactInputs) {
+        if (digest.empty() || digestOfFile(path) != digest) {
+            m_diagnostics.error(SourceLocation {}, "artifact changed while compiling: '" + path + "'; retry the build");
+        }
+    }
+    return !m_diagnostics.hasErrors();
+}
+
 bool UnitLoader::readFile(const std::string& path, std::string& contents) const
 {
     std::ifstream input(nativePath(path), std::ios::binary);
@@ -313,7 +347,7 @@ std::string UnitLoader::findUnit(const std::string& key, const char* extension) 
 
 bool UnitLoader::addSource(const std::string& path)
 {
-    addSearchPath(directoryOf(path));
+    if (m_implicitSourcePaths) { addSearchPath(directoryOf(path)); }
     if (!m_sources.contains(sourceIdentity(path))) {
         std::string contents;
         if (!readFile(path, contents)) {
@@ -334,6 +368,7 @@ bool UnitLoader::addSource(const std::string& path)
 
 bool UnitLoader::parseInto(const std::string& path, const std::string& contents, const std::string& key)
 {
+    m_sourceInputs.emplace(path, SourceInput { digestOf(contents), sourceIdentity(path) });
     int file = m_diagnostics.addFile(path);
     Lexer lexer(contents, file, m_diagnostics);
     return parseTokens(path, lexer.tokenize(), key);
@@ -494,11 +529,14 @@ bool UnitLoader::loadSource(const std::string& path)
         const Decl& decl = *unit->units.front();
         std::string name = declarationName(decl);
         std::string key = fileKey(name);
+        // Imported counterparts come from their checked artifact closure,
+        // even when the original filename was a custom .ada bundle.
+        bool imported = importedRecord(unit->unitKey) != nullptr;
         if (!unit->isSpec || isOptionalCompletion(decl)
             || toLower(pathUtf8(nativePath(path).extension())) != ".ads") {
             auto spec = m_parts.find(key + ".spec");
             std::string specPath = spec == m_parts.end() || spec->second == unit
-                ? findUnit(key, ".ads") : spec->second->fileName;
+                ? (imported ? std::string() : findUnit(key, ".ads")) : spec->second->fileName;
             if (!specPath.empty() && sourceIdentity(specPath) != identity) {
                 loadPart(specPath, key + ".spec", decl.location);
             }
@@ -515,7 +553,8 @@ bool UnitLoader::loadSource(const std::string& path)
         if (unit->isSpec && (!m_specificationsOnly || unit->unitKey == m_targetKey
             || declaresGeneric(unit->units))) {
             auto body = m_parts.find(key + ".body");
-            std::string bodyPath = body == m_parts.end() ? findUnit(key, ".adb") : body->second->fileName;
+            std::string bodyPath = body == m_parts.end()
+                ? (imported ? std::string() : findUnit(key, ".adb")) : body->second->fileName;
             if (!bodyPath.empty() && (body != m_parts.end() || sourceIdentity(bodyPath) != identity)) {
                 loadPart(bodyPath, key + ".body", decl.location);
             }
@@ -563,15 +602,15 @@ std::vector<InterfaceSource> UnitLoader::interfaceSources(const LibraryUnit& uni
     return result;
 }
 
-bool UnitLoader::importInterface(const std::string& key, const SourceLocation& from)
+bool UnitLoader::importInterface(const std::string& key, const SourceLocation& from, bool byGroup)
 {
-    if (m_importedRecords.contains(key)) { return true; }
+    if (byGroup && m_importedRecords.contains(key)) { return true; }
     // Compiled records name object groups, which need not be declaration
     // names for explicit bundles. Honor those source registrations too.
     std::vector<std::string> registeredSources;
     for (const auto& [identity, source] : m_sources) {
         if (std::any_of(source.begin(), source.end(), [&](const CompilationUnit* unit) {
-            return unit->unitKey == key && unit->subunitParent.empty();
+            return byGroup && unit->unitKey == key && unit->subunitParent.empty();
         })) { registeredSources.push_back(source.front()->fileName); }
     }
     if (!registeredSources.empty()) {
@@ -582,27 +621,36 @@ bool UnitLoader::importInterface(const std::string& key, const SourceLocation& f
     for (const std::string& directory : m_searchPaths) {
         // Sources win within a root; an interface in an earlier root wins
         // over sources in later roots. Explicit registrations win over both.
-        for (const std::string& spelling : { key, hierarchicalKey(key) }) {
-            for (const char* extension : { ".ads", ".adb" }) {
-                std::ifstream source(nativePath(directory + "/" + spelling + extension), std::ios::binary);
-                if (source) { return true; }
+        if (!byGroup) {
+            for (const std::string& spelling : { key, hierarchicalKey(key) }) {
+                for (const char* extension : { ".ads", ".adb" }) {
+                    std::ifstream source(nativePath(directory + "/" + spelling + extension), std::ios::binary);
+                    if (source) { return true; }
+                }
             }
         }
-        std::string path = directory + "/" + key + ".asi";
-        std::ifstream probe(nativePath(path), std::ios::binary);
-        if (!probe) { continue; }
-        probe.close();
+        std::vector<std::string> candidates;
+        if (!byGroup) { candidates = { interfaceAliasKey(key + ".spec"), interfaceAliasKey(key + ".body") }; }
+        candidates.push_back(key);
+        std::string path;
+        for (const std::string& candidate : candidates) {
+            std::ifstream probe(nativePath(directory + "/" + candidate + ".asi"), std::ios::binary);
+            if (probe) { path = directory + "/" + candidate + ".asi"; break; }
+        }
+        if (path.empty()) { continue; }
         SemanticInterface semanticInterface;
         std::string error;
         if (!readSemanticInterface(path, m_compilerDigest, semanticInterface, error)) {
             m_diagnostics.error(from, error + ": '" + path + "'");
             return false;
         }
+        recordArtifactInput(path, semanticInterface.artifactDigest);
         auto validKey = [](const std::string& value) {
             return !value.empty() && value != "." && value != ".." && value.find('\0') == std::string::npos
                 && value.find_first_of("/\\\n\r") == std::string::npos;
         };
-        if (!validKey(semanticInterface.unit.key) || (semanticInterface.unit.key != key
+        if (!validKey(semanticInterface.unit.key) || (byGroup && semanticInterface.unit.key != key)
+            || (semanticInterface.unit.key != key
             && std::none_of(semanticInterface.unit.parts.begin(), semanticInterface.unit.parts.end(), [&](const auto& part) {
                 return part.key == key + ".spec" || part.key == key + ".body";
             }))) {
@@ -645,11 +693,13 @@ bool UnitLoader::importInterface(const std::string& key, const SourceLocation& f
             }
         }
         UnitRecordFile compiled;
-        if (!readUnitRecord(directory + "/" + groupKey + ".ali", compiled)
+        std::string recordDigest;
+        if (!readUnitRecord(directory + "/" + groupKey + ".ali", compiled, &recordDigest)
             || compiled.compilerDigest != m_compilerDigest || compiled.digest != semanticInterface.unit.digest) {
             m_diagnostics.error(from, "missing or stale compiled semantic interface unit '" + groupKey + "'");
             return false;
         }
+        recordArtifactInput(directory + "/" + groupKey + ".ali", recordDigest);
         // Body-only context dependencies are part of the compiled artifact's
         // contract too, even when they are absent from the public context.
         for (const auto* dependencies : { &compiled.dependencies, &compiled.bodyDependencies }) {
@@ -658,6 +708,12 @@ bool UnitLoader::importInterface(const std::string& key, const SourceLocation& f
                     m_diagnostics.error(from, "invalid semantic interface dependency key");
                     return false;
                 }
+                if (!importInterface(dependency.first, from, true)) { return false; }
+                bool loadedGroup = m_importedRecords.contains(dependency.first)
+                    || std::any_of(m_discoveredUnits.begin(), m_discoveredUnits.end(), [&](const CompilationUnit* unit) {
+                        return unit->unitKey == dependency.first;
+                    });
+                if (loadedGroup) { continue; }
                 std::string name = dependency.first;
                 std::replace(name.begin(), name.end(), '-', '.');
                 loadUnit(name, from);
@@ -924,6 +980,12 @@ bool UnitLoader::orderUnits()
     if (m_diagnostics.hasErrors()) { return false; }
     // Keep semantic dependencies immutable while computing Elaborate_All's
     // closure: pragma ordering edges are not semantic dependence edges.
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        unit->semanticDependencies = unit->dependencies;
+        unit->semanticDependencies.insert(unit->semanticDependencies.end(),
+            unit->limitedDependencies.begin(), unit->limitedDependencies.end());
+        unit->clientNeedsBody = unit->isSpec && declaresGeneric(unit->units);
+    }
     const auto semanticDependencies = dependencies;
     auto addEdge = [&](CompilationUnit* client, CompilationUnit* prerequisite) {
         auto& edges = dependencies[client];

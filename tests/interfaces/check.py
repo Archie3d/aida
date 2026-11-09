@@ -84,9 +84,17 @@ function Identity (X : Item) return Item is begin return X; end Identity;''')
     write(bundle, '''package Extras is N : constant Integer := 7; end Extras;
 package Other_Extras is N : constant Integer := 1; end Other_Extras;''')
     write(library / 'consumer.ads', 'with Extras; package Consumer is N : constant Integer := Extras.N; end Consumer;')
+    split_api = library / 'split_api.ada'
+    split_body = library / 'split_impl.ada'
+    write(split_api, 'package Split is function Value return Integer; end Split;')
+    write(split_body, 'package body Split is function Value return Integer is begin return 11; end Value; end Split;')
+    index_owner = library / 'index_name.ada'
+    view_owner = library / 'view_owner.ada'
+    write(index_owner, 'package Decl_View is N : constant Integer := 3; end Decl_View;')
+    write(view_owner, 'package Index_Name is N : constant Integer := 4; end Index_Name;')
     source = app / 'client.adb'
     write(source, '''with Ada.Text_IO; with Model; with Model.Child; with Tools;
-with Alias; with Helper; with Extras; with Other_Extras; with Consumer;
+with Alias; with Helper; with Extras; with Other_Extras; with Consumer; with Split; with Decl_View; with Index_Name;
 procedure Client is
     package Instance is new Tools (Model.Item);
     X : Model.Item := Instance.Identity (Model.Make);
@@ -96,14 +104,14 @@ begin
     if Model.Value (X) /= 5 or else Model.Value (3) /= 4
         or else Model.Child.Extra /= 3 or else T.Next /= 5
         or else Alias.Seed /= 5 or else Extras.N + Other_Extras.N /= 8
-        or else Consumer.N /= 7 then
+        or else Consumer.N /= 7 or else Split.Value /= 11 or else Decl_View.N + Index_Name.N /= 7 then
         raise Program_Error;
     end if;
     begin raise Model.Failure; exception when Model.Failure => null; end;
     Ada.Text_IO.Put_Line ("source-free");
 end Client;''')
     program = work / ('producer-program' + args.exe_suffix)
-    run([args.ada, '-D', objects, '-o', program, bundle, source], environment)
+    run([args.ada, '-D', objects, '-o', program, bundle, split_api, split_body, index_owner, view_owner, source], environment)
     run([program], environment, expected='source-free\n')
     original = (objects / 'model.asi').read_bytes()
     # File IDs and process addresses must not affect serialization.
@@ -112,12 +120,19 @@ end Client;''')
         raise RuntimeError('semantic interface is not deterministic')
     package = work / 'relocated library artifacts'
     package.mkdir()
-    for artifact in objects.iterdir():
-        if artifact.suffix in {'.asi', '.ali', '.ssa'}:
-            shutil.copy2(artifact, package)
+    for artifact in objects.rglob('*'):
+        if artifact.is_file() and artifact.suffix in {'.asi', '.ali', '.ssa'}:
+            destination = package / artifact.relative_to(objects)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(artifact, destination)
+    # An object-group key is not a guessed Ada declaration name.
+    write(package / 'split_impl.adb', 'invalid source named after an object group')
     bundle_text = bundle.read_text()
     shutil.rmtree(library)
-    environment['ADA_INCLUDE_PATH'] = str(package)
+    later = work / 'later source root'
+    write(later / 'split.ads', 'invalid later source')
+    write(later / 'split.adb', 'invalid later body')
+    environment['ADA_INCLUDE_PATH'] = str(package) + os.pathsep + str(later)
     # --no-stdlib makes even the predefined library resolve exclusively through
     # packaged interfaces. No original library source directory remains.
     target = work / ('client-program' + args.exe_suffix)
@@ -145,7 +160,7 @@ end Client;''')
     relocated = work / 'moved artifacts again'
     package.rename(relocated)
     package = relocated
-    environment['ADA_INCLUDE_PATH'] = str(package)
+    environment['ADA_INCLUDE_PATH'] = str(package) + os.pathsep + str(later)
     run(command, environment)
     run([target], environment, expected='source-free\n')
     private_client = app / 'private_client.adb'
@@ -163,7 +178,7 @@ begin X.N := 1; end Private_Client;''')
         run([args.adac, '--no-stdlib', '-c', *extra, '-I', package, '-D', work / 'rejected', source],
             environment, diagnostic=diagnostic)
 
-    interface = package / 'model.asi'
+    interface = package / '.aida-interfaces/model.spec.asi'
     interface.write_bytes(b'unsupported\n')
     reject('unsupported semantic interface format')
     interface.write_bytes(original[:-1])
@@ -187,18 +202,18 @@ begin X.N := 1; end Private_Client;''')
     payload[offset + 8:offset + 8 + length] = b'x' * length
     interface.write_bytes(envelope(payload))
     reject('produced for a different target ABI')
-    interface.write_bytes((package / 'extras.asi').read_bytes())
+    interface.write_bytes((package / '.aida-interfaces/extras.spec.asi').read_bytes())
     reject("does not declare unit 'model'")
     interface.write_bytes(original)
     record = package / 'model.ali'
-    original_record = record.read_text()
+    original_record = record.read_bytes()
     record.unlink()
     reject('missing or stale compiled semantic interface')
-    record.write_text(original_record)
+    record.write_bytes(original_record)
     # Dependency fingerprints must agree with the complete selected closure.
-    record.write_text(original_record.replace('dep ada ', 'dep absent_dependency '))
-    reject('missing or stale semantic interface dependencies')
-    record.write_text(original_record)
+    record.write_bytes(original_record.replace(b'dep ada ', b'dep absent_dependency '))
+    reject('missing or stale compiled semantic interface')
+    record.write_bytes(original_record)
     ir = package / 'model.ssa'
     original_ir = ir.read_bytes()
     ir.write_bytes(original_ir + b'\n# modified\n')
@@ -220,8 +235,11 @@ begin X.N := 1; end Private_Client;''')
     write(library / 'model.adb', model_body.replace('return X.N;', 'return X.N + 0;'))
     updated = work / 'updated model'
     run([args.adac, '--no-stdlib', '-c', '-I', package, '-D', updated, library / 'model.adb'], environment)
-    for extension in ['.asi', '.ali', '.ssa']:
-        shutil.copy2(updated / ('model' + extension), package)
+    for artifact in updated.rglob('*'):
+        if artifact.is_file() and artifact.suffix in {'.asi', '.ali', '.ssa'}:
+            destination = package / artifact.relative_to(updated)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(artifact, destination)
     shutil.rmtree(library)
     rebuilt = run(command, environment)
     if 'client needs no compiling' in rebuilt.stderr:

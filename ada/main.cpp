@@ -1,4 +1,5 @@
 #include "Cache.h"
+#include "../support/Artifacts.h"
 #include "Toolchain.h"
 #include "UnitManifest.h"
 #include "WindowsStack.h"
@@ -8,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -54,11 +56,9 @@ bool isCurrent(const std::string& directory, const UnitRecord& unit, const std::
     if (!readUnitRecord(directory + "/" + unit.key + ".ali", record)) {
         return false;
     }
-    return !digestOfFile(directory + "/" + unit.key + ".asi").empty()
-        && !compilerDigest.empty() && record.compilerDigest == compilerDigest
+    return !compilerDigest.empty() && record.compilerDigest == compilerDigest
         && unitRecordMatches(record, unit, scanned)
-        && !record.irDigest.empty()
-        && record.irDigest == digestOfFile(directory + "/" + unit.key + ".ssa");
+        && unitArtifactsMatch(directory, unit, record);
 }
 
 } // namespace
@@ -144,17 +144,28 @@ int main(int argc, char** argv)
     if (objectDirectory.empty()) {
         objectDirectory = stem + ".adaobj";
     }
+    if (!output.empty()) {
+        if (stage == Stage::IntermediateLanguage) { irFile = output; }
+        else if (stage == Stage::Assembly) { assemblyFile = output; }
+    }
+    Artifacts::DirectoryLock buildLock;
+    std::string lockDirectory = objectDirectory;
+    if (!clean && stage != Stage::Executable) {
+        auto path = Artifacts::nativePath(stage == Stage::Assembly ? assemblyFile : irFile);
+        lockDirectory = Artifacts::pathText(path.parent_path());
+        if (lockDirectory.empty()) { lockDirectory = "."; }
+    }
+    if (!(stage == Stage::IntermediateLanguage && irFile == "-" && !clean)) {
+        if (!buildLock.acquire(lockDirectory)) {
+            std::cerr << "ada: error: cannot lock artifact directory: " << buildLock.error() << "\n";
+            return 1;
+        }
+        toolchain.setArtifactLock(buildLock.inheritedArgument());
+    }
     if (clean) {
         std::error_code ignored;
         std::filesystem::remove_all(objectDirectory, ignored);
         return 0;
-    }
-    if (!output.empty()) {
-        if (stage == Stage::IntermediateLanguage) {
-            irFile = output;
-        } else if (stage == Stage::Assembly) {
-            assemblyFile = output;
-        }
     }
 
     // The driver knows where the predefined environment ended up, so it tells
@@ -198,6 +209,8 @@ int main(int argc, char** argv)
         if (stage == Stage::IntermediateLanguage) {
             return 0;
         }
+        Artifacts::AtomicPath assembly(assemblyFile);
+        if (!assembly.valid()) { std::cerr << "ada: error: cannot stage assembly\n"; return 1; }
         std::vector<std::string> qbeCommand = { toolchain.qbe() };
 #ifdef _WIN32
         // qbe's own default target is the ELF sysv ABI even when built on Windows.
@@ -205,22 +218,25 @@ int main(int argc, char** argv)
         qbeCommand.push_back("amd64_win");
 #endif
         qbeCommand.push_back("-o");
-        qbeCommand.push_back(assemblyFile);
+        qbeCommand.push_back(assembly.temporary());
         qbeCommand.push_back(irFile);
         int result = toolchain.run(qbeCommand);
 #ifdef _WIN32
-        if (result == 0 && !prepareWindowsAssembly(assemblyFile)) {
+        if (result == 0 && !prepareWindowsAssembly(assembly.temporary())) {
             result = 1;
         }
 #endif
         if (!keepIntermediates) {
             std::remove(irFile.c_str());
         }
-        return result == 0 ? 0 : 1;
+        return result == 0 && assembly.commit() ? 0 : 1;
     }
 
     std::vector<UnitRecord> scanned;
-    if (!readManifest(objectDirectory + "/units.manifest", scanned) || scanned.empty()) {
+    std::vector<std::string> searchPaths;
+    std::string compilerDigest;
+    if (!readManifest(objectDirectory + "/units.manifest", scanned, nullptr, &searchPaths, &compilerDigest)
+        || scanned.empty() || compilerDigest.empty()) {
         std::cerr << "ada: error: nothing was scanned into '" << objectDirectory << "'\n";
         return 1;
     }
@@ -245,27 +261,37 @@ int main(int argc, char** argv)
 
     // Track specifications and any bodies read for instantiation separately:
     // changes to an ordinary dependency body do not invalidate its clients.
-    const std::string compilerDigest = programDigest(toolchain.adac());
     for (const UnitRecord& unit : scanned) {
         if (!unit.interfaceDirectory.empty()) {
-            // The frontend validated the interface, dependency closure and IR.
-            // Reuse its compiled frontend artifacts; native objects may still
-            // need rebuilding for the selected assembler/toolchain.
-            for (const char* extension : { ".ali", ".ssa" }) {
-                std::string sourceName = unit.interfaceDirectory + "/" + unit.key + extension;
-                std::string destinationName = objectDirectory + "/" + unit.key + extension;
-                std::filesystem::path source = std::filesystem::path(std::u8string(sourceName.begin(), sourceName.end()));
-                std::filesystem::path destination = std::filesystem::path(std::u8string(destinationName.begin(), destinationName.end()));
+            UnitRecordFile imported;
+            std::string metadataDigest;
+            const auto& directory = unit.interfaceDirectory;
+            if (!readUnitRecord(directory + "/" + unit.key + ".ali", imported, &metadataDigest)
+                || imported.compilerDigest != compilerDigest || !unitRecordMatches(imported, unit, scanned)
+                || !unitArtifactsMatch(directory, unit, imported)) {
+                std::cerr << "ada: error: interface dependency changed during build; retry\n";
+                return 1;
+            }
+            std::vector<std::pair<std::string, std::string>> files { { unit.key + ".ssa", imported.irDigest } };
+            for (const auto& [key, digest] : imported.interfaceDigests) { files.emplace_back(key + ".asi", digest); }
+            files.emplace_back(unit.key + ".ali", metadataDigest);
+            std::vector<std::unique_ptr<Artifacts::AtomicPath>> stagedFiles;
+            for (const auto& [name, digest] : files) {
                 std::error_code error;
-                bool same = std::filesystem::equivalent(source, destination, error);
-                if (!same) {
-                    error.clear();
-                    std::filesystem::copy_file(source, destination, std::filesystem::copy_options::overwrite_existing, error);
-                    if (error) {
-                        std::cerr << "ada: error: cannot copy compiled interface artifact '" << source.string() << "': " << error.message() << "\n";
-                        return 1;
-                    }
+                std::filesystem::create_directories(Artifacts::nativePath(objectDirectory + "/" + name).parent_path(), error);
+                auto staged = std::make_unique<Artifacts::AtomicPath>(objectDirectory + "/" + name);
+                if (staged->valid()) {
+                    std::filesystem::copy_file(Artifacts::nativePath(directory + "/" + name),
+                        Artifacts::nativePath(staged->temporary()), error);
                 }
+                if (!staged->valid() || error || digestOfFile(staged->temporary()) != digest) {
+                    std::cerr << "ada: error: cannot snapshot interface artifact '" << name << "'; retry\n";
+                    return 1;
+                }
+                stagedFiles.push_back(std::move(staged));
+            }
+            for (const auto& file : stagedFiles) {
+                if (!file->commit()) { std::cerr << "ada: error: cannot publish imported artifacts\n"; return 1; }
             }
             if (verbose) { std::cerr << "ada: " << unit.key << " uses a compiled semantic interface\n"; }
             continue;
@@ -280,10 +306,10 @@ int main(int argc, char** argv)
         for (const std::string& option : libraryOption) {
             compile.push_back(option);
         }
-        for (const std::string& source : sources) {
+        compile.push_back("--search-roots-only");
+        for (const std::string& directory : searchPaths) {
             compile.push_back("-I");
-            auto directory = std::filesystem::path(source).parent_path();
-            compile.push_back(directory.empty() ? "." : directory.string());
+            compile.push_back(directory);
         }
         // Register explicit bundles too: their declared units need not have
         // filenames that library-path lookup can discover.
@@ -319,7 +345,13 @@ int main(int argc, char** argv)
 #endif
     Cache cache(objectDirectory, objectTools);
 
-    std::vector<std::string> link = { toolchain.compiler(), "-o", stem };
+    std::string executable = stem;
+#ifdef _WIN32
+    if (Artifacts::nativePath(executable).extension().empty()) { executable += ".exe"; }
+#endif
+    Artifacts::AtomicPath executableOutput(executable);
+    if (!executableOutput.valid()) { std::cerr << "ada: error: cannot stage executable\n"; return 1; }
+    std::vector<std::string> link = { toolchain.compiler(), "-o", executableOutput.temporary() };
     for (const std::string& unit : units) {
         std::string base = objectDirectory + "/" + unit;
         if (cache.isCurrent(unit)) {
@@ -330,6 +362,9 @@ int main(int argc, char** argv)
             continue;
         }
 
+        Artifacts::AtomicPath assembly(base + ".s");
+        Artifacts::AtomicPath object(base + ".o");
+        if (!assembly.valid() || !object.valid()) { std::cerr << "ada: error: cannot stage native artifacts\n"; return 1; }
         std::vector<std::string> qbeCommand = { toolchain.qbe() };
 #ifdef _WIN32
         // qbe's own default target is the ELF sysv ABI even when built on Windows.
@@ -337,20 +372,23 @@ int main(int argc, char** argv)
         qbeCommand.push_back("amd64_win");
 #endif
         qbeCommand.push_back("-o");
-        qbeCommand.push_back(base + ".s");
+        qbeCommand.push_back(assembly.temporary());
         qbeCommand.push_back(base + ".ssa");
         if (toolchain.run(qbeCommand) != 0) {
             return 1;
         }
 #ifdef _WIN32
-        if (!prepareWindowsAssembly(base + ".s")) {
+        if (!prepareWindowsAssembly(assembly.temporary())) {
             return 1;
         }
 #endif
-        if (toolchain.run({ toolchain.compiler(), "-c", "-o", base + ".o", base + ".s" }) != 0) {
+        if (toolchain.run({ toolchain.compiler(), "-c", "-o", object.temporary(), assembly.temporary() }) != 0) {
             return 1;
         }
-        cache.record(unit);
+        if (!assembly.commit() || !object.commit() || !cache.record(unit)) {
+            std::cerr << "ada: error: cannot publish native artifacts\n";
+            return 1;
+        }
         link.push_back(base + ".o");
     }
 
@@ -362,5 +400,5 @@ int main(int argc, char** argv)
     for (const std::string& file : toolchain.runtime()) {
         link.push_back(file);
     }
-    return toolchain.run(link) == 0 ? 0 : 1;
+    return toolchain.run(link) == 0 && executableOutput.commit() ? 0 : 1;
 }

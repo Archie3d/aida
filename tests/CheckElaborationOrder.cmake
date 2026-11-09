@@ -43,9 +43,9 @@ string(REPLACE "part load_b.spec\n" "part load_b.spec\nrequires load_b.spec\n" s
 reject("${self_cycle}" "invalid elaboration order:")
 string(REPLACE "requires load_b.spec\n" "requires nonexistent.spec\n" unknown_dependency "${original}")
 reject("${unknown_dependency}" "unknown elaboration dependency 'nonexistent.spec'")
-string(REPLACE "part load_b.spec\n" "part load_b.spec\npart load_b.spec\n" duplicate_part "${original}")
+string(REPLACE "part load_b.spec\n" "part load_b.spec\npart-origin duplicated-source.ads\npart load_b.spec\n" duplicate_part "${original}")
 reject("${duplicate_part}" "duplicate elaboration part 'load_b.spec'")
-string(REGEX REPLACE "end\n$" "" truncated "${original}")
+string(REGEX REPLACE "end-manifest\n$" "" truncated "${original}")
 reject("${truncated}" "cannot read")
 file(WRITE "${manifest}" "${original}")
 execute_process(COMMAND "${ADAC}" --bind load_main -D "${work}/objects"

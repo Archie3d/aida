@@ -10,6 +10,7 @@ endif()
 
 target_sources(${TARGET}
     PRIVATE
+        ${CMAKE_SOURCE_DIR}/support/Artifacts.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Toolchain.cpp

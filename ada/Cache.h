@@ -17,7 +17,7 @@ public:
     bool isCurrent(const std::string& unit) const;
 
     // Called once the object has been rebuilt.
-    void record(const std::string& unit) const;
+    bool record(const std::string& unit) const;
 
 private:
     std::string m_directory;
