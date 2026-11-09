@@ -12,4 +12,3 @@ genericlimitederrors.adb:32:21: error: a limited generic in object requires an a
 genericlimitederrors.adb:38:33: error: limited components cannot be copied
 genericlimitederrors.adb:45:9: error: 'Value' cannot be assigned to
 genericlimitederrors.adb:50:51: error: an in out generic formal object requires a variable actual
-genericlimitederrors.adb:60:43: error: aggregates containing tasks are not yet supported

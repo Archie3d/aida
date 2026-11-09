@@ -3,5 +3,5 @@ tasklegalityerrors.adb:13:5: error: task body requires a task declaration in the
 tasklegalityerrors.adb:18:5: error: task body requires a task declaration in the same declarative region
 tasklegalityerrors.adb:22:5: error: tagged records containing tasks are not yet supported
 tasklegalityerrors.adb:28:9: error: a completion containing tasks requires a limited private view
-tasklegalityerrors.adb:38:9: error: function results containing tasks are not yet supported
-tasklegalityerrors.adb:47:9: error: function results containing tasks are not yet supported
+tasklegalityerrors.adb:28:9: error: a nonlimited private view requires a nonlimited full view
+tasklegalityerrors.adb:50:13: error: a limited result must be built in place

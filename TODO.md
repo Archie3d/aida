@@ -5,8 +5,9 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 8 functional/tooling work is complete. Continue with
-Phase 9 core tasking. Further profiling remains deferred.
+**Current focus:** Phase 9 task/protected aggregate and result construction is
+complete. Continue with task entries and rendezvous. Further profiling remains
+deferred.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -114,9 +115,10 @@ Completes Ada 2005 core tasking on top of Phases 4 and 6. Core tasking is part
 of the language goal, not an optional annex. Track annex-specific priorities,
 scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
-- [ ] Task/protected aggregates and function results: extend 6e construction
+- [x] Task/protected aggregates and function results: extend 6e construction
   with caller-master ownership, delayed task activation and failed-result
-  cleanup (`semantics.returns` retains explicit rejections).
+  cleanup (`semantics.returns` retains copy-rejection controls).
+  [Contract, restrictions and validation](docs/concurrent-results.md).
 - [ ] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
 - [ ] Selective accept, with guards, `terminate` and `delay` alternatives;

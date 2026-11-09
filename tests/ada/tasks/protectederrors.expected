@@ -4,9 +4,7 @@ protectederrors.adb:26:13: error: 'aliasValue' cannot be assigned to
 protectederrors.adb:27:20: error: a protected function cannot modify its constant current instance
 protectederrors.adb:28:23: error: a protected function cannot modify its constant current instance
 protectederrors.adb:29:13: error: a protected function cannot call a procedure on its constant current instance
-protectederrors.adb:43:5: error: objects containing protected parts cannot be copied or explicitly initialized yet
-protectederrors.adb:44:5: error: function results containing protected objects are not yet supported
-protectederrors.adb:45:5: error: function results containing protected objects are not yet supported
+protectederrors.adb:43:5: error: limited controlled objects cannot be copied
 protectederrors.adb:47:9: error: a limited result must be built in place
 protectederrors.adb:49:5: error: renaming protected operations is not yet supported
 protectederrors.adb:51:45: error: access to protected subprograms requires an anonymous protected subprogram access type

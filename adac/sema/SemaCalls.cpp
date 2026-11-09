@@ -494,12 +494,6 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 
         expr->form = CallForm::Subprogram;
         expr->subprogram = chosen;
-        if (hasProtected(chosen->returnType)) {
-            m_diagnostics.error(expr->location, "function results containing protected objects are not yet supported");
-        }
-        if (hasIncompleteParts(chosen->returnType)) {
-            m_deferredProtectedUses.push_back({chosen->returnType, expr->location});
-        }
         Expr* protectedObject = expr->callee->kind == ExprKind::Selected
             ? static_cast<SelectedExpr*>(expr->callee.get())->prefix.get() : nullptr;
         bindProtectedCall(expr, chosen, protectedObject, scope);

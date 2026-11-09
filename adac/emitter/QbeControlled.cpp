@@ -87,7 +87,17 @@ Value QbeEmitter::collectionFor(Type* type)
 
 void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, ReturnStmt* extended)
 {
+    struct ResultAccessLevel
+    {
+        std::string& level;
+        std::string saved;
+        ~ResultAccessLevel()
+        {
+            level = saved;
+        }
+    } accessLevel { m_context->constructionAccessLevel, m_context->constructionAccessLevel };
     Type* returnType = m_context->symbol->returnType;
+    if (hasProtected(returnType)) { m_context->constructionAccessLevel = "%.protectedResultLevel"; }
     bool wideExtended = object != nullptr && returnType->classRoot != nullptr;
     Type* type = object != nullptr && (wideExtended || returnType->kind == TypeKind::Record)
         ? object->symbols.front()->type : returnType;
@@ -143,6 +153,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             line("storel " + result + ", " + slot);
             m_context->returnCleanups.push_back({ mark, arenaMark,
                 m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
+            m_context->constructionAccessLevel = accessLevel.saved;
             emitExtendedReturnBody(extended);
             m_context->returnCleanups.pop_back();
         }
@@ -165,13 +176,27 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         m_context->resultProvided = "%.resultProvided";
         m_context->resultTargetOwner = "%.resultOwner";
         m_context->resultTargetArena = "%.resultArena";
+        std::string savedMaster = m_context->taskMaster, savedCollection = m_context->taskCollection, savedGroup = m_context->taskGroup;
+        if (hasTasks(type)) {
+            m_context->taskMaster = "%.resultMaster";
+            m_context->taskCollection = "%.resultCollection";
+            m_context->taskGroup = "%.resultGroup";
+        }
         emitExpr(expression);
+        m_context->taskMaster = savedMaster;
+        m_context->taskCollection = savedCollection;
+        m_context->taskGroup = savedGroup;
         return;
     }
     // Construct in caller-owned storage. Registrations are installed before
     // adjustment, so propagation (including a failing local finalizer) never
     // leaves an unowned result. A caught construction failure discards just
     // this attempt before the function's handler can retry the return.
+    std::string taskMark;
+    if (hasTasks(type)) {
+        taskMark = newTemp();
+        emitCallInstruction(taskMark + " =l call $__ada_task_result_mark(l %.resultMaster)", CallEffects::RuntimeHook);
+    }
     std::string ownerMark = newTemp();
     std::string arenaMark = newTemp();
     line(ownerMark + " =l loadl %.resultOwner");
@@ -180,6 +205,12 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     std::string ready = newLabel("resultready");
     pushHandler(failed);
 
+    std::string savedMaster = m_context->taskMaster, savedCollection = m_context->taskCollection, savedGroup = m_context->taskGroup;
+    if (hasTasks(type)) {
+        m_context->taskMaster = "%.resultMaster";
+        m_context->taskCollection = "%.resultCollection";
+        m_context->taskGroup = "%.resultGroup";
+    }
     if (object != nullptr) {
         for (Type* constraint : object->constraintOrder) {
             if (constraint->kind == TypeKind::Record) { emitDiscriminantConstraint(constraint); }
@@ -334,7 +365,11 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         m_context->constructionOwner = savedOwner;
         m_context->constructionArena = savedArena;
         m_context->returnCleanups.push_back({ ownerMark, arenaMark,
-            m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
+            m_context->blockMasters.size(), m_context->handlerLabels.size() - 1, taskMark });
+        m_context->taskMaster = savedMaster;
+        m_context->taskCollection = savedCollection;
+        m_context->taskGroup = savedGroup;
+        m_context->constructionAccessLevel = accessLevel.saved;
         emitExtendedReturnBody(extended);
         m_context->returnCleanups.pop_back();
     } else if (limitedAggregate) {
@@ -344,6 +379,9 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     } else {
         assignInto(destination, type, expression, true);
     }
+    m_context->taskMaster = savedMaster;
+    m_context->taskCollection = savedCollection;
+    m_context->taskGroup = savedGroup;
     if (wideExtended) {
         emitCallInstruction("call $__ada_tag_check_accessibility(l " + destination.name + ", w "
              + std::to_string(m_context->symbol->accessibilityLevel) + ")", CallEffects::CheckException);
@@ -353,6 +391,9 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
     m_context->handlerLabels.pop_back();
     jump(ready);
     label(failed);
+    if (!taskMark.empty()) {
+        emitCallInstruction("call $__ada_task_result_discard(l %.resultMaster, l " + taskMark + ", l %.resultGroup)", CallEffects::RuntimeHook);
+    }
     emitCallInstruction("call $__ada_finalize_to(l %.resultOwner, l " + ownerMark + ")", CallEffects::DeferredCheck);
     emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + arenaMark + ")", CallEffects::RuntimeHook);
     if (!m_context->handlerLabels.empty()) {
@@ -652,4 +693,25 @@ void QbeEmitter::emitControlledParts(Type* type)
     finishFunction("export function " + type->tagName
                    + ".parts(l %object, l %visit, l %context, w %parentFirst)");
     m_context = saved;
+}
+
+// Temporary task-bearing expressions use a collection in the existing temporary
+// owner. Install a later wait registration so tasks finish before protected or
+// controlled result components are finalized, then release the collection.
+std::string QbeEmitter::beginTaskTemporary()
+{
+    std::string collection = newTemp();
+    emitCallInstruction(collection + " =l call $__ada_collection_create(l "
+        + m_context->temporaryFinalizationChain + ", l " + storageArena(true, true) + ")", CallEffects::CheckException);
+    return collection;
+}
+
+void QbeEmitter::activateTaskTemporary(const std::string& collection)
+{
+    emitCallInstruction("call $__ada_finalization_reserve(l " + m_context->temporaryFinalizationChain
+        + ", l " + storageArena(true, true) + ", l " + collection
+        + ", l $__ada_task_result_await)", CallEffects::CheckException);
+    emitCallInstruction("call $__ada_controlled_activate(l " + collection
+        + ", l $__ada_task_result_await)", CallEffects::CheckException);
+    emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + collection + ")", CallEffects::CheckException);
 }

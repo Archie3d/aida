@@ -2,6 +2,7 @@
 #include "QbeSupport.h"
 
 #include <cmath>
+#include <utility>
 
 using QbeSupport::constantValue;
 using QbeSupport::realLiteral;
@@ -760,6 +761,8 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
             emitCallInstruction("call $__ada_allocation_reserve(l " + object.name + ", l " + part.name
                  + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
         }, false);
+        std::string savedAccessLevel = std::exchange(m_context->constructionAccessLevel, object.accessLevel);
+        std::string savedTaskMaster = std::exchange(m_context->taskMaster, "0");
         std::string savedTaskCollection = m_context->taskCollection;
         std::string savedTaskGroup = m_context->taskGroup;
         m_context->taskCollection = collection.name;
@@ -795,6 +798,8 @@ Value QbeEmitter::emitAllocatorValue(AllocatorExpr* expr)
         if (designated->kind == TypeKind::Access && expr->type->target->excludesNull) {
             checkNotNull(loadFrom(object, designated));
         }
+        m_context->constructionAccessLevel = savedAccessLevel;
+        m_context->taskMaster = savedTaskMaster;
         m_context->taskCollection = savedTaskCollection;
         m_context->taskGroup = savedTaskGroup;
         m_context->constructionOwner = savedOwner;
@@ -890,9 +895,9 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
         Symbol* body = base->taskBody;
         Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
         Value flag = elaborationFlag(body);
-        emitCallInstruction("call $__ada_task_create(l %.taskContext, l " + address.name + ", l " + body->qbeName
+        emitCallInstruction("call $__ada_task_create_owned(l %.taskContext, l " + address.name + ", l " + body->qbeName
              + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
-             + m_context->taskGroup + ")", CallEffects::CheckException);
+             + m_context->taskGroup + ", l " + m_context->taskMaster + ")", CallEffects::CheckException);
         return;
     }
     if (type->kind == TypeKind::Array && hasRuntimeLayout(type)) {
@@ -970,7 +975,8 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
     m_context->discriminantObjects = std::move(savedObjects);
     if (base->protectedScope != nullptr) {
         emitCallInstruction("call $__ada_protected_init_access(l " + address.name + ", w "
-            + (address.accessLevel.empty() ? currentAccessLevel() : address.accessLevel) + ")", CallEffects::CheckException);
+            + (address.accessLevel.empty() ? (m_context->constructionAccessLevel.empty()
+                ? currentAccessLevel() : m_context->constructionAccessLevel) : address.accessLevel) + ")", CallEffects::CheckException);
         activateControlledObject(address, type);
     }
     if (base->controlled) {

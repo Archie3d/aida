@@ -55,6 +55,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
             emitBlockExits(result.masterDepth);
             m_context->blockMasters.resize(result.masterDepth);
             m_context->handlerLabels.resize(result.handlerDepth);
+            if (!result.taskMark.empty()) {
+                emitCallInstruction("call $__ada_task_result_discard(l %.resultMaster, l " + result.taskMark + ", l %.resultGroup)", CallEffects::RuntimeHook);
+            }
             emitCallInstruction("call $__ada_finalize_to(l %.resultOwner, l " + result.ownerMark + ")", CallEffects::DeferredCheck);
             emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
             emitExceptionCheck();
@@ -230,6 +233,9 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 emitBlockExits(result.masterDepth);
                 m_context->blockMasters.resize(result.masterDepth);
                 m_context->handlerLabels.resize(result.handlerDepth);
+                if (!result.taskMark.empty()) {
+                    emitCallInstruction("call $__ada_task_result_discard(l %.resultMaster, l " + result.taskMark + ", l %.resultGroup)", CallEffects::RuntimeHook);
+                }
                 emitCallInstruction("call $__ada_finalize_to(l %.resultOwner, l " + result.ownerMark + ")", CallEffects::DeferredCheck);
                 emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
                 emitExceptionCheck();

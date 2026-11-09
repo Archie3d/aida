@@ -150,8 +150,9 @@ is a constant for the instance's lifetime. Existing construction ownership and
 finalization paths cover normal completion, constructor exceptions, partial
 aggregates, failure of a later actual, package-body elaboration failure and a
 failing finalizer. This includes local and library instances and nested/separate
-library generic bodies. Task/protected aggregates and results remain Phase 9
-restrictions and are diagnosed.
+library generic bodies. Task/protected aggregates and results now reuse these
+paths under the [Phase 9 construction contract](concurrent-results.md), including
+generic formal `in` objects containing concurrent parts.
 
 `genericlimitedobjects`, `genericlimitedarrays`, `genericlimitedtagged`,
 `genericlimitedcleanup` and `genericlimitedlibrary_main` run whole/per-unit and

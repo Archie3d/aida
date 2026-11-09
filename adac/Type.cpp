@@ -846,7 +846,7 @@ bool hasLimitedControlledParts(const Type* type)
 bool hasLimitedParts(const Type* type)
 {
     if (type == nullptr) { return false; }
-    if (type->limitedRecord || (type->isLimited && needsFinalization(type))) { return true; }
+    if (type->taskBody != nullptr || type->limitedRecord || (type->isLimited && needsFinalization(type))) { return true; }
     if (type->kind == TypeKind::Array) { return hasLimitedParts(type->element); }
     if (type->kind == TypeKind::Record) {
         for (const FieldInfo& field : type->fields) {

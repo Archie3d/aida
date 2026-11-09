@@ -365,19 +365,14 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
     }
     Type* initializerType = nullptr;
     if (expr->value != nullptr) {
-        if (hasIncompleteParts(designated)) {
+        Type* value = analyzeExpr(expr->value.get(), scope, designated);
+        if (hasIncompleteParts(designated) && !buildsLimitedResult(expr->value.get())) {
             m_deferredProtectedUses.push_back({designated, expr->location});
         }
-        if (hasProtected(designated)) {
-            m_diagnostics.error(expr->location, "allocators with protected parts cannot have explicit initializers yet");
-        }
-        if (hasTasks(designated)) {
-            m_diagnostics.error(expr->location, "allocators containing tasks cannot have explicit initializers yet");
-        }
-        Type* value = analyzeExpr(expr->value.get(), scope, designated);
         initializerType = value;
-        if (!hasProtected(designated) && hasLimitedParts(designated) && !buildsLimitedResult(expr->value.get())) {
-            m_diagnostics.error(expr->location, "limited controlled objects cannot be copied");
+        if (hasLimitedParts(designated) && !buildsLimitedResult(expr->value.get())) {
+            m_diagnostics.error(expr->location, hasLimitedControlledParts(designated)
+                ? "limited controlled objects cannot be copied" : "limited objects cannot be copied");
         }
         if (!typesCompatible(designated, value)) {
             m_diagnostics.error(expr->value->location, "the allocator initializer has an incompatible type");

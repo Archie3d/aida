@@ -306,6 +306,8 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
                 signature += ", w %.resultProvided";
             }
         }
+        if (hasTasks(symbol->returnType)) { signature += ", l %.resultMaster, l %.resultCollection, l %.resultGroup"; }
+        if (hasProtected(symbol->returnType)) { signature += ", w %.protectedResultLevel"; }
         if (hasAccessDiscriminants(symbol->returnType)) { signature += ", w %.resultAccessLevel"; }
         first = false;
     }

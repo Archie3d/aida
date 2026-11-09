@@ -401,7 +401,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         if (hasTasks(targetType)) {
             m_diagnostics.error(assign->location, "objects containing tasks cannot be assigned");
         }
-        if (!hasProtected(targetType) && hasLimitedParts(targetType)) {
+        if (!hasProtected(targetType) && !hasTasks(targetType) && hasLimitedParts(targetType)) {
             m_diagnostics.error(assign->location, (hasLimitedControlledParts(targetType) ? "limited controlled objects cannot be assigned" : "limited objects cannot be assigned"));
         }
         Type* valueType = analyzeExpr(assign->value.get(), scope, targetType);

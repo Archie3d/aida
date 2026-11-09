@@ -57,12 +57,18 @@ begin null; end Root;" "a tagged record with limited components must be explicit
 reject(private_completion "package Root is type Item is private;
 private type Item is limited record X : Integer; end record; end Root;"
     "a limited full view requires a limited private view")
-# Concurrent result construction remains explicitly rejected until masters can
-# adopt result tasks and defer activation to completion of the caller's object.
-reject(task_result "procedure Root is task type Worker; task body Worker is begin null; end Worker;
-function F return Worker is begin return R : Worker; end F; begin null; end Root;"
-    "function results containing tasks are not yet supported")
-reject(protected_result "procedure Root is protected type Guard is procedure P; end Guard;
+# Concurrent results use the same build-in-place legality as limited records.
+reject(task_result_copy "procedure Root is task type Worker; task body Worker is begin null; end Worker;
+A : Worker; function F return Worker is begin return A; end F; begin null; end Root;"
+    "a limited result must be built in place")
+reject(protected_result_copy "procedure Root is protected type Guard is procedure P; end Guard;
 protected body Guard is procedure P is begin null; end P; end Guard;
-function F return Guard is begin return R : Guard; end F; begin null; end Root;"
-    "function results containing protected objects are not yet supported")
+A : Guard; function F return Guard is begin return A; end F; begin null; end Root;"
+    "a limited result must be built in place")
+reject(task_component_copy "procedure Root is task type Worker; task body Worker is begin null; end Worker;
+A : Worker; type Holder is record W : Worker; end record;
+B : Holder := (W => A); begin null; end Root;" "limited components cannot be copied")
+reject(protected_component_copy "procedure Root is protected type Guard is procedure P; end Guard;
+protected body Guard is procedure P is begin null; end P; end Guard;
+A : Guard; type Holder is record G : Guard; end record;
+B : Holder := (G => A); begin null; end Root;" "limited controlled components cannot be copied")

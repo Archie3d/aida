@@ -1635,10 +1635,6 @@ bool Sema::checkGenericObjectActual(const GenericFormal& formal, Expr* actual, T
     if (type == nullptr || actualType == nullptr) { return false; }
     bool reference = formal.mode == ParameterMode::InOut;
     if (!reference) {
-        if (hasTasks(type) || hasProtected(type)) {
-            m_diagnostics.error(actual->location, "generic in objects containing task or protected parts are not yet supported");
-            return false;
-        }
         if ((limitedView(type) || limitedView(actualType)) && !buildsLimitedResult(actual)) {
             m_diagnostics.error(actual->location, "a limited generic in object requires an aggregate or function call");
             return false;

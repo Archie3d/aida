@@ -35,8 +35,8 @@ cannot be used to obtain an unbound callback via `Access`. Null access receivers
 fail at elaboration. Full unreduced profiles, incompatible modes/results and
 nonaliased access receivers are diagnosed. A temporary receiver remains a constant
 view: materialization does not permit `out`/`in out` calls on it. The existing
-restrictions on the enclosing types and expressions still apply, including the
-Phase 9 restrictions on task/protected aggregate and result construction.
+restrictions on the enclosing types and expressions still apply. Task/protected
+aggregate and result construction follows the [Phase 9 contract](concurrent-results.md).
 
 `prefixedviews` covers single evaluation, named/defaulted reduced parameters,
 renaming-as-body, generic actuals, object/access dispatch, name capture, composite

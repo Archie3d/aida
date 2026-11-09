@@ -74,9 +74,10 @@ simple return/exit/goto/exception transfers. CA120012 now passes its limited
 record declarations unchanged. C3A0025 now executes unchanged as PASS after
 Phase 6g access formal objects completed its generic prerequisite.
 
-Task/protected aggregates and function results remain explicitly diagnosed.
-Phase 9 must add caller-master adoption and delayed activation for task-valued
-results, and the corresponding protected lifecycle work. Phase 6f retains
+Task/protected aggregates and function results now extend these construction
+paths with caller-master ownership, delayed activation and failed-result cleanup
+([contract and tests](concurrent-results.md)). Existing restrictions on concurrent
+component types/layouts remain diagnosed. Phase 6f retains
 private extensions, tagged discriminants, runtime-sized tagged layouts and
 limited current-instance access in defaults. Phase 6g now reuses these paths
 for [limited `in` formal objects](generic-types.md#limited-in-formal-objects);

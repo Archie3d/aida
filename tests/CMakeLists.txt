@@ -1811,7 +1811,7 @@ add_test(NAME semantics.subunits
 set_tests_properties(semantics.subunits PROPERTIES TIMEOUT 90)
 
 # Phase 6e: ordinary extended returns and general limited result construction.
-foreach(return_case extendedreturns limitedresults returncleanup)
+foreach(return_case extendedreturns limitedresults returncleanup concurrentresults concurrentlibrarymain)
     add_ada_test(${return_case} SOURCES ${return_case}.adb)
     add_determinism_test(${return_case} SOURCE ${return_case}.adb)
     ada_test_fixture(source_path "${return_case}.adb")

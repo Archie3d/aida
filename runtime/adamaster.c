@@ -276,15 +276,16 @@ static void* executeTask(void* argument)
     return NULL;
 }
 
-void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
-                      void* link, const int* elaborated, void* collection, void* group)
+void __ada_task_create_owned(AdaTaskContext* context, void** object, void (*body)(void*),
+                            void* link, const int* elaborated, void* collection, void* group,
+                            AdaMaster* owner)
 {
     if (context->protectedActions != NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
     // AdaCollection begins with its independent master identity.
-    AdaMaster* master = collection != NULL ? collection : context->currentMaster;
+    AdaMaster* master = owner != NULL ? owner : __ada_task_owner(context, collection);
     if (master == NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
@@ -314,14 +315,17 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
     task->group = group;
     task->elaborated = elaborated;
     task->context.accessibilityParentLevel = collection != NULL
-        ? __ada_collection_access_level(collection) : __ada_current_access_level();
+        ? __ada_collection_access_level(collection) : owner == NULL ? __ada_current_access_level() : 0;
     if (context->exception != NULL) { __ada_condition_destroy(&task->condition); __ada_mutex_destroy(&task->mutex); free(task); return; }
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     AdaMasterState* state = findMaster(master);
     if (state == NULL) {
         state = registerMaster(context, master, collection != NULL);
     }
-    if (state == NULL) {
+    if (state != NULL && owner != NULL && collection == NULL) {
+        task->context.accessibilityParentLevel = accessLevelForMaster(master);
+    }
+    if (state == NULL || context->exception != NULL) {
         __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
         __ada_condition_destroy(&task->condition);
         __ada_mutex_destroy(&task->mutex);
@@ -333,6 +337,31 @@ void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void
     state->tasks = task;
     *object = task;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection)
+{
+    return collection != NULL ? collection : context->currentMaster;
+}
+
+void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
+                      void* link, const int* elaborated, void* collection, void* group)
+{
+    __ada_task_create_owned(context, object, body, link, elaborated, collection, group, NULL);
+}
+
+void __ada_task_result_await(void* master)
+{
+    __ada_master_await(__ada_task_context(), master);
+}
+
+void* __ada_task_result_mark(AdaMaster* master)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaMasterState* state = findMaster(master);
+    void* mark = state != NULL ? state->tasks : NULL;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    return mark;
 }
 
 static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* group)
@@ -456,7 +485,15 @@ static int dependsOn(AdaMasterState* state, AdaMaster* master)
 /* Await one task at a time, resampling after every join. A running dependent
    may allocate another task in any collection of this lexical master. A fixed
    snapshot or a one-pass collection-first traversal would miss that task. */
-static void awaitTasks(AdaMaster* master, void* object, long size, int discard)
+enum AdaTaskAwaitMode
+{
+    kAwaitDependents,
+    kDiscardObject,
+    kDiscardResult
+};
+
+static void awaitTasks(AdaMaster* master, void* object, long size, enum AdaTaskAwaitMode mode,
+                       void* mark, void* group)
 {
     if (!(masterActivities(master) & kMasterDependents)) {
         return;
@@ -468,12 +505,13 @@ static void awaitTasks(AdaMaster* master, void* object, long size, int discard)
         int busy = 0;
         for (AdaMasterState* state = __ada_main_context.sharedMasters; state != NULL;
              state = state->registeredNext) {
-            if (discard ? state->master != master : !dependsOn(state, master)) {
+            if (mode != kAwaitDependents ? state->master != master : !dependsOn(state, master)) {
                 continue;
             }
-            for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
+            for (AdaTaskState* task = state->tasks; task != NULL && task != mark; task = task->next) {
+                if (mode == kDiscardResult && task->group != group) { continue; }
                 uintptr_t offset = (uintptr_t)task->object - (uintptr_t)object;
-                if (discard && ((uintptr_t)task->object < (uintptr_t)object || offset >= (uintptr_t)size)) {
+                if (mode == kDiscardObject && ((uintptr_t)task->object < (uintptr_t)object || offset >= (uintptr_t)size)) {
                     continue;
                 }
                 // Do not inspect scheduling fields owned by another activation.
@@ -513,16 +551,24 @@ static void awaitTasks(AdaMaster* master, void* object, long size, int discard)
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
+void __ada_task_result_discard(AdaMaster* master, void* mark, void* group)
+{
+    // A failed construction must cancel dormant tasks before its result storage
+    // and protected/controlled components are released. Records remain owned by
+    // the master so Task_Id queries keep their existing lifetime contract.
+    awaitTasks(master, NULL, 0, kDiscardResult, mark, group);
+}
+
 void __ada_master_await(AdaTaskContext* context, AdaMaster* master)
 {
     (void)context;
-    awaitTasks(master, NULL, 0, 0);
+    awaitTasks(master, NULL, 0, kAwaitDependents, NULL, NULL);
 }
 
 void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object, long size)
 {
     (void)context;
-    awaitTasks(master, object, size, 1);
+    awaitTasks(master, object, size, kDiscardObject, NULL, NULL);
 }
 
 void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)

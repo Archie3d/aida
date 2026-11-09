@@ -116,9 +116,46 @@ static void checkReparentedDependents(void)
     __ada_task_context_bind(previous);
 }
 
+static void checkResultTasks(void)
+{
+    AdaTaskContext context = {0};
+    AdaTaskContext* previous = __ada_task_context_bind(&context);
+    AdaMaster caller, callee;
+    int elaborated = 1;
+    char resultGroup, siblingGroup;
+    void* objects[4];
+    atomic_store(&completed, 0);
+    __ada_master_enter(&context, &caller, ADA_MASTER_BLOCK);
+    CHECK(__ada_task_owner(&context, NULL) == &caller);
+    __ada_task_create(&context, &objects[0], successfulTask, NULL, &elaborated, NULL, &resultGroup);
+    void* mark = __ada_task_result_mark(&caller);
+    __ada_master_enter(&context, &callee, ADA_MASTER_SUBPROGRAM);
+    __ada_task_create_owned(&context, &objects[1], successfulTask, NULL, &elaborated, NULL, &resultGroup, &caller);
+    __ada_task_create_owned(&context, &objects[2], successfulTask, NULL, &elaborated, NULL, &siblingGroup, &caller);
+    __ada_master_activate(&context, &callee);
+    __ada_master_leave(&context, &callee);
+    CHECK(atomic_load(&completed) == 0);
+    __ada_raise_message(ADA_CONSTRAINT_ERROR, "result failure", 14);
+    __ada_task_result_discard(&caller, mark, &resultGroup);
+    CHECK(context.exception == ADA_CONSTRAINT_ERROR && context.pendingMessageLength == 14);
+    CHECK(__ada_task_is_terminated(objects[1]));
+    CHECK(!__ada_task_is_terminated(objects[0]) && !__ada_task_is_terminated(objects[2]));
+    context.exception = NULL;
+    // A successful retry joins the original activation group; the discarded
+    // member cannot run when the caller activates the remaining declarations.
+    __ada_task_create_owned(&context, &objects[3], successfulTask, NULL, &elaborated, NULL, &resultGroup, &caller);
+    __ada_master_activate(&context, &caller);
+    __ada_master_await(&context, &caller);
+    CHECK(atomic_load(&completed) == 3);
+    __ada_master_leave(&context, &caller);
+    CHECK(__ada_task_context_dispose(&context));
+    __ada_task_context_bind(previous);
+}
+
 int main(void)
 {
     checkEmptyMasters();
+    checkResultTasks();
     checkReparentedDependents();
     for (int iteration = 0; iteration < 20; ++iteration) {
         AdaTaskContext context = {0};

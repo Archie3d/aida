@@ -37,6 +37,14 @@ void __ada_master_leave(AdaTaskContext* context, AdaMaster* master);
 /* Generated task body ABI, including a lexical link for library bodies. */
 void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
                       void* link, const int* elaborated, void* collection, void* group);
+/* Build-in-place results retain the caller's owner and activation group. */
+AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection);
+void __ada_task_create_owned(AdaTaskContext* context, void** object, void (*body)(void*),
+                            void* link, const int* elaborated, void* collection, void* group,
+                            AdaMaster* owner);
+void __ada_task_result_await(void* master);
+void* __ada_task_result_mark(AdaMaster* master);
+void __ada_task_result_discard(AdaMaster* master, void* mark, void* group);
 void __ada_task_activate_group(AdaTaskContext* context, void* collection, void* group);
 void __ada_task_activated(AdaTaskContext* context);
 void __ada_task_activation_failed(AdaTaskContext* context);

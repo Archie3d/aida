@@ -127,6 +127,7 @@ private:
             std::string arenaMark;
             std::size_t masterDepth;
             std::size_t handlerDepth;
+            std::string taskMark;
         };
         std::vector<ReturnCleanup> returnCleanups;
         std::string resultTarget;
@@ -141,6 +142,8 @@ private:
         std::string coextensionLevel;
         std::string constructionOwner;
         std::string constructionArena;
+        std::string constructionAccessLevel;
+        std::string taskMaster = "0";
         std::string taskCollection = "0";
         std::string taskGroup = "0";
         std::unordered_map<Symbol*, std::string> taskGroups;
@@ -238,6 +241,8 @@ private:
 
     // Statements (QbeStatements.cpp).
     void emitStatements(StmtList& statements);
+    std::string beginTaskTemporary();
+    void activateTaskTemporary(const std::string& collection);
     void emitStatement(Stmt* statement);
 
     // Exceptions and checks (QbeExceptions.cpp).

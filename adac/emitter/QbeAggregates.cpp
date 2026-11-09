@@ -500,6 +500,14 @@ Value QbeEmitter::emitAggregate(AggregateExpr* expr)
 {
     bool saved = m_context->initializingTemporary;
     m_context->initializingTemporary = true;
+    std::string savedMaster = m_context->taskMaster, savedCollection = m_context->taskCollection, savedGroup = m_context->taskGroup;
+    std::string taskTemporary;
+    if (hasTasks(expr->type)) {
+        taskTemporary = beginTaskTemporary();
+        m_context->taskMaster = taskTemporary;
+        m_context->taskCollection = taskTemporary;
+        m_context->taskGroup = allocScratch(1);
+    }
     Value result;
     if (isUnconstrainedArray(expr->type)) {
         result = emitDynamicAggregateInto(expr, withBounds(Value {}, expr->type, nullptr), expr->type);
@@ -509,6 +517,10 @@ Value QbeEmitter::emitAggregate(AggregateExpr* expr)
         prepareControlledObject(result, expr->type);
         emitAggregateInto(expr, result, expr->type);
     }
+    if (!taskTemporary.empty()) { activateTaskTemporary(taskTemporary); }
+    m_context->taskMaster = savedMaster;
+    m_context->taskCollection = savedCollection;
+    m_context->taskGroup = savedGroup;
     m_context->initializingTemporary = saved;
     return result;
 }

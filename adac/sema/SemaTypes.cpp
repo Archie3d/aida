@@ -1431,9 +1431,6 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.isDiscriminant = isDiscriminant;
         info.aliased = field.aliased;
         if (field.defaultValue) {
-            if (hasTasks(info.type)) {
-                m_diagnostics.error(field.location, "components containing tasks cannot have explicit defaults yet");
-            }
             bool savedStreamDefault = m_streamDefault;
             m_streamDefault = true;
             Type* valueType = analyzeDeferredExpression(field.defaultValue.get(), isDiscriminant ? scope : componentScope,

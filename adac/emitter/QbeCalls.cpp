@@ -199,13 +199,29 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         std::string& arena;
         std::string savedOwner;
         std::string savedArena;
+        std::string& accessLevel;
+        std::string savedAccessLevel;
+        std::string& master;
+        std::string& collection;
+        std::string& group;
+        std::string savedMaster;
+        std::string savedCollection;
+        std::string savedGroup;
         ~ConstructionContext()
         {
             owner = savedOwner;
             arena = savedArena;
+            accessLevel = savedAccessLevel;
+            master = savedMaster;
+            collection = savedCollection;
+            group = savedGroup;
         }
     } construction { m_context->constructionOwner, m_context->constructionArena,
-        std::exchange(m_context->constructionOwner, ""), std::exchange(m_context->constructionArena, "") };
+        std::exchange(m_context->constructionOwner, ""), std::exchange(m_context->constructionArena, ""),
+        m_context->constructionAccessLevel, std::exchange(m_context->constructionAccessLevel, ""),
+        m_context->taskMaster, m_context->taskCollection, m_context->taskGroup,
+        std::exchange(m_context->taskMaster, "0"), std::exchange(m_context->taskCollection, "0"),
+        std::exchange(m_context->taskGroup, "0") };
     Symbol* subprogram = expr->subprogram;
     if (subprogram == nullptr) {
         return Value { "0", 'w' };
@@ -520,6 +536,19 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     bool accessResult = hasAccessDiscriminants(subprogram->returnType);
     bool controlledResult = accessResult || needsFinalization(subprogram->returnType) || hasLimitedParts(subprogram->returnType)
         || (subprogram->returnType != nullptr && subprogram->returnType->tagged);
+    bool taskResult = hasTasks(subprogram->returnType);
+    std::string taskTemporary;
+    if (taskResult && resultTarget.empty() && resultDescriptor.empty()
+        && resultOwner.empty() && construction.savedOwner.empty()) {
+        taskTemporary = beginTaskTemporary();
+    }
+    std::string taskMaster = taskTemporary.empty() ? construction.savedMaster : taskTemporary;
+    std::string taskCollection = taskTemporary.empty() ? construction.savedCollection : taskTemporary;
+    std::string taskGroup = taskTemporary.empty() ? construction.savedGroup : allocScratch(1);
+    if (taskResult && taskMaster == "0") {
+        taskMaster = newTemp();
+        emitCallInstruction(taskMaster + " =l call $__ada_task_owner(l %.taskContext, l " + taskCollection + ")", CallEffects::RuntimeHook);
+    }
     bool dynamicResult = isUnconstrainedArray(subprogram->returnType);
     bool taggedResult = subprogram->returnType != nullptr && subprogram->returnType->tagged;
     std::string resultStorage;
@@ -553,6 +582,14 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                 arguments.push_back("w " + (resultProvided.empty() ? (resultTarget.empty() ? "0" : "1") : resultProvided));
             }
         }
+    }
+    if (taskResult) {
+        arguments.push_back("l " + taskMaster);
+        arguments.push_back("l " + taskCollection);
+        arguments.push_back("l " + taskGroup);
+    }
+    if (hasProtected(subprogram->returnType)) {
+        arguments.push_back("w " + (construction.savedAccessLevel.empty() ? currentAccessLevel() : construction.savedAccessLevel));
     }
     if (accessResult) {
         arguments.push_back("w " + (m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel));
@@ -742,6 +779,14 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         }
         emitExceptionCheck();
     }
+    std::string taskMark, taskFailed, taskReady;
+    if (taskResult) {
+        taskMark = newTemp();
+        taskFailed = newLabel("taskresultfailed");
+        taskReady = newLabel("taskresultready");
+        emitCallInstruction(taskMark + " =l call $__ada_task_result_mark(l " + taskMaster + ")", CallEffects::RuntimeHook);
+        pushHandler(taskFailed);
+    }
     Value result { "0", 'w' };
     auto invoke = [&](const std::string& actuals) {
         if (subprogram->returnType != nullptr && !compositeResult) {
@@ -766,7 +811,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         branch(Value { hasLink, 'w' }, nested, library);
         label(nested);
         std::vector<std::string> linked = arguments;
-        linked.insert(linked.begin() + ((controlledResult ? ((taggedResult || limitedResult) ? 4 : 3) : compositeResult ? 1 : 0) + (accessResult ? 1 : 0) + (accessReturn ? 1 : 0)), "l " + indirectLink);
+        linked.insert(linked.begin() + ((controlledResult ? ((taggedResult || limitedResult) ? 4 : 3) : compositeResult ? 1 : 0) + (accessResult ? 1 : 0) + (accessReturn ? 1 : 0) + (taskResult ? 3 : 0) + (hasProtected(subprogram->returnType) ? 1 : 0)), "l " + indirectLink);
         std::string linkedArguments;
         for (const std::string& argument : linked) {
             linkedArguments += (linkedArguments.empty() ? "" : ", ") + argument;
@@ -794,6 +839,16 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         }
     }
     emitExceptionCheck();
+    if (taskResult) {
+        if (!taskTemporary.empty()) { activateTaskTemporary(taskTemporary); }
+        m_context->handlerLabels.pop_back();
+        jump(taskReady);
+        label(taskFailed);
+        emitCallInstruction("call $__ada_task_result_discard(l " + taskMaster + ", l " + taskMark + ", l " + taskGroup + ")", CallEffects::RuntimeHook);
+        if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
+        else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
+        label(taskReady);
+    }
     if (accessReturn) {
         result.accessLevel = newTemp();
         line(result.accessLevel + " =w loadsw " + accessResultLevel);

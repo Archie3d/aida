@@ -21,17 +21,6 @@ Type* Sema::analyzeAggregate(AggregateExpr* expr, Scope* scope, Type* expected)
         }
         return nullptr;
     }
-    if (hasIncompleteParts(target)) {
-        m_deferredProtectedUses.push_back({target, expr->location});
-    }
-    if (hasProtected(target)) {
-        m_diagnostics.error(expr->location, "aggregates containing protected objects are not yet supported");
-        return nullptr;
-    }
-    if (hasTasks(target)) {
-        m_diagnostics.error(expr->location, "aggregates containing tasks are not yet supported");
-        return nullptr;
-    }
     if (abstractView(target)) {
         m_diagnostics.error(expr->location, "an aggregate cannot have an abstract type");
         return nullptr;

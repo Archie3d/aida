@@ -56,8 +56,8 @@ procedure GenericLimitedErrors is
     type Tasks is array (1 .. 2) of Task_Object;
     generic
         Value : Tasks;
-    package Unsupported is end Unsupported;
-    package Bad_Tasks is new Unsupported ((others => <>));
+    package TaskValues is end TaskValues;
+    package Valid_Tasks is new TaskValues ((others => <>));
 begin
     null;
 end GenericLimitedErrors;

@@ -318,17 +318,11 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     }
 
     if (decl->initializer && !decl->isRenaming) {
-        if (hasIncompleteParts(type)) {
+        Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
+        if (hasIncompleteParts(type) && !buildsLimitedResult(decl->initializer.get())) {
             m_deferredProtectedUses.push_back({type, decl->location});
         }
-        if (hasProtected(type)) {
-            m_diagnostics.error(decl->location, "objects containing protected parts cannot be copied or explicitly initialized yet");
-        }
-        if (hasTasks(type)) {
-            m_diagnostics.error(decl->location, "objects containing tasks cannot be copied or explicitly initialized yet");
-        }
-        Type* valueType = analyzeExpr(decl->initializer.get(), scope, type);
-        if (!hasProtected(type) && (hasLimitedParts(type) || hasLimitedParts(valueType))
+        if ((hasLimitedParts(type) || hasLimitedParts(valueType))
             && !buildsLimitedResult(decl->initializer.get())) {
             m_diagnostics.error(decl->location, (hasLimitedControlledParts(type) ? "limited controlled objects cannot be copied" : "limited objects cannot be copied"));
         }
@@ -565,15 +559,6 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
     Type* returnType = spec.entryBarrier ? m_types.booleanType()
         : spec.isFunction ? resolveSubtypeIndication(spec.returnType.get(), profileScope) : nullptr;
     checkCompleteView(returnType, spec.location, "a function result");
-    if (hasIncompleteParts(returnType)) {
-        m_deferredProtectedUses.push_back({returnType, spec.location});
-    }
-    if (hasProtected(returnType)) {
-        m_diagnostics.error(spec.location, "function results containing protected objects are not yet supported");
-    }
-    if (hasTasks(returnType)) {
-        m_diagnostics.error(spec.location, "function results containing tasks are not yet supported");
-    }
 
     if (!operatorSymbol(spec.lower).empty()) {
         bool unary = spec.lower == "abs" || spec.lower == "not";
