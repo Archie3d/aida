@@ -225,8 +225,25 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     }
 
     if (expr->lower == "caller") {
+        if (expr->prefix->kind == ExprKind::Call) {
+            m_diagnostics.error(expr->location, "Caller requires an entry declaration, not an indexed entry family member");
+            return nullptr;
+        }
         auto names = expressionNames(expr->prefix.get(), scope);
         Symbol* entry = names.size() == 1 ? names.front() : nullptr;
+        Expr* taskName = expr->prefix.get();
+        if (taskName->kind == ExprKind::Call) { taskName = static_cast<CallExpr*>(taskName)->callee.get(); }
+        bool taskCurrent = taskName->kind != ExprKind::Selected || (entry != nullptr && entry->taskType != nullptr
+            && isTaskCurrentInstance(static_cast<SelectedExpr*>(taskName)->prefix.get(), entry->taskType, scope));
+        for (auto active = m_accepts.rbegin(); active != m_accepts.rend(); ++active) {
+            if (taskCurrent && entry != nullptr && entry->taskType == (*active)->entry->taskType
+                && entry->taskEntryId == (*active)->entry->taskEntryId && expr->arguments.empty()) {
+                expr->taskReceiver = (*active)->callerIdentity;
+                noteReference(expr->taskReceiver);
+                expr->type = m_taskIdType;
+                return expr->type;
+            }
+        }
         bool inside = false;
         for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
             inside |= owner == entry;
@@ -244,6 +261,34 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
     if (expr->lower == "count") {
         auto names = expressionNames(expr->prefix.get(), scope);
         Symbol* entry = names.size() == 1 ? names.front() : nullptr;
+        if (entry != nullptr && entry->taskType != nullptr && expr->arguments.empty()) {
+            for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+                Expr* taskName = expr->prefix.get();
+                if (taskName->kind == ExprKind::Call) { taskName = static_cast<CallExpr*>(taskName)->callee.get(); }
+                bool current = taskName->kind != ExprKind::Selected
+                    || isTaskCurrentInstance(static_cast<SelectedExpr*>(taskName)->prefix.get(), entry->taskType, scope);
+                if (owner == m_currentSubprogram && owner->taskBody && owner->taskType == entry->taskType && current) {
+                    expr->taskReceiver = owner->taskIdentity;
+                    noteReference(expr->taskReceiver);
+                    expr->countEntry = entry;
+                    expr->type = m_types.universalInteger();
+                    if (entry->entryIndexType != nullptr) {
+                        if (expr->prefix->kind != ExprKind::Call
+                            || static_cast<CallExpr*>(expr->prefix.get())->arguments.size() != 1) {
+                            m_diagnostics.error(expr->location, "entry family Count requires one entry index");
+                        } else {
+                            Expr* index = static_cast<CallExpr*>(expr->prefix.get())->arguments.front().value.get();
+                            Type* actual = analyzeExpr(index, scope, entry->entryIndexType);
+                            if (!typesCompatible(entry->entryIndexType, actual)) {
+                                m_diagnostics.error(index->location, "entry index has an incompatible type");
+                            }
+                            SemaSupport::adaptUniversal(index, entry->entryIndexType);
+                        }
+                    }
+                    return expr->type;
+                }
+            }
+        }
         Symbol* receiver = entry != nullptr ? protectedReceiver(entry->protectedType) : nullptr;
         bool current = expr->prefix->kind != ExprKind::Selected
             || (entry != nullptr && isProtectedCurrentInstance(
@@ -342,6 +387,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         if (chosen == nullptr) {
             m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
+            return nullptr;
+        }
+        if (chosen->entry && chosen->taskType != nullptr) {
+            m_diagnostics.error(expr->location, "an entry cannot be designated by an access-to-subprogram type");
             return nullptr;
         }
         if (chosen->protectedType != nullptr) {

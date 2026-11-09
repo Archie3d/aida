@@ -127,6 +127,9 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return result;
     }
     if (name == "caller") {
+        if (expr->taskReceiver != nullptr) {
+            return loadFrom(addressOf(expr->taskReceiver), expr->taskReceiver->type);
+        }
         std::string identity = newTemp();
         emitCallInstruction(identity + " =l call $__ada_current_task()", CallEffects::DeferredCheck);
         return Value { identity, 'l' };
@@ -152,10 +155,23 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
         return Value { result, 'w' };
     }
     if (name == "count") {
-        Value object = addressOf(expr->protectedReceiver);
         std::string count = newTemp();
-        emitCallInstruction(count + " =w call $__ada_protected_count(l " + object.name
-            + ", l " + expr->countEntry->qbeName + ".barrier)", CallEffects::DeferredCheck);
+        if (expr->countEntry->taskType != nullptr) {
+            Value identity = loadFrom(addressOf(expr->taskReceiver), expr->taskReceiver->type);
+            Value index {"0", 'l'};
+            if (expr->countEntry->entryIndexType != nullptr) {
+                Expr* argument = static_cast<CallExpr*>(expr->prefix.get())->arguments.front().value.get();
+                index = emitExpr(argument);
+                emitRangeCheck(index, expr->countEntry->entryIndexType, argument->location);
+                index = wideBound(index);
+            }
+            emitCallInstruction(count + " =w call $__ada_task_entry_count(l " + identity.name + ", w "
+                + std::to_string(expr->countEntry->taskEntryId) + ", l " + index.name + ")", CallEffects::DeferredCheck);
+        } else {
+            Value object = addressOf(expr->protectedReceiver);
+            emitCallInstruction(count + " =w call $__ada_protected_count(l " + object.name
+                + ", l " + expr->countEntry->qbeName + ".barrier)", CallEffects::DeferredCheck);
+        }
         if (qbeClass(expr->type) == 'l') {
             std::string wide = newTemp();
             line(wide + " =l extsw " + count);

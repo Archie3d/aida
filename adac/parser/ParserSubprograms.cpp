@@ -239,11 +239,45 @@ DeclPtr Parser::parseTask()
     if (check(TokenKind::LeftParen)) {
         return rejectDefinition("task discriminants are not yet supported");
     }
-    if (check(TokenKind::KwIs) && peek(1).kind != TokenKind::KwEnd) {
-        return rejectDefinition("task entries, interfaces and task definition items are not yet supported");
+    if (check(TokenKind::KwIs) && peek(1).kind == TokenKind::KwNew) {
+        return rejectDefinition("task interfaces are not yet supported");
     }
     if (match(TokenKind::KwIs)) {
-        advance();
+        bool privatePart = false;
+        while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {
+            if (match(TokenKind::KwPrivate)) {
+                if (privatePart) { fail("duplicate task private part"); }
+                privatePart = true;
+                continue;
+            }
+            auto entry = std::make_unique<SubprogramDecl>();
+            entry->location = current().location;
+            if (match(TokenKind::KwOverriding)) { entry->spec.overriding = OverridingIndicator::Overriding; }
+            else if (match(TokenKind::KwNot)) {
+                expect(TokenKind::KwOverriding, "after not");
+                entry->spec.overriding = OverridingIndicator::NotOverriding;
+            }
+            expect(TokenKind::KwEntry, "in task definition (only entries are supported)");
+            const Token& entryName = expect(TokenKind::Identifier, "in task entry");
+            entry->spec.location = entry->location;
+            entry->spec.name = entryName.text;
+            entry->spec.lower = entryName.lower;
+            entry->spec.entry = true;
+            entry->protectedPrivate = privatePart;
+            if (check(TokenKind::LeftParen) && !(peek(1).kind == TokenKind::Identifier
+                && (peek(2).kind == TokenKind::Colon || peek(2).kind == TokenKind::Comma))) {
+                advance();
+                entry->spec.entryIndex = std::make_unique<SubtypeIndication>();
+                auto& index = *entry->spec.entryIndex;
+                index.location = current().location;
+                parseDiscreteRange(index.name, index.lower, index.rangeLow, index.rangeHigh);
+                expect(TokenKind::RightParen, "after entry family index subtype");
+            }
+            if (check(TokenKind::LeftParen)) { parseParameterList(entry->spec); }
+            expect(TokenKind::Semicolon, "after task entry");
+            decl->taskEntries.push_back(std::move(entry));
+        }
+        expect(TokenKind::KwEnd, "after task definition");
         parseClosingName(name.lower, true);
     }
     expect(TokenKind::Semicolon, "after task declaration");

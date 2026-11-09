@@ -75,6 +75,30 @@ StmtPtr Parser::parseStatement()
     SourceLocation location = current().location;
 
     switch (current().kind) {
+    case TokenKind::KwAccept: {
+        advance();
+        auto statement = std::make_unique<AcceptStmt>();
+        statement->location = location;
+        const Token& name = expect(TokenKind::Identifier, "after accept");
+        statement->spec.location = location;
+        statement->spec.name = name.text;
+        statement->spec.lower = name.lower;
+        if (check(TokenKind::LeftParen) && !(peek(1).kind == TokenKind::Identifier
+            && (peek(2).kind == TokenKind::Colon || peek(2).kind == TokenKind::Comma))) {
+            advance();
+            statement->index = parseExpression();
+            expect(TokenKind::RightParen, "after accept entry index");
+        }
+        if (check(TokenKind::LeftParen)) { parseParameterList(statement->spec); }
+        if (match(TokenKind::KwDo)) {
+            statement->body = parseSequenceOfStatements();
+            if (check(TokenKind::KwException)) { statement->handlers = parseExceptionHandlers(); }
+            expect(TokenKind::KwEnd, "after accept body");
+            parseClosingName(name.lower, true);
+        }
+        expect(TokenKind::Semicolon, "after accept statement");
+        return statement;
+    }
     case TokenKind::KwGoto: {
         advance();
         auto statement = std::make_unique<GotoStmt>();

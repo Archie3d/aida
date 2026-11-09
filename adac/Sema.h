@@ -72,6 +72,7 @@ private:
     void analyzeProtected(TypeDecl* decl, Scope* scope);
     void declareProtectedOperation(Symbol* operation, Type* type);
     Symbol* protectedReceiver(Type* type);
+    bool isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope);
     bool isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope);
     void bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
@@ -419,6 +420,7 @@ private:
     std::vector<Expr*> m_abstractDefaultCalls;
     Type* m_currentProtectedType = nullptr;
     Scope* m_protectedBodyScope = nullptr;
+    std::vector<AcceptStmt*> m_accepts;
     int m_accessibilityLevel = 0;
     int m_handlerDepth = 0;
     std::vector<Symbol*> m_extendedReturns;

@@ -42,8 +42,8 @@
         "address_conversions/impdef.ads",
         "upstream/fd72a00.a"
       ],
-      "expected": "cd72a02.a:95:28: error: task entries, interfaces and task definition items are not yet supported\ncd72a02.a:108:7: error: select statements are not yet supported\ncd72a02.a:190:7: error: select statements are not yet supported\n",
-      "note": "Parsing stops at existing Phase 9 task-entry/select syntax. This is not a pass or a test of the remaining class-wide/protected conversions; local rejection controls separately check the documented instantiation restrictions."
+      "expected": "cd72a02.a:108:7: error: select statements are not yet supported\ncd72a02.a:190:7: error: select statements are not yet supported\n",
+      "note": "Task declarations/entries now parse; remaining Phase 9 select syntax still blocks this case. This is not a pass or a test of the remaining class-wide/protected conversions; local rejection controls separately check the documented instantiation restrictions."
     }
   ],
   "archive_note": "Original bytes extracted from the pinned GitHub archive already used by the ACATS adoption/backfill reviews; upstream root and PAX comment identify the revision.",

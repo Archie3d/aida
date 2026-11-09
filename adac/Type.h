@@ -158,6 +158,8 @@ struct Type
     bool protectedBodySeen = false;
     bool incompleteLayout = false;
     bool deferredLayout = false;
+    Scope* taskScope = nullptr;
+    std::vector<Symbol*> taskEntries;
     Symbol* taskBody = nullptr; // Task identity occupies one pointer-sized slot.
 
     // Discriminants and the variant part they may select.  The discriminants

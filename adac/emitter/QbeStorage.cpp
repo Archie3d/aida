@@ -171,6 +171,7 @@ void QbeEmitter::emitBlockExits(std::size_t depth)
 void QbeEmitter::pushHandler(const std::string& label)
 {
     m_context->handlerLabels.push_back(label);
+    m_context->transferAcceptDepth[label] = m_context->accepts.size();
     m_context->transferMasterDepth[label] = m_context->blockMasters.size();
 }
 

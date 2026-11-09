@@ -29,7 +29,7 @@ level through constructors and allocations.
 
 Existing type restrictions still apply: task/protected discriminants,
 tagged/variant composites containing these objects, and discriminant-dependent
-arrays of concurrent elements remain diagnosed. Entries/rendezvous, select,
+arrays of concurrent elements remain diagnosed. Entries/rendezvous now follow the [task-entry contract](task-entries.md); select,
 abort/requeue and synchronized interfaces are later Phase 9 work. This increment
 does not claim complete tasking or annex conformance. Recompile affected Ada
 objects with the updated compiler/runtime; semantic interfaces already check the

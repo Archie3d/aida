@@ -2219,9 +2219,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "cross_feature_language_gap",
+        "kind": "covered_probe",
         "owner": "P9 task entries",
-        "note": "Task entry declarations/rendezvous in a finalization test; entry-free task master/finalization support does not cover this compound case."
+        "note": "PASS unchanged after task entry declarations were supported; the unused entry requires no accept. Checks library-task termination before controlled library finalization, not rendezvous or select conformance."
       }
     },
     {

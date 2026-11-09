@@ -6,6 +6,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include <limits.h>
+#include <string.h>
 
 _Static_assert(sizeof(AdaMaster) == kAdaMasterBytes, "master record QBE ABI");
 
@@ -30,6 +31,18 @@ static unsigned int masterActivities(AdaMaster* master)
     return master != NULL ? atomic_load_explicit(&master->activities, memory_order_acquire) : 0;
 }
 
+typedef struct AdaRendezvous
+{
+    struct AdaRendezvous* next;
+    struct AdaRendezvous* previousAccept;
+    void* caller;
+    void* arguments;
+    int entry;
+    int64_t index;
+    int done;
+    AdaExceptionOccurrence exception;
+} AdaRendezvous;
+
 typedef struct AdaTaskState
 {
     struct AdaTaskState* next;
@@ -41,6 +54,9 @@ typedef struct AdaTaskState
     AdaThread thread;
     AdaMutex mutex;
     AdaCondition condition;
+    AdaRendezvous* calls;
+    AdaRendezvous* accepted;
+    size_t activeCalls;
     int started;
     int activating;
     int joining;
@@ -108,11 +124,134 @@ int __ada_task_is_terminated(void* identity)
     return atomic_load(&((AdaTaskState*)identity)->terminated);
 }
 
+static void completeTask(AdaTaskState* task)
+{
+    if (task == NULL) { return; }
+    __ada_mutex_lock(&task->mutex);
+    atomic_store(&task->completed, 1);
+    for (AdaRendezvous* call = task->calls; call != NULL; call = call->next) {
+        call->exception.identity = ADA_TASKING_ERROR;
+        call->done = 1;
+    }
+    task->calls = NULL;
+    __ada_condition_broadcast(&task->condition);
+    __ada_mutex_unlock(&task->mutex);
+}
+
 void __ada_task_complete(AdaTaskContext* context)
 {
-    if (context->taskSelf != NULL) {
-        atomic_store(&context->taskSelf->completed, 1);
+    completeTask(context->taskSelf);
+}
+
+void __ada_task_entry_call(AdaTaskContext* context, void* identity, int entry,
+                           int64_t index, void* arguments)
+{
+    if (identity == NULL || context->protectedActions != NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return;
     }
+    AdaTaskState* task = identity;
+    AdaRendezvous* call = calloc(1, sizeof *call);
+    if (call == NULL) { __ada_raise(ADA_STORAGE_ERROR); return; }
+    call->entry = entry;
+    call->index = index;
+    call->caller = __ada_current_task();
+    call->arguments = arguments;
+    __ada_occurrence_initialize(&call->exception);
+    __ada_mutex_lock(&task->mutex);
+    if (atomic_load(&task->completed)) {
+        __ada_mutex_unlock(&task->mutex);
+        free(call);
+        __ada_raise(ADA_TASKING_ERROR);
+        return;
+    }
+    AdaRendezvous** tail = &task->calls;
+    while (*tail != NULL) { tail = &(*tail)->next; }
+    *tail = call;
+    ++task->activeCalls;
+    __ada_condition_broadcast(&task->condition);
+    while (!call->done) {
+        __ada_condition_wait(&task->condition, &task->mutex);
+    }
+    --task->activeCalls;
+    __ada_condition_broadcast(&task->condition);
+    __ada_mutex_unlock(&task->mutex);
+    if (call->exception.identity != NULL) { __ada_reraise(&call->exception); }
+    __ada_occurrence_release(&call->exception);
+    free(call);
+}
+
+void* __ada_task_entry_accept(AdaTaskContext* context, int entry, int64_t index)
+{
+    AdaTaskState* task = context->taskSelf;
+    if (task == NULL || context->protectedActions != NULL) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    __ada_mutex_lock(&task->mutex);
+    for (;;) {
+        AdaRendezvous** candidate = &task->calls;
+        while (*candidate != NULL && ((*candidate)->entry != entry || (*candidate)->index != index)) {
+            candidate = &(*candidate)->next;
+        }
+        if (*candidate != NULL) {
+            AdaRendezvous* call = *candidate;
+            *candidate = call->next;
+            call->next = NULL;
+            call->previousAccept = task->accepted;
+            task->accepted = call;
+            __ada_mutex_unlock(&task->mutex);
+            __ada_abort_defer(context);
+            return call;
+        }
+        __ada_condition_wait(&task->condition, &task->mutex);
+    }
+}
+
+void* __ada_task_entry_arguments(void* request)
+{
+    return ((AdaRendezvous*)request)->arguments;
+}
+
+void __ada_task_entry_complete(AdaTaskContext* context, void* request)
+{
+    AdaTaskState* task = context->taskSelf;
+    AdaRendezvous* call = request;
+    if (context->exception != NULL) {
+        __ada_occurrence_restore(&call->exception, context->exception,
+            context->pendingMessage, context->pendingMessageLength);
+        if (call->exception.identity == NULL) { call->exception.identity = ADA_STORAGE_ERROR; }
+        call->exception.origin = context->pendingOrigin;
+        call->exception.traceCount = context->pendingTraceCount;
+        memcpy(call->exception.trace, context->pendingTrace,
+            (size_t)context->pendingTraceCount * sizeof *context->pendingTrace);
+    }
+    __ada_mutex_lock(&task->mutex);
+    task->accepted = call->previousAccept;
+    call->done = 1;
+    __ada_condition_broadcast(&task->condition);
+    __ada_mutex_unlock(&task->mutex);
+    __ada_abort_undefer(context);
+}
+
+void* __ada_task_entry_caller(AdaTaskContext* context)
+{
+    AdaTaskState* task = context->taskSelf;
+    if (task == NULL || task->accepted == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    return task->accepted->caller;
+}
+
+int __ada_task_entry_count(void* identity, int entry, int64_t index)
+{
+    AdaTaskState* task = identity;
+    if (task == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return 0; }
+    int count = 0;
+    __ada_mutex_lock(&task->mutex);
+    for (AdaRendezvous* call = task->calls; call != NULL; call = call->next) {
+        if (call->entry == entry && call->index == index) { ++count; }
+    }
+    __ada_mutex_unlock(&task->mutex);
+    return count;
 }
 
 void __ada_environment_task_state(int completed, int terminated)
@@ -416,7 +555,7 @@ static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* grou
             // until the complete activation transaction has been published.
             task->started = 1;
         } else {
-            atomic_store(&task->completed, 1);
+            completeTask(task);
             atomic_store(&task->terminated, 1);
             task->joined = 1;
             failed = 1;
@@ -461,7 +600,7 @@ static void awaitTask(AdaTaskState* task)
         __ada_thread_join(task->thread, NULL);
     }
     // An unactivated task terminates without running after declaration failure.
-    atomic_store(&task->completed, 1);
+    completeTask(task);
     atomic_store(&task->terminated, 1);
 }
 
@@ -600,6 +739,14 @@ void __ada_master_leave(AdaTaskContext* context, AdaMaster* master)
         while (state->tasks != NULL) {
             AdaTaskState* task = state->tasks;
             state->tasks = task->next;
+            // Established callers must finish waking before their target's
+            // condition and mutex can be destroyed, including foreign callers
+            // that are not dependents of this Ada master.
+            __ada_mutex_lock(&task->mutex);
+            while (task->activeCalls != 0) {
+                __ada_condition_wait(&task->condition, &task->mutex);
+            }
+            __ada_mutex_unlock(&task->mutex);
             __ada_condition_destroy(&task->condition);
             __ada_mutex_destroy(&task->mutex);
             free(task);

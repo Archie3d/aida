@@ -475,6 +475,24 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             protectedObject = addressOf(expr->protectedReceiver);
         }
     }
+    Value taskIdentity;
+    Value entryIndex { "0", 'l' };
+    if (subprogram->entry && subprogram->taskType != nullptr) {
+        if (expr->taskObject != nullptr) {
+            Value object = emitExpr(expr->taskObject);
+            if (baseType(expr->taskObject->type)->kind == TypeKind::Access) { checkNotNull(object); }
+            taskIdentity = Value {newTemp(), 'l'};
+            emitCallInstruction(taskIdentity.name + " =l call $__ada_task_identity(l " + object.name + ")", CallEffects::CheckException);
+        } else if (expr->taskReceiver != nullptr) {
+            taskIdentity = loadFrom(addressOf(expr->taskReceiver), expr->taskReceiver->type);
+        }
+        if (subprogram->entryIndexType != nullptr && expr->callee->kind == ExprKind::Call) {
+            Expr* index = static_cast<CallExpr*>(expr->callee.get())->arguments.front().value.get();
+            entryIndex = emitExpr(index);
+            emitRangeCheck(entryIndex, subprogram->entryIndexType, index->location);
+            entryIndex = wideBound(entryIndex);
+        }
+    }
     std::string resultTarget = std::move(m_context->resultTarget);
     Value resultShape = m_context->resultTargetShape;
     std::string resultDescriptor = std::move(m_context->resultDescriptor);
@@ -594,7 +612,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     if (accessResult) {
         arguments.push_back("w " + (m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel));
     }
-    if (subprogram->level > 0 && !adaImport && !expr->dispatching) {
+    if (subprogram->level > 0 && !adaImport && !expr->dispatching && subprogram->taskType == nullptr) {
         Value link = staticLinkFor(subprogram->level - 1);
         arguments.push_back("l " + link.name);
     }
@@ -789,6 +807,20 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     }
     Value result { "0", 'w' };
     auto invoke = [&](const std::string& actuals) {
+        if (subprogram->entry && subprogram->taskType != nullptr) {
+            std::string packet = allocScratch(std::max<std::size_t>(8, arguments.size() * 8));
+            for (std::size_t i = 0; i < arguments.size(); ++i) {
+                char type = arguments[i][0];
+                std::string slot = newTemp();
+                line(slot + " =l add " + packet + ", " + std::to_string(i * 8));
+                line(std::string(type == 'l' ? "storel " : type == 'w' ? "storew " : type == 's' ? "stores " : "stored ")
+                    + arguments[i].substr(2) + ", " + slot);
+            }
+            emitCallInstruction("call $__ada_task_entry_call(l %.taskContext, l " + taskIdentity.name
+                + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name
+                + ", l " + packet + ")", CallEffects::DeferredCheck);
+            return Value { "0", 'w' };
+        }
         if (subprogram->returnType != nullptr && !compositeResult) {
             char type = qbeClass(subprogram->returnType);
             std::string temp = newTemp();

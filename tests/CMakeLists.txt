@@ -1811,7 +1811,7 @@ add_test(NAME semantics.subunits
 set_tests_properties(semantics.subunits PROPERTIES TIMEOUT 90)
 
 # Phase 6e: ordinary extended returns and general limited result construction.
-foreach(return_case extendedreturns limitedresults returncleanup concurrentresults concurrentlibrarymain)
+foreach(return_case extendedreturns limitedresults returncleanup concurrentresults concurrentlibrarymain taskrendezvous taskentryfamilies taskentryqueues taskentrytypes taskentrylibrarymain)
     add_ada_test(${return_case} SOURCES ${return_case}.adb)
     add_determinism_test(${return_case} SOURCE ${return_case}.adb)
     ada_test_fixture(source_path "${return_case}.adb")
@@ -2776,3 +2776,15 @@ endif()
 
 add_subdirectory(robustness)
 aida_finalize_tests()
+
+add_test(NAME semantics.task_entries
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckTaskEntrySemantics.cmake)
+set_tests_properties(semantics.task_entries PROPERTIES TIMEOUT 60)
+
+add_executable(task_entry_runtime_test TaskEntryRuntimeTest.c)
+target_link_libraries(task_entry_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.task_entry_lifecycle COMMAND task_entry_runtime_test)
+set_tests_properties(runtime.task_entry_lifecycle PROPERTIES TIMEOUT 30)

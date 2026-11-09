@@ -9,6 +9,16 @@ using SemaSupport::adaptUniversal;
 Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
     expr->accessCreationLevel = m_accessibilityLevel;
+    auto entryNames = expressionNames(expr->callee.get(), scope);
+    if (!entryNames.empty() && std::all_of(entryNames.begin(), entryNames.end(), [](Symbol* entry) {
+        return entry->entry && entry->taskType != nullptr && entry->entryIndexType != nullptr && entry->parameters.empty();
+    })) {
+        auto family = std::make_unique<CallExpr>();
+        family->location = expr->location;
+        family->callee = std::move(expr->callee);
+        family->arguments = std::move(expr->arguments);
+        expr->callee = std::move(family);
+    }
     if (expr->operatorExpression == nullptr) {
         int errors = m_diagnostics.errorCount();
         expr->operatorExpression = explicitOperator(expr, scope, expected);
@@ -73,7 +83,7 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         }
     }
 
-    if (candidates.empty() && expr->callee->kind == ExprKind::Selected) {
+    if (candidates.empty() && (expr->callee->kind == ExprKind::Selected || expr->callee->kind == ExprKind::Call)) {
         candidates = expressionNames(expr->callee.get(), scope);
     }
     // An explicit dereference and an implicit one use the same indirect call.
@@ -497,6 +507,48 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         Expr* protectedObject = expr->callee->kind == ExprKind::Selected
             ? static_cast<SelectedExpr*>(expr->callee.get())->prefix.get() : nullptr;
         bindProtectedCall(expr, chosen, protectedObject, scope);
+        if (chosen->entry && chosen->taskType != nullptr) {
+            Expr* name = expr->callee.get();
+            CallExpr* family = name->kind == ExprKind::Call ? static_cast<CallExpr*>(name) : nullptr;
+            if (family != nullptr) { name = family->callee.get(); }
+            if ((chosen->entryIndexType != nullptr) != (family != nullptr)) {
+                m_diagnostics.error(expr->location, "an entry family call requires one entry index");
+            } else if (family != nullptr) {
+                if (family->arguments.size() != 1 || !family->arguments.front().nameLower.empty()) {
+                    m_diagnostics.error(family->location, "an entry family requires one positional index");
+                } else {
+                    Expr* index = family->arguments.front().value.get();
+                    Type* actual = analyzeExpr(index, scope, chosen->entryIndexType);
+                    if (!typesCompatible(chosen->entryIndexType, actual)) {
+                        m_diagnostics.error(index->location, "entry index has an incompatible type");
+                    }
+                    adaptUniversal(index, chosen->entryIndexType);
+                    family->type = chosen->entryIndexType;
+                }
+            }
+            if (name->kind == ExprKind::Selected) {
+                auto* selected = static_cast<SelectedExpr*>(name);
+                analyzeExpr(selected->prefix.get(), scope, nullptr);
+                bool current = isTaskCurrentInstance(selected->prefix.get(), chosen->taskType, scope);
+                auto names = expressionNames(selected->prefix.get(), scope);
+                if (!current && names.size() == 1 && names.front()->kind == SymbolKind::TypeName) {
+                    m_diagnostics.error(expr->location, "a task entry call requires a task object, not a type name");
+                }
+                if (!current) { expr->taskObject = selected->prefix.get(); }
+            }
+            if (expr->taskObject == nullptr) {
+                for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+                    if (owner->taskBody && owner->taskType == chosen->taskType) {
+                        expr->taskReceiver = owner->taskIdentity;
+                        noteReference(expr->taskReceiver);
+                        break;
+                    }
+                }
+                if (expr->taskReceiver == nullptr) {
+                    m_diagnostics.error(expr->location, "a task entry call requires a task object or its current instance");
+                }
+            }
+        }
         if (!expr->indirect) {
             recordContractName(expr->callee.get(), chosen);
         }

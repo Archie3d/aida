@@ -49,7 +49,7 @@ The other nine cases stay failed and belong to their existing language owners:
 | --- | --- |
 | B330001 | Legal task/protected discriminants block analysis; P9, indefinite-object/component legality P3/P6/P8 |
 | B3A0002 | Named protected-subprogram access prerequisite; P9 |
-| B650002/B650004 | Task entry syntax blocks analysis of return legality; P9, P6e/P8 returns |
+| B650002/B650004 | Task entry/accept parsing now succeeds; return diagnostics still miss annotation groups and include unexpected diagnostics; P6e/P8 returns, P10 diagnostics |
 | B394A01–B394A05 | Concurrent-interface syntax blocks the tested ancestry rules; P9 |
 
 The [non-tasking legality audit](legality-audit.md) repairs and reviews the six

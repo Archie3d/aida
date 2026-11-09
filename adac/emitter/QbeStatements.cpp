@@ -18,6 +18,7 @@ void QbeEmitter::emitStatements(StmtList& statements)
                 m_context->gotoTargets[statement.get()] = { newLabel("adalabel"), checkpoint,
                     m_context->blockMasters.size(), m_context->handlerLabels.size(),
                     m_context->returnCleanups.size() };
+                m_context->transferAcceptDepth[m_context->gotoTargets[statement.get()].label] = m_context->accepts.size();
             }
         }
     }
@@ -40,6 +41,88 @@ void QbeEmitter::emitStatement(Stmt* statement)
 {
     ScopedCheckPolicy checks(m_suppressedChecks, statement->suppressedChecks);
     switch (statement->kind) {
+    case StmtKind::Accept: {
+        auto* accept = static_cast<AcceptStmt*>(statement);
+        Value index {"0", 'l'};
+        if (accept->index != nullptr) {
+            index = emitExpr(accept->index.get());
+            emitRangeCheck(index, accept->entry->entryIndexType, accept->index->location);
+            index = wideBound(index);
+        }
+        std::string request = newTemp(), packet = newTemp();
+        emitCallInstruction(request + " =l call $__ada_task_entry_accept(l %.taskContext, w "
+            + std::to_string(accept->entry->taskEntryId) + ", l " + index.name + ")", CallEffects::CheckException);
+        emitCallInstruction(packet + " =l call $__ada_task_entry_arguments(l " + request + ")", CallEffects::RuntimeHook);
+        m_context->hasFrame = true;
+        accept->callerIdentity->frameOffset = reserveFrame(8);
+        std::string caller = newTemp(), callerSlot = newTemp();
+        emitCallInstruction(caller + " =l call $__ada_task_entry_caller(l %.taskContext)", CallEffects::RuntimeHook);
+        line(callerSlot + " =l add " + m_context->frameTemp + ", " + std::to_string(accept->callerIdentity->frameOffset));
+        line("storel " + caller + ", " + callerSlot);
+        std::size_t position = 0;
+        auto incoming = [&](char type) {
+            std::string slot = newTemp(), value = newTemp();
+            line(slot + " =l add " + packet + ", " + std::to_string(position++ * 8));
+            line(value + " =" + std::string(1, type) + " load" + std::string(1, type) + " " + slot);
+            return Value {value, type};
+        };
+        for (Symbol* parameter : accept->parameters) {
+            Type* type = parameter->type;
+            bool array = QbeSupport::isUnconstrainedArray(type);
+            parameter->frameOffset = reserveFrame(array ? adaArrayLocalSize(type->arrayRank)
+                : parameter->byReference ? 8 : typeSize(type), parameter->byReference ? 8 : typeAlignment(type));
+            std::string slot = newTemp();
+            line(slot + " =l add " + m_context->frameTemp + ", " + std::to_string(parameter->frameOffset));
+            Value value = incoming(parameter->byReference ? 'l' : qbeClass(type));
+            if (parameter->byReference) { line("storel " + value.name + ", " + slot); }
+            else { storeInto(Value {slot, 'l'}, value, type); }
+            if (needsConstrainedParameter(parameter)) {
+                parameter->constrainedOffset = reserveFrame(4, 4);
+                Value constrained = incoming('w');
+                std::string target = newTemp();
+                line(target + " =l add " + m_context->frameTemp + ", " + std::to_string(parameter->constrainedOffset));
+                line("storew " + constrained.name + ", " + target);
+            }
+            if (array) {
+                for (int dimension = 0; dimension < type->arrayRank; ++dimension) {
+                    Value first = incoming('l'), last = incoming('l');
+                    if (dimension == 0) { value.first = first.name; value.last = last.name; }
+                    else { value.innerBounds.push_back({first.name, last.name}); }
+                    value.lengths.push_back(incoming('l').name);
+                    value.strides.push_back(incoming('l').name);
+                }
+                storeArrayView(slot, value, type, false);
+            }
+        }
+        std::string failed = newLabel("acceptfailed"), done = newLabel("acceptdone"), ready = newLabel("acceptready");
+        m_context->accepts.push_back({request, done, m_context->blockMasters.size()});
+        m_context->transferAcceptDepth[done] = m_context->accepts.size();
+        m_context->transferMasterDepth[done] = m_context->blockMasters.size();
+        pushHandler(failed);
+        if (accept->handlers.empty()) { emitStatements(accept->body); }
+        else {
+            std::string dispatch = newLabel("accepthandler"), after = newLabel("accepthandled");
+            m_context->handlerStorage[dispatch] = storageCheckpoint();
+            pushHandler(dispatch);
+            emitStatements(accept->body);
+            m_context->handlerLabels.pop_back();
+            jump(after);
+            emitHandlers(accept->handlers, after, dispatch);
+            label(after);
+        }
+        jump(done);
+        m_context->handlerLabels.pop_back();
+        m_context->accepts.pop_back();
+        label(failed);
+        emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + request + ")", CallEffects::DeferredCheck);
+        if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
+        else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
+        label(done);
+        emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + request + ")", CallEffects::CheckException);
+        jump(ready);
+        label(ready);
+        break;
+    }
     case StmtKind::Pragma:
         emitPragma(static_cast<PragmaStmt*>(statement)->pragma.get());
         break;
@@ -126,6 +209,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
         m_context->loopStorage[loop] = storageCheckpoint();
         m_context->loopHandlerDepth[loop] = m_context->handlerLabels.size();
         m_context->loopReturnDepth[loop] = m_context->returnCleanups.size();
+        m_context->transferAcceptDepth[exit] = m_context->accepts.size();
         m_context->transferMasterDepth[exit] = m_context->blockMasters.size();
 
         if (loop->loopKind == LoopKind::For) {
@@ -255,6 +339,10 @@ void QbeEmitter::emitStatement(Stmt* statement)
     }
 
     case StmtKind::Return: {
+        if (!m_context->accepts.empty()) {
+            jump(m_context->accepts.back().returnLabel);
+            break;
+        }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* resultType = m_context->symbol == nullptr ? nullptr : m_context->symbol->returnType;
         if (returnStatement->value == nullptr && returnStatement->object == nullptr

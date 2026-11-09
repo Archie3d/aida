@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — refreshed 2026-11-07
+# ACATS completed-feature baseline — refreshed 2026-11-09
 
 This backfill adds **145 unchanged upstream cases**: 119 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -11,13 +11,19 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 6 |
+| Legal C-test rejected | 5 |
 | Support/harness blocked | 0 |
-| Executable PASS | 112 |
+| Executable PASS | 113 |
 | Executable failure | 1 |
 
-No crashes or timeouts were observed. Six legal C-tests are rejected and
+No crashes or timeouts were observed. Five legal C-tests are rejected and
 C35502C retains its enumeration Value tab-trimming runtime failure.
+C761001 now passes unchanged after task entry declarations were supported;
+its unused entry checks library-task termination before controlled finalization.
+It does not exercise rendezvous or select. Task-interface rejections remain,
+with updated wording. B650002/B650004 still grade FAIL after accept parsing
+exposes their return-legality diagnostics.
+
 The raw B observations stay ungraded for historical comparison. The independent
 [location/group-aware grader](acats-grading.md) records **17 B PASS and nine B FAIL**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
@@ -265,7 +271,7 @@ be blocked before reaching the feature named in their objective.
 | conversions static | 7 | 0 | 0 | 0 | 0 |
 | control flow | 4 | 0 | 0 | 0 | 0 |
 | calls returns | 8 | 0 | 0 | 0 | 0 |
-| private finalization | 10 | 2 | 0 | 0 | 0 |
+| private finalization | 11 | 1 | 0 | 0 | 0 |
 | visibility renaming | 9 | 2 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 2 | 0 | 0 | 0 | 0 |
@@ -280,7 +286,7 @@ be blocked before reaching the feature named in their objective.
 1. Validate target configuration on other supported hosts. The [non-tasking
    B-test findings](legality-audit.md) now pass; concurrent prerequisites retain
    their Phase 9 owners.
-2. Investigate the remaining six legal C rejections and C35502C runtime failure;
+2. Investigate the remaining five legal C rejections and C35502C runtime failure;
    turn confirmed defects into focused compiler regressions before fixing them.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
    are repaired; broader protocol/applicability work requires its own selection.
@@ -289,7 +295,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 112 executable C passes and the independent grader's 17 complete B passes
+Its 113 executable C passes and the independent grader's 17 complete B passes
 join normal ACATS labels. Snapshot stability of a recorded failure is not an
 ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
@@ -385,7 +391,7 @@ B-test grades are reported independently in the linked grading report.
 | [C760010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760010.a) | 7.3/7.6 | Executable PASS | repaired; P6g tagged private formals |
 | [C760011](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760011.a) | 7.3/7.6 | Executable PASS | covered probe; P8 observation refresh |
 | [C760013](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c760013.a) | 7.3/7.6 | Executable PASS | covered probe; P3/P6a/P6c/P6e |
-| [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Legal C-test rejected | cross feature language gap; P9 task entries |
+| [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Executable PASS | covered probe; P9 task entries |
 | [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Executable PASS | TCTouch protocol repaired; P8 |
 | [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
 | [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6d/P6g access subtypes; dependent controlled arrays |

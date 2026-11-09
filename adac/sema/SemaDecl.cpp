@@ -183,6 +183,49 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr) {
             analyzeProtected(typeDecl, scope);
         }
+        if (declared != nullptr && declared->taskBody != nullptr) {
+            declared->taskScope = m_symbolTable.createScope(scope);
+            declared->taskBody->taskType = declared;
+            for (auto& item : typeDecl->taskEntries) {
+                auto* entry = static_cast<SubprogramDecl*>(item.get());
+                auto indicator = entry->spec.overriding;
+                entry->spec.overriding = OverridingIndicator::Unspecified;
+                Symbol* operation = declareSubprogram(entry->spec, declared->taskScope, false);
+                entry->spec.overriding = indicator;
+                operation->taskType = declared;
+                operation->protectedPrivate = entry->protectedPrivate;
+                operation->taskEntryId = static_cast<int>(declared->taskEntries.size());
+                operation->hasBody = true; // Accept statements are optional, not completions.
+                entry->symbol = operation;
+                if (indicator == OverridingIndicator::Overriding) {
+                    m_diagnostics.error(entry->location, "task entry marked overriding implements no inherited operation");
+                }
+                if (entry->spec.entryIndex != nullptr) {
+                    auto* index = entry->spec.entryIndex.get();
+                    if (index->lower.empty()) {
+                        Type* inferred = analyzeExpr(index->rangeLow.get(), scope, nullptr);
+                        if (inferred == nullptr || inferred->kind == TypeKind::UniversalInteger) { inferred = m_types.integerType(); }
+                        Symbol* mark = m_symbolTable.createSymbol(SymbolKind::TypeName, "__entry_index_type_" + std::to_string(operation->taskEntryId), "entry index");
+                        mark->type = inferred;
+                        declared->taskScope->add(mark);
+                        index->name = index->lower = mark->name;
+                    }
+                    operation->entryIndexType = resolveSubtypeIndication(index, declared->taskScope, true, true);
+                    if (!isDiscrete(operation->entryIndexType)) {
+                        m_diagnostics.error(index->location, "an entry family index subtype must be discrete");
+                    }
+                    if (indicator != OverridingIndicator::Unspecified) {
+                        m_diagnostics.error(entry->location, "an entry family cannot have an overriding indicator");
+                    }
+                }
+                for (auto& parameter : entry->spec.parameters) {
+                    if (parameter.subtype->accessDefinition != nullptr) {
+                        m_diagnostics.error(parameter.location, "task entries cannot have access parameters");
+                    }
+                }
+                declared->taskEntries.push_back(operation);
+            }
+        }
         analyzeDeclarativePart(typeDecl->taskObjects, scope);
         if (typeDecl->declaredType != nullptr && typeDecl->declaredType->protectedScope != nullptr
             && !typeDecl->taskObjects.empty()) {
@@ -950,6 +993,9 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     }
 
     Scope* inner = m_symbolTable.createScope(context);
+    if (body->taskBody && symbol->taskType != nullptr) {
+        for (Symbol* entry : symbol->taskType->taskEntries) { inner->add(entry); }
+    }
     symbol->constructScope = inner;
     inner->setPrivateRegion(true);
     for (std::size_t i = 0; i < body->spec.parameters.size(); ++i) {

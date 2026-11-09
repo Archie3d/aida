@@ -102,6 +102,8 @@ struct Expr : Node
     int accessCheckLevel = -1;
     int accessCreationLevel = -1;
     Type* accessTarget = nullptr;
+    Expr* taskObject = nullptr;
+    Symbol* taskReceiver = nullptr;
     Expr* protectedObject = nullptr; // Borrowed target of an external protected call.
     Symbol* protectedReceiver = nullptr; // Current instance for fields/internal calls.
     bool tagIndeterminate = false;
@@ -501,6 +503,7 @@ struct SubprogramSpec
     bool isFunction = false;
     bool entry = false;
     bool entryBarrier = false;
+    SubtypeIndicationPtr entryIndex;
     std::string name;
     std::string lower;
     std::vector<ParameterDecl> parameters;
@@ -582,7 +585,8 @@ enum class StmtKind
     Raise,
     Delay,
     Goto,
-    Pragma
+    Pragma,
+    Accept
 };
 
 struct StatementLabel
@@ -622,6 +626,23 @@ struct ExceptionHandler
     bool isOthers = false;
     StmtList body;
     SourceLocation location;
+};
+
+struct AcceptStmt : Stmt
+{
+    AcceptStmt()
+        : Stmt(StmtKind::Accept)
+    {
+    }
+
+    SubprogramSpec spec;
+    ExprPtr index;
+    Symbol* entry = nullptr;
+    Symbol* owner = nullptr;
+    Symbol* callerIdentity = nullptr;
+    std::vector<Symbol*> parameters;
+    StmtList body;
+    std::vector<ExceptionHandler> handlers;
 };
 
 struct GotoStmt : Stmt
@@ -896,6 +917,7 @@ struct TypeDecl : Decl
     std::vector<Type*> completedLayouts;
     Expr* smallClause = nullptr;
     DeclList taskObjects; // Anonymous type followed by its single concurrent object.
+    DeclList taskEntries;
     DeclList protectedDeclarations;
     bool protectedBody = false;
 };

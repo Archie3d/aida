@@ -2,6 +2,7 @@
 #define ADAMASTER_H
 
 #include <stdatomic.h>
+#include <stdint.h>
 #include "../common/Master.h"
 
 typedef struct AdaTaskContext AdaTaskContext;
@@ -46,6 +47,12 @@ void __ada_task_result_await(void* master);
 void* __ada_task_result_mark(AdaMaster* master);
 void __ada_task_result_discard(AdaMaster* master, void* mark, void* group);
 void __ada_task_activate_group(AdaTaskContext* context, void* collection, void* group);
+void __ada_task_entry_call(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments);
+void* __ada_task_entry_accept(AdaTaskContext* context, int entry, int64_t index);
+void* __ada_task_entry_arguments(void* request);
+void __ada_task_entry_complete(AdaTaskContext* context, void* request);
+void* __ada_task_entry_caller(AdaTaskContext* context);
+int __ada_task_entry_count(void* identity, int entry, int64_t index);
 void __ada_task_activated(AdaTaskContext* context);
 void __ada_task_activation_failed(AdaTaskContext* context);
 void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object, long size);

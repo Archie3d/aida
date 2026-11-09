@@ -271,6 +271,10 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
+    if (chosen != nullptr && chosen->entry && chosen->taskType != nullptr) {
+        m_diagnostics.error(decl->location, "task entry renamings are not yet supported");
+        return;
+    }
     if (chosen != nullptr && chosen->protectedType != nullptr) {
         m_diagnostics.error(decl->location, "renaming protected operations is not yet supported");
         return;

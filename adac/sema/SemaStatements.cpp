@@ -313,6 +313,88 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     ScopedCheckPolicy checks(m_suppressedChecks, m_suppressedChecks);
     statement->suppressedChecks = activeCheckPermissions();
     switch (statement->kind) {
+    case StmtKind::Accept: {
+        auto* accept = static_cast<AcceptStmt*>(statement);
+        accept->owner = m_currentSubprogram;
+        if (m_currentSubprogram == nullptr || !m_currentSubprogram->taskBody) {
+            m_diagnostics.error(accept->location, "an accept statement must occur in a task body");
+            break;
+        }
+        Type* task = m_currentSubprogram->taskType;
+        Scope* inner = m_symbolTable.createScope(scope);
+        Symbol* profile = declareSubprogram(accept->spec, inner, false);
+        profile->hasBody = true;
+        accept->parameters = profile->parameters;
+        Symbol* chosen = nullptr;
+        for (Symbol* entry : task->taskEntries) {
+            if (entry->name != accept->spec.lower || entry->parameters.size() != profile->parameters.size()) { continue; }
+            bool matches = (entry->entryIndexType != nullptr) == (accept->index != nullptr);
+            for (std::size_t i = 0; i < entry->parameters.size(); ++i) {
+                Symbol* a = entry->parameters[i];
+                Symbol* b = profile->parameters[i];
+                matches &= a->name == b->name && a->mode == b->mode
+                    && a->explicitNullExclusion == b->explicitNullExclusion
+                    && SemaSupport::staticallyMatches(a->type, b->type);
+            }
+            if (!matches) { continue; }
+            if (chosen != nullptr) {
+                m_diagnostics.error(accept->location, "ambiguous accept entry profile");
+                break;
+            }
+            chosen = entry;
+        }
+        if (chosen == nullptr) {
+            m_diagnostics.error(accept->location, "accept profile must fully conform to an entry of the enclosing task");
+            break;
+        }
+        accept->entry = chosen;
+        for (AcceptStmt* active : m_accepts) {
+            if (active->entry == chosen && active->owner == m_currentSubprogram) {
+                m_diagnostics.error(accept->location, "an accept statement cannot nest another accept for the same entry");
+            }
+        }
+        if (accept->index != nullptr) {
+            Type* index = analyzeExpr(accept->index.get(), scope, chosen->entryIndexType);
+            if (!typesCompatible(chosen->entryIndexType, index)) {
+                m_diagnostics.error(accept->index->location, "accept entry index has an incompatible type");
+            }
+            adaptUniversal(accept->index.get(), chosen->entryIndexType);
+        }
+        for (std::size_t i = 0; i < profile->parameters.size(); ++i) {
+            Symbol* parameter = profile->parameters[i];
+            parameter->owner = m_currentSubprogram;
+            parameter->level = m_currentSubprogram->level;
+            parameter->isUplevel = true;
+            inner->add(parameter);
+            accept->spec.parameters[i].symbol = parameter;
+            if (accept->spec.parameters[i].defaultValue != nullptr) {
+                Expr* value = accept->spec.parameters[i].defaultValue.get();
+                analyzeExpr(value, scope, parameter->type);
+                if (!SemaSupport::conformingExpressions(chosen->parameters[i]->defaultExpr, value)) {
+                    m_diagnostics.error(accept->spec.parameters[i].location, "accept default must conform to its entry declaration");
+                }
+            }
+        }
+        profile->constructScope = inner;
+        // The local entry alias supplies Entry_Name.Parameter expanded names.
+        profile->entry = true;
+        profile->taskType = chosen->taskType;
+        profile->taskEntryId = chosen->taskEntryId;
+        profile->entryIndexType = chosen->entryIndexType;
+        Symbol* caller = m_symbolTable.createSymbol(SymbolKind::Object, "__entry_caller", "entry caller");
+        caller->type = m_taskIdType;
+        caller->owner = m_currentSubprogram;
+        caller->level = m_currentSubprogram->level;
+        caller->isConstant = true;
+        caller->isUplevel = true;
+        accept->callerIdentity = caller;
+        m_accepts.push_back(accept);
+        declareStatementNames(accept->body, inner);
+        analyzeStatements(accept->body, inner);
+        analyzeHandlers(accept->handlers, inner);
+        m_accepts.pop_back();
+        break;
+    }
     case StmtKind::Pragma:
         analyzePragma(static_cast<PragmaStmt*>(statement)->pragma.get(), scope);
         break;
@@ -424,6 +506,16 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     }
 
     case StmtKind::ProcedureCall: {
+        auto* invocation = static_cast<ProcedureCallStmt*>(statement);
+        if (invocation->call->kind == ExprKind::Identifier || invocation->call->kind == ExprKind::Selected) {
+            auto names = expressionNames(invocation->call.get(), scope);
+            if (std::any_of(names.begin(), names.end(), [](Symbol* symbol) { return symbol->entry && symbol->taskType != nullptr; })) {
+                auto call = std::make_unique<CallExpr>();
+                call->location = invocation->call->location;
+                call->callee = std::move(invocation->call);
+                invocation->call = std::move(call);
+            }
+        }
         auto* call = static_cast<ProcedureCallStmt*>(statement);
         int errorsBefore = m_diagnostics.errorCount();
         Expr* expression = call->call.get();
@@ -560,7 +652,8 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     }
 
     case StmtKind::Return: {
-        if (m_currentSubprogram != nullptr && m_currentSubprogram->taskBody) {
+        if (m_currentSubprogram != nullptr && m_currentSubprogram->taskBody
+            && (m_accepts.empty() || m_accepts.back()->owner != m_currentSubprogram)) {
             m_diagnostics.error(statement->location, "return statements are not allowed in a task body");
         }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);

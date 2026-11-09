@@ -190,3 +190,16 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
     m_protectedBodyScope = savedScope;
     m_namePrefix.pop_back();
 }
+
+bool Sema::isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope)
+{
+    auto names = expressionNames(expr, scope);
+    if (names.size() != 1 || names.front()->type == nullptr || names.front()->type->isSubtype
+        || (names.front()->kind != SymbolKind::TypeName && names.front()->kind != SymbolKind::Object)
+        || names.front()->type->taskBody != type->taskBody
+        || type->taskBody->name != "__task_" + names.front()->name) { return false; }
+    for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+        if (owner == type->taskBody) { return true; }
+    }
+    return false;
+}

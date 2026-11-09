@@ -113,6 +113,14 @@ private:
             StorageCheckpoint storage;
         };
         std::vector<BlockMaster> blockMasters;
+        struct AcceptCleanup
+        {
+            std::string request;
+            std::string returnLabel;
+            std::size_t masterDepth;
+        };
+        std::vector<AcceptCleanup> accepts;
+        std::unordered_map<std::string, std::size_t> transferAcceptDepth;
         std::size_t masterObservingCalls = 0;
         std::vector<std::string> elidedBlockMasters;
         std::unordered_map<std::string, std::size_t> transferMasterDepth;

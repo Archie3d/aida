@@ -121,6 +121,12 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
         }
         return contractNames(expr, scope->lookup(lower));
     }
+    if (expr->kind == ExprKind::Call) {
+        auto* family = static_cast<CallExpr*>(expr);
+        auto names = expressionNames(family->callee.get(), scope);
+        std::erase_if(names, [](Symbol* symbol) { return symbol->taskType == nullptr || symbol->entryIndexType == nullptr || !symbol->entry; });
+        return names;
+    }
     if (expr->kind == ExprKind::Selected) {
         auto* selected = static_cast<SelectedExpr*>(expr);
         bool ambiguous = false;
@@ -134,6 +140,12 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
             Type* type = baseType(prefix);
             if (type != nullptr && type->kind == TypeKind::Access) {
                 type = baseType(type->target);
+            }
+            if (type != nullptr && type->taskScope != nullptr && representationVisible(type) && !selected->isDereference) {
+                for (Symbol* entry : type->taskScope->lookupLocal(selected->selectorLower)) {
+                    if (entry->entry && entry->taskType == type && (!entry->protectedPrivate
+                        || isTaskCurrentInstance(selected->prefix.get(), type, scope))) { operations.push_back(entry); }
+                }
             }
             if (type != nullptr && type->protectedScope != nullptr && representationVisible(type)
                 && !selected->isDereference) {

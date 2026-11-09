@@ -187,12 +187,25 @@ void QbeEmitter::label(const std::string& name)
 void QbeEmitter::jump(const std::string& target)
 {
     if (!m_context->terminated) {
+        auto acceptTarget = m_context->transferAcceptDepth.find(target);
+        std::size_t acceptDepth = target == m_context->propagateLabel ? 0
+            : acceptTarget == m_context->transferAcceptDepth.end() ? m_context->accepts.size() : acceptTarget->second;
+        std::vector<FunctionContext::BlockMaster> masters;
+        bool leavesAccept = acceptDepth < m_context->accepts.size();
+        if (leavesAccept) { masters = m_context->blockMasters; }
+        for (std::size_t i = m_context->accepts.size(); i > acceptDepth; --i) {
+            const auto& accept = m_context->accepts[i - 1];
+            emitBlockExits(accept.masterDepth);
+            m_context->blockMasters.resize(accept.masterDepth);
+            emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + accept.request + ")", CallEffects::DeferredCheck);
+        }
         auto found = m_context->transferMasterDepth.find(target);
         if (target == m_context->propagateLabel) {
             emitBlockExits(0);
         } else if (found != m_context->transferMasterDepth.end()) {
             emitBlockExits(found->second);
         }
+        if (leavesAccept) { m_context->blockMasters = std::move(masters); }
         m_context->body << "    jmp " << target << "\n";
         m_context->terminated = true;
     }
@@ -202,10 +215,12 @@ void QbeEmitter::branch(const Value& condition, const std::string& ifTrue, const
 {
     auto needsCleanup = [&](const std::string& target) {
         auto found = m_context->transferMasterDepth.find(target);
-        return !m_context->blockMasters.empty()
+        auto accept = m_context->transferAcceptDepth.find(target);
+        bool leaveAccept = !m_context->accepts.empty() && (target == m_context->propagateLabel
+            || (accept != m_context->transferAcceptDepth.end() && accept->second < m_context->accepts.size()));
+        return leaveAccept || (!m_context->blockMasters.empty()
             && (target == m_context->propagateLabel
-                || (found != m_context->transferMasterDepth.end()
-                    && found->second < m_context->blockMasters.size()));
+                || (found != m_context->transferMasterDepth.end() && found->second < m_context->blockMasters.size())));
     };
     std::string trueEdge = needsCleanup(ifTrue) ? newLabel("mastercleanup") : ifTrue;
     std::string falseEdge = needsCleanup(ifFalse) ? newLabel("mastercleanup") : ifFalse;

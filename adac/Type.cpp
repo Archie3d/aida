@@ -495,6 +495,8 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->exceptionOccurrence = parent->exceptionOccurrence;
     subtype->fileHandle = parent->fileHandle;
     subtype->taskBody = parent->taskBody;
+    subtype->taskScope = parent->taskScope;
+    subtype->taskEntries = parent->taskEntries;
     subtype->protectedScope = parent->protectedScope;
     subtype->incompleteLayout = parent->incompleteLayout;
     subtype->discriminantCount = parent->discriminantCount;
@@ -534,6 +536,8 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->recordRepresentationSpecified = completed->recordRepresentationSpecified;
         subtype->layoutSymbol = completed->layoutSymbol;
         subtype->taskBody = completed->taskBody;
+        subtype->taskScope = completed->taskScope;
+        subtype->taskEntries = completed->taskEntries;
         subtype->protectedScope = completed->protectedScope;
         if (completed->taskBody != nullptr) {
             subtype->byteSize = completed->byteSize;

@@ -100,6 +100,9 @@ struct Symbol
     bool abstract = false;
     bool nullProcedure = false;
     bool taskBody = false;
+    Type* taskType = nullptr;
+    Type* entryIndexType = nullptr;
+    int taskEntryId = 0;
     Symbol* taskIdentity = nullptr;
     Type* protectedType = nullptr;
     Symbol* protectedReceiver = nullptr;

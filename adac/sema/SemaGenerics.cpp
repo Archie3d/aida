@@ -1337,6 +1337,10 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         : namedDefault && actual->kind == ExprKind::Selected
             ? formal.defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
+        if (matches(candidate) && candidate->entry && candidate->taskType != nullptr) {
+            m_diagnostics.error(actual->location, "task entry generic subprogram actuals are not yet supported");
+            return false;
+        }
         if (matches(candidate) && candidate->protectedType != nullptr) {
             m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
             return false;
