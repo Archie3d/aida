@@ -40,7 +40,7 @@ they also cover nested package bodies in a library package body.
 
 Interface receivers are supported by Phase 6f. [Bound prefixed views](prefixed-views.md)
 now support renaming and generic subprogram actuals with receiver capture and
-reduced profiles; unchanged C413005 passes. Aggregate receiver array/runtime
-layouts remain explicitly diagnosed. Taking `Access` of a prefixed view or its
+reduced profiles, including array/runtime aggregates and components of enclosing
+temporary results; unchanged C413005 passes. Taking `Access` of a prefixed view or its
 Intrinsic renaming remains illegal. These restrictions do not restrict ordinary
 prefixed calls.

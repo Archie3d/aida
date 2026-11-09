@@ -5,8 +5,8 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** finish Phase 8 functional/tooling work, starting with bound
-prefixed temporary receiver layouts. Further profiling is deferred and does not block this work.
+**Current focus:** Phase 8 functional/tooling work is complete. Continue with
+Phase 9 core tasking. Further profiling remains deferred.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -72,7 +72,7 @@ and contracts, rather than being repeated in this roadmap.
   historical no-slowdown is not claimed. [Batch wrap-up](docs/performance-wrap-up.md).
 - [x] Bound prefixed-view renaming and generic actuals for supported tagged
   receivers, including master/library lifetime and reduced profiles. Unchanged
-  C413005 passes; remaining layouts are listed above. [Contract](docs/prefixed-views.md).
+  C413005 passes. [Contract](docs/prefixed-views.md).
 - [x] Ordered external object/archive linkage with normal Ada binding and runtime
   ownership. [Driver regression](tests/CheckExternalLinkage.cmake).
 - [x] Keep direct QBE lowering with explicit ownership/cleanup mechanisms.
@@ -102,10 +102,11 @@ and contracts, rather than being repeated in this roadmap.
   bypasses the shortcut. Source-free cleanup accepts `-D` or `-o`, coordinates
   with active builds and reports filesystem errors.
   [Contract and validation](docs/driver-builds.md).
-- [ ] **Bound prefixed temporary receiver layouts.** Support array/runtime
-  aggregate receivers and subobjects of unmanaged enclosing composite function
-  results. Preserve lifetime and component identity; retain explicit diagnostics
-  until owning construction paths exist. [Current contract](docs/prefixed-views.md).
+- [x] **Bound prefixed temporary receiver layouts.** Retain complete enclosing
+  values for array/runtime aggregates and unmanaged composite function results,
+  including selections, slices and tagged conversions. Reuse ordinary object
+  construction, descriptors and master/library cleanup; preserve single
+  evaluation and constant-view legality. [Contract and validation](docs/prefixed-views.md).
 
 ## Phase 9 — Full tasking
 

@@ -1671,7 +1671,7 @@ set_tests_properties(semantics.unit_renaming PROPERTIES TIMEOUT 30)
 add_ada_error_test(iofileprivacyerrors SOURCES io/iofileprivacyerrors.adb)
 
 # Phase 6e: tagged prefixed calls through ordinary call lowering.
-foreach(prefixed_case prefixedcalls prefixedcleanup prefixedviews prefixedviewcleanup)
+foreach(prefixed_case prefixedcalls prefixedcleanup prefixedviews prefixedviewcleanup prefixedviewlayouts prefixedlayoutcleanup)
     add_ada_test(${prefixed_case} SOURCES ${prefixed_case}.adb)
     add_determinism_test(${prefixed_case} SOURCE ${prefixed_case}.adb)
     ada_test_fixture(source_path "${prefixed_case}.adb")

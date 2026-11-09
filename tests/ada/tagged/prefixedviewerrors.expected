@@ -4,6 +4,4 @@ prefixedviewerrors.adb:14:46: error: no subprogram matches the reduced prefixed 
 prefixedviewerrors.adb:17:36: error: 'Access of intrinsic subprograms is not allowed
 prefixedviewerrors.adb:18:60: error: no subprogram matches the reduced prefixed view profile
 prefixedviewerrors.adb:20:54: error: object 'Access requires an aliased object view
-prefixedviewerrors.adb:23:42: error: binding this aggregate receiver layout is not yet supported
-prefixedviewerrors.adb:28:69: error: binding this temporary receiver layout is not yet supported
-prefixedviewerrors.adb:32:71: error: binding this temporary receiver layout is not yet supported
+prefixedviewerrors.adb:22:62: error: the target of an assignment must be a variable

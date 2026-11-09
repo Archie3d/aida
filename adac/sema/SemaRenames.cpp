@@ -76,32 +76,34 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
 
     ExprPtr receiver = std::move(call->arguments.front().value);
     ExprPtr* value = &receiver;
+    std::vector<CallExpr*> conversions;
     for (;;) {
         if ((*value)->kind == ExprKind::Qualified) {
             value = &static_cast<QualifiedExpr*>(value->get())->operand;
         } else if ((*value)->kind == ExprKind::Selected && static_cast<SelectedExpr*>(value->get())->symbol == nullptr
             && !static_cast<SelectedExpr*>(value->get())->isDereference) {
             value = &static_cast<SelectedExpr*>(value->get())->prefix;
-        } else if ((*value)->kind == ExprKind::Call && static_cast<CallExpr*>(value->get())->form == CallForm::Indexing) {
+        } else if ((*value)->kind == ExprKind::Call
+            && (static_cast<CallExpr*>(value->get())->form == CallForm::Indexing
+                || static_cast<CallExpr*>(value->get())->form == CallForm::Slice)) {
             value = &static_cast<CallExpr*>(value->get())->callee;
+        } else if ((*value)->kind == ExprKind::Call
+            && static_cast<CallExpr*>(value->get())->form == CallForm::Conversion && (*value)->type->tagged) {
+            auto* conversion = static_cast<CallExpr*>(value->get());
+            conversions.push_back(conversion);
+            value = &conversion->arguments.front().value;
         } else {
             break;
         }
     }
     Type* receiverLayout = (*value)->type;
-    if ((*value)->kind != ExprKind::Aggregate && isComposite(receiverLayout) && !receiverLayout->tagged
-        && !needsFinalization(receiverLayout) && SemaSupport::objectView(value->get()) == 0) {
-        m_diagnostics.error(name->location, "binding this temporary receiver layout is not yet supported");
-        return nullptr;
-    }
-    if ((*value)->kind == ExprKind::Aggregate) {
-        // Materialize an aggregate value as an ordinary constant object. Its
-        // controlled components must outlive declaration-temporary cleanup.
-        Type* type = (*value)->type;
-        if (type->kind != TypeKind::Record || hasRuntimeLayout(type)) {
-            m_diagnostics.error(name->location, "binding this aggregate receiver layout is not yet supported");
-            return nullptr;
-        }
+    bool unmanagedResult = isComposite(receiverLayout) && !receiverLayout->tagged
+        && !needsFinalization(receiverLayout) && SemaSupport::objectView(value->get()) == 0;
+    if ((*value)->kind == ExprKind::Aggregate || unmanagedResult) {
+        // Retain the complete enclosing value, not a pointer into declaration
+        // temporary storage. Ordinary object construction supplies array bounds,
+        // runtime layouts and component finalization for the enclosing master.
+        Type* type = receiverLayout;
         std::string valueName = qbeName + ".value";
         Symbol* storage = m_symbolTable.createSymbol(SymbolKind::Object, valueName, valueName);
         storage->type = type;
@@ -115,6 +117,7 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
         auto object = std::make_unique<ObjectDecl>();
         object->location = name->location;
         object->isConstant = true;
+        object->subtype = std::make_unique<SubtypeIndication>();
         object->symbols.push_back(storage);
         object->initializer = std::move(*value);
         auto reference = std::make_unique<IdentifierExpr>();
@@ -123,6 +126,10 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
         reference->symbol = storage;
         reference->type = type;
         *value = std::move(reference);
+        // A conversion caches its actual separately from the owning AST slot.
+        for (CallExpr* conversion : conversions) {
+            conversion->resolvedArguments.front() = conversion->arguments.front().value.get();
+        }
         expansion.push_back(std::move(object));
     }
     std::string bindingName = qbeName + ".receiver";
