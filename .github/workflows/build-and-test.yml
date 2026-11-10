@@ -38,7 +38,9 @@ jobs:
       - name: Configure Release
         run: cmake -S . -B 'build with spaces' -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=${{ matrix.libdir }}
       - name: Build
-        run: cmake --build 'build with spaces' --parallel 3
+        run: |
+          set -o pipefail
+          cmake --build 'build with spaces' --parallel 3 2>&1 | tee 'build with spaces/build.log'
       - name: Record native validation facts
         run: |
           mkdir -p 'build with spaces/host evidence'
@@ -52,6 +54,8 @@ jobs:
         with:
           name: host-${{ matrix.os }}
           path: |
+            source with spaces/build with spaces/build.log
+            source with spaces/build with spaces/CMakeFiles/CMakeConfigureLog.yaml
             source with spaces/build with spaces/results.xml
             source with spaces/build with spaces/Testing/Temporary/
             source with spaces/build with spaces/host evidence/abi.json
@@ -85,7 +89,9 @@ jobs:
       - name: Configure Release
         run: cmake -G 'MinGW Makefiles' -S . -B 'build with spaces' -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib
       - name: Build
-        run: cmake --build 'build with spaces' --parallel 3
+        run: |
+          set -o pipefail
+          cmake --build 'build with spaces' --parallel 3 2>&1 | tee 'build with spaces/build.log'
       - name: Record native validation facts
         run: |
           mkdir -p 'build with spaces/host evidence'
@@ -99,6 +105,8 @@ jobs:
         with:
           name: host-windows-ucrt64
           path: |
+            source with spaces/build with spaces/build.log
+            source with spaces/build with spaces/CMakeFiles/CMakeConfigureLog.yaml
             source with spaces/build with spaces/results.xml
             source with spaces/build with spaces/Testing/Temporary/
             source with spaces/build with spaces/host evidence/abi.json

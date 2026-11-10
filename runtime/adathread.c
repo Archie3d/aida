@@ -10,7 +10,11 @@
 #include <time.h>
 #include <sched.h>
 #include <limits.h>
+#if defined(_WIN32)
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 #if defined(__APPLE__)
 #include <mach/mach.h>
 #include <mach/thread_policy.h>
@@ -28,6 +32,33 @@ int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument)
     return pthread_create(thread, NULL, entry, argument);
 }
 
+static int alignStackSize(size_t* size, size_t alignment)
+{
+    size_t remainder = *size % alignment;
+    if (remainder != 0) {
+        if (*size > SIZE_MAX - (alignment - remainder)) { return EOVERFLOW; }
+        *size += alignment - remainder;
+    }
+    return 0;
+}
+
+#if defined(_WIN32)
+static int windowsDefaultStackSize(size_t* size)
+{
+    // A zero winpthreads attribute means the executable's PE stack default.
+    const IMAGE_DOS_HEADER* image = (const IMAGE_DOS_HEADER*)GetModuleHandleW(NULL);
+    if (image == NULL || image->e_magic != IMAGE_DOS_SIGNATURE) { return EIO; }
+    const IMAGE_NT_HEADERS* headers = (const IMAGE_NT_HEADERS*)((const unsigned char*)image + image->e_lfanew);
+    if (headers->Signature != IMAGE_NT_SIGNATURE || headers->OptionalHeader.SizeOfStackReserve == 0
+        || headers->OptionalHeader.SizeOfStackReserve > SIZE_MAX) { return EIO; }
+    SYSTEM_INFO information;
+    GetSystemInfo(&information);
+    if (information.dwAllocationGranularity == 0) { return EIO; }
+    *size = (size_t)headers->OptionalHeader.SizeOfStackReserve;
+    return alignStackSize(size, information.dwAllocationGranularity);
+}
+#endif
+
 int __ada_thread_stack_size(int64_t requested, int64_t* actual)
 {
     if (requested < 0 || actual == NULL || (uint64_t)requested > SIZE_MAX) { return EINVAL; }
@@ -36,16 +67,26 @@ int __ada_thread_stack_size(int64_t requested, int64_t* actual)
     if (status != 0) { return status; }
     size_t size;
     status = pthread_attr_getstacksize(&attributes, &size);
+#if defined(_WIN32)
+    if (status == 0 && size == 0) { status = windowsDefaultStackSize(&size); }
+#endif
     if (status == 0 && (uint64_t)requested > size) {
+#if defined(_WIN32)
+        // winpthreads passes a commit size to _beginthreadex. At or above the
+        // PE reserve, Windows rounds the resulting reserve to a whole MiB.
+        const size_t kCommitReserveAlignment = 1024 * 1024;
+        size_t alignment = kCommitReserveAlignment;
+#else
         long page = sysconf(_SC_PAGESIZE);
         size_t alignment = page > 0 ? (size_t)page : 4096;
+#endif
         size = (size_t)requested;
-        size_t remainder = size % alignment;
-        if (remainder != 0) {
-            if (size > SIZE_MAX - (alignment - remainder)) { status = EOVERFLOW; }
-            else { size += alignment - remainder; }
-        }
+        status = alignStackSize(&size, alignment);
     }
+#if defined(_WIN32)
+    // _beginthreadex takes an unsigned int even on 64-bit Windows.
+    if (status == 0 && size > UINT_MAX) { status = EOVERFLOW; }
+#endif
     if (status == 0) { status = pthread_attr_setstacksize(&attributes, size); }
     pthread_attr_destroy(&attributes);
     if (status == 0 && size <= INT64_MAX) { *actual = (int64_t)size; }
@@ -59,7 +100,15 @@ int __ada_thread_create_stack(AdaThread* thread, AdaThreadEntry entry, void* arg
     pthread_attr_t attributes;
     int status = pthread_attr_init(&attributes);
     if (status != 0) { return status; }
-    status = pthread_attr_setstacksize(&attributes, (size_t)bytes);
+    size_t size = (size_t)bytes;
+#if defined(_WIN32)
+    size_t defaultSize;
+    status = windowsDefaultStackSize(&defaultSize);
+    if (status == 0 && size > UINT_MAX) { status = EOVERFLOW; }
+    // Preserve the PE's lazy commit policy for its default reservation.
+    if (status == 0 && size == defaultSize) { size = 0; }
+#endif
+    if (status == 0) { status = pthread_attr_setstacksize(&attributes, size); }
     if (status == 0) { status = pthread_create(thread, &attributes, entry, argument); }
     pthread_attr_destroy(&attributes);
     return status;
@@ -96,6 +145,13 @@ int __ada_thread_set_priority(AdaPriorityThread thread, int priority)
     int nice = priorityBaseline + kAdaDefaultPriority - priority;
     if (nice < -20 || nice > 19) { return ENOTSUP; }
     return setpriority(PRIO_PROCESS, (id_t)thread.nativeId, nice) == 0 ? 0 : errno;
+#elif defined(_WIN32)
+    // winpthreads accepts -15 .. 15, including negative successful values,
+    // and maps them onto Windows' seven native priority bands.
+    int native = priority - kAdaDefaultPriority;
+    if (native > THREAD_PRIORITY_TIME_CRITICAL) { native = THREAD_PRIORITY_TIME_CRITICAL; }
+    struct sched_param parameter = { .sched_priority = native };
+    return pthread_setschedparam(thread.thread, SCHED_OTHER, &parameter);
 #else
     int policy;
     struct sched_param parameter;

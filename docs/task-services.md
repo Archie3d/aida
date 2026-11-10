@@ -24,7 +24,10 @@ identities raise Program_Error; Get on a terminated task raises Tasking_Error,
 while Set on one has no effect. An identity must still denote a live task object.
 
 Native urgency uses Mach thread precedence on macOS and per-thread nice values
-on Linux, relative to the process's initial nice value. Other pthread hosts use
+on Linux, relative to the process's initial nice value. MSYS2/winpthreads maps
+normal Ada priorities around Windows THREAD_PRIORITY_NORMAL, using its signed
+-15 .. 15 range and the OS's seven priority bands; the top Any_Priority value
+shares the highest native band. Other pthread hosts use
 the current native scheduling policy when it has enough priority levels; they
 reject nondefault priorities otherwise. These are host scheduling mechanisms,
 with no deterministic dispatch or latency guarantee. Permission failures and
@@ -48,7 +51,11 @@ the requested byte count, rounded up to a host page boundary. Zero requests use
 the native default; negative, overflowing or unsupported reservations raise
 Storage_Error. Task `Object'Storage_Size`, including implicit access dereference
 and a task body's current instance, reports this reservation in storage elements
-(bytes), excluding the task control block. Access-type Storage_Size/Storage_Pool
+(bytes), excluding the task control block. Winpthreads' zero default is resolved
+from the executable's PE stack reservation and Windows allocation granularity.
+Default reservations preserve lazy commit; larger winpthreads commit requests
+use the OS's MiB reservation rounding and its unsigned-int size limit.
+Access-type Storage_Size/Storage_Pool
 retain their separate existing semantics.
 
 ## Task attributes
@@ -121,3 +128,10 @@ additional sanitized semantic/native checks. The sanitizer selections passed
 325 ASan/UBSan and 20 TSan checks; generated tasking covered 76 clean executions
 and 78 TSan executions including both required race detections. All six selected
 ACATS outcomes were reobserved under the final compiler with no drift.
+
+CXD1001's isolated CTest first runs a native maximum-priority capability probe
+in a disposable process. Permission denial or an unsupported scheduler reports
+CTest skip (77), with no ACATS PASS recorded. A successful probe runs the complete
+unchanged test and strict snapshot comparison. Unexpected probe errors, crashes
+and timeouts fail. Raw bulk observations retain their actual outcomes and remain
+host-specific; the probe does not rewrite the Darwin snapshot or upstream source.

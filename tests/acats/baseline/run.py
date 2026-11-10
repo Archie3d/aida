@@ -196,6 +196,19 @@ def observeCase(case, args):
         return case["id"], observed
 
 
+def priorityPrerequisite(probe):
+    result = runCommand([str(probe)], 5)
+    if (abnormal(result) or result["exit"] not in {0, 77} or result["stderr"]
+        or (result["exit"] == 0 and result["stdout"])
+        or (result["exit"] == 77 and not result["stdout"].startswith("maximum native task priority unavailable: "))):
+        print(f"Native priority prerequisite failed: {result}", file=sys.stderr)
+        return 1
+    if result["exit"] == 77:
+        print("SKIP CXD1001: " + result["stdout"].strip() + "; no ACATS pass recorded")
+        return 77
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ada", type=Path)
@@ -206,6 +219,7 @@ def main():
     parser.add_argument("--run-timeout", type=float, default=5,
                         help="default execution deadline; explicit bounded per-case deadlines override this")
     parser.add_argument("--case", action="append", default=[])
+    parser.add_argument("--priority-probe", type=Path, help="native prerequisite for the isolated CXD1001 CTest")
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument("--record", action="store_true", help="replace the reviewed observation snapshot")
     modes.add_argument("--check", action="store_true", help="check snapshot stability, not language conformance")
@@ -230,6 +244,12 @@ def main():
         parser.error("unknown case")
     if args.record and args.case:
         parser.error("recording requires the complete selection")
+    if args.priority_probe:
+        if not args.check or args.case != ["cxd1001"]:
+            parser.error("the native priority prerequisite requires --check --case cxd1001")
+        prerequisite = priorityPrerequisite(args.priority_probe.resolve(strict=True))
+        if prerequisite != 0:
+            return prerequisite
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         results = dict(pool.map(lambda case: observeCase(case, args), selected))
     counts = Counter(value["outcome"] for value in results.values())

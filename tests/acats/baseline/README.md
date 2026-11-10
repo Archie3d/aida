@@ -205,3 +205,10 @@ passes the complete REPORT protocol. Its sequential delay groups require a
 per-case 15-second execution deadline (bounded and validated); all other cases
 retain the five-second default. The finalization check follows AI05-0202, an
 Ada 2005 binding interpretation. No later-language syntax is introduced.
+
+CXD1001 requests the maximum native priority. Its isolated CTest uses the
+`acats_priority_probe` prerequisite: permission denial/unsupported policy yields
+an explicit CTest skip, not an ACATS pass. Unexpected probe failures remain test
+failures. On capable hosts the unchanged source and strict REPORT snapshot still
+run. Ungated bulk observations preserve raw host-dependent outcomes, including
+Tasking_Error on unprivileged Linux; the recorded snapshot is from Darwin.

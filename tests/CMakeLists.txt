@@ -2849,3 +2849,11 @@ add_test(NAME semantics.task_termination
     COMMAND ${CMAKE_COMMAND} -DADAC=$<TARGET_FILE:adac> -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckTaskTerminationSemantics.cmake)
 set_tests_properties(semantics.task_termination PROPERTIES TIMEOUT 60)
+
+if(NOT WIN32)
+    add_executable(windows_thread_contract_test WindowsThreadContractTest.c)
+    target_include_directories(windows_thread_contract_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/platform/windows)
+    target_link_libraries(windows_thread_contract_test PRIVATE Threads::Threads)
+    add_test(NAME runtime.windows_thread_contract COMMAND windows_thread_contract_test)
+    set_tests_properties(runtime.windows_thread_contract PROPERTIES TIMEOUT 20)
+endif()

@@ -1,3 +1,7 @@
+# Probe in a disposable process: raising native urgency can require privilege.
+add_executable(acats_priority_probe PriorityProbe.c)
+target_link_libraries(acats_priority_probe PRIVATE adart)
+
 # Explicit selection and expectations: never silently discover new cases.
 function(add_acats_test name)
     cmake_parse_arguments(ACATS "" "REJECTION;TEST_NAME;STDOUT" "SOURCES" ${ARGN})
@@ -214,12 +218,19 @@ if(Python3_Interpreter_FOUND)
         string(JSON case_id GET "${baseline_selection}" cases ${index} id)
         string(JSON outcome GET "${baseline_expected}" cases ${case_id} outcome)
         if(outcome STREQUAL "PASS")
+            set(prerequisite_arguments)
+            if(case_id STREQUAL "cxd1001")
+                list(APPEND prerequisite_arguments --priority-probe $<TARGET_FILE:acats_priority_probe>)
+            endif()
             add_test(NAME acats.backfill_${case_id}
                 COMMAND ${Python3_EXECUTABLE} -B "${baseline_root}/run.py" --check
                     --case ${case_id} --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
-                    --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-passes")
+                    --work "${CMAKE_CURRENT_BINARY_DIR}/baseline-passes" ${prerequisite_arguments})
             set_tests_properties(acats.backfill_${case_id}
                 PROPERTIES TIMEOUT 60 LABELS "acats;backfill")
+            if(case_id STREQUAL "cxd1001")
+                set_tests_properties(acats.backfill_${case_id} PROPERTIES SKIP_RETURN_CODE 77)
+            endif()
         endif()
     endforeach()
     add_custom_target(acats_baseline
