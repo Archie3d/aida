@@ -33,7 +33,7 @@ procedure SizeStorageErrors is
     end record;
     for Holding'Size use 128;
     task type Worker;
-    for Worker'Size use 128;
+    for Worker'Size use 256;
     task body Worker is
     begin
         null;

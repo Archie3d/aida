@@ -32,7 +32,7 @@ Task/protected discriminants and bound callable views follow the
 containing these objects and discriminant-dependent arrays of concurrent elements
 remain diagnosed. Entries/rendezvous, [select](select-statements.md) and
 [requeue/abort](requeue-abort.md) are implemented for their documented surfaces;
-concurrent interfaces remain open. This increment
+concurrent interfaces follow their [contract](concurrent-interfaces.md). This increment
 does not claim complete tasking or annex conformance. Recompile affected Ada
 objects with the updated compiler/runtime; semantic interfaces already check the
 compiler digest.

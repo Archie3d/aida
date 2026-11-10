@@ -63,6 +63,15 @@ TypeDefinitionPtr Parser::parseTypeDefinition()
     NestingGuard nesting(*this);
     SourceLocation location = current().location;
 
+    if (check(TokenKind::KwSynchronized) && peek(1).kind == TokenKind::KwNew) {
+        advance();
+        auto definition = parseTypeDefinition();
+        if (!definition->privateExtension) { fail("a synchronized extension requires with private"); }
+        definition->synchronizedPrivate = true;
+        definition->isLimited = true;
+        return definition;
+    }
+
     if (check(TokenKind::KwInterface) || check(TokenKind::KwSynchronized)
         || ((check(TokenKind::KwLimited) || check(TokenKind::KwTask)
              || check(TokenKind::KwProtected)) && peek(1).kind == TokenKind::KwInterface)) {

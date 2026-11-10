@@ -208,43 +208,21 @@ DeclPtr Parser::parseTask()
     decl->definition = std::make_unique<TypeDefinition>(TypeDefKind::Task);
     decl->definition->location = location;
     decl->definition->isLimited = true;
-    auto rejectDefinition = [&](const std::string& message) -> DeclPtr {
-        m_diagnostics.error(current().location, message);
-        int parentheses = 0;
-        while (!check(TokenKind::EndOfFile)) {
-            if (parentheses == 0 && match(TokenKind::Semicolon)) {
-                return nullptr;
-            }
-            if (parentheses == 0 && match(TokenKind::KwIs)) {
-                break;
-            }
-            if (match(TokenKind::LeftParen)) {
-                ++parentheses;
-            } else if (match(TokenKind::RightParen)) {
-                --parentheses;
-            } else {
-                advance();
-            }
-        }
-        while (!check(TokenKind::EndOfFile)) {
-            if (check(TokenKind::KwEnd) && (peek(1).kind == TokenKind::Semicolon
-                || (peek(1).kind == TokenKind::Identifier && peek(1).lower == name.lower))) {
-                advance();
-                skipToSemicolon();
-                break;
-            }
-            advance();
-        }
-        return nullptr;
-    };
     if (check(TokenKind::LeftParen)) {
         if (!isType) { fail("a single task declaration cannot have discriminants"); }
         parseDiscriminantPart(decl->discriminants);
     }
-    if (check(TokenKind::KwIs) && peek(1).kind == TokenKind::KwNew) {
-        return rejectDefinition("task interfaces are not yet supported");
-    }
+
     if (match(TokenKind::KwIs)) {
+        if (match(TokenKind::KwNew)) {
+            do {
+                auto ancestor = std::make_unique<SubtypeIndication>();
+                ancestor->location = current().location;
+                ancestor->name = parseCompoundName(ancestor->lower);
+                decl->definition->progenitors.push_back(std::move(ancestor));
+            } while (match(TokenKind::KwAnd));
+            expect(TokenKind::KwWith, "after concurrent interface list");
+        }
         bool privatePart = false;
         while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {
             if (match(TokenKind::KwPrivate)) {

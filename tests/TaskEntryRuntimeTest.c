@@ -74,7 +74,7 @@ int main(void)
     AdaTaskContext* previous = __ada_task_context_bind(&context);
     AdaMaster master;
     int elaborated = 1;
-    void* object;
+    AdaConcurrentObject object;
     struct ServerData data;
     atomic_init(&data.release, 0);
     memset(data.message, 'x', sizeof data.message);
@@ -84,33 +84,33 @@ int main(void)
     __ada_task_create(&context, &object, server, &data, &elaborated, NULL, NULL);
     __ada_master_activate(&context, &master);
     for (int i = 0; i < kCallCount; ++i) {
-        calls[i] = (struct CallData){ .task = object, .value = i };
+        calls[i] = (struct CallData){ .task = object.resource, .value = i };
         CHECK(__ada_thread_create(&callers[i], caller, &calls[i]) == 0);
-        while (__ada_task_entry_count(object, 0, 0) != i + 1) { __ada_monotonic_delay_until(0); }
+        while (__ada_task_entry_count(object.resource, 0, 0) != i + 1) { __ada_monotonic_delay_until(0); }
     }
     atomic_store(&data.release, 1);
     for (int i = 0; i < kCallCount; ++i) {
         __ada_thread_join(callers[i], NULL);
         CHECK(calls[i].result == i + 100 && calls[i].exception == NULL);
     }
-    __ada_task_entry_call(&context, object, 1, INT64_MAX, NULL);
+    __ada_task_entry_call(&context, object.resource, 1, INT64_MAX, NULL);
     CHECK(context.exception == ADA_CONSTRAINT_ERROR && context.pendingMessageLength == kMessageLength);
     CHECK(memcmp(context.pendingMessage, data.message, kMessageLength) == 0);
     clearException(&context);
     __ada_master_await(&context, &master);
-    __ada_task_entry_call(&context, object, 0, 0, NULL);
+    __ada_task_entry_call(&context, object.resource, 0, 0, NULL);
     CHECK(context.exception == ADA_TASKING_ERROR);
     clearException(&context);
     __ada_master_leave(&context, &master);
 
     // Failure before activation must also wake callers already queued on the
-    // object, without starting a task body whose declarations were abandoned.
+    // object.resource, without starting a task body whose declarations were abandoned.
     __ada_master_enter(&context, &master, ADA_MASTER_BLOCK);
     __ada_task_create(&context, &object, server, &data, &elaborated, NULL, NULL);
-    struct CallData abandoned = { .task = object };
+    struct CallData abandoned = { .task = object.resource };
     AdaThread blocked;
     CHECK(__ada_thread_create(&blocked, caller, &abandoned) == 0);
-    while (__ada_task_entry_count(object, 0, 0) != 1) { __ada_monotonic_delay_until(0); }
+    while (__ada_task_entry_count(object.resource, 0, 0) != 1) { __ada_monotonic_delay_until(0); }
     __ada_task_discard(&context, &master, &object, sizeof object);
     __ada_master_leave(&context, &master);
     __ada_thread_join(blocked, NULL);

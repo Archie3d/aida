@@ -10,7 +10,7 @@
 
 typedef struct Buffer
 {
-    void* lock;
+    AdaConcurrentObject lock;
     int full;
     int value;
     int sum;
@@ -142,7 +142,7 @@ int main(void)
     CHECK(context.exception == ADA_PROGRAM_ERROR && context.protectedActions == &action);
     __ada_protected_leave(&context, &action);
     __ada_protected_destroy(&buffer.lock);
-    CHECK(buffer.lock == NULL);
+    CHECK(buffer.lock.resource == NULL);
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);
     return 0;

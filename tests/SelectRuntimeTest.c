@@ -78,7 +78,7 @@ int main(void)
     for (int round = 0; round < kRounds; ++round) {
         AdaMaster master;
         int elaborated = 1;
-        void* object;
+        AdaConcurrentObject object;
         struct Server data;
         atomic_init(&data.release, 0);
         atomic_init(&data.accepted, 0);
@@ -87,19 +87,19 @@ int main(void)
         __ada_task_create(&context, &object, server, &data, &elaborated, NULL, NULL);
         __ada_master_activate(&context, &master);
         int value = -1;
-        CHECK(!__ada_task_entry_call_until(&context, object, 0, 7, &value,
+        CHECK(!__ada_task_entry_call_until(&context, object.resource, 0, 7, &value,
             0, ADA_SELECT_MONOTONIC, ADA_ENTRY_CONDITIONAL));
-        CHECK(!__ada_task_entry_call_until(&context, object, 0, 7, &value,
+        CHECK(!__ada_task_entry_call_until(&context, object.resource, 0, 7, &value,
             0, ADA_SELECT_MONOTONIC, ADA_ENTRY_TIMED));
-        CHECK(__ada_task_entry_count(object, 0, 7) == 0 && value == -1);
-        void* operation = __ada_async_start_task(&context, object, 0, 7, &value);
+        CHECK(__ada_task_entry_count(object.resource, 0, 7) == 0 && value == -1);
+        void* operation = __ada_async_start_task(&context, object.resource, 0, 7, &value);
         CHECK(operation != NULL && __ada_async_run(operation));
-        CHECK(__ada_task_entry_count(object, 0, 7) == 1);
+        CHECK(__ada_task_entry_count(object.resource, 0, 7) == 1);
         CHECK(!__ada_async_leave(&context, operation));
-        CHECK(__ada_task_entry_count(object, 0, 7) == 0 && value == -1);
+        CHECK(__ada_task_entry_count(object.resource, 0, 7) == 0 && value == -1);
         if (round % 2 == 0) {
             // Once committed, even ending the part cannot cancel the call.
-            operation = __ada_async_start_task(&context, object, 0, 7, &value);
+            operation = __ada_async_start_task(&context, object.resource, 0, 7, &value);
             CHECK(__ada_async_run(operation));
             atomic_store(&data.release, 1);
             while (!atomic_load(&data.accepted)) { yield(); }
@@ -107,11 +107,11 @@ int main(void)
             CHECK(__ada_async_leave(&context, operation));
             CHECK(value == 42);
         } else {
-            struct Caller call = {.task = object, .value = -1};
+            struct Caller call = {.task = object.resource, .value = -1};
             atomic_init(&call.done, 0);
             AdaThread thread;
             CHECK(__ada_thread_create(&thread, timedCaller, &call) == 0);
-            while (__ada_task_entry_count(object, 0, 7) == 0) { yield(); }
+            while (__ada_task_entry_count(object.resource, 0, 7) == 0) { yield(); }
             atomic_store(&data.release, 1);
             while (!atomic_load(&data.accepted)) { yield(); }
             if (round == 1) {

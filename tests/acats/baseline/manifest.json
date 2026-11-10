@@ -632,6 +632,10 @@
     "tests/c3/c3a0027.a": {
       "sha256": "25b7756490d05cae061a35d4523ab1533a5b7d9a0d0225703446693b00b465a5",
       "git_blob": "01567fe0fcdadd0b65edc0cac6959c2f374e2d67"
+    },
+    "tests/c9/c940017.a": {
+      "sha256": "cce55513a70e9efa876ea910582b114d56676abd324ee7869cf873549c7455bc",
+      "git_blob": "883d0765dd06d5fcc7a03bd25ee2bbf471fda2b4"
     }
   },
   "cases": [
@@ -3601,6 +3605,28 @@
         "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
       },
       "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c940017",
+      "class": "C",
+      "area": "concurrent_interfaces",
+      "owner": "P9 concurrent interfaces",
+      "rm": "3.9.4, 9.4",
+      "objective": "Dispatch inherited protected-interface primitives implemented by protected procedures, functions and entries.",
+      "sources": [
+        "tests/c9/c940017.a"
+      ],
+      "report_name": "C940017",
+      "support": [
+        "tctouch"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 concurrent interfaces",
+        "note": "Selected before probing. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Created in 2019 but uses Ada 2005 protected interfaces, operation overriding and prefixed dispatch; no post-2005 syntax. Original bytes and notices retained."
     }
   ],
   "excluded_candidates": [
@@ -3624,6 +3650,20 @@
       "reason": "Explicitly targets later AI05-0073-1/AI12-0203-1 abstract-result legality (RM 3.9.3(8/3)), outside the Ada 2005 target.",
       "sha256": "740c001bf274f1b89b5fa60a9f19dd14777f2fa9d7dedbb30cf16e8d760f1da5",
       "git_blob": "a2b263b2dc655a58010a9c1ace8a61645dcbe5db"
+    },
+    {
+      "id": "c950001",
+      "source": "tests/c9/c950001.a",
+      "reason": "Uses the Ada 2012 Synchronization aspect; outside the Ada 2005 target.",
+      "sha256": "c4b2f5622e834beb51a955058f4d94092af4a8d40d0674123c68be8c603ac84f",
+      "git_blob": "6d70cb885ad7f03cfc5cb9a1c5356dec810a256b"
+    },
+    {
+      "id": "c954027",
+      "source": "tests/c9/c954027.a",
+      "reason": "Uses the Ada 2012 Synchronization aspect; outside the Ada 2005 target.",
+      "sha256": "00ff528d8417ff2ff9d7db303425d7c6a7096dab55eb875338605eb57abbfe2d",
+      "git_blob": "443c915f54cba95fc69c9f6455257d92f16b5bc9"
     }
   ]
 }

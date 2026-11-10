@@ -70,6 +70,7 @@ private:
     void reportMissingBodies(const DeclList& declarations);
     void analyzeDecl(Decl* decl, Scope* scope);
     void analyzeProtected(TypeDecl* decl, Scope* scope);
+    bool implementConcurrentOperation(Type* type, Symbol* operation);
     void declareProtectedOperation(Symbol* operation, Type* type);
     Symbol* protectedReceiver(Type* type);
     bool isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope);

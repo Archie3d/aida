@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "SemaSupport.h"
 
 void Sema::declareProtectedOperation(Symbol* operation, Type* type)
 {
@@ -18,6 +19,7 @@ void Sema::declareProtectedOperation(Symbol* operation, Type* type)
     receiver->owner = operation;
     receiver->level = operation->level;
     receiver->byReference = true;
+    receiver->aliased = true;
     receiver->mode = operation->returnType != nullptr ? ParameterMode::In : ParameterMode::InOut;
     receiver->isConstant = receiver->mode == ParameterMode::In;
     operation->protectedReceiver = receiver;
@@ -147,7 +149,13 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             inner->add(component);
         }
     } else {
-        inner = m_symbolTable.createScope(inner);
+        // The operation declarations remain in the protected region, while
+        // names from the enclosing body/context must also be visible here.
+        Scope* bodyScope = m_symbolTable.createScope(scope);
+        for (const auto& [name, declarations] : inner->declarations()) {
+            for (Symbol* declaration : declarations) { bodyScope->add(declaration); }
+        }
+        inner = bodyScope;
         inner->setCompletionScope(type->protectedScope);
     }
     Type* savedType = m_currentProtectedType;
@@ -169,10 +177,13 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             spec->overriding = OverridingIndicator::Unspecified;
             Symbol* symbol = declareSubprogram(*spec, inner, false);
             spec->overriding = indicator;
-            if (indicator == OverridingIndicator::Overriding) {
-                m_diagnostics.error(spec->location, "protected operation marked overriding implements no inherited operation");
-            }
             declareProtectedOperation(symbol, type);
+            bool implements = implementConcurrentOperation(type, symbol);
+            if (indicator == OverridingIndicator::Overriding && !implements) {
+                m_diagnostics.error(spec->location, "protected operation marked overriding implements no inherited operation");
+            } else if (indicator == OverridingIndicator::NotOverriding && implements) {
+                m_diagnostics.error(spec->location, "protected operation marked not overriding implements an inherited operation");
+            }
             auto* declaration = static_cast<SubprogramDecl*>(operation.get());
             declaration->symbol = symbol;
             symbol->protectedPrivate = declaration->protectedPrivate;
@@ -209,4 +220,42 @@ bool Sema::isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope)
         if (owner == type->taskBody) { return true; }
     }
     return false;
+}
+
+bool Sema::implementConcurrentOperation(Type* type, Symbol* operation)
+{
+    bool implemented = false;
+    for (Symbol* primitive : type->primitives) {
+        if (primitive->name != operation->name || primitive->parameters.size() != operation->parameters.size() + 1
+            || primitive->returnType != operation->returnType || primitive->parameters.empty()) { continue; }
+        if (controllingParameterType(primitive->parameters.front()->type) != type) { continue; }
+        bool matches = true;
+        for (std::size_t i = 0; i < operation->parameters.size(); ++i) {
+            Symbol* formal = primitive->parameters[i + 1];
+            Symbol* actual = operation->parameters[i];
+            matches = matches && SemaSupport::profileTypeMatches(formal->type, actual->type) && formal->mode == actual->mode;
+        }
+        if (!matches) { continue; }
+        if (primitive->concurrentImplementation != nullptr) {
+            m_diagnostics.error(operation->location, "more than one concurrent operation implements the inherited primitive");
+            continue;
+        }
+        if (operation->entryIndexType != nullptr) { continue; }
+        for (std::size_t i = 0; i < operation->parameters.size(); ++i) {
+            if (!SemaSupport::staticallyMatches(primitive->parameters[i + 1]->type, operation->parameters[i]->type)) {
+                m_diagnostics.error(operation->location, "a concurrent implementation must be subtype conformant with its inherited profile");
+            }
+        }
+        Symbol* first = primitive->parameters.front();
+        if (type->protectedScope != nullptr && operation->returnType == nullptr
+            && first->mode == ParameterMode::In
+            && (first->type->kind != TypeKind::Access || first->type->accessConstant)) {
+            m_diagnostics.error(operation->location, "a protected procedure or entry requires a variable controlling parameter");
+        }
+        primitive->concurrentImplementation = operation;
+        primitive->abstract = false;
+        primitive->nullProcedure = false;
+        implemented = true;
+    }
+    return implemented;
 }

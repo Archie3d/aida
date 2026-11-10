@@ -224,7 +224,8 @@ ownership, completion points, host-call boundary and validation controls.
 
 ## Concurrent discriminants and bound views
 
-Direct QBE lowering retains the task/protected prefix at offset zero, appends
+Direct QBE lowering uses the [concurrent-interface header](concurrent-interfaces.md)
+(tag at offset zero, runtime resource at offset eight), appends
 discriminants and uses object-owned views for dependent private payloads. Bound
 callables capture receiver/index once and forward the existing entry operation
 plan through aliases; internal protected calls reuse the resource. Named
@@ -232,4 +233,8 @@ protected callbacks reuse the immutable code/environment/receiver descriptor.
 Construction cleanup drains protected resources before private payloads and
 coextensions, including library default allocators and exceptional construction.
 The [contract and acceptance controls](concurrent-callable-views.md) gate this
-extension; concurrent interfaces remain a separate milestone.
+extension. Concurrent interfaces add dispatch adapters with invocation-local
+selection descriptors and preserve the ordinary callback ABI. Asynchronous
+adapters forward caller-owned formal references and copy operand packets into
+request ownership before their frames return. Interface maps and tag descriptors
+retain their existing layouts; all concurrent objects use the shared 16-byte header.

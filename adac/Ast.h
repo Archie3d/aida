@@ -545,6 +545,7 @@ struct TypeDefinition : Node
     bool abstract = false;
     bool extension = false;
     bool privateExtension = false;
+    bool synchronizedPrivate = false;
     bool formalDerived = false;
     bool formalSynchronized = false;
     InterfaceKind interfaceKind = InterfaceKind::None;

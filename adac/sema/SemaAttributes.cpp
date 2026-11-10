@@ -451,7 +451,9 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         Symbol* implementation = chosen;
-        while (implementation->inheritedFrom != nullptr) { implementation = implementation->inheritedFrom; }
+        while (implementation->inheritedFrom != nullptr && implementation->concurrentImplementation == nullptr) {
+            implementation = implementation->inheritedFrom;
+        }
         m_noReturnAccesses.emplace_back(accessView, expr->location);
         bool importedC = chosen->renamedAccess != nullptr ? chosen->renamedAccess->type->accessConventionC
             : implementation->builtin == BuiltinKind::Runtime && !implementation->importAda;

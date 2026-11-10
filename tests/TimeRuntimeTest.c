@@ -91,7 +91,7 @@ int main(void)
     CHECK(context.exception == NULL && __ada_real_clock() >= deadline);
 #endif
 
-    void* object = NULL;
+    AdaConcurrentObject object = {0};
     __ada_protected_init(&object);
     AdaProtectedAction action;
     __ada_protected_enter(&context, &object, &action);

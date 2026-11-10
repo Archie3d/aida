@@ -65,10 +65,11 @@ def main():
     if kRoot.is_relative_to(args.work.resolve()):
         parser.error("the work directory must not contain the source checkout")
     shutil.rmtree(args.work, ignore_errors=True)
-    cases = ["taskconcurrency", "tasks", "protectedconcurrency", "protectedentries", "timevalues", "sharedscalars", "taskidentity", "concurrentresults", "taskrendezvous", "taskentryfamilies", "taskentryqueues", "taskentrytypes", "taskentrylibrarymain", "selectguards", "selectcalls", "asyncselect", "asynccleanup", "selectdeferral", "requeueentries", "requeueparameters", "requeuecancellation", "taskabort", "abortcleanup", "entryexceptions", "concurrentdiscriminants", "concurrentviews", "concurrentviewdefaults", "concurrentviewlibrarymain"]
+    cases = ["taskconcurrency", "tasks", "protectedconcurrency", "protectedentries", "timevalues", "sharedscalars", "taskidentity", "concurrentresults", "taskrendezvous", "taskentryfamilies", "taskentryqueues", "taskentrytypes", "taskentrylibrarymain", "selectguards", "selectcalls", "asyncselect", "asynccleanup", "selectdeferral", "requeueentries", "requeueparameters", "requeuecancellation", "taskabort", "abortcleanup", "entryexceptions", "concurrentdiscriminants", "concurrentviews", "concurrentviewdefaults", "concurrentviewlibrarymain", "concurrentinterfaces", "interfaceselect", "interfaceprivate", "concurrentinterfacelibrarymain", "runtimecomponenttasking"]
     results = []
     for name in cases + (["race"] if args.sanitizer == "thread" else []):
-        source = Path(__file__).with_name("race.adb") if name == "race" else kRoot / "tests" / "ada" / "tasks" / (name + ".adb")
+        folder = "arrays" if name == "runtimecomponenttasking" else "tasks"
+        source = Path(__file__).with_name("race.adb") if name == "race" else kRoot / "tests" / "ada" / folder / (name + ".adb")
         for separate in [False, True]:
             mode = "separate" if separate else "whole"
             directory = args.work / name / mode

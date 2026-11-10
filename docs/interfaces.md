@@ -46,19 +46,19 @@ abstractness queries and same-level descendant queries include interface ancestr
 
 ## Concurrent categories and remaining boundaries
 
-Limited, synchronized, task and protected interface declarations are parsed and
-classified. Their inheritance category rules are checked, including incompatible
-task/protected combinations. Implementations by task/protected types and
-synchronized private extensions remain Phase 9 work and receive diagnostics.
-The slot maps contain no record-component offsets: those implementations can
-provide wrapper entry points for protected actions and entries while preserving
-the canonical object argument and interface identities.
+Limited, synchronized, task and protected interface declarations are classified
+and their inheritance category rules are checked. Task/protected implementations,
+synchronized private completions, generic actuals and dispatching selects now
+follow the [Phase 9 contract](concurrent-interfaces.md). Repeated progenitors
+are idempotent. The canonical concurrent object has its tag at offset zero and
+runtime resource at offset eight; ordinary record layouts and tag maps retain
+their existing format.
 
 Phase 6g adds interface formals of all five categories and derived contracts
 with ordinary/limited interface ancestors and progenitors. Actual categories
 match exactly; interface-origin maps preserve operations through reordered,
 nested and library instances ([contract](generic-types.md#interface-formals)).
-Synchronized formal derived extensions remain open. Concrete interface
+Synchronized formal derived actuals now include task/protected implementations. Concrete interface
 implementations inside supported generic packages work, including separate
 instances that share library-level interface contracts. General freezing,
 storage pools, and the other previously documented type restrictions retain

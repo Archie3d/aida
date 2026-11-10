@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common/Concurrent.h"
+
 #include "Interface.h"
 
 #include <array>
@@ -147,6 +149,7 @@ struct Type
     bool unknownDiscriminants = false;
     bool unknownDiscriminantAncestor = false;
     bool privateExtension = false;
+    bool synchronizedPrivate = false;
     Type* privateAncestor = nullptr;
     int publicParentFieldCount = 0;
     bool isLimited = false;

@@ -157,7 +157,7 @@ long long typeSize(const Type* type)
     }
     case TypeKind::Record: {
         long long size = type->tagged && type->parentType != nullptr ? typeSize(type->parentType)
-            : type->tagged || type->protectedScope != nullptr || type->taskBody != nullptr ? 8 : 0;
+            : type->protectedScope != nullptr || type->taskBody != nullptr ? kAdaConcurrentHeaderBytes : type->tagged ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the
@@ -457,6 +457,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->formalFixed = parent->formalFixed;
     subtype->genericFormal = parent->genericFormal;
     subtype->synchronizedFormal = parent->synchronizedFormal;
+    subtype->synchronizedPrivate = parent->synchronizedPrivate;
     subtype->formalDerived = parent->formalDerived;
     if (parent->formalDerived) { subtype->primitives = parent->primitives; }
     subtype->delta = parent->delta;

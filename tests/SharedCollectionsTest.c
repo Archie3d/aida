@@ -22,7 +22,7 @@ typedef struct Object
 
 typedef struct Job
 {
-    void* task;
+    AdaConcurrentObject task;
     Shared* shared;
     int spawn;
 } Job;

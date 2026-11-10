@@ -7,8 +7,9 @@ outside the object while private components remain hidden. Defaults evaluate
 per object before task activation. Existing null, constraint, accessibility and
 coextension rules apply. Single task/protected objects cannot declare discriminants.
 
-The task identity and protected execution-resource pointer remain at offset zero;
-discriminants follow them. Protected private arrays and plain managed records
+The [concurrent-interface ABI](concurrent-interfaces.md) now reserves a 16-byte
+header: tag at offset zero, task/protected resource at offset eight. Discriminants
+follow the header. Protected private arrays and plain managed records
 use object-owned component views for discriminant-dependent bounds. Each task
 entry-family bound is evaluated against that task's immutable discriminants,
 including calls through a bound view. A discriminant must appear alone as a
@@ -45,8 +46,9 @@ coextensions of library objects belong to the library construction owner rather
 than the temporary elaboration chain. A finalization-record promotion preserves
 this order when coextension records are registered after the protected parent.
 
-Concurrent interfaces, protected entry families, concurrent derivation/tagged or
-variant composites, and controlled/task/protected private component parts remain
+Concurrent interfaces follow their [contract](concurrent-interfaces.md).
+Protected entry families, tagged or
+variant composites containing concurrent objects, and controlled/task/protected private component parts remain
 outside this increment and are diagnosed. The existing foreign callback ABI
 limits remain. This is not a claim of complete tasking or annex conformance.
 

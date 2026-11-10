@@ -25,4 +25,17 @@ enum AdaEntryCallMode
 
 enum { kAdaSelectChoiceBytes = 32 };
 
+/* Optional trailing argument of dispatch calls. Ordinary implementations ignore
+   it; entry adapters report selection without changing the source profile. */
+enum
+{
+    kAdaDispatchSelectBytes = 32,
+    kAdaDispatchDeadline = 0,
+    kAdaDispatchMode = 8,
+    kAdaDispatchClock = 12,
+    kAdaDispatchSelected = 16,
+    kAdaDispatchAsynchronous = 20,
+    kAdaDispatchHandle = 24
+};
+
 #endif

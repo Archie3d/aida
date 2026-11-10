@@ -119,9 +119,9 @@ static int serviceQueue(AdaTaskContext* context, AdaProtectedLock* lock)
     return 0;
 }
 
-void __ada_protected_init_access(void** object, int accessLevel)
+void __ada_protected_init_access(AdaConcurrentObject* object, int accessLevel)
 {
-    *object = NULL;
+    object->resource = NULL;
     AdaProtectedLock* lock = malloc(sizeof *lock);
     if (lock == NULL) {
         __ada_raise(ADA_STORAGE_ERROR);
@@ -145,7 +145,7 @@ void __ada_protected_init_access(void** object, int accessLevel)
     atomic_init(&lock->references, 1);
     lock->pending = 0;
     lock->disposed = 0;
-    *object = lock;
+    object->resource = lock;
 }
 
 static void releaseLock(AdaProtectedLock* lock)
@@ -156,9 +156,9 @@ static void releaseLock(AdaProtectedLock* lock)
     }
 }
 
-void* __ada_protected_target_retain(void** object)
+void* __ada_protected_target_retain(AdaConcurrentObject* object)
 {
-    AdaProtectedLock* lock = *object;
+    AdaProtectedLock* lock = object->resource;
     if (lock == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
     // The entry name is evaluated while the source callable still exists.
     // Pin its destination through source finalization and queue publication.
@@ -187,9 +187,9 @@ void __ada_protected_target_release(void* pointer, int pending)
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
-void __ada_protected_destroy(void** object)
+void __ada_protected_destroy(AdaConcurrentObject* object)
 {
-    AdaProtectedLock* lock = *object;
+    AdaProtectedLock* lock = object->resource;
     if (lock == NULL) { return; }
     for (AdaProtectedAction* held = __ada_task_context()->protectedActions; held != NULL; held = held->previous) {
         if (held->lock == lock) { __ada_raise(ADA_PROGRAM_ERROR); return; }
@@ -217,16 +217,16 @@ void __ada_protected_destroy(void** object)
             free(waiter);
         }
     }
-    *object = NULL;
+    object->resource = NULL;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     notify(lock);
     __ada_mutex_unlock(&lock->mutex);
     releaseLock(lock);
 }
 
-void __ada_protected_enter(AdaTaskContext* context, void** object, AdaProtectedAction* action)
+void __ada_protected_enter(AdaTaskContext* context, AdaConcurrentObject* object, AdaProtectedAction* action)
 {
-    AdaProtectedLock* lock = *object;
+    AdaProtectedLock* lock = object->resource;
     if (lock == NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
@@ -261,7 +261,7 @@ void __ada_protected_leave(AdaTaskContext* context, AdaProtectedAction* action)
     __ada_abort_undefer(context);
 }
 
-int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
+int __ada_protected_entry_enter_until(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedAction* action, AdaProtectedBarrier barrier, void* link,
     int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode)
 {
@@ -330,7 +330,7 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
     return 1;
 }
 
-void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
+void __ada_protected_entry_enter(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedAction* action, AdaProtectedBarrier barrier, void* link)
 {
     __ada_protected_entry_enter_until(context, object, action, barrier, link,
@@ -363,9 +363,9 @@ void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* actio
     __ada_abort_undefer(context);
 }
 
-int __ada_protected_count(void** object, AdaProtectedBarrier barrier)
+int __ada_protected_count(AdaConcurrentObject* object, AdaProtectedBarrier barrier)
 {
-    AdaProtectedLock* lock = *object;
+    AdaProtectedLock* lock = object->resource;
     int count = 0;
     for (AdaEntryWaiter* waiter = lock->queue; waiter != NULL; waiter = waiter->next) {
         count += waiter->barrier == barrier;
@@ -373,15 +373,15 @@ int __ada_protected_count(void** object, AdaProtectedBarrier barrier)
     return count;
 }
 
-void __ada_protected_init(void** object)
+void __ada_protected_init(AdaConcurrentObject* object)
 {
     int level = __ada_current_access_level();
     if (__ada_exception == NULL) { __ada_protected_init_access(object, level); }
 }
 
-int __ada_protected_access_level(void** object)
+int __ada_protected_access_level(AdaConcurrentObject* object)
 {
-    return ((AdaProtectedLock*)*object)->accessLevel;
+    return ((AdaProtectedLock*)object->resource)->accessLevel;
 }
 
 /* Shared-call entry execution. Legacy enter/complete callers retain their

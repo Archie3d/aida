@@ -1,6 +1,8 @@
 #ifndef ADAENTRY_H
 #define ADAENTRY_H
 
+#include "../common/Concurrent.h"
+
 #include "adart.h"
 
 enum AdaEntryTargetKind
@@ -18,7 +20,7 @@ typedef struct AdaEntryRedirect
     void* task;
     int entry;
     int64_t index;
-    void** object;
+    AdaConcurrentObject* object;
     void* protectedLock;
     AdaProtectedBarrier barrier;
     void* link;
@@ -47,7 +49,7 @@ typedef struct AdaEntryCall
     AdaCondition changed;
     enum AdaEntryTargetKind kind;
     void* task;
-    void** object;
+    AdaConcurrentObject* object;
     void* protectedLock;
     AdaProtectedBarrier barrier;
     void* link;
@@ -69,7 +71,7 @@ typedef struct AdaEntryCall
     AdaTaskContext workerContext;
 } AdaEntryCall;
 
-void* __ada_protected_target_retain(void** object);
+void* __ada_protected_target_retain(AdaConcurrentObject* object);
 void __ada_protected_target_release_locked(void* lock, int pending);
 void __ada_protected_target_release(void* lock, int pending);
 void __ada_entry_finish_locked(AdaEntryCall* call, const AdaException* exception);
@@ -81,12 +83,12 @@ void __ada_protected_request_enqueue(AdaTaskContext* context, AdaEntryCall* call
 void __ada_protected_request_execute(AdaTaskContext* context, AdaEntryCall* call);
 int __ada_protected_request_cancel(AdaEntryCall* call);
 
-int __ada_protected_entry_call(AdaTaskContext* context, void** object,
+int __ada_protected_entry_call(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedBarrier barrier, void* link, void (*body)(void*), void* arguments,
     int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode);
 void __ada_requeue_task(AdaTaskContext* context, void* identity, int entry, int64_t index,
     const void* arguments, int64_t bytes, int withAbort);
-void __ada_requeue_protected(AdaTaskContext* context, void** object,
+void __ada_requeue_protected(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedBarrier barrier, void* link, void (*body)(void*), const void* arguments,
     int64_t bytes, int withAbort, int internal);
 

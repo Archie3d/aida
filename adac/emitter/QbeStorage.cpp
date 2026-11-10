@@ -203,6 +203,11 @@ Value QbeEmitter::staticLinkFor(int targetLevel)
 Value QbeEmitter::addressOf(Symbol* symbol)
 {
     if (symbol->currentInstance != nullptr) {
+        if (symbol->boundConcurrentObject != nullptr) {
+            Value object = loadFrom(addressOf(symbol->boundConcurrentObject), symbol->boundConcurrentObject->type);
+            object.accessLevel = std::to_string(symbol->accessibilityLevel);
+            return object;
+        }
         Value object = m_context->discriminantObjects.at(symbol->currentInstance).address;
         if (object.accessLevel.empty()) {
             object.accessLevel = m_context->coextensionLevel.empty() ? currentAccessLevel() : m_context->coextensionLevel;
@@ -797,7 +802,8 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
         return;
     }
     Symbol* implementation = primitive;
-    while (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr) {
+    while (implementation->concurrentImplementation == nullptr
+            && (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr)) {
         implementation = implementation->inheritedFrom != nullptr
             ? implementation->inheritedFrom : implementation->renamedSubprogram;
     }

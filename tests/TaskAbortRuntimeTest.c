@@ -22,7 +22,7 @@ enum { kRounds = 32 };
 struct Worker
 {
     enum AbortMode mode;
-    void* identity;
+    AdaConcurrentObject identity;
     atomic_int ready;
     atomic_int release;
     atomic_int observed;
@@ -55,7 +55,7 @@ static void* abortActivation(void* argument)
     AdaTaskContext context = {0};
     AdaTaskContext* previous = __ada_task_context_bind(&context);
     while (!atomic_load(&worker->ready)) { __ada_monotonic_delay_until(0); }
-    __ada_abort_tasks(&context, &worker->identity, 1);
+    __ada_abort_tasks(&context, &worker->identity.resource, 1);
     CHECK(context.exception == NULL);
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);
@@ -78,23 +78,23 @@ int main(void)
             __ada_task_create(&context, &worker.identity, body, &worker, &elaborated, NULL, NULL);
             AdaThread aborter;
             if (mode == kActivation) { CHECK(__ada_thread_create(&aborter, abortActivation, &worker) == 0); }
-            if (mode == kBeforeStart) { __ada_abort_tasks(&context, &worker.identity, 1); }
+            if (mode == kBeforeStart) { __ada_abort_tasks(&context, &worker.identity.resource, 1); }
             __ada_master_activate(&context, &master);
             CHECK(context.exception == NULL);
             if (mode == kActivation) { CHECK(__ada_thread_join(aborter, NULL) == 0); }
             else if (mode != kBeforeStart) {
                 while (!atomic_load(&worker.ready)) { __ada_monotonic_delay_until(0); }
-                __ada_abort_tasks(&context, &worker.identity, 1);
-                CHECK(!__ada_task_is_callable(worker.identity));
+                __ada_abort_tasks(&context, &worker.identity.resource, 1);
+                CHECK(!__ada_task_is_callable(worker.identity.resource));
                 if (mode == kDeferred) {
                     CHECK(!atomic_load(&worker.observed));
                     atomic_store(&worker.release, 1);
                 }
             }
             __ada_master_await(&context, &master);
-            CHECK(__ada_task_is_terminated(worker.identity));
+            CHECK(__ada_task_is_terminated(worker.identity.resource));
             CHECK(atomic_load(&worker.observed) == (mode != kBeforeStart));
-            __ada_abort_tasks(&context, &worker.identity, 1);
+            __ada_abort_tasks(&context, &worker.identity.resource, 1);
             CHECK(context.exception == NULL);
             __ada_master_leave(&context, &master);
         }

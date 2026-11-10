@@ -158,6 +158,11 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
                 }
             }
         }
+        auto candidates = operations;
+        std::erase_if(operations, [&](Symbol* operation) {
+            return operation->concurrentImplementation != nullptr
+                && std::find(candidates.begin(), candidates.end(), operation->concurrentImplementation) != candidates.end();
+        });
         return contractNames(expr, std::move(operations));
     }
     return {};

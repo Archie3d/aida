@@ -50,7 +50,6 @@ void QbeEmitter::emitTypeTag(Type* type)
     }
     if (type != nullptr && type->protectedScope != nullptr && !m_emittedTags.contains(rootType(type))) {
         type = rootType(type);
-        m_emittedTags[type] = true;
         FunctionContext context;
         context.traceName = type->name + " protected finalization";
         FunctionContext* saved = m_context;
@@ -58,7 +57,7 @@ void QbeEmitter::emitTypeTag(Type* type)
         emitCallInstruction("call $__ada_protected_destroy(l %object)", CallEffects::DeferredCheck);
         finishFunction("export function " + type->tagName + ".finalize(l %object)");
         m_context = saved;
-        return;
+        if (!type->tagged) { m_emittedTags[type] = true; return; }
     }
     if (type == nullptr || !type->tagged || m_emittedTags.contains(type)) {
         return;
@@ -111,7 +110,8 @@ void QbeEmitter::emitTypeTag(Type* type)
            << ", l " << hasLimitedParts(type) << ", l 0, l " << type->interfaces.size()
            << ", l " << (type->interfaces.empty() ? "0" : type->tagName + ".interfaces")
            << ", l " << static_cast<int>(type->interfaceKind);
-    bool streams = !type->abstract && !hasAccessDiscriminants(type);
+    bool streams = !type->abstract && !hasAccessDiscriminants(type)
+        && type->protectedScope == nullptr && type->taskBody == nullptr;
     for (int i = 0; i < 4; ++i) {
         m_data << ", l " << (streams && streamAvailable(type, i) ? type->tagName + ".stream" + std::to_string(i) : "0") << ", l 0";
     }
@@ -121,7 +121,7 @@ void QbeEmitter::emitTypeTag(Type* type)
     bool first = true;
     for (Symbol* slot : type->dispatchSlots) {
         bool abstract = slot->abstract;
-        while (slot->inheritedFrom != nullptr) {
+        while (slot->inheritedFrom != nullptr && slot->concurrentImplementation == nullptr) {
             slot = slot->inheritedFrom;
         }
         while (slot->renamedSubprogram != nullptr) {
@@ -131,7 +131,8 @@ void QbeEmitter::emitTypeTag(Type* type)
             m_data << ", ";
         }
         first = false;
-        const std::string& entry = isAdaImport(slot) ? slot->runtimeSymbol : slot->qbeName;
+        std::string entry = isAdaImport(slot) ? slot->runtimeSymbol : slot->qbeName;
+        if (slot->concurrentImplementation != nullptr) { entry += ".dispatch"; }
         m_data << "l " << (abstract || entry.empty() ? "0" : entry) << ", l 0";
     }
     if (first) {
@@ -1015,7 +1016,8 @@ void QbeEmitter::initializeTypeTag(Type* type)
     for (std::size_t i = 0; i < type->dispatchSlots.size(); ++i) {
         Symbol* implementation = type->dispatchSlots[i];
         if (implementation->abstract) { continue; }
-        while (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr) {
+        while (implementation->concurrentImplementation == nullptr
+            && (implementation->inheritedFrom != nullptr || implementation->renamedSubprogram != nullptr)) {
             implementation = implementation->inheritedFrom != nullptr
                 ? implementation->inheritedFrom : implementation->renamedSubprogram;
         }

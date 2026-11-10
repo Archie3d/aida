@@ -927,7 +927,8 @@ bool Sema::bindFormalDerivedType(GenericInstantiationDecl* decl, Symbol* generic
     if (formal.typeClass == FormalTypeClass::DerivedType) {
         matches = matches && (view->isLimited || !limitedView(actual));
         if (formal.synchronized) {
-            matches = matches && (actual->synchronizedFormal || actual->interfaceKind >= InterfaceKind::Synchronized);
+            matches = matches && (actual->synchronizedFormal || actual->synchronizedPrivate || actual->taskBody != nullptr
+                || actual->protectedScope != nullptr || actual->interfaceKind >= InterfaceKind::Synchronized);
         }
     }
     for (Type* progenitor : view->interfaces) {
@@ -2476,7 +2477,8 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
             m_diagnostics.error(symbol->location, "composites containing atomic or volatile parts are not yet supported");
         }
         if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second) {
-            if (hasProtected(type) && (type->deferredLayout || type->tagged || type->variantOn >= 0)) {
+            if (hasProtected(type) && type->protectedScope == nullptr
+                && (type->deferredLayout || type->tagged || type->variantOn >= 0)) {
                 m_diagnostics.error(symbol->location,
                     "protected components require a complete ordinary record or array layout at declaration");
             }

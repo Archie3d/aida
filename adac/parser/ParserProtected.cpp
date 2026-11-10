@@ -20,8 +20,14 @@ DeclPtr Parser::parseProtected()
             parseDiscriminantPart(decl->discriminants);
         }
         expect(TokenKind::KwIs, "in protected unit");
-        if (check(TokenKind::KwNew)) {
-            fail("protected interfaces are not yet supported");
+        if (match(TokenKind::KwNew)) {
+            do {
+                auto ancestor = std::make_unique<SubtypeIndication>();
+                ancestor->location = current().location;
+                ancestor->name = parseCompoundName(ancestor->lower);
+                decl->definition->progenitors.push_back(std::move(ancestor));
+            } while (match(TokenKind::KwAnd));
+            expect(TokenKind::KwWith, "after concurrent interface list");
         }
         bool privatePart = false;
         while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {

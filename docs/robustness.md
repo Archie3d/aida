@@ -124,15 +124,15 @@ memory operations participate in the same race detector. Atomic operations
 remain runtime atomics; the adapter does not turn them into ordinary accesses.
 The pass does not add artificial Ada synchronization.
 
-`robustness.sanitized_tasking` runs 28 programs in whole and separate
+`robustness.sanitized_tasking` runs 33 programs in whole and separate
 compilation: task lifecycle/finalization, protected entries, shared scalars, time,
-identity, rendezvous, select, requeue/abort, concurrent discriminants and callable views. Clean cases require exact expected output, empty stderr and success.
+identity, rendezvous, select, requeue/abort, concurrent discriminants, callable views and interface implementations. Clean cases require exact expected output, empty stderr and success.
 With TSan it additionally runs a deliberate Ada-to-Ada write race in both modes.
-Two independent C barriers bracket the generated Ada loops. The first makes
-both workers active; the second prevents either task from publishing completion
-early. Its separate mutex cannot order a loop before its peer's start. Both modes must
-produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
-the control. ASan/UBSan runs 56 clean executions; TSan runs 58 executions.
+Two independent C barriers bracket generated Ada writes. Relaxed atomic turn
+flags select their physical order without a happens-before edge between them;
+neither task can publish completion until both writes have occurred. Both modes
+must produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
+the control. ASan/UBSan runs 66 clean executions; TSan runs 68 executions.
 `coverage.json` records case/mode and instrumented-access counts; `run.json`
 retains each execution's result. There are no race suppressions. The negative
 control disables external symbolization and abort-on-error to keep the required
@@ -177,3 +177,17 @@ The concurrent-view increment adds four fixtures, bringing the current campaign
 to 28 clean fixtures / 56 executions and 58 TSan executions including the two
 intentional race controls. Native protected lifecycle checks also cover draining
 the resource before coextension cleanup. [Contract](concurrent-callable-views.md).
+
+The concurrent-interface increment adds four fixtures for dispatch, selects,
+private completions and library generic actuals, plus the existing captured-layout
+runtime-component tasking fixture: 33 clean fixtures / 66 runs, with two additional
+TSan race controls (68 runs). The selected ASan/UBSan
+campaign passes 324/324 checks; TSan passes 19/19. Earlier increment counts
+above are historical. [Contract](concurrent-interfaces.md).
+
+The previous loop-based race control intermittently exited cleanly. The interface
+validation replaces it with the relaxed-turn protocol above, preserving strict
+report/exit requirements and both independent lifetime barriers. A bounded
+32-run repetition in each mode reports the intended Ada race in all 64 runs.
+The captured-layout regression also verifies the new header on ordinary and
+tagged protected objects with runtime-sized private components.

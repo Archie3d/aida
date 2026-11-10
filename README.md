@@ -179,14 +179,15 @@ Supported:
 - Assertions, check policies and `No_Return` ([contract](docs/pragmas-and-checks.md))
 
 Task/protected discriminants, bound operation views and named protected callbacks
-are supported ([contract](docs/concurrent-callable-views.md)).
+are supported ([contract](docs/concurrent-callable-views.md)), along with
+[synchronized, task and protected interfaces](docs/concurrent-interfaces.md).
 
 Not supported yet:
 
 - Tagged and variant records containing task or protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
-- Concurrent interface implementations, task/protected subunits and formal packages
+- Task/protected subunits and formal packages
 - Writable untagged scalar/record conversions and new derived discriminant parts
 - Derivation before a private view is completed
 - General C callback exports

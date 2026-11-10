@@ -11,7 +11,7 @@
 
 typedef struct Counter
 {
-    void* lock;
+    AdaConcurrentObject lock;
     int value;
 } Counter;
 
@@ -122,7 +122,7 @@ static void finalizationOrder(void)
         CHECK(__ada_thread_create(&thread, useProtected, &probe) == 0);
         while (!atomic_load(&probe.entered)) { __ada_monotonic_delay_until(0); }
         __ada_finalize_to(&owner, NULL);
-        CHECK(owner == NULL && probe.object.lock == NULL);
+        CHECK(owner == NULL && probe.object.lock.resource == NULL);
         CHECK(__ada_thread_join(thread, NULL) == 0);
     }
 }
@@ -135,7 +135,7 @@ int main(void)
     Counter second = {0};
     __ada_protected_init(&first.lock);
     __ada_protected_init(&second.lock);
-    CHECK(context.exception == NULL && first.lock != second.lock);
+    CHECK(context.exception == NULL && first.lock.resource != second.lock.resource);
     AdaThread threads[4];
     Worker workers[4];
     for (int i = 0; i < 4; ++i) {
@@ -172,7 +172,7 @@ int main(void)
     CHECK(memcmp(context.pendingMessage, "preserved", 9) == 0 && context.protectedActions == NULL);
     __ada_protected_destroy(&first.lock);
     __ada_protected_destroy(&second.lock);
-    CHECK(first.lock == NULL && second.lock == NULL);
+    CHECK(first.lock.resource == NULL && second.lock.resource == NULL);
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);
     puts("protected runtime passed");

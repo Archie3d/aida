@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — refreshed 2026-11-10
 
-This backfill adds **153 unchanged upstream cases**: 127 C-tests and 26 B-test
+This backfill adds **154 unchanged upstream cases**: 128 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -13,7 +13,7 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 26 |
 | Legal C-test rejected | 3 |
 | Support/harness blocked | 0 |
-| Executable PASS | 123 |
+| Executable PASS | 124 |
 | Executable failure | 1 |
 
 No crashes or timeouts were observed. Three legal C-tests are rejected and
@@ -495,3 +495,19 @@ rejections. B330001/B3A0002 now reach semantic diagnostics after their parser
 blockers are removed. Their exact observations and independent grade snapshots
 are refreshed without changing grading policies; both still FAIL. B grades
 remain 17 PASS / nine FAIL. Earlier sections retain their historical counts.
+
+## Concurrent interface increment (Phase 9)
+
+C940017 was selected before probing and now passes unchanged with the complete
+REPORT/TCTouch protocol. Its protected-interface procedures, functions and
+entries dispatch across library units. Despite its 2019 creation date, its
+source uses Ada 2005 syntax. C950001/C954027 were assessed and excluded because
+they use the Ada 2012 Synchronization aspect; their hashes/reasons remain in the
+manifest. All 158 vendored file hashes validate. [Contract](concurrent-interfaces.md).
+
+The other 153 outcome classifications remain unchanged: 124 executable C passes,
+three legal-source rejections, one runtime failure and 26 raw B rejections.
+B394A01–B394A05 now reach ancestry/private-completion semantics. Exact raw and
+grade snapshots were reviewed under unchanged policies; all five still grade
+FAIL. The independent B total remains 17 PASS / nine FAIL. Rejection alone is
+not a legality pass; earlier sections retain their historical counts.

@@ -58,7 +58,7 @@ family members; it is rejected inside a program unit nested in the task body.
 
 Task/protected discriminants, entry renamings and generic callable actuals follow
 the [concurrent-view contract](concurrent-callable-views.md). Entries cannot
-designate access-to-subprogram values. Concurrent interfaces, protected entry families and
+designate access-to-subprogram values. [Concurrent interfaces](concurrent-interfaces.md) now extend dispatch. Protected entry families and
 scheduling facilities retain their roadmap restrictions. Requeue and source
 abort use the [shared request and cancellation contract](requeue-abort.md).
 No tasking or annex conformance claim follows from this increment.

@@ -293,13 +293,15 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             adaptUniversal(operand, expr->type);
         }
 
-        if (hasIncompleteParts(expr->type)) {
+        bool taggedObjectView = expr->type->tagged && operand->type != nullptr && operand->type->tagged
+            && SemaSupport::objectView(operand) != SemaSupport::ObjectView::NotObject;
+        if (hasIncompleteParts(expr->type) && !taggedObjectView) {
             m_deferredProtectedUses.push_back({expr->type, expr->location});
         }
-        if (hasProtected(expr->type)) {
+        if (hasProtected(expr->type) && !taggedObjectView) {
             m_diagnostics.error(expr->location, "conversions containing protected objects are not yet supported");
         }
-        if (hasTasks(expr->type)) {
+        if (hasTasks(expr->type) && !taggedObjectView) {
             m_diagnostics.error(expr->location, "conversions of types containing tasks are not yet supported");
         }
         if (expr->type->kind == TypeKind::Array && hasLimitedParts(expr->type)) {

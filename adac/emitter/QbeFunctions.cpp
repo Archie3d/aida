@@ -350,6 +350,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     if (!parameters.empty()) {
         signature += (first ? "" : ", ") + parameters;
     }
+    if (symbol->concurrentDispatchEntry) { signature += ", l %.dispatchSelect"; }
     signature += ")";
 
     for (Symbol* parameter : symbol->parameters) {
@@ -721,5 +722,10 @@ void QbeEmitter::emitInheritedAccessEntries(Type* type)
             body.body.push_back(std::move(statement));
         }
         emitSubprogram(&body);
+        if (primitive->concurrentImplementation != nullptr) {
+            entry.qbeName += ".dispatch";
+            entry.concurrentDispatchEntry = true;
+            emitSubprogram(&body);
+        }
     }
 }

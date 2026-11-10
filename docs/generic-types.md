@@ -252,8 +252,9 @@ compile inherited dispatching bodies. No concrete concurrent implementation is
 created or invoked. `genericsynchronizederrors` isolates invalid modifiers,
 ancestry conflicts, nonsynchronized/wrong-category actuals, abstractness and
 attempts to implement a synchronized formal with an ordinary record extension.
-Concrete task/protected implementations and executing those dispatching bodies
-remain Phase 9.
+Concrete task/protected implementations now execute those bodies through the
+[Phase 9 concurrent-interface contract](concurrent-interfaces.md). The earlier
+measurements below describe the formal-only increment.
 
 ## Class-wide derived actuals
 

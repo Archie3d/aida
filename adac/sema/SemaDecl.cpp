@@ -186,7 +186,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         if (declared != nullptr && declared->taskBody != nullptr) {
             declared->taskScope = m_symbolTable.createScope(scope);
             declared->taskBody->taskType = declared;
-            if (declared->discriminantCount != 0) {
+            if (declared->discriminantCount != 0 || declared->tagged) {
                 Symbol* object = m_symbolTable.createSymbol(SymbolKind::Object, "__task_object", "task object");
                 object->type = m_taskIdType;
                 object->owner = declared->taskBody;
@@ -216,9 +216,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
                 operation->taskEntryId = static_cast<int>(declared->taskEntries.size());
                 operation->hasBody = true; // Accept statements are optional, not completions.
                 entry->symbol = operation;
-                if (indicator == OverridingIndicator::Overriding) {
-                    m_diagnostics.error(entry->location, "task entry marked overriding implements no inherited operation");
-                }
+
                 if (entry->spec.entryIndex != nullptr) {
                     auto* index = entry->spec.entryIndex.get();
                     if (index->lower.empty()) {
@@ -241,6 +239,12 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
                     if (parameter.subtype->accessDefinition != nullptr) {
                         m_diagnostics.error(parameter.location, "task entries cannot have access parameters");
                     }
+                }
+                bool implements = implementConcurrentOperation(declared, operation);
+                if (indicator == OverridingIndicator::Overriding && !implements) {
+                    m_diagnostics.error(entry->location, "task entry marked overriding implements no inherited operation");
+                } else if (indicator == OverridingIndicator::NotOverriding && implements) {
+                    m_diagnostics.error(entry->location, "task entry marked not overriding implements an inherited operation");
                 }
                 declared->taskEntries.push_back(operation);
             }

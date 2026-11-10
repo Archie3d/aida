@@ -18,7 +18,7 @@ struct Packet
 
 struct Relay
 {
-    void* destination;
+    AdaConcurrentObject destination;
     int withAbort;
     atomic_int release;
 };
@@ -53,7 +53,7 @@ static void source(void* argument)
     CHECK(context->currentEntry == request);
     struct Packet* packet = __ada_task_entry_arguments(request);
     *packet->value += 1;
-    __ada_requeue_task(context, relay->destination, 1, 7, packet, sizeof *packet, relay->withAbort);
+    __ada_requeue_task(context, relay->destination.resource, 1, 7, packet, sizeof *packet, relay->withAbort);
     CHECK(context->exception == NULL);
     __ada_task_entry_complete(context, request);
     CHECK(context->currentEntry == NULL);
@@ -67,7 +67,7 @@ int main(void)
         AdaMaster master, sourceMaster;
         AdaTaskContext callerContext = {0};
         int elaborated = 1, value = 0;
-        void* from;
+        AdaConcurrentObject from;
         struct Relay relay = {.withAbort = round % 2};
         atomic_init(&relay.release, 0);
         __ada_master_enter(&context, &master, ADA_MASTER_BLOCK);
@@ -80,19 +80,19 @@ int main(void)
         // The independent caller and destination outlive the source's master.
         callerContext.currentMaster = &master;
         __ada_task_context_bind(&callerContext);
-        void* operation = __ada_async_start_task(&callerContext, from, 0, 0, &packet);
+        void* operation = __ada_async_start_task(&callerContext, from.resource, 0, 0, &packet);
         CHECK(operation != NULL && callerContext.exception == NULL);
         __ada_task_context_bind(&context);
         // Registration/cancellation follows the destination, not the source
         // task whose body may already have terminated after its requeue.
-        while (__ada_task_entry_count(relay.destination, 1, 7) != 1) { __ada_monotonic_delay_until(0); }
+        while (__ada_task_entry_count(relay.destination.resource, 1, 7) != 1) { __ada_monotonic_delay_until(0); }
         CHECK(value == 1);
         __ada_master_await(&context, &sourceMaster);
         __ada_master_leave(&context, &sourceMaster);
         __ada_task_context_bind(&callerContext);
         if (relay.withAbort) {
             CHECK(!__ada_async_leave(&callerContext, operation));
-            CHECK(__ada_task_entry_count(relay.destination, 1, 7) == 0);
+            CHECK(__ada_task_entry_count(relay.destination.resource, 1, 7) == 0);
             atomic_store(&relay.release, 1);
         } else {
             atomic_store(&relay.release, 1);

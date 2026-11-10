@@ -16,6 +16,8 @@ int main(void)
         || sizeof(int64_t) != 8 || sizeof(float) != 4 || sizeof(double) != 8
         || sizeof(size_t) != 8 || sizeof(ptrdiff_t) != 8 || bytes[0] != 1
         || sizeof(AdaTraceFrame) != 24 || offsetof(AdaTraceFrame, location) != 16
+        || sizeof(AdaConcurrentObject) != kAdaConcurrentHeaderBytes
+        || offsetof(AdaConcurrentObject, resource) != 8
         || sizeof(AdaMaster) != kAdaMasterBytes || offsetof(AdaMaster, activities) != 8
         || offsetof(AdaTaskContext, exception) != 0 || sizeof(AdaArrayDimension) != 32
         || sizeof(AdaArrayResult) != 48 || offsetof(AdaArrayResult, stride) != 40) {

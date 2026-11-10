@@ -1,9 +1,10 @@
-/* Separate barriers bracket the generated Ada writes. A worker cannot publish
-   runtime task completion while its peer is still reaching/executing the loop.
-   The finish barrier never acquires the start barrier's mutex, so it cannot
-   order one loop before the other's start. The conflicting writes stay in Ada. */
+/* The independent barriers keep both tasks alive across the Ada write.
+   Relaxed turn flags select a physical order without a happens-before edge
+   between the conflicting writes. Neither worker may publish runtime task
+   completion until both writes have happened. No conflicting access is in C. */
 #include "../../runtime/adathread.h"
 #include <stdint.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 
 struct Barrier
@@ -15,6 +16,18 @@ struct Barrier
 
 static struct Barrier start = {ADA_MUTEX_INITIALIZER, ADA_CONDITION_INITIALIZER, 0};
 static struct Barrier finish = {ADA_MUTEX_INITIALIZER, ADA_CONDITION_INITIALIZER, 0};
+static atomic_uint tickets;
+static atomic_uint turn;
+static _Thread_local unsigned int lane;
+
+static void awaitTurn(unsigned int expected)
+{
+    int64_t start, now;
+    if (__ada_monotonic_clock(&start) != 0) { abort(); }
+    while (atomic_load_explicit(&turn, memory_order_relaxed) != expected) {
+        if (__ada_monotonic_clock(&now) != 0 || now - start > INT64_C(5000000000)) { abort(); }
+    }
+}
 
 static void meet(struct Barrier* barrier)
 {
@@ -32,10 +45,19 @@ static void meet(struct Barrier* barrier)
 
 void raceStart(void)
 {
+    lane = atomic_fetch_add_explicit(&tickets, 1, memory_order_relaxed);
+    if (lane >= 2) { abort(); }
     meet(&start);
+}
+
+void raceWriteTurn(void)
+{
+    awaitTurn(lane);
 }
 
 void raceFinish(void)
 {
+    atomic_store_explicit(&turn, lane + 1, memory_order_relaxed);
+    awaitTurn(2);
     meet(&finish);
 }

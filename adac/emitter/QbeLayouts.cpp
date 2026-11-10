@@ -193,7 +193,8 @@ void QbeEmitter::emitRecordLayout(Type* type)
     Value layout = layoutAddress(type);
     std::map<int, std::string> cursors;
     cursors[-1] = type->dependentStorage ? (type->tagged ? "24" : "16")
-        : type->tagged || type->protectedScope != nullptr ? "8" : "0";
+        : type->taskBody != nullptr || type->protectedScope != nullptr ? std::to_string(kAdaConcurrentHeaderBytes)
+        : type->tagged ? "8" : "0";
     std::string maximum = allocScratch(8);
     line("storel " + (type->parentType != nullptr ? runtimeSize(type->parentType) : cursors[-1]) + ", " + maximum);
     auto append = [&](const std::string& offset, const std::string& size, long long alignment) {

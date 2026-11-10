@@ -137,6 +137,10 @@ private:
             Symbol* target = nullptr;
             DelayStmt* delay = nullptr;
             AdaEntryCallMode mode = ADA_ENTRY_WAIT;
+            std::string dynamicMode;
+            std::string dynamicDeadline;
+            std::string dynamicClock;
+            bool forwardActuals = false;
             std::string selected;
             bool asynchronous = false;
             bool requeue = false;

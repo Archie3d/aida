@@ -18,6 +18,9 @@ _Static_assert(sizeof(AdaSelectChoice) == kAdaSelectChoiceBytes, "select alterna
 _Static_assert(offsetof(AdaSelectChoice, index) == 8 && offsetof(AdaSelectChoice, deadline) == 16
     && offsetof(AdaSelectChoice, clock) == 24 && offsetof(AdaSelectChoice, open) == 28, "select alternative fields");
 
+_Static_assert(sizeof(AdaConcurrentObject) == kAdaConcurrentHeaderBytes
+    && offsetof(AdaConcurrentObject, resource) == 8, "concurrent object QBE ABI");
+
 _Static_assert(sizeof(AdaMaster) == kAdaMasterBytes, "master record QBE ABI");
 
 enum
@@ -125,12 +128,12 @@ void* __ada_current_task(void)
     return context->taskSelf != NULL ? context->taskSelf : &environmentTask;
 }
 
-void* __ada_task_identity(void** object)
+void* __ada_task_identity(AdaConcurrentObject* object)
 {
-    if (*object == NULL) {
+    if (object->resource == NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
     }
-    return *object;
+    return object->resource;
 }
 
 void* __ada_current_task_object(void)
@@ -575,7 +578,7 @@ int __ada_task_entry_call_until(AdaTaskContext* context, void* identity, int ent
     return selected;
 }
 
-int __ada_protected_entry_call(AdaTaskContext* context, void** object,
+int __ada_protected_entry_call(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedBarrier barrier, void* link, void (*body)(void*), void* arguments,
     int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode)
 {
@@ -641,11 +644,28 @@ static void* startAsyncCall(AdaTaskContext* context, AdaEntryCall* call)
     return operation;
 }
 
+static int copyEntryPacket(AdaEntryCall* call, int64_t bytes)
+{
+    if (bytes < 0) { return 1; }
+    call->ownedArguments = malloc(bytes == 0 ? 1 : (size_t)bytes);
+    if (call->ownedArguments == NULL) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
+    if (bytes != 0) { memcpy(call->ownedArguments, call->arguments, (size_t)bytes); }
+    call->arguments = call->ownedArguments;
+    return 1;
+}
+
 void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments)
+{
+    return __ada_async_start_task_packet(context, identity, entry, index, arguments, -1);
+}
+
+void* __ada_async_start_task_packet(AdaTaskContext* context, void* identity, int entry, int64_t index,
+    void* arguments, int64_t bytes)
 {
     if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
     AdaEntryCall* call = newEntryCall(context, arguments, 0, ADA_SELECT_MONOTONIC, ADA_ENTRY_WAIT);
     if (call == NULL) { return NULL; }
+    if (!copyEntryPacket(call, bytes)) { freeEntryCall(call); return NULL; }
     call->kind = ADA_ENTRY_TASK;
     call->task = identity;
     call->entry = entry;
@@ -653,12 +673,19 @@ void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry,
     return startAsyncCall(context, call);
 }
 
-void* __ada_async_start_protected(AdaTaskContext* context, void** object,
+void* __ada_async_start_protected(AdaTaskContext* context, AdaConcurrentObject* object,
     int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments)
+{
+    return __ada_async_start_protected_packet(context, object, barrier, link, body, arguments, -1);
+}
+
+void* __ada_async_start_protected_packet(AdaTaskContext* context, AdaConcurrentObject* object,
+    int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments, int64_t bytes)
 {
     if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
     AdaEntryCall* call = newEntryCall(context, arguments, 0, ADA_SELECT_MONOTONIC, ADA_ENTRY_WAIT);
     if (call == NULL) { return NULL; }
+    if (!copyEntryPacket(call, bytes)) { freeEntryCall(call); return NULL; }
     call->kind = ADA_ENTRY_PROTECTED;
     call->object = object;
     call->protectedLock = __ada_protected_target_retain(object);
@@ -698,7 +725,7 @@ void __ada_requeue_task(AdaTaskContext* context, void* identity, int entry, int6
     redirect->index = index;
 }
 
-void __ada_requeue_protected(AdaTaskContext* context, void** object,
+void __ada_requeue_protected(AdaTaskContext* context, AdaConcurrentObject* object,
     AdaProtectedBarrier barrier, void* link, void (*body)(void*), const void* arguments,
     int64_t bytes, int withAbort, int internal)
 {
@@ -1213,7 +1240,7 @@ static void* executeTask(void* argument)
     return NULL;
 }
 
-void __ada_task_create_owned(AdaTaskContext* context, void** object, void (*body)(void*),
+void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
                             AdaMaster* owner)
 {
@@ -1286,7 +1313,7 @@ void __ada_task_create_owned(AdaTaskContext* context, void** object, void (*body
     task->next = state->tasks;
     markDependents(master);
     state->tasks = task;
-    *object = task;
+    object->resource = task;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
@@ -1295,7 +1322,7 @@ AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection)
     return collection != NULL ? collection : context->currentMaster;
 }
 
-void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
+void __ada_task_create(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                       void* link, const int* elaborated, void* collection, void* group)
 {
     __ada_task_create_owned(context, object, body, link, elaborated, collection, group, NULL);

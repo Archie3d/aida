@@ -1,6 +1,8 @@
 #ifndef ADAMASTER_H
 #define ADAMASTER_H
 
+#include "../common/Concurrent.h"
+
 #include <stdatomic.h>
 #include <stdint.h>
 #include "../common/Master.h"
@@ -12,7 +14,11 @@ struct AdaMaster;
 extern const struct AdaException __ada_exc_async_transfer;
 void* __ada_async_start_delay(AdaTaskContext* context, int64_t deadline, enum AdaSelectClock clock);
 void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments);
-void* __ada_async_start_protected(AdaTaskContext* context, void** object,
+void* __ada_async_start_task_packet(AdaTaskContext* context, void* identity, int entry, int64_t index,
+    void* arguments, int64_t bytes);
+void* __ada_async_start_protected_packet(AdaTaskContext* context, AdaConcurrentObject* object,
+    int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments, int64_t bytes);
+void* __ada_async_start_protected(AdaTaskContext* context, AdaConcurrentObject* object,
     int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments);
 int __ada_async_run(void* operation);
 void __ada_async_poll(AdaTaskContext* context);
@@ -74,11 +80,11 @@ int __ada_task_entry_call_until(AdaTaskContext* context, void* identity, int ent
     enum AdaEntryCallMode mode);
 
 /* Generated task body ABI, including a lexical link for library bodies. */
-void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),
+void __ada_task_create(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                       void* link, const int* elaborated, void* collection, void* group);
 /* Build-in-place results retain the caller's owner and activation group. */
 AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection);
-void __ada_task_create_owned(AdaTaskContext* context, void** object, void (*body)(void*),
+void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
                             AdaMaster* owner);
 void __ada_task_result_await(void* master);
@@ -99,7 +105,7 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
    Queries synchronize with completion and termination without joining tasks. */
 void* __ada_current_task(void);
 void* __ada_current_task_object(void);
-void* __ada_task_identity(void** object);
+void* __ada_task_identity(AdaConcurrentObject* object);
 int __ada_task_id_equal(void* left, void* right);
 const char* __ada_task_image(void* identity);
 int __ada_task_is_callable(void* identity);

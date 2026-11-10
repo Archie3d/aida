@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 153 cases to the existing strict selection:
-127 executable C-tests and 26 ungraded B-test probes. The selection targets
+implement. It adds 154 cases to the existing strict selection:
+128 executable C-tests and 26 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 157 source files (including four shared foundations) retain their original
+All 158 source files (including four shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -185,3 +185,11 @@ PASS, three legal-source rejections, one runtime failure and 26 ungraded B
 observations. All 157 source hashes validate. B330001/B3A0002 now reach semantic
 diagnostics; reviewed raw/grade snapshots change, but policies and their FAIL
 grades remain unchanged. [Contract](../../../docs/concurrent-callable-views.md).
+
+The concurrent-interface increment adds unchanged C940017, selected before
+probing. It PASSes the complete REPORT/TCTouch protocol and joins the strict
+selection. C950001/C954027 use a later Synchronization aspect and are excluded,
+with their hashes/reasons recorded. Current totals: 154 cases, 124 executable
+C passes, three legal-source rejections, one runtime failure and 26 ungraded B
+observations; all 158 vendored hashes validate. B394A01–B394A05 now reach semantic
+checking but retain FAIL under unchanged grading policies. [Contract](../../../docs/concurrent-interfaces.md).

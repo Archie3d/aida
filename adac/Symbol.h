@@ -120,6 +120,8 @@ struct Symbol
     bool missingBodyReported = false;
     // An inherited operation uses its own profile and the original implementation.
     Symbol* inheritedFrom = nullptr;
+    Symbol* concurrentImplementation = nullptr;
+    bool concurrentDispatchEntry = false;
     Symbol* genericFormalOrigin = nullptr; // Ancestor operation represented by a formal-derived view.
     bool classWideWrapper = false; // Intrinsic dispatching view for a class-wide generic actual.
     bool classWideResultRenaming = false;
@@ -225,7 +227,8 @@ inline Symbol* importedNoReturnView(Symbol* symbol)
 
 inline bool needsConstrainedParameter(const Symbol* parameter)
 {
-    return parameter->mode != ParameterMode::In && hasDefaultDiscriminants(parameter->type)
+    return parameter->type->taskBody == nullptr && parameter->type->protectedScope == nullptr
+        && parameter->mode != ParameterMode::In && hasDefaultDiscriminants(parameter->type)
         && !hasDiscriminantConstraint(parameter->type);
 }
 

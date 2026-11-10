@@ -248,6 +248,18 @@ Type* Sema::analyzeIdentifier(IdentifierExpr* expr, Scope* scope, Type* expected
             chosen = receiver;
         }
     }
+    if (chosen->type != nullptr && chosen->type->taskBody != nullptr && chosen->type->tagged
+        && isTaskCurrentInstance(expr, chosen->type, scope)) {
+        Symbol* object = m_symbolTable.createSymbol(SymbolKind::Object, chosen->name, chosen->displayName);
+        object->type = chosen->type;
+        object->currentInstance = chosen->type;
+        object->boundConcurrentObject = chosen->type->taskBody->taskObject;
+        object->owner = chosen->type->taskBody;
+        object->level = object->owner->level;
+        object->accessibilityLevel = chosen->type->accessLevel;
+        object->aliased = true;
+        chosen = object;
+    }
     expr->symbol = chosen;
     if (chosen->protectedField >= 0) {
         expr->protectedReceiver = protectedReceiver(chosen->protectedType);

@@ -260,6 +260,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         bool privateViewAbstract = completing->privateViewAbstract;
         bool unknownDiscriminants = completing->unknownDiscriminants;
         bool privateExtension = completing->privateExtension;
+        bool synchronizedPrivate = completing->synchronizedPrivate;
         Type* privateAncestor = completing->privateAncestor;
         int publicParentFieldCount = completing->publicParentFieldCount;
         bool controlled = completing->controlled;
@@ -286,6 +287,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         completing->privateViewAbstract = privateViewAbstract;
         completing->unknownDiscriminants = unknownDiscriminants;
         completing->privateExtension = privateExtension;
+        completing->synchronizedPrivate = synchronizedPrivate;
         completing->privateAncestor = privateAncestor;
         completing->publicParentFieldCount = publicParentFieldCount;
         completing->controlled = controlled;
@@ -301,7 +303,9 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         m_diagnostics.error(decl->location, "discriminants require a record, task or protected type");
     }
     bool taggedDefinition = (definition->kind == TypeDefKind::Record && definition->tagged)
-        || (definition->kind == TypeDefKind::Derived && definition->extension);
+        || (definition->kind == TypeDefKind::Derived && definition->extension)
+        || ((definition->kind == TypeDefKind::Task || definition->kind == TypeDefKind::Protected)
+            && !definition->progenitors.empty());
     if (!taggedDefinition && definition->kind == TypeDefKind::Derived && definition->parent != nullptr) {
         Symbol* parent = lookupName(definition->parent->lower, scope);
         taggedDefinition = parent != nullptr && parent->kind == SymbolKind::TypeName && taggedViewVisible(parent->type);
@@ -332,6 +336,10 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             return;
         }
     }
+    if (completing != nullptr && completing->synchronizedPrivate
+        && definition->kind != TypeDefKind::Task && definition->kind != TypeDefKind::Protected) {
+        m_diagnostics.error(decl->location, "a synchronized private extension requires a task or protected full view");
+    }
     bool nonlimitedPrivateCompletion = completing != nullptr && completing->privateTo != nullptr
         && !completing->isLimited;
     Type* type = nullptr;
@@ -340,6 +348,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     case TypeDefKind::Protected: {
         type = makeType(TypeKind::Record);
         type->protectedScope = m_symbolTable.createScope(scope);
+        type->tagged = !definition->progenitors.empty();
         type->isLimited = true;
         type->needsZeroInit = true;
         std::string name = "$" + mangle(decl->lower) + "__protected";
@@ -377,6 +386,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         spec.location = decl->location;
         type->taskBody = declareSubprogram(spec, scope, false);
         type->taskBody->taskBody = true;
+        type->tagged = !definition->progenitors.empty();
         layoutRecord(decl, definition, type, scope);
         break;
     }
@@ -825,6 +835,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         if (definition->formalDerived) { built->classRoot = nullptr; }
         built->genericFormal = false;
         built->synchronizedFormal = definition->formalSynchronized;
+        built->synchronizedPrivate = definition->synchronizedPrivate;
         built->kind = parent->kind;
         built->literals = parent->literals;
         if (hasKnownDiscriminants(parent)) { built->discriminantConstraintSource = parent; }
@@ -1087,10 +1098,8 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(indication->location, "a progenitor must name a specific interface type");
             continue;
         }
-        if (std::find(directInterfaces.begin(), directInterfaces.end(), progenitor) != directInterfaces.end()) {
-            m_diagnostics.error(indication->location, "duplicate interface progenitor");
-            continue;
-        }
+        // Repeated progenitors add no new ancestry or inherited operation.
+        if (std::find(directInterfaces.begin(), directInterfaces.end(), progenitor) != directInterfaces.end()) { continue; }
         directInterfaces.push_back(progenitor);
         addInterface(progenitor);
         for (Type* ancestor : progenitor->interfaces) { addInterface(ancestor); }
@@ -1099,16 +1108,18 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     for (Type* ancestor : type->interfaces) {
         InterfaceKind kind = ancestor->interfaceKind;
-        bool incompatible = (kind == InterfaceKind::Task && type->interfaceKind != InterfaceKind::Task)
-            || (kind == InterfaceKind::Protected && type->interfaceKind != InterfaceKind::Protected)
-            || (kind == InterfaceKind::Synchronized && type->interfaceKind < InterfaceKind::Synchronized);
-        if (incompatible && !definition->formalSynchronized) {
+        bool incompatible = (kind == InterfaceKind::Task && type->interfaceKind != InterfaceKind::Task && type->taskBody == nullptr)
+            || (kind == InterfaceKind::Protected && type->interfaceKind != InterfaceKind::Protected && type->protectedScope == nullptr)
+            || (kind == InterfaceKind::Synchronized && type->interfaceKind < InterfaceKind::Synchronized
+                && type->taskBody == nullptr && type->protectedScope == nullptr);
+        if (incompatible && !definition->formalSynchronized && !definition->privateExtension) {
             m_diagnostics.error(decl->location, type->interfaceKind == InterfaceKind::None
-                ? "implementing synchronized, task or protected interfaces requires Phase 9 concurrent types"
+                && type->taskBody == nullptr && type->protectedScope == nullptr
+                ? "a record type cannot implement a synchronized, task or protected interface"
                 : "incompatible synchronized interface categories");
         }
     }
-    if (definition->formalSynchronized) {
+    if (definition->formalSynchronized || definition->privateExtension) {
         bool taskAncestor = false;
         bool protectedAncestor = false;
         for (Type* ancestor : type->interfaces) {
@@ -1131,13 +1142,14 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             }
         }
     }
-    if (hasProtected(type) && (nonlimitedPrivateCompletion || type->tagged || type->variantOn >= 0)) {
+    if (hasProtected(type) && (nonlimitedPrivateCompletion
+        || (type->protectedScope == nullptr && (type->tagged || type->variantOn >= 0)))) {
         m_diagnostics.error(decl->location, "protected components require an ordinary limited full view without variants");
     }
     if (hasTasks(type) && nonlimitedPrivateCompletion) {
         m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
     }
-    if (hasTasks(type) && type->tagged) {
+    if (hasTasks(type) && type->tagged && type->taskBody == nullptr) {
         m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
     }
     if (type->variantOn >= 0 && hasTasks(type)) {
@@ -1357,7 +1369,7 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope)
 {
     long long offset = definition->extension ? typeSize(type->parentType)
-        : type->tagged || type->protectedScope != nullptr || type->taskBody != nullptr ? 8 : 0;
+        : type->protectedScope != nullptr || type->taskBody != nullptr ? kAdaConcurrentHeaderBytes : type->tagged ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
     Scope* componentScope = m_symbolTable.createScope(scope);
     Symbol* current = m_symbolTable.createSymbol(SymbolKind::Object, decl->lower, decl->name);
@@ -1475,7 +1487,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
     };
 
     for (RecordField& discriminant : decl->discriminants) {
-        if (type->tagged && discriminant.defaultValue != nullptr) {
+        if (type->tagged && type->taskBody == nullptr && type->protectedScope == nullptr
+            && discriminant.defaultValue != nullptr) {
             m_diagnostics.error(discriminant.location, "a tagged type cannot have defaulted discriminants");
         }
         if (bool(discriminant.defaultValue) != bool(decl->discriminants.front().defaultValue)) {
@@ -2718,6 +2731,9 @@ void Sema::registerPrimitive(Symbol* symbol, Scope* scope)
                     || SemaSupport::staticallyMatches(primitive->parameters[i]->type, symbol->parameters[i]->type));
             }
             if (matches) {
+                if (primitive->concurrentImplementation != nullptr) {
+                    m_diagnostics.error(symbol->location, "an explicit primitive cannot also be implemented by a concurrent operation");
+                }
                 m_noReturnOverrides.emplace_back(symbol, primitive);
                 if (primitive->noReturn) { m_noReturnRequired.insert(symbol); }
                 bool publicView = symbol->privatePrimitiveTo != nullptr && primitive->privatePrimitiveTo == nullptr;

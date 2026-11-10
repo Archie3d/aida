@@ -15,11 +15,11 @@ static atomic_int cleanupOpen;
 
 static void completingTask(void* argument)
 {
-    void** object = argument;
+    AdaConcurrentObject* object = argument;
     AdaTaskContext* context = __ada_task_context();
-    CHECK(__ada_current_task() == *object);
-    CHECK(__ada_task_identity(object) == *object);
-    CHECK(__ada_task_is_callable(*object) && !__ada_task_is_terminated(*object));
+    CHECK(__ada_current_task() == object->resource);
+    CHECK(__ada_task_identity(object) == object->resource);
+    CHECK(__ada_task_is_callable(object->resource) && !__ada_task_is_terminated(object->resource));
     __ada_task_activated(context);
     __ada_task_complete(context);
     atomic_store(&cleanupReady, 1);
@@ -94,7 +94,7 @@ static void checkReparentedDependents(void)
     AdaFinalization* owner = NULL;
     void* arena = NULL;
     int elaborated = 1;
-    void* object;
+    AdaConcurrentObject object;
     atomic_store(&completed, 0);
     __ada_master_enter(&context, &outer, ADA_MASTER_BLOCK);
     void* collection = __ada_collection_create(&owner, &arena);
@@ -107,7 +107,7 @@ static void checkReparentedDependents(void)
     // that parent was entered after task registration. No scheduling race can
     // make this check pass when ancestor marking is missing.
     __ada_master_await(&context, &inner);
-    CHECK(atomic_load(&completed) == 0 && __ada_task_is_terminated(object));
+    CHECK(atomic_load(&completed) == 0 && __ada_task_is_terminated(object.resource));
     __ada_finalize_to(&owner, NULL);
     __ada_array_release(&arena);
     __ada_master_leave(&context, &inner);
@@ -123,7 +123,7 @@ static void checkResultTasks(void)
     AdaMaster caller, callee;
     int elaborated = 1;
     char resultGroup, siblingGroup;
-    void* objects[4];
+    AdaConcurrentObject objects[4];
     atomic_store(&completed, 0);
     __ada_master_enter(&context, &caller, ADA_MASTER_BLOCK);
     CHECK(__ada_task_owner(&context, NULL) == &caller);
@@ -138,8 +138,8 @@ static void checkResultTasks(void)
     __ada_raise_message(ADA_CONSTRAINT_ERROR, "result failure", 14);
     __ada_task_result_discard(&caller, mark, &resultGroup);
     CHECK(context.exception == ADA_CONSTRAINT_ERROR && context.pendingMessageLength == 14);
-    CHECK(__ada_task_is_terminated(objects[1]));
-    CHECK(!__ada_task_is_terminated(objects[0]) && !__ada_task_is_terminated(objects[2]));
+    CHECK(__ada_task_is_terminated(objects[1].resource));
+    CHECK(!__ada_task_is_terminated(objects[0].resource) && !__ada_task_is_terminated(objects[2].resource));
     context.exception = NULL;
     // A successful retry joins the original activation group; the discarded
     // member cannot run when the caller activates the remaining declarations.
@@ -161,7 +161,7 @@ int main(void)
         AdaTaskContext context = {0};
         AdaTaskContext* previous = __ada_task_context_bind(&context);
         AdaMaster master;
-        void* objects[4];
+        AdaConcurrentObject objects[4];
         int elaborated = 1;
         atomic_store(&completed, 0);
         __ada_master_enter(&context, &master, ADA_MASTER_BLOCK);
@@ -171,23 +171,23 @@ int main(void)
                               NULL, &elaborated, NULL, NULL);
         }
         for (int i = 0; i < 4; ++i) {
-            CHECK(__ada_task_is_callable(objects[i]));
-            CHECK(!__ada_task_is_terminated(objects[i]));
-            CHECK(__ada_task_id_equal(objects[i], objects[i]));
-            CHECK(!__ada_task_id_equal(objects[i], objects[(i + 1) % 4]));
-            CHECK(strlen(__ada_task_image(objects[i])) > 0);
-            CHECK(strcmp(__ada_task_image(objects[i]), __ada_task_image(objects[(i + 1) % 4])) != 0);
+            CHECK(__ada_task_is_callable(objects[i].resource));
+            CHECK(!__ada_task_is_terminated(objects[i].resource));
+            CHECK(__ada_task_id_equal(objects[i].resource, objects[i].resource));
+            CHECK(!__ada_task_id_equal(objects[i].resource, objects[(i + 1) % 4].resource));
+            CHECK(strlen(__ada_task_image(objects[i].resource)) > 0);
+            CHECK(strcmp(__ada_task_image(objects[i].resource), __ada_task_image(objects[(i + 1) % 4].resource)) != 0);
         }
         __ada_master_activate(&context, &master);
         CHECK(context.exception == &__ada_exc_tasking_error);
-        CHECK(!__ada_task_is_callable(objects[2]));
+        CHECK(!__ada_task_is_callable(objects[2].resource));
         __ada_raise_message(&__ada_exc_constraint_error, "parent failure", 14);
         __ada_master_await(&context, &master);
         CHECK(context.exception == &__ada_exc_constraint_error);
         CHECK(context.pendingMessageLength == 14 && memcmp(context.pendingMessage, "parent failure", 14) == 0);
         CHECK(atomic_load(&completed) == 3);
         for (int i = 0; i < 4; ++i) {
-            CHECK(!__ada_task_is_callable(objects[i]) && __ada_task_is_terminated(objects[i]));
+            CHECK(!__ada_task_is_callable(objects[i].resource) && __ada_task_is_terminated(objects[i].resource));
         }
         __ada_master_leave(&context, &master);
         CHECK(__ada_task_context_dispose(&context));
@@ -197,7 +197,7 @@ int main(void)
     AdaTaskContext context = {0};
     AdaTaskContext* previous = __ada_task_context_bind(&context);
     AdaMaster master;
-    void* objects[2];
+    AdaConcurrentObject objects[2];
     int elaborated = 1;
     int unavailable = 0;
     atomic_store(&completed, 0);
@@ -207,8 +207,8 @@ int main(void)
     __ada_master_activate(&context, &master);
     CHECK(context.exception == &__ada_exc_program_error);
     __ada_master_await(&context, &master);
-    CHECK(!__ada_task_is_callable(objects[0]) && __ada_task_is_terminated(objects[0]));
-    CHECK(!__ada_task_is_callable(objects[1]) && __ada_task_is_terminated(objects[1]));
+    CHECK(!__ada_task_is_callable(objects[0].resource) && __ada_task_is_terminated(objects[0].resource));
+    CHECK(!__ada_task_is_callable(objects[1].resource) && __ada_task_is_terminated(objects[1].resource));
     __ada_master_leave(&context, &master);
     CHECK(atomic_load(&completed) == 0);
     CHECK(__ada_task_context_dispose(&context));
@@ -251,10 +251,10 @@ int main(void)
         while (!atomic_load(&cleanupReady)) {
             __ada_monotonic_delay_until(0);
         }
-        CHECK(!__ada_task_is_callable(objects[0]) && !__ada_task_is_terminated(objects[0]));
+        CHECK(!__ada_task_is_callable(objects[0].resource) && !__ada_task_is_terminated(objects[0].resource));
         atomic_store(&cleanupOpen, 1);
         __ada_master_await(&__ada_main_context, &master);
-        CHECK(__ada_task_is_terminated(objects[0]));
+        CHECK(__ada_task_is_terminated(objects[0].resource));
         __ada_master_leave(&__ada_main_context, &master);
     }
     __ada_library_enter();
