@@ -16,8 +16,9 @@ Task-body returns outside accepts remain illegal.
 ## Parameters and ownership
 
 Callers use the existing Ada argument lowering and pass a temporary packet of
-its scalar values, references, array dimension records and constrained-view
-metadata. The packet stays live until the rendezvous finishes. The accepting
+references to formal objects, array dimension records and constrained-view
+metadata. Scalar `in` objects also have caller-owned storage, preserving their
+address across requeues. The packet stays live until the call finishes. The accepting
 task binds its own parameter symbols to those operands and executes the accept
 body itself; caller code never executes the task's accept body.
 
@@ -32,7 +33,8 @@ Anonymous access parameters on task entries are illegal in Ada 2005.
 
 ## Queues and completion
 
-The shared master mutex and a per-task condition protect each task's FIFO request list. Selection matches
+The shared master mutex protects each task's FIFO request list; each call has
+its own completion condition, independent of the current target's lifetime. Selection matches
 both declaration identity and family index, preserving arrival order for each
 entry. A caller waits until the selected accept completes. Queued calls and new
 calls on completed tasks receive `Tasking_Error`; discarded unactivated tasks
@@ -57,8 +59,9 @@ family members; it is rejected inside a program unit nested in the task body.
 Task-entry renamings and entry actuals for generic formal subprograms remain
 explicitly diagnosed; generic task types and ordinary generic packages containing
 entry calls are supported. Entries cannot designate access-to-subprogram values.
-Task/protected discriminants and interfaces, protected entry families,
-requeue, abort and scheduling facilities retain their roadmap restrictions.
+Task/protected discriminants and interfaces, protected entry families and
+scheduling facilities retain their roadmap restrictions. Requeue and source
+abort use the [shared request and cancellation contract](requeue-abort.md).
 No tasking or annex conformance claim follows from this increment.
 
 `taskrendezvous`, `taskentryfamilies`, `taskentryqueues`, `taskentrytypes` and

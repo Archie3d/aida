@@ -1811,7 +1811,7 @@ add_test(NAME semantics.subunits
 set_tests_properties(semantics.subunits PROPERTIES TIMEOUT 90)
 
 # Phase 6e: ordinary extended returns and general limited result construction.
-foreach(return_case extendedreturns limitedresults returncleanup concurrentresults concurrentlibrarymain taskrendezvous taskentryfamilies taskentryqueues taskentrytypes taskentrylibrarymain selectguards selectcalls asyncselect asynccleanup selectdeferral)
+foreach(return_case extendedreturns limitedresults returncleanup concurrentresults concurrentlibrarymain taskrendezvous taskentryfamilies taskentryqueues taskentrytypes taskentrylibrarymain selectguards selectcalls asyncselect asynccleanup selectdeferral requeueentries requeueparameters requeuecancellation taskabort abortcleanup)
     add_ada_test(${return_case} SOURCES ${return_case}.adb)
     add_determinism_test(${return_case} SOURCE ${return_case}.adb)
     ada_test_fixture(source_path "${return_case}.adb")
@@ -2800,3 +2800,20 @@ add_test(NAME semantics.select
         -DWORKDIR=${ADA_TEST_WORK_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckSelectSemantics.cmake)
 set_tests_properties(semantics.select PROPERTIES TIMEOUT 60)
+
+add_ada_test(abortpartition EXIT_CODE 1 SOURCES tasks/abortpartition.adb)
+
+add_executable(requeue_runtime_test RequeueRuntimeTest.c)
+target_link_libraries(requeue_runtime_test PRIVATE adart)
+add_test(NAME runtime.requeue_lifecycle COMMAND requeue_runtime_test)
+set_tests_properties(runtime.requeue_lifecycle PROPERTIES TIMEOUT 30)
+add_executable(task_abort_runtime_test TaskAbortRuntimeTest.c)
+target_link_libraries(task_abort_runtime_test PRIVATE adart)
+add_test(NAME runtime.task_abort_lifecycle COMMAND task_abort_runtime_test)
+set_tests_properties(runtime.task_abort_lifecycle PROPERTIES TIMEOUT 30)
+add_test(NAME semantics.requeue_abort
+    COMMAND ${CMAKE_COMMAND}
+        -DADAC=$<TARGET_FILE:adac>
+        -DWORKDIR=${ADA_TEST_WORK_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckRequeueAbortSemantics.cmake)
+set_tests_properties(semantics.requeue_abort PROPERTIES TIMEOUT 60)

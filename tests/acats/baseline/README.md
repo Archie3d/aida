@@ -172,3 +172,8 @@ Support-protocol follow-up: unchanged C761004/C940005/C940010 now PASS after
 TCTouch and local ImpDef configuration. The current totals are 112 C PASS,
 six legal-source rejections, one runtime failure and 26 raw B observations.
 The independent grader records 17 B PASS and nine B FAIL.
+
+The Phase 9 requeue/abort audit retains 115 executable passes, three legal-source
+rejections, one runtime failure and 26 ungraded B observations. Three stale
+entry/accept parser snapshots (C432005/B650002/B650004) now expose the existing
+layout/return-legality diagnostics. B grades remain 17 PASS and nine FAIL.

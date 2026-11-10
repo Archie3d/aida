@@ -20,6 +20,10 @@ int __ada_async_check(AdaTaskContext* context);
 int __ada_async_ready(AdaTaskContext* context);
 int __ada_async_leave(AdaTaskContext* context, void* operation);
 int __ada_async_matches(AdaTaskContext* context, void* operation);
+void __ada_abort_tasks(AdaTaskContext* context, void** identities, int count);
+void __ada_abort_task(void* identity);
+void __ada_task_block_begin(AdaTaskContext* context);
+void __ada_task_block_end(AdaTaskContext* context);
 void __ada_master_abort(AdaTaskContext* context, struct AdaMaster* master);
 
 /* Caller-owned identity, live until its dependents have terminated and local

@@ -2,6 +2,7 @@
 #include "adart.h"
 #include "adathread.h"
 #include "adatime.h"
+#include "adaentry.h"
 
 #include <stdlib.h>
 #include <stdatomic.h>
@@ -16,6 +17,7 @@ typedef struct AdaEntryWaiter
     void* link;
     void* object;
     int ready;
+    AdaEntryCall* call;
 } AdaEntryWaiter;
 
 typedef struct AdaProtectedLock
@@ -26,6 +28,9 @@ typedef struct AdaProtectedLock
     int servicing;
     int accessLevel;
     unsigned long epoch;
+    atomic_uint references;
+    unsigned int pending;
+    int disposed;
 } AdaProtectedLock;
 
 static void waitForChange(AdaProtectedLock* lock)
@@ -62,6 +67,23 @@ static int evaluateBarrier(AdaTaskContext* context, AdaEntryWaiter* waiter)
     return failed ? -1 : open != 0;
 }
 
+static void failQueue(AdaProtectedLock* lock)
+{
+    while (lock->queue != NULL) {
+        AdaEntryWaiter* failed = lock->queue;
+        lock->queue = failed->next;
+        failed->ready = -1;
+        if (failed->call != NULL) {
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            failed->call->protectedWaiter = NULL;
+            __ada_entry_finish_locked(failed->call, ADA_PROGRAM_ERROR);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            free(failed);
+        }
+    }
+    notify(lock);
+}
+
 /* FIFO on each entry; among open entries choose the first queued caller.
    Only one caller receives the execution resource at a time. New external
    actions wait until the complete servicing chain has drained. */
@@ -78,18 +100,18 @@ static int serviceQueue(AdaTaskContext* context, AdaProtectedLock* lock)
         }
         int open = evaluateBarrier(context, waiter);
         if (open < 0) {
-            while (lock->queue != NULL) {
-                AdaEntryWaiter* failed = lock->queue;
-                lock->queue = failed->next;
-                failed->ready = -1;
-            }
-            notify(lock);
+            failQueue(lock);
             return 0;
         }
         if (open) {
             *slot = waiter->next;
             waiter->ready = 1;
             lock->servicing = 1;
+            if (waiter->call != NULL) {
+                __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+                __ada_entry_selected_locked(waiter->call);
+                __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            }
             notify(lock);
             return 1;
         }
@@ -120,22 +142,86 @@ void __ada_protected_init_access(void** object, int accessLevel)
     lock->queue = NULL;
     lock->servicing = 0;
     lock->epoch = 0;
+    atomic_init(&lock->references, 1);
+    lock->pending = 0;
+    lock->disposed = 0;
     *object = lock;
+}
+
+static void releaseLock(AdaProtectedLock* lock)
+{
+    if (atomic_fetch_sub(&lock->references, 1) == 1) {
+        if (__ada_condition_destroy(&lock->changed) != 0 || __ada_mutex_destroy(&lock->mutex) != 0) { abort(); }
+        free(lock);
+    }
+}
+
+void* __ada_protected_target_retain(void** object)
+{
+    AdaProtectedLock* lock = *object;
+    if (lock == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    // The entry name is evaluated while the source callable still exists.
+    // Pin its destination through source finalization and queue publication.
+    atomic_fetch_add(&lock->references, 1);
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    ++lock->pending;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    return lock;
+}
+
+void __ada_protected_target_release_locked(void* pointer, int pending)
+{
+    if (pointer == NULL) { return; }
+    AdaProtectedLock* lock = pointer;
+    if (pending) {
+        --lock->pending;
+        __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    }
+    releaseLock(lock);
+}
+
+void __ada_protected_target_release(void* pointer, int pending)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    __ada_protected_target_release_locked(pointer, pending);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
 void __ada_protected_destroy(void** object)
 {
     AdaProtectedLock* lock = *object;
-    if (lock != NULL) {
-        if (lock->queue != NULL || lock->servicing
-            || __ada_condition_destroy(&lock->changed) != 0
-            || __ada_mutex_destroy(&lock->mutex) != 0) {
-            __ada_raise(ADA_PROGRAM_ERROR);
-            return;
-        }
-        free(lock);
-        *object = NULL;
+    if (lock == NULL) { return; }
+    for (AdaProtectedAction* held = __ada_task_context()->protectedActions; held != NULL; held = held->previous) {
+        if (held->lock == lock) { __ada_raise(ADA_PROGRAM_ERROR); return; }
     }
+    __ada_mutex_lock(&lock->mutex);
+    for (;;) {
+        while (lock->servicing) { waitForChange(lock); }
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        if (lock->pending == 0) { break; }
+        __ada_mutex_unlock(&lock->mutex);
+        while (lock->pending != 0) {
+            __ada_condition_wait(&__ada_main_context.sharedMasterChanged, &__ada_main_context.sharedMasterMutex);
+        }
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_mutex_lock(&lock->mutex);
+    }
+    lock->disposed = 1;
+    while (lock->queue != NULL) {
+        AdaEntryWaiter* waiter = lock->queue;
+        lock->queue = waiter->next;
+        waiter->ready = -1;
+        if (waiter->call != NULL) {
+            waiter->call->protectedWaiter = NULL;
+            __ada_entry_finish_locked(waiter->call, ADA_PROGRAM_ERROR);
+            free(waiter);
+        }
+    }
+    *object = NULL;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    notify(lock);
+    __ada_mutex_unlock(&lock->mutex);
+    releaseLock(lock);
 }
 
 void __ada_protected_enter(AdaTaskContext* context, void** object, AdaProtectedAction* action)
@@ -192,12 +278,7 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
     AdaEntryWaiter waiter = {NULL, barrier, link, object, 0};
     int open = evaluateBarrier(context, &waiter);
     if (open < 0) {
-        while (lock->queue != NULL) {
-            AdaEntryWaiter* failed = lock->queue;
-            lock->queue = failed->next;
-            failed->ready = -1;
-        }
-        notify(lock);
+        failQueue(lock);
         __ada_protected_leave(context, action);
         __ada_raise(ADA_PROGRAM_ERROR);
         return 0;
@@ -210,6 +291,7 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
         tail = &(*tail)->next;
     }
     *tail = &waiter;
+    atomic_fetch_add(&lock->references, 1);
     serviceQueue(context, lock);
     context->protectedActions = action->previous;
     __ada_abort_undefer(context);
@@ -229,6 +311,7 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
             if (!lock->servicing) { serviceQueue(context, lock); }
             notify(lock);
             __ada_mutex_unlock(&lock->mutex);
+            releaseLock(lock);
             return 0;
         }
         int64_t poll = __ada_real_clock() + 10000000;
@@ -237,120 +320,14 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
     }
     if (waiter.ready < 0) {
         __ada_mutex_unlock(&lock->mutex);
+        releaseLock(lock);
         __ada_raise(ADA_PROGRAM_ERROR);
         return 0;
     }
+    releaseLock(lock);
     __ada_abort_defer(context);
     context->protectedActions = action;
     return 1;
-}
-
-/* The queue node and actual packet outlive the helper thread. Registration is
-   performed by the caller under the object lock, so an open barrier commits
-   before the abortable part can start. The helper has a private Ada context. */
-typedef struct AdaProtectedAsync
-{
-    AdaEntryWaiter waiter;
-    AdaProtectedLock* lock;
-    AdaThread thread;
-    AdaTaskContext context;
-    void (*body)(void*);
-    void* arguments;
-    atomic_int done;
-    int cancelled;
-} AdaProtectedAsync;
-
-static void* runAsyncEntry(void* pointer)
-{
-    AdaProtectedAsync* request = pointer;
-    AdaTaskContext* context = &request->context;
-    __ada_task_context_bind(context);
-    AdaProtectedLock* lock = request->lock;
-    __ada_mutex_lock(&lock->mutex);
-    while (request->waiter.ready == 0 && !request->cancelled) { waitForChange(lock); }
-    if (!request->cancelled && request->waiter.ready > 0) {
-        AdaProtectedAction action = {lock, NULL};
-        context->protectedActions = &action;
-        __ada_abort_defer(context);
-        request->body(request->arguments);
-        __ada_protected_complete(context, &action);
-    } else {
-        __ada_mutex_unlock(&lock->mutex);
-        if (request->waiter.ready < 0) { __ada_raise(ADA_PROGRAM_ERROR); }
-    }
-    atomic_store(&request->done, 1);
-    return NULL;
-}
-
-void* __ada_protected_async_start(AdaTaskContext* context, void** object,
-    AdaProtectedBarrier barrier, void* link, void (*body)(void*), void* arguments, int* immediate)
-{
-    AdaProtectedAsync* request = calloc(1, sizeof *request);
-    if (request == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
-    AdaProtectedAction action;
-    __ada_protected_enter(context, object, &action);
-    if (context->exception != NULL) { free(request); return NULL; }
-    AdaProtectedLock* lock = action.lock;
-    request->waiter = (AdaEntryWaiter) {NULL, barrier, link, object, 0};
-    request->lock = lock;
-    request->body = body;
-    request->arguments = arguments;
-    request->context.taskSelf = context->taskSelf;
-    // Borrow the caller's enclosing master until join, just as an ordinary
-    // protected entry call does. The worker owns only masters entered by Ada.
-    request->context.currentMaster = context->currentMaster;
-    request->context.accessibilityParentLevel = context->accessibilityParentLevel;
-    atomic_init(&request->done, 0);
-    if (__ada_thread_create(&request->thread, runAsyncEntry, request) != 0) {
-        __ada_protected_leave(context, &action);
-        free(request);
-        __ada_raise(ADA_STORAGE_ERROR);
-        return NULL;
-    }
-    AdaEntryWaiter** tail = &lock->queue;
-    while (*tail != NULL) { tail = &(*tail)->next; }
-    *tail = &request->waiter;
-    serviceQueue(context, lock);
-    *immediate = request->waiter.ready != 0;
-    context->protectedActions = action.previous;
-    __ada_mutex_unlock(&lock->mutex);
-    __ada_abort_undefer(context);
-    return request;
-}
-
-int __ada_protected_async_done(void* pointer)
-{
-    return atomic_load(&((AdaProtectedAsync*)pointer)->done);
-}
-
-int __ada_protected_async_finish(AdaTaskContext* context, void* pointer)
-{
-    AdaProtectedAsync* request = pointer;
-    AdaProtectedLock* lock = request->lock;
-    __ada_mutex_lock(&lock->mutex);
-    int selected = request->waiter.ready != 0;
-    if (!selected) {
-        AdaEntryWaiter** slot = &lock->queue;
-        while (*slot != NULL && *slot != &request->waiter) { slot = &(*slot)->next; }
-        if (*slot != NULL) { *slot = request->waiter.next; }
-        request->cancelled = 1;
-        if (!lock->servicing) { serviceQueue(context, lock); }
-        notify(lock);
-    }
-    __ada_mutex_unlock(&lock->mutex);
-    __ada_thread_join(request->thread, NULL);
-    if (context->exception == NULL && request->context.exception != NULL) {
-        AdaTaskContext* source = &request->context;
-        __ada_raise_message(source->exception, source->pendingMessage, source->pendingMessageLength);
-        context->pendingOrigin = source->pendingOrigin;
-        context->pendingTraceCount = source->pendingTraceCount;
-        memcpy(context->pendingTrace, source->pendingTrace, sizeof context->pendingTrace);
-    }
-    request->context.taskSelf = NULL;
-    request->context.currentMaster = NULL;
-    __ada_task_context_dispose(&request->context);
-    free(request);
-    return selected;
 }
 
 void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
@@ -405,4 +382,138 @@ void __ada_protected_init(void** object)
 int __ada_protected_access_level(void** object)
 {
     return ((AdaProtectedLock*)*object)->accessLevel;
+}
+
+/* Shared-call entry execution. Legacy enter/complete callers retain their
+   caller-owned action ABI; generated entry calls use these queue nodes. */
+void __ada_protected_request_enqueue(AdaTaskContext* context, AdaEntryCall* call, int internal)
+{
+    AdaEntryWaiter* waiter = calloc(1, sizeof *waiter);
+    if (waiter == NULL) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        __ada_entry_finish_locked(call, ADA_STORAGE_ERROR);
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        return;
+    }
+    AdaProtectedAction action;
+    AdaProtectedLock* lock = call->protectedLock;
+    if (!internal) {
+        __ada_abort_defer(context);
+        __ada_mutex_lock(&lock->mutex);
+        while (lock->servicing && !lock->disposed) { waitForChange(lock); }
+        action = (AdaProtectedAction) {lock, context->protectedActions};
+        context->protectedActions = &action;
+    }
+    *waiter = (AdaEntryWaiter) {NULL, call->barrier, call->link, call->object, 0, call};
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    if (call->protectedPending) {
+        --lock->pending;
+        call->protectedPending = 0;
+        __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    }
+    if (lock->disposed) {
+        __ada_entry_finish_locked(call, ADA_PROGRAM_ERROR);
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        free(waiter);
+    } else if (call->cancelRequested && call->abortable) {
+        __ada_entry_cancel_locked(call);
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        free(waiter);
+    } else {
+        call->protectedWaiter = waiter;
+        call->registered = 1;
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        // A new external call checks its barrier before joining the queue.
+        // Count-dependent barriers must not include this call yet. Internal
+        // requeues join first and are reconsidered when the action completes.
+        int open = internal ? 0 : evaluateBarrier(context, waiter);
+        if (open < 0) {
+            failQueue(lock);
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            call->protectedWaiter = NULL;
+            __ada_entry_finish_locked(call, ADA_PROGRAM_ERROR);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            free(waiter);
+        } else if (open && __ada_protected_count(call->object, call->barrier) == 0) {
+            lock->servicing = 1;
+            waiter->ready = 1;
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            __ada_entry_selected_locked(call);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        } else {
+            AdaEntryWaiter** tail = &lock->queue;
+            while (*tail != NULL) { tail = &(*tail)->next; }
+            *tail = waiter;
+            if (!internal) { serviceQueue(context, lock); }
+        }
+    }
+    if (!internal) {
+        context->protectedActions = action.previous;
+        __ada_mutex_unlock(&lock->mutex);
+        __ada_abort_undefer(context);
+    }
+}
+
+static void releaseRequeueAction(AdaTaskContext* context, AdaProtectedAction* action)
+{
+    AdaProtectedLock* lock = action->lock;
+    lock->servicing = 0;
+    if (!serviceQueue(context, lock)) { ++lock->epoch; notify(lock); }
+    context->protectedActions = action->previous;
+    __ada_mutex_unlock(&lock->mutex);
+    __ada_abort_undefer(context);
+}
+
+void __ada_protected_request_execute(AdaTaskContext* context, AdaEntryCall* call)
+{
+    AdaProtectedLock* lock = call->protectedLock;
+    __ada_mutex_lock(&lock->mutex);
+    AdaProtectedAction action = {lock, context->protectedActions};
+    context->protectedActions = &action;
+    __ada_abort_defer(context);
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    AdaEntryWaiter* waiter = call->protectedWaiter;
+    call->protectedWaiter = NULL;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    free(waiter);
+    AdaEntryCall* previous = context->currentEntry;
+    context->currentEntry = call;
+    call->body(call->arguments);
+    context->currentEntry = previous;
+    if (context->exception == NULL && call->redirect != NULL) {
+        __ada_entry_complete(context, call, 1);
+        releaseRequeueAction(context, &action);
+    } else {
+        __ada_protected_complete(context, &action);
+        __ada_entry_complete(context, call, 0);
+    }
+}
+
+int __ada_protected_request_cancel(AdaEntryCall* call)
+{
+    AdaTaskContext* context = __ada_task_context();
+    __ada_abort_defer(context);
+    AdaProtectedLock* lock = call->protectedLock;
+    __ada_mutex_lock(&lock->mutex);
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    if (call->selected || call->done || !call->abortable) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_mutex_unlock(&lock->mutex);
+        __ada_abort_undefer(context);
+        return 0;
+    }
+    AdaEntryWaiter* waiter = call->protectedWaiter;
+    AdaEntryWaiter** slot = &lock->queue;
+    while (*slot != NULL && *slot != waiter) { slot = &(*slot)->next; }
+    if (*slot != NULL) { *slot = waiter->next; }
+    call->protectedWaiter = NULL;
+    __ada_entry_cancel_locked(call);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    free(waiter);
+    if (!lock->servicing) { serviceQueue(context, lock); }
+    notify(lock);
+    __ada_mutex_unlock(&lock->mutex);
+    __ada_abort_undefer(context);
+    return 1;
 }

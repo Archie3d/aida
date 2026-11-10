@@ -124,14 +124,15 @@ memory operations participate in the same race detector. Atomic operations
 remain runtime atomics; the adapter does not turn them into ordinary accesses.
 The pass does not add artificial Ada synchronization.
 
-`robustness.sanitized_tasking` runs seven existing programs in whole and separate
-compilation: task concurrency/lifecycle and finalization, basic tasks, protected
-concurrency, protected entries, delays, shared scalar/atomic operations and task
-identity. Clean cases require exact expected output, empty stderr and success.
+`robustness.sanitized_tasking` runs 24 programs in whole and separate
+compilation: task lifecycle/finalization, protected entries, shared scalars, time,
+identity, rendezvous, select and requeue/abort. Clean cases require exact expected output, empty stderr and success.
 With TSan it additionally runs a deliberate Ada-to-Ada write race in both modes.
-A protected start gate ensures both workers are active before racing. Both must
+Two independent C barriers bracket the generated Ada loops. The first makes
+both workers active; the second prevents either task from publishing completion
+early. Its separate mutex cannot order a loop before its peer's start. Both modes must
 produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
-the control. ASan/UBSan runs the 14 clean executions; TSan runs 16 executions.
+the control. ASan/UBSan runs 48 clean executions; TSan runs 50 executions.
 `coverage.json` records case/mode and instrumented-access counts; `run.json`
 retains each execution's result. There are no race suppressions. The negative
 control disables external symbolization and abort-on-error to keep the required
@@ -163,3 +164,11 @@ for detector overhead and platform restrictions.
 The descendant-cleanup protocol controls pass on the tested host. The full
 regular suite and both sanitizer selections are distinct checks; the selected
 sanitizer results do not imply every regular test was run under sanitizers.
+
+Phase 9 expands the clean tasking campaign to 24 fixtures (48 whole/separate
+executions), including requeue/abort and the existing initial-barrier/entry
+exception control. TSan adds two intentional races. The negative control now
+uses separate start/finish barriers: a protected gate alone allowed one
+worker's task-completion mutex to order its entire loop before its peer under
+some schedules. No runtime synchronization or sanitizer suppression was added to
+hide a race. Current milestone results are in [requeue and abort](requeue-abort.md).

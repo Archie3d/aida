@@ -378,7 +378,7 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         }
         if (parameter->isUplevel) {
             long long alignment = parameter->byReference ? 8 : typeAlignment(parameter->type);
-            long long slotSize = parameter->byReference ? 8 : typeSize(parameter->type);
+            long long slotSize = parameter->byReference ? (parameter->type->accessParameter ? 16 : 8) : typeSize(parameter->type);
             if (unconstrained) {
                 slotSize = adaArrayLocalSize(parameter->type->arrayRank); // Pointer followed by dimension records.
             }

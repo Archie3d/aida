@@ -21,10 +21,6 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, void** object,
     int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode);
 void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
     AdaProtectedAction* action, AdaProtectedBarrier barrier, void* link);
-void* __ada_protected_async_start(AdaTaskContext* context, void** object,
-    AdaProtectedBarrier barrier, void* link, void (*body)(void*), void* arguments, int* immediate);
-int __ada_protected_async_done(void* request);
-int __ada_protected_async_finish(AdaTaskContext* context, void* request);
 int __ada_protected_count(void** object, AdaProtectedBarrier barrier);
 void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* action);
 

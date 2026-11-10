@@ -1,29 +1,17 @@
 procedure Race is
     Shared : Integer := 0;
-    protected Gate is
-        procedure Arrive;
-        entry Go;
-    private
-        Arrived : Integer := 0;
-    end Gate;
-    protected body Gate is
-        procedure Arrive is
-        begin
-            Arrived := Arrived + 1;
-        end Arrive;
-        entry Go when Arrived = 2 is
-        begin
-            null;
-        end Go;
-    end Gate;
+    procedure Start;
+    pragma Import (C, Start, "raceStart");
+    procedure Finish;
+    pragma Import (C, Finish, "raceFinish");
     task type Worker;
     task body Worker is
     begin
-        Gate.Arrive;
-        Gate.Go;
+        Start;
         for I in 1 .. 100000 loop
             Shared := I;
         end loop;
+        Finish;
     end Worker;
     Workers : array (1 .. 2) of Worker;
 begin

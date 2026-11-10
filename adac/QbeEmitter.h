@@ -139,6 +139,9 @@ private:
             AdaEntryCallMode mode = ADA_ENTRY_WAIT;
             std::string selected;
             bool asynchronous = false;
+            bool requeue = false;
+            bool withAbort = false;
+            bool internal = false;
             std::string handle;
             std::function<void()> copyBack;
         };

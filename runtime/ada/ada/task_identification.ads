@@ -12,7 +12,8 @@ package Ada.Task_Identification is
     pragma Import (C, Is_Terminated, "__ada_task_is_terminated");
     function Is_Callable (T : Task_Id) return Boolean;
     pragma Import (C, Is_Callable, "__ada_task_is_callable");
-    -- Abort_Task is deferred with task abort to Phase 9.
+    procedure Abort_Task (T : Task_Id);
+    pragma Import (C, Abort_Task, "__ada_abort_task");
 private
     type Task_Id is access Integer;
     Null_Task_Id : constant Task_Id := null;

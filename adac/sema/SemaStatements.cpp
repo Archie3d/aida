@@ -320,6 +320,130 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     ScopedCheckPolicy checks(m_suppressedChecks, m_suppressedChecks);
     statement->suppressedChecks = activeCheckPermissions();
     switch (statement->kind) {
+    case StmtKind::Requeue: {
+        auto* requeue = static_cast<RequeueStmt*>(statement);
+        Symbol* source = nullptr;
+        if (!m_accepts.empty() && m_accepts.back()->owner == m_currentSubprogram) {
+            source = m_accepts.back()->entry;
+            requeue->parameters = m_accepts.back()->parameters;
+        } else if (m_currentSubprogram != nullptr && m_currentSubprogram->entry
+            && m_currentSubprogram->protectedType != nullptr) {
+            source = m_currentSubprogram;
+            requeue->parameters = source->parameters;
+        }
+        if (source == nullptr) {
+            m_diagnostics.error(requeue->location, "requeue requires an enclosing accept or protected entry body, without an intervening callable body");
+            break;
+        }
+        Symbol* target = nullptr;
+        for (Symbol* candidate : expressionNames(requeue->target.get(), scope)) {
+            if (!candidate->entry) { continue; }
+            bool matches = candidate->parameters.empty();
+            if (!matches && candidate->parameters.size() == requeue->parameters.size()) {
+                matches = true;
+                for (std::size_t i = 0; i < candidate->parameters.size(); ++i) {
+                    matches &= SemaSupport::profileTypeMatches(candidate->parameters[i]->type, requeue->parameters[i]->type)
+                        && candidate->parameters[i]->mode == requeue->parameters[i]->mode;
+                }
+            }
+            if (!matches) { continue; }
+            if (target != nullptr) {
+                m_diagnostics.error(requeue->location, "ambiguous requeue target entry");
+                target = nullptr;
+                break;
+            }
+            target = candidate;
+        }
+        if (target == nullptr) {
+            m_diagnostics.error(requeue->location, "requeue target must be a parameterless entry or have a type-conformant profile");
+            break;
+        }
+        auto call = std::make_unique<CallExpr>();
+        call->location = requeue->location;
+        call->form = CallForm::Subprogram;
+        call->subprogram = target;
+        call->callee = std::move(requeue->target);
+        for (std::size_t i = 0; i < target->parameters.size(); ++i) {
+            Symbol* formal = requeue->parameters[i];
+            if (!SemaSupport::staticallyMatches(target->parameters[i]->type, formal->type)
+                || target->parameters[i]->explicitNullExclusion != formal->explicitNullExclusion) {
+                m_diagnostics.error(requeue->location, "requeue target profile must be subtype conformant with the enclosing entry");
+            }
+            auto name = std::make_unique<IdentifierExpr>();
+            name->location = requeue->location;
+            name->name = formal->displayName;
+            name->lower = formal->name;
+            name->symbol = formal;
+            name->type = formal->type;
+            noteReference(formal);
+            call->resolvedArguments.push_back(name.get());
+            Association argument;
+            argument.value = std::move(name);
+            call->arguments.push_back(std::move(argument));
+        }
+        Expr* named = call->callee.get();
+        if (named->kind == ExprKind::Call) { named = static_cast<CallExpr*>(named)->callee.get(); }
+        if (named->kind == ExprKind::Call) {
+            m_diagnostics.error(requeue->location, "requeue has no actual parameter part");
+        }
+        Expr* object = named->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(named)->prefix.get() : nullptr;
+        bindProtectedCall(call.get(), target, object, scope, true);
+        bindTaskEntryCall(call.get(), target, scope);
+        requeue->internal = target->protectedType != nullptr && call->protectedReceiver != nullptr;
+        object = call->taskObject != nullptr ? call->taskObject : call->protectedObject;
+        if (object != nullptr) {
+            Expr* root = object;
+            int level = m_accessibilityLevel;
+            bool throughAccess = false;
+            for (;;) {
+                Type* type = baseType(root->type);
+                if (!throughAccess && type != nullptr && type->kind == TypeKind::Access) {
+                    // Explicit/implicit dereferences use the access type's
+                    // level, rather than the local access variable's level.
+                    level = type->accessLevel;
+                    throughAccess = true;
+                }
+                if (root->kind == ExprKind::Selected) { root = static_cast<SelectedExpr*>(root)->prefix.get(); }
+                else if (root->kind == ExprKind::Call && static_cast<CallExpr*>(root)->form == CallForm::Indexing) {
+                    root = static_cast<CallExpr*>(root)->callee.get();
+                } else { break; }
+            }
+            Symbol* origin = root->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(root)->symbol : nullptr;
+            bool parameter = !throughAccess && origin != nullptr
+                && std::find(requeue->parameters.begin(), requeue->parameters.end(), origin) != requeue->parameters.end();
+            if (!throughAccess && origin != nullptr) { level = origin->accessibilityLevel; }
+            if (!parameter) {
+                bool deep = source->protectedType != nullptr && level > source->accessibilityLevel;
+                for (AcceptStmt* accept : m_accepts) {
+                    if (accept->owner == m_currentSubprogram && level >= accept->accessibilityLevel) { deep = true; }
+                }
+                if (deep) { m_diagnostics.error(requeue->location, "requeue target object is too deeply nested for the enclosing entry"); }
+            }
+        }
+        requeue->call = std::move(call);
+        break;
+    }
+    case StmtKind::Abort: {
+        auto* abort = static_cast<AbortStmt*>(statement);
+        for (auto& name : abort->names) {
+            Type* task = baseType(analyzeExpr(name.get(), scope, nullptr));
+            Symbol* receiver = nullptr;
+            if (task == nullptr || task->taskScope == nullptr) {
+                m_diagnostics.error(name->location, "an abort statement requires a task object");
+            } else if (isTaskCurrentInstance(name.get(), task, scope)) {
+                for (Symbol* owner = m_currentSubprogram; owner != nullptr; owner = owner->owner) {
+                    if (owner->taskBody && owner->taskType == task) { receiver = owner->taskIdentity; noteReference(receiver); break; }
+                }
+            } else {
+                auto names = expressionNames(name.get(), scope);
+                if (names.size() == 1 && names.front()->kind == SymbolKind::TypeName) {
+                    m_diagnostics.error(name->location, "an abort statement requires a task object, not a type name");
+                }
+            }
+            abort->receivers.push_back(receiver);
+        }
+        break;
+    }
     case StmtKind::Select: {
         auto* select = static_cast<SelectStmt*>(statement);
         int accepts = 0, delays = 0, terminates = 0;
@@ -449,6 +573,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         }
         for (std::size_t i = 0; i < profile->parameters.size(); ++i) {
             Symbol* parameter = profile->parameters[i];
+            parameter->byReference = chosen->parameters[i]->byReference;
             parameter->owner = m_currentSubprogram;
             parameter->level = m_currentSubprogram->level;
             parameter->isUplevel = true;
@@ -475,11 +600,13 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         caller->isConstant = true;
         caller->isUplevel = true;
         accept->callerIdentity = caller;
+        accept->accessibilityLevel = ++m_accessibilityLevel;
         m_accepts.push_back(accept);
         declareStatementNames(accept->body, inner);
         analyzeStatements(accept->body, inner);
         analyzeHandlers(accept->handlers, inner);
         m_accepts.pop_back();
+        --m_accessibilityLevel;
         break;
     }
     case StmtKind::Pragma:

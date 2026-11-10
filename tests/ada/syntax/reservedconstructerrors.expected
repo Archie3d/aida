@@ -1,3 +1,1 @@
 reservedconstructerrors.adb:7:29: error: access-to-protected-subprogram types are not yet supported
-reservedconstructerrors.adb:14:5: error: requeue statements are not yet supported
-reservedconstructerrors.adb:15:5: error: requeue statements are not yet supported

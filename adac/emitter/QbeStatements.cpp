@@ -30,7 +30,8 @@ void QbeEmitter::emitStatements(StmtList& statements)
         m_context->sourceLocation = statement->location;
         auto checkpoint = storageCheckpoint();
         bool completionPoint = statement->kind == StmtKind::Select || statement->kind == StmtKind::Accept
-            || statement->kind == StmtKind::Delay || statement->kind == StmtKind::ProcedureCall;
+            || statement->kind == StmtKind::Delay || statement->kind == StmtKind::ProcedureCall
+            || statement->kind == StmtKind::Abort;
         // Sequences include loop iterations and handler bodies. Labeled
         // statements also poll so a backward goto cannot starve a transfer.
         if (&statement == &statements.front() || !statement->labels.empty() || completionPoint) { emitAsyncPoll(); }
@@ -47,6 +48,42 @@ void QbeEmitter::emitStatement(Stmt* statement)
 {
     ScopedCheckPolicy checks(m_suppressedChecks, statement->suppressedChecks);
     switch (statement->kind) {
+    case StmtKind::Requeue: {
+        auto* requeue = static_cast<RequeueStmt*>(statement);
+        FunctionContext::SelectCallPlan plan;
+        plan.target = requeue->call->subprogram;
+        plan.requeue = true;
+        plan.withAbort = requeue->withAbort;
+        plan.internal = requeue->internal;
+        auto* saved = m_context->selectCall;
+        m_context->selectCall = &plan;
+        emitCall(requeue->call.get());
+        m_context->selectCall = saved;
+        auto accepted = std::find_if(m_context->operations.rbegin(), m_context->operations.rend(),
+            [](const auto& operation) { return operation.asynchronous == nullptr; });
+        if (accepted != m_context->operations.rend()) { jump(accepted->returnLabel); }
+        else { emitReturn(); }
+        break;
+    }
+    case StmtKind::Abort: {
+        auto* abort = static_cast<AbortStmt*>(statement);
+        std::string targets = allocScratch(abort->names.size() * 8);
+        for (std::size_t i = 0; i < abort->names.size(); ++i) {
+            Value identity;
+            if (abort->receivers[i] != nullptr) { identity = loadFrom(addressOf(abort->receivers[i]), abort->receivers[i]->type); }
+            else {
+                Value object = emitExpr(abort->names[i].get());
+                identity = Value {newTemp(), 'l'};
+                emitCallInstruction(identity.name + " =l call $__ada_task_identity(l " + object.name + ")", CallEffects::CheckException);
+            }
+            std::string slot = newTemp();
+            line(slot + " =l add " + targets + ", " + std::to_string(i * 8));
+            line("storel " + identity.name + ", " + slot);
+        }
+        emitCallInstruction("call $__ada_abort_tasks(l %.taskContext, l " + targets + ", w "
+            + std::to_string(abort->names.size()) + ")", CallEffects::CheckException);
+        break;
+    }
     case StmtKind::Select:
         emitSelect(static_cast<SelectStmt*>(statement));
         break;

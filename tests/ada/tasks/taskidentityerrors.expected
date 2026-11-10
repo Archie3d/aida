@@ -6,4 +6,3 @@ taskidentityerrors.adb:14:33: error: task attribute requires a task object
 taskidentityerrors.adb:15:34: error: 'Caller requires the enclosing entry and no arguments
 taskidentityerrors.adb:29:46: error: task attribute requires a task object
 taskidentityerrors.adb:41:24: error: 'Caller requires the enclosing entry and no arguments
-taskidentityerrors.adb:45:5: error: 'Abort_Task' is not declared

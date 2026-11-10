@@ -44,7 +44,7 @@ bool Sema::isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope)
             && names.front()->name == type->protectedName));
 }
 
-void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope)
+void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope, bool requeue)
 {
     if (operation->protectedType == nullptr) {
         return;
@@ -69,7 +69,7 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
         }
     }
     if (object == nullptr) {
-        if (operation->entry) {
+        if (operation->entry && !requeue) {
             m_diagnostics.error(expr->location, "an entry call within a protected action is potentially blocking");
         }
         Symbol* receiver = protectedReceiver(operation->protectedType);

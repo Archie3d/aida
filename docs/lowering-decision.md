@@ -203,3 +203,21 @@ A callback retains ordinary copy-back plans until trigger completion. Default
 Initialize/Adjust callbacks and complete controlled assignments now use the
 Phase 6 deferral counter, with balanced failure edges. The delivered contract
 and validation controls are recorded in [select statements](select-statements.md).
+
+## Phase 9 requeue and source abort operation plan
+
+Retain direct QBE and extend the entry operation plan with explicit requeue,
+with-abort and internal-action flags. The plan evaluates a target once and saves
+its operand descriptor before the existing lexical exit plan finalizes source
+locals. Runtime completion publishes the new target only after cleanup succeeds.
+The shared request retains formal object references, original caller/deadline,
+cancellation state and occurrence; only its final success edge performs copy-back.
+Per-request conditions and retained protected resources decouple completion from
+the source task/object lifetime.
+
+Source abort sets synchronized task state, wakes cancellable operations and
+uses the existing internal-transfer exit path. It does not inject an ordinary
+exception into another task's context. Deferred callbacks/actions keep balanced
+regions, and the existing master/operation exits await and finalize inside-out.
+The [requeue and abort contract](requeue-abort.md) records the state transitions,
+ownership, completion points, host-call boundary and validation controls.

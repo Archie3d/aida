@@ -841,7 +841,7 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
         parameter->accessibilityLevel = symbol->accessibilityLevel + 1;
         parameter->level = symbol->level;
         parameter->isConstant = declaration.mode == ParameterMode::In;
-        parameter->byReference = declaration.mode != ParameterMode::In || isComposite(parameterTypes[i]);
+        parameter->byReference = spec.entry || declaration.mode != ParameterMode::In || isComposite(parameterTypes[i]);
         if (declaration.defaultValue) {
             if (declaration.mode != ParameterMode::In) {
                 m_diagnostics.error(declaration.location, "only an in parameter can have a default expression");

@@ -1,6 +1,7 @@
 /* Test replacement for adamaster.c: observe real generated/runtime hook
    boundaries without adding test callbacks or mutable globals to the runtime. */
 #include "../runtime/adart.h"
+#include "../runtime/adaentry.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -207,4 +208,44 @@ int64_t __ada_select_wait_deadline(int64_t deadline, enum AdaSelectClock clock)
 {
     CHECK(clock == ADA_SELECT_MONOTONIC);
     return deadline;
+}
+
+/* No entry calls occur in these master-only fixtures. The protected runtime
+   shares this ABI with task queues, so keep its unused paths explicit. */
+void __ada_entry_finish_locked(AdaEntryCall* call, const AdaException* exception)
+{
+    (void)call;
+    (void)exception;
+    CHECK(0);
+}
+
+void __ada_entry_selected_locked(AdaEntryCall* call)
+{
+    (void)call;
+    CHECK(0);
+}
+
+int __ada_entry_cancel_locked(AdaEntryCall* call)
+{
+    (void)call;
+    CHECK(0);
+    return 0;
+}
+
+void __ada_entry_complete(AdaTaskContext* context, AdaEntryCall* call, int internal)
+{
+    (void)context;
+    (void)call;
+    (void)internal;
+    CHECK(0);
+}
+
+void __ada_task_block_begin(AdaTaskContext* context)
+{
+    CHECK(context->taskSelf == NULL && context->currentEntry == NULL);
+}
+
+void __ada_task_block_end(AdaTaskContext* context)
+{
+    CHECK(context->taskSelf == NULL && context->currentEntry == NULL);
 }

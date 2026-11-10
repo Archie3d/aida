@@ -152,6 +152,7 @@ Supported:
 - Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
 - Tasks, grouped activation, entries/families, rendezvous and task identity/status
 - Selective accept, timed/conditional calls and asynchronous select ([limits](docs/select-statements.md))
+- Requeue and task abort with deferred cleanup ([contract](docs/requeue-abort.md))
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
@@ -179,7 +180,7 @@ Supported:
 
 Not supported yet:
 
-- Requeue, abort, and task/protected discriminants
+- Task/protected discriminants
 - Tagged and variant records containing task or protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts

@@ -588,7 +588,9 @@ enum class StmtKind
     Pragma,
     Accept,
     Select,
-    Terminate
+    Terminate,
+    Abort,
+    Requeue
 };
 
 struct StatementLabel
@@ -630,6 +632,31 @@ struct ExceptionHandler
     SourceLocation location;
 };
 
+struct RequeueStmt : Stmt
+{
+    RequeueStmt()
+        : Stmt(StmtKind::Requeue)
+    {
+    }
+
+    ExprPtr target;
+    std::unique_ptr<CallExpr> call;
+    std::vector<Symbol*> parameters;
+    bool withAbort = false;
+    bool internal = false;
+};
+
+struct AbortStmt : Stmt
+{
+    AbortStmt()
+        : Stmt(StmtKind::Abort)
+    {
+    }
+
+    std::vector<ExprPtr> names;
+    std::vector<Symbol*> receivers;
+};
+
 struct AcceptStmt : Stmt
 {
     AcceptStmt()
@@ -642,6 +669,7 @@ struct AcceptStmt : Stmt
     Symbol* entry = nullptr;
     Symbol* owner = nullptr;
     Symbol* callerIdentity = nullptr;
+    int accessibilityLevel = 0;
     std::vector<Symbol*> parameters;
     StmtList body;
     std::vector<ExceptionHandler> handlers;

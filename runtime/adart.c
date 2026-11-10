@@ -71,7 +71,7 @@ int __ada_task_context_dispose(AdaTaskContext* context)
     int live = context->currentTrace != NULL || context->registeredFinalizations != NULL
         || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
         || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
-        || context->protectedActions != NULL || context->abortDeferralDepth != 0 || context->asyncSelects != NULL;
+        || context->protectedActions != NULL || context->abortDeferralDepth != 0 || context->asyncSelects != NULL || context->currentEntry != NULL;
     if (environment) {
         live |= context->registeredAllocations != NULL || context->sharedFinalizations != NULL
             || context->sharedMasters != NULL || context->allocationIndex != NULL
@@ -905,6 +905,9 @@ long long __ada_round_to_integer(double value)
 
 void __ada_unhandled(const AdaException* exception)
 {
+    // An aborted environment task ends the partition; the transfer token is
+    // an implementation detail, not an unhandled Ada exception to report.
+    if (exception == &__ada_exc_async_transfer) { return; }
     AdaTaskContext* context = __ada_task_context();
     fflush(stdout);
     fprintf(stderr, "\nraised %s", exception == NULL ? "EXCEPTION" : exception->name);

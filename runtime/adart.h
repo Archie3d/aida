@@ -164,6 +164,8 @@ typedef struct AdaTaskContext
     unsigned int abortDeferralDepth;
     struct AdaAsyncSelect* asyncSelects;
     void* asyncTarget;
+    struct AdaEntryCall* currentEntry;
+    int helperContext;
     /* Only the environment context uses these shared service fields. Keep
        their initialized synchronization objects alive across context disposal. */
     AdaMutex sharedStorageMutex;

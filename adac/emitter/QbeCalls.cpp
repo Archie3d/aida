@@ -667,9 +667,20 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             }
         }
     }
+    auto* selectPlan = m_context->selectCall != nullptr && m_context->selectCall->target == subprogram
+        ? m_context->selectCall : nullptr;
     for (std::size_t i = 0; i < subprogram->parameters.size(); ++i) {
         Symbol* parameter = subprogram->parameters[i];
         Expr* argument = expr->resolvedArguments[i];
+        if (selectPlan != nullptr && selectPlan->requeue && parameter->byReference && isScalar(parameter->type)) {
+            Value address = emitAddress(argument);
+            arguments.push_back("l " + address.name);
+            if (parameter->type->accessParameter) {
+                Value value = loadFrom(address, argument->type);
+                arguments.push_back("w " + value.accessLevel);
+            }
+            continue;
+        }
         if (parameter->byReference) {
             if (isScalar(parameter->type)) {
                 // A private formal can retain the pointer ABI after its full
@@ -678,8 +689,15 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                     Value value = emitExpr(argument);
                     emitRangeCheck(value, parameter->type, argument->location);
                     Value temporary { allocScratch(std::max(1LL, typeSize(parameter->type)), typeAlignment(parameter->type)), 'l' };
+                    // Entry actuals belong to the whole call, including all
+                    // requeues; an allocator must not die with its first body.
+                    if (subprogram->entry && parameter->type->accessParameter && argument->kind == ExprKind::Allocator) {
+                        emitCallInstruction("call $__ada_access_parameter_adopt(l " + m_context->temporaryFinalizationChain
+                            + ", l " + storageArena(true, true) + ", l " + value.name + ")", CallEffects::CheckException);
+                    }
                     storeInto(temporary, value, parameter->type);
                     arguments.push_back("l " + temporary.name);
+                    if (parameter->type->accessParameter) { arguments.push_back("w " + value.accessLevel); }
                     continue;
                 }
                 // Keep the pointer ABI, but give each formal a distinct object.
@@ -700,7 +718,8 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                 continue;
             }
             // Composite values are already addresses and carry their bounds.
-            Value value = !controllingValues[i].name.empty() ? controllingValues[i]
+            Value value = selectPlan != nullptr && selectPlan->requeue ? emitExpr(argument)
+                : !controllingValues[i].name.empty() ? controllingValues[i]
                 : argument->type->kind == TypeKind::Array ? emitArrayArgument(argument, parameter->mode, arrayCopies)
                 : isComposite(argument->type) ? emitExpr(argument) : emitAddress(argument);
             if (parameter->type->kind == TypeKind::Array
@@ -717,7 +736,9 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             }
             bool constrainedParameter = needsConstrainedParameter(parameter);
             std::string constrained = constrainedParameter ? recordConstrained(argument, &value).name : "1";
-            value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies, constrained);
+            if (selectPlan == nullptr || !selectPlan->requeue) {
+                value = adaptCompositeStorage(value, argument->type, parameter->type, parameter->mode, storageCopies, constrained);
+            }
             arguments.push_back("l " + value.name);
             if (constrainedParameter) { arguments.push_back("w " + constrained); }
             if (isUnconstrainedArray(parameter->type)) {
@@ -785,13 +806,21 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         argumentList += arguments[i];
     }
 
-    auto* selectPlan = m_context->selectCall != nullptr && m_context->selectCall->target == subprogram
-        ? m_context->selectCall : nullptr;
     AdaSelectClock selectClock = ADA_SELECT_MONOTONIC;
     Value selectDeadline = selectPlan != nullptr ? emitSelectDeadline(selectPlan->delay, selectClock) : Value {"0", 'l'};
     std::string selectCancelled = selectPlan != nullptr ? newLabel("callcancelled") : "";
     std::string selectReturned = selectPlan != nullptr ? newLabel("callreturned") : "";
-    if (selectPlan != nullptr && selectPlan->asynchronous) {
+    auto copyEntryBack = [this, copyBacks, storageCopies, arrayCopies]() mutable {
+        for (const ScalarCopyBack& copy : copyBacks) {
+            Value value = loadFrom(copy.temporary, copy.formalType);
+            emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
+            storeInto(copy.actual, value, copy.argument->type);
+        }
+        emitStorageCopyBacks(storageCopies);
+        emitArrayCopyBacks(arrayCopies);
+    };
+    if ((selectPlan != nullptr && (selectPlan->asynchronous || selectPlan->requeue))
+        || (subprogram->entry && subprogram->protectedType != nullptr)) {
         std::string packet = allocScratch(std::max<std::size_t>(8, arguments.size() * 8));
         for (std::size_t i = 0; i < arguments.size(); ++i) {
             char type = arguments[i][0];
@@ -799,12 +828,21 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             line(slot + " =l add " + packet + ", " + std::to_string(i * 8));
             line(std::string("store") + type + " " + arguments[i].substr(2) + ", " + slot);
         }
-        selectPlan->handle = newTemp();
+        bool requeue = selectPlan != nullptr && selectPlan->requeue;
+        bool asynchronous = selectPlan != nullptr && selectPlan->asynchronous;
+        std::string result = newTemp();
         if (subprogram->taskType != nullptr) {
-            emitCallInstruction(selectPlan->handle + " =l call $__ada_async_start_task(l %.taskContext, l " + taskIdentity.name
-                + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name + ", l " + packet + ")", CallEffects::CheckException);
+            if (requeue) {
+                emitCallInstruction("call $__ada_requeue_task(l %.taskContext, l " + taskIdentity.name
+                    + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name
+                    + ", l " + packet + ", l " + std::to_string(arguments.size() * 8)
+                    + ", w " + (selectPlan->withAbort ? "1" : "0") + ")", CallEffects::CheckException);
+            } else {
+                emitCallInstruction(result + " =l call $__ada_async_start_task(l %.taskContext, l " + taskIdentity.name
+                    + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name + ", l " + packet + ")", CallEffects::CheckException);
+            }
         } else {
-            std::string thunk = "$." + m_unitTag + ".async." + std::to_string(m_dataCounter++);
+            std::string thunk = "$." + m_unitTag + ".entry." + std::to_string(m_dataCounter++);
             std::ostringstream body;
             body << "function " << thunk << "(l %packet) {\n@start\n";
             std::string actuals;
@@ -818,18 +856,34 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             body << "    call " << callee << "(" << actuals << ")\n    ret\n}\n";
             m_functions.push_back(body.str());
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
-            emitCallInstruction(selectPlan->handle + " =l call $__ada_async_start_protected(l %.taskContext, l " + protectedObject.name
-                + ", l " + subprogram->qbeName + ".barrier, l " + link + ", l " + thunk + ", l " + packet + ")", CallEffects::CheckException);
-        }
-        selectPlan->copyBack = [this, copyBacks, storageCopies, arrayCopies]() mutable {
-            for (const ScalarCopyBack& copy : copyBacks) {
-                Value value = loadFrom(copy.temporary, copy.formalType);
-                emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
-                storeInto(copy.actual, value, copy.argument->type);
+            std::string operands = "l %.taskContext, l " + protectedObject.name
+                + ", l " + subprogram->qbeName + ".barrier, l " + link + ", l " + thunk + ", l " + packet;
+            if (requeue) {
+                emitCallInstruction("call $__ada_requeue_protected(" + operands
+                    + ", l " + std::to_string(arguments.size() * 8) + ", w " + (selectPlan->withAbort ? "1" : "0")
+                    + ", w " + (selectPlan->internal ? "1" : "0") + ")", CallEffects::CheckException);
+            } else if (asynchronous) {
+                emitCallInstruction(result + " =l call $__ada_async_start_protected(" + operands + ")", CallEffects::CheckException);
+            } else {
+                emitCallInstruction(result + " =w call $__ada_protected_entry_call(" + operands
+                    + ", l " + selectDeadline.name + ", w " + std::to_string(selectClock)
+                    + ", w " + std::to_string(selectPlan != nullptr ? selectPlan->mode : ADA_ENTRY_WAIT)
+                    + ")", CallEffects::CheckException);
             }
-            emitStorageCopyBacks(storageCopies);
-            emitArrayCopyBacks(arrayCopies);
-        };
+        }
+        if (requeue) { return Value {"0", 'w'}; }
+        if (asynchronous) {
+            selectPlan->handle = result;
+            selectPlan->copyBack = copyEntryBack;
+            return Value {"0", 'w'};
+        }
+        if (selectPlan != nullptr) { selectPlan->selected = result; }
+        std::string committed = newLabel("entrycommitted"), done = newLabel("entryreturned");
+        branch(Value {result, 'w'}, committed, done);
+        label(committed);
+        copyEntryBack();
+        jump(done);
+        label(done);
         return Value {"0", 'w'};
     }
     std::string protectedAction;

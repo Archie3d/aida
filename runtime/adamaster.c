@@ -4,6 +4,7 @@
 #include "adatime.h"
 #include "adacalendar.h"
 #include "adaprotected.h"
+#include "adaentry.h"
 #include <errno.h>
 #include <stddef.h>
 
@@ -41,19 +42,7 @@ static unsigned int masterActivities(AdaMaster* master)
     return master != NULL ? atomic_load_explicit(&master->activities, memory_order_acquire) : 0;
 }
 
-typedef struct AdaRendezvous
-{
-    struct AdaRendezvous* next;
-    struct AdaRendezvous* previousAccept;
-    void* caller;
-    void* arguments;
-    int entry;
-    int64_t index;
-    int done;
-    int selected;
-    int alternative;
-    AdaExceptionOccurrence exception;
-} AdaRendezvous;
+typedef AdaEntryCall AdaRendezvous;
 
 typedef struct AdaTaskState
 {
@@ -82,6 +71,9 @@ typedef struct AdaTaskState
     int activated;
     int activationFailed;
     int joined;
+    int blocked;
+    AdaRendezvous* blockedCall;
+    AdaEntryCall* outgoing;
     atomic_int abortRequested;
     atomic_int completed;
     atomic_int terminated;
@@ -102,6 +94,7 @@ typedef struct AdaMasterState
 } AdaMasterState;
 
 static void checkTerminateCohorts(void);
+static void freeEntryCall(AdaEntryCall* call);
 
 enum AdaAsyncKind
 {
@@ -156,7 +149,8 @@ int __ada_task_is_callable(void* identity)
         __ada_raise(ADA_PROGRAM_ERROR);
         return 0;
     }
-    return !atomic_load(&((AdaTaskState*)identity)->completed);
+    AdaTaskState* task = identity;
+    return !atomic_load(&task->completed) && !atomic_load(&task->abortRequested);
 }
 
 int __ada_task_is_terminated(void* identity)
@@ -171,9 +165,11 @@ int __ada_task_is_terminated(void* identity)
 static void completeTaskLocked(AdaTaskState* task)
 {
     atomic_store(&task->completed, 1);
-    for (AdaRendezvous* call = task->calls; call != NULL; call = call->next) {
-        call->exception.identity = ADA_TASKING_ERROR;
-        call->done = 1;
+    for (AdaRendezvous* call = task->calls; call != NULL;) {
+        AdaRendezvous* next = call->next;
+        call->next = NULL;
+        __ada_entry_finish_locked(call, ADA_TASKING_ERROR);
+        call = next;
     }
     task->calls = NULL;
     __ada_condition_broadcast(&task->entryChanged);
@@ -239,15 +235,32 @@ void* __ada_async_start_delay(AdaTaskContext* context, int64_t deadline, enum Ad
     return operation;
 }
 
-int __ada_async_run(void* operation)
+int __ada_async_run(void* pointer)
 {
-    return !((AdaAsyncSelect*)operation)->immediate;
+    AdaAsyncSelect* operation = pointer;
+    if (!operation->immediate) { return 1; }
+    if (operation->kind == kAsyncDelay) { return 0; }
+    AdaEntryCall* call = operation->request;
+    AdaTaskContext* context = __ada_task_context();
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    // Immediate selection skips the part only if the call is never requeued
+    // with abort. Wait for completion or that first cancellable handoff.
+    while (!call->done && !call->requeuedWithAbort) {
+        __ada_condition_wait_until(&call->changed, &__ada_main_context.sharedMasterMutex,
+            __ada_real_clock() + INT64_C(10000000));
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_async_poll(context);
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        if (context->exception != NULL) { call->cancelRequested = 1; }
+    }
+    int run = !call->done;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    return run;
 }
 
 static int asyncCompleted(AdaAsyncSelect* operation)
 {
     if (operation->kind == kAsyncDelay) { return expired(operation->deadline, operation->clock); }
-    if (operation->kind == kAsyncProtected) { return __ada_protected_async_done(operation->request); }
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     int done = ((AdaRendezvous*)operation->request)->done;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
@@ -256,8 +269,8 @@ static int asyncCompleted(AdaAsyncSelect* operation)
 
 int __ada_async_ready(AdaTaskContext* context)
 {
-    if (context->taskSelf != NULL && context->abortDeferralDepth == 0
-        && atomic_load(&context->taskSelf->abortRequested)) { return 1; }
+    if (context->abortDeferralDepth == 0
+        && atomic_load(&(context->taskSelf != NULL ? context->taskSelf : &environmentTask)->abortRequested)) { return 1; }
     for (AdaAsyncSelect* operation = context->asyncSelects; operation != NULL; operation = operation->previous) {
         if (context->abortDeferralDepth <= operation->deferralDepth && asyncCompleted(operation)) { return 1; }
     }
@@ -267,8 +280,8 @@ int __ada_async_ready(AdaTaskContext* context)
 void __ada_async_poll(AdaTaskContext* context)
 {
     if (context->exception != NULL) { return; }
-    if (context->taskSelf != NULL && context->abortDeferralDepth == 0
-        && atomic_load(&context->taskSelf->abortRequested)) {
+    if (context->abortDeferralDepth == 0
+        && atomic_load(&(context->taskSelf != NULL ? context->taskSelf : &environmentTask)->abortRequested)) {
         context->asyncTarget = NULL;
         __ada_raise(&__ada_exc_async_transfer);
         return;
@@ -304,27 +317,16 @@ int __ada_async_leave(AdaTaskContext* context, void* pointer)
         context->exception = NULL;
         context->asyncTarget = NULL;
     }
-    if (operation->kind == kAsyncTask) {
-        AdaTaskState* server = operation->server;
-        AdaRendezvous* call = operation->request;
-        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-        if (!call->selected && !call->done) {
-            AdaRendezvous** slot = &server->calls;
-            while (*slot != NULL && *slot != call) { slot = &(*slot)->next; }
-            if (*slot != NULL) { *slot = call->next; }
-            selected = 0;
-        } else {
-            selected = 1;
-            while (!call->done) { __ada_condition_wait(&server->entryChanged, &__ada_main_context.sharedMasterMutex); }
-        }
-        --server->activeCalls;
-        __ada_condition_broadcast(&server->entryChanged);
-        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (operation->kind != kAsyncDelay) {
+        AdaEntryCall* call = operation->request;
+        __ada_entry_cancel_request(call);
+        __ada_thread_join(call->worker, NULL);
+        selected = !call->cancelled;
         if (context->exception == NULL && call->exception.identity != NULL) { __ada_reraise(&call->exception); }
-        __ada_occurrence_release(&call->exception);
-        free(call);
-    } else if (operation->kind == kAsyncProtected) {
-        selected = __ada_protected_async_finish(context, operation->request);
+        call->workerContext.taskSelf = NULL;
+        call->workerContext.currentMaster = NULL;
+        __ada_task_context_dispose(&call->workerContext);
+        freeEntryCall(call);
     }
     free(operation);
     return selected;
@@ -342,7 +344,7 @@ static int matchingAlternative(AdaTaskState* task, AdaRendezvous* call)
 
 static void commitRequest(AdaTaskState* task, AdaRendezvous* call, int alternative)
 {
-    call->selected = 1;
+    __ada_entry_selected_locked(call);
     call->alternative = alternative;
     task->selected = call;
     task->choices = NULL;
@@ -358,119 +360,412 @@ static void unlinkRequest(AdaTaskState* task, AdaRendezvous* call)
     if (*slot != NULL) { *slot = call->next; call->next = NULL; }
 }
 
-static AdaRendezvous* startTaskRequest(AdaTaskContext* context, void* identity, int entry,
-    int64_t index, void* arguments)
+static void releaseTaskCallLocked(AdaEntryCall* call)
 {
-    if (identity == NULL || context->protectedActions != NULL) {
-        __ada_raise(ADA_PROGRAM_ERROR);
+    if (call->kind == ADA_ENTRY_TASK && call->registered) {
+        AdaTaskState* task = call->task;
+        --task->activeCalls;
+        call->registered = 0;
+        __ada_condition_broadcast(&task->entryChanged);
+    }
+}
+
+void __ada_entry_finish_locked(AdaEntryCall* call, const AdaException* exception)
+{
+    releaseTaskCallLocked(call);
+    if (exception != NULL) { call->exception.identity = exception; }
+    call->done = 1;
+    __ada_condition_broadcast(&call->changed);
+}
+
+void __ada_entry_selected_locked(AdaEntryCall* call)
+{
+    call->selected = 1;
+    __ada_condition_broadcast(&call->changed);
+}
+
+int __ada_entry_cancel_locked(AdaEntryCall* call)
+{
+    if (call->done || call->selected || !call->abortable) { return 0; }
+    if (call->kind == ADA_ENTRY_TASK && call->registered) { unlinkRequest(call->task, call); }
+    call->cancelled = 1;
+    __ada_entry_finish_locked(call, NULL);
+    return 1;
+}
+
+void __ada_entry_cancel_request(AdaEntryCall* call)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    call->cancelRequested = 1;
+    __ada_condition_broadcast(&call->changed);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+static AdaEntryCall* newEntryCall(AdaTaskContext* context, void* arguments,
+    int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode)
+{
+    if (context->protectedActions != NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    AdaEntryCall* call = calloc(1, sizeof *call);
+    if (call == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
+    if (__ada_condition_init(&call->changed) != 0) {
+        free(call);
+        __ada_raise(ADA_STORAGE_ERROR);
         return NULL;
     }
-    AdaTaskState* task = identity;
-    AdaRendezvous* call = calloc(1, sizeof *call);
-    if (call == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
-    call->entry = entry;
-    call->index = index;
-    call->caller = __ada_current_task();
     call->arguments = arguments;
+    call->caller = __ada_current_task();
+    call->abortable = 1;
+    call->deadline = deadline;
+    call->clock = clock;
+    call->mode = mode;
     __ada_occurrence_initialize(&call->exception);
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-    if (atomic_load(&task->completed)) {
-        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
-        free(call);
-        __ada_raise(ADA_TASKING_ERROR);
-        return NULL;
-    }
-    ++task->activeCalls;
-    int alternative = matchingAlternative(task, call);
-    if (alternative >= 0) {
-        commitRequest(task, call, alternative);
-    } else {
-        AdaRendezvous** tail = &task->calls;
-        while (*tail != NULL) { tail = &(*tail)->next; }
-        *tail = call;
-    }
+    AdaTaskState* caller = call->caller;
+    call->callerTask = caller;
+    call->callerNext = caller->outgoing;
+    caller->outgoing = call;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     return call;
 }
 
-void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments)
+static void freeEntryCall(AdaEntryCall* call)
 {
-    if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
-    AdaAsyncSelect* operation = calloc(1, sizeof *operation);
-    if (operation == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
-    AdaRendezvous* call = startTaskRequest(context, identity, entry, index, arguments);
-    if (call == NULL) { free(operation); return NULL; }
-    operation->kind = kAsyncTask;
-    operation->server = identity;
-    operation->request = call;
-    operation->deferralDepth = context->abortDeferralDepth;
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-    operation->immediate = call->selected || call->done;
+    AdaTaskState* caller = call->callerTask;
+    AdaEntryCall** slot = &caller->outgoing;
+    while (*slot != NULL && *slot != call) { slot = &(*slot)->callerNext; }
+    if (*slot == call) { *slot = call->callerNext; }
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
-    operation->previous = context->asyncSelects;
-    context->asyncSelects = operation;
-    return operation;
+    if (call->redirect != NULL) {
+        __ada_protected_target_release(call->redirect->protectedLock, call->redirect->protectedLock != NULL);
+        free(call->redirect->arguments);
+        free(call->redirect);
+    }
+    __ada_protected_target_release(call->protectedLock, call->protectedPending);
+    __ada_occurrence_release(&call->exception);
+    __ada_condition_destroy(&call->changed);
+    free(call->ownedArguments);
+    free(call);
 }
 
-void* __ada_async_start_protected(AdaTaskContext* context, void** object,
-    int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments)
+static void enqueueTaskCallLocked(AdaEntryCall* call)
 {
-    if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
-    AdaAsyncSelect* operation = calloc(1, sizeof *operation);
-    if (operation == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
-    operation->request = __ada_protected_async_start(context, object, barrier, link, body, arguments, &operation->immediate);
-    if (operation->request == NULL) { free(operation); return NULL; }
-    operation->kind = kAsyncProtected;
-    operation->deferralDepth = context->abortDeferralDepth;
-    operation->previous = context->asyncSelects;
-    context->asyncSelects = operation;
-    return operation;
+    AdaTaskState* task = call->task;
+    if (task == NULL) { __ada_entry_finish_locked(call, ADA_PROGRAM_ERROR); return; }
+    if (atomic_load(&task->completed) || atomic_load(&task->abortRequested)) {
+        __ada_entry_finish_locked(call, ADA_TASKING_ERROR);
+        return;
+    }
+    call->registered = 1;
+    ++task->activeCalls;
+    int alternative = matchingAlternative(task, call);
+    if (alternative >= 0) { commitRequest(task, call, alternative); }
+    else {
+        AdaEntryCall** tail = &task->calls;
+        while (*tail != NULL) { tail = &(*tail)->next; }
+        *tail = call;
+        __ada_condition_broadcast(&task->entryChanged);
+    }
+}
+
+static void entryBlockLocked(AdaTaskContext* context, AdaEntryCall* call)
+{
+    if (context->taskSelf != NULL && !context->helperContext && context->abortDeferralDepth == 0) {
+        context->taskSelf->blocked = 1;
+        context->taskSelf->blockedCall = call;
+    }
+}
+
+static void entryUnblockLocked(AdaTaskContext* context)
+{
+    if (context->taskSelf != NULL && !context->helperContext) {
+        context->taskSelf->blocked = 0;
+        context->taskSelf->blockedCall = NULL;
+        __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    }
+}
+
+static int waitEntryCall(AdaTaskContext* context, AdaEntryCall* call)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    while (!call->published) { __ada_condition_wait(&call->changed, &__ada_main_context.sharedMasterMutex); }
+    while (!call->done) {
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        __ada_async_poll(context);
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        if (context->exception != NULL) {
+            call->cancelRequested = 1;
+            // A selected call owns live formal objects. Remember cancellation
+            // for a later requeue-with-abort, but leave delivery until safe.
+            if (context->exception == &__ada_exc_async_transfer) {
+                context->exception = NULL;
+                context->asyncTarget = NULL;
+            }
+        }
+        if (call->done) { break; }
+        if (call->kind == ADA_ENTRY_PROTECTED && !call->registered) {
+            if (call->cancelRequested && call->abortable) {
+                __ada_entry_cancel_locked(call);
+                continue;
+            }
+            entryUnblockLocked(context);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            __ada_protected_request_enqueue(context, call, 0);
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            continue;
+        }
+        int cancel = call->cancelRequested || call->mode == ADA_ENTRY_CONDITIONAL
+            || (call->mode == ADA_ENTRY_TIMED && expired(call->deadline, call->clock));
+        if (cancel && call->abortable && !call->selected) {
+            if (call->kind == ADA_ENTRY_PROTECTED) {
+                entryUnblockLocked(context);
+                __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+                __ada_protected_request_cancel(call);
+                __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            } else { __ada_entry_cancel_locked(call); }
+            continue;
+        }
+        if (call->kind == ADA_ENTRY_PROTECTED && call->selected && !call->executing) {
+            call->executing = 1;
+            entryUnblockLocked(context);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            __ada_protected_request_execute(context, call);
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            continue;
+        }
+        entryBlockLocked(context, call);
+        int64_t until = __ada_real_clock() + INT64_C(10000000);
+        if (call->mode == ADA_ENTRY_TIMED && call->abortable && !call->selected) {
+            int64_t deadline = __ada_select_wait_deadline(call->deadline, call->clock);
+            if (until > deadline) { until = deadline; }
+        }
+        __ada_condition_wait_until(&call->changed, &__ada_main_context.sharedMasterMutex, until);
+    }
+    entryUnblockLocked(context);
+    int selected = !call->cancelled;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (call->cancelled) { __ada_async_poll(context); }
+    if (context->exception == NULL && call->exception.identity != NULL) { __ada_reraise(&call->exception); }
+    return selected;
 }
 
 int __ada_task_entry_call_until(AdaTaskContext* context, void* identity, int entry,
     int64_t index, void* arguments, int64_t deadline, enum AdaSelectClock clock,
     enum AdaEntryCallMode mode)
 {
-    AdaRendezvous* call = startTaskRequest(context, identity, entry, index, arguments);
+    AdaEntryCall* call = newEntryCall(context, arguments, deadline, clock, mode);
     if (call == NULL) { return 0; }
-    AdaTaskState* task = identity;
+    call->kind = ADA_ENTRY_TASK;
+    call->task = identity;
+    call->entry = entry;
+    call->index = index;
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-    int success = 1;
-    while (!call->done) {
-        if (!call->selected) {
-            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
-            __ada_async_poll(context);
-            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
-            if (!call->selected && context->exception != NULL) {
-                unlinkRequest(task, call);
-                success = 0;
-                break;
-            }
-            // Commitment wins a cancellation race; finish the rendezvous first.
-            if (call->selected && context->exception == &__ada_exc_async_transfer) { context->exception = NULL; }
-        }
-        if (!call->selected && (mode == ADA_ENTRY_CONDITIONAL
-            || (mode == ADA_ENTRY_TIMED && expired(deadline, clock)))) {
-            unlinkRequest(task, call);
-            success = 0;
-            break;
-        }
-        if (!call->selected && mode == ADA_ENTRY_TIMED) {
-            int64_t until = __ada_select_wait_deadline(deadline, clock);
-            int64_t poll = __ada_real_clock() + 10000000;
-            if (until > poll) { until = poll; }
-            __ada_condition_wait_until(&task->entryChanged, &__ada_main_context.sharedMasterMutex, until);
-        } else {
-            __ada_condition_wait_until(&task->entryChanged, &__ada_main_context.sharedMasterMutex, __ada_real_clock() + 10000000);
-        }
-    }
-    --task->activeCalls;
-    __ada_condition_broadcast(&task->entryChanged);
+    enqueueTaskCallLocked(call);
+    call->published = 1;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
-    if (call->exception.identity != NULL) { __ada_reraise(&call->exception); }
-    __ada_occurrence_release(&call->exception);
-    free(call);
-    return success;
+    int selected = waitEntryCall(context, call);
+    freeEntryCall(call);
+    return selected;
+}
+
+int __ada_protected_entry_call(AdaTaskContext* context, void** object,
+    AdaProtectedBarrier barrier, void* link, void (*body)(void*), void* arguments,
+    int64_t deadline, enum AdaSelectClock clock, enum AdaEntryCallMode mode)
+{
+    AdaEntryCall* call = newEntryCall(context, arguments, deadline, clock, mode);
+    if (call == NULL) { return 0; }
+    call->kind = ADA_ENTRY_PROTECTED;
+    call->object = object;
+    call->protectedLock = __ada_protected_target_retain(object);
+    call->protectedPending = call->protectedLock != NULL;
+    if (call->protectedLock == NULL) { freeEntryCall(call); return 0; }
+    call->barrier = barrier;
+    call->link = link;
+    call->body = body;
+    __ada_protected_request_enqueue(context, call, 0);
+    call->published = 1;
+    int selected = waitEntryCall(context, call);
+    freeEntryCall(call);
+    return selected;
+}
+
+static void* runAsyncCall(void* argument)
+{
+    AdaEntryCall* call = argument;
+    __ada_task_context_bind(&call->workerContext);
+    waitEntryCall(&call->workerContext, call);
+    return NULL;
+}
+
+static void* startAsyncCall(AdaTaskContext* context, AdaEntryCall* call)
+{
+    AdaAsyncSelect* operation = calloc(1, sizeof *operation);
+    if (operation == NULL) { freeEntryCall(call); __ada_raise(ADA_STORAGE_ERROR); return NULL; }
+    call->workerContext.helperContext = 1;
+    call->workerContext.taskSelf = context->taskSelf;
+    call->workerContext.currentMaster = context->currentMaster;
+    call->workerContext.accessibilityParentLevel = context->accessibilityParentLevel;
+    if (__ada_thread_create(&call->worker, runAsyncCall, call) != 0) {
+        free(operation);
+        freeEntryCall(call);
+        __ada_raise(ADA_STORAGE_ERROR);
+        return NULL;
+    }
+    if (call->kind == ADA_ENTRY_PROTECTED) { __ada_protected_request_enqueue(context, call, 0); }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    if (call->kind == ADA_ENTRY_TASK) { enqueueTaskCallLocked(call); }
+    call->published = 1;
+    operation->immediate = call->selected || call->done;
+    __ada_condition_broadcast(&call->changed);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (context->exception != NULL) {
+        __ada_thread_join(call->worker, NULL);
+        call->workerContext.taskSelf = NULL;
+        call->workerContext.currentMaster = NULL;
+        __ada_task_context_dispose(&call->workerContext);
+        freeEntryCall(call);
+        free(operation);
+        return NULL;
+    }
+    operation->kind = kAsyncTask;
+    operation->request = call;
+    operation->previous = context->asyncSelects;
+    context->asyncSelects = operation;
+    return operation;
+}
+
+void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments)
+{
+    if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    AdaEntryCall* call = newEntryCall(context, arguments, 0, ADA_SELECT_MONOTONIC, ADA_ENTRY_WAIT);
+    if (call == NULL) { return NULL; }
+    call->kind = ADA_ENTRY_TASK;
+    call->task = identity;
+    call->entry = entry;
+    call->index = index;
+    return startAsyncCall(context, call);
+}
+
+void* __ada_async_start_protected(AdaTaskContext* context, void** object,
+    int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments)
+{
+    if (context->abortDeferralDepth != 0) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    AdaEntryCall* call = newEntryCall(context, arguments, 0, ADA_SELECT_MONOTONIC, ADA_ENTRY_WAIT);
+    if (call == NULL) { return NULL; }
+    call->kind = ADA_ENTRY_PROTECTED;
+    call->object = object;
+    call->protectedLock = __ada_protected_target_retain(object);
+    call->protectedPending = call->protectedLock != NULL;
+    if (call->protectedLock == NULL) { freeEntryCall(call); return NULL; }
+    call->barrier = barrier;
+    call->link = link;
+    call->body = body;
+    return startAsyncCall(context, call);
+}
+
+static AdaEntryRedirect* prepareRedirect(AdaTaskContext* context, const void* arguments,
+    int64_t bytes, int withAbort)
+{
+    if (context->currentEntry == NULL || context->currentEntry->redirect != NULL || bytes < 0) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return NULL;
+    }
+    AdaEntryRedirect* redirect = calloc(1, sizeof *redirect);
+    if (redirect == NULL) { __ada_raise(ADA_STORAGE_ERROR); return NULL; }
+    redirect->arguments = malloc(bytes == 0 ? 1 : (size_t)bytes);
+    if (redirect->arguments == NULL) { free(redirect); __ada_raise(ADA_STORAGE_ERROR); return NULL; }
+    if (bytes != 0) { memcpy(redirect->arguments, arguments, (size_t)bytes); }
+    redirect->withAbort = withAbort;
+    context->currentEntry->redirect = redirect;
+    return redirect;
+}
+
+void __ada_requeue_task(AdaTaskContext* context, void* identity, int entry, int64_t index,
+    const void* arguments, int64_t bytes, int withAbort)
+{
+    AdaEntryRedirect* redirect = prepareRedirect(context, arguments, bytes, withAbort);
+    if (redirect == NULL) { return; }
+    redirect->kind = ADA_ENTRY_TASK;
+    redirect->task = identity;
+    redirect->entry = entry;
+    redirect->index = index;
+}
+
+void __ada_requeue_protected(AdaTaskContext* context, void** object,
+    AdaProtectedBarrier barrier, void* link, void (*body)(void*), const void* arguments,
+    int64_t bytes, int withAbort, int internal)
+{
+    AdaEntryRedirect* redirect = prepareRedirect(context, arguments, bytes, withAbort);
+    if (redirect == NULL) { return; }
+    redirect->kind = ADA_ENTRY_PROTECTED;
+    redirect->object = object;
+    redirect->protectedLock = __ada_protected_target_retain(object);
+    if (redirect->protectedLock == NULL) {
+        context->currentEntry->redirect = NULL;
+        free(redirect->arguments);
+        free(redirect);
+        return;
+    }
+    redirect->barrier = barrier;
+    redirect->link = link;
+    redirect->body = body;
+    redirect->internal = internal;
+}
+
+void __ada_entry_complete(AdaTaskContext* context, AdaEntryCall* call, int internal)
+{
+    AdaEntryRedirect* redirect = call->redirect;
+    if (context->exception != NULL && redirect != NULL) {
+        __ada_protected_target_release(redirect->protectedLock, redirect->protectedLock != NULL);
+        free(redirect->arguments);
+        free(redirect);
+        redirect = NULL;
+        call->redirect = NULL;
+    }
+    if (context->exception != NULL) {
+        const AdaException* identity = context->exception == &__ada_exc_async_transfer
+            ? ADA_TASKING_ERROR : context->exception;
+        __ada_occurrence_restore(&call->exception, identity, context->pendingMessage, context->pendingMessageLength);
+        if (call->exception.identity == NULL) { call->exception.identity = ADA_STORAGE_ERROR; }
+        call->exception.origin = context->pendingOrigin;
+        call->exception.traceCount = context->pendingTraceCount;
+        memcpy(call->exception.trace, context->pendingTrace, (size_t)context->pendingTraceCount * sizeof *context->pendingTrace);
+    }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    if (redirect == NULL) {
+        __ada_entry_finish_locked(call, NULL);
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+        return;
+    }
+    releaseTaskCallLocked(call);
+    call->next = NULL;
+    call->selected = 0;
+    call->executing = 0;
+    call->registered = 0;
+    call->abortable = redirect->withAbort;
+    call->requeuedWithAbort |= redirect->withAbort;
+    free(call->ownedArguments);
+    call->ownedArguments = redirect->arguments;
+    call->arguments = redirect->arguments;
+    call->kind = redirect->kind;
+    call->task = redirect->task;
+    call->entry = redirect->entry;
+    call->index = redirect->index;
+    __ada_protected_target_release_locked(call->protectedLock, call->protectedPending);
+    call->object = redirect->object;
+    call->protectedLock = redirect->protectedLock;
+    call->protectedPending = call->protectedLock != NULL;
+    call->barrier = redirect->barrier;
+    call->link = redirect->link;
+    call->body = redirect->body;
+    int sameObject = internal && redirect->internal;
+    call->redirect = NULL;
+    free(redirect);
+    if (call->cancelRequested && call->abortable) { __ada_entry_cancel_locked(call); }
+    else if (call->kind == ADA_ENTRY_TASK) { enqueueTaskCallLocked(call); }
+    __ada_condition_broadcast(&call->changed);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (sameObject && !call->done) { __ada_protected_request_enqueue(context, call, 1); }
 }
 
 void __ada_task_entry_call(AdaTaskContext* context, void* identity, int entry,
@@ -490,6 +785,7 @@ int __ada_task_select(AdaTaskContext* context, const AdaSelectChoice* choices,
     }
     *request = NULL;
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    task->blocked = 1;
     task->selected = NULL;
     task->terminateSelected = 0;
     task->choices = choices;
@@ -509,6 +805,8 @@ int __ada_task_select(AdaTaskContext* context, const AdaSelectChoice* choices,
             task->selected = NULL;
             call->previousAccept = task->accepted;
             task->accepted = call;
+            call->previousContextEntry = context->currentEntry;
+            context->currentEntry = call;
             result = call->alternative;
             *request = call;
             break;
@@ -549,6 +847,8 @@ int __ada_task_select(AdaTaskContext* context, const AdaSelectChoice* choices,
     task->choices = NULL;
     task->choiceCount = 0;
     task->waitingTerminate = 0;
+    task->blocked = 0;
+    __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     return result;
 }
@@ -569,23 +869,12 @@ void* __ada_task_entry_arguments(void* request)
 void __ada_task_entry_complete(AdaTaskContext* context, void* request)
 {
     AdaTaskState* task = context->taskSelf;
-    AdaRendezvous* call = request;
-    if (context->exception != NULL) {
-        const AdaException* identity = context->exception == &__ada_exc_async_transfer
-            ? ADA_TASKING_ERROR : context->exception;
-        __ada_occurrence_restore(&call->exception, identity,
-            context->pendingMessage, context->pendingMessageLength);
-        if (call->exception.identity == NULL) { call->exception.identity = ADA_STORAGE_ERROR; }
-        call->exception.origin = context->pendingOrigin;
-        call->exception.traceCount = context->pendingTraceCount;
-        memcpy(call->exception.trace, context->pendingTrace,
-            (size_t)context->pendingTraceCount * sizeof *context->pendingTrace);
-    }
+    AdaEntryCall* call = request;
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     task->accepted = call->previousAccept;
-    call->done = 1;
-    __ada_condition_broadcast(&task->entryChanged);
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    context->currentEntry = call->previousContextEntry;
+    __ada_entry_complete(context, call, 0);
 }
 
 void* __ada_task_entry_caller(AdaTaskContext* context)
@@ -640,6 +929,88 @@ static int taskDependsOn(AdaTaskState* task, AdaMaster* master)
     return 0;
 }
 
+static void requestAbortLocked(AdaTaskState* task)
+{
+    if (atomic_load(&task->completed)) { return; }
+    atomic_store(&task->abortRequested, 1);
+    for (AdaEntryCall* call = task->outgoing; call != NULL; call = call->callerNext) {
+        call->cancelRequested = 1;
+        __ada_condition_broadcast(&call->changed);
+    }
+    for (AdaRendezvous* call = task->calls; call != NULL;) {
+        AdaRendezvous* next = call->next;
+        call->next = NULL;
+        __ada_entry_finish_locked(call, ADA_TASKING_ERROR);
+        call = next;
+    }
+    task->calls = NULL;
+    __ada_condition_broadcast(&task->entryChanged);
+}
+
+static int taskDescendsFrom(AdaTaskState* task, AdaTaskState* parent)
+{
+    while (task != NULL) {
+        if (task == parent) { return 1; }
+        AdaMasterState* owner = findMaster(task->master);
+        if (owner != NULL && owner->ownerTask == NULL && parent == &environmentTask) { return 1; }
+        task = owner != NULL ? owner->ownerTask : NULL;
+    }
+    return 0;
+}
+
+void __ada_task_block_begin(AdaTaskContext* context)
+{
+    if (context->taskSelf == NULL || context->helperContext || context->abortDeferralDepth != 0) { return; }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    context->taskSelf->blocked = 1;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+void __ada_task_block_end(AdaTaskContext* context)
+{
+    if (context->taskSelf == NULL || context->helperContext) { return; }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    context->taskSelf->blocked = 0;
+    context->taskSelf->blockedCall = NULL;
+    __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+void __ada_abort_tasks(AdaTaskContext* context, void** identities, int count)
+{
+    if (context->protectedActions != NULL) { __ada_raise(ADA_PROGRAM_ERROR); return; }
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    for (int i = 0; i < count; ++i) {
+        AdaTaskState* root = identities[i];
+        if (root == NULL) { continue; }
+        if (atomic_load(&root->completed)) { continue; }
+        requestAbortLocked(root);
+        for (AdaMasterState* state = __ada_main_context.sharedMasters; state != NULL; state = state->registeredNext) {
+            for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
+                if (taskDescendsFrom(task, root)) { requestAbortLocked(task); }
+            }
+        }
+    }
+    // A source abort waits for cancellation of a blocked, cancellable
+    // operation, but never for a running or abort-deferred action to finish.
+    for (int i = 0; i < count; ++i) {
+        AdaTaskState* task = identities[i];
+        if (task == NULL || task == context->taskSelf) { continue; }
+        while (task->blocked && !atomic_load(&task->terminated)
+            && !(task->blockedCall != NULL && (task->blockedCall->selected || !task->blockedCall->abortable))) {
+            __ada_condition_wait(&__ada_main_context.sharedMasterChanged, &__ada_main_context.sharedMasterMutex);
+        }
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+void __ada_abort_task(void* identity)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return; }
+    __ada_abort_tasks(__ada_task_context(), &identity, 1);
+    __ada_async_poll(__ada_task_context());
+}
+
 void __ada_master_abort(AdaTaskContext* context, AdaMaster* master)
 {
     (void)context;
@@ -647,8 +1018,7 @@ void __ada_master_abort(AdaTaskContext* context, AdaMaster* master)
     for (AdaMasterState* state = __ada_main_context.sharedMasters; state != NULL; state = state->registeredNext) {
         for (AdaTaskState* task = state->tasks; task != NULL; task = task->next) {
             if (taskDependsOn(task, master) && !atomic_load(&task->terminated)) {
-                atomic_store(&task->abortRequested, 1);
-                __ada_condition_broadcast(&task->entryChanged);
+                requestAbortLocked(task);
             }
         }
     }
@@ -806,7 +1176,7 @@ void __ada_task_activation_failed(AdaTaskContext* context)
     __ada_mutex_lock(&task->mutex);
     if (!task->activated) {
         atomic_store(&task->completed, 1);
-        task->activationFailed = 1;
+        task->activationFailed = !atomic_load(&task->abortRequested);
         task->activated = 1;
         __ada_condition_broadcast(&task->condition);
     }
@@ -818,7 +1188,8 @@ static void* executeTask(void* argument)
     AdaTaskState* task = argument;
     task->context.taskSelf = task;
     __ada_task_context_bind(&task->context);
-    task->body(task->link);
+    __ada_async_poll(&task->context);
+    if (task->context.exception == NULL) { task->body(task->link); }
     __ada_task_complete(&task->context);
     __ada_task_activation_failed(&task->context);
     // An exception escaping the handled sequence completes only this task.
@@ -827,6 +1198,7 @@ static void* executeTask(void* argument)
     __ada_task_context_dispose(&task->context);
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
     atomic_store(&task->terminated, 1);
+    task->blocked = 0;
     __ada_condition_broadcast(&task->entryChanged);
     checkTerminateCohorts();
     __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
@@ -1001,7 +1373,7 @@ static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* grou
             while (!task->activated) {
                 __ada_condition_wait(&task->condition, &task->mutex);
             }
-            failed |= task->activationFailed;
+            failed |= task->activationFailed && !atomic_load(&task->abortRequested);
             __ada_mutex_unlock(&task->mutex);
         }
     }

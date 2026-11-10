@@ -470,3 +470,14 @@ helper tasks now execute real selective rendezvous. These passes do not cover
 entry callable renaming, concurrent interfaces, requeue or source abort. The
 snapshot now records 115 C passes, three C compilation rejections, one C runtime
 failure and 26 ungraded B rejections; B conformance grades are unchanged.
+
+## Phase 9 requeue/abort audit
+
+A complete 145-case observation retains 115 executable C passes, three legal C
+rejections, one C runtime failure and 26 raw ungraded B rejections. The stale
+C432005/B650002/B650004 snapshots now reflect entry/accept parsing from the
+preceding milestone: C432005 reaches the existing concurrent-component layout
+limits, and both B tests reach return-legality checks. The independent B grader
+is unchanged at 17 PASS and nine FAIL; neither return test is promoted. No
+upstream source or grading policy was changed, and these results are not general
+requeue/abort coverage. Local source/native controls supply that evidence.

@@ -38,7 +38,8 @@ cancellation updates Count and reconsiders eligible barriers.
 ## Asynchronous transfer
 
 A trigger is registered before its abortable part starts. An already expired
-delay or an immediately selected entry skips that part. Otherwise, entry
+delay skips that part. An immediately selected entry skips it unless a
+requeue with abort makes the call cancellable again. Otherwise, entry
 completion or delay expiry requests an internal transfer which Ada handlers,
 including `when others`, cannot catch. Nested selects unwind in order.
 
@@ -59,7 +60,7 @@ eligible. Accepted callers wait for rendezvous completion rather
 than abandoning a live packet. An asynchronous select inside an accept body is
 supported; an accept inside its own task's abortable part is illegal.
 
-Asynchronous protected triggers register the queue node synchronously. A joined
+Asynchronous entry triggers register the queue node synchronously. A joined
 helper thread executes a selected entry with a private task context, the caller's
 logical identity and borrowed enclosing master. This allows the abortable part
 to run while the trigger is queued. Queue nodes, packets and borrowed masters
@@ -74,8 +75,7 @@ Guards, profiles, enclosing task ownership, alternative combinations, time
 forms, non-entry calls and misplaced accepts/terminate receive diagnostics.
 Entry renamings, generic entry callable actuals, concurrent interfaces and
 protected entry families retain their later Phase 9 owners. Requeue and source
-abort statements remain the next milestone. Internal dependent-task cancellation
-is used only to complete an interrupted abortable part.
+abort extend these operations through the [shared request contract](requeue-abort.md).
 
 `selectguards`, `selectcalls`, `asyncselect`, `asynccleanup` and `selectdeferral` cover normal,
 whole/per-unit and deterministic builds. They exercise guarded evaluation,

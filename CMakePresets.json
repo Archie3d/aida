@@ -22,12 +22,12 @@
         {
             "name": "asan-ubsan", "configurePreset": "asan-ubsan", "output": {"outputOnFailure": true},
             "execution": {"jobs": 2},
-            "filter": {"include": {"name": "^(robustness\\.|error\\.|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|tasking_lifecycle|task_entry_lifecycle|select_lifecycle|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
+            "filter": {"include": {"name": "^(robustness\\.|error\\.|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|tasking_lifecycle|task_entry_lifecycle|select_lifecycle|requeue_lifecycle|task_abort_lifecycle|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
         },
         {
             "name": "tsan", "configurePreset": "tsan", "output": {"outputOnFailure": true},
             "execution": {"jobs": 2},
-            "filter": {"include": {"name": "^(robustness\\.(sanitized_tasking|ir_instrumentation|process_protocol)|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|tasking_lifecycle|task_entry_lifecycle|select_lifecycle|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
+            "filter": {"include": {"name": "^(robustness\\.(sanitized_tasking|ir_instrumentation|process_protocol)|runtime\\.(task_context|array_storage|shared_tables|blocking_io|threading|tasking|tasking_lifecycle|task_entry_lifecycle|select_lifecycle|requeue_lifecycle|task_abort_lifecycle|protected_lifecycle|entry_lifecycle|time_lifecycle|abort_deferral|shared_collections)$)"}}
         }
     ]
 }

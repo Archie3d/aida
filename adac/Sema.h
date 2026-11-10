@@ -74,7 +74,8 @@ private:
     Symbol* protectedReceiver(Type* type);
     bool isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope);
     bool isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope);
-    void bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope);
+    void bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope, bool requeue = false);
+    void bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);

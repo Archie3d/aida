@@ -125,8 +125,26 @@ StmtPtr Parser::parseStatement()
         return parseSelectStatement();
     case TokenKind::KwTerminate:
         fail("a terminate alternative is allowed only in a selective accept");
-    case TokenKind::KwRequeue:
-        fail("requeue statements are not yet supported");
+    case TokenKind::KwAbort: {
+        advance();
+        auto statement = std::make_unique<AbortStmt>();
+        statement->location = location;
+        do { statement->names.push_back(parsePrimary()); } while (match(TokenKind::Comma));
+        expect(TokenKind::Semicolon, "after abort statement");
+        return statement;
+    }
+    case TokenKind::KwRequeue: {
+        advance();
+        auto statement = std::make_unique<RequeueStmt>();
+        statement->location = location;
+        statement->target = parsePrimary();
+        if (match(TokenKind::KwWith)) {
+            expect(TokenKind::KwAbort, "after requeue with");
+            statement->withAbort = true;
+        }
+        expect(TokenKind::Semicolon, "after requeue statement");
+        return statement;
+    }
     case TokenKind::KwDelay: {
         advance();
         auto statement = std::make_unique<DelayStmt>();
