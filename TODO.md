@@ -5,9 +5,9 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 9 task services are implemented for the documented
-surface, including priorities, task stack storage, task attributes and suspension
-objects. Continue with selected `Ada.Task_Termination` support.
+**Current focus:** Phase 9 is complete for the documented tasking and selected
+Annex surface. Continue with the Phase 10 diagnostics audit. Further Annex work
+has separately scoped goals and acceptance tests.
 Further profiling remains deferred.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
@@ -142,11 +142,13 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 - [x] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
   `Ada.Synchronous_Task_Control`.
   [Contract, native scheduling limits and validation](docs/task-services.md).
-- [ ] Selected Systems Programming Annex support: Ada 2005 task termination
-  notification (`Ada.Task_Termination`). Define separate goals and tests for
-  selected Real-Time Systems Annex facilities
-  such as execution-time clocks, timers, timing events and Ravenscar restrictions;
-  do not infer annex or profile compliance from the minimal tasking subset.
+- [x] Selected Systems Programming Annex support: Ada 2005 task termination
+  notification (`Ada.Task_Termination`).
+  [Contract, environment boundary and validation](docs/task-termination.md).
+  [Separate goals and tests](docs/selected-annex-followups.md) cover further
+  Systems Programming and Real-Time Systems Annex facilities, including
+  execution-time clocks, timers, timing events and Ravenscar restrictions;
+  tasking support does not imply annex or profile compliance.
 
 ### Phase 10 - Diagnostics quality follow-up
 

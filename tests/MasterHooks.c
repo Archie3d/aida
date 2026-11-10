@@ -267,3 +267,8 @@ void __ada_priority_leave(int saved)
 {
     CHECK(saved == 0);
 }
+
+void __ada_environment_task_termination(void)
+{
+    // These master-only programs install no termination handlers.
+}

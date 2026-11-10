@@ -660,6 +660,10 @@
     "tests/cxd/cxd1001.a": {
       "sha256": "49bc00d75717dec159e34078d2ce1a5c6a886072f76306606d40215536574e7f",
       "git_blob": "e44f584af3263d536b765a4badf652cdb1d1cc30"
+    },
+    "tests/cxc/cxc7006.a": {
+      "sha256": "0f5328813f42d3f53128040bbfcad89288ff877b9f3eaaf3d58a1f8b51a6c157",
+      "git_blob": "4c1d0dc5204388807f0dc85e06d0f3ae0548b1a9"
     }
   },
   "cases": [
@@ -3777,6 +3781,27 @@
         "note": "Selected before probing. Execute complete unchanged source and strict REPORT protocol; retain unsupported interrupt/scheduling objectives as failures."
       },
       "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxc7006",
+      "class": "C",
+      "area": "task_termination",
+      "owner": "P9 task termination",
+      "rm": "C.7.3, 7.6",
+      "objective": "Specific/fallback handler selection, normal/abort/exception causes, task-local finalization and activation failures.",
+      "sources": [
+        "tests/cxc/cxc7006.a"
+      ],
+      "report_name": "CXC7006",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 task termination",
+        "note": "Selected before probing; run complete unchanged source with strict REPORT protocol. Its sequential test groups intentionally delay for over six seconds; this case has a bounded 15-second execution deadline."
+      },
+      "language_review": "Ada 2005 Task_Termination and task/finalization syntax. The 2012 edit applies AI05-0202 binding interpretation to finalization exceptions; no Ada 2012 syntax or aspect is used.",
+      "run_timeout": 15
     }
   ],
   "excluded_candidates": [

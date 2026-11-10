@@ -124,15 +124,15 @@ memory operations participate in the same race detector. Atomic operations
 remain runtime atomics; the adapter does not turn them into ordinary accesses.
 The pass does not add artificial Ada synchronization.
 
-`robustness.sanitized_tasking` runs 38 programs in whole and separate
+`robustness.sanitized_tasking` runs 42 programs in whole and separate
 compilation: task lifecycle/finalization, protected entries, shared scalars, time,
-identity, rendezvous, select, requeue/abort, concurrent discriminants, callable views, interface implementations and task services. Clean cases require exact expected output, empty stderr and success.
+identity, rendezvous, select, requeue/abort, concurrent discriminants, callable views, interface implementations, task services and termination notification. Clean cases require exact expected output, empty stderr and success.
 With TSan it additionally runs a deliberate Ada-to-Ada write race in both modes.
 Two independent C barriers bracket generated Ada writes. Relaxed atomic turn
 flags select their physical order without a happens-before edge between them;
 neither task can publish completion until both writes have occurred. Both modes
 must produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
-the control. ASan/UBSan runs 76 clean executions; TSan runs 78 executions.
+the control. ASan/UBSan runs 84 clean executions; TSan runs 86 executions.
 `coverage.json` records case/mode and instrumented-access counts; `run.json`
 retains each execution's result. There are no race suppressions. The negative
 control disables external symbolization and abort-on-error to keep the required
@@ -200,3 +200,11 @@ selections pass 325/325 ASan/UBSan checks and 20/20 TSan checks. Native task-ser
 controls include shared locking, finalizers that close other instances, pending
 exceptions, failed finalizers, stack rounding and suspension publication.
 [Contract](task-services.md).
+
+The task-termination increment adds four fixtures for handlers, activation and
+collection ownership, plus native concurrent registration/notification controls.
+The final selections pass 326/326 ASan/UBSan and 21/21 TSan checks. There are now
+42 clean fixtures / 84 executions and 86 TSan executions including both deliberate
+races. The final semantic controls also run under both sanitized compilers.
+The full regular selection passes 2,112 checks; final activation-order review is
+covered by another 342 tasking checks. [Contract](task-termination.md).

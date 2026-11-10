@@ -5,11 +5,11 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "3a7badb791144e7f821758000c61a366bada0bfccd73bbc8586755400a63202f",
+  "compiler_sha256": "61a01ecb834acf34e81891514b21dadb32d06bc75846d66cd5d0f1e44b420edd",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 5,
-    "PASS": 128,
+    "PASS": 129,
     "RUN_FAILED": 1
   },
   "cases": {
@@ -1357,6 +1357,15 @@
       "compile_stderr": "",
       "run_exit": 0,
       "run_stdout": "TEST CXD1001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "cxc7006": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST CXC7006\nPASSED\n",
       "run_stderr": "",
       "outcome": "PASS"
     }

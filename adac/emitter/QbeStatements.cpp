@@ -579,14 +579,18 @@ void QbeEmitter::emitStatement(Stmt* statement)
         emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook, MasterEffects::ScopeHook);
         m_context->blockMasters.push_back({ master, checkpoint });
         emitLocalDeclarations(block->declarations);
-        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + master + ")", CallEffects::CheckedRuntimeHook, MasterEffects::ScopeHook);
+        auto activate = [&]() {
+            emitCallInstruction("call $__ada_master_activate(l %.taskContext, l " + master + ")", CallEffects::CheckedRuntimeHook, MasterEffects::ScopeHook);
+        };
         if (block->handlers.empty()) {
+            activate();
             emitStatements(block->body);
         } else {
             std::string dispatch = newLabel("handler");
             std::string after = newLabel("handled");
             m_context->handlerStorage[dispatch] = storageCheckpoint();
             pushHandler(dispatch);
+            activate();
             emitStatements(block->body);
             m_context->handlerLabels.pop_back();
             jump(after);

@@ -572,6 +572,12 @@
       "status": "resolves"
     },
     {
+      "name": "ada.task_termination",
+      "source": "runtime/ada/ada/task_termination.ads",
+      "scope": "annex_subset",
+      "status": "resolves"
+    },
+    {
       "name": "ada.text_io",
       "source": "runtime/ada/ada/text_io.ads",
       "scope": "core_or_compatibility",

@@ -495,20 +495,25 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         label(ready);
     }
     emitLocalDeclarations(body->declarations);
-    if (context.hasMaster) {
-        emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);
-    }
-
-    if (body->taskBody) {
-        emitCallInstruction("call $__ada_task_activated(l %.taskContext)", CallEffects::DeferredCheck);
-    }
+    auto activate = [&]() {
+        // A task's activation ends with its declarations. Activating its own
+        // dependents belongs to its handled sequence (RM 9.2(1,3)).
+        if (body->taskBody) {
+            emitCallInstruction("call $__ada_task_activated(l %.taskContext)", CallEffects::DeferredCheck);
+        }
+        if (context.hasMaster) {
+            emitCallInstruction("call $__ada_master_activate(l %.taskContext, l %.master)", CallEffects::CheckedRuntimeHook);
+        }
+    };
     if (body->handlers.empty()) {
+        activate();
         emitStatements(body->body);
     } else {
         std::string dispatch = newLabel("handler");
         std::string after = newLabel("handled");
         context.handlerStorage[dispatch] = storageCheckpoint();
         pushHandler(dispatch);
+        activate();
         emitStatements(body->body);
         context.handlerLabels.pop_back();
         jump(after);

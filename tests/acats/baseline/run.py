@@ -34,6 +34,8 @@ def validate(manifest, expected=None):
         raise ValueError("duplicate case identity")
     used = set()
     for case in manifest["cases"]:
+        if "run_timeout" in case and (not isinstance(case["run_timeout"], (int, float)) or not 0 < case["run_timeout"] <= 60):
+            raise ValueError("per-case execution deadline must be positive and at most 60 seconds")
         if case["class"] not in {"B", "C"} or not case["objective"]:
             raise ValueError(f"invalid case metadata: {case['id']}")
         for source in case["sources"]:
@@ -180,7 +182,7 @@ def observeCase(case, args):
                 "COMPILE_REJECTED" if re.search(r"\.(?:a|ada|am|ads|adb):\d+:\d+: error:", compiled["stderr"], re.I)
                 else "BUILD_FAILED")
         else:
-            executed = runCommand([str(program)], args.run_timeout)
+            executed = runCommand([str(program)], case.get("run_timeout", args.run_timeout))
             observed.update(run_exit=executed["exit"],
                             run_stdout=normalize(executed["stdout"], directory),
                             run_stderr=normalize(executed["stderr"], directory))
@@ -201,7 +203,8 @@ def main():
     parser.add_argument("--work", type=Path)
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--compile-timeout", type=float, default=30)
-    parser.add_argument("--run-timeout", type=float, default=5)
+    parser.add_argument("--run-timeout", type=float, default=5,
+                        help="default execution deadline; explicit bounded per-case deadlines override this")
     parser.add_argument("--case", action="append", default=[])
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument("--record", action="store_true", help="replace the reviewed observation snapshot")

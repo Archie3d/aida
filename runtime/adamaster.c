@@ -6,6 +6,7 @@
 #include "adaprotected.h"
 #include "adaentry.h"
 #include "adataskservices.h"
+#include "adatermination.h"
 #include <errno.h>
 #include <stddef.h>
 
@@ -63,6 +64,12 @@ typedef struct AdaTaskState
     int activationPriority;
     int64_t storageSize;
     int stackSpecified;
+    const AdaTerminationHandler* specificHandler;
+    const AdaTerminationHandler* fallbackHandler;
+    AdaTerminationHandler specificCallback;
+    AdaTerminationHandler fallbackCallback;
+    int terminationNotified;
+    int bodyStarted;
     AdaMutex mutex;
     AdaCondition condition;
     AdaCondition entryChanged;
@@ -105,6 +112,7 @@ typedef struct AdaMasterState
 
 static void checkTerminateCohorts(void);
 static void freeEntryCall(AdaEntryCall* call);
+static void notifyTermination(AdaTaskState* task);
 
 enum AdaAsyncKind
 {
@@ -136,6 +144,50 @@ void* __ada_current_task(void)
     return context->taskSelf != NULL ? context->taskSelf : &environmentTask;
 }
 
+void __ada_set_dependents_handler(const void* handler)
+{
+    AdaTaskState* task = __ada_current_task();
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    task->fallbackHandler = handler;
+    task->fallbackCallback = handler != NULL ? *(const AdaTerminationHandler*)handler : (AdaTerminationHandler) {0};
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+}
+
+const void* __ada_current_fallback_handler(void)
+{
+    AdaTaskState* task = __ada_current_task();
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    const void* handler = task->fallbackHandler;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    return handler;
+}
+
+void __ada_set_specific_handler(void* identity, const void* handler)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return; }
+    AdaTaskState* task = identity;
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    int terminated = atomic_load(&task->terminated);
+    if (!terminated) {
+        task->specificHandler = handler;
+        task->specificCallback = handler != NULL ? *(const AdaTerminationHandler*)handler : (AdaTerminationHandler) {0};
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (terminated) { __ada_raise(ADA_TASKING_ERROR); }
+}
+
+const void* __ada_specific_handler(void* identity)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    AdaTaskState* task = identity;
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    int terminated = atomic_load(&task->terminated);
+    const void* handler = terminated ? NULL : task->specificHandler;
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (terminated) { __ada_raise(ADA_TASKING_ERROR); }
+    return handler;
+}
+
 int __ada_get_priority(void* identity)
 {
     if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return 0; }
@@ -163,7 +215,8 @@ void __ada_set_priority(int priority, void* identity)
     if (!atomic_load(&task->terminated)) {
         AdaTaskContext* context = task == &environmentTask ? &__ada_main_context : &task->context;
         int floor = atomic_load(&context->inheritedPriority) - 1;
-        if (!task->priorityReady && task == __ada_current_task()) {
+        if (!task->priorityReady && task == __ada_current_task()
+            && (task == &environmentTask || task->bodyStarted)) {
             task->priorityThread = __ada_priority_thread_self();
             task->priorityReady = 1;
         }
@@ -1045,6 +1098,11 @@ int __ada_task_entry_count(void* identity, int entry, int64_t index)
     return count;
 }
 
+void __ada_environment_task_termination(void)
+{
+    notifyTermination(&environmentTask);
+}
+
 void __ada_environment_task_state(int completed, int terminated)
 {
     if (!completed && !terminated) {
@@ -1053,6 +1111,13 @@ void __ada_environment_task_state(int completed, int terminated)
         environmentTask.priorityReady = 1;
         atomic_store(&environmentTask.basePriority, kAdaDefaultPriority);
         __ada_mutex_unlock(&environmentTask.mutex);
+        __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+        environmentTask.specificHandler = NULL;
+        environmentTask.fallbackHandler = NULL;
+        environmentTask.specificCallback = (AdaTerminationHandler) {0};
+        environmentTask.fallbackCallback = (AdaTerminationHandler) {0};
+        environmentTask.terminationNotified = 0;
+        __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     }
     atomic_store(&environmentTask.completed, completed);
     atomic_store(&environmentTask.terminated, terminated);
@@ -1237,6 +1302,7 @@ typedef struct AdaAccessLevel
     AdaMaster* master;
     int id;
     int parent;
+    AdaTaskState* ownerTask;
 } AdaAccessLevel;
 
 /* Called with the shared master mutex held. IDs are never reused, and records
@@ -1254,7 +1320,7 @@ static int accessLevelForMaster(AdaMaster* master)
     AdaAccessLevel* entry = malloc(sizeof *entry);
     if (entry == NULL) { __ada_raise(ADA_STORAGE_ERROR); return 0; }
     *entry = (AdaAccessLevel) {__ada_main_context.sharedAccessLevels, master,
-        (int)++__ada_main_context.nextAccessLevel, parent};
+        (int)++__ada_main_context.nextAccessLevel, parent, __ada_task_context()->taskSelf};
     __ada_main_context.sharedAccessLevels = entry;
     atomic_fetch_or_explicit(&master->activities, kMasterAccessLevel, memory_order_release);
     return entry->id;
@@ -1344,12 +1410,113 @@ void __ada_task_activation_failed(AdaTaskContext* context)
     __ada_mutex_unlock(&task->mutex);
 }
 
+/* The registry lock stabilizes parent/master lifetimes and handler selection.
+   Never retain it while taking a protected resource or executing Ada. */
+static AdaTaskState* terminationParent(AdaTaskState* task)
+{
+    AdaMasterState* state = findMaster(task->master);
+    while (state != NULL && state->collection) {
+        if (state->parent == &__ada_main_context.libraryMaster) { return &environmentTask; }
+        AdaMasterState* parent = findMaster(state->parent);
+        if (parent == NULL) {
+            // Empty lexical masters need no registry entry. Reparented access
+            // collections still retain their owner's accessibility identity.
+            for (AdaAccessLevel* level = __ada_main_context.sharedAccessLevels; level != NULL; level = level->next) {
+                if (level->master == state->parent) {
+                    return level->ownerTask != NULL ? level->ownerTask : &environmentTask;
+                }
+            }
+            return state->ownerTask != NULL ? state->ownerTask : &environmentTask;
+        }
+        state = parent;
+    }
+    return state != NULL && state->ownerTask != NULL ? state->ownerTask : &environmentTask;
+}
+
+static void notifyTermination(AdaTaskState* task)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+    if (task->terminationNotified) { __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex); return; }
+    task->terminationNotified = 1;
+    AdaTerminationHandler handler = task->specificCallback;
+    for (AdaTaskState* parent = task; handler.code == NULL && parent != &environmentTask;) {
+        parent = terminationParent(parent);
+        handler = parent->fallbackCallback;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (handler.code == NULL) { return; }
+
+    AdaTaskContext* context = task == &environmentTask ? __ada_task_context() : &task->context;
+    AdaTaskContext* caller = __ada_task_context();
+    int borrowed = context != caller;
+    int callerPriority = activePriority(__ada_current_task(), caller);
+    int savedFloor = atomic_load(&context->inheritedPriority);
+    if (borrowed && callerPriority + 1 > savedFloor) { atomic_store(&context->inheritedPriority, callerPriority + 1); }
+    AdaTaskContext* previous = __ada_task_context_bind(context);
+    struct AdaTaskState* savedSelf = context->taskSelf;
+    context->taskSelf = task;
+    const AdaException* savedException = context->exception;
+    char* savedMessage = context->pendingMessage;
+    int savedLength = context->pendingMessageLength;
+    const char* savedOrigin = context->pendingOrigin;
+    int savedCount = context->pendingTraceCount;
+    AdaTraceEntry savedTrace[ADA_TRACE_CAPACITY];
+    memcpy(savedTrace, context->pendingTrace, (size_t)savedCount * sizeof *savedTrace);
+    enum AdaTerminationCause cause = savedException == &__ada_exc_async_transfer || (!task->bodyStarted && task != &environmentTask)
+        ? kTerminationAbnormal : savedException != NULL ? kTerminationUnhandledException : kTerminationNormal;
+    AdaExceptionOccurrence occurrence = {0};
+    if (cause == kTerminationUnhandledException) {
+        occurrence.identity = savedException;
+        occurrence.message = savedMessage;
+        occurrence.length = savedLength;
+        occurrence.origin = savedOrigin;
+        occurrence.traceCount = savedCount;
+        memcpy(occurrence.trace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
+    }
+    context->exception = NULL;
+    context->pendingMessage = NULL;
+    context->pendingMessageLength = 0;
+    __ada_abort_defer(context);
+    AdaProtectedAction action;
+    __ada_protected_enter(context, handler.object, &action);
+    if (context->exception == NULL) {
+        if (handler.link == NULL) {
+            ((void (*)(void*, enum AdaTerminationCause, void*, const AdaExceptionOccurrence*))handler.code)
+                (handler.object, cause, task, &occurrence);
+        } else {
+            ((void (*)(void*, void*, enum AdaTerminationCause, void*, const AdaExceptionOccurrence*))handler.code)
+                (handler.link, handler.object, cause, task, &occurrence);
+        }
+        __ada_protected_complete(context, &action);
+    }
+    // Handler exceptions do not change the task's termination or its caller.
+    free(context->pendingMessage);
+    context->exception = savedException;
+    context->pendingMessage = savedMessage;
+    context->pendingMessageLength = savedLength;
+    context->pendingOrigin = savedOrigin;
+    context->pendingTraceCount = savedCount;
+    memcpy(context->pendingTrace, savedTrace, (size_t)savedCount * sizeof *savedTrace);
+    __ada_abort_undefer(context);
+    context->taskSelf = savedSelf;
+    __ada_task_context_bind(previous);
+    atomic_store(&context->inheritedPriority, savedFloor);
+    if (borrowed) {
+        // A handler may legitimately change its caller's base priority.
+        int priority = activePriority(__ada_current_task(), caller);
+        if (context->priorityApplied && context->appliedPriority != priority) {
+            __ada_thread_set_priority(__ada_priority_thread_self(), priority);
+        }
+    }
+}
+
 static void* executeTask(void* argument)
 {
     AdaTaskState* task = argument;
     task->context.taskSelf = task;
     __ada_task_context_bind(&task->context);
     __ada_mutex_lock(&task->mutex);
+    task->bodyStarted = 1;
     task->priorityThread = __ada_priority_thread_self();
     task->priorityReady = 1;
     atomic_store(&task->context.inheritedPriority, task->activationPriority + 1);
@@ -1363,6 +1530,7 @@ static void* executeTask(void* argument)
     if (task->context.exception == NULL) { task->body(task->link); }
     __ada_task_complete(&task->context);
     __ada_task_activation_failed(&task->context);
+    notifyTermination(task);
     // An exception escaping the handled sequence completes only this task.
     // Generated cleanup has already awaited its dependents and finalized locals.
     __ada_mutex_lock(&task->mutex);
@@ -1555,6 +1723,7 @@ static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* grou
             task->started = 1;
         } else {
             completeTask(task);
+            notifyTermination(task);
             atomic_store(&task->terminated, 1);
             __ada_task_attributes_terminated(task);
             task->joined = 1;
@@ -1608,6 +1777,7 @@ static void awaitTask(AdaTaskState* task)
     }
     // An unactivated task terminates without running after declaration failure.
     completeTask(task);
+    notifyTermination(task);
     atomic_store(&task->terminated, 1);
     __ada_task_attributes_terminated(task);
 }

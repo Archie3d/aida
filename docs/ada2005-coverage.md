@@ -313,3 +313,13 @@ explicit; full Annex C/D compliance is unclaimed. Whole/separate/determinism,
 legality and native lifetime tests accompany the generated-access sanitizer
 campaign. The selected upstream increment retains unchanged source and REPORT
 protocol, including the failures recorded in the ACATS baseline.
+
+## Task termination notification (Phase 9)
+
+The [termination contract](task-termination.md) supplies the Ada 2005 package,
+specific/fallback selection, causes/occurrences and protected callback execution
+after task-local finalization. Activation failure now reaches the activator's
+own handled sequence. Whole/separate/determinism, concurrent native controls,
+sanitizers and unchanged CXC7006 accompany the increment. The environment handler
+runs before library objects are finalized; complete Annex C environment semantics
+and other Specialized Needs Annex work have [separate goals and tests](selected-annex-followups.md).

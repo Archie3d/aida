@@ -78,7 +78,8 @@ begin
             Observe (aliasObject);
         end;
     end loop;
-    -- Task activation failure is outside the block's handled statements.
+    -- Activation failure is raised in the activator's handled sequence.
+    -- The child's declaration failure still bypasses the child's own handlers.
     begin
         declare
             task Broken;
@@ -92,11 +93,10 @@ begin
         begin
             raise Program_Error;
         exception
-            when Tasking_Error => raise Program_Error;
+            when Tasking_Error => null;
         end;
-        raise Program_Error;
     exception
-        when Tasking_Error => null;
+        when Tasking_Error => raise Program_Error;
     end;
     -- An exception escaping the statements completes only the failing task.
     declare

@@ -107,6 +107,10 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
 /* Task_Id values remain valid while the corresponding task object exists.
    Queries synchronize with completion and termination without joining tasks. */
 void* __ada_current_task(void);
+void __ada_set_dependents_handler(const void* handler);
+const void* __ada_current_fallback_handler(void);
+void __ada_set_specific_handler(void* identity, const void* handler);
+const void* __ada_specific_handler(void* identity);
 int __ada_get_priority(void* identity);
 void __ada_set_priority(int priority, void* identity);
 void __ada_main_priority(int priority);
@@ -121,6 +125,7 @@ const char* __ada_task_image(void* identity);
 int __ada_task_is_callable(void* identity);
 int __ada_task_is_terminated(void* identity);
 void __ada_task_complete(AdaTaskContext* context);
+void __ada_environment_task_termination(void);
 void __ada_environment_task_state(int completed, int terminated);
 
 #endif

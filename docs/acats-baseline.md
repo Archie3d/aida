@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — refreshed 2026-11-10
 
-This backfill adds **160 unchanged upstream cases**: 134 C-tests and 26 B-test
+This backfill adds **161 unchanged upstream cases**: 135 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -13,7 +13,7 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 26 |
 | Legal C-test rejected | 5 |
 | Support/harness blocked | 0 |
-| Executable PASS | 128 |
+| Executable PASS | 129 |
 | Executable failure | 1 |
 
 No crashes or timeouts were observed. Five legal C-tests are rejected and
@@ -527,3 +527,18 @@ validate. The previous 154 outcome classifications remain unchanged; the new
 selection has 128 executable passes, five legal-source rejections, one executable
 failure and 26 ungraded B rejections. The independent B policy remains unchanged.
 [Task-services contract](task-services.md).
+
+## Task-termination increment (Phase 9)
+
+Unchanged CXC7006 was selected before probing. Its first five-second execution
+observation timed out because the source's sequential delay groups exceed six
+seconds. A bounded 15-second per-case deadline exposed an escaping Tasking_Error
+in Test_6: activation occurred before the activator installed its handlers.
+Moving activation into the handled sequence fixes that defect. The full source
+now passes normal, abnormal, unhandled, fallback/specific, local-finalization and
+activation-failure tests with the strict REPORT protocol. No source or grading
+rule was changed. Its AI05-0202 check is an Ada 2005 binding interpretation.
+
+The selection now has 161 cases and 165 hash-verified sources, with 129 executable
+passes, five compile rejections, one runtime failure and 26 ungraded B rejections.
+Earlier sections retain historical counts. [Contract](task-termination.md).
