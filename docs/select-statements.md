@@ -73,8 +73,9 @@ and real-time scheduling guarantees are not claimed.
 
 Guards, profiles, enclosing task ownership, alternative combinations, time
 forms, non-entry calls and misplaced accepts/terminate receive diagnostics.
-Entry renamings, generic entry callable actuals, concurrent interfaces and
-protected entry families retain their later Phase 9 owners. Requeue and source
+Statically bound entry renamings and generic callable actuals use the
+[concurrent-view contract](concurrent-callable-views.md). Concurrent interfaces
+and protected entry families remain open. Requeue and source
 abort extend these operations through the [shared request contract](requeue-abort.md).
 
 `selectguards`, `selectcalls`, `asyncselect`, `asynccleanup` and `selectdeferral` cover normal,

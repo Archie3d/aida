@@ -411,8 +411,37 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             renamed.indirect = true;
             renamed.subprogram = binding->type->accessProfile;
         }
-        return emitCall(&renamed, inheritedControllingType);
+        std::unique_ptr<IdentifierExpr> object;
+        if (subprogram->boundConcurrentObject != nullptr) {
+            Symbol* binding = subprogram->boundConcurrentObject;
+            object = std::make_unique<IdentifierExpr>();
+            object->symbol = binding;
+            object->type = binding->type;
+            object->location = expr->location;
+            if (subprogram->boundTaskIdentity) { renamed.taskReceiver = binding; }
+            else if (subprogram->boundProtectedReceiver) { renamed.protectedReceiver = binding; }
+            else if (renamed.subprogram->taskType != nullptr) { renamed.taskObject = object.get(); }
+            else { renamed.protectedObject = object.get(); }
+            if (subprogram->boundConcurrentIndex != nullptr) {
+                auto family = std::make_unique<CallExpr>();
+                auto index = std::make_unique<IdentifierExpr>();
+                index->symbol = subprogram->boundConcurrentIndex;
+                index->type = index->symbol->type;
+                index->location = expr->location;
+                Association argument;
+                argument.value = std::move(index);
+                family->arguments.push_back(std::move(argument));
+                renamed.callee = std::move(family);
+            }
+        }
+        auto* plan = m_context->selectCall;
+        Symbol* savedTarget = plan != nullptr ? plan->target : nullptr;
+        if (plan != nullptr && plan->target == subprogram) { plan->target = renamed.subprogram; }
+        Value result = emitCall(&renamed, inheritedControllingType);
+        if (plan != nullptr) { plan->target = savedTarget; }
+        return result;
     }
+    DiscriminantScope discriminants(m_context);
     bool adaImport = isAdaImport(subprogram);
     if (subprogram->builtin == BuiltinKind::Runtime && !adaImport) {
         // File queries return borrowed handle snapshots rather than constructing
@@ -475,12 +504,16 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
             protectedObject = addressOf(expr->protectedReceiver);
         }
     }
+    if (subprogram->protectedType != nullptr && !protectedObject.name.empty()) {
+        m_context->discriminantObjects[subprogram->protectedType] = {protectedObject, subprogram->protectedType};
+    }
     Value taskIdentity;
     Value entryIndex { "0", 'l' };
     if (subprogram->entry && subprogram->taskType != nullptr) {
         if (expr->taskObject != nullptr) {
             Value object = emitExpr(expr->taskObject);
             if (baseType(expr->taskObject->type)->kind == TypeKind::Access) { checkNotNull(object); }
+            m_context->discriminantObjects[subprogram->taskType] = {object, subprogram->taskType};
             taskIdentity = Value {newTemp(), 'l'};
             emitCallInstruction(taskIdentity.name + " =l call $__ada_task_identity(l " + object.name + ")", CallEffects::CheckException);
         } else if (expr->taskReceiver != nullptr) {

@@ -14,6 +14,28 @@ using SemaSupport::objectView;
 
 namespace {
 
+struct AccessCallable
+{
+    Symbol* target;
+    Symbol* binding;
+};
+
+AccessCallable accessCallable(Symbol* symbol)
+{
+    AccessCallable result {symbol, nullptr};
+    while (result.target->renamedSubprogram != nullptr && !result.target->classWideWrapper) {
+        if (result.target->boundConcurrentObject != nullptr) { result.binding = result.target; }
+        result.target = result.target->renamedSubprogram;
+    }
+    if (result.target->genericActualEntity != nullptr) {
+        AccessCallable actual = accessCallable(result.target->genericActualEntity);
+        if (actual.target->entry || actual.target->protectedType != nullptr || actual.target->protectedAccessProfile) {
+            return actual;
+        }
+    }
+    return result;
+}
+
 // Without an explicit range a floating point type spans what its machine
 // representation can hold.
 double floatLowBound(const Type* type)
@@ -189,7 +211,8 @@ bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
     if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
         return false;
     }
-    if (access->accessProtected && candidate->protectedType == nullptr && !candidate->protectedAccessProfile) { return false; }
+    Symbol* target = accessCallable(candidate).target;
+    if (access->accessProtected && target->protectedType == nullptr && !target->protectedAccessProfile) { return false; }
     Symbol* profile = access->accessProfile;
     bool sameResult = candidate->returnType == profile->returnType
         || SemaSupport::staticallyMatches(candidate->returnType, profile->returnType);
@@ -389,23 +412,34 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
             return nullptr;
         }
-        if (chosen->entry && chosen->taskType != nullptr) {
+        Symbol* accessView = chosen;
+        AccessCallable callable = accessCallable(chosen);
+        Symbol* boundView = callable.binding;
+        chosen = callable.target;
+        if (chosen->entry) {
             m_diagnostics.error(expr->location, "an entry cannot be designated by an access-to-subprogram type");
             return nullptr;
         }
         if (chosen->protectedType != nullptr) {
-            if (!expected->accessProtected || chosen->entry) {
-                m_diagnostics.error(expr->location, "access to protected subprograms requires an anonymous protected subprogram access type");
+            if (!expected->accessProtected) {
+                m_diagnostics.error(expr->location, "access to protected subprograms requires a protected subprogram access type");
                 return nullptr;
             }
-            Expr* object = expr->prefix->kind == ExprKind::Selected
-                ? static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get() : nullptr;
-            bindProtectedCall(expr, chosen, object, scope);
-        }
-        // A renaming is another view of the same callable entity.
-        Symbol* accessView = chosen;
-        while (chosen->renamedSubprogram != nullptr && !chosen->classWideWrapper) {
-            chosen = chosen->renamedSubprogram;
+            if (boundView != nullptr) {
+                Symbol* binding = boundView->boundConcurrentObject;
+                auto object = std::make_unique<IdentifierExpr>();
+                object->location = expr->prefix->location;
+                object->name = object->lower = binding->name;
+                object->symbol = binding;
+                object->type = binding->type;
+                noteReference(binding);
+                expr->prefix = std::move(object);
+                expr->protectedObject = expr->prefix.get();
+            } else {
+                Expr* object = expr->prefix->kind == ExprKind::Selected
+                    ? static_cast<SelectedExpr*>(expr->prefix.get())->prefix.get() : nullptr;
+                bindProtectedCall(expr, chosen, object, scope);
+            }
         }
         if (chosen->abstract) {
             m_diagnostics.error(expr->location, "an abstract subprogram cannot be the prefix of 'Access");

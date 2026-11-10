@@ -221,3 +221,15 @@ exception into another task's context. Deferred callbacks/actions keep balanced
 regions, and the existing master/operation exits await and finalize inside-out.
 The [requeue and abort contract](requeue-abort.md) records the state transitions,
 ownership, completion points, host-call boundary and validation controls.
+
+## Concurrent discriminants and bound views
+
+Direct QBE lowering retains the task/protected prefix at offset zero, appends
+discriminants and uses object-owned views for dependent private payloads. Bound
+callables capture receiver/index once and forward the existing entry operation
+plan through aliases; internal protected calls reuse the resource. Named
+protected callbacks reuse the immutable code/environment/receiver descriptor.
+Construction cleanup drains protected resources before private payloads and
+coextensions, including library default allocators and exceptional construction.
+The [contract and acceptance controls](concurrent-callable-views.md) gate this
+extension; concurrent interfaces remain a separate milestone.

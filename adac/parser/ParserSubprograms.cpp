@@ -207,6 +207,7 @@ DeclPtr Parser::parseTask()
     decl->lower = isType ? name.lower : "__single_task_" + name.lower;
     decl->definition = std::make_unique<TypeDefinition>(TypeDefKind::Task);
     decl->definition->location = location;
+    decl->definition->isLimited = true;
     auto rejectDefinition = [&](const std::string& message) -> DeclPtr {
         m_diagnostics.error(current().location, message);
         int parentheses = 0;
@@ -237,7 +238,8 @@ DeclPtr Parser::parseTask()
         return nullptr;
     };
     if (check(TokenKind::LeftParen)) {
-        return rejectDefinition("task discriminants are not yet supported");
+        if (!isType) { fail("a single task declaration cannot have discriminants"); }
+        parseDiscriminantPart(decl->discriminants);
     }
     if (check(TokenKind::KwIs) && peek(1).kind == TokenKind::KwNew) {
         return rejectDefinition("task interfaces are not yet supported");

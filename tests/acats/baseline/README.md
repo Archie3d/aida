@@ -1,12 +1,12 @@
 # Completed-feature ACATS backfill baseline
 
 This is an observational baseline, not an expansion of what AIDA claims to
-implement. It adds 145 cases to the existing strict selection:
-119 executable C-tests and 26 ungraded B-test probes. The selection targets
+implement. It adds 153 cases to the existing strict selection:
+127 executable C-tests and 26 ungraded B-test probes. The selection targets
 completed roadmap areas, including cases that combine them with known
 unfinished features. It is a bounded sample, not an exhaustive Ada 2005 audit.
 
-All 149 source files (including four shared foundations) retain their original
+All 157 source files (including four shared foundations) retain their original
 bytes and rights/disclaimers.
 `manifest.json` records objectives, RM areas, roadmap owners, triage notes and
 SHA-256/Git-blob hashes. Sources were read directly from a GitHub archive whose
@@ -177,3 +177,11 @@ The Phase 9 requeue/abort audit retains 115 executable passes, three legal-sourc
 rejections, one runtime failure and 26 ungraded B observations. Three stale
 entry/accept parser snapshots (C432005/B650002/B650004) now expose the existing
 layout/return-legality diagnostics. B grades remain 17 PASS and nine FAIL.
+
+The concurrent discriminant/callable-view increment adds eight unchanged C-tests:
+C910001/C940012/C940015, C85014B/C85018A/C85018B and C3A0018/C3A0027. All
+eight PASS with complete REPORT output. The current 153-case cohort has 123 C
+PASS, three legal-source rejections, one runtime failure and 26 ungraded B
+observations. All 157 source hashes validate. B330001/B3A0002 now reach semantic
+diagnostics; reviewed raw/grade snapshots change, but policies and their FAIL
+grades remain unchanged. [Contract](../../../docs/concurrent-callable-views.md).

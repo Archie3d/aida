@@ -152,7 +152,7 @@ std::vector<Symbol*> Sema::expressionNames(Expr* expr, Scope* scope)
                 for (Symbol* operation : type->protectedScope->lookupLocal(selected->selectorLower)) {
                     bool current = isProtectedCurrentInstance(selected->prefix.get(), type, scope);
                     if ((operation->kind == SymbolKind::Subprogram && !operation->protectedPrivate)
-                        || current) {
+                        || (operation->protectedField >= 0 && type->fields[operation->protectedField].isDiscriminant) || current) {
                         operations.push_back(operation);
                     }
                 }

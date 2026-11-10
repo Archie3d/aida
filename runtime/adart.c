@@ -1385,6 +1385,23 @@ void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint)
     }
 }
 
+/* A completed concurrent object must drain its execution resource before
+   coextensions created by discriminant/component defaults can be finalized. */
+void __ada_finalization_promote(AdaFinalization** owner, void* object)
+{
+    __ada_mutex_lock(&__ada_main_context.sharedStorageMutex);
+    AdaFinalization** slot = owner;
+    while (*slot != NULL && (*slot)->object != object) { slot = &(*slot)->next; }
+    AdaFinalization* record = *slot;
+    if (record != NULL && slot != owner) {
+        *slot = record->next;
+        record->next = *owner;
+        *owner = record;
+    }
+    __ada_mutex_unlock(&__ada_main_context.sharedStorageMutex);
+    if (record == NULL) { __ada_raise(ADA_PROGRAM_ERROR); }
+}
+
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*))
 {
     AdaFinalization* record = __ada_array_local(arena, 1, 1, sizeof *record);

@@ -410,6 +410,7 @@ typedef struct AdaFinalization
 void __ada_finalization_push(AdaFinalization** owner, AdaFinalization* record,
                              void* object, void (*finalize)(void*));
 void __ada_finalize_to(AdaFinalization** owner, AdaFinalization* checkpoint);
+void __ada_finalization_promote(AdaFinalization** owner, void* object);
 
 void __ada_finalization_reserve(AdaFinalization** owner, void** arena, void* object, void (*finalize)(void*));
 void __ada_library_reserve(void* object, void (*finalize)(void*));

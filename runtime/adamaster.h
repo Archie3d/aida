@@ -98,6 +98,7 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
 /* Task_Id values remain valid while the corresponding task object exists.
    Queries synchronize with completion and termination without joining tasks. */
 void* __ada_current_task(void);
+void* __ada_current_task_object(void);
 void* __ada_task_identity(void** object);
 int __ada_task_id_equal(void* left, void* right);
 const char* __ada_task_image(void* identity);

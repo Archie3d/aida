@@ -58,7 +58,7 @@ DeclPtr Parser::parseSubtypeDecl()
     return decl;
 }
 
-TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
+TypeDefinitionPtr Parser::parseTypeDefinition()
 {
     NestingGuard nesting(*this);
     SourceLocation location = current().location;
@@ -297,9 +297,11 @@ TypeDefinitionPtr Parser::parseTypeDefinition(bool allowProtectedAccess)
         definition->nullExclusion = nullExclusion;
         expect(TokenKind::KwAccess, "in access type definition");
         if (check(TokenKind::KwProtected)) {
-            if (!allowProtectedAccess) { fail("access-to-protected-subprogram types are not yet supported"); }
             advance();
             definition->accessProtected = true;
+            if (!check(TokenKind::KwProcedure) && !check(TokenKind::KwFunction)) {
+                fail("protected access types require a subprogram profile");
+            }
         }
         definition->generalAccess = match(TokenKind::KwAll);
         if (definition->generalAccess && check(TokenKind::KwConstant)) {
@@ -471,7 +473,7 @@ SubtypeIndicationPtr Parser::parseSubtypeIndication(bool allowAccess)
     if (check(TokenKind::KwAccess)) {
         if (!allowAccess) { fail("an anonymous access definition is not allowed in this context"); }
         if (peek(1).kind == TokenKind::KwAll) { fail("anonymous access definitions cannot specify 'all'"); }
-        indication->accessDefinition = parseTypeDefinition(true);
+        indication->accessDefinition = parseTypeDefinition();
         const auto& parent = indication->accessDefinition->parent;
         if (parent != nullptr && parent->nullExclusion) {
             fail("an anonymous access definition requires a designated subtype mark without a null exclusion");

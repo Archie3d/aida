@@ -186,6 +186,25 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
         if (declared != nullptr && declared->taskBody != nullptr) {
             declared->taskScope = m_symbolTable.createScope(scope);
             declared->taskBody->taskType = declared;
+            if (declared->discriminantCount != 0) {
+                Symbol* object = m_symbolTable.createSymbol(SymbolKind::Object, "__task_object", "task object");
+                object->type = m_taskIdType;
+                object->owner = declared->taskBody;
+                object->level = declared->taskBody->level;
+                object->isConstant = true;
+                object->isUplevel = true;
+                declared->taskBody->taskObject = object;
+            }
+            for (const FieldInfo& field : declared->fields) {
+                Symbol* discriminant = m_symbolTable.createSymbol(SymbolKind::Object, field.name, field.displayName);
+                discriminant->type = field.type;
+                discriminant->isConstant = true;
+                discriminant->discriminantRecord = declared;
+                discriminant->discriminantIndex = field.index;
+                discriminant->owner = declared->taskBody;
+                discriminant->level = declared->taskBody->level;
+                declared->taskScope->add(discriminant);
+            }
             for (auto& item : typeDecl->taskEntries) {
                 auto* entry = static_cast<SubprogramDecl*>(item.get());
                 auto indicator = entry->spec.overriding;
@@ -203,7 +222,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
                 if (entry->spec.entryIndex != nullptr) {
                     auto* index = entry->spec.entryIndex.get();
                     if (index->lower.empty()) {
-                        Type* inferred = analyzeExpr(index->rangeLow.get(), scope, nullptr);
+                        Type* inferred = analyzeExpr(index->rangeLow.get(), declared->taskScope, nullptr);
                         if (inferred == nullptr || inferred->kind == TypeKind::UniversalInteger) { inferred = m_types.integerType(); }
                         Symbol* mark = m_symbolTable.createSymbol(SymbolKind::TypeName, "__entry_index_type_" + std::to_string(operation->taskEntryId), "entry index");
                         mark->type = inferred;
@@ -327,7 +346,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         return;
     }
     if (decl->isRenaming) {
-        Type* targetType = analyzeExpr(decl->initializer.get(), scope, type);
+        Type* targetType = analyzeExpr(decl->initializer.get(), scope, type != nullptr && type->anonymousAccess ? nullptr : type);
         SemaSupport::ObjectView view = objectView(decl->initializer.get());
         if (view == SemaSupport::ObjectView::NotObject) {
             m_diagnostics.error(decl->location, "an object renaming requires an object name");
@@ -995,6 +1014,11 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     Scope* inner = m_symbolTable.createScope(context);
     if (body->taskBody && symbol->taskType != nullptr) {
         for (Symbol* entry : symbol->taskType->taskEntries) { inner->add(entry); }
+        for (const FieldInfo& field : symbol->taskType->fields) {
+            for (Symbol* discriminant : symbol->taskType->taskScope->lookupLocal(field.name)) {
+                if (discriminant->discriminantRecord == symbol->taskType) { inner->add(discriminant); }
+            }
+        }
     }
     symbol->constructScope = inner;
     inner->setPrivateRegion(true);

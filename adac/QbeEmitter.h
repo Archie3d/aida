@@ -216,6 +216,20 @@ private:
         std::string controllingTag;
     };
 
+    struct DiscriminantScope
+    {
+        explicit DiscriminantScope(FunctionContext* value)
+            : context(value), saved(value->discriminantObjects)
+        {
+        }
+        ~DiscriminantScope()
+        {
+            context->discriminantObjects = std::move(saved);
+        }
+        FunctionContext* context;
+        decltype(FunctionContext::discriminantObjects) saved;
+    };
+
     // Output and data (QbeEmitter.cpp).
     std::string newTemp();
     std::string newLabel(const char* prefix);
@@ -448,6 +462,7 @@ private:
     Value emitPower(const Value& left, const Value& right, char type);
 
     // Comparisons (QbeComparisons.cpp).
+    Value compareProtectedCallbacks(const Value& left, const Value& right);
     Value compareObjects(const Value& left, const Value& right, Type* type);
     Value compareArrays(BinaryOp op, const Value& left, Type* leftType, const Value& right, Type* rightType);
     Value comparePrimitiveRecord(const Value& left, const Value& right, Type* type);

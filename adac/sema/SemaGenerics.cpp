@@ -264,6 +264,7 @@ void Sema::analyzeGenericDecl(GenericDecl* decl, Scope* scope)
     for (GenericFormal& formal : decl->formals) {
         if (formal.kind == GenericFormalKind::SubprogramFormal && formal.defaultValue) {
             Expr* value = formal.defaultValue.get();
+            formal.defaultScope = target;
             std::string defaultLower;
             if (value->kind == ExprKind::Identifier) {
                 defaultLower = static_cast<IdentifierExpr*>(value)->lower;
@@ -1195,6 +1196,18 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
                                  Expr* actual, Scope* bindings, Scope* actualScope, bool namedDefault,
                                  GenericContract* contract, std::size_t firstSymbol)
 {
+    if (namedDefault && !formal.defaultUsesFormal && !formal.defaultTokens.empty()
+        && std::any_of(formal.defaultCandidates.begin(), formal.defaultCandidates.end(), [](Symbol* candidate) {
+            return candidate->taskType != nullptr || candidate->protectedType != nullptr;
+        })) {
+        Parser defaultParser(formal.defaultTokens, m_diagnostics);
+        auto name = defaultParser.parseExpressionFragment();
+        if (name == nullptr) { return false; }
+        actual = name.get();
+        decl->callableNames.push_back(std::move(name));
+        actualScope = formal.defaultScope;
+        namedDefault = false;
+    }
     if (namedDefault) {
         Scope* defaults = m_symbolTable.createScope(nullptr);
         const auto& candidates = formal.defaultUsesFormal
@@ -1329,7 +1342,20 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         m_instanceFirstSymbol = previousFirst;
         if (attributeProfile == nullptr) { return false; }
     }
-    const auto actualCandidates = prefixedView != nullptr ? std::vector<Symbol*> { prefixedView }
+    Symbol* concurrentView = nullptr;
+    {
+        std::vector<Type*> types;
+        std::vector<ParameterMode> modes;
+        for (Symbol* parameter : wrapper->parameters) {
+            types.push_back(parameter->type);
+            modes.push_back(parameter->mode);
+        }
+        concurrentView = bindConcurrentView(actual, types, modes, wrapper->returnType,
+            actualScope, decl->expansion, wrapper->qbeName + ".concurrent");
+        if (m_diagnostics.errorCount() != errors) { return false; }
+    }
+    const auto actualCandidates = concurrentView != nullptr ? std::vector<Symbol*> { concurrentView }
+        : prefixedView != nullptr ? std::vector<Symbol*> { prefixedView }
         : namedDefault && literalDefault != nullptr ? std::vector<Symbol*> { literalDefault }
         : attributeProfile != nullptr ? std::vector<Symbol*> { attributeProfile }
         : namedDefault && formal.abstract
@@ -1337,14 +1363,6 @@ bool Sema::bindFormalSubprogram(GenericInstantiationDecl* decl, const GenericFor
         : namedDefault && actual->kind == ExprKind::Selected
             ? formal.defaultCandidates : expressionNames(actual, actualScope);
     for (Symbol* candidate : actualCandidates) {
-        if (matches(candidate) && candidate->entry && candidate->taskType != nullptr) {
-            m_diagnostics.error(actual->location, "task entry generic subprogram actuals are not yet supported");
-            return false;
-        }
-        if (matches(candidate) && candidate->protectedType != nullptr) {
-            m_diagnostics.error(actual->location, "protected operation generic actuals are not yet supported");
-            return false;
-        }
         if (matches(candidate)) {
             if (candidate->kind == SymbolKind::EnumerationLiteral) {
                 candidates.push_back(candidate);

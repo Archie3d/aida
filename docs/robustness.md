@@ -124,15 +124,15 @@ memory operations participate in the same race detector. Atomic operations
 remain runtime atomics; the adapter does not turn them into ordinary accesses.
 The pass does not add artificial Ada synchronization.
 
-`robustness.sanitized_tasking` runs 24 programs in whole and separate
+`robustness.sanitized_tasking` runs 28 programs in whole and separate
 compilation: task lifecycle/finalization, protected entries, shared scalars, time,
-identity, rendezvous, select and requeue/abort. Clean cases require exact expected output, empty stderr and success.
+identity, rendezvous, select, requeue/abort, concurrent discriminants and callable views. Clean cases require exact expected output, empty stderr and success.
 With TSan it additionally runs a deliberate Ada-to-Ada write race in both modes.
 Two independent C barriers bracket the generated Ada loops. The first makes
 both workers active; the second prevents either task from publishing completion
 early. Its separate mutex cannot order a loop before its peer's start. Both modes must
 produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
-the control. ASan/UBSan runs 48 clean executions; TSan runs 50 executions.
+the control. ASan/UBSan runs 56 clean executions; TSan runs 58 executions.
 `coverage.json` records case/mode and instrumented-access counts; `run.json`
 retains each execution's result. There are no race suppressions. The negative
 control disables external symbolization and abort-on-error to keep the required
@@ -172,3 +172,8 @@ uses separate start/finish barriers: a protected gate alone allowed one
 worker's task-completion mutex to order its entire loop before its peer under
 some schedules. No runtime synchronization or sanitizer suppression was added to
 hide a race. Current milestone results are in [requeue and abort](requeue-abort.md).
+
+The concurrent-view increment adds four fixtures, bringing the current campaign
+to 28 clean fixtures / 56 executions and 58 TSan executions including the two
+intentional race controls. Native protected lifecycle checks also cover draining
+the resource before coextension cleanup. [Contract](concurrent-callable-views.md).

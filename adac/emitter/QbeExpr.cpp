@@ -161,6 +161,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         }
         Value address = symbol->protectedField >= 0 ? emitAddress(expr) : addressOf(symbol);
         if (isComposite(symbol->type)) {
+            if (symbol->protectedField >= 0 && address.hasBounds()) { return address; }
             return withBounds(address, symbol->type, symbol->protectedField >= 0 ? nullptr : symbol);
         }
         return loadFrom(address, symbol->type);
@@ -190,6 +191,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
         }
         Value address = emitAddress(expr);
         if (isComposite(expr->type)) {
+            if (selected->symbol != nullptr && selected->symbol->protectedField >= 0 && address.hasBounds()) { return address; }
             return withBounds(address, expr->type, selected->symbol != nullptr && selected->symbol->protectedField >= 0 ? nullptr : selected->symbol);
         }
         return loadFrom(address, expr->type);
@@ -493,9 +495,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
             if (identifier->symbol->protectedField >= 0 && expr->protectedReceiver != nullptr) {
                 Value object = addressOf(expr->protectedReceiver);
                 const auto& field = identifier->symbol->protectedType->fields[identifier->symbol->protectedField];
-                Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + fieldOffset(identifier->symbol->protectedType, field));
-                return withBounds(address, field.type, nullptr);
+                return fieldAddress(object, identifier->symbol->protectedType, field);
             }
             return addressOf(identifier->symbol);
         }
@@ -509,9 +509,7 @@ Value QbeEmitter::emitAddress(Expr* expr)
             if (selected->symbol->protectedField >= 0 && expr->protectedReceiver != nullptr) {
                 Value object = addressOf(expr->protectedReceiver);
                 const auto& field = selected->symbol->protectedType->fields[selected->symbol->protectedField];
-                Value address { newTemp(), 'l' };
-                line(address.name + " =l add " + object.name + ", " + fieldOffset(selected->symbol->protectedType, field));
-                return withBounds(address, field.type, nullptr);
+                return fieldAddress(object, selected->symbol->protectedType, field);
             }
             return addressOf(selected->symbol);
         }
@@ -891,15 +889,6 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
         return;
     }
 
-    if (base->taskBody != nullptr) {
-        Symbol* body = base->taskBody;
-        Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
-        Value flag = elaborationFlag(body);
-        emitCallInstruction("call $__ada_task_create_owned(l %.taskContext, l " + address.name + ", l " + body->qbeName
-             + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
-             + m_context->taskGroup + ", l " + m_context->taskMaster + ")", CallEffects::CheckException);
-        return;
-    }
     if (type->kind == TypeKind::Array && hasRuntimeLayout(type)) {
         emitArrayFill(address, type, nullptr);
         return;
@@ -918,6 +907,19 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
 
     if (base->tagged) {
         line("storel " + typeTag(base).name + ", " + address.name);
+    }
+    if (base->protectedScope != nullptr) {
+        for (const FieldInfo& field : base->fields) {
+            if (field.storageType != nullptr) {
+                line("storel 0, " + dependentArena(fieldStorage(address, base, field), field.storageType));
+            }
+        }
+    }
+    if (base->protectedScope != nullptr) {
+        emitCallInstruction("call $__ada_protected_init_access(l " + address.name + ", w "
+            + (address.accessLevel.empty() ? (m_context->constructionAccessLevel.empty()
+                ? currentAccessLevel() : m_context->constructionAccessLevel) : address.accessLevel) + ")", CallEffects::CheckException);
+        activateControlledObject(address, type);
     }
     auto savedObjects = m_context->discriminantObjects;
     for (Type* walk = base; walk != nullptr; walk = walk->parentType) {
@@ -973,11 +975,19 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
         }
     }
     m_context->discriminantObjects = std::move(savedObjects);
-    if (base->protectedScope != nullptr) {
-        emitCallInstruction("call $__ada_protected_init_access(l " + address.name + ", w "
-            + (address.accessLevel.empty() ? (m_context->constructionAccessLevel.empty()
-                ? currentAccessLevel() : m_context->constructionAccessLevel) : address.accessLevel) + ")", CallEffects::CheckException);
-        activateControlledObject(address, type);
+    if (base->protectedScope != nullptr && hasAccessDiscriminants(type)) {
+        std::string owner = !m_context->constructionOwner.empty() ? m_context->constructionOwner
+            : m_context->initializingTemporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
+        emitCallInstruction("call $__ada_finalization_promote(l " + owner + ", l " + address.name + ")", CallEffects::CheckException);
+    }
+    if (base->taskBody != nullptr) {
+        Symbol* body = base->taskBody;
+        Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
+        Value flag = elaborationFlag(body);
+        emitCallInstruction("call $__ada_task_create_owned(l %.taskContext, l " + address.name + ", l " + body->qbeName
+             + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
+             + m_context->taskGroup + ", l " + m_context->taskMaster + ")", CallEffects::CheckException);
+        return;
     }
     if (base->controlled) {
         emitControlledCall(address, type, "initialize");

@@ -27,10 +27,12 @@ Task-list access uses the existing shared master mutex. Protected results use
 caller-owned finalization registrations and carry their destination accessibility
 level through constructors and allocations.
 
-Existing type restrictions still apply: task/protected discriminants,
-tagged/variant composites containing these objects, and discriminant-dependent
-arrays of concurrent elements remain diagnosed. Entries/rendezvous now follow the [task-entry contract](task-entries.md); select,
-abort/requeue and synchronized interfaces are later Phase 9 work. This increment
+Task/protected discriminants and bound callable views follow the
+[concurrent-view contract](concurrent-callable-views.md). Tagged/variant composites
+containing these objects and discriminant-dependent arrays of concurrent elements
+remain diagnosed. Entries/rendezvous, [select](select-statements.md) and
+[requeue/abort](requeue-abort.md) are implemented for their documented surfaces;
+concurrent interfaces remain open. This increment
 does not claim complete tasking or annex conformance. Recompile affected Ada
 objects with the updated compiler/runtime; semantic interfaces already check the
 compiler digest.

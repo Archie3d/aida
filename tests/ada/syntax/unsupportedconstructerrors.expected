@@ -1,1 +1,2 @@
-unsupportedconstructerrors.adb:9:27: error: task discriminants are not yet supported
+unsupportedconstructerrors.adb:6:5: error: task 'Worker' has no body
+unsupportedconstructerrors.adb:9:5: error: task 'Worker_Type' has no body

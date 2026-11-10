@@ -351,8 +351,16 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->expandedName = std::any_of(expanded.begin(), expanded.end(), [](unsigned char c) { return c >= 128; })
             ? Unicode::identifier(expanded, false) : std::string();
         layoutRecord(decl, definition, type, scope);
+        std::function<bool(const Type*)> unsupportedPart = [&](const Type* part) {
+            if (part == nullptr || part->kind == TypeKind::Access) { return false; }
+            if (part->controlled || part->taskBody != nullptr || part->protectedScope != nullptr) { return true; }
+            if (part->kind == TypeKind::Array) { return unsupportedPart(part->element); }
+            return std::any_of(part->fields.begin(), part->fields.end(), [&](const FieldInfo& field) {
+                return unsupportedPart(field.type);
+            });
+        };
         for (const FieldInfo& field : type->fields) {
-            if (needsFinalization(field.type) || hasTasks(field.type)) {
+            if (unsupportedPart(field.type)) {
                 m_diagnostics.error(decl->location, "protected private components with controlled, task or protected parts are not yet supported");
             }
         }
@@ -360,7 +368,6 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
     }
     case TypeDefKind::Task: {
         type = makeType(TypeKind::Record);
-        type->byteSize = 8;
         type->isLimited = true;
         type->needsZeroInit = true;
         SubprogramSpec spec;
@@ -370,6 +377,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         spec.location = decl->location;
         type->taskBody = declareSubprogram(spec, scope, false);
         type->taskBody->taskBody = true;
+        layoutRecord(decl, definition, type, scope);
         break;
     }
     case TypeDefKind::Enumeration: {
@@ -980,6 +988,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         type->excludesNull = definition->nullExclusion;
         type->generalAccess = definition->generalAccess;
         type->accessConstant = definition->accessConstant;
+        type->accessProtected = definition->accessProtected;
         type->accessScope = scope;
         if (definition->accessProfile != nullptr) {
             SubprogramSpec& spec = *definition->accessProfile;
@@ -1012,6 +1021,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
                 }
                 profile->parameters.push_back(parameter);
             }
+            profile->protectedAccessProfile = type->accessProtected;
             type->accessProfile = profile;
             type->accessScope = scope;
         } else {
@@ -1192,7 +1202,7 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             + ":" + std::to_string(decl->location.line) + ":" + std::to_string(decl->location.column);
     }
     type->declarationScope = scope;
-    if (type->kind == TypeKind::Access && type->accessProfile == nullptr) {
+    if (type->kind == TypeKind::Access && (type->accessProfile == nullptr || type->accessProtected)) {
         type->collectionOwner = m_currentSubprogram;
         std::string name = "$" + mangle(decl->lower) + "__collection";
         std::size_t ordinal = ++m_tagNames[name];
@@ -1347,7 +1357,7 @@ void Sema::analyzeSubtypeDecl(SubtypeDecl* decl, Scope* scope)
 void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, Scope* scope)
 {
     long long offset = definition->extension ? typeSize(type->parentType)
-        : type->tagged || type->protectedScope != nullptr ? 8 : 0;
+        : type->tagged || type->protectedScope != nullptr || type->taskBody != nullptr ? 8 : 0;
     int fieldIndex = static_cast<int>(type->fields.size());
     Scope* componentScope = m_symbolTable.createScope(scope);
     Symbol* current = m_symbolTable.createSymbol(SymbolKind::Object, decl->lower, decl->name);
@@ -1411,8 +1421,8 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         if (info.type != nullptr && info.type->kind == TypeKind::Array && !info.type->constrained) {
             recordArrayConstraint(info.type, field.subtype.get());
             info.dependentBounds = info.type->discriminantRecord != nullptr;
-            type->dependentStorage |= info.dependentBounds && !type->tagged;
-            if (info.dependentBounds && type->tagged) {
+            type->dependentStorage |= info.dependentBounds && !type->tagged && type->protectedScope == nullptr;
+            if (info.dependentBounds && (type->tagged || type->protectedScope != nullptr)) {
                 info.storageType = m_types.create(TypeKind::Record, anonymousTypeName());
                 info.storageType->dependentStorage = true;
                 info.storageType->dependentArrayStorage = true;
@@ -2027,6 +2037,17 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
 void Sema::recordScalarConstraint(Type* type, const SourceLocation& location, bool objectConstraint)
 {
     type->scalarObjectConstraint = objectConstraint;
+    Type* dependency = discriminantDependency(type->scalarLow);
+    if (dependency == nullptr) { dependency = discriminantDependency(type->scalarHigh); }
+    if (dependency != nullptr && dependency->taskBody != nullptr) {
+        type->discriminantRecord = dependency;
+        for (Expr* bound : {type->scalarLow, type->scalarHigh}) {
+            if (discriminantDependency(bound) != nullptr && bound->kind != ExprKind::Identifier) {
+                m_diagnostics.error(bound->location, "a discriminant must appear alone as an entry family bound");
+            }
+        }
+        return;
+    }
     if (type->scalarLow != nullptr) {
         std::string file = std::filesystem::path(m_diagnostics.fileName(location.file)).filename().string();
         for (char& c : file) {

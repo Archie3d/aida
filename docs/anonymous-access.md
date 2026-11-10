@@ -18,8 +18,9 @@ This extends the [named general-access contract](general-access.md).
 [Imported and inherited tagged callbacks](subprogram-access.md) extend the
 same callback and call machinery. Phase 6g supports
 [access formal objects](generic-types.md#access-formal-objects) and access type
-formals. Unsupported actual types, task/protected discriminants and named
-protected callback types (9) still produce diagnostics. Anonymous access definitions require subtype marks;
+formals. Task/protected discriminants and named protected callback types follow
+the [Phase 9 contract](concurrent-callable-views.md). Unsupported actual types
+still produce diagnostics. Anonymous access definitions require subtype marks;
 constraints belong on a named designated subtype. They cannot specify `all`.
 
 ## Accessibility and ABI

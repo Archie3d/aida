@@ -157,7 +157,7 @@ long long typeSize(const Type* type)
     }
     case TypeKind::Record: {
         long long size = type->tagged && type->parentType != nullptr ? typeSize(type->parentType)
-            : type->tagged || type->protectedScope != nullptr ? 8 : 0;
+            : type->tagged || type->protectedScope != nullptr || type->taskBody != nullptr ? 8 : 0;
         long long alignment = typeAlignment(type);
         for (const FieldInfo& field : type->fields) {
             // The alternatives of a variant part share their storage, so the

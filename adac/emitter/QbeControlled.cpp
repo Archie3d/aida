@@ -426,7 +426,21 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     if (m_context->initializingStorage && type->tagged) {
         line("storel " + typeTag(type).name + ", " + object.name);
     }
-    if (type->fileHandle || type->exceptionOccurrence || type->protectedScope != nullptr) {
+    if (type->protectedScope != nullptr) {
+        // Reserve private storage before the protected object, so reverse
+        // finalization destroys/drains its queues before releasing that storage.
+        for (const FieldInfo& field : baseType(type)->fields) {
+            if (field.storageType != nullptr || needsFinalization(field.type)) {
+                Value component = field.storageType != nullptr ? fieldStorage(object, baseType(type), field)
+                    : fieldAddress(object, baseType(type), field);
+                walkControlled(component, field.storageType != nullptr ? field.storageType : field.type,
+                    parentFirst, action, activeOnly);
+            }
+        }
+        action(object, type);
+        return;
+    }
+    if (type->fileHandle || type->exceptionOccurrence) {
         action(object, type);
         return;
     }

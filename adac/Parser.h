@@ -21,6 +21,7 @@ public:
     // from the tokens it was written with.
     DeclList parseDeclarations();
     DeclPtr parseFormalPackageInstantiation();
+    ExprPtr parseExpressionFragment();
 
 private:
     static constexpr int kMaxSyntaxDepth = 128;
@@ -73,7 +74,7 @@ private:
     // Types and ranges (ParserTypes.cpp).
     DeclPtr parseTypeDecl();
     DeclPtr parseSubtypeDecl();
-    TypeDefinitionPtr parseTypeDefinition(bool allowProtectedAccess = false);
+    TypeDefinitionPtr parseTypeDefinition();
     void parseDiscriminantPart(std::vector<RecordField>& discriminants);
     void parseRecordComponents(std::vector<RecordField>& fields);
     VariantPartPtr parseVariantPart();

@@ -433,6 +433,16 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
         context.locals[parameter] = slot;
     }
 
+    if (symbol->taskObject != nullptr) {
+        Symbol* object = symbol->taskObject;
+        context.hasFrame = true;
+        object->frameOffset = reserveFrame(8);
+        std::string slot = newTemp(), current = newTemp();
+        context.prologue << "    " << slot << " =l add " << context.frameTemp << ", " << object->frameOffset << "\n";
+        emitCallInstruction(current + " =l call $__ada_current_task_object()", CallEffects::DeferredCheck);
+        line("storel " + current + ", " + slot);
+    }
+
     // Capture this task before declarations; nested tasks can name this instance
     // through the ordinary lexical frame even while executing on another thread.
     if (symbol->taskIdentity != nullptr) {

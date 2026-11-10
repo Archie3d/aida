@@ -445,6 +445,15 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
         if (!checkNotPrivate(record, expr->location, "protected operations require the full view")) {
             return nullptr;
         }
+        for (const FieldInfo& field : record->fields) {
+            if (field.isDiscriminant && field.name == expr->selectorLower
+                && !isProtectedCurrentInstance(expr->prefix.get(), record, scope)) {
+                expr->recordType = record;
+                expr->fieldIndex = field.index;
+                expr->type = field.type;
+                return expr->type;
+            }
+        }
         auto candidates = expressionNames(expr, scope);
         if (candidates.empty()) {
             m_diagnostics.error(expr->location, "protected components and private operations are not externally visible");
@@ -481,6 +490,17 @@ Type* Sema::analyzeSelected(SelectedExpr* expr, Scope* scope, Type* expected)
             return nullptr;
         }
         noteTypeUse(record);
+        if (record->taskScope != nullptr && field.isDiscriminant
+            && isTaskCurrentInstance(expr->prefix.get(), record, scope)) {
+            for (Symbol* discriminant : record->taskScope->lookupLocal(field.name)) {
+                if (discriminant->discriminantRecord == record) {
+                    expr->symbol = discriminant;
+                    expr->type = field.type;
+                    noteReference(discriminant);
+                    return expr->type;
+                }
+            }
+        }
         expr->fieldIndex = field.index;
         expr->type = field.type;
         if (m_recordContract != nullptr && field.isDiscriminant) {

@@ -13,9 +13,11 @@ DeclPtr Parser::parseProtected()
     decl->protectedBody = isBody;
     decl->definition = std::make_unique<TypeDefinition>(TypeDefKind::Protected);
     decl->definition->location = location;
+    decl->definition->isLimited = true;
     try {
         if (check(TokenKind::LeftParen)) {
-            fail("protected discriminants are not yet supported");
+            if (!isType) { fail("only a protected type declaration can have discriminants"); }
+            parseDiscriminantPart(decl->discriminants);
         }
         expect(TokenKind::KwIs, "in protected unit");
         if (check(TokenKind::KwNew)) {

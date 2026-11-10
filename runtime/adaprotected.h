@@ -24,6 +24,7 @@ void __ada_protected_entry_enter(AdaTaskContext* context, void** object,
 int __ada_protected_count(void** object, AdaProtectedBarrier barrier);
 void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* action);
 
+int __ada_protected_callback_equal(const void* left, const void* right);
 void __ada_protected_init(void** object);
 void __ada_protected_init_access(void** object, int accessLevel);
 int __ada_protected_access_level(void** object);

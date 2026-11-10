@@ -277,7 +277,11 @@ DeclPtr Parser::parseGenericDeclaration(bool includeFollowingBody)
                                 advance();
                                 formal.nullDefault = true;
                             } else {
+                                std::size_t defaultStart = m_position;
                                 formal.defaultValue = parseExpression();
+                                formal.defaultTokens.assign(m_tokens.begin() + static_cast<std::ptrdiff_t>(defaultStart),
+                                    m_tokens.begin() + static_cast<std::ptrdiff_t>(m_position));
+                                formal.defaultTokens.push_back(m_tokens.back());
                             }
                         }
                     }
@@ -490,4 +494,13 @@ DeclPtr Parser::parseGenericInstantiation(const SourceLocation& location, const 
     }
     expect(TokenKind::Semicolon, "after generic instantiation");
     return decl;
+}
+
+ExprPtr Parser::parseExpressionFragment() try
+{
+    return parseExpression();
+} catch (const ParseError&) {
+    return {};
+} catch (const ParseLimit&) {
+    return {};
 }

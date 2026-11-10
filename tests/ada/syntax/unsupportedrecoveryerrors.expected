@@ -1,1 +1,1 @@
-unsupportedrecoveryerrors.adb:4:22: error: task discriminants are not yet supported
+unsupportedrecoveryerrors.adb:1:1: error: a limited with clause is not allowed on a body or library renaming

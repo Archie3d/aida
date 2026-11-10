@@ -5,11 +5,11 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "a189cc59d192ead44536652ac77c33158c7e2df328cea53cc0251b2f7da88d28",
+  "compiler_sha256": "1e2adc4efa7d5944c6ed1eafdd0462f7762f050985040c00656fcb0038b1442e",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 3,
-    "PASS": 115,
+    "PASS": 123,
     "RUN_FAILED": 1
   },
   "cases": {
@@ -937,7 +937,7 @@
     "b330001": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b330001.a:82:34: error: protected discriminants are not yet supported\n<upstream>/tests/b3/b330001.a:88:24: error: task discriminants are not yet supported\n",
+      "compile_stderr": "<upstream>/tests/b3/b330001.a:125:4: error: an object of 'FullViewIsIndefinite' has to fix its discriminants, as in 'X : FullViewIsIndefinite (...)'\n<upstream>/tests/b3/b330001.a:129:4: error: an array component requires a definite discriminated subtype\n<upstream>/tests/b3/b330001.a:149:4: error: an object of an unknown-discriminant view requires an initializer\n<upstream>/tests/b3/b330001.a:152:4: error: an array component requires a definite subtype view\n<upstream>/tests/b3/b330001.a:159:4: error: an object of an unknown-discriminant view requires an initializer\n<upstream>/tests/b3/b330001.a:162:4: error: an array component requires a definite subtype view\n<upstream>/tests/b3/b330001.a:186:4: error: an object of 'Protected_Type' has to fix its discriminants, as in 'X : Protected_Type (...)'\n<upstream>/tests/b3/b330001.a:191:4: error: an object of 'Task_Type' has to fix its discriminants, as in 'X : Task_Type (...)'\n<upstream>/tests/b3/b330001.a:194:4: error: an object of an unknown-discriminant view requires an initializer\n<upstream>/tests/b3/b330001.a:202:4: error: an object of 'NUncons_Tag_Type' has to fix its discriminants, as in 'X : NUncons_Tag_Type (...)'\n<upstream>/tests/b3/b330001.a:208:4: error: an object of an unknown-discriminant view requires an initializer\n<upstream>/tests/b3/b330001.a:211:4: error: an array component requires a definite subtype view\n<upstream>/tests/b3/b330001.a:215:7: error: a record component requires a definite discriminated subtype\n<upstream>/tests/b3/b330001.a:219:4: error: an array component requires a definite discriminated subtype\n<upstream>/tests/b3/b330001.a:222:4: error: an array component requires a definite subtype view\n<upstream>/tests/b3/b330001.a:229:6: error: a record component requires a definite subtype\n<upstream>/tests/b3/b330001.a:233:4: error: an array component requires a definite subtype\n<upstream>/tests/b3/b330001.a:240:35: error: array components require a constrained array subtype\n<upstream>/tests/b3/b330001.a:246:4: error: an unconstrained array object needs an initializer or index constraint\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b33101a": {
@@ -991,7 +991,7 @@
     "b3a0002": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b3/b3a0002.a:59:15: error: access-to-protected-subprogram types are not yet supported\n",
+      "compile_stderr": "<upstream>/tests/b3/b3a0002.a:198:49: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:201:48: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:204:45: error: access to protected subprograms requires a protected subprogram access type\n<upstream>/tests/b3/b3a0002.a:207:45: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:211:53: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:216:51: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:220:46: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:223:42: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:226:43: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:231:52: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:234:49: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:237:45: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:242:48: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:245:51: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:248:44: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:253:48: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:256:43: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:259:39: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:262:39: error: no subprogram matches the designated access profile\n<upstream>/tests/b3/b3a0002.a:265:38: error: access to protected subprograms requires a protected subprogram access type\n<upstream>/tests/b3/b3a0002.a:270:37: error: 'Access of intrinsic subprograms is not allowed\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b43002d": {
@@ -1228,6 +1228,78 @@
       "compile_stderr": "",
       "run_exit": 0,
       "run_stdout": "TEST CC3606B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c910001": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C910001\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c940012": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C940012\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c940015": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C940015\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c85018a": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C85018A\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c85018b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C85018B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c85014b": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C85014B\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0018": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0018\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
+    },
+    "c3a0027": {
+      "compile_exit": 0,
+      "compile_stdout": "",
+      "compile_stderr": "",
+      "run_exit": 0,
+      "run_stdout": "TEST C3A0027\nPASSED\n",
       "run_stderr": "",
       "outcome": "PASS"
     }

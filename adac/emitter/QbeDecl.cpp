@@ -349,6 +349,12 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                 continue;
             }
             for (Symbol* symbol : object->symbols) {
+                DiscriminantScope constraints(m_context);
+                if (symbol->boundEntryView != nullptr && !symbol->boundEntryView->boundTaskIdentity) {
+                    Symbol* view = symbol->boundEntryView;
+                    Type* task = view->renamedSubprogram->taskType;
+                    m_context->discriminantObjects[task] = {addressOf(view->boundConcurrentObject), task};
+                }
                 if (!symbol->isGlobal) {
                     continue;
                 }
@@ -375,6 +381,12 @@ void QbeEmitter::emitElaborationDeclarations(DeclList& declarations)
                         m_context->constructionArena = arena;
                         emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
                     }
+                }
+                if (!symbol->objectReference && hasAccessDiscriminants(symbol->type) && m_context->constructionOwner.empty()) {
+                    m_context->constructionOwner = newTemp();
+                    m_context->constructionArena = newTemp();
+                    emitCallInstruction(m_context->constructionOwner + " =l call $__ada_construction_owner(l 0)", CallEffects::CheckException);
+                    emitCallInstruction(m_context->constructionArena + " =l call $__ada_construction_arena(l 0)", CallEffects::CheckException);
                 }
                 if (!symbol->objectReference && !symbol->classWideObject) {
                     prepareControlledObject(address, symbol->type, true);
@@ -576,6 +588,12 @@ void QbeEmitter::emitLocalDeclarations(DeclList& declarations)
                 break;
             }
             for (Symbol* symbol : object->symbols) {
+                DiscriminantScope constraints(m_context);
+                if (symbol->boundEntryView != nullptr && !symbol->boundEntryView->boundTaskIdentity) {
+                    Symbol* view = symbol->boundEntryView;
+                    Type* task = view->renamedSubprogram->taskType;
+                    m_context->discriminantObjects[task] = {addressOf(view->boundConcurrentObject), task};
+                }
                 if (symbol->isGlobal) {
                     continue;
                 }
@@ -803,6 +821,12 @@ Value QbeEmitter::scalarBounds(Type* type)
     Value bounds;
     bounds.type = qbeClass(type);
     Symbol* symbol = type->scalarBoundsSymbol;
+    if (type->discriminantRecord != nullptr && type->discriminantRecord->taskBody != nullptr
+        && type->scalarLow != nullptr) {
+        bounds.first = emitExpr(type->scalarLow).name;
+        bounds.last = emitExpr(type->scalarHigh).name;
+        return bounds;
+    }
     if (symbol == nullptr) {
         bounds.first = isReal(type) ? QbeSupport::realLiteral(type->hasRealRange ? type->lowReal
             : (typeSize(type) == 4 ? -static_cast<double>(FLT_MAX) : -DBL_MAX), bounds.type) : scalarText(type->low);

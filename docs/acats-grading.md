@@ -47,8 +47,8 @@ The other nine cases stay failed and belong to their existing language owners:
 
 | Cases | Observation / existing owner |
 | --- | --- |
-| B330001 | Legal task/protected discriminants block analysis; P9, indefinite-object/component legality P3/P6/P8 |
-| B3A0002 | Named protected-subprogram access prerequisite; P9 |
+| B330001 | Discriminant parsing now succeeds; indefinite-object/component diagnostics still miss reviewed groups/sites; P3/P6/P8 legality and P10 diagnostics |
+| B3A0002 | Named protected access parsing now succeeds; profile diagnostics miss reviewed groups, and generic formal Access at line 168 remains undiagnosed; P6d/P8 legality and P10 diagnostics |
 | B650002/B650004 | Task entry/accept parsing now succeeds; return diagnostics still miss annotation groups and include unexpected diagnostics; P6e/P8 returns, P10 diagnostics |
 | B394A01–B394A05 | Concurrent-interface syntax blocks the tested ancestry rules; P9 |
 

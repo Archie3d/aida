@@ -211,6 +211,11 @@ Value QbeEmitter::addressOf(Symbol* symbol)
     }
     if (symbol->discriminantRecord != nullptr) {
         Type* record = symbol->discriminantRecord;
+        if (!m_context->discriminantObjects.contains(record) && record->taskBody != nullptr) {
+            Symbol* binding = record->taskBody->taskObject;
+            Value object = loadFrom(addressOf(binding), binding->type);
+            return fieldAddress(object, record, record->fields[symbol->discriminantIndex]);
+        }
         const auto& object = m_context->discriminantObjects.at(record);
         if (needsRecordRepack(record, object.layout)) { record = object.layout; }
         const FieldInfo& field = record->fields[symbol->discriminantIndex];

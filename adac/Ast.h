@@ -15,6 +15,7 @@
 
 struct Type;
 struct Symbol;
+class Scope;
 struct TypeDefinition;
 
 struct Node
@@ -1157,6 +1158,8 @@ struct GenericFormal
     std::string lower;
     SubtypeIndicationPtr subtype;   // The type of an object formal.
     ExprPtr defaultValue;
+    std::vector<Token> defaultTokens;
+    Scope* defaultScope = nullptr;
     TypeDefinitionPtr arrayDefinition;
     std::vector<RecordField> discriminants;
     std::vector<Token> typeTokens;
@@ -1237,6 +1240,7 @@ struct GenericInstantiationDecl : Decl
     // Filled in by Sema for a generic written in Ada: what came back from
     // parsing the tokens again, analysed as though it were written here.
     DeclList expansion;
+    std::vector<ExprPtr> callableNames;
     // Resolved formal access definitions used only for actual matching.
     DeclList formalTypes;
     std::unordered_map<Symbol*, Symbol*> packageCopies;

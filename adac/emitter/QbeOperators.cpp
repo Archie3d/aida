@@ -22,6 +22,16 @@ Value QbeEmitter::emitBinary(BinaryExpr* expr)
 
     Value left = emitExpr(expr->left.get());
     Value right = emitExpr(expr->right.get());
+    if ((expr->op == BinaryOp::Equal || expr->op == BinaryOp::NotEqual)
+        && expr->left->type->kind == TypeKind::Access && expr->left->type->accessProtected) {
+        Value equal = compareProtectedCallbacks(left, right);
+        if (expr->op == BinaryOp::NotEqual) {
+            Value negated {newTemp(), 'w'};
+            line(negated.name + " =w ceqw " + equal.name + ", 0");
+            return negated;
+        }
+        return equal;
+    }
     if (expr->type->kind == TypeKind::Array) {
         std::string operation = expr->op == BinaryOp::And ? "and" : expr->op == BinaryOp::Or ? "or" : "xor";
         return emitArrayLogical(expr->type, left, &right, operation);

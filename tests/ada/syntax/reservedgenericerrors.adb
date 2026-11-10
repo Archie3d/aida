@@ -16,7 +16,7 @@ procedure ReservedGenericErrors is
     package Protected_Formal is
     end Protected_Formal;
     generic
-        type Formal is access protected procedure;
+        type Formal is access protected function (Value : out Integer) return Integer;
     package Callback_Formal is
     end Callback_Formal;
 begin

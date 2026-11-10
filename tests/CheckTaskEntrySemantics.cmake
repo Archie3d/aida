@@ -36,9 +36,6 @@ task body S is begin accept Work do return 3; end Work; end S; begin null; end R
 reject(entry_access "procedure Root is task S is entry Work; end S;
 task body S is begin null; end S; type P is access procedure; A : P := S.Work'Access;
 begin null; end Root;" "an entry cannot be designated by an access-to-subprogram type")
-reject(renaming "procedure Root is task S is entry Work; end S;
-task body S is begin null; end S; procedure P renames S.Work; begin null; end Root;"
-    "task entry renamings are not yet supported")
 reject(nested_count "procedure Root is task S is entry Work; end S;
 task body S is procedure P is N : Integer := Work'Count; begin null; end P;
 begin null; end S; begin null; end Root;" "Count requires an entry of the current")

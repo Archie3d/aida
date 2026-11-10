@@ -75,7 +75,7 @@ private:
     bool isTaskCurrentInstance(Expr* expr, Type* type, Scope* scope);
     bool isProtectedCurrentInstance(Expr* expr, Type* type, Scope* scope);
     void bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope* scope, bool requeue = false);
-    void bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope);
+    void bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope, Expr* name = nullptr);
     void analyzeObjectDecl(ObjectDecl* decl, Scope* scope);
     void analyzeNumberDecl(NumberDecl* decl, Scope* scope);
     void registerPrimitive(Symbol* symbol, Scope* scope);
@@ -84,6 +84,9 @@ private:
     Scope* subunitScope(const std::shared_ptr<SubunitInfo>& info, Scope* parent);
     Symbol* declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody, bool isFormal = false, Scope* profileScope = nullptr);
     void analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope);
+    Symbol* bindConcurrentView(Expr* name, const std::vector<Type*>& types,
+        const std::vector<ParameterMode>& modes, Type* result, Scope* scope,
+        DeclList& expansion, const std::string& qbeName);
     Symbol* bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& types,
         const std::vector<ParameterMode>& modes, Type* result, Scope* scope,
         DeclList& expansion, const std::string& qbeName);

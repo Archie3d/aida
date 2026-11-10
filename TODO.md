@@ -5,9 +5,9 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 9 entries, select, requeue and abort are implemented
-for the documented surface. Continue with task/protected discriminants and
-callable views. Further profiling remains deferred.
+**Current focus:** Phase 9 task/protected discriminants, callable views and
+named protected callbacks are implemented for the documented surface. Continue
+with synchronized, task and protected interfaces. Further profiling remains deferred.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -128,9 +128,14 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 - [x] `requeue` and `abort`, on the Phase 6 abort-deferral design (protected
   actions, finalization).
   [Contract, restrictions and validation](docs/requeue-abort.md).
-- [ ] Task and protected discriminants, task-entry callable views (renamings
-  and generic subprogram actuals), named access-to-protected-subprogram types (anonymous protected callbacks landed in 6d), and synchronized, task
-  and protected interfaces.
+- [x] Task and protected discriminants, including per-object dependent private
+  components and task entry-family bounds.
+- [x] Task-entry and protected-operation callable views: renamings and generic
+  subprogram actuals/defaults, including statically bound entry selects.
+- [x] Named access-to-protected-subprogram types (anonymous protected callbacks
+  landed in 6d).
+  [Contract, restrictions and validation](docs/concurrent-callable-views.md).
+- [ ] Synchronized, task and protected interfaces.
 - [ ] Priorities and `Storage_Size`, `Ada.Task_Attributes`, and
   `Ada.Synchronous_Task_Control`.
 - [ ] Selected Systems Programming Annex support: Ada 2005 task termination

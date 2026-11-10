@@ -186,6 +186,116 @@ Symbol* Sema::bindPrefixedView(SelectedExpr* name, const std::vector<Type*>& typ
     return view;
 }
 
+Symbol* Sema::bindConcurrentView(Expr* name, const std::vector<Type*>& types,
+    const std::vector<ParameterMode>& modes, Type* result, Scope* scope,
+    DeclList& expansion, const std::string& qbeName)
+{
+    Symbol* target = nullptr;
+    for (Symbol* candidate : expressionNames(name, scope)) {
+        if (candidate->taskType == nullptr && candidate->protectedType == nullptr) { continue; }
+        bool matches = SemaSupport::profileTypeMatches(candidate->returnType, result)
+            && candidate->parameters.size() == types.size();
+        for (std::size_t i = 0; matches && i < types.size(); ++i) {
+            matches = SemaSupport::profileTypeMatches(candidate->parameters[i]->type, types[i])
+                && candidate->parameters[i]->mode == modes[i];
+        }
+        if (!matches) { continue; }
+        if (target != nullptr) {
+            m_diagnostics.error(name->location, "ambiguous concurrent callable view");
+            return nullptr;
+        }
+        target = candidate;
+    }
+    if (target == nullptr) { return nullptr; }
+    int errors = m_diagnostics.errorCount();
+    CallExpr call;
+    call.location = name->location;
+    call.subprogram = target;
+    Expr* selected = name;
+    if (selected->kind == ExprKind::Call) { selected = static_cast<CallExpr*>(selected)->callee.get(); }
+    Expr* object = selected->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(selected)->prefix.get() : nullptr;
+    bindProtectedCall(&call, target, object, scope, true);
+    bindTaskEntryCall(&call, target, scope, name);
+    if (m_diagnostics.errorCount() != errors) { return nullptr; }
+
+    Symbol* view = m_symbolTable.createSymbol(SymbolKind::Subprogram, qbeName, target->displayName);
+    view->qbeName = qbeName;
+    view->location = name->location;
+    view->parameters = target->parameters;
+    view->returnType = target->returnType;
+    view->renamedSubprogram = target;
+    view->hasBody = true;
+    view->owner = m_currentSubprogram;
+    view->level = view->owner != nullptr ? view->owner->level + 1 : 0;
+    view->accessibilityLevel = m_accessibilityLevel;
+    auto capture = [&](ExprPtr value, Type* type, bool reference, const std::string& suffix) {
+        std::string key = qbeName + suffix;
+        Symbol* binding = m_symbolTable.createSymbol(SymbolKind::Object, key, key);
+        binding->type = type;
+        binding->location = name->location;
+        binding->owner = m_currentSubprogram;
+        binding->level = binding->owner != nullptr ? binding->owner->level : 0;
+        binding->isGlobal = binding->owner == nullptr;
+        binding->isUplevel = !binding->isGlobal;
+        binding->objectReference = reference;
+        binding->boundReceiver = reference;
+        binding->isConstant = !reference || SemaSupport::objectView(value.get()) != SemaSupport::ObjectView::Variable;
+        binding->aliased = reference;
+        binding->qbeName = key;
+        if (binding->owner != nullptr) { binding->owner->needsFrame = true; binding->owner->usesFinalization = true; }
+        else { m_finalizingUnits.insert(m_currentUnit); }
+        scope->add(binding);
+        auto declaration = std::make_unique<ObjectDecl>();
+        declaration->location = name->location;
+        declaration->symbols.push_back(binding);
+        declaration->isRenaming = reference;
+        declaration->isConstant = binding->isConstant;
+        declaration->initializer = std::move(value);
+        expansion.push_back(std::move(declaration));
+        return binding;
+    };
+    auto identifier = [&](Symbol* symbol) {
+        auto value = std::make_unique<IdentifierExpr>();
+        value->name = value->lower = symbol->name;
+        value->location = name->location;
+        value->symbol = symbol;
+        value->type = symbol->type;
+        noteReference(symbol);
+        return value;
+    };
+    if (call.taskReceiver != nullptr) {
+        view->boundTaskIdentity = true;
+        view->boundConcurrentObject = capture(identifier(call.taskReceiver), m_taskIdType, false, ".identity");
+    } else if (call.protectedReceiver != nullptr) {
+        view->boundProtectedReceiver = true;
+        view->boundConcurrentObject = capture(identifier(call.protectedReceiver), target->protectedType, true, ".object");
+    } else {
+        Expr* named = name;
+        if (named->kind == ExprKind::Call) { named = static_cast<CallExpr*>(named)->callee.get(); }
+        auto* component = static_cast<SelectedExpr*>(named);
+        ExprPtr receiver = std::move(component->prefix);
+        Type* type = baseType(receiver->type);
+        if (type->kind == TypeKind::Access) {
+            auto dereference = std::make_unique<SelectedExpr>();
+            dereference->location = receiver->location;
+            dereference->isDereference = true;
+            dereference->type = type->target;
+            dereference->prefix = std::move(receiver);
+            receiver = std::move(dereference);
+        }
+        Type* receiverType = receiver->type;
+        view->boundConcurrentObject = capture(std::move(receiver), receiverType, true, ".object");
+        component->prefix = identifier(view->boundConcurrentObject);
+    }
+    if (target->entryIndexType != nullptr && name->kind == ExprKind::Call) {
+        auto* family = static_cast<CallExpr*>(name);
+        view->boundConcurrentIndex = capture(std::move(family->arguments.front().value), target->entryIndexType, false, ".index");
+        view->boundConcurrentIndex->boundEntryView = view;
+        family->arguments.front().value = identifier(view->boundConcurrentIndex);
+    }
+    return view;
+}
+
 void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
 {
     SubprogramSpec& spec = decl->spec;
@@ -271,13 +381,14 @@ void Sema::analyzeSubprogramRenaming(SubprogramDecl* decl, Scope* scope)
         }
     }
 
-    if (chosen != nullptr && chosen->entry && chosen->taskType != nullptr) {
-        m_diagnostics.error(decl->location, "task entry renamings are not yet supported");
-        return;
-    }
-    if (chosen != nullptr && chosen->protectedType != nullptr) {
-        m_diagnostics.error(decl->location, "renaming protected operations is not yet supported");
-        return;
+    if (chosen != nullptr && (chosen->taskType != nullptr || chosen->protectedType != nullptr)) {
+        std::vector<ParameterMode> modes;
+        for (const ParameterDecl& parameter : spec.parameters) { modes.push_back(parameter.mode); }
+        chosen = bindConcurrentView(decl->renamedName.get(), types, modes, result, scope,
+            decl->renamingExpansion, "$" + mangle(spec.lower) + ".concurrent."
+                + std::to_string(decl->location.line) + "." + std::to_string(decl->location.column));
+        name = decl->renamedName.get();
+        if (chosen == nullptr) { return; }
     }
     Type* access = nullptr;
     if (name->kind == ExprKind::Selected && static_cast<SelectedExpr*>(name)->isDereference) {

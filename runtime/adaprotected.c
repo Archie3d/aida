@@ -517,3 +517,19 @@ int __ada_protected_request_cancel(AdaEntryCall* call)
     __ada_abort_undefer(context);
     return 1;
 }
+
+int __ada_protected_callback_equal(const void* left, const void* right)
+{
+    if (left == right) { return 1; }
+    if (left == NULL || right == NULL) { return 0; }
+    // The established descriptor ABI is code, lexical link, target object.
+    enum { kFields = 3 };
+    const void* a[kFields];
+    const void* b[kFields];
+    memcpy(a, left, sizeof a);
+    memcpy(b, right, sizeof b);
+    for (unsigned i = 0; i < kFields; ++i) {
+        if (a[i] != b[i]) { return 0; }
+    }
+    return 1;
+}

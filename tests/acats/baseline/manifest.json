@@ -600,6 +600,38 @@
     "tests/cd/cd2a24j.ada": {
       "sha256": "6ed2d3c4e21cc63a75dbafd97447e56bab2f2262c1aa69dc007fe448d02823e3",
       "git_blob": "2a9fd8175d60b5a77a163a5c5a34f92c75340777"
+    },
+    "tests/c9/c910001.a": {
+      "sha256": "70a817cf2a94d1aae587759cafd97eb1316c908ab297aa8fd8175be9b80b69f6",
+      "git_blob": "416e13ca8fb1c7a8f02625863910187d0d89f89c"
+    },
+    "tests/c9/c940012.a": {
+      "sha256": "9655be704c35790e1630927d82e7e67249ab3200ec1875c26ef68fa857a57942",
+      "git_blob": "d4bd2079cb2e61870d9d79fe2f91b108f88e6bac"
+    },
+    "tests/c9/c940015.a": {
+      "sha256": "efad5ad15be22cd4e024affc32f2216c1306e209fadfaee89faf0b2be3906806",
+      "git_blob": "92a6699c3d4ede86629c06dace68020973dd7ccf"
+    },
+    "tests/c8/c85018a.ada": {
+      "sha256": "c48f6706435a7e1e0295ea72d1f7f14b5fe8096d30928c3e6cf6cdcd7d9a26f9",
+      "git_blob": "e826808189a8b20cec43ec1dba2191a3ea69a5be"
+    },
+    "tests/c8/c85018b.ada": {
+      "sha256": "8886d606b8372c8fba79eca01b0acee6d84b2339a1159d741bde25ee10c4f981",
+      "git_blob": "44fbb5668b33d2dcfc77eea0e2f3c1f4bd659345"
+    },
+    "tests/c8/c85014b.ada": {
+      "sha256": "b00ddacf12ef84109ee5dbe1a1743a7f864ec2ce3358be2ef1a989987025eef2",
+      "git_blob": "bb1cd95e771400770f4aa98498966b36333eb4bb"
+    },
+    "tests/c3/c3a0018.a": {
+      "sha256": "f5266f02caff5d9726723fe11c3bd6be7c4afaa2b385c961e1681e67356735b9",
+      "git_blob": "4b1d118b248064ce465909809175c9126e63b9c0"
+    },
+    "tests/c3/c3a0027.a": {
+      "sha256": "25b7756490d05cae061a35d4523ab1533a5b7d9a0d0225703446693b00b465a5",
+      "git_blob": "01567fe0fcdadd0b65edc0cac6959c2f374e2d67"
     }
   },
   "cases": [
@@ -3409,6 +3441,166 @@
         "note": "Phase 8 ACATS adoption cohort: reviewed Ada 2005 or inherited objective; whole-source execution required. Original sources and official dependencies retained."
       },
       "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
+    },
+    {
+      "id": "c910001",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "3.7, 9.1",
+      "objective": "Task discrete/access discriminants, explicit values and defaults.",
+      "sources": [
+        "tests/c9/c910001.a"
+      ],
+      "report_name": "C910001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c940012",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "3.7, 9.4",
+      "objective": "Protected discriminants, allocated objects and external calls through access values.",
+      "sources": [
+        "tests/c9/c940012.a"
+      ],
+      "report_name": "C940012",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c940015",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "3.7, 9.4",
+      "objective": "Protected component initialization order with discriminant-dependent components.",
+      "sources": [
+        "tests/c9/c940015.a"
+      ],
+      "report_name": "C940015",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c85018a",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "8.5.4, 9.5",
+      "objective": "Entry family renaming with new parameter names and defaults.",
+      "sources": [
+        "tests/c8/c85018a.ada"
+      ],
+      "report_name": "C85018A",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c85018b",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "8.5.4, 9.5",
+      "objective": "Entry family renaming retains the original formal parameter constraints.",
+      "sources": [
+        "tests/c8/c85018b.ada"
+      ],
+      "report_name": "C85018B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c85014b",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "8.5.4",
+      "objective": "Resolve overloaded renamed subprograms and entries by base parameter/result types.",
+      "sources": [
+        "tests/c8/c85014b.ada"
+      ],
+      "report_name": "C85014B",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c3a0018",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "3.10, 9.5",
+      "objective": "Anonymous protected callbacks and calls with matching profiles.",
+      "sources": [
+        "tests/c3/c3a0018.a"
+      ],
+      "report_name": "C3A0018",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
+    },
+    {
+      "id": "c3a0027",
+      "class": "C",
+      "area": "concurrent_callable_views",
+      "owner": "P9 discriminants and callable views",
+      "rm": "3.10, 6.1",
+      "objective": "Null-excluding anonymous protected callback contexts and Constraint_Error.",
+      "sources": [
+        "tests/c3/c3a0027.a"
+      ],
+      "report_name": "C3A0027",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 discriminants and callable views",
+        "note": "Selected before probing for the Phase 9 discriminant/callable-view increment. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
+      },
+      "language_review": "Ada 95/2005 discriminants, renaming or protected callback objective. Later edit dates do not introduce post-2005 syntax in these sources; original bytes and notices retained."
     }
   ],
   "excluded_candidates": [

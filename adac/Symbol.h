@@ -104,6 +104,12 @@ struct Symbol
     Type* entryIndexType = nullptr;
     int taskEntryId = 0;
     Symbol* taskIdentity = nullptr;
+    Symbol* taskObject = nullptr;
+    Symbol* boundConcurrentObject = nullptr;
+    Symbol* boundConcurrentIndex = nullptr;
+    Symbol* boundEntryView = nullptr;
+    bool boundTaskIdentity = false;
+    bool boundProtectedReceiver = false;
     Type* protectedType = nullptr;
     Symbol* protectedReceiver = nullptr;
     bool protectedPrivate = false;

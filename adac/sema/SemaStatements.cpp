@@ -507,6 +507,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 Symbol* entry = call->kind == ExprKind::Call ? static_cast<CallExpr*>(call)->subprogram
                     : call->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(call)->symbol
                     : call->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(call)->symbol : nullptr;
+                while (entry != nullptr && entry->renamedSubprogram != nullptr) { entry = entry->renamedSubprogram; }
                 if (entry == nullptr || !entry->entry) {
                     m_diagnostics.error(call->location, "this select form requires an entry call or a supported entry callable view");
                 }

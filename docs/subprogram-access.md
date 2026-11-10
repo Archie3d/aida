@@ -77,9 +77,10 @@ Packages do not add accessibility levels. Invoking an entry still checks the
 ancestor body's elaboration flag, so taking a callback before that body's
 elaboration does not bypass `Program_Error`.
 
-The existing restrictions on private extensions, limited/tagged definitions,
-generic formal access types and named protected callback types retain their
-Phase 6f/6g/9 owners. Completing Phase 6d does not claim those features.
+Private/limited/tagged definitions and generic formal access types follow their
+Phase 6f/6g contracts. Named protected callback types now follow the
+[Phase 9 contract](concurrent-callable-views.md); the Phase 6d measurements below
+describe that earlier increment.
 
 ## Validation
 

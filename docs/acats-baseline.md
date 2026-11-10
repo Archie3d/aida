@@ -1,6 +1,6 @@
-# ACATS completed-feature baseline — refreshed 2026-11-09
+# ACATS completed-feature baseline — refreshed 2026-11-10
 
-This backfill adds **145 unchanged upstream cases**: 119 C-tests and 26 B-test
+This backfill adds **153 unchanged upstream cases**: 127 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 5 |
+| Legal C-test rejected | 3 |
 | Support/harness blocked | 0 |
-| Executable PASS | 113 |
+| Executable PASS | 123 |
 | Executable failure | 1 |
 
-No crashes or timeouts were observed. Five legal C-tests are rejected and
+No crashes or timeouts were observed. Three legal C-tests are rejected and
 C35502C retains its enumeration Value tab-trimming runtime failure.
 C761001 now passes unchanged after task entry declarations were supported;
 its unused entry checks library-task termination before controlled finalization.
@@ -481,3 +481,17 @@ limits, and both B tests reach return-legality checks. The independent B grader
 is unchanged at 17 PASS and nine FAIL; neither return test is promoted. No
 upstream source or grading policy was changed, and these results are not general
 requeue/abort coverage. Local source/native controls supply that evidence.
+
+## Concurrent discriminants and callable views (Phase 9)
+
+Eight cases selected before probing now execute unchanged with complete REPORT
+success: C910001/C940012/C940015 (discriminants and dependent private payloads),
+C85014B/C85018A/C85018B (entry callable views) and C3A0018/C3A0027 (protected
+callbacks/null exclusions). Per-case language reviews and original-byte hashes
+are in the manifest; all 157 upstream files validate. [Implementation contract](concurrent-callable-views.md).
+The previous 145 outcome classifications remain unchanged: the expanded total
+is 123 C PASS, three legal-source rejections, one runtime failure and 26 raw B
+rejections. B330001/B3A0002 now reach semantic diagnostics after their parser
+blockers are removed. Their exact observations and independent grade snapshots
+are refreshed without changing grading policies; both still FAIL. B grades
+remain 17 PASS / nine FAIL. Earlier sections retain their historical counts.

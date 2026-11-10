@@ -50,7 +50,13 @@ void Sema::bindProtectedCall(Expr* expr, Symbol* operation, Expr* object, Scope*
         return;
     }
     if (object != nullptr) {
-        Type* type = analyzeExpr(object, scope, nullptr);
+        Type* receiver = operation->protectedType;
+        for (Type* type : expressionTypes(object, scope)) {
+            if (baseType(type)->kind == TypeKind::Access && baseType(baseType(type)->target) == operation->protectedType) {
+                receiver = type;
+            }
+        }
+        Type* type = analyzeExpr(object, scope, receiver);
         if (type != nullptr && baseType(type)->kind == TypeKind::Access) {
             type = baseType(type)->target;
         }
@@ -137,6 +143,7 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
             component->protectedType = type;
             component->protectedField = field.index;
             component->location = decl->location;
+            component->isConstant = field.isDiscriminant;
             inner->add(component);
         }
     } else {

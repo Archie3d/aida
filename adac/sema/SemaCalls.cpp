@@ -10,14 +10,41 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
 {
     expr->accessCreationLevel = m_accessibilityLevel;
     auto entryNames = expressionNames(expr->callee.get(), scope);
-    if (!entryNames.empty() && std::all_of(entryNames.begin(), entryNames.end(), [](Symbol* entry) {
-        return entry->entry && entry->taskType != nullptr && entry->entryIndexType != nullptr && entry->parameters.empty();
+    if (expr->callee->kind != ExprKind::Call && !entryNames.empty() && std::all_of(entryNames.begin(), entryNames.end(), [](Symbol* entry) {
+        return entry->entry && entry->taskType != nullptr && entry->entryIndexType != nullptr
+            && std::all_of(entry->parameters.begin(), entry->parameters.end(), [](Symbol* parameter) { return parameter->hasDefault; });
     })) {
         auto family = std::make_unique<CallExpr>();
         family->location = expr->location;
         family->callee = std::move(expr->callee);
         family->arguments = std::move(expr->arguments);
         expr->callee = std::move(family);
+    }
+    // A parameterless function result can be implicitly dereferenced to call
+    // its returned callback, as in Factory (Actual) rather than Factory.all.
+    if (expr->callee->kind != ExprKind::Call && !expr->arguments.empty()
+        && !entryNames.empty() && std::all_of(entryNames.begin(), entryNames.end(), [](Symbol* candidate) {
+            return candidate->kind == SymbolKind::Subprogram && candidate->parameters.empty()
+                && candidate->returnType != nullptr && candidate->returnType->accessProfile != nullptr;
+        })) {
+        Type* selected = nullptr;
+        for (Symbol* candidate : entryNames) {
+            std::vector<std::size_t> positions;
+            if (!matchCallArguments(expr, candidate->returnType->accessProfile, scope, positions)
+                || (expected != nullptr && !typesCompatible(expected, candidate->returnType->accessProfile->returnType))) { continue; }
+            if (selected != nullptr) {
+                m_diagnostics.error(expr->location, "ambiguous callback-producing function");
+                return nullptr;
+            }
+            selected = candidate->returnType;
+        }
+        if (selected != nullptr) {
+            auto producer = std::make_unique<CallExpr>();
+            producer->location = expr->location;
+            producer->callee = std::move(expr->callee);
+            analyzeCall(producer.get(), scope, selected);
+            expr->callee = std::move(producer);
+        }
     }
     if (expr->operatorExpression == nullptr) {
         int errors = m_diagnostics.errorCount();
@@ -279,6 +306,16 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "array conversions cannot copy limited controlled components");
         }
         if (expr->type->kind == TypeKind::Access && checkObjectAccessConversion(expr, expr->type, operand->type)) {
+            return expr->type;
+        }
+        if (expr->type->kind == TypeKind::Access && expr->type->accessProtected
+            && operand->type != nullptr && operand->type->kind == TypeKind::Access
+            && operand->type->accessProtected && matchesAccessProfile(operand->type->accessProfile, expr->type)) {
+            if (operand->type->accessParameter) {
+                m_diagnostics.error(expr->location, "an anonymous access-to-subprogram parameter cannot escape its call");
+            } else if (operand->type->accessLevel > expr->type->accessLevel && m_replayContract == nullptr) {
+                m_diagnostics.error(expr->location, "source access type is deeper than the target access type");
+            }
             return expr->type;
         }
         bool numeric = isNumeric(baseType(expr->type)) && isNumeric(baseType(operand->type))
@@ -651,10 +688,10 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
     return expr->type;
 }
 
-void Sema::bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope)
+void Sema::bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope, Expr* named)
 {
     if (chosen->entry && chosen->taskType != nullptr) {
-        Expr* name = expr->callee.get();
+        Expr* name = named != nullptr ? named : expr->callee.get();
         CallExpr* family = name->kind == ExprKind::Call ? static_cast<CallExpr*>(name) : nullptr;
         if (family != nullptr) { name = family->callee.get(); }
         if ((chosen->entryIndexType != nullptr) != (family != nullptr)) {
@@ -674,7 +711,14 @@ void Sema::bindTaskEntryCall(CallExpr* expr, Symbol* chosen, Scope* scope)
         }
         if (name->kind == ExprKind::Selected) {
             auto* selected = static_cast<SelectedExpr*>(name);
-            analyzeExpr(selected->prefix.get(), scope, nullptr);
+            Type* receiver = chosen->taskType;
+            auto types = expressionTypes(selected->prefix.get(), scope);
+            for (Type* type : types) {
+                if (baseType(type)->kind == TypeKind::Access && baseType(baseType(type)->target) == chosen->taskType) {
+                    receiver = type;
+                }
+            }
+            analyzeExpr(selected->prefix.get(), scope, receiver);
             bool current = isTaskCurrentInstance(selected->prefix.get(), chosen->taskType, scope);
             auto names = expressionNames(selected->prefix.get(), scope);
             if (!current && names.size() == 1 && names.front()->kind == SymbolKind::TypeName) {

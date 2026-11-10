@@ -3,6 +3,14 @@
 
 using QbeSupport::comparisonInstruction;
 
+Value QbeEmitter::compareProtectedCallbacks(const Value& left, const Value& right)
+{
+    Value equal {newTemp(), 'w'};
+    emitCallInstruction(equal.name + " =w call $__ada_protected_callback_equal(l " + left.name
+        + ", l " + right.name + ")", CallEffects::RuntimeHook, MasterEffects::Independent);
+    return equal;
+}
+
 // Operands here are addresses, including when the element is a scalar.
 Value QbeEmitter::compareObjects(const Value& left, const Value& right, Type* type)
 {
@@ -16,6 +24,9 @@ Value QbeEmitter::compareObjects(const Value& left, const Value& right, Type* ty
     }
     Value leftValue = loadFrom(left, type);
     Value rightValue = loadFrom(right, type);
+    if (type->kind == TypeKind::Access && type->accessProtected) {
+        return compareProtectedCallbacks(leftValue, rightValue);
+    }
     std::string equal = newTemp();
     line(equal + " =w " + comparisonInstruction(BinaryOp::Equal, leftValue.type) + " "
          + leftValue.name + ", " + rightValue.name);

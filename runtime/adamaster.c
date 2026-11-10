@@ -133,6 +133,13 @@ void* __ada_task_identity(void** object)
     return *object;
 }
 
+void* __ada_current_task_object(void)
+{
+    AdaTaskState* task = __ada_task_context()->taskSelf;
+    if (task == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return NULL; }
+    return task->object;
+}
+
 int __ada_task_id_equal(void* left, void* right)
 {
     return left == right;
