@@ -1,6 +1,8 @@
 -- Local POSIX settings for CXAH001/CXAH002/CXAG001, not the full ACATS Impdef.
 -- RunAcats supplies the readable value and removes the writable name.
 package Impdef is
+    -- Conservative host scheduling allowance for CXDA002; not a timing guarantee.
+    Minimum_Task_Switch : constant Duration := 0.1;
     Switch_To_New_Task : constant Duration := 0.1;
     Clear_Ready_Queue : constant Duration := 0.1;
     Existing_Environment_Variable_To_Read : constant String := "AIDA_ACATS_READ";

@@ -161,6 +161,9 @@ struct Type
     bool protectedBodySeen = false;
     bool incompleteLayout = false;
     bool deferredLayout = false;
+    Expr* concurrentPriority = nullptr;
+    Expr* taskStorageSize = nullptr;
+    FreezingDependencies concurrentUses;
     Scope* taskScope = nullptr;
     std::vector<Symbol*> taskEntries;
     Symbol* taskBody = nullptr; // Task identity occupies one pointer-sized slot.

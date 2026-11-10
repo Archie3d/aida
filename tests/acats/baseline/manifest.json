@@ -636,6 +636,30 @@
     "tests/c9/c940017.a": {
       "sha256": "cce55513a70e9efa876ea910582b114d56676abd324ee7869cf873549c7455bc",
       "git_blob": "883d0765dd06d5fcc7a03bd25ee2bbf471fda2b4"
+    },
+    "tests/cxc/cxc7002.a": {
+      "sha256": "04816418bb3a5d3ef50eb4b346048522982db6753b060fbca1fbd9dfc85c2b0f",
+      "git_blob": "7dfa9b11659f8171196cbc67ab54172b4c8f3dd2"
+    },
+    "tests/cxc/cxc7003.a": {
+      "sha256": "5eb2005eca7e33d0dc6c4563e6bee131deafb7e97228192783e46bcc581322dd",
+      "git_blob": "e6837e9c7393d18f4846b60af0a8e1583ddc2806"
+    },
+    "tests/cxd/cxda001.a": {
+      "sha256": "8c454b842e4f195545832a4b87af67cc96f1ecc209cec33778c1f7eab787d55e",
+      "git_blob": "7ff6642626d25a5ed999e690432966c53a0c4197"
+    },
+    "tests/cxd/cxda002.a": {
+      "sha256": "90893d311524b7306f6de3d89e8b840822e338a320d04f6457918639c699b0bc",
+      "git_blob": "458a9d68924fb66870b97650c971e942074711a1"
+    },
+    "tests/cxd/cxda003.a": {
+      "sha256": "b9d01ae1b7e9879db0fe17da679bb9377052d8f6209693bebd79627d17447365",
+      "git_blob": "23d9ca20696ebf1bc5b4f52fb2522791c1913591"
+    },
+    "tests/cxd/cxd1001.a": {
+      "sha256": "49bc00d75717dec159e34078d2ce1a5c6a886072f76306606d40215536574e7f",
+      "git_blob": "e44f584af3263d536b765a4badf652cdb1d1cc30"
     }
   },
   "cases": [
@@ -3627,6 +3651,132 @@
         "note": "Selected before probing. Execute the complete unchanged source and REPORT protocol; retain failures as failures."
       },
       "language_review": "Created in 2019 but uses Ada 2005 protected interfaces, operation overriding and prefixed dispatch; no post-2005 syntax. Original bytes and notices retained."
+    },
+    {
+      "id": "cxc7002",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "C.7.2",
+      "objective": "Task attribute initial values for existing and new tasks, Set_Value, null and terminated identities.",
+      "sources": [
+        "tests/cxc/cxc7002.a"
+      ],
+      "report_name": "CXC7002",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "known_gap",
+        "owner": "P8 packed representation",
+        "note": "Unchanged source requires Pack on an array of a small signed integer type; current Pack supports Boolean arrays only."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxc7003",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "C.7.2, 7.6",
+      "objective": "Controlled attribute finalization by Set_Value and Reinitialize.",
+      "sources": [
+        "tests/cxc/cxc7003.a"
+      ],
+      "report_name": "CXC7003",
+      "support": [
+        "impdef"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 task services",
+        "note": "Selected before probing. Execute complete unchanged source and strict REPORT protocol; retain unsupported interrupt/scheduling objectives as failures."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxda001",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "D.10",
+      "objective": "Initial false state and atomic Set_True, Set_False and Current_State.",
+      "sources": [
+        "tests/cxd/cxda001.a"
+      ],
+      "report_name": "CXDA001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 task services",
+        "note": "Selected before probing. Execute complete unchanged source and strict REPORT protocol; retain unsupported interrupt/scheduling objectives as failures."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxda002",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "D.10",
+      "objective": "Suspend_Until_True consumes a stored true state and wakes a blocked task.",
+      "sources": [
+        "tests/cxd/cxda002.a"
+      ],
+      "report_name": "CXDA002",
+      "support": [
+        "impdef"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 task services",
+        "note": "Selected before probing. Execute complete unchanged source and strict REPORT protocol; retain unsupported interrupt/scheduling objectives as failures."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxda003",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "D.10",
+      "objective": "Suspension operations during a protected action, by-reference objects and duplicate-waiter detection.",
+      "sources": [
+        "tests/cxd/cxda003.a"
+      ],
+      "report_name": "CXDA003",
+      "support": [
+        "impdef"
+      ],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "known_gap",
+        "owner": "P9 selected Annex D policies",
+        "note": "Unchanged source requires Locking_Policy and Interrupt_Priority; both remain diagnosed and outside this task-services subset."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
+    },
+    {
+      "id": "cxd1001",
+      "class": "C",
+      "area": "task_services",
+      "owner": "P9 task services",
+      "rm": "D.1, D.5.1",
+      "objective": "System priority bounds/default and dynamic base priority Set/Get.",
+      "sources": [
+        "tests/cxd/cxd1001.a"
+      ],
+      "report_name": "CXD1001",
+      "support": [],
+      "harness_gaps": [],
+      "triage": {
+        "kind": "covered_probe",
+        "owner": "P9 task services",
+        "note": "Selected before probing. Execute complete unchanged source and strict REPORT protocol; retain unsupported interrupt/scheduling objectives as failures."
+      },
+      "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
     }
   ],
   "excluded_candidates": [

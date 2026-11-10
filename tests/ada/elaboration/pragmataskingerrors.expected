@@ -1,2 +1,3 @@
-pragmataskingerrors.adb:4:12: error: unsupported or unknown pragma 'Priority'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Preelaborable_Initialization, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
-pragmataskingerrors.adb:5:12: error: unsupported or unknown pragma 'Storage_Size'; supported pragmas include Import, Convention, Inline, Pure, Preelaborate, Preelaborable_Initialization, Atomic, Volatile, Assert, Assertion_Policy, Suppress, Unsuppress, No_Return, Controlled, List, Page and Optimize
+pragmataskingerrors.adb:2:5: error: shared-variable pragma requires an object or full type declared here
+pragmataskingerrors.adb:3:5: error: shared-variable pragma requires an object or full type declared here
+pragmataskingerrors.adb:5:5: error: pragma requires a concurrent definition or immediate subprogram body declarative part

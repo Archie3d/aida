@@ -84,6 +84,9 @@ void __ada_task_create(AdaTaskContext* context, AdaConcurrentObject* object, voi
                       void* link, const int* elaborated, void* collection, void* group);
 /* Build-in-place results retain the caller's owner and activation group. */
 AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection);
+void __ada_task_create_configured(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
+    void* link, const int* elaborated, void* collection, void* group, AdaMaster* owner,
+    int priority, int specified, int64_t storageSize);
 void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
                             AdaMaster* owner);
@@ -104,6 +107,13 @@ void __ada_task_discard(AdaTaskContext* context, AdaMaster* master, void* object
 /* Task_Id values remain valid while the corresponding task object exists.
    Queries synchronize with completion and termination without joining tasks. */
 void* __ada_current_task(void);
+int __ada_get_priority(void* identity);
+void __ada_set_priority(int priority, void* identity);
+void __ada_main_priority(int priority);
+int __ada_priority_enter(int ceiling);
+int __ada_priority_inherit(int priority);
+void __ada_priority_leave(int saved);
+int64_t __ada_task_storage_size(void* identity);
 void* __ada_current_task_object(void);
 void* __ada_task_identity(AdaConcurrentObject* object);
 int __ada_task_id_equal(void* left, void* right);

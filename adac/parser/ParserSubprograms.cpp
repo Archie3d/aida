@@ -230,6 +230,11 @@ DeclPtr Parser::parseTask()
                 privatePart = true;
                 continue;
             }
+            if (check(TokenKind::KwPragma)) {
+                auto pragma = parsePragma(true);
+                if (pragma != nullptr) { decl->concurrentPragmas.push_back(std::move(pragma)); }
+                continue;
+            }
             auto entry = std::make_unique<SubprogramDecl>();
             entry->location = current().location;
             if (match(TokenKind::KwOverriding)) { entry->spec.overriding = OverridingIndicator::Overriding; }

@@ -4,6 +4,12 @@ export function w $main(w %argc, l %argv) {
     %.taskContext =l call $__ada_task_context()
     call $__ada_command_line_init(w %argc, l %argv)
     call $__ada_library_enter()
+    %.mainPriority =w loadw $hello.priority
+    call $__ada_main_priority(w %.mainPriority)
+    %.priorityException =l loadl %.taskContext
+    %.priorityFailed =w cnel %.priorityException, 0
+    jnz %.priorityFailed, @shutdown, @priorityReady
+@priorityReady
     call $ada_elab.ada_spec()
     %.t0 =l loadl %.taskContext
     %.t1 =w cnel %.t0, 0

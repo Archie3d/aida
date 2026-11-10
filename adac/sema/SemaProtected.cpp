@@ -134,6 +134,17 @@ void Sema::analyzeProtected(TypeDecl* decl, Scope* scope)
         : static_cast<ObjectDecl*>(decl->taskObjects.front().get())->namesLower.front());
     Scope* inner = type->protectedScope;
     if (!decl->protectedBody) {
+        Scope* pragmaScope = m_symbolTable.createScope(scope);
+        for (const FieldInfo& field : type->fields) {
+            if (!field.isDiscriminant) { continue; }
+            Symbol* discriminant = m_symbolTable.createSymbol(SymbolKind::Object, field.name, field.displayName);
+            discriminant->type = field.type;
+            discriminant->isConstant = true;
+            discriminant->discriminantRecord = type;
+            discriminant->discriminantIndex = field.index;
+            pragmaScope->add(discriminant);
+        }
+        analyzeConcurrentPragmas(decl, pragmaScope);
         type->protectedName = decl->taskObjects.empty() ? decl->lower
             : static_cast<ObjectDecl*>(decl->taskObjects.front().get())->namesLower.front();
         for (const FieldInfo& field : type->fields) {

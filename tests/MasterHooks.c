@@ -249,3 +249,21 @@ void __ada_task_block_end(AdaTaskContext* context)
 {
     CHECK(context->taskSelf == NULL && context->currentEntry == NULL);
 }
+
+/* The selected main now publishes its priority before library elaboration.
+   These master-only controls use the default native urgency and no ceilings. */
+void __ada_main_priority(int priority)
+{
+    CHECK(priority == kAdaDefaultPriority);
+}
+
+int __ada_priority_enter(int ceiling)
+{
+    CHECK(ceiling < 0);
+    return 0;
+}
+
+void __ada_priority_leave(int saved)
+{
+    CHECK(saved == 0);
+}

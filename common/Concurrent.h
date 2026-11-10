@@ -9,6 +9,6 @@ typedef struct AdaConcurrentObject
     void* resource;
 } AdaConcurrentObject;
 
-enum { kAdaConcurrentHeaderBytes = 16 };
+enum { kAdaConcurrentHeaderBytes = 16, kAdaProtectedActionBytes = 24 };
 
 #endif

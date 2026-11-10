@@ -35,6 +35,7 @@ void Sema::freezeType(Type* type)
         freezeType(base);
     } else {
         freezeType(type->parentType);
+        noteDeferredUses(type->concurrentUses);
         if (type->accessProfile != nullptr) {
             freezeType(type->accessProfile->returnType);
             for (const Symbol* parameter : type->accessProfile->parameters) { freezeType(parameter->type); }

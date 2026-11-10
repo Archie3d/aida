@@ -1,6 +1,6 @@
 # ACATS completed-feature baseline — refreshed 2026-11-10
 
-This backfill adds **154 unchanged upstream cases**: 128 C-tests and 26 B-test
+This backfill adds **160 unchanged upstream cases**: 134 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
 arm64. The compiler build hash, exact observations and source provenance are in
 [the snapshot](../tests/acats/baseline/expected.json) and
@@ -11,12 +11,12 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 3 |
+| Legal C-test rejected | 5 |
 | Support/harness blocked | 0 |
-| Executable PASS | 124 |
+| Executable PASS | 128 |
 | Executable failure | 1 |
 
-No crashes or timeouts were observed. Three legal C-tests are rejected and
+No crashes or timeouts were observed. Five legal C-tests are rejected and
 C35502C retains its enumeration Value tab-trimming runtime failure.
 C761001 now passes unchanged after task entry declarations were supported;
 its unused entry checks library-task termination before controlled finalization.
@@ -511,3 +511,19 @@ B394A01–B394A05 now reach ancestry/private-completion semantics. Exact raw and
 grade snapshots were reviewed under unchanged policies; all five still grade
 FAIL. The independent B total remains 17 PASS / nine FAIL. Rejection alone is
 not a legality pass; earlier sections retain their historical counts.
+
+## Task-services increment (Phase 9)
+
+Six Ada 95/2005 sources were selected before probing. CXC7003, CXDA001,
+CXDA002 and CXD1001 pass unchanged: controlled attribute Set_Value/Reinitialize,
+suspension state and wakeup/duplicate-waiter behavior, and dynamic base priorities.
+CXDA002 needs the documented local Impdef.Minimum_Task_Switch allowance of
+0.1 seconds. No upstream source or REPORT grading was changed.
+
+CXC7002 remains rejected because it requires Pack on a signed-integer array;
+CXDA003 requires Locking_Policy and Interrupt_Priority, which remain explicit
+unsupported constructs. These are retained as failures. All 164 vendored hashes
+validate. The previous 154 outcome classifications remain unchanged; the new
+selection has 128 executable passes, five legal-source rejections, one executable
+failure and 26 ungraded B rejections. The independent B policy remains unchanged.
+[Task-services contract](task-services.md).

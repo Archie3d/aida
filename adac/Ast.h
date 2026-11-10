@@ -987,6 +987,7 @@ struct TypeDecl : Decl
     Expr* smallClause = nullptr;
     DeclList taskObjects; // Anonymous type followed by its single concurrent object.
     DeclList taskEntries;
+    DeclList concurrentPragmas;
     DeclList protectedDeclarations;
     bool protectedBody = false;
 };

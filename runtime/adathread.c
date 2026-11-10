@@ -9,6 +9,16 @@
 #include <errno.h>
 #include <time.h>
 #include <sched.h>
+#include <limits.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#include <mach/thread_policy.h>
+#elif defined(__linux__)
+#include <sys/resource.h>
+#include <sys/syscall.h>
+extern long syscall(long, ...);
+#endif
 
 int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument)
 {
@@ -16,6 +26,87 @@ int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument)
         return EINVAL;
     }
     return pthread_create(thread, NULL, entry, argument);
+}
+
+int __ada_thread_stack_size(int64_t requested, int64_t* actual)
+{
+    if (requested < 0 || actual == NULL || (uint64_t)requested > SIZE_MAX) { return EINVAL; }
+    pthread_attr_t attributes;
+    int status = pthread_attr_init(&attributes);
+    if (status != 0) { return status; }
+    size_t size;
+    status = pthread_attr_getstacksize(&attributes, &size);
+    if (status == 0 && (uint64_t)requested > size) {
+        long page = sysconf(_SC_PAGESIZE);
+        size_t alignment = page > 0 ? (size_t)page : 4096;
+        size = (size_t)requested;
+        size_t remainder = size % alignment;
+        if (remainder != 0) {
+            if (size > SIZE_MAX - (alignment - remainder)) { status = EOVERFLOW; }
+            else { size += alignment - remainder; }
+        }
+    }
+    if (status == 0) { status = pthread_attr_setstacksize(&attributes, size); }
+    pthread_attr_destroy(&attributes);
+    if (status == 0 && size <= INT64_MAX) { *actual = (int64_t)size; }
+    else if (status == 0) { status = EOVERFLOW; }
+    return status;
+}
+
+int __ada_thread_create_stack(AdaThread* thread, AdaThreadEntry entry, void* argument, int64_t bytes)
+{
+    if (thread == NULL || entry == NULL || bytes <= 0 || (uint64_t)bytes > SIZE_MAX) { return EINVAL; }
+    pthread_attr_t attributes;
+    int status = pthread_attr_init(&attributes);
+    if (status != 0) { return status; }
+    status = pthread_attr_setstacksize(&attributes, (size_t)bytes);
+    if (status == 0) { status = pthread_create(thread, &attributes, entry, argument); }
+    pthread_attr_destroy(&attributes);
+    return status;
+}
+
+AdaPriorityThread __ada_priority_thread_self(void)
+{
+    AdaPriorityThread result = { .thread = pthread_self(), .nativeId = 0 };
+#if defined(__linux__)
+    result.nativeId = syscall(SYS_gettid);
+#endif
+    return result;
+}
+
+#if defined(__linux__)
+static pthread_once_t priorityBaselineOnce = PTHREAD_ONCE_INIT;
+static int priorityBaseline;
+static void capturePriorityBaseline(void)
+{
+    priorityBaseline = getpriority(PRIO_PROCESS, 0);
+}
+#endif
+
+int __ada_thread_set_priority(AdaPriorityThread thread, int priority)
+{
+    if (priority < kAdaPriorityFirst || priority > kAdaAnyPriorityLast) { return EINVAL; }
+#if defined(__APPLE__)
+    thread_precedence_policy_data_t policy = { .importance = priority - kAdaDefaultPriority };
+    kern_return_t status = thread_policy_set(pthread_mach_thread_np(thread.thread),
+        THREAD_PRECEDENCE_POLICY, (thread_policy_t)&policy, THREAD_PRECEDENCE_POLICY_COUNT);
+    return status == KERN_SUCCESS ? 0 : ENOTSUP;
+#elif defined(__linux__)
+    pthread_once(&priorityBaselineOnce, capturePriorityBaseline);
+    int nice = priorityBaseline + kAdaDefaultPriority - priority;
+    if (nice < -20 || nice > 19) { return ENOTSUP; }
+    return setpriority(PRIO_PROCESS, (id_t)thread.nativeId, nice) == 0 ? 0 : errno;
+#else
+    int policy;
+    struct sched_param parameter;
+    int status = pthread_getschedparam(thread.thread, &policy, &parameter);
+    if (status != 0) { return status; }
+    int first = sched_get_priority_min(policy), last = sched_get_priority_max(policy);
+    if (first < 0 || last < 0) { return errno; }
+    if (last - first < kAdaAnyPriorityLast) { return priority == kAdaDefaultPriority ? 0 : ENOTSUP; }
+    parameter.sched_priority = first + (priority * (last - first)) / kAdaAnyPriorityLast;
+    return pthread_setschedparam(thread.thread, policy, &parameter);
+#endif
 }
 
 int __ada_thread_join(AdaThread thread, void** result)

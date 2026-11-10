@@ -8,7 +8,7 @@
 #include <stdatomic.h>
 #include <string.h>
 
-_Static_assert(sizeof(AdaProtectedAction) == 16, "protected action QBE ABI");
+_Static_assert(sizeof(AdaProtectedAction) == kAdaProtectedActionBytes, "protected action QBE ABI");
 
 typedef struct AdaEntryWaiter
 {
@@ -27,6 +27,7 @@ typedef struct AdaProtectedLock
     AdaEntryWaiter* queue;
     int servicing;
     int accessLevel;
+    int ceiling;
     unsigned long epoch;
     atomic_uint references;
     unsigned int pending;
@@ -139,6 +140,7 @@ void __ada_protected_init_access(AdaConcurrentObject* object, int accessLevel)
         return;
     }
     lock->accessLevel = accessLevel;
+    lock->ceiling = -1;
     lock->queue = NULL;
     lock->servicing = 0;
     lock->epoch = 0;
@@ -146,6 +148,14 @@ void __ada_protected_init_access(AdaConcurrentObject* object, int accessLevel)
     lock->pending = 0;
     lock->disposed = 0;
     object->resource = lock;
+}
+
+void __ada_protected_set_ceiling(AdaConcurrentObject* object, int priority)
+{
+    if (object->resource == NULL || priority < kAdaPriorityFirst || priority > kAdaPriorityLast) {
+        __ada_raise(ADA_CONSTRAINT_ERROR); return;
+    }
+    ((AdaProtectedLock*)object->resource)->ceiling = priority;
 }
 
 static void releaseLock(AdaProtectedLock* lock)
@@ -244,6 +254,12 @@ void __ada_protected_enter(AdaTaskContext* context, AdaConcurrentObject* object,
     while (lock->servicing) {
         waitForChange(lock);
     }
+    action->savedPriority = __ada_priority_enter(lock->ceiling);
+    if (action->savedPriority < 0) {
+        __ada_mutex_unlock(&lock->mutex);
+        __ada_abort_undefer(context);
+        return;
+    }
     action->lock = lock;
     action->previous = context->protectedActions;
     context->protectedActions = action;
@@ -255,6 +271,7 @@ void __ada_protected_leave(AdaTaskContext* context, AdaProtectedAction* action)
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
+    __ada_priority_leave(action->savedPriority);
     context->protectedActions = action->previous;
     AdaProtectedLock* lock = action->lock;
     __ada_mutex_unlock(&lock->mutex);
@@ -293,6 +310,7 @@ int __ada_protected_entry_enter_until(AdaTaskContext* context, AdaConcurrentObje
     *tail = &waiter;
     atomic_fetch_add(&lock->references, 1);
     serviceQueue(context, lock);
+    __ada_priority_leave(action->savedPriority);
     context->protectedActions = action->previous;
     __ada_abort_undefer(context);
     while (waiter.ready == 0) {
@@ -347,6 +365,7 @@ void __ada_protected_complete(AdaTaskContext* context, AdaProtectedAction* actio
     lock->servicing = 0;
     unsigned long epoch = lock->epoch;
     int selected = serviceQueue(context, lock);
+    __ada_priority_leave(action->savedPriority);
     context->protectedActions = action->previous;
     if (selected) {
         // The selected caller executes in its own task context. Wait for the
@@ -402,7 +421,18 @@ void __ada_protected_request_enqueue(AdaTaskContext* context, AdaEntryCall* call
         __ada_abort_defer(context);
         __ada_mutex_lock(&lock->mutex);
         while (lock->servicing && !lock->disposed) { waitForChange(lock); }
-        action = (AdaProtectedAction) {lock, context->protectedActions};
+        action = (AdaProtectedAction) {lock, context->protectedActions, __ada_priority_enter(lock->ceiling)};
+        if (action.savedPriority < 0) {
+            __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
+            if (call->protectedPending) { --lock->pending; call->protectedPending = 0; }
+            __ada_entry_finish_locked(call, context->exception);
+            __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
+            __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+            __ada_mutex_unlock(&lock->mutex);
+            __ada_abort_undefer(context);
+            free(waiter);
+            return;
+        }
         context->protectedActions = &action;
     }
     *waiter = (AdaEntryWaiter) {NULL, call->barrier, call->link, call->object, 0, call};
@@ -449,6 +479,7 @@ void __ada_protected_request_enqueue(AdaTaskContext* context, AdaEntryCall* call
         }
     }
     if (!internal) {
+        __ada_priority_leave(action.savedPriority);
         context->protectedActions = action.previous;
         __ada_mutex_unlock(&lock->mutex);
         __ada_abort_undefer(context);
@@ -460,6 +491,7 @@ static void releaseRequeueAction(AdaTaskContext* context, AdaProtectedAction* ac
     AdaProtectedLock* lock = action->lock;
     lock->servicing = 0;
     if (!serviceQueue(context, lock)) { ++lock->epoch; notify(lock); }
+    __ada_priority_leave(action->savedPriority);
     context->protectedActions = action->previous;
     __ada_mutex_unlock(&lock->mutex);
     __ada_abort_undefer(context);
@@ -469,7 +501,7 @@ void __ada_protected_request_execute(AdaTaskContext* context, AdaEntryCall* call
 {
     AdaProtectedLock* lock = call->protectedLock;
     __ada_mutex_lock(&lock->mutex);
-    AdaProtectedAction action = {lock, context->protectedActions};
+    AdaProtectedAction action = {lock, context->protectedActions, __ada_priority_enter(lock->ceiling)};
     context->protectedActions = &action;
     __ada_abort_defer(context);
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
@@ -479,7 +511,7 @@ void __ada_protected_request_execute(AdaTaskContext* context, AdaEntryCall* call
     free(waiter);
     AdaEntryCall* previous = context->currentEntry;
     context->currentEntry = call;
-    call->body(call->arguments);
+    if (context->exception == NULL) { call->body(call->arguments); }
     context->currentEntry = previous;
     if (context->exception == NULL && call->redirect != NULL) {
         __ada_entry_complete(context, call, 1);

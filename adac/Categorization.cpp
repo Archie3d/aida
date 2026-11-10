@@ -25,7 +25,7 @@ bool initialization(Type* type, Symbol* owner, Type* fullType, std::unordered_se
     }
     // Recursion through an access component terminates at its elementary type.
     if (!visiting.insert(type).second) { return false; }
-    bool result = constraints(type, owner);
+    bool result = constraints(type, owner) && preelaborableExpression(type->concurrentPriority, owner);
     if (type->parentType != nullptr) { result = result && initialization(type->parentType, owner, nullptr, visiting, viewScope); }
     if (type->controlled) {
         for (const Symbol* operation : type->primitives) {

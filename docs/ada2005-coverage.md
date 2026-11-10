@@ -192,7 +192,7 @@ inventory, while the linked contracts and tests establish the supported subset.
 | 13.11.2 | Ada.Unchecked_Deallocation | Shared named object collections; foreign-task deallocation, partial failure and task termination before reclamation; [custom pool dispatch added in P8](storage-pools.md); anonymous access added in P6d | `deallocation*`, `sharedcollections`, `sharedtaskcollections`, `runtime.shared_collections` (whole/separate/determinism, sanitizers); C761002 PASS | P6a complete; P6d access/P8 coverage |
 | 9.6 / Core; J.1 / Core (obsolescent); 9.6.1, 13.7 / Core | Ada.Calendar; Calendar; Arithmetic, Formatting, Time_Zones; System.Tick | UTC Gregorian 1901–2399, microsecond Time, full-range day arithmetic, explicit minute offsets, weekday/HMS access, strict date/elapsed images and values. Leap seconds unsupported: zero/False reports and Time_Error on requests; expanded elapsed hour fields and boundary behavior documented ([contract](calendar.md)) | `calendarlibrary`, `calendarchildren`, `calendarchecks`, `calendartasking` (whole/per-unit/determinism/four tasks), `runtime.calendar_library` (every civil date/offset), existing host/time tests; C96006A/C96007A/C96008A/C96008B PASS | P7 Calendar complete for documented host choices; P8 hosts |
 | D.8 / Annex | Ada.Real_Time | 64-bit monotonic nanoseconds; host scheduling, no hard real-time guarantees | `time*`, `runtime.time_lifecycle` | P4 Time; P9 annex |
-| C.7.1 / Annex | Ada.Task_Identification | Identity/status; Abort_Task missing | `taskidentity*` | P4 Task identity; P9 |
+| C.7.1 / Annex | Ada.Task_Identification | Identity/status and Abort_Task; identity lifetime restrictions apply | `taskidentity*` | P4 Task identity; P9 |
 | 2.1–2.3, 3.5.2, 4.1–4.2, A.3.4, J.14 | Wide/Wide_Wide foundation | UTF-8 source, pinned Unicode 4.0 identifier rules, code-point literals, standard wide overloads, scalar text attributes, Conversions and Handling compatibility views ([contract](wide-foundation.md)); wide string/map families and the final [audit](wide-library-audit.md) are implemented | `widefoundation`, whole/per-unit/determinism; `unicodeunitbundle`, `semantics.unicode_source`, `wideambiguityerrors`, exhaustive four-thread C checks and compiler/C-runtime sanitizers; unchanged CXA3004 PASS | P7 wide-library item complete for documented subset; P8 broader audit |
 
 ### Additional core units and missing APIs
@@ -233,7 +233,7 @@ a separate Phase 8 item.
 | --- | --- | --- | --- |
 | B.1–B.5 | Foreign conventions and Interfaces packages | C and Ada Import/callback subset with focused ABI tests. Interfaces, Interfaces.C and its children, COBOL and Fortran packages are absent | P8 foreign ABI and predefined environment |
 | C.3, C.6–C.7 | Interrupts, shared variables, task information and termination | Scalar Atomic/Volatile and identity/status covered above. Interrupts and task attributes/termination units absent | P8 host ABI; P9 selected task facilities |
-| D.2, D.5, D.8, D.10–D.11, D.14–D.15 | Scheduling, priorities, Real_Time, task control and timers | Monotonic Real_Time and delay subset covered above. Priority controls, task control units, execution-time clocks, timing events and Ravenscar remain open | P9 tasking and selected real-time facilities |
+| D.2, D.5, D.8, D.10–D.11, D.14–D.15 | Scheduling, priorities, Real_Time, task control and timers | Monotonic Real_Time and delay subset covered above. Base priorities, explicit native ceilings and suspension objects follow [task services](task-services.md); full dispatch/locking policies, interrupt priorities, execution-time clocks, timing events and Ravenscar remain open | P9 tasking and selected real-time facilities |
 | E, F, G, H | Distribution, information systems, numerics and safety | No annex-wide validation. Selected decimal behavior passes CXF2002/CXF2003. Distributed services, decimal editing packages, complex/array numerics and profile enforcement have no selected coverage | P8 gap review; P9 selected profiles |
 
 ## Maintaining the matrix
@@ -303,3 +303,13 @@ barriers, with 32/32 reports per mode in bounded repetition.
 Unchanged C940017 PASS joins the regular selection. The 154-case baseline now
 has 124 executable passes; B394A01–B394A05 reach semantic checking but retain
 FAIL under unchanged grading policies (17 B PASS / nine B FAIL overall).
+
+## Task services (Phase 9)
+
+Task/protected Priority pragmas, task Storage_Size, Dynamic_Priorities,
+Task_Attributes and Synchronous_Task_Control follow the
+[task-services contract](task-services.md). Native scheduling restrictions remain
+explicit; full Annex C/D compliance is unclaimed. Whole/separate/determinism,
+legality and native lifetime tests accompany the generated-access sanitizer
+campaign. The selected upstream increment retains unchanged source and REPORT
+protocol, including the failures recorded in the ACATS baseline.

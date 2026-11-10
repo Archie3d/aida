@@ -1,4 +1,5 @@
 #include "Sema.h"
+#include "../../common/Priority.h"
 #include "Categorization.h"
 #include "Parser.h"
 #include "SemaSupport.h"
@@ -205,6 +206,7 @@ void Sema::analyzeDecl(Decl* decl, Scope* scope)
                 discriminant->level = declared->taskBody->level;
                 declared->taskScope->add(discriminant);
             }
+            analyzeConcurrentPragmas(typeDecl, declared->taskScope);
             for (auto& item : typeDecl->taskEntries) {
                 auto* entry = static_cast<SubprogramDecl*>(item.get());
                 auto indicator = entry->spec.overriding;
@@ -1096,11 +1098,60 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
     }
 }
 
-// pragma Import ties the declaration just given to an entry point in the C run
-// time.  It applies to the most recent declaration of the name, so that the
-// overloads of a subprogram can each name the routine that carries them out.
+// Retain per-object expressions with the type and freeze their dependencies
+// when the type is frozen, as for discriminant/component defaults.
+void Sema::analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope)
+{
+    Type* type = decl->declaredType;
+    for (auto& item : decl->concurrentPragmas) {
+        auto* pragma = static_cast<PragmaDecl*>(item.get());
+        bool priority = pragma->lower == "priority";
+        if (!priority && (pragma->lower != "storage_size" || type->taskBody == nullptr)) {
+            m_diagnostics.error(pragma->location, "pragma is not supported in this concurrent definition");
+            continue;
+        }
+        Association& argument = pragma->arguments.front();
+        if (!argument.nameLower.empty() && argument.nameLower != "expression") {
+            m_diagnostics.error(pragma->location, "unknown pragma argument name");
+        }
+        Expr*& target = priority ? type->concurrentPriority : type->taskStorageSize;
+        if (target != nullptr) { m_diagnostics.error(pragma->location, "duplicate " + pragma->name + " pragma"); continue; }
+        target = argument.value.get();
+        Type* value = analyzeDeferredExpression(target, scope, priority ? m_types.integerType() : nullptr, type->concurrentUses);
+        if (value == nullptr || (value->kind != TypeKind::Integer && value->kind != TypeKind::UniversalInteger)) {
+            m_diagnostics.error(target->location, "pragma expression must have an integer type");
+        }
+        if (priority && !typesCompatible(m_types.integerType(), value)) {
+            m_diagnostics.error(target->location, "Priority expression must have type Integer");
+        }
+    }
+}
+
 void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 {
+    if (decl->lower == "priority" || decl->lower == "storage_size") {
+        if (decl->lower != "priority" || m_currentSubprogram == nullptr
+            || scope != m_currentSubprogram->constructScope
+            || (m_currentSubprogram->taskType != nullptr
+                && m_currentSubprogram->taskType->taskBody == m_currentSubprogram)) {
+            m_diagnostics.error(decl->location, "pragma requires a concurrent definition or immediate subprogram body declarative part");
+            return;
+        }
+        if (m_currentSubprogram->prioritySpecified) { m_diagnostics.error(decl->location, "duplicate Priority pragma"); }
+        m_currentSubprogram->prioritySpecified = true;
+        Association& argument = decl->arguments.front();
+        if (!argument.nameLower.empty() && argument.nameLower != "expression") {
+            m_diagnostics.error(decl->location, "unknown Priority argument name");
+        }
+        Expr* value = argument.value.get();
+        Type* valueType = analyzeExpr(value, scope, m_types.integerType());
+        if (valueType == nullptr || !typesCompatible(m_types.integerType(), valueType)
+            || !value->isStatic || value->staticValue < kAdaPriorityFirst || value->staticValue > kAdaPriorityLast
+            || (valueType->kind != TypeKind::Integer && valueType->kind != TypeKind::UniversalInteger)) {
+            m_diagnostics.error(decl->location, "subprogram Priority requires a static expression in System.Priority (0 .. 30)");
+        }
+        return;
+    }
     if (decl->lower == "preelaborable_initialization") {
         Symbol* symbol = lookupName(decl->entityLower, scope);
         Type* type = symbol != nullptr && symbol->kind == SymbolKind::TypeName ? symbol->type : nullptr;

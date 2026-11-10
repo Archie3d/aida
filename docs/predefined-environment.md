@@ -9,7 +9,7 @@ matrix and the checked [inventory](../tests/predefined/inventory.json).
 
 The original audit named 109 source specifications and the two compiler builtins
 Standard/System. After [Storage_Elements](storage-elements.md), the current
-inventory covers 121 source specifications plus builtin Standard: 122 resolving
+inventory covers 124 source specifications plus builtin Standard: 125 resolving
 units, with no absent units. System is now an analyzed source specification,
 retaining only its canonical Address bootstrap in the compiler. Its baseline check compiles an independent import probe for each resolving
 unit, checks every runtime spec is accounted for, and verifies exact normal
@@ -136,3 +136,7 @@ ten missing-unit diagnostics and all 22 recorded API-gap diagnostics. The
 145-case source hashes validate and every observation matches the preceding
 snapshot; only its compiler fingerprint changes. Generated Ada memory accesses
 remain uninstrumented and LeakSanitizer is disabled on this host.
+
+[Task services](task-services.md) add Ada.Task_Attributes,
+Ada.Synchronous_Task_Control and Ada.Dynamic_Priorities with the documented
+native scheduling limits.

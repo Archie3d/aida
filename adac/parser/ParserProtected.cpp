@@ -31,6 +31,11 @@ DeclPtr Parser::parseProtected()
         }
         bool privatePart = false;
         while (!check(TokenKind::KwEnd) && !check(TokenKind::EndOfFile)) {
+            if (!isBody && check(TokenKind::KwPragma)) {
+                auto pragma = parsePragma(true);
+                if (pragma != nullptr) { decl->concurrentPragmas.push_back(std::move(pragma)); }
+                continue;
+            }
             OverridingIndicator indicator = OverridingIndicator::Unspecified;
             SourceLocation indicatorLocation = current().location;
             if (match(TokenKind::KwNot)) {

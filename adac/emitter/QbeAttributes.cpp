@@ -14,7 +14,7 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
 {
     const std::string& name = expr->lower;
     Type* prefixType = expr->prefixType;
-    if (name == "storage_pool" || name == "storage_size") {
+    if (!expr->taskAttribute && (name == "storage_pool" || name == "storage_size")) {
         Value collection = collectionFor(prefixType);
         std::string result = newTemp();
         Value defaultPool = addressOf(m_sema.defaultStoragePool());
@@ -151,6 +151,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
             return identity;
         }
         std::string result = newTemp();
+        if (name == "storage_size") {
+            emitCallInstruction(result + " =l call $__ada_task_storage_size(l " + identity.name + ")", CallEffects::CheckException);
+            return Value {result, qbeClass(expr->type)};
+        }
         emitCallInstruction(result + " =w call $__ada_task_is_" + name + "(l " + identity.name + ")", CallEffects::CheckException);
         return Value { result, 'w' };
     }

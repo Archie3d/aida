@@ -166,6 +166,9 @@ typedef struct AdaTaskContext
     void* asyncTarget;
     struct AdaEntryCall* currentEntry;
     int helperContext;
+    int appliedPriority;
+    int priorityApplied;
+    atomic_int inheritedPriority; // Active protected ceiling plus one; zero means none.
     /* Only the environment context uses these shared service fields. Keep
        their initialized synchronization objects alive across context disposal. */
     AdaMutex sharedStorageMutex;

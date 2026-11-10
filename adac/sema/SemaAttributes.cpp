@@ -525,7 +525,10 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         prefixType = analyzeExpr(expr->prefix.get(), scope, nullptr);
     }
     expr->prefixType = prefixType;
-    if (expr->lower == "storage_pool" || expr->lower == "storage_size") {
+    Type* storageTask = prefixType != nullptr && prefixType->kind == TypeKind::Access ? prefixType->target : prefixType;
+    bool taskStorage = expr->lower == "storage_size" && storageTask != nullptr
+        && (!prefixIsType || prefixType->kind != TypeKind::Access) && baseType(storageTask)->taskBody != nullptr;
+    if (expr->lower == "storage_pool" || (expr->lower == "storage_size" && !taskStorage)) {
         if (!prefixIsType || prefixType == nullptr || prefixType->kind != TypeKind::Access
             || prefixType->accessProfile != nullptr || !expr->arguments.empty() || m_storagePoolType == nullptr) {
             m_diagnostics.error(expr->location, "'Storage_Pool and 'Storage_Size require an access-to-object subtype prefix and no arguments");
@@ -562,7 +565,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->type = m_types.booleanType();
         return expr->type;
     }
-    if (expr->lower == "identity" || expr->lower == "callable" || expr->lower == "terminated") {
+    if (expr->lower == "identity" || expr->lower == "callable" || expr->lower == "terminated" || expr->lower == "storage_size") {
         Type* task = prefixType;
         if (task != nullptr && task->kind == TypeKind::Access) {
             task = task->target;
@@ -594,7 +597,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
                 return nullptr;
             }
             expr->taskAttribute = true;
-            expr->type = expr->lower == "identity" ? m_taskIdType : m_types.booleanType();
+            expr->type = expr->lower == "identity" ? m_taskIdType
+                : expr->lower == "storage_size" ? m_types.universalInteger() : m_types.booleanType();
             return expr->type;
         }
         if (expr->lower != "identity") {

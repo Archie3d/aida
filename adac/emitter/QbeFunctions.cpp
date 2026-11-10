@@ -1,4 +1,5 @@
 #include "QbeEmitter.h"
+#include "../../common/Priority.h"
 #include "QbeSupport.h"
 
 #include "Binder.h"
@@ -277,6 +278,15 @@ void QbeEmitter::emitSubprogram(SubprogramBody* body)
     // A separately compiled caller can take 'Access without recompiling this
     // body. Export one stable descriptor alongside every library subprogram.
     if (symbol->level == 0) {
+        long long priority = kAdaDefaultPriority;
+        for (auto& declaration : body->declarations) {
+            if (declaration->kind != DeclKind::Pragma) { continue; }
+            auto* pragma = static_cast<PragmaDecl*>(declaration.get());
+            if (pragma->lower == "priority") { priority = pragma->arguments.front().value->staticValue; }
+        }
+        // The binder applies the selected main's priority before elaborating
+        // library objects. Other subprogram Priority pragmas have no effect.
+        m_data << "export data " << symbol->qbeName << ".priority = align 4 { w " << priority << " }\n";
         m_data << "export data " << symbol->qbeName << ".elaborated = align 4 { w 0 }\n";
         m_data << "export data " << symbol->qbeName << ".access = align 8 { l " << symbol->qbeName << ", l 0 }\n";
     }

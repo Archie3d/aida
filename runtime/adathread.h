@@ -3,6 +3,7 @@
 
 #include "adalock.h"
 #include <stdint.h>
+#include "../common/Priority.h"
 
 /* Internal C ABI for POSIX hosts, including MSYS2 winpthreads. These objects
    are caller-owned, noncopyable once initialized, and must outlive all users.
@@ -23,6 +24,15 @@ typedef void* (*AdaThreadEntry)(void*);
 
 int __ada_thread_create(AdaThread* thread, AdaThreadEntry entry, void* argument);
 int __ada_thread_join(AdaThread thread, void** result);
+int __ada_thread_stack_size(int64_t requested, int64_t* actual);
+int __ada_thread_create_stack(AdaThread* thread, AdaThreadEntry entry, void* argument, int64_t bytes);
+typedef struct AdaPriorityThread
+{
+    AdaThread thread;
+    intptr_t nativeId;
+} AdaPriorityThread;
+AdaPriorityThread __ada_priority_thread_self(void);
+int __ada_thread_set_priority(AdaPriorityThread thread, int priority);
 
 /* Conditions require explicit initialization for monotonic deadline waits.
    Wait with the mutex locked, using the same mutex for concurrent waiters.

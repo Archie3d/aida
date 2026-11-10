@@ -1,6 +1,7 @@
 data $.ada_text_io_scanning.str.0 = { b "ada-text_io-scanning (spec elaboration)" 0 }
 data $.ada_text_io_scanning.str.1 = { b "<unknown>" 0 }
 data $.ada_text_io_scanning.str.2 = { b "ada-text_io-scanning (body elaboration)" 0 }
+export data $ada__text_io__scanning__normalized.priority = align 4 { w 15 }
 export data $ada__text_io__scanning__normalized.elaborated = align 4 { w 0 }
 export data $ada__text_io__scanning__normalized.access = align 8 { l $ada__text_io__scanning__normalized, l 0 }
 data $.ada_text_io_scanning.str.3 = { b "scanning.ads:26:5" 0 }

@@ -233,6 +233,25 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         // pipeline; the language defines Optimize as implementation advice.
         return nullptr;
     }
+    if (name.lower == "priority" || name.lower == "storage_size") {
+        if (!allowShared || configuration) { fail("pragma " + name.text + " requires a concurrent definition or subprogram body"); }
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->name = name.text;
+        pragma->lower = name.lower;
+        expect(TokenKind::LeftParen, "after pragma name");
+        Association argument;
+        if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+            argument.name = advance().text;
+            argument.nameLower = toLower(argument.name);
+            advance();
+        }
+        argument.value = parseExpression();
+        pragma->arguments.push_back(std::move(argument));
+        expect(TokenKind::RightParen, "after pragma expression");
+        expect(TokenKind::Semicolon, "after pragma");
+        return pragma;
+    }
     if (name.lower == "assert" || name.lower == "assertion_policy"
         || name.lower == "suppress" || name.lower == "unsuppress" || name.lower == "no_return") {
         if (name.lower == "assertion_policy" && !configuration) {

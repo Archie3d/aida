@@ -495,6 +495,9 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->limitedRecord = parent->limitedRecord;
     subtype->exceptionOccurrence = parent->exceptionOccurrence;
     subtype->fileHandle = parent->fileHandle;
+    subtype->concurrentPriority = parent->concurrentPriority;
+    subtype->taskStorageSize = parent->taskStorageSize;
+    subtype->concurrentUses = parent->concurrentUses;
     subtype->taskBody = parent->taskBody;
     subtype->taskScope = parent->taskScope;
     subtype->taskEntries = parent->taskEntries;
@@ -536,6 +539,9 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->fields = completed->fields;
         subtype->recordRepresentationSpecified = completed->recordRepresentationSpecified;
         subtype->layoutSymbol = completed->layoutSymbol;
+        subtype->concurrentPriority = completed->concurrentPriority;
+        subtype->taskStorageSize = completed->taskStorageSize;
+        subtype->concurrentUses = completed->concurrentUses;
         subtype->taskBody = completed->taskBody;
         subtype->taskScope = completed->taskScope;
         subtype->taskEntries = completed->taskEntries;

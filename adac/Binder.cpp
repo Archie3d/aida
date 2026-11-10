@@ -129,6 +129,13 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     out << "    %.taskContext =l call $__ada_task_context()\n";
     out << "    call $__ada_command_line_init(w %argc, l %argv)\n";
     out << "    call $__ada_library_enter()\n";
+    if (!mainName.empty()) {
+        out << "    %.mainPriority =w loadw " << mainName << ".priority\n";
+        out << "    call $__ada_main_priority(w %.mainPriority)\n";
+        out << "    %.priorityException =l loadl %.taskContext\n";
+        out << "    %.priorityFailed =w cnel %.priorityException, 0\n";
+        out << "    jnz %.priorityFailed, @shutdown, @priorityReady\n@priorityReady\n";
+    }
 
     // A unit whose elaboration failed leaves the ones after it unelaborated, so
     // the program stops at the first failure rather than running on.

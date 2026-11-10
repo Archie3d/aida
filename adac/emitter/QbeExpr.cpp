@@ -1,4 +1,5 @@
 #include "QbeEmitter.h"
+#include "../../common/Priority.h"
 #include "QbeSupport.h"
 
 #include <cmath>
@@ -974,7 +975,18 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
             label(next);
         }
     }
+    Value priority = base->concurrentPriority != nullptr ? emitExpr(base->concurrentPriority) : Value {std::to_string(kAdaDefaultPriority), 'w'};
+    Value stack = base->taskStorageSize != nullptr ? emitExpr(base->taskStorageSize) : Value {"0", 'l'};
+    if (stack.type == 'w') {
+        std::string wide = newTemp();
+        line(wide + " =l " + (base->taskStorageSize != nullptr && base->taskStorageSize->type->modulus != 0
+            ? "extuw " : "extsw ") + stack.name);
+        stack = Value {wide, 'l'};
+    }
     m_context->discriminantObjects = std::move(savedObjects);
+    if (base->protectedScope != nullptr && base->concurrentPriority != nullptr) {
+        emitCallInstruction("call $__ada_protected_set_ceiling(l " + address.name + ", w " + priority.name + ")", CallEffects::CheckException);
+    }
     if (base->protectedScope != nullptr && hasAccessDiscriminants(type)) {
         std::string owner = !m_context->constructionOwner.empty() ? m_context->constructionOwner
             : m_context->initializingTemporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
@@ -984,9 +996,10 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
         Symbol* body = base->taskBody;
         Value link = body->level > 0 ? staticLinkFor(body->level - 1) : Value { "0", 'l' };
         Value flag = elaborationFlag(body);
-        emitCallInstruction("call $__ada_task_create_owned(l %.taskContext, l " + address.name + ", l " + body->qbeName
+        emitCallInstruction("call $__ada_task_create_configured(l %.taskContext, l " + address.name + ", l " + body->qbeName
              + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
-             + m_context->taskGroup + ", l " + m_context->taskMaster + ")", CallEffects::CheckException);
+             + m_context->taskGroup + ", l " + m_context->taskMaster + ", w " + priority.name + ", w "
+             + (base->concurrentPriority != nullptr ? "1" : "0") + ", l " + stack.name + ")", CallEffects::CheckException);
         return;
     }
     if (base->controlled) {

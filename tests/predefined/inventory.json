@@ -178,6 +178,12 @@
       "status": "resolves"
     },
     {
+      "name": "ada.dynamic_priorities",
+      "source": "runtime/ada/ada/dynamic_priorities.ads",
+      "scope": "annex_subset",
+      "status": "resolves"
+    },
+    {
       "name": "ada.environment_variables",
       "source": "runtime/ada/ada/environment_variables.ads",
       "scope": "core_or_compatibility",
@@ -535,6 +541,12 @@
       "status": "resolves"
     },
     {
+      "name": "ada.synchronous_task_control",
+      "source": "runtime/ada/ada/synchronous_task_control.ads",
+      "scope": "annex_subset",
+      "status": "resolves"
+    },
+    {
       "name": "ada.tags",
       "source": "runtime/ada/ada/tags.ads",
       "scope": "core_or_compatibility",
@@ -546,6 +558,12 @@
       "status": "resolves",
       "rm": "3.9",
       "source": "runtime/ada/ada/tags/generic_dispatching_constructor.ads"
+    },
+    {
+      "name": "ada.task_attributes",
+      "source": "runtime/ada/ada/task_attributes.ads",
+      "scope": "annex_subset",
+      "status": "resolves"
     },
     {
       "name": "ada.task_identification",

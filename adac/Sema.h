@@ -94,6 +94,7 @@ private:
     void analyzeSubprogramBody(SubprogramBody* body, Scope* scope);
     void analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope);
     void analyzePragma(PragmaDecl* decl, Scope* scope);
+    void analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope);
 
     // SemaPackages.cpp
     Symbol* declarePackagePath(const std::string& lower, const std::string& displayName, Scope* scope,

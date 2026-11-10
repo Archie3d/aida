@@ -41,6 +41,8 @@ typedef struct AdaEntryCall
     void* arguments;
     void* ownedArguments;
     int entry;
+    int priority;
+    int savedPriority;
     int64_t index;
     int done;
     int selected;

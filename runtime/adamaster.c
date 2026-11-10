@@ -5,6 +5,7 @@
 #include "adacalendar.h"
 #include "adaprotected.h"
 #include "adaentry.h"
+#include "adataskservices.h"
 #include <errno.h>
 #include <stddef.h>
 
@@ -56,6 +57,12 @@ typedef struct AdaTaskState
     void* group;
     const int* elaborated;
     AdaThread thread;
+    AdaPriorityThread priorityThread;
+    atomic_int basePriority;
+    int priorityReady;
+    int activationPriority;
+    int64_t storageSize;
+    int stackSpecified;
     AdaMutex mutex;
     AdaCondition condition;
     AdaCondition entryChanged;
@@ -120,12 +127,106 @@ typedef struct AdaAsyncSelect
 
 const AdaException __ada_exc_async_transfer = { "__ASYNC_TRANSFER" };
 
-static AdaTaskState environmentTask = { .image = "environment" };
+static AdaTaskState environmentTask = { .image = "environment",
+    .mutex = ADA_MUTEX_INITIALIZER, .basePriority = kAdaDefaultPriority };
 
 void* __ada_current_task(void)
 {
     AdaTaskContext* context = __ada_task_context();
     return context->taskSelf != NULL ? context->taskSelf : &environmentTask;
+}
+
+int __ada_get_priority(void* identity)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return 0; }
+    AdaTaskState* task = identity;
+    if (atomic_load(&task->terminated)) { __ada_raise(ADA_TASKING_ERROR); return 0; }
+    return atomic_load(&task->basePriority);
+}
+
+static int activePriority(AdaTaskState* task, AdaTaskContext* context)
+{
+    int base = atomic_load(&task->basePriority);
+    int floor = atomic_load(&context->inheritedPriority) - 1;
+    return base > floor ? base : floor;
+}
+
+void __ada_set_priority(int priority, void* identity)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return; }
+    if (priority < kAdaPriorityFirst || priority > kAdaAnyPriorityLast) {
+        __ada_raise(ADA_CONSTRAINT_ERROR); return;
+    }
+    AdaTaskState* task = identity;
+    __ada_mutex_lock(&task->mutex);
+    int status = 0;
+    if (!atomic_load(&task->terminated)) {
+        AdaTaskContext* context = task == &environmentTask ? &__ada_main_context : &task->context;
+        int floor = atomic_load(&context->inheritedPriority) - 1;
+        if (!task->priorityReady && task == __ada_current_task()) {
+            task->priorityThread = __ada_priority_thread_self();
+            task->priorityReady = 1;
+        }
+        if (task->priorityReady) {
+            status = __ada_thread_set_priority(task->priorityThread, priority > floor ? priority : floor);
+        }
+        if (status == 0) { atomic_store(&task->basePriority, priority); }
+    }
+    __ada_mutex_unlock(&task->mutex);
+    if (status != 0) { __ada_raise(ADA_TASKING_ERROR); }
+}
+
+void __ada_main_priority(int priority)
+{
+    __ada_set_priority(priority, __ada_current_task());
+}
+
+static int refreshPriority(AdaTaskContext* context)
+{
+    AdaTaskState* task = __ada_current_task();
+    int priority = activePriority(task, context);
+    if (context->priorityApplied && priority == context->appliedPriority) { return 0; }
+    __ada_mutex_lock(&task->mutex);
+    priority = activePriority(task, context);
+    int status = __ada_thread_set_priority(__ada_priority_thread_self(), priority);
+    if (status == 0) { context->priorityApplied = 1; context->appliedPriority = priority; }
+    __ada_mutex_unlock(&task->mutex);
+    if (status != 0 && context->exception == NULL) { __ada_raise(ADA_TASKING_ERROR); }
+    return status;
+}
+
+int __ada_priority_inherit(int priority)
+{
+    AdaTaskContext* context = __ada_task_context();
+    int saved = atomic_load(&context->inheritedPriority);
+    if (priority + 1 > saved) { atomic_store(&context->inheritedPriority, priority + 1); }
+    if (refreshPriority(context) != 0) { atomic_store(&context->inheritedPriority, saved); return -1; }
+    return saved;
+}
+
+int __ada_priority_enter(int ceiling)
+{
+    AdaTaskContext* context = __ada_task_context();
+    int saved = atomic_load(&context->inheritedPriority);
+    if (ceiling < 0) { return saved; }
+    if (activePriority(__ada_current_task(), context) > ceiling) {
+        __ada_raise(ADA_PROGRAM_ERROR); return -1;
+    }
+    return __ada_priority_inherit(ceiling);
+}
+
+void __ada_priority_leave(int saved)
+{
+    if (saved < 0) { return; }
+    AdaTaskContext* context = __ada_task_context();
+    atomic_store(&context->inheritedPriority, saved);
+    refreshPriority(context);
+}
+
+int64_t __ada_task_storage_size(void* identity)
+{
+    if (identity == NULL) { __ada_raise(ADA_PROGRAM_ERROR); return 0; }
+    return ((AdaTaskState*)identity)->storageSize;
 }
 
 void* __ada_task_identity(AdaConcurrentObject* object)
@@ -290,6 +391,8 @@ int __ada_async_ready(AdaTaskContext* context)
 void __ada_async_poll(AdaTaskContext* context)
 {
     if (context->exception != NULL) { return; }
+    refreshPriority(context);
+    if (context->exception != NULL) { return; }
     if (context->abortDeferralDepth == 0
         && atomic_load(&(context->taskSelf != NULL ? context->taskSelf : &environmentTask)->abortRequested)) {
         context->asyncTarget = NULL;
@@ -424,6 +527,7 @@ static AdaEntryCall* newEntryCall(AdaTaskContext* context, void* arguments,
     }
     call->arguments = arguments;
     call->caller = __ada_current_task();
+    call->priority = activePriority(call->caller, context);
     call->abortable = 1;
     call->deadline = deadline;
     call->clock = clock;
@@ -884,6 +988,15 @@ int __ada_task_select(AdaTaskContext* context, const AdaSelectChoice* choices,
     task->blocked = 0;
     __ada_condition_broadcast(&__ada_main_context.sharedMasterChanged);
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
+    if (*request != NULL) {
+        AdaEntryCall* call = *request;
+        call->savedPriority = __ada_priority_inherit(call->priority);
+        if (context->exception != NULL) {
+            __ada_task_entry_complete(context, call);
+            *request = NULL;
+            result = -1;
+        }
+    }
     return result;
 }
 
@@ -908,6 +1021,7 @@ void __ada_task_entry_complete(AdaTaskContext* context, void* request)
     task->accepted = call->previousAccept;
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     context->currentEntry = call->previousContextEntry;
+    __ada_priority_leave(call->savedPriority);
     __ada_entry_complete(context, call, 0);
 }
 
@@ -933,8 +1047,16 @@ int __ada_task_entry_count(void* identity, int entry, int64_t index)
 
 void __ada_environment_task_state(int completed, int terminated)
 {
+    if (!completed && !terminated) {
+        __ada_mutex_lock(&environmentTask.mutex);
+        environmentTask.priorityThread = __ada_priority_thread_self();
+        environmentTask.priorityReady = 1;
+        atomic_store(&environmentTask.basePriority, kAdaDefaultPriority);
+        __ada_mutex_unlock(&environmentTask.mutex);
+    }
     atomic_store(&environmentTask.completed, completed);
     atomic_store(&environmentTask.terminated, terminated);
+    if (terminated) { __ada_task_attributes_terminated(&environmentTask); }
 }
 
 /* List and scheduling ownership is protected by the environment context's
@@ -1196,6 +1318,11 @@ void __ada_task_activated(AdaTaskContext* context)
         return;
     }
     __ada_mutex_lock(&task->mutex);
+    atomic_store(&context->inheritedPriority, 0);
+    __ada_mutex_unlock(&task->mutex);
+    int status = refreshPriority(context);
+    __ada_mutex_lock(&task->mutex);
+    if (status != 0) { task->activationFailed = 1; }
     task->activated = 1;
     __ada_condition_broadcast(&task->condition);
     __ada_mutex_unlock(&task->mutex);
@@ -1222,12 +1349,26 @@ static void* executeTask(void* argument)
     AdaTaskState* task = argument;
     task->context.taskSelf = task;
     __ada_task_context_bind(&task->context);
+    __ada_mutex_lock(&task->mutex);
+    task->priorityThread = __ada_priority_thread_self();
+    task->priorityReady = 1;
+    atomic_store(&task->context.inheritedPriority, task->activationPriority + 1);
+    int priority = activePriority(task, &task->context);
+    int status = __ada_thread_set_priority(task->priorityThread, priority);
+    task->context.appliedPriority = priority;
+    task->context.priorityApplied = status == 0;
+    __ada_mutex_unlock(&task->mutex);
+    if (status != 0) { __ada_raise(ADA_TASKING_ERROR); }
     __ada_async_poll(&task->context);
     if (task->context.exception == NULL) { task->body(task->link); }
     __ada_task_complete(&task->context);
     __ada_task_activation_failed(&task->context);
     // An exception escaping the handled sequence completes only this task.
     // Generated cleanup has already awaited its dependents and finalized locals.
+    __ada_mutex_lock(&task->mutex);
+    atomic_store(&task->terminated, 1);
+    __ada_mutex_unlock(&task->mutex);
+    __ada_task_attributes_terminated(task);
     task->context.taskSelf = NULL;
     __ada_task_context_dispose(&task->context);
     __ada_mutex_lock(&__ada_main_context.sharedMasterMutex);
@@ -1240,13 +1381,20 @@ static void* executeTask(void* argument)
     return NULL;
 }
 
-void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
+void __ada_task_create_configured(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
-                            AdaMaster* owner)
+                            AdaMaster* owner, int priority, int specified, int64_t storageSize)
 {
     if (context->protectedActions != NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
+    }
+    if (specified && (priority < kAdaPriorityFirst || priority > kAdaPriorityLast)) {
+        __ada_raise(ADA_CONSTRAINT_ERROR); return;
+    }
+    int64_t actualSize;
+    if (__ada_thread_stack_size(storageSize, &actualSize) != 0) {
+        __ada_raise(ADA_STORAGE_ERROR); return;
     }
     // AdaCollection begins with its independent master identity.
     AdaMaster* master = owner != NULL ? owner : __ada_task_owner(context, collection);
@@ -1281,6 +1429,9 @@ void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* objec
         __ada_raise(ADA_STORAGE_ERROR);
         return;
     }
+    atomic_init(&task->basePriority, specified ? priority : atomic_load(&((AdaTaskState*)__ada_current_task())->basePriority));
+    task->storageSize = actualSize;
+    task->stackSpecified = storageSize > 0;
     atomic_init(&task->abortRequested, 0);
     atomic_init(&task->completed, 0);
     atomic_init(&task->terminated, 0);
@@ -1317,6 +1468,14 @@ void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* objec
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
 }
 
+void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
+                            void* link, const int* elaborated, void* collection, void* group,
+                            AdaMaster* owner)
+{
+    __ada_task_create_configured(context, object, body, link, elaborated, collection, group,
+        owner, kAdaDefaultPriority, 0, 0);
+}
+
 AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection)
 {
     return collection != NULL ? collection : context->currentMaster;
@@ -1344,7 +1503,6 @@ void* __ada_task_result_mark(AdaMaster* master)
 
 static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* group)
 {
-    (void)context;
     if (!(masterActivities(master) & kMasterDependents)) {
         return;
     }
@@ -1387,16 +1545,20 @@ static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* grou
     }
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     int failed = 0;
+    int storageFailed = 0;
     for (size_t i = 0; i < count; ++i) {
         AdaTaskState* task = batch[i];
-        if (__ada_thread_create(&task->thread, executeTask, task) == 0) {
+        task->activationPriority = activePriority(__ada_current_task(), context);
+        if (__ada_thread_create_stack(&task->thread, executeTask, task, task->storageSize) == 0) {
             // The claim keeps await/discard from inspecting scheduling fields
             // until the complete activation transaction has been published.
             task->started = 1;
         } else {
             completeTask(task);
             atomic_store(&task->terminated, 1);
+            __ada_task_attributes_terminated(task);
             task->joined = 1;
+            storageFailed |= task->stackSpecified;
             failed = 1;
         }
     }
@@ -1419,7 +1581,7 @@ static void activateGroup(AdaTaskContext* context, AdaMaster* master, void* grou
     __ada_mutex_unlock(&__ada_main_context.sharedMasterMutex);
     free(batch);
     if (failed) {
-        __ada_raise(ADA_TASKING_ERROR);
+        __ada_raise(storageFailed ? ADA_STORAGE_ERROR : ADA_TASKING_ERROR);
     }
 }
 
@@ -1447,6 +1609,7 @@ static void awaitTask(AdaTaskState* task)
     // An unactivated task terminates without running after declaration failure.
     completeTask(task);
     atomic_store(&task->terminated, 1);
+    __ada_task_attributes_terminated(task);
 }
 
 static int dependsOn(AdaMasterState* state, AdaMaster* master)

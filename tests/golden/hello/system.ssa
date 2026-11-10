@@ -7,22 +7,27 @@ data $.system.str.1 = { b "system.ads:37:5" 0 }
 data $.system.str.2 = { b "system.ads:42:5" 0 }
 data $.system.str.3 = { b "system (spec elaboration)" 0 }
 data $.system.str.4 = { b "<unknown>" 0 }
+export data $system__operator_60.priority = align 4 { w 15 }
 export data $system__operator_60.elaborated = align 4 { w 0 }
 export data $system__operator_60.access = align 8 { l $system__operator_60, l 0 }
 data $.system.str.5 = { b "system.ads:29:5" 0 }
 data $.system.str.6 = { b "<" 0 }
+export data $system__operator_60_61.priority = align 4 { w 15 }
 export data $system__operator_60_61.elaborated = align 4 { w 0 }
 export data $system__operator_60_61.access = align 8 { l $system__operator_60_61, l 0 }
 data $.system.str.7 = { b "system.ads:30:5" 0 }
 data $.system.str.8 = { b "<=" 0 }
+export data $system__operator_62.priority = align 4 { w 15 }
 export data $system__operator_62.elaborated = align 4 { w 0 }
 export data $system__operator_62.access = align 8 { l $system__operator_62, l 0 }
 data $.system.str.9 = { b "system.ads:31:5" 0 }
 data $.system.str.10 = { b ">" 0 }
+export data $system__operator_62_61.priority = align 4 { w 15 }
 export data $system__operator_62_61.elaborated = align 4 { w 0 }
 export data $system__operator_62_61.access = align 8 { l $system__operator_62_61, l 0 }
 data $.system.str.11 = { b "system.ads:32:5" 0 }
 data $.system.str.12 = { b ">=" 0 }
+export data $system__operator_61.priority = align 4 { w 15 }
 export data $system__operator_61.elaborated = align 4 { w 0 }
 export data $system__operator_61.access = align 8 { l $system__operator_61, l 0 }
 data $.system.str.13 = { b "system.ads:33:5" 0 }

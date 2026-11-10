@@ -1008,7 +1008,7 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     }
     std::string protectedAction;
     if ((expr->protectedObject != nullptr && subprogram->protectedType != nullptr) || subprogram->protectedAccessProfile) {
-        protectedAction = allocScratch(16);
+        protectedAction = allocScratch(kAdaProtectedActionBytes);
         if (subprogram->entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
             if (selectPlan != nullptr) {

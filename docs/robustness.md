@@ -124,15 +124,15 @@ memory operations participate in the same race detector. Atomic operations
 remain runtime atomics; the adapter does not turn them into ordinary accesses.
 The pass does not add artificial Ada synchronization.
 
-`robustness.sanitized_tasking` runs 33 programs in whole and separate
+`robustness.sanitized_tasking` runs 38 programs in whole and separate
 compilation: task lifecycle/finalization, protected entries, shared scalars, time,
-identity, rendezvous, select, requeue/abort, concurrent discriminants, callable views and interface implementations. Clean cases require exact expected output, empty stderr and success.
+identity, rendezvous, select, requeue/abort, concurrent discriminants, callable views, interface implementations and task services. Clean cases require exact expected output, empty stderr and success.
 With TSan it additionally runs a deliberate Ada-to-Ada write race in both modes.
 Two independent C barriers bracket generated Ada writes. Relaxed atomic turn
 flags select their physical order without a happens-before edge between them;
 neither task can publish completion until both writes have occurred. Both modes
 must produce a TSan data-race report and exit 66; an arbitrary crash cannot satisfy
-the control. ASan/UBSan runs 66 clean executions; TSan runs 68 executions.
+the control. ASan/UBSan runs 76 clean executions; TSan runs 78 executions.
 `coverage.json` records case/mode and instrumented-access counts; `run.json`
 retains each execution's result. There are no race suppressions. The negative
 control disables external symbolization and abort-on-error to keep the required
@@ -191,3 +191,12 @@ report/exit requirements and both independent lifetime barriers. A bounded
 32-run repetition in each mode reports the intended Ada race in all 64 runs.
 The captured-layout regression also verifies the new header on ordinary and
 tagged protected objects with runtime-sized private components.
+
+The task-services increment adds five fixtures for task attributes, suspension
+objects, priorities and stack reservation, including library elaboration and
+termination/instance cleanup. The current campaign has 38 clean fixtures / 76
+executions, plus two intentional TSan races (78 executions). The final sanitizer
+selections pass 325/325 ASan/UBSan checks and 20/20 TSan checks. Native task-service
+controls include shared locking, finalizers that close other instances, pending
+exceptions, failed finalizers, stack rounding and suspension publication.
+[Contract](task-services.md).

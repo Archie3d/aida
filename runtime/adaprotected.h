@@ -12,6 +12,7 @@ typedef struct AdaProtectedAction
 {
     void* lock;
     struct AdaProtectedAction* previous;
+    int savedPriority;
 } AdaProtectedAction;
 
 typedef int (*AdaProtectedBarrier)(void* link, void* object);
@@ -30,6 +31,7 @@ int __ada_protected_callback_equal(const void* left, const void* right);
 void __ada_protected_init(AdaConcurrentObject* object);
 void __ada_protected_init_access(AdaConcurrentObject* object, int accessLevel);
 int __ada_protected_access_level(AdaConcurrentObject* object);
+void __ada_protected_set_ceiling(AdaConcurrentObject* object, int priority);
 void __ada_protected_destroy(AdaConcurrentObject* object);
 void __ada_protected_enter(AdaTaskContext* context, AdaConcurrentObject* object, AdaProtectedAction* action);
 void __ada_protected_leave(AdaTaskContext* context, AdaProtectedAction* action);
