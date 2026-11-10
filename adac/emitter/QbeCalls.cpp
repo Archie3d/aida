@@ -785,13 +785,72 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         argumentList += arguments[i];
     }
 
+    auto* selectPlan = m_context->selectCall != nullptr && m_context->selectCall->target == subprogram
+        ? m_context->selectCall : nullptr;
+    AdaSelectClock selectClock = ADA_SELECT_MONOTONIC;
+    Value selectDeadline = selectPlan != nullptr ? emitSelectDeadline(selectPlan->delay, selectClock) : Value {"0", 'l'};
+    std::string selectCancelled = selectPlan != nullptr ? newLabel("callcancelled") : "";
+    std::string selectReturned = selectPlan != nullptr ? newLabel("callreturned") : "";
+    if (selectPlan != nullptr && selectPlan->asynchronous) {
+        std::string packet = allocScratch(std::max<std::size_t>(8, arguments.size() * 8));
+        for (std::size_t i = 0; i < arguments.size(); ++i) {
+            char type = arguments[i][0];
+            std::string slot = newTemp();
+            line(slot + " =l add " + packet + ", " + std::to_string(i * 8));
+            line(std::string("store") + type + " " + arguments[i].substr(2) + ", " + slot);
+        }
+        selectPlan->handle = newTemp();
+        if (subprogram->taskType != nullptr) {
+            emitCallInstruction(selectPlan->handle + " =l call $__ada_async_start_task(l %.taskContext, l " + taskIdentity.name
+                + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name + ", l " + packet + ")", CallEffects::CheckException);
+        } else {
+            std::string thunk = "$." + m_unitTag + ".async." + std::to_string(m_dataCounter++);
+            std::ostringstream body;
+            body << "function " << thunk << "(l %packet) {\n@start\n";
+            std::string actuals;
+            for (std::size_t i = 0; i < arguments.size(); ++i) {
+                std::string suffix = std::to_string(i);
+                char type = arguments[i][0];
+                body << "    %slot" << suffix << " =l add %packet, " << i * 8 << "\n"
+                     << "    %arg" << suffix << " =" << type << " load" << type << " %slot" << suffix << "\n";
+                actuals += (actuals.empty() ? "" : ", ") + std::string(1, type) + " %arg" + suffix;
+            }
+            body << "    call " << callee << "(" << actuals << ")\n    ret\n}\n";
+            m_functions.push_back(body.str());
+            std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
+            emitCallInstruction(selectPlan->handle + " =l call $__ada_async_start_protected(l %.taskContext, l " + protectedObject.name
+                + ", l " + subprogram->qbeName + ".barrier, l " + link + ", l " + thunk + ", l " + packet + ")", CallEffects::CheckException);
+        }
+        selectPlan->copyBack = [this, copyBacks, storageCopies, arrayCopies]() mutable {
+            for (const ScalarCopyBack& copy : copyBacks) {
+                Value value = loadFrom(copy.temporary, copy.formalType);
+                emitRangeCheck(value, copy.argument->type, copy.argument->location, &copy.actual);
+                storeInto(copy.actual, value, copy.argument->type);
+            }
+            emitStorageCopyBacks(storageCopies);
+            emitArrayCopyBacks(arrayCopies);
+        };
+        return Value {"0", 'w'};
+    }
     std::string protectedAction;
     if ((expr->protectedObject != nullptr && subprogram->protectedType != nullptr) || subprogram->protectedAccessProfile) {
         protectedAction = allocScratch(16);
         if (subprogram->entry) {
             std::string link = subprogram->level > 0 ? staticLinkFor(subprogram->level - 1).name : "0";
-            emitCallInstruction("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
-                + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")", CallEffects::DeferredCheck);
+            if (selectPlan != nullptr) {
+                selectPlan->selected = newTemp();
+                emitCallInstruction(selectPlan->selected + " =w call $__ada_protected_entry_enter_until(l %.taskContext, l " + protectedObject.name
+                    + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link
+                    + ", l " + selectDeadline.name + ", w " + std::to_string(selectClock)
+                    + ", w " + std::to_string(selectPlan->mode) + ")", CallEffects::DeferredCheck);
+                emitExceptionCheck();
+                std::string committed = newLabel("protectedcommitted");
+                branch(Value {selectPlan->selected, 'w'}, committed, selectCancelled);
+                label(committed);
+            } else {
+                emitCallInstruction("call $__ada_protected_entry_enter(l %.taskContext, l " + protectedObject.name
+                    + ", l " + protectedAction + ", l " + subprogram->qbeName + ".barrier, l " + link + ")", CallEffects::DeferredCheck);
+            }
         } else {
             emitCallInstruction("call $__ada_protected_enter(l %.taskContext, l " + protectedObject.name + ", l " + protectedAction + ")", CallEffects::DeferredCheck);
         }
@@ -816,9 +875,17 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
                 line(std::string(type == 'l' ? "storel " : type == 'w' ? "storew " : type == 's' ? "stores " : "stored ")
                     + arguments[i].substr(2) + ", " + slot);
             }
-            emitCallInstruction("call $__ada_task_entry_call(l %.taskContext, l " + taskIdentity.name
-                + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name
-                + ", l " + packet + ")", CallEffects::DeferredCheck);
+            if (selectPlan != nullptr) {
+                selectPlan->selected = newTemp();
+                emitCallInstruction(selectPlan->selected + " =w call $__ada_task_entry_call_until(l %.taskContext, l " + taskIdentity.name
+                    + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name
+                    + ", l " + packet + ", l " + selectDeadline.name + ", w " + std::to_string(selectClock)
+                    + ", w " + std::to_string(selectPlan->mode) + ")", CallEffects::DeferredCheck);
+            } else {
+                emitCallInstruction("call $__ada_task_entry_call(l %.taskContext, l " + taskIdentity.name
+                    + ", w " + std::to_string(subprogram->taskEntryId) + ", l " + entryIndex.name
+                    + ", l " + packet + ")", CallEffects::DeferredCheck);
+            }
             return Value { "0", 'w' };
         }
         if (subprogram->returnType != nullptr && !compositeResult) {
@@ -871,6 +938,11 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
         }
     }
     emitExceptionCheck();
+    if (selectPlan != nullptr && subprogram->taskType != nullptr) {
+        std::string committed = newLabel("taskcommitted");
+        branch(Value {selectPlan->selected, 'w'}, committed, selectCancelled);
+        label(committed);
+    }
     if (taskResult) {
         if (!taskTemporary.empty()) { activateTaskTemporary(taskTemporary); }
         m_context->handlerLabels.pop_back();
@@ -912,6 +984,12 @@ Value QbeEmitter::emitCallValue(CallExpr* expr, Type* inheritedControllingType)
     }
     emitStorageCopyBacks(storageCopies);
     emitArrayCopyBacks(arrayCopies);
+    if (selectPlan != nullptr) {
+        jump(selectReturned);
+        label(selectCancelled);
+        jump(selectReturned);
+        label(selectReturned);
+    }
     return result;
 }
 

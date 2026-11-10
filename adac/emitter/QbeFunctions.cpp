@@ -66,6 +66,18 @@ bool hasControlledObjects(StmtList& statements)
 {
     for (auto& statement : statements) {
         switch (statement->kind) {
+        case StmtKind::Select: {
+            auto* select = static_cast<SelectStmt*>(statement.get());
+            for (auto& alternative : select->alternatives) {
+                if (alternative.operation->kind == StmtKind::Accept) {
+                    auto* accept = static_cast<AcceptStmt*>(alternative.operation.get());
+                    if (hasControlledObjects(accept->body) || hasControlledObjects(accept->handlers)) { return true; }
+                }
+                if (hasControlledObjects(alternative.body)) { return true; }
+            }
+            if (hasControlledObjects(select->elseBody) || hasControlledObjects(select->abortBody)) { return true; }
+            break;
+        }
         case StmtKind::Accept: {
             auto* accept = static_cast<AcceptStmt*>(statement.get());
             if (hasControlledObjects(accept->body) || hasControlledObjects(accept->handlers)) { return true; }

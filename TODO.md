@@ -5,9 +5,9 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 9 task entry/accept rendezvous is implemented for the
-documented surface. Continue with selective accept and select forms. Further
-profiling remains deferred.
+**Current focus:** Phase 9 task entries and select forms are implemented for the
+documented surface. Continue with requeue and abort. Further profiling remains
+deferred.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -122,8 +122,9 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 - [x] Task entries, `accept` statements and rendezvous, including entry
   families and parameters of every supported mode and type.
   [Contract, remaining boundaries and validation](docs/task-entries.md).
-- [ ] Selective accept, with guards, `terminate` and `delay` alternatives;
+- [x] Selective accept, with guards, `terminate` and `delay` alternatives;
   timed and conditional entry calls; asynchronous `select`.
+  [Contract, restrictions and validation](docs/select-statements.md).
 - [ ] `requeue` and `abort`, on the Phase 6 abort-deferral design (protected
   actions, finalization).
 - [ ] Task and protected discriminants, task-entry callable views (renamings

@@ -92,24 +92,32 @@ export function w $system__operator_60(l %p.left, l %p.right) {
     call $__ada_raise(l $__ada_exc_program_error)
     %.t12 =l loadl %.taskContext
     %.t13 =w cnel %.t12, 0
-    jnz %.t13, @propagate.7, @nothrow.10
+    jnz %.t13, @exceptiondispatch.11, @nothrow.10
+@exceptiondispatch.11
+    %.t14 =w ceql %.t12, $__ada_exc_async_transfer
+    jnz %.t14, @propagate.7, @ordinaryexception.12
+@ordinaryexception.12
+    jmp @propagate.7
 @nothrow.10
     jmp @elaborated.8
 @elaborated.8
-    %.t19 =l loadl %v.left.9
-    %.t20 =l loadl %v.right.10
-    %.t21 =w cultl %.t19, %.t20
-    %.t22 =w csgew %.t21, 0
-    %.t23 =w cslew %.t21, 1
-    %.t24 =w and %.t22, %.t23
-    jnz %.t24, @inrange.11, @outofrange.12
-@outofrange.12
+    %.t20 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t20, @propagate.7, @asynccontinue.13
+@asynccontinue.13
+    %.t21 =l loadl %v.left.9
+    %.t22 =l loadl %v.right.10
+    %.t23 =w cultl %.t21, %.t22
+    %.t24 =w csgew %.t23, 0
+    %.t25 =w cslew %.t23, 1
+    %.t26 =w and %.t24, %.t25
+    jnz %.t26, @inrange.14, @outofrange.15
+@outofrange.15
     storel $.system.str.5, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
     jmp @propagate.7
-@inrange.11
+@inrange.14
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
-    ret %.t21
+    ret %.t23
 @propagate.7
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret 0
@@ -117,156 +125,188 @@ export function w $system__operator_60(l %p.left, l %p.right) {
 
 export function w $system__operator_60_61(l %p.left, l %p.right) {
 @start
-    %v.left.25 =l alloc8 8
-    storel %p.left, %v.left.25
-    %v.right.26 =l alloc8 8
-    storel %p.right, %v.right.26
+    %v.left.27 =l alloc8 8
+    storel %p.left, %v.left.27
+    %v.right.28 =l alloc8 8
+    storel %p.right, %v.right.28
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.8, l $.system.str.7)
-    %.t27 =w loadw $system__operator_60_61.elaborated
-    jnz %.t27, @elaborated.14, @unelaborated.15
-@unelaborated.15
+    %.t29 =w loadw $system__operator_60_61.elaborated
+    jnz %.t29, @elaborated.17, @unelaborated.18
+@unelaborated.18
     storel $.system.str.7, %.traceLocation
     call $__ada_raise(l $__ada_exc_program_error)
-    %.t28 =l loadl %.taskContext
-    %.t29 =w cnel %.t28, 0
-    jnz %.t29, @propagate.13, @nothrow.16
-@nothrow.16
-    jmp @elaborated.14
-@elaborated.14
-    %.t35 =l loadl %v.left.25
-    %.t36 =l loadl %v.right.26
-    %.t37 =w culel %.t35, %.t36
-    %.t38 =w csgew %.t37, 0
-    %.t39 =w cslew %.t37, 1
-    %.t40 =w and %.t38, %.t39
-    jnz %.t40, @inrange.17, @outofrange.18
-@outofrange.18
+    %.t30 =l loadl %.taskContext
+    %.t31 =w cnel %.t30, 0
+    jnz %.t31, @exceptiondispatch.20, @nothrow.19
+@exceptiondispatch.20
+    %.t32 =w ceql %.t30, $__ada_exc_async_transfer
+    jnz %.t32, @propagate.16, @ordinaryexception.21
+@ordinaryexception.21
+    jmp @propagate.16
+@nothrow.19
+    jmp @elaborated.17
+@elaborated.17
+    %.t38 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t38, @propagate.16, @asynccontinue.22
+@asynccontinue.22
+    %.t39 =l loadl %v.left.27
+    %.t40 =l loadl %v.right.28
+    %.t41 =w culel %.t39, %.t40
+    %.t42 =w csgew %.t41, 0
+    %.t43 =w cslew %.t41, 1
+    %.t44 =w and %.t42, %.t43
+    jnz %.t44, @inrange.23, @outofrange.24
+@outofrange.24
     storel $.system.str.7, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
-    jmp @propagate.13
-@inrange.17
+    jmp @propagate.16
+@inrange.23
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
-    ret %.t37
-@propagate.13
+    ret %.t41
+@propagate.16
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret 0
 }
 
 export function w $system__operator_62(l %p.left, l %p.right) {
 @start
-    %v.left.41 =l alloc8 8
-    storel %p.left, %v.left.41
-    %v.right.42 =l alloc8 8
-    storel %p.right, %v.right.42
+    %v.left.45 =l alloc8 8
+    storel %p.left, %v.left.45
+    %v.right.46 =l alloc8 8
+    storel %p.right, %v.right.46
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.10, l $.system.str.9)
-    %.t43 =w loadw $system__operator_62.elaborated
-    jnz %.t43, @elaborated.20, @unelaborated.21
-@unelaborated.21
+    %.t47 =w loadw $system__operator_62.elaborated
+    jnz %.t47, @elaborated.26, @unelaborated.27
+@unelaborated.27
     storel $.system.str.9, %.traceLocation
     call $__ada_raise(l $__ada_exc_program_error)
-    %.t44 =l loadl %.taskContext
-    %.t45 =w cnel %.t44, 0
-    jnz %.t45, @propagate.19, @nothrow.22
-@nothrow.22
-    jmp @elaborated.20
-@elaborated.20
-    %.t51 =l loadl %v.left.41
-    %.t52 =l loadl %v.right.42
-    %.t53 =w cugtl %.t51, %.t52
-    %.t54 =w csgew %.t53, 0
-    %.t55 =w cslew %.t53, 1
-    %.t56 =w and %.t54, %.t55
-    jnz %.t56, @inrange.23, @outofrange.24
-@outofrange.24
+    %.t48 =l loadl %.taskContext
+    %.t49 =w cnel %.t48, 0
+    jnz %.t49, @exceptiondispatch.29, @nothrow.28
+@exceptiondispatch.29
+    %.t50 =w ceql %.t48, $__ada_exc_async_transfer
+    jnz %.t50, @propagate.25, @ordinaryexception.30
+@ordinaryexception.30
+    jmp @propagate.25
+@nothrow.28
+    jmp @elaborated.26
+@elaborated.26
+    %.t56 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t56, @propagate.25, @asynccontinue.31
+@asynccontinue.31
+    %.t57 =l loadl %v.left.45
+    %.t58 =l loadl %v.right.46
+    %.t59 =w cugtl %.t57, %.t58
+    %.t60 =w csgew %.t59, 0
+    %.t61 =w cslew %.t59, 1
+    %.t62 =w and %.t60, %.t61
+    jnz %.t62, @inrange.32, @outofrange.33
+@outofrange.33
     storel $.system.str.9, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
-    jmp @propagate.19
-@inrange.23
+    jmp @propagate.25
+@inrange.32
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
-    ret %.t53
-@propagate.19
+    ret %.t59
+@propagate.25
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret 0
 }
 
 export function w $system__operator_62_61(l %p.left, l %p.right) {
 @start
-    %v.left.57 =l alloc8 8
-    storel %p.left, %v.left.57
-    %v.right.58 =l alloc8 8
-    storel %p.right, %v.right.58
+    %v.left.63 =l alloc8 8
+    storel %p.left, %v.left.63
+    %v.right.64 =l alloc8 8
+    storel %p.right, %v.right.64
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.12, l $.system.str.11)
-    %.t59 =w loadw $system__operator_62_61.elaborated
-    jnz %.t59, @elaborated.26, @unelaborated.27
-@unelaborated.27
+    %.t65 =w loadw $system__operator_62_61.elaborated
+    jnz %.t65, @elaborated.35, @unelaborated.36
+@unelaborated.36
     storel $.system.str.11, %.traceLocation
     call $__ada_raise(l $__ada_exc_program_error)
-    %.t60 =l loadl %.taskContext
-    %.t61 =w cnel %.t60, 0
-    jnz %.t61, @propagate.25, @nothrow.28
-@nothrow.28
-    jmp @elaborated.26
-@elaborated.26
-    %.t67 =l loadl %v.left.57
-    %.t68 =l loadl %v.right.58
-    %.t69 =w cugel %.t67, %.t68
-    %.t70 =w csgew %.t69, 0
-    %.t71 =w cslew %.t69, 1
-    %.t72 =w and %.t70, %.t71
-    jnz %.t72, @inrange.29, @outofrange.30
-@outofrange.30
+    %.t66 =l loadl %.taskContext
+    %.t67 =w cnel %.t66, 0
+    jnz %.t67, @exceptiondispatch.38, @nothrow.37
+@exceptiondispatch.38
+    %.t68 =w ceql %.t66, $__ada_exc_async_transfer
+    jnz %.t68, @propagate.34, @ordinaryexception.39
+@ordinaryexception.39
+    jmp @propagate.34
+@nothrow.37
+    jmp @elaborated.35
+@elaborated.35
+    %.t74 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t74, @propagate.34, @asynccontinue.40
+@asynccontinue.40
+    %.t75 =l loadl %v.left.63
+    %.t76 =l loadl %v.right.64
+    %.t77 =w cugel %.t75, %.t76
+    %.t78 =w csgew %.t77, 0
+    %.t79 =w cslew %.t77, 1
+    %.t80 =w and %.t78, %.t79
+    jnz %.t80, @inrange.41, @outofrange.42
+@outofrange.42
     storel $.system.str.11, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
-    jmp @propagate.25
-@inrange.29
+    jmp @propagate.34
+@inrange.41
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
-    ret %.t69
-@propagate.25
+    ret %.t77
+@propagate.34
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret 0
 }
 
 export function w $system__operator_61(l %p.left, l %p.right) {
 @start
-    %v.left.73 =l alloc8 8
-    storel %p.left, %v.left.73
-    %v.right.74 =l alloc8 8
-    storel %p.right, %v.right.74
+    %v.left.81 =l alloc8 8
+    storel %p.left, %v.left.81
+    %v.right.82 =l alloc8 8
+    storel %p.right, %v.right.82
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.system.str.14, l $.system.str.13)
-    %.t75 =w loadw $system__operator_61.elaborated
-    jnz %.t75, @elaborated.32, @unelaborated.33
-@unelaborated.33
+    %.t83 =w loadw $system__operator_61.elaborated
+    jnz %.t83, @elaborated.44, @unelaborated.45
+@unelaborated.45
     storel $.system.str.13, %.traceLocation
     call $__ada_raise(l $__ada_exc_program_error)
-    %.t76 =l loadl %.taskContext
-    %.t77 =w cnel %.t76, 0
-    jnz %.t77, @propagate.31, @nothrow.34
-@nothrow.34
-    jmp @elaborated.32
-@elaborated.32
-    %.t83 =l loadl %v.left.73
-    %.t84 =l loadl %v.right.74
-    %.t85 =w ceql %.t83, %.t84
-    %.t86 =w csgew %.t85, 0
-    %.t87 =w cslew %.t85, 1
-    %.t88 =w and %.t86, %.t87
-    jnz %.t88, @inrange.35, @outofrange.36
-@outofrange.36
+    %.t84 =l loadl %.taskContext
+    %.t85 =w cnel %.t84, 0
+    jnz %.t85, @exceptiondispatch.47, @nothrow.46
+@exceptiondispatch.47
+    %.t86 =w ceql %.t84, $__ada_exc_async_transfer
+    jnz %.t86, @propagate.43, @ordinaryexception.48
+@ordinaryexception.48
+    jmp @propagate.43
+@nothrow.46
+    jmp @elaborated.44
+@elaborated.44
+    %.t92 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t92, @propagate.43, @asynccontinue.49
+@asynccontinue.49
+    %.t93 =l loadl %v.left.81
+    %.t94 =l loadl %v.right.82
+    %.t95 =w ceql %.t93, %.t94
+    %.t96 =w csgew %.t95, 0
+    %.t97 =w cslew %.t95, 1
+    %.t98 =w and %.t96, %.t97
+    jnz %.t98, @inrange.50, @outofrange.51
+@outofrange.51
     storel $.system.str.13, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
-    jmp @propagate.31
-@inrange.35
+    jmp @propagate.43
+@inrange.50
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
-    ret %.t85
-@propagate.31
+    ret %.t95
+@propagate.43
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret 0
 }

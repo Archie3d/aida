@@ -152,7 +152,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
             }
             line("storel " + result + ", " + slot);
             m_context->returnCleanups.push_back({ mark, arenaMark,
-                m_context->blockMasters.size(), m_context->handlerLabels.size() - 1 });
+                m_context->blockMasters.size(), m_context->handlerLabels.size() - 1, "", m_context->operations.size() });
             m_context->constructionAccessLevel = accessLevel.saved;
             emitExtendedReturnBody(extended);
             m_context->returnCleanups.pop_back();
@@ -365,7 +365,7 @@ void QbeEmitter::emitControlledResult(Expr* expression, ObjectDecl* object, Retu
         m_context->constructionOwner = savedOwner;
         m_context->constructionArena = savedArena;
         m_context->returnCleanups.push_back({ ownerMark, arenaMark,
-            m_context->blockMasters.size(), m_context->handlerLabels.size() - 1, taskMark });
+            m_context->blockMasters.size(), m_context->handlerLabels.size() - 1, taskMark, m_context->operations.size() });
         m_context->taskMaster = savedMaster;
         m_context->taskCollection = savedCollection;
         m_context->taskGroup = savedGroup;

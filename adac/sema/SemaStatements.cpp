@@ -55,6 +55,13 @@ void Sema::declareStatementNames(StmtList& statements, Scope* scope)
             declare(label.name, label.lower, label.location, statement.get(), &statements);
         }
         switch (statement->kind) {
+        case StmtKind::Select: {
+            auto* select = static_cast<SelectStmt*>(statement.get());
+            for (auto& alternative : select->alternatives) { declareStatementNames(alternative.body, scope); }
+            declareStatementNames(select->elseBody, scope);
+            declareStatementNames(select->abortBody, scope);
+            break;
+        }
         case StmtKind::If: {
             auto* conditional = static_cast<IfStmt*>(statement.get());
             for (auto& branch : conditional->branches) {
@@ -313,9 +320,89 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     ScopedCheckPolicy checks(m_suppressedChecks, m_suppressedChecks);
     statement->suppressedChecks = activeCheckPermissions();
     switch (statement->kind) {
+    case StmtKind::Select: {
+        auto* select = static_cast<SelectStmt*>(statement);
+        int accepts = 0, delays = 0, terminates = 0;
+        DelayStmt* firstDelay = nullptr;
+        for (auto& alternative : select->alternatives) {
+            if (alternative.guard != nullptr) {
+                Type* guard = analyzeCondition(alternative.guard.get(), scope);
+                if (!m_types.isBoolean(guard)) { m_diagnostics.error(alternative.guard->location, "a select guard requires a Boolean condition"); }
+                if (select->form != SelectForm::Selective) {
+                    m_diagnostics.error(alternative.guard->location, "guards are allowed only on selective accept alternatives");
+                }
+            }
+            Stmt* operation = alternative.operation.get();
+            if (operation->kind == StmtKind::Terminate) {
+                ++terminates;
+                if (!alternative.body.empty()) { m_diagnostics.error(operation->location, "a terminate alternative cannot have following statements"); }
+            } else {
+                analyzeStatement(operation, scope);
+                if (operation->kind == StmtKind::Accept) { ++accepts; }
+                else if (operation->kind == StmtKind::Delay) {
+                    ++delays;
+                    auto* delay = static_cast<DelayStmt*>(operation);
+                    if (firstDelay != nullptr && (firstDelay->until != delay->until
+                        || (delay->until && firstDelay->calendar != delay->calendar))) {
+                        m_diagnostics.error(delay->location, "selective accept delays must use the same relative or absolute time form");
+                    }
+                    if (firstDelay == nullptr) { firstDelay = delay; }
+                } else if (operation->kind != StmtKind::ProcedureCall) {
+                    m_diagnostics.error(operation->location, "a select alternative requires an accept, delay, terminate or entry call");
+                }
+            }
+            analyzeStatements(alternative.body, scope);
+        }
+        if (select->form == SelectForm::Selective) {
+            if (m_currentSubprogram == nullptr || !m_currentSubprogram->taskBody || accepts == 0) {
+                m_diagnostics.error(select->location, "a selective accept requires an accept alternative in the enclosing task body");
+            }
+            if (terminates > 1 || (terminates != 0 && (delays != 0 || select->hasElse))
+                || (delays != 0 && select->hasElse)) {
+                m_diagnostics.error(select->location, "terminate, delay and else alternatives are mutually exclusive in a selective accept");
+            }
+            for (auto& alternative : select->alternatives) {
+                auto kind = alternative.operation->kind;
+                if (kind != StmtKind::Accept && kind != StmtKind::Delay && kind != StmtKind::Terminate) {
+                    m_diagnostics.error(alternative.operation->location, "a selective accept cannot contain an entry-call alternative");
+                }
+            }
+        } else {
+            Stmt* first = select->alternatives.front().operation.get();
+            bool asynchronous = select->form == SelectForm::Asynchronous;
+            if ((asynchronous && select->alternatives.size() != 1)
+                || (select->form == SelectForm::Conditional && select->alternatives.size() != 1)
+                || (select->form == SelectForm::Timed && (select->alternatives.size() != 2
+                    || select->alternatives.back().operation->kind != StmtKind::Delay))
+                || (first->kind != StmtKind::ProcedureCall && !(asynchronous && first->kind == StmtKind::Delay))) {
+                m_diagnostics.error(select->location, "invalid timed, conditional or asynchronous select alternatives");
+            }
+            if (first->kind == StmtKind::ProcedureCall) {
+                Expr* call = static_cast<ProcedureCallStmt*>(first)->call.get();
+                if (call->implicitCall != nullptr) { call = call->implicitCall.get(); }
+                Symbol* entry = call->kind == ExprKind::Call ? static_cast<CallExpr*>(call)->subprogram
+                    : call->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(call)->symbol
+                    : call->kind == ExprKind::Identifier ? static_cast<IdentifierExpr*>(call)->symbol : nullptr;
+                if (entry == nullptr || !entry->entry) {
+                    m_diagnostics.error(call->location, "this select form requires an entry call or a supported entry callable view");
+                }
+            }
+        }
+        analyzeStatements(select->elseBody, scope);
+        if (select->form == SelectForm::Asynchronous) { m_asyncSelects.push_back(m_currentSubprogram); }
+        analyzeStatements(select->abortBody, scope);
+        if (select->form == SelectForm::Asynchronous) { m_asyncSelects.pop_back(); }
+        break;
+    }
+    case StmtKind::Terminate:
+        m_diagnostics.error(statement->location, "terminate is allowed only as a selective accept alternative");
+        break;
     case StmtKind::Accept: {
         auto* accept = static_cast<AcceptStmt*>(statement);
         accept->owner = m_currentSubprogram;
+        if (std::find(m_asyncSelects.begin(), m_asyncSelects.end(), m_currentSubprogram) != m_asyncSelects.end()) {
+            m_diagnostics.error(accept->location, "an accept statement cannot occur in an abortable part of its task body");
+        }
         if (m_currentSubprogram == nullptr || !m_currentSubprogram->taskBody) {
             m_diagnostics.error(accept->location, "an accept statement must occur in a task body");
             break;

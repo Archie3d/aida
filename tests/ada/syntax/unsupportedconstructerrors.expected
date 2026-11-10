@@ -1,2 +1,1 @@
 unsupportedconstructerrors.adb:9:27: error: task discriminants are not yet supported
-unsupportedconstructerrors.adb:14:5: error: select statements are not yet supported

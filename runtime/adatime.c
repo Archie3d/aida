@@ -70,9 +70,17 @@ void __ada_delay_until(AdaTaskContext* context, int64_t deadline)
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    if (__ada_monotonic_delay_until(deadline) != 0) {
-        __ada_raise(ADA_PROGRAM_ERROR);
-    }
+    do {
+        __ada_async_poll(context);
+        if (context->exception != NULL) { return; }
+        int64_t until = deadline;
+        int64_t now = __ada_real_clock();
+        if ((context->asyncSelects != NULL || context->taskSelf != NULL)
+            && deadline > now && deadline - now > INT64_C(10000000)) { until = now + INT64_C(10000000); }
+        if (__ada_monotonic_delay_until(until) != 0) { __ada_raise(ADA_PROGRAM_ERROR); return; }
+        __ada_async_poll(context);
+        if (context->exception != NULL || until == deadline) { return; }
+    } while (1);
 }
 
 void __ada_delay_relative(AdaTaskContext* context, int64_t duration)

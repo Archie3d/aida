@@ -1,4 +1,4 @@
-"""Pin random-number ACATS sources and preserve the remaining tasking blocker."""
+"""Pin random-number ACATS sources and verify reviewed observations."""
 
 import argparse
 import hashlib

@@ -4,8 +4,23 @@
 #include <stdatomic.h>
 #include <stdint.h>
 #include "../common/Master.h"
+#include "../common/Select.h"
 
 typedef struct AdaTaskContext AdaTaskContext;
+struct AdaException;
+struct AdaMaster;
+extern const struct AdaException __ada_exc_async_transfer;
+void* __ada_async_start_delay(AdaTaskContext* context, int64_t deadline, enum AdaSelectClock clock);
+void* __ada_async_start_task(AdaTaskContext* context, void* identity, int entry, int64_t index, void* arguments);
+void* __ada_async_start_protected(AdaTaskContext* context, void** object,
+    int (*barrier)(void*, void*), void* link, void (*body)(void*), void* arguments);
+int __ada_async_run(void* operation);
+void __ada_async_poll(AdaTaskContext* context);
+int __ada_async_check(AdaTaskContext* context);
+int __ada_async_ready(AdaTaskContext* context);
+int __ada_async_leave(AdaTaskContext* context, void* operation);
+int __ada_async_matches(AdaTaskContext* context, void* operation);
+void __ada_master_abort(AdaTaskContext* context, struct AdaMaster* master);
 
 /* Caller-owned identity, live until its dependents have terminated and local
    finalization has finished. Empty lexical masters need no allocation;
@@ -16,6 +31,7 @@ typedef struct AdaMaster
     /* Monotonic while live. Foreign task creation marks every ancestor before
        publishing the task, so empty cleanup can avoid the shared registry. */
     atomic_uint activities;
+    unsigned int deferralDepth;
 } AdaMaster;
 
 enum AdaMasterKind
@@ -34,6 +50,24 @@ void __ada_master_enter(AdaTaskContext* context, AdaMaster* master, int kind);
 void __ada_master_activate(AdaTaskContext* context, AdaMaster* master);
 void __ada_master_await(AdaTaskContext* context, AdaMaster* master);
 void __ada_master_leave(AdaTaskContext* context, AdaMaster* master);
+
+typedef struct AdaSelectChoice
+{
+    enum AdaSelectKind kind;
+    int entry;
+    int64_t index;
+    int64_t deadline;
+    enum AdaSelectClock clock;
+    int open;
+} AdaSelectChoice;
+
+int64_t __ada_select_deadline(int64_t value, enum AdaSelectClock clock);
+int64_t __ada_select_wait_deadline(int64_t value, enum AdaSelectClock clock);
+int __ada_task_select(AdaTaskContext* context, const AdaSelectChoice* choices,
+    int count, int hasElse, void** request);
+int __ada_task_entry_call_until(AdaTaskContext* context, void* identity, int entry,
+    int64_t index, void* arguments, int64_t deadline, enum AdaSelectClock clock,
+    enum AdaEntryCallMode mode);
 
 /* Generated task body ABI, including a lexical link for library bodies. */
 void __ada_task_create(AdaTaskContext* context, void** object, void (*body)(void*),

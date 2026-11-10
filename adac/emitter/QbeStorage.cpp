@@ -171,7 +171,7 @@ void QbeEmitter::emitBlockExits(std::size_t depth)
 void QbeEmitter::pushHandler(const std::string& label)
 {
     m_context->handlerLabels.push_back(label);
-    m_context->transferAcceptDepth[label] = m_context->accepts.size();
+    m_context->transferOperationDepth[label] = m_context->operations.size();
     m_context->transferMasterDepth[label] = m_context->blockMasters.size();
 }
 
@@ -818,7 +818,13 @@ void QbeEmitter::emitControlledCall(const Value& object, Type* type, const std::
         line(link + " =l loadl " + linkSlot);
         arguments = "l " + link + ", ";
     }
+    if (operation == "initialize") {
+        emitCallInstruction("call $__ada_abort_defer(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+    }
     emitCallInstruction("call " + code + "(" + arguments + "l " + object.name + ")", CallEffects::DeferredCheck);
+    if (operation == "initialize") {
+        emitCallInstruction("call $__ada_abort_undefer(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+    }
 }
 
 void QbeEmitter::emitFinalizer(Type* type)

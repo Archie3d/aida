@@ -150,7 +150,8 @@ Supported:
 - Overriding indicators, null procedures and controlling access results
   ([contract](docs/overriding-null-procedures.md))
 - Controlled types, checked assignment and finalization ([contract](docs/controlled-assignment.md))
-- Entry-free tasks, grouped activation, master-based waiting and task identity/status
+- Tasks, grouped activation, entries/families, rendezvous and task identity/status
+- Selective accept, timed/conditional calls and asynchronous select ([limits](docs/select-statements.md))
 - Protected types and single objects with procedures, functions and guarded entries
 - `Duration`, relative/absolute delays and monotonic `Ada.Real_Time`
 - Scalar `Atomic` and `Volatile` objects and types
@@ -178,9 +179,8 @@ Supported:
 
 Not supported yet:
 
-- Task entries, entry families, select/requeue, abort, and task/protected discriminants
-- Aggregates, function results, tagged and variant records containing task or
-  protected objects
+- Requeue, abort, and task/protected discriminants
+- Tagged and variant records containing task or protected objects
 - Controlled/task/protected elements in discriminant-dependent arrays
 - Runtime-sized tagged records, tagged dependent components and delayed private-component layouts
 - Concurrent interface implementations, task/protected subunits and formal packages

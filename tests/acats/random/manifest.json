@@ -37,13 +37,12 @@
       "sha256": "6c301683ff2dc004e532184bab14b1ec16c6ee618becd07ff173613c38c05e6a",
       "git_blob": "fe5b6e2ab9365c2dc80537233547ff0adddf06d6",
       "language": "Ada 95; eligible for Ada 2005",
-      "outcome": "COMPILE_REJECTED",
+      "outcome": "PASS",
       "support": [
         "random/impdef.ads",
         "support/report.ads",
         "support/report.adb"
-      ],
-      "expected": "cxa5013.a:165:13: error: select statements are not yet supported\n"
+      ]
     }
   ]
 }

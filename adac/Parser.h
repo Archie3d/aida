@@ -99,6 +99,7 @@ private:
 
     // Statements (ParserStatements.cpp).
     StmtList parseSequenceOfStatements();
+    StmtPtr parseSelectStatement();
     std::vector<ExceptionHandler> parseExceptionHandlers();
     StmtPtr parseStatement();
     StmtPtr parseIfStatement();

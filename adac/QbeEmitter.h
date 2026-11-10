@@ -5,6 +5,7 @@
 #include "../common/Master.h"
 #include "../common/Modular.h"
 #include "../common/Real.h"
+#include "../common/Select.h"
 #include "Diagnostics.h"
 #include "Sema.h"
 
@@ -113,14 +114,36 @@ private:
             StorageCheckpoint storage;
         };
         std::vector<BlockMaster> blockMasters;
-        struct AcceptCleanup
+        struct AsyncCleanup
+        {
+            std::string handle;
+            std::string cleanupLabel;
+            std::string failureLabel;
+            std::string resumeSlot;
+            std::vector<std::string> resumes;
+        };
+        struct OperationCleanup
         {
             std::string request;
             std::string returnLabel;
             std::size_t masterDepth;
+            std::shared_ptr<AsyncCleanup> asynchronous;
         };
-        std::vector<AcceptCleanup> accepts;
-        std::unordered_map<std::string, std::size_t> transferAcceptDepth;
+        std::vector<OperationCleanup> operations;
+        AcceptStmt* selectedAccept = nullptr;
+        std::string selectedRequest;
+        struct SelectCallPlan
+        {
+            Symbol* target = nullptr;
+            DelayStmt* delay = nullptr;
+            AdaEntryCallMode mode = ADA_ENTRY_WAIT;
+            std::string selected;
+            bool asynchronous = false;
+            std::string handle;
+            std::function<void()> copyBack;
+        };
+        SelectCallPlan* selectCall = nullptr;
+        std::unordered_map<std::string, std::size_t> transferOperationDepth;
         std::size_t masterObservingCalls = 0;
         std::vector<std::string> elidedBlockMasters;
         std::unordered_map<std::string, std::size_t> transferMasterDepth;
@@ -136,6 +159,7 @@ private:
             std::size_t masterDepth;
             std::size_t handlerDepth;
             std::string taskMark;
+            std::size_t operationDepth = 0;
         };
         std::vector<ReturnCleanup> returnCleanups;
         std::string resultTarget;
@@ -213,7 +237,7 @@ private:
     std::string functionExitActions(const FunctionContext& context);
     std::string sourceLocationData(const SourceLocation& location);
     void label(const std::string& name);
-    void jump(const std::string& target);
+    void jump(std::string target);
     void branch(const Value& condition, const std::string& ifTrue, const std::string& ifFalse);
     std::string stringData(const std::string& text);
     std::string enumTableFor(const Type* type);
@@ -249,6 +273,11 @@ private:
 
     // Statements (QbeStatements.cpp).
     void emitStatements(StmtList& statements);
+    Value emitSelectDeadline(DelayStmt* delay, AdaSelectClock& clock);
+    void emitSelect(SelectStmt* select);
+    void emitOperationExits(std::size_t depth);
+    std::string asyncFailureTarget();
+    void emitAsyncPoll();
     std::string beginTaskTemporary();
     void activateTaskTemporary(const std::string& collection);
     void emitStatement(Stmt* statement);

@@ -2,9 +2,10 @@
 
 Phase 6a foundation, targeting [Ada 2005 RM 9.8](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-9-8.html)
 and [AARM 9.8](https://www.adaic.org/resources/add_content/standards/05aarm/html/AA-9-8.html).
-Abort statements, asynchronous transfer of control and abort delivery are still
-unsupported. This implements balanced regions on existing paths and defines the
-contract Phase 9 must extend; it does not claim abort conformance.
+Source abort statements remain unsupported. Phase 9 now adds
+[asynchronous select and interrupted-master cleanup](select-statements.md) on
+these balanced regions; preemptive abort and full abort conformance are not
+claimed.
 
 ## Task-owned regions
 
@@ -79,13 +80,13 @@ Polling alone cannot stop blocked operations. The Phase 9 queue/cancellation
 protocol must wake blocked delays, protected-entry waiters and rendezvous, attempt
 entry cancellation, and defer while waiting for an uncancellable call to finish.
 No asynchronous host-thread cancellation, signals or longjmp through Ada/C frames.
-Master waits must be deferred through dependent-task termination. Default
-Initialize calls and the entire assignment operation with controlled parts must
-also acquire regions before abort delivery is enabled, including failure exits;
-bracketing only individual Adjust/Finalize calls is insufficient. Task creation
-inside a deferred region needs the RM 9.8 bounded-error policy. Asynchronous select
-will additionally need a transfer target and nesting identity in task state.
-These are Phase 9 implementation gates, not behavior implemented here.
+Phase 9 now brackets implicit Initialize/Adjust callbacks and the entire
+assignment operation with controlled parts, including failure exits. Deferred
+master ownership is recorded in the existing master record: task creation for a
+master entered inside such a region raises Program_Error. Asynchronous select
+has its own transfer target and nesting identity. These mechanisms are tested
+by `selectdeferral` and the [select lifecycle controls](select-statements.md).
+Source abort and preemptive delivery remain separate milestones.
 
 ## Evidence and remaining coverage
 

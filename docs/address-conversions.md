@@ -98,9 +98,9 @@ Unchecked_Access/null controls. Impdef.Address_Value_IO is an explicit local
 Modular_IO(Integer_Address) instance; neither the test nor official support is
 edited. Both executable cases join the regular ACATS label.
 
-CD72A02 is reviewed but remains a compilation rejection: its task entries and
-select statements stop parsing before its remaining class-wide/protected/task
-scenarios can be assessed. It is not graded as a conformance pass or as proof
+CD72A02 remains a compilation rejection. Phase 9 entry/select parsing now
+exposes the existing Address_To_Access_Conversions restrictions on class-wide,
+protected and task object types, with dependent recovery diagnostics. It is not graded as a conformance pass or as proof
 of the instantiation restrictions; local controls cover those separately.
 CD30002 retains the existing object-alignment/stride-padding blockers.
 The original 145 backfill outcomes are unchanged. The extended

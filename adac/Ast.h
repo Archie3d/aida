@@ -586,7 +586,9 @@ enum class StmtKind
     Delay,
     Goto,
     Pragma,
-    Accept
+    Accept,
+    Select,
+    Terminate
 };
 
 struct StatementLabel
@@ -643,6 +645,43 @@ struct AcceptStmt : Stmt
     std::vector<Symbol*> parameters;
     StmtList body;
     std::vector<ExceptionHandler> handlers;
+};
+
+enum class SelectForm
+{
+    Selective,
+    Timed,
+    Conditional,
+    Asynchronous
+};
+
+struct SelectAlternative
+{
+    ExprPtr guard;
+    StmtPtr operation;
+    StmtList body;
+};
+
+struct SelectStmt : Stmt
+{
+    SelectStmt()
+        : Stmt(StmtKind::Select)
+    {
+    }
+
+    SelectForm form = SelectForm::Selective;
+    std::vector<SelectAlternative> alternatives;
+    StmtList elseBody;
+    StmtList abortBody;
+    bool hasElse = false;
+};
+
+struct TerminateStmt : Stmt
+{
+    TerminateStmt()
+        : Stmt(StmtKind::Terminate)
+    {
+    }
 };
 
 struct GotoStmt : Stmt

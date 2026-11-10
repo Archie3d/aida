@@ -421,6 +421,7 @@ private:
     Type* m_currentProtectedType = nullptr;
     Scope* m_protectedBodyScope = nullptr;
     std::vector<AcceptStmt*> m_accepts;
+    std::vector<Symbol*> m_asyncSelects;
     int m_accessibilityLevel = 0;
     int m_handlerDepth = 0;
     std::vector<Symbol*> m_extendedReturns;

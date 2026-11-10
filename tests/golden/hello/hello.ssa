@@ -29,22 +29,43 @@ export function $hello() {
     call $__ada_raise(l $__ada_exc_program_error)
     %.t1 =l loadl %.taskContext
     %.t2 =w cnel %.t1, 0
-    jnz %.t2, @propagate.1, @nothrow.4
+    jnz %.t2, @exceptiondispatch.5, @nothrow.4
+@exceptiondispatch.5
+    %.t3 =w ceql %.t1, $__ada_exc_async_transfer
+    jnz %.t3, @propagate.1, @ordinaryexception.6
+@ordinaryexception.6
+    jmp @propagate.1
 @nothrow.4
     jmp @elaborated.2
 @elaborated.2
+    %.t9 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t9, @propagate.1, @asynccontinue.7
+@asynccontinue.7
     storel $.hello.str.4, %.traceLocation
-    %.t8 =w call $__ada_array_narrow(l 13)
-    %.t9 =l loadl %.taskContext
-    %.t10 =w cnel %.t9, 0
-    jnz %.t10, @propagate.1, @nothrow.5
-@nothrow.5
-    storel $.hello.str.4, %.traceLocation
-    call $__ada_put_line(l $.hello.str.3, w %.t8)
+    %.t10 =w call $__ada_array_narrow(l 13)
     %.t11 =l loadl %.taskContext
     %.t12 =w cnel %.t11, 0
-    jnz %.t12, @propagate.1, @nothrow.6
-@nothrow.6
+    jnz %.t12, @exceptiondispatch.9, @nothrow.8
+@exceptiondispatch.9
+    %.t13 =w ceql %.t11, $__ada_exc_async_transfer
+    jnz %.t13, @propagate.1, @ordinaryexception.10
+@ordinaryexception.10
+    jmp @propagate.1
+@nothrow.8
+    storel $.hello.str.4, %.traceLocation
+    call $__ada_put_line(l $.hello.str.3, w %.t10)
+    %.t14 =l loadl %.taskContext
+    %.t15 =w cnel %.t14, 0
+    jnz %.t15, @exceptiondispatch.12, @nothrow.11
+@exceptiondispatch.12
+    %.t16 =w ceql %.t14, $__ada_exc_async_transfer
+    jnz %.t16, @propagate.1, @ordinaryexception.13
+@ordinaryexception.13
+    jmp @propagate.1
+@nothrow.11
+    %.t17 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t17, @propagate.1, @asynccontinue.14
+@asynccontinue.14
     call $__ada_trace_leave_context(l %.taskContext, l %.trace)
     ret
 @propagate.1

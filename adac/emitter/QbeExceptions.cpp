@@ -61,19 +61,37 @@ void QbeEmitter::emitRaise(Symbol* exception, const SourceLocation& location, Ex
     }
 }
 
+void QbeEmitter::emitAsyncPoll()
+{
+    std::string pending = newTemp(), next = newLabel("asynccontinue");
+    emitCallInstruction(pending + " =w call $__ada_async_check(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+    branch(Value {pending, 'w'}, asyncFailureTarget(), next);
+    label(next);
+}
+
+std::string QbeEmitter::asyncFailureTarget()
+{
+    for (auto operation = m_context->operations.rbegin(); operation != m_context->operations.rend(); ++operation) {
+        if (operation->asynchronous != nullptr) { return operation->asynchronous->failureLabel; }
+    }
+    m_context->usesPropagate = true;
+    return m_context->propagateLabel;
+}
+
 void QbeEmitter::emitExceptionCheck()
 {
-    std::string pending = newTemp();
-    std::string raised = newTemp();
-    std::string next = newLabel("nothrow");
+    std::string pending = newTemp(), raised = newTemp(), internal = newTemp();
+    std::string next = newLabel("nothrow"), dispatch = newLabel("exceptiondispatch");
     line(pending + " =l loadl %.taskContext");
     line(raised + " =w cnel " + pending + ", 0");
-    if (!m_context->handlerLabels.empty()) {
-        branch(Value { raised, 'w' }, m_context->handlerLabels.back(), next);
-    } else {
-        m_context->usesPropagate = true;
-        branch(Value { raised, 'w' }, m_context->propagateLabel, next);
-    }
+    branch(Value {raised, 'w'}, dispatch, next);
+    label(dispatch);
+    line(internal + " =w ceql " + pending + ", $__ada_exc_async_transfer");
+    std::string ordinary = newLabel("ordinaryexception");
+    branch(Value {internal, 'w'}, asyncFailureTarget(), ordinary);
+    label(ordinary);
+    if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
+    else { m_context->usesPropagate = true; jump(m_context->propagateLabel); }
     label(next);
 }
 
@@ -87,6 +105,10 @@ void QbeEmitter::emitHandlers(std::vector<ExceptionHandler>& handlers, const std
     // and calls may replace the context's exception while this handler is active.
     std::string pending = newTemp();
     line(pending + " =l loadl %.taskContext");
+    std::string internal = newTemp(), ordinary = newLabel("ordinaryhandler");
+    line(internal + " =w ceql " + pending + ", $__ada_exc_async_transfer");
+    branch(Value {internal, 'w'}, asyncFailureTarget(), ordinary);
+    label(ordinary);
     std::vector<std::string> bodyLabels;
     for (std::size_t i = 0; i < handlers.size(); ++i) {
         bodyLabels.push_back(newLabel("handle"));

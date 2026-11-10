@@ -186,3 +186,25 @@ void __ada_access_collection_parent(AdaMaster* master, int level)
     while (parent != NULL && (level == 0 ? parent->kind != ADA_MASTER_LIBRARY : parent->accessId != level)) { parent = parent->next; }
     state->previous = parent;
 }
+
+/* These task-free fixtures have no trigger operations or abort requests.
+   Supply the new completion-point ABI without linking the production master
+   registry alongside the replacement hooks above. */
+const AdaException __ada_exc_async_transfer = { "__ASYNC_TRANSFER" };
+
+void __ada_async_poll(AdaTaskContext* context)
+{
+    CHECK(context->asyncSelects == NULL);
+}
+
+int __ada_async_check(AdaTaskContext* context)
+{
+    __ada_async_poll(context);
+    return 0;
+}
+
+int64_t __ada_select_wait_deadline(int64_t deadline, enum AdaSelectClock clock)
+{
+    CHECK(clock == ADA_SELECT_MONOTONIC);
+    return deadline;
+}

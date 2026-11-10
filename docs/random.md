@@ -119,9 +119,8 @@ time-reset states. Statistical controls use fixed seeds and generous thresholds.
 
 Unchanged ACATS CXA5011 and CXA5012 pass their complete REPORT scenarios. The
 local Impdef supplies an actually invalid Non_State_String and a one-second
-Delay_Per_Random_Test. CXA5013 remains rejected at asynchronous select syntax;
-it is not graded as a random-number conformance pass. Its coverage scenario is
+Delay_Per_Random_Test. Phase 9 asynchronous select also enables unchanged
+CXA5013, now graded by its complete REPORT protocol. Its coverage scenario is
 not replaced by an edited upstream test. The
 [assessment manifest](../tests/acats/random/manifest.json) pins original paths,
-SHA-256/Git-blob hashes, language eligibility, support settings and the exact
-remaining rejection at revision `2785c30c1f8577d97ac7b3043882f6818781e9c5`.
+SHA-256/Git-blob hashes, language eligibility, support settings and reviewed outcomes at revision `2785c30c1f8577d97ac7b3043882f6818781e9c5`.

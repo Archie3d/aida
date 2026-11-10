@@ -149,17 +149,52 @@ void QbeEmitter::emitSourceLocation()
     }
 }
 
+void QbeEmitter::emitOperationExits(std::size_t depth)
+{
+    while (m_context->operations.size() > depth) {
+        auto operation = m_context->operations.back();
+        if (operation.asynchronous != nullptr) {
+            emitBlockExits(operation.masterDepth + 1);
+            m_context->blockMasters.resize(operation.masterDepth + 1);
+            auto& cleanup = *operation.asynchronous;
+            std::string resume = newLabel("asyncresume");
+            line("storew " + std::to_string(cleanup.resumes.size()) + ", " + cleanup.resumeSlot);
+            cleanup.resumes.push_back(resume);
+            line("jmp " + cleanup.cleanupLabel);
+            m_context->terminated = true;
+            label(resume);
+        } else {
+            emitBlockExits(operation.masterDepth);
+            emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + operation.request + ")", CallEffects::DeferredCheck);
+        }
+        m_context->blockMasters.resize(operation.masterDepth);
+        m_context->operations.pop_back();
+    }
+}
+
 void QbeEmitter::emitReturn(const std::string& operand)
 {
-    emitBlockExits(0);
-    if (m_context->terminated) {
-        label(newLabel("unreachable"));
+    auto operations = m_context->operations;
+    auto masters = m_context->blockMasters;
+    std::string result = operand, slot;
+    char type = m_context->symbol != nullptr && m_context->symbol->returnType != nullptr
+        ? qbeClass(m_context->symbol->returnType) : 'l';
+    if (!operand.empty() && std::any_of(operations.begin(), operations.end(), [](const auto& op) { return op.asynchronous != nullptr; })) {
+        slot = allocScratch(8);
+        line(std::string("store") + type + " " + operand + ", " + slot);
     }
-    // Activation resources are only all known once every branch is emitted.
-    // Record the insertion point explicitly for finishFunction's exit actions.
+    emitOperationExits(0);
+    emitBlockExits(0);
+    if (!slot.empty()) {
+        result = newTemp();
+        line(result + " =" + type + " load" + type + " " + slot);
+    }
+    if (m_context->terminated) { label(newLabel("unreachable")); }
     m_context->returnOffsets.push_back(static_cast<std::size_t>(m_context->body.tellp()));
-    line(operand.empty() ? "ret" : "ret " + operand);
+    line(result.empty() ? "ret" : "ret " + result);
     m_context->terminated = true;
+    m_context->operations = std::move(operations);
+    m_context->blockMasters = std::move(masters);
 }
 
 std::string QbeEmitter::sourceLocationData(const SourceLocation& location)
@@ -184,28 +219,23 @@ void QbeEmitter::label(const std::string& name)
     m_context->terminated = false;
 }
 
-void QbeEmitter::jump(const std::string& target)
+void QbeEmitter::jump(std::string target)
 {
     if (!m_context->terminated) {
-        auto acceptTarget = m_context->transferAcceptDepth.find(target);
+        auto acceptTarget = m_context->transferOperationDepth.find(target);
         std::size_t acceptDepth = target == m_context->propagateLabel ? 0
-            : acceptTarget == m_context->transferAcceptDepth.end() ? m_context->accepts.size() : acceptTarget->second;
-        std::vector<FunctionContext::BlockMaster> masters;
-        bool leavesAccept = acceptDepth < m_context->accepts.size();
-        if (leavesAccept) { masters = m_context->blockMasters; }
-        for (std::size_t i = m_context->accepts.size(); i > acceptDepth; --i) {
-            const auto& accept = m_context->accepts[i - 1];
-            emitBlockExits(accept.masterDepth);
-            m_context->blockMasters.resize(accept.masterDepth);
-            emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + accept.request + ")", CallEffects::DeferredCheck);
-        }
+            : acceptTarget == m_context->transferOperationDepth.end() ? m_context->operations.size() : acceptTarget->second;
+        auto masters = m_context->blockMasters;
+        auto operations = m_context->operations;
+        emitOperationExits(acceptDepth);
         auto found = m_context->transferMasterDepth.find(target);
         if (target == m_context->propagateLabel) {
             emitBlockExits(0);
         } else if (found != m_context->transferMasterDepth.end()) {
             emitBlockExits(found->second);
         }
-        if (leavesAccept) { m_context->blockMasters = std::move(masters); }
+        m_context->blockMasters = std::move(masters);
+        m_context->operations = std::move(operations);
         m_context->body << "    jmp " << target << "\n";
         m_context->terminated = true;
     }
@@ -215,9 +245,9 @@ void QbeEmitter::branch(const Value& condition, const std::string& ifTrue, const
 {
     auto needsCleanup = [&](const std::string& target) {
         auto found = m_context->transferMasterDepth.find(target);
-        auto accept = m_context->transferAcceptDepth.find(target);
-        bool leaveAccept = !m_context->accepts.empty() && (target == m_context->propagateLabel
-            || (accept != m_context->transferAcceptDepth.end() && accept->second < m_context->accepts.size()));
+        auto accept = m_context->transferOperationDepth.find(target);
+        bool leaveAccept = !m_context->operations.empty() && (target == m_context->propagateLabel
+            || (accept != m_context->transferOperationDepth.end() && accept->second < m_context->operations.size()));
         return leaveAccept || (!m_context->blockMasters.empty()
             && (target == m_context->propagateLabel
                 || (found != m_context->transferMasterDepth.end() && found->second < m_context->blockMasters.size())));

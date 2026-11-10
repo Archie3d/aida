@@ -71,7 +71,7 @@ int __ada_task_context_dispose(AdaTaskContext* context)
     int live = context->currentTrace != NULL || context->registeredFinalizations != NULL
         || context->libraryFinalizations != NULL || context->libraryFinalizationArena != NULL
         || context->libraryFinalizing || context->currentMaster != NULL || context->taskMasters != NULL
-        || context->protectedActions != NULL || context->abortDeferralDepth != 0;
+        || context->protectedActions != NULL || context->abortDeferralDepth != 0 || context->asyncSelects != NULL;
     if (environment) {
         live |= context->registeredAllocations != NULL || context->sharedFinalizations != NULL
             || context->sharedMasters != NULL || context->allocationIndex != NULL
@@ -2103,7 +2103,9 @@ int __ada_controlled_adjust(void* object, void (*adjust)(void*))
         return 1;
     }
     record->active = 0;
+    __ada_abort_defer(context);
     adjust(object);
+    __ada_abort_undefer(context);
     if (context->exception != NULL) {
         /* The emitter accumulates failures while adjusting the other parts,
            then raises Program_Error. A failed adjustment is not finalized. */
@@ -2273,7 +2275,9 @@ int __ada_controlled_adjust_view(void* object, void (*adjust)(void*, void*), voi
         return 1;
     }
     record->active = 0;
+    __ada_abort_defer(context);
     adjust(object, tag);
+    __ada_abort_undefer(context);
     int failed = context->exception != NULL;
     context->exception = NULL;
     record->active = !failed;

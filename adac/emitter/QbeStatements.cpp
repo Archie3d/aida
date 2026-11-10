@@ -18,7 +18,7 @@ void QbeEmitter::emitStatements(StmtList& statements)
                 m_context->gotoTargets[statement.get()] = { newLabel("adalabel"), checkpoint,
                     m_context->blockMasters.size(), m_context->handlerLabels.size(),
                     m_context->returnCleanups.size() };
-                m_context->transferAcceptDepth[m_context->gotoTargets[statement.get()].label] = m_context->accepts.size();
+                m_context->transferOperationDepth[m_context->gotoTargets[statement.get()].label] = m_context->operations.size();
             }
         }
     }
@@ -29,7 +29,13 @@ void QbeEmitter::emitStatements(StmtList& statements)
         SourceLocation saved = m_context->sourceLocation;
         m_context->sourceLocation = statement->location;
         auto checkpoint = storageCheckpoint();
+        bool completionPoint = statement->kind == StmtKind::Select || statement->kind == StmtKind::Accept
+            || statement->kind == StmtKind::Delay || statement->kind == StmtKind::ProcedureCall;
+        // Sequences include loop iterations and handler bodies. Labeled
+        // statements also poll so a backward goto cannot starve a transfer.
+        if (&statement == &statements.front() || !statement->labels.empty() || completionPoint) { emitAsyncPoll(); }
         emitStatement(statement.get());
+        if (!m_context->terminated && completionPoint) { emitAsyncPoll(); }
         if (!m_context->terminated) {
             rewindStorage(checkpoint);
         }
@@ -41,17 +47,28 @@ void QbeEmitter::emitStatement(Stmt* statement)
 {
     ScopedCheckPolicy checks(m_suppressedChecks, statement->suppressedChecks);
     switch (statement->kind) {
+    case StmtKind::Select:
+        emitSelect(static_cast<SelectStmt*>(statement));
+        break;
+    case StmtKind::Terminate:
+        emitReturn();
+        break;
     case StmtKind::Accept: {
         auto* accept = static_cast<AcceptStmt*>(statement);
         Value index {"0", 'l'};
-        if (accept->index != nullptr) {
+        bool selected = m_context->selectedAccept == accept;
+        if (accept->index != nullptr && !selected) {
             index = emitExpr(accept->index.get());
             emitRangeCheck(index, accept->entry->entryIndexType, accept->index->location);
             index = wideBound(index);
         }
-        std::string request = newTemp(), packet = newTemp();
-        emitCallInstruction(request + " =l call $__ada_task_entry_accept(l %.taskContext, w "
-            + std::to_string(accept->entry->taskEntryId) + ", l " + index.name + ")", CallEffects::CheckException);
+        std::string request = selected ? std::exchange(m_context->selectedRequest, "") : newTemp();
+        std::string packet = newTemp();
+        m_context->selectedAccept = nullptr;
+        if (!selected) {
+            emitCallInstruction(request + " =l call $__ada_task_entry_accept(l %.taskContext, w "
+                + std::to_string(accept->entry->taskEntryId) + ", l " + index.name + ")", CallEffects::CheckException);
+        }
         emitCallInstruction(packet + " =l call $__ada_task_entry_arguments(l " + request + ")", CallEffects::RuntimeHook);
         m_context->hasFrame = true;
         accept->callerIdentity->frameOffset = reserveFrame(8);
@@ -95,8 +112,8 @@ void QbeEmitter::emitStatement(Stmt* statement)
             }
         }
         std::string failed = newLabel("acceptfailed"), done = newLabel("acceptdone"), ready = newLabel("acceptready");
-        m_context->accepts.push_back({request, done, m_context->blockMasters.size()});
-        m_context->transferAcceptDepth[done] = m_context->accepts.size();
+        m_context->operations.push_back({request, done, m_context->blockMasters.size()});
+        m_context->transferOperationDepth[done] = m_context->operations.size();
         m_context->transferMasterDepth[done] = m_context->blockMasters.size();
         pushHandler(failed);
         if (accept->handlers.empty()) { emitStatements(accept->body); }
@@ -112,7 +129,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
         }
         jump(done);
         m_context->handlerLabels.pop_back();
-        m_context->accepts.pop_back();
+        m_context->operations.pop_back();
         label(failed);
         emitCallInstruction("call $__ada_task_entry_complete(l %.taskContext, l " + request + ")", CallEffects::DeferredCheck);
         if (!m_context->handlerLabels.empty()) { jump(m_context->handlerLabels.back()); }
@@ -129,12 +146,14 @@ void QbeEmitter::emitStatement(Stmt* statement)
     case StmtKind::Goto: {
         auto* transfer = static_cast<GotoStmt*>(statement);
         const auto target = m_context->gotoTargets.at(transfer->target);
+        auto operations = m_context->operations;
         auto masters = m_context->blockMasters;
         auto handlers = m_context->handlerLabels;
         // An abandoned extended return owns registrations in the caller's
         // result chain. Unwind its inner blocks before discarding that result.
         for (std::size_t i = m_context->returnCleanups.size(); i > target.returnDepth; --i) {
             const auto& result = m_context->returnCleanups[i - 1];
+            emitOperationExits(result.operationDepth);
             emitBlockExits(result.masterDepth);
             m_context->blockMasters.resize(result.masterDepth);
             m_context->handlerLabels.resize(result.handlerDepth);
@@ -145,11 +164,14 @@ void QbeEmitter::emitStatement(Stmt* statement)
             emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
             emitExceptionCheck();
         }
+        // Operation exits own their abortable-part masters.
+        emitOperationExits(m_context->transferOperationDepth.at(target.label));
         emitBlockExits(target.masterDepth);
         m_context->blockMasters.resize(target.masterDepth);
         m_context->handlerLabels.resize(target.handlerDepth);
         rewindStorage(target.storage);
         jump(target.label);
+        m_context->operations = std::move(operations);
         m_context->blockMasters = std::move(masters);
         m_context->handlerLabels = std::move(handlers);
         break;
@@ -166,10 +188,29 @@ void QbeEmitter::emitStatement(Stmt* statement)
 
     case StmtKind::Assign: {
         auto* assign = static_cast<AssignStmt*>(statement);
+        bool deferred = needsFinalization(assign->target->type);
+        std::string failed, done;
+        if (deferred) {
+            failed = newLabel("assignmentfailed");
+            done = newLabel("assignmentdone");
+            emitCallInstruction("call $__ada_abort_defer(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+            pushHandler(failed);
+        }
         Value address = emitAddress(assign->target.get());
         std::string constrained = assign->target->type->kind == TypeKind::Record
             ? recordConstrained(assign->target.get(), &address).name : "1";
         assignInto(address, assign->target->type, assign->value.get(), false, constrained);
+        if (deferred) {
+            m_context->handlerLabels.pop_back();
+            emitCallInstruction("call $__ada_abort_undefer(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+            jump(done);
+            label(failed);
+            emitCallInstruction("call $__ada_abort_undefer(l %.taskContext)", CallEffects::RuntimeHook, MasterEffects::Independent);
+            emitExceptionCheck();
+            jump(done);
+            label(done);
+            emitAsyncPoll();
+        }
         break;
     }
 
@@ -209,7 +250,7 @@ void QbeEmitter::emitStatement(Stmt* statement)
         m_context->loopStorage[loop] = storageCheckpoint();
         m_context->loopHandlerDepth[loop] = m_context->handlerLabels.size();
         m_context->loopReturnDepth[loop] = m_context->returnCleanups.size();
-        m_context->transferAcceptDepth[exit] = m_context->accepts.size();
+        m_context->transferOperationDepth[exit] = m_context->operations.size();
         m_context->transferMasterDepth[exit] = m_context->blockMasters.size();
 
         if (loop->loopKind == LoopKind::For) {
@@ -310,10 +351,12 @@ void QbeEmitter::emitStatement(Stmt* statement)
             label(cleanup);
             auto handlers = m_context->handlerLabels;
             auto masters = m_context->blockMasters;
+            auto operations = m_context->operations;
             std::size_t depth = m_context->transferMasterDepth.at(it->second);
             for (std::size_t i = m_context->returnCleanups.size();
                 i > m_context->loopReturnDepth.at(exitStatement->target); --i) {
                 const auto& result = m_context->returnCleanups[i - 1];
+                emitOperationExits(result.operationDepth);
                 emitBlockExits(result.masterDepth);
                 m_context->blockMasters.resize(result.masterDepth);
                 m_context->handlerLabels.resize(result.handlerDepth);
@@ -324,12 +367,14 @@ void QbeEmitter::emitStatement(Stmt* statement)
                 emitCallInstruction("call $__ada_array_rewind(l %.resultArena, l " + result.arenaMark + ")", CallEffects::RuntimeHook);
                 emitExceptionCheck();
             }
+            emitOperationExits(m_context->transferOperationDepth.at(it->second));
             emitBlockExits(depth);
             m_context->blockMasters.resize(depth);
             m_context->handlerLabels.resize(m_context->loopHandlerDepth.at(exitStatement->target));
             rewindStorage(m_context->loopStorage.at(exitStatement->target));
             m_context->handlerLabels = std::move(handlers);
             jump(it->second);
+            m_context->operations = std::move(operations);
             m_context->blockMasters = std::move(masters);
         }
         if (exitStatement->condition) {
@@ -339,8 +384,10 @@ void QbeEmitter::emitStatement(Stmt* statement)
     }
 
     case StmtKind::Return: {
-        if (!m_context->accepts.empty()) {
-            jump(m_context->accepts.back().returnLabel);
+        auto accepted = std::find_if(m_context->operations.rbegin(), m_context->operations.rend(),
+            [](const auto& operation) { return operation.asynchronous == nullptr; });
+        if (accepted != m_context->operations.rend()) {
+            jump(accepted->returnLabel);
             break;
         }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
@@ -535,6 +582,7 @@ void QbeEmitter::emitExtendedReturnBody(ReturnStmt* statement)
     std::string savedReturn = m_context->extendedReturnLabel;
     std::string bodyDone = newLabel("returnbodydone");
     m_context->transferMasterDepth[bodyDone] = m_context->blockMasters.size();
+    m_context->transferOperationDepth[bodyDone] = m_context->operations.size();
     m_context->extendedReturnLabel = bodyDone;
     if (statement->handlers.empty()) {
         emitStatements(statement->body);
@@ -551,4 +599,218 @@ void QbeEmitter::emitExtendedReturnBody(ReturnStmt* statement)
     }
     label(bodyDone);
     m_context->extendedReturnLabel = savedReturn;
+}
+
+Value QbeEmitter::emitSelectDeadline(DelayStmt* delay, AdaSelectClock& clock)
+{
+    if (delay == nullptr) { clock = ADA_SELECT_MONOTONIC; return Value {"0", 'l'}; }
+    SourceLocation saved = m_context->sourceLocation;
+    m_context->sourceLocation = delay->location;
+    Value value = emitExpr(delay->expression.get());
+    clock = delay->calendar ? ADA_SELECT_CALENDAR : ADA_SELECT_MONOTONIC;
+    if (!delay->until) {
+        Value deadline {newTemp(), 'l'};
+        emitCallInstruction(deadline.name + " =l call $__ada_select_deadline(l " + value.name
+            + ", w " + std::to_string(ADA_SELECT_RELATIVE) + ")", CallEffects::CheckException);
+        value = deadline;
+    }
+    m_context->sourceLocation = saved;
+    return value;
+}
+
+void QbeEmitter::emitSelect(SelectStmt* select)
+{
+    if (select->form == SelectForm::Asynchronous) {
+        auto& trigger = select->alternatives.front();
+        auto checkpoint = storageCheckpoint();
+        FunctionContext::SelectCallPlan plan;
+        plan.asynchronous = true;
+        if (trigger.operation->kind == StmtKind::Delay) {
+            AdaSelectClock clock;
+            Value deadline = emitSelectDeadline(static_cast<DelayStmt*>(trigger.operation.get()), clock);
+            plan.handle = newTemp();
+            emitCallInstruction(plan.handle + " =l call $__ada_async_start_delay(l %.taskContext, l " + deadline.name
+                + ", w " + std::to_string(clock) + ")", CallEffects::CheckException);
+        } else {
+            auto* call = static_cast<ProcedureCallStmt*>(trigger.operation.get());
+            Expr* expression = call->call.get();
+            if (expression->implicitCall != nullptr) { expression = expression->implicitCall.get(); }
+            plan.target = expression->kind == ExprKind::Call ? static_cast<CallExpr*>(expression)->subprogram
+                : expression->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expression)->symbol
+                : static_cast<IdentifierExpr*>(expression)->symbol;
+            auto* saved = m_context->selectCall;
+            m_context->selectCall = &plan;
+            emitStatement(call);
+            m_context->selectCall = saved;
+        }
+        auto cleanup = std::make_shared<FunctionContext::AsyncCleanup>();
+        cleanup->handle = plan.handle;
+        cleanup->cleanupLabel = newLabel("asynccleanup");
+        cleanup->failureLabel = newLabel("asyncfailed");
+        cleanup->resumeSlot = allocScratch(4);
+        std::string done = newLabel("asyncdone"), finish = newLabel("asyncfinish");
+        cleanup->resumes.push_back(done);
+        std::size_t depth = m_context->blockMasters.size();
+        std::string master = allocScratch(kAdaMasterBytes);
+        emitCallInstruction("call $__ada_master_enter(l %.taskContext, l " + master + ", w 1)", CallEffects::RuntimeHook, MasterEffects::ScopeHook);
+        // Keep trigger actual temporaries alive through completion and copy-back.
+        auto partStorage = storageCheckpoint();
+        m_context->blockMasters.push_back({master, partStorage});
+        m_context->operations.push_back({"", "", depth, cleanup});
+        pushHandler(cleanup->failureLabel);
+        std::string run = newTemp(), body = newLabel("abortablepart");
+        emitCallInstruction(run + " =w call $__ada_async_run(l " + plan.handle + ")", CallEffects::RuntimeHook);
+        m_context->transferOperationDepth[finish] = m_context->operations.size();
+        m_context->transferMasterDepth[finish] = m_context->blockMasters.size();
+        branch(Value {run, 'w'}, body, finish);
+        label(body);
+        emitStatements(select->abortBody);
+        jump(finish);
+        label(cleanup->failureLabel);
+        jump(finish);
+        label(finish);
+        line("storew 0, " + cleanup->resumeSlot);
+        line("jmp " + cleanup->cleanupLabel);
+        m_context->terminated = true;
+        m_context->handlerLabels.pop_back();
+        m_context->operations.pop_back();
+        label(cleanup->cleanupLabel);
+        std::string matched = newTemp(), interrupted = newLabel("asyncinterrupted"), unwind = newLabel("asyncunwind");
+        emitCallInstruction(matched + " =w call $__ada_async_matches(l %.taskContext, l " + plan.handle + ")", CallEffects::RuntimeHook);
+        branch(Value {matched, 'w'}, interrupted, unwind);
+        label(interrupted);
+        line("storew 0, " + cleanup->resumeSlot);
+        emitCallInstruction("call $__ada_master_abort(l %.taskContext, l " + master + ")", CallEffects::RuntimeHook);
+        jump(unwind);
+        label(unwind);
+        emitBlockExits(depth);
+        m_context->blockMasters.resize(depth);
+        // A trigger may complete while awaiting dependent tasks.
+        std::string afterAwait = newTemp(), reset = newLabel("asyncresetresume"), leave = newLabel("asyncleave");
+        emitCallInstruction(afterAwait + " =w call $__ada_async_matches(l %.taskContext, l " + plan.handle + ")", CallEffects::RuntimeHook);
+        branch(Value {afterAwait, 'w'}, reset, leave);
+        label(reset);
+        line("storew 0, " + cleanup->resumeSlot);
+        jump(leave);
+        label(leave);
+        std::string selected = newTemp();
+        emitCallInstruction(selected + " =w call $__ada_async_leave(l %.taskContext, l " + plan.handle + ")", CallEffects::DeferredCheck);
+        emitExceptionCheck();
+        std::string triggered = newLabel("asynctriggered"), dispatch = newLabel("asyncdispatch");
+        branch(Value {selected, 'w'}, triggered, dispatch);
+        label(triggered);
+        if (plan.copyBack) { plan.copyBack(); }
+        rewindStorage(checkpoint);
+        emitStatements(trigger.body);
+        jump(dispatch);
+        label(dispatch);
+        std::string resume = newTemp();
+        line(resume + " =w loadw " + cleanup->resumeSlot);
+        for (std::size_t i = 1; i < cleanup->resumes.size(); ++i) {
+            std::string next = newLabel("asyncnextresume"), matches = newTemp();
+            line(matches + " =w ceqw " + resume + ", " + std::to_string(i));
+            branch(Value {matches, 'w'}, cleanup->resumes[i], next);
+            label(next);
+        }
+        jump(done);
+        label(done);
+        rewindStorage(checkpoint);
+        return;
+    }
+    std::string done = newLabel("selectdone");
+    if (select->form != SelectForm::Selective) {
+        auto* call = static_cast<ProcedureCallStmt*>(select->alternatives.front().operation.get());
+        Expr* expression = call->call.get();
+        if (expression->implicitCall != nullptr) { expression = expression->implicitCall.get(); }
+        FunctionContext::SelectCallPlan plan;
+        plan.target = expression->kind == ExprKind::Call ? static_cast<CallExpr*>(expression)->subprogram
+            : expression->kind == ExprKind::Selected ? static_cast<SelectedExpr*>(expression)->symbol
+            : static_cast<IdentifierExpr*>(expression)->symbol;
+        plan.mode = select->form == SelectForm::Conditional ? ADA_ENTRY_CONDITIONAL : ADA_ENTRY_TIMED;
+        if (select->form == SelectForm::Timed) { plan.delay = static_cast<DelayStmt*>(select->alternatives.back().operation.get()); }
+        auto checkpoint = storageCheckpoint();
+        auto* saved = m_context->selectCall;
+        m_context->selectCall = &plan;
+        emitStatement(call);
+        m_context->selectCall = saved;
+        rewindStorage(checkpoint);
+        std::string committed = newLabel("selectcommitted"), cancelled = newLabel("selectcancelled");
+        branch(Value {plan.selected, 'w'}, committed, cancelled);
+        label(committed);
+        emitStatements(select->alternatives.front().body);
+        jump(done);
+        label(cancelled);
+        if (select->form == SelectForm::Conditional) { emitStatements(select->elseBody); }
+        else { emitStatements(select->alternatives.back().body); }
+        jump(done);
+        label(done);
+        return;
+    }
+    std::string table = allocScratch(select->alternatives.size() * kAdaSelectChoiceBytes);
+    auto checkpoint = storageCheckpoint();
+    for (std::size_t i = 0; i < select->alternatives.size(); ++i) {
+        auto& alternative = select->alternatives[i];
+        std::string record = newTemp();
+        line(record + " =l add " + table + ", " + std::to_string(i * kAdaSelectChoiceBytes));
+        std::string flag = newTemp();
+        line(flag + " =l add " + record + ", 28");
+        Value open {"1", 'w'};
+        if (alternative.guard != nullptr) { open = emitExpr(alternative.guard.get()); }
+        line("storew " + open.name + ", " + flag);
+        std::string evaluate = newLabel("selectopen"), next = newLabel("selectnext");
+        branch(open, evaluate, next);
+        label(evaluate);
+        AdaSelectKind kind = alternative.operation->kind == StmtKind::Accept ? ADA_SELECT_ACCEPT
+            : alternative.operation->kind == StmtKind::Delay ? ADA_SELECT_DELAY : ADA_SELECT_TERMINATE;
+        line("storew " + std::to_string(kind) + ", " + record);
+        auto store = [&](int offset, const std::string& value, char type) {
+            std::string slot = newTemp();
+            line(slot + " =l add " + record + ", " + std::to_string(offset));
+            line(std::string(type == 'w' ? "storew " : "storel ") + value + ", " + slot);
+        };
+        if (kind == ADA_SELECT_ACCEPT) {
+            auto* accept = static_cast<AcceptStmt*>(alternative.operation.get());
+            Value index {"0", 'l'};
+            if (accept->index != nullptr) {
+                index = emitExpr(accept->index.get());
+                emitRangeCheck(index, accept->entry->entryIndexType, accept->index->location);
+                index = wideBound(index);
+            }
+            store(4, std::to_string(accept->entry->taskEntryId), 'w');
+            store(8, index.name, 'l');
+        } else if (kind == ADA_SELECT_DELAY) {
+            AdaSelectClock clock;
+            Value deadline = emitSelectDeadline(static_cast<DelayStmt*>(alternative.operation.get()), clock);
+            store(16, deadline.name, 'l');
+            store(24, std::to_string(clock), 'w');
+        }
+        jump(next);
+        label(next);
+    }
+    rewindStorage(checkpoint);
+    std::string requestSlot = allocScratch(8), selected = newTemp();
+    line("storel 0, " + requestSlot);
+    emitCallInstruction(selected + " =w call $__ada_task_select(l %.taskContext, l " + table
+        + ", w " + std::to_string(select->alternatives.size()) + ", w " + (select->hasElse ? "1" : "0")
+        + ", l " + requestSlot + ")", CallEffects::CheckException);
+    for (std::size_t i = 0; i < select->alternatives.size(); ++i) {
+        std::string chosen = newLabel("selectchosen"), next = newLabel("selectchoice");
+        Value matches {newTemp(), 'w'};
+        line(matches.name + " =w ceqw " + selected + ", " + std::to_string(i));
+        branch(matches, chosen, next);
+        label(chosen);
+        auto& alternative = select->alternatives[i];
+        if (alternative.operation->kind == StmtKind::Accept) {
+            m_context->selectedAccept = static_cast<AcceptStmt*>(alternative.operation.get());
+            m_context->selectedRequest = newTemp();
+            line(m_context->selectedRequest + " =l loadl " + requestSlot);
+            emitStatement(alternative.operation.get());
+        } else if (alternative.operation->kind == StmtKind::Terminate) { emitReturn(); }
+        emitStatements(alternative.body);
+        jump(done);
+        label(next);
+    }
+    emitStatements(select->elseBody);
+    jump(done);
+    label(done);
 }

@@ -32,7 +32,7 @@ Anonymous access parameters on task entries are illegal in Ada 2005.
 
 ## Queues and completion
 
-A mutex and condition protect each task's FIFO request list. Selection matches
+The shared master mutex and a per-task condition protect each task's FIFO request list. Selection matches
 both declaration identity and family index, preserving arrival order for each
 entry. A caller waits until the selected accept completes. Queued calls and new
 calls on completed tasks receive `Tasking_Error`; discarded unactivated tasks
@@ -44,9 +44,9 @@ separate occurrence to the caller, retaining identity, message and traceback.
 Messages beyond the fixed occurrence buffer use independently owned storage.
 Normal completion, exception propagation and outward control transfers finish
 the rendezvous after inner masters and local finalization. Nested accepts keep
-independent completion records. Accepted rendezvous actions use the existing
-abort-deferral counter; this does not implement the later abort/cancellation
-milestone.
+independent completion records. A selected caller cannot cancel its live packet;
+asynchronous select and interrupted-master cleanup are described in the
+[select contract](select-statements.md).
 
 `E'Caller` captures the serviced caller identity for the enclosing accept.
 `E'Count` reports queued calls for the current task instance, including indexed
@@ -57,7 +57,7 @@ family members; it is rejected inside a program unit nested in the task body.
 Task-entry renamings and entry actuals for generic formal subprograms remain
 explicitly diagnosed; generic task types and ordinary generic packages containing
 entry calls are supported. Entries cannot designate access-to-subprogram values.
-Task/protected discriminants and interfaces, protected entry families, select,
+Task/protected discriminants and interfaces, protected entry families,
 requeue, abort and scheduling facilities retain their roadmap restrictions.
 No tasking or annex conformance claim follows from this increment.
 

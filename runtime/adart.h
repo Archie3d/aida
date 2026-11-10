@@ -162,6 +162,8 @@ typedef struct AdaTaskContext
     /* Task-owned nesting depth; cross-task abort requests belong to the
        synchronized task state when abort is implemented in Phase 9. */
     unsigned int abortDeferralDepth;
+    struct AdaAsyncSelect* asyncSelects;
+    void* asyncTarget;
     /* Only the environment context uses these shared service fields. Keep
        their initialized synchronization objects alive across context disposal. */
     AdaMutex sharedStorageMutex;

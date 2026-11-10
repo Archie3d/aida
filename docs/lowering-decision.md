@@ -168,3 +168,38 @@ handle stack probing. `driver.windows_stack_probes` pins the transformation;
 `windowsstackframes` exercises a 64 KB local array from the environment task and
 four workers through executable, whole-assembly and separate-unit builds.
 Native Windows confirmation remains part of the host audit.
+
+## Phase 9 select operation plan
+
+The select gate is reopened for the current entry runtime. Retain direct QBE,
+with explicit runtime operations and scoped exit records rather than a second IR.
+
+- Evaluate guards once; evaluate indices/deadlines only for open alternatives.
+  Publish one caller-owned alternative table to the task queue. Queue inspection,
+  commitment, timeout cancellation and termination-cohort decisions share the
+  master registry mutex. A committed request cannot be cancelled or lose its
+  argument packet before completion.
+- Call construction keeps the ordinary Ada operands and copy-back plans.
+  Registration returns a request handle; waiting/cancellation determines a
+  success edge. Only successful completion runs copy-back. Protected calls keep
+  their existing execution-resource and barrier rules.
+- An asynchronous select owns a trigger operation and an abortable-part master.
+  Its exit record cancels or finishes the trigger on every transfer, before
+  releasing its operands. Trigger completion requests an internal transfer,
+  distinct from a catchable Ada exception. Statement/loop and blocking-operation
+  completion points observe it outside abort-deferred actions. Inner masters,
+  controlled finalization and accepted rendezvous use the existing exit helpers;
+  nested select operations must unwind in order.
+- A terminate alternative commits only after its owning master is completing
+  and all tasks dependent on that master have terminated or are waiting on open
+  terminate alternatives. Registration, creation, completion and master waiting
+  all recheck that predicate under the same mutex.
+
+The implementation uses an ordered operation-exit stack for accepts and
+asynchronous selects. Each asynchronous operation has one cleanup block and an
+explicit continuation slot; outward transfers finish inner operations before
+leaving their masters. Function results crossing this block use a spill slot.
+A callback retains ordinary copy-back plans until trigger completion. Default
+Initialize/Adjust callbacks and complete controlled assignments now use the
+Phase 6 deferral counter, with balanced failure edges. The delivered contract
+and validation controls are recorded in [select statements](select-statements.md).

@@ -9,7 +9,7 @@ StmtList Parser::parseSequenceOfStatements()
     StmtList statements;
 
     while (!check(TokenKind::KwEnd) && !check(TokenKind::KwElse) && !check(TokenKind::KwElsif)
-           && !check(TokenKind::KwWhen) && !check(TokenKind::KwException) && !check(TokenKind::EndOfFile)) {
+           && !check(TokenKind::KwWhen) && !check(TokenKind::KwOr) && !check(TokenKind::KwThen) && !check(TokenKind::KwException) && !check(TokenKind::EndOfFile)) {
         try {
             StmtPtr statement = parseStatement();
             if (statement) {
@@ -121,25 +121,10 @@ StmtPtr Parser::parseStatement()
         statement->labels = std::move(labels);
         return statement;
     }
-    case TokenKind::KwSelect: {
-        m_diagnostics.error(location, "select statements are not yet supported");
-        advance();
-        int depth = 1;
-        while (!check(TokenKind::EndOfFile) && depth > 0) {
-            if (check(TokenKind::KwEnd) && peek(1).kind == TokenKind::KwSelect) {
-                advance();
-                advance();
-                --depth;
-            } else {
-                if (check(TokenKind::KwSelect)) {
-                    ++depth;
-                }
-                advance();
-            }
-        }
-        match(TokenKind::Semicolon);
-        return nullptr;
-    }
+    case TokenKind::KwSelect:
+        return parseSelectStatement();
+    case TokenKind::KwTerminate:
+        fail("a terminate alternative is allowed only in a selective accept");
     case TokenKind::KwRequeue:
         fail("requeue statements are not yet supported");
     case TokenKind::KwDelay: {
@@ -406,4 +391,47 @@ StmtPtr Parser::parseRaiseStatement()
     }
     expect(TokenKind::Semicolon, "after raise statement");
     return statement;
+}
+
+StmtPtr Parser::parseSelectStatement()
+{
+    auto select = std::make_unique<SelectStmt>();
+    select->location = expect(TokenKind::KwSelect, "in select statement").location;
+    bool accepts = false;
+    do {
+        SelectAlternative alternative;
+        if (match(TokenKind::KwWhen)) {
+            alternative.guard = parseExpression();
+            expect(TokenKind::Arrow, "after select guard");
+        }
+        if (match(TokenKind::KwTerminate)) {
+            alternative.operation = std::make_unique<TerminateStmt>();
+            alternative.operation->location = m_tokens[m_position - 1].location;
+            expect(TokenKind::Semicolon, "after terminate alternative");
+            accepts = true;
+        } else {
+            alternative.operation = parseStatement();
+            if (alternative.operation == nullptr) { fail("a select alternative requires a statement"); }
+            accepts |= alternative.operation->kind == StmtKind::Accept;
+        }
+        alternative.body = parseSequenceOfStatements();
+        select->alternatives.push_back(std::move(alternative));
+    } while (match(TokenKind::KwOr));
+    if (match(TokenKind::KwThen)) {
+        expect(TokenKind::KwAbort, "in asynchronous select");
+        select->form = SelectForm::Asynchronous;
+        select->abortBody = parseSequenceOfStatements();
+        if (select->abortBody.empty()) { fail("an abortable part requires at least one statement"); }
+    } else if (match(TokenKind::KwElse)) {
+        select->hasElse = true;
+        select->form = accepts ? SelectForm::Selective : SelectForm::Conditional;
+        select->elseBody = parseSequenceOfStatements();
+        if (select->elseBody.empty()) { fail("a select else part requires at least one statement"); }
+    } else {
+        select->form = accepts ? SelectForm::Selective : SelectForm::Timed;
+    }
+    expect(TokenKind::KwEnd, "after select statement");
+    expect(TokenKind::KwSelect, "after end");
+    expect(TokenKind::Semicolon, "after select statement");
+    return select;
 }

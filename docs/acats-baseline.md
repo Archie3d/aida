@@ -462,3 +462,11 @@ as well as spaces. This is a P3/P8 scalar-attribute correctness gap and is
 recorded as RUN_FAILED. The other 142 outcomes are unchanged: the cohort now
 has 109 PASS, eight legal-source rejections, one runtime failure, one support
 blocker and 26 ungraded B rejections. Source bytes/hashes are unchanged.
+
+Phase 9 selective accept enables unchanged C85005A and C85005B. Both complete
+with their exact REPORT success protocol and join the strict backfill selection.
+Their objectives concern object/formal renaming and parameter aliasing; their
+helper tasks now execute real selective rendezvous. These passes do not cover
+entry callable renaming, concurrent interfaces, requeue or source abort. The
+snapshot now records 115 C passes, three C compilation rejections, one C runtime
+failure and 26 ungraded B rejections; B conformance grades are unchanged.

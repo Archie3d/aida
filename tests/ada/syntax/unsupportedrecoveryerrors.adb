@@ -13,13 +13,13 @@ begin
     <<Second_Label>>
     goto Destination;
     select
+        delay 2.0;
+    then abort
         select
             delay 1.0;
         then abort
             null;
         end select;
-    or
-        delay 2.0;
     end select;
     goto Destination;
     Value := 1;
