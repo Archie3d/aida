@@ -11,14 +11,13 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 3 |
+| Legal C-test rejected | 2 |
 | Support/harness blocked | 0 |
-| Executable PASS | 132 |
+| Executable PASS | 133 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. The three remaining rejected C-tests are
-C432005 (tagged records with concurrent components), CXC7002 (packed signed-integer
-arrays) and CXDA003 (Locking_Policy and Interrupt_Priority). Their failures remain
+No crashes or timeouts were observed. The two remaining rejected C-tests are
+CXC7002 (packed signed-integer arrays) and CXDA003 (Locking_Policy and Interrupt_Priority). Their failures remain
 recorded. C761010 now passes after access-to-array constraints, deferred constants,
 controlled dependent-array ownership and elaboration ordering were repaired;
 CC3605A passes after the shared access-constraint repair. C35502C, C85005A and
@@ -269,7 +268,7 @@ be blocked before reaching the feature named in their objective.
 | object orientation | 17 | 0 | 0 | 0 | 0 |
 | access callbacks | 7 | 0 | 0 | 0 | 0 |
 | indexing slices | 8 | 0 | 0 | 0 | 0 |
-| aggregates | 3 | 1 | 0 | 0 | 0 |
+| aggregates | 4 | 0 | 0 | 0 | 0 |
 | conversions static | 7 | 0 | 0 | 0 | 0 |
 | control flow | 4 | 0 | 0 | 0 | 0 |
 | calls returns | 8 | 0 | 0 | 0 | 0 |
@@ -286,14 +285,14 @@ be blocked before reaching the feature named in their objective.
 | concurrent interfaces | 1 | 0 | 0 | 0 | 0 |
 | task services | 4 | 2 | 0 | 0 | 0 |
 | task termination | 1 | 0 | 0 | 0 | 0 |
-| **Total** | 132 | 3 | 0 | 0 | 26 |
+| **Total** | 133 | 2 | 0 | 0 | 26 |
 
 ## Follow-up order
 
 1. Validate target configuration on other supported hosts. All 26 selected B
    grades now pass with the documented B394A01 foundation adapter; broader
    interface and tasking conformance is not inferred.
-2. Investigate the remaining three legal C rejections;
+2. Investigate the remaining two legal C rejections;
    turn confirmed defects into focused compiler regressions before fixing them.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
    are repaired; broader protocol/applicability work requires its own selection.
@@ -302,7 +301,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 132 executable C passes and the independent grader's 26 complete B passes
+Its 133 executable C passes and the independent grader's 26 complete B passes
 (25 original foundations and one labelled local adapter) join normal ACATS
 labels. Snapshot stability of a recorded failure is not an ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
@@ -371,7 +370,7 @@ report.
 | [C41207A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41207a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P8 discrete ranges |
 | [C432001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432001.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
 | [C432004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432004.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
-| [C432005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432005.a) | 4.3 | Legal C-test rejected | tagged records with task/protected components remain unsupported; P9 concurrent-component layout |
+| [C432005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432005.a) | 4.3 | Executable PASS | limited tagged extension aggregates with inherited task/protected components; [contract](tagged-concurrent-components.md) |
 | [C43204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c43204a.ada) | 4.3 | Executable PASS | covered probe; P8 discrete ranges |
 | [C460004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460004.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C460005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460005.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
@@ -609,3 +608,19 @@ Validation: the full Darwin arm64 Release suite passes 2,170/2,170 checks
 (308 ACATS). The 42 expanded ASan/UBSan checks and final concurrent control
 rechecks pass. The full baseline stability check, 161-row/22-area/26-grade
 reconciliation and source/hash validation pass.
+
+## C432005 follow-up
+
+Unchanged C432005 passes with limited tagged concurrent components enabled.
+The existing layout, construction, activation and cleanup paths already support
+these records; obsolete semantic guards prevented their use. Extensions with a
+nonlimited ancestor still reject limited components. Whole/separate-unit
+REPORT execution and focused concurrent controlled-lifetime controls cover the
+newly accepted surface. The current snapshot records 133 C passes, two C
+rejections and 26 raw ungraded B rejections. Upstream sources remain unchanged.
+
+Validation on Darwin arm64: all 2,176 Release checks pass (310 ACATS),
+17 focused ASan/UBSan checks and 312 legality controls pass. The complete
+161-case snapshot recheck is stable, all 26 independent B grades pass, and
+161 case rows/22 area totals/26 grades reconcile. Source/hash validation and
+`git diff --check` pass. QBE is unchanged.

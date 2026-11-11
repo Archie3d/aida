@@ -7,7 +7,7 @@ or a claim of conformity assessment. The selection includes Ada 2005 additions
 and inherited objectives; it is reviewed with each feature.
 
 A completed-feature [backfill baseline](baseline/README.md) adds 161 pinned,
-unchanged cases. Its 132 observed executable passes join the normal ACATS label;
+unchanged cases. Its 133 observed executable passes join the normal ACATS label;
 failures and raw B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
@@ -1182,3 +1182,11 @@ also passes raw whole-program/per-unit REPORT execution. Only these two raw
 observations change: 132 executable C passes, three C rejections and 26 ungraded
 B observations. Upstream bytes/hashes and all 26 independent B grades are
 unchanged. [Contract and validation](../../docs/controlled-dependent-arrays.md).
+
+### C432005 tagged concurrent components
+
+Unchanged C432005 now passes whole-program and separate-unit REPORT execution.
+Limited tagged extension aggregates reuse the existing in-place concurrent
+construction and lifetime machinery. The current baseline has 133 C passes, two
+C rejections and 26 raw ungraded B rejections; all upstream hashes remain intact.
+See the [contract](../../docs/tagged-concurrent-components.md).

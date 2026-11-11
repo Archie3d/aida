@@ -4,7 +4,6 @@ protectedlegalityerrors.adb:17:5: error: protected body must complete its local 
 protectedlegalityerrors.adb:20:5: error: protected body must complete its local protected declaration
 protectedlegalityerrors.adb:22:5: error: protected body requires a protected declaration in the same declarative region
 protectedlegalityerrors.adb:24:5: error: protected private components with controlled, task or protected parts are not yet supported
-protectedlegalityerrors.adb:28:5: error: protected components require an ordinary limited full view without variants
-protectedlegalityerrors.adb:34:9: error: protected components require an ordinary limited full view without variants
+protectedlegalityerrors.adb:34:9: error: protected components require a limited full view without variants
 protectedlegalityerrors.adb:34:9: error: a nonlimited private view requires a nonlimited full view
 protectedlegalityerrors.adb:53:42: error: protected operations require the full view of 'Hidden', whose representation 'HiddenModel' keeps to itself

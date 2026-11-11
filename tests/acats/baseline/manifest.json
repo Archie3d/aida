@@ -1726,9 +1726,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "cross_feature_language_gap",
-        "owner": "P9 full tasking",
-        "note": "Task entries/accept bodies and protected/task-containing aggregate behavior; the entry-free task and protected-object subsets do not cover this compound case."
+        "kind": "covered_probe",
+        "owner": "P12 tagged concurrent components",
+        "note": "Limited tagged extension aggregates construct inherited and extension task/protected components in place; unchanged REPORT execution passes in whole and separate-unit modes."
       }
     },
     {

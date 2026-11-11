@@ -28,9 +28,10 @@ caller-owned finalization registrations and carry their destination accessibilit
 level through constructors and allocations.
 
 Task/protected discriminants and bound callable views follow the
-[concurrent-view contract](concurrent-callable-views.md). Tagged/variant composites
-containing these objects and discriminant-dependent arrays of concurrent elements
-remain diagnosed. Entries/rendezvous, [select](select-statements.md) and
+[concurrent-view contract](concurrent-callable-views.md). Limited tagged records
+and extensions support concurrent components and limited extension aggregates
+([contract](tagged-concurrent-components.md)). Variant composites, untagged
+derivation and discriminant-dependent arrays of concurrent elements remain diagnosed. Entries/rendezvous, [select](select-statements.md) and
 [requeue/abort](requeue-abort.md) are implemented for their documented surfaces;
 concurrent interfaces follow their [contract](concurrent-interfaces.md). This increment
 does not claim complete tasking or annex conformance. Recompile affected Ada

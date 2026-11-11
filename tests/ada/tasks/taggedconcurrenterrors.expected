@@ -1,0 +1,5 @@
+taggedconcurrenterrors.adb:22:9: error: a record extension with a nonlimited ancestor cannot have limited components
+taggedconcurrenterrors.adb:23:9: error: a record extension with a nonlimited ancestor cannot have limited components
+taggedconcurrenterrors.adb:26:5: error: limited objects cannot be copied
+taggedconcurrenterrors.adb:28:5: error: objects containing tasks cannot be assigned
+taggedconcurrenterrors.adb:29:14: error: types containing tasks have no predefined equality

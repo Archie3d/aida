@@ -44,10 +44,11 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 132 C passes, three legal-source rejections, no runtime failures and
+has 133 C passes, two legal-source rejections, no runtime failures and
 26 raw B observations; see the current support-protocol increment in the report. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
-adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
+adapter; C761010 now passes after the access-subtype and
+dependent-controlled-array repairs. B840001's three legal extension aggregates are now
 accepted; its remaining rejection diagnostics are still ungraded.
 
 The Phase 6f backfill adds 16 C-tests covering interfaces, abstract operations,
@@ -267,3 +268,11 @@ also passes raw whole-program/per-unit REPORT execution. Only these two raw
 observations change: 132 executable C passes, three C rejections and 26 ungraded
 B observations. Upstream bytes/hashes and all 26 independent B grades are
 unchanged. [Contract and validation](../../../docs/controlled-dependent-arrays.md).
+
+### C432005 tagged concurrent components
+
+Unchanged C432005 now passes whole-program and separate-unit REPORT execution.
+Limited tagged extension aggregates reuse the existing in-place concurrent
+construction and lifetime machinery. The current baseline has 133 C passes, two
+C rejections and 26 raw ungraded B rejections; all upstream hashes remain intact.
+See the [contract](../../../docs/tagged-concurrent-components.md).

@@ -784,11 +784,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
             m_diagnostics.error(decl->location, "extending a synchronized formal requires Phase 9 concurrent types");
             return;
         }
-        if (hasProtected(parent)) {
+        if (hasProtected(parent) && !parent->tagged) {
             m_diagnostics.error(decl->location, "derivation of types containing protected objects is not yet supported");
             return;
         }
-        if (hasTasks(parent)) {
+        if (hasTasks(parent) && !parent->tagged) {
             m_diagnostics.error(decl->location, "derivation of types containing tasks is not yet supported");
             return;
         }
@@ -1143,14 +1143,11 @@ void Sema::analyzeTypeDecl(TypeDecl* decl, Scope* scope)
         }
     }
     if (hasProtected(type) && (nonlimitedPrivateCompletion
-        || (type->protectedScope == nullptr && (type->tagged || type->variantOn >= 0)))) {
-        m_diagnostics.error(decl->location, "protected components require an ordinary limited full view without variants");
+        || (type->protectedScope == nullptr && type->variantOn >= 0))) {
+        m_diagnostics.error(decl->location, "protected components require a limited full view without variants");
     }
     if (hasTasks(type) && nonlimitedPrivateCompletion) {
         m_diagnostics.error(decl->location, "a completion containing tasks requires a limited private view");
-    }
-    if (hasTasks(type) && type->tagged && type->taskBody == nullptr) {
-        m_diagnostics.error(decl->location, "tagged records containing tasks are not yet supported");
     }
     if (type->variantOn >= 0 && hasTasks(type)) {
         m_diagnostics.error(decl->location, "variant records containing tasks are not yet supported");
@@ -1410,6 +1407,13 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         info.type = resolveSubtypeIndication(field.subtype.get(), isDiscriminant ? scope : componentScope, true, true);
         m_componentConstraintUses = savedConstraintTypes;
         checkCompleteView(info.type, field.location, "a record component");
+        if (!isDiscriminant && definition->extension && hasLimitedParts(info.type)
+            && ((type->parentType != nullptr && !type->parentType->isLimited)
+                || std::any_of(type->interfaces.begin(), type->interfaces.end(),
+                    [](Type* ancestor) { return !ancestor->isLimited; }))) {
+            m_diagnostics.error(field.location,
+                "a record extension with a nonlimited ancestor cannot have limited components");
+        }
         if (unknownDiscriminantView(info.type)) {
             m_diagnostics.error(field.location, "a record component requires a definite subtype view");
         }

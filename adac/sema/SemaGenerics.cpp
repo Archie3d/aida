@@ -2479,9 +2479,9 @@ void Sema::finishAnalysis(bool requireLibraryBodies)
         }
         if (symbol->kind == SymbolKind::TypeName && type != nullptr && checked.insert(type).second) {
             if (hasProtected(type) && type->protectedScope == nullptr
-                && (type->deferredLayout || type->tagged || type->variantOn >= 0)) {
+                && (type->deferredLayout || type->variantOn >= 0)) {
                 m_diagnostics.error(symbol->location,
-                    "protected components require a complete ordinary record or array layout at declaration");
+                    "protected components require a complete record or array layout without variants at declaration");
             }
         }
     }

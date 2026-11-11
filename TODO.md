@@ -4,7 +4,7 @@ Phases 1–12 are complete for AIDA’s documented Ada 2005 subset, including co
 tasking. Phase 13 is the only open phase. Additional Specialized Needs Annex
 facilities and profiles have [separate goals](docs/selected-annex-followups.md).
 
-## Phase 12 - C761010 correctness follow-up
+## Phase 12 - ACATS correctness follow-ups
 
 - [x] **C761010 — controlled aggregate initialization.** Access-to-array
   constraints and deferred indefinite constants are repaired. Controlled
@@ -23,6 +23,19 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
   plus 42 expanded ASan/UBSan checks and three final concurrent rechecks in
   each build. Four workers independently exercise ownership and failure paths.
   The complete baseline recheck and `git diff --check` pass; QBE is unchanged.
+
+- [x] **C432005 — tagged concurrent components.** Enable limited tagged records
+  and extensions containing task/protected components using existing layout,
+  in-place construction, activation and cleanup machinery. Unchanged C432005
+  passes whole/per-unit REPORT execution. Focused controls cover three tagged
+  levels, controlled finalization, inherited views, protected exceptions, four
+  concurrent callers, noncopying diagnostics and nonlimited-ancestor legality.
+  [Contract](docs/tagged-concurrent-components.md). Darwin arm64 validation:
+  all 2,176 Release checks pass (310 ACATS), all 17 focused ASan/UBSan checks
+  and all 312 legality controls pass. The full 161-case baseline recheck and
+  26 independent B grades pass. Only C432005 changes: 133 C passes, two C
+  rejections and 26 raw B rejections. All upstream hashes remain intact; QBE
+  is unchanged.
 
 ## Phase 13 - Deferred host/performance follow-up
 
@@ -43,9 +56,10 @@ language, runtime, library and tooling milestones. Phases 10–12 completed
 the [diagnostics audit](docs/diagnostics.md), compiler and driver fixes, and
 the [ACATS correctness and legality review](docs/acats-grading.md).
 
-The latest Phase 12 Release run on Darwin arm64 passed all 2,170 checks,
-including all 308 ACATS checks. The C761010 follow-up also passed 42 expanded
-ASan/UBSan checks and final concurrent execution/determinism rechecks.
+The latest Phase 12 Release run on Darwin arm64 passed all 2,176 checks,
+including all 310 ACATS checks. The C432005 follow-up also passed 17 focused
+ASan/UBSan checks and 312 legality controls. The earlier C761010 follow-up
+passed 42 expanded ASan/UBSan checks and concurrent rechecks.
 [ACATS results and remaining restrictions](docs/acats-baseline.md).
 
 ## Working rules
