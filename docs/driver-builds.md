@@ -31,10 +31,15 @@ are tied to staged output bytes, rather than blessing a different writer's
 replacement. Inputs are rechecked before publication; a complete, stable artifact
 set is required before saving a reusable receipt. Invalid or incomplete receipts
 fall back to the normal build pipeline. File modes acquire both their output
-and artifact directory guards in canonical order, reusing one guard when the
-directories coincide. The inherited
-locks cover receipt checks/publication and cleanup; see
+and artifact guards in canonical order, reusing identical guards. The output
+guard lives inside the output directory, so a read-only parent is supported.
+The inherited locks cover receipt checks/publication and cleanup; see
 [artifact publication](artifact-publication.md).
+
+Native object cache stamps include the resolved QBE and C compiler paths and
+content/provenance fingerprints. Changing which tool a bare command name finds
+on `PATH` recompiles native objects; unchanged tools still reuse objects when
+`--force` bypasses the whole-build receipt.
 
 This is conservative dependency tracking, not a sandbox for external tools.
 Unreadable/unknown fingerprints and opaque runtime linker options disable the

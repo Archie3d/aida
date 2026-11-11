@@ -2,11 +2,13 @@
 
 #include <utility>
 #include <algorithm>
+#include <optional>
 
 ExprPtr Parser::parseExpression()
 {
     NestingGuard nesting(*this);
     ExprPtr left = parseRelation();
+    std::optional<BinaryOp> logicalOperator;
 
     while (true) {
         SourceLocation location = current().location;
@@ -23,6 +25,10 @@ ExprPtr Parser::parseExpression()
         } else {
             break;
         }
+        if (logicalOperator && *logicalOperator != op) {
+            m_diagnostics.error(location, "different logical operators require parentheses");
+        }
+        logicalOperator = op;
         left = makeBinary(op, std::move(left), parseRelation(), location);
     }
 

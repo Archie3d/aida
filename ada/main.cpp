@@ -286,9 +286,7 @@ int main(int argc, char** argv)
     Artifacts::DirectoryLock receiptLock;
     std::string lockDirectory = objectDirectory;
     if (stage != Stage::Executable) {
-        auto path = Artifacts::nativePath(stage == Stage::Assembly ? assemblyFile : irFile);
-        lockDirectory = Artifacts::pathText(path.parent_path());
-        if (lockDirectory.empty()) { lockDirectory = "."; }
+        lockDirectory = Artifacts::DirectoryLock::directoryForOutput(stage == Stage::Assembly ? assemblyFile : irFile);
     }
     if (!(stage == Stage::IntermediateLanguage && irFile == "-")) {
         // File modes publish under the output lock and also own a receipt in

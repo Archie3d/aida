@@ -2397,6 +2397,20 @@ if(Python3_Interpreter_FOUND)
             --render $<TARGET_FILE:diagnostic_render> --work ${ADA_TEST_WORK_DIR}/diagnostics)
     set_tests_properties(diagnostics.contract PROPERTIES TIMEOUT 120)
     add_executable(artifact_tool_hook artifacts/ToolHook.cpp)
+    set(review_math_option)
+    if(IMPORTED_FLOAT_SEPARATE_LIBM)
+        set(review_math_option --separate-libm)
+    endif()
+    add_test(NAME semantics.review_fixes
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/review/check.py
+            --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>
+            --cc ${CMAKE_C_COMPILER} --qbe ${QBE_EXECUTABLE}
+            --runtime $<TARGET_FILE:adart> --hook $<TARGET_FILE:artifact_tool_hook>
+            --source ${CMAKE_CURRENT_SOURCE_DIR}/ada/interactions/reviewfixes.adb
+            --work ${ADA_TEST_WORK_DIR}/review-fixes ${review_math_option}
+            "--sanitizer-flag=${AIDA_SANITIZER_FLAG}"
+            "--exe-suffix=${CMAKE_EXECUTABLE_SUFFIX}")
+    set_tests_properties(semantics.review_fixes PROPERTIES TIMEOUT 180)
     add_test(NAME driver.noop_cleanup
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/driver/check_noop.py
             --ada $<TARGET_FILE:ada> --adac $<TARGET_FILE:adac>

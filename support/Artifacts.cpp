@@ -231,6 +231,12 @@ DirectoryLock::~DirectoryLock()
     }
 }
 
+std::string DirectoryLock::directoryForOutput(const std::string& output)
+{
+    auto parent = nativePath(output).parent_path();
+    return pathText(parent / ".aida-outputs");
+}
+
 std::string DirectoryLock::pathFor(const std::string& directory, std::string& message)
 {
     std::error_code error;

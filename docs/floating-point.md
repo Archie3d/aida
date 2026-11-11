@@ -23,6 +23,11 @@ arithmetic at the declared precision. The runtime checks the format and
 `FLT_EVAL_METHOD == 0` at build time. Fast-math/finite-only compilation is
 rejected for the checked arithmetic implementation.
 
+Dynamic negation flips the representation's sign bit; `abs` clears it. This
+preserves the expected signs for positive and negative zero for both formats.
+`semantics.review_fixes` checks variable operands with `Copy_Sign` through
+whole-program and per-unit builds.
+
 The floating environment must retain its platform defaults: nearest/even
 rounding, gradual underflow and masked hardware exceptions. AIDA neither changes
 rounding modes nor installs hardware-trap handlers. Foreign code must preserve

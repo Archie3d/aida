@@ -308,18 +308,20 @@ void QbeEmitter::emitStatement(Stmt* statement)
             Value low = emitExpr(loop->rangeLow.get());
             Value high = emitExpr(loop->rangeHigh.get());
             char type = qbeClass(variable->type);
+            // Test the evaluated bounds before storing the iteration variable:
+            // its representation may be narrower than a null range's bounds.
+            std::string nonNullRange = newTemp();
+            std::string initialize = newLabel("loopinitialize");
+            char boundType = low.type == 'l' || high.type == 'l' ? 'l' : 'w';
+            Value originalLow = boundType == 'l' ? wideBound(low) : low;
+            Value originalHigh = boundType == 'l' ? wideBound(high) : high;
+            line(nonNullRange + " =w " + comparisonInstruction(BinaryOp::LessEqual, boundType, variable->type->modulus != 0)
+                + " " + originalLow.name + ", " + originalHigh.name);
+            branch(Value { nonNullRange, 'w' }, initialize, exit);
+            label(initialize);
             if (!loop->rangeTypeLower.empty()) {
-                std::string nonNull = newTemp();
-                std::string check = newLabel("looprangecheck");
-                std::string ready = newLabel("looprangeready");
-                line(nonNull + " =w " + comparisonInstruction(BinaryOp::GreaterEqual, type, variable->type->modulus != 0)
-                    + " " + high.name + ", " + low.name);
-                branch(Value { nonNull, 'w' }, check, ready);
-                label(check);
                 emitRangeCheck(low, variable->type, loop->location);
                 emitRangeCheck(high, variable->type, loop->location);
-                jump(ready);
-                label(ready);
             }
             std::string boundSlot = allocScratch(type == 'l' ? 8 : 4);
             Value address = addressOf(variable);

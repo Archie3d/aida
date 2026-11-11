@@ -344,8 +344,7 @@ int main(int argc, char** argv)
     if (output.empty() && artifacts.empty() && !inputs.empty()) { output = defaultOutputName(inputs.back()); }
     std::string lockDirectory = artifacts;
     if (lockDirectory.empty() && !output.empty() && output != "-") {
-        lockDirectory = HostPaths::directoryOf(output);
-        if (lockDirectory.empty()) { lockDirectory = "."; }
+        lockDirectory = Artifacts::DirectoryLock::directoryForOutput(output);
     }
     Artifacts::DirectoryLock buildLock;
     if (!lockDirectory.empty() && !buildLock.acquire(lockDirectory, inheritedLock)) {

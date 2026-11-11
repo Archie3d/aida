@@ -111,7 +111,7 @@ Value QbeEmitter::compareArrays(BinaryOp op, const Value& left, Type* leftType, 
         Value leftValue = loadFrom(leftElement, leftType->element);
         Value rightValue = loadFrom(rightElement, rightType->element);
         std::string ordered = newTemp();
-        line(ordered + " =w " + comparisonInstruction(op, leftValue.type) + " "
+        line(ordered + " =w " + comparisonInstruction(op, leftValue.type, leftType->element->modulus != 0) + " "
              + leftValue.name + ", " + rightValue.name);
         line("storew " + ordered + ", " + resultSlot);
     }

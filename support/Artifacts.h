@@ -64,6 +64,9 @@ public:
     DirectoryLock(const DirectoryLock&) = delete;
     DirectoryLock& operator=(const DirectoryLock&) = delete;
 
+    // A synthetic child identity puts file-output guards inside the writable
+    // output directory while sharing one guard with front-end child processes.
+    static std::string directoryForOutput(const std::string& output);
     // Canonical guard path, also used to order acquisition of multiple locks.
     static std::string pathFor(const std::string& directory, std::string& error);
     bool acquire(const std::string& directory, const std::string& inherited = {});

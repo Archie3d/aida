@@ -5,8 +5,8 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 10 is complete for the documented diagnostics audit and
-terminal rendering surface. Phase 11 host/performance follow-up remains deferred.
+**Current focus:** Phase 11 compiler and driver review fixes are complete.
+Phase 12 host validation and performance follow-up remain deferred.
 Further Annex work has separately scoped goals and acceptance tests.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
@@ -167,7 +167,52 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
   multiline spans. Test both rich and plain rendering without relying on color
   alone to convey meaning. [Options, rendering contract and limits](docs/diagnostics.md).
 
-### Phase 11 - Deferred host/performance follow-up
+### Phase 11 - Compiler and driver review fixes
+
+The Darwin arm64 Release review passed all 2,114 existing CTest checks. Separate
+probes exposed the following gaps. Exercise the code generation fixes in both
+whole-program and per-unit builds.
+
+- [x] **Skip null for-loop ranges before narrowing the bounds.** An eight-bit
+  loop variable can turn a starting bound of 256 into zero, causing a null
+  range to execute once. Branch to the loop exit using the original bounds.
+  Check zero iterations for forward `256 .. 0` and reverse `0 .. -256` ranges,
+  and one iteration for a valid singleton.
+- [x] **Invalidate native objects when the selected tool changes.** Switching
+  `PATH` to a different compiler under the same `CC` name currently relinks
+  stale objects. Use the resolved QBE and C compiler fingerprints in the
+  per-object cache stamp. Verify that switching either tool recompiles the
+  affected objects and that an unchanged toolchain still reuses them.
+- [x] **Use unsigned ordering for modular array elements.** A one-element array
+  containing `Word'Last` compares below one containing zero for
+  `type Word is mod 2 ** 64`. Use the element type's signedness when comparing
+  the first unequal pair. Check that array and scalar ordering agree in both
+  directions across the high bit.
+- [x] **Preserve signed zero in floating-point negation and absolute value.**
+  Dynamic negation currently leaves positive zero positive, and `abs` leaves
+  negative zero negative. Flip the sign for negation and clear it for `abs`.
+  Verify both zero signs with variable operands and `Copy_Sign` for `Float`
+  and `Long_Float`.
+- [x] **Diagnose mixed logical operators without parentheses.** The parser
+  accepts `True or False and False`. Enforce the Ada 2005 expression grammar
+  at each nesting level and point the diagnostic at the conflicting operator.
+  Cover short-circuit forms, repeated operators and parenthesized legal cases.
+- [x] **Allow assembly and IR output in a writable directory.** With a
+  read-only parent, `-S` and `--emit-ir` fail because the output lock is
+  created one directory above the requested output directory. Place the guard
+  where the writer has access. Test both modes under these permissions and
+  verify that concurrent writers to the same output still serialize.
+
+Validation on Darwin arm64 (11 November 2026): the full Release run passed
+2,114 checks; its sole failure was the expected loop IR snapshot, refreshed and
+verified to contain only the null-range branch and identifier renumbering. All
+16 final affected checks passed, covering that snapshot and all six fixes;
+focused diagnostics/review checks also passed under ASan/UBSan. Regression:
+[`semantics.review_fixes`](tests/review/check.py), with
+[whole-program/per-unit execution cases](tests/ada/interactions/reviewfixes.adb).
+No additional host or performance claims are made.
+
+### Phase 12 - Deferred host/performance follow-up
 
 These remain open but do not gate the functional items above.
 

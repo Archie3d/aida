@@ -35,7 +35,7 @@ export function $ada__text_io__scanning__normalized(l %.result, l %p.text, l %p.
     %.t6 =l alloc8 8
     storel 0, %.t6
     %v.i.28 =l alloc4 4
-    %.t31 =l alloc4 4
+    %.t32 =l alloc4 4
     %.trace =l alloc8 24
     %.traceLocation =l add %.trace, 16
     %.taskContext =l call $__ada_trace_enter(l %.trace, l $.ada_text_io_scanning.str.8, l $.ada_text_io_scanning.str.3)
@@ -116,116 +116,119 @@ export function $ada__text_io__scanning__normalized(l %.result, l %p.text, l %p.
     %.t26 =l loadl %.t6
     %.t29 =w copy %p.text.first
     %.t30 =w copy %p.text.last
+    %.t31 =w cslew %.t29, %.t30
+    jnz %.t31, @loopinitialize.26, @endloop.25
+@loopinitialize.26
     storew %.t29, %v.i.28
-    storew %.t30, %.t31
+    storew %.t30, %.t32
     jmp @loop.23
 @loop.23
-    %.t32 =w loadsw %v.i.28
-    %.t33 =w loadsw %.t31
-    %.t34 =w cslew %.t32, %.t33
-    jnz %.t34, @loopbody.24, @endloop.25
+    %.t33 =w loadsw %v.i.28
+    %.t34 =w loadsw %.t32
+    %.t35 =w cslew %.t33, %.t34
+    jnz %.t35, @loopbody.24, @endloop.25
 @loopbody.24
-    %.t35 =l loadl %.t6
-    %.t37 =w call $__ada_async_check(l %.taskContext)
-    jnz %.t37, @propagate.2, @asynccontinue.26
-@asynccontinue.26
-    %.t38 =w loadsw %v.i.28
-    %.t39 =l extsw %.t38
+    %.t36 =l loadl %.t6
+    %.t38 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t38, @propagate.2, @asynccontinue.27
+@asynccontinue.27
+    %.t39 =w loadsw %v.i.28
+    %.t40 =l extsw %.t39
     storel $.ada_text_io_scanning.str.5, %.traceLocation
-    %.t40 =l call $__ada_array_offset(l %.t39, l %p.text.first, l %p.text.last, l 1)
-    %.t42 =l loadl %.taskContext
-    %.t43 =w cnel %.t42, 0
-    jnz %.t43, @exceptiondispatch.29, @nothrow.28
-@exceptiondispatch.29
-    %.t44 =w ceql %.t42, $__ada_exc_async_transfer
-    jnz %.t44, @propagate.2, @ordinaryexception.30
-@ordinaryexception.30
+    %.t41 =l call $__ada_array_offset(l %.t40, l %p.text.first, l %p.text.last, l 1)
+    %.t43 =l loadl %.taskContext
+    %.t44 =w cnel %.t43, 0
+    jnz %.t44, @exceptiondispatch.30, @nothrow.29
+@exceptiondispatch.30
+    %.t45 =w ceql %.t43, $__ada_exc_async_transfer
+    jnz %.t45, @propagate.2, @ordinaryexception.31
+@ordinaryexception.31
     jmp @propagate.2
-@nothrow.28
-    %.t41 =l add %.t11, %.t40
-    %.t45 =w loadub %.t41
-    %.t46 =w ceqw %.t45, 9
-    jnz %.t46, @then.31, @elsif.32
-@then.31
-    %.t47 =l loadl %.t6
-    %.t49 =w call $__ada_async_check(l %.taskContext)
-    jnz %.t49, @propagate.2, @asynccontinue.33
-@asynccontinue.33
-    %.t50 =w loadsw %v.i.28
-    %.t51 =l extsw %.t50
+@nothrow.29
+    %.t42 =l add %.t11, %.t41
+    %.t46 =w loadub %.t42
+    %.t47 =w ceqw %.t46, 9
+    jnz %.t47, @then.32, @elsif.33
+@then.32
+    %.t48 =l loadl %.t6
+    %.t50 =w call $__ada_async_check(l %.taskContext)
+    jnz %.t50, @propagate.2, @asynccontinue.34
+@asynccontinue.34
+    %.t51 =w loadsw %v.i.28
+    %.t52 =l extsw %.t51
     storel $.ada_text_io_scanning.str.6, %.traceLocation
-    %.t52 =l call $__ada_array_offset(l %.t51, l %p.text.first, l %p.text.last, l 1)
-    %.t54 =l loadl %.taskContext
-    %.t55 =w cnel %.t54, 0
-    jnz %.t55, @exceptiondispatch.35, @nothrow.34
-@exceptiondispatch.35
-    %.t56 =w ceql %.t54, $__ada_exc_async_transfer
-    jnz %.t56, @propagate.2, @ordinaryexception.36
-@ordinaryexception.36
+    %.t53 =l call $__ada_array_offset(l %.t52, l %p.text.first, l %p.text.last, l 1)
+    %.t55 =l loadl %.taskContext
+    %.t56 =w cnel %.t55, 0
+    jnz %.t56, @exceptiondispatch.36, @nothrow.35
+@exceptiondispatch.36
+    %.t57 =w ceql %.t55, $__ada_exc_async_transfer
+    jnz %.t57, @propagate.2, @ordinaryexception.37
+@ordinaryexception.37
     jmp @propagate.2
-@nothrow.34
-    %.t53 =l add %.t11, %.t52
-    %.t57 =w csgew 32, 0
-    %.t58 =w cslew 32, 255
-    %.t59 =w and %.t57, %.t58
-    jnz %.t59, @inrange.37, @outofrange.38
-@outofrange.38
+@nothrow.35
+    %.t54 =l add %.t11, %.t53
+    %.t58 =w csgew 32, 0
+    %.t59 =w cslew 32, 255
+    %.t60 =w and %.t58, %.t59
+    jnz %.t60, @inrange.38, @outofrange.39
+@outofrange.39
     storel $.ada_text_io_scanning.str.6, %.traceLocation
     call $__ada_raise(l $__ada_exc_constraint_error)
     jmp @propagate.2
-@inrange.37
-    storeb 32, %.t53
-    call $__ada_array_rewind(l %.t6, l %.t47)
-    jmp @endif.27
-@elsif.32
-    jmp @endif.27
-@endif.27
-    call $__ada_array_rewind(l %.t6, l %.t35)
-    %.t60 =w loadsw %v.i.28
-    %.t61 =w ceqw %.t60, %.t33
-    jnz %.t61, @endloop.25, @loopstep.39
-@loopstep.39
-    %.t62 =w add %.t60, 1
-    storew %.t62, %v.i.28
+@inrange.38
+    storeb 32, %.t54
+    call $__ada_array_rewind(l %.t6, l %.t48)
+    jmp @endif.28
+@elsif.33
+    jmp @endif.28
+@endif.28
+    call $__ada_array_rewind(l %.t6, l %.t36)
+    %.t61 =w loadsw %v.i.28
+    %.t62 =w ceqw %.t61, %.t34
+    jnz %.t62, @endloop.25, @loopstep.40
+@loopstep.40
+    %.t63 =w add %.t61, 1
+    storew %.t63, %v.i.28
     jmp @loop.23
 @endloop.25
     call $__ada_array_rewind(l %.t6, l %.t23)
-    %.t63 =l loadl %.t6
+    %.t64 =l loadl %.t6
     storel $.ada_text_io_scanning.str.7, %.traceLocation
     call $__ada_array_result(l %.result, l %.t11, l %p.text.first, l %p.text.last, l 1)
-    %.t65 =l loadl %.taskContext
-    %.t66 =w cnel %.t65, 0
-    jnz %.t66, @exceptiondispatch.41, @nothrow.40
-@exceptiondispatch.41
-    %.t67 =w ceql %.t65, $__ada_exc_async_transfer
-    jnz %.t67, @propagate.2, @ordinaryexception.42
-@ordinaryexception.42
+    %.t66 =l loadl %.taskContext
+    %.t67 =w cnel %.t66, 0
+    jnz %.t67, @exceptiondispatch.42, @nothrow.41
+@exceptiondispatch.42
+    %.t68 =w ceql %.t66, $__ada_exc_async_transfer
+    jnz %.t68, @propagate.2, @ordinaryexception.43
+@ordinaryexception.43
     jmp @propagate.2
-@nothrow.40
-    %.t68 =l add %.result, 16
-    storel %p.text.first, %.t68
-    %.t69 =l add %.result, 24
-    storel %p.text.last, %.t69
-    %.t70 =l add %.result, 32
-    storel %.t7, %.t70
-    %.t71 =l add %.result, 40
-    storel 1, %.t71
+@nothrow.41
+    %.t69 =l add %.result, 16
+    storel %p.text.first, %.t69
+    %.t70 =l add %.result, 24
+    storel %p.text.last, %.t70
+    %.t71 =l add %.result, 32
+    storel %.t7, %.t71
+    %.t72 =l add %.result, 40
+    storel 1, %.t72
     storel $.ada_text_io_scanning.str.7, %.traceLocation
-    %.t72 =l call $__ada_array_size(l %p.text.first, l %p.text.last, l 1)
-    %.t76 =l loadl %.taskContext
-    %.t77 =w cnel %.t76, 0
-    jnz %.t77, @exceptiondispatch.44, @nothrow.43
-@exceptiondispatch.44
-    %.t78 =w ceql %.t76, $__ada_exc_async_transfer
-    jnz %.t78, @propagate.2, @ordinaryexception.45
-@ordinaryexception.45
+    %.t73 =l call $__ada_array_size(l %p.text.first, l %p.text.last, l 1)
+    %.t77 =l loadl %.taskContext
+    %.t78 =w cnel %.t77, 0
+    jnz %.t78, @exceptiondispatch.45, @nothrow.44
+@exceptiondispatch.45
+    %.t79 =w ceql %.t77, $__ada_exc_async_transfer
+    jnz %.t79, @propagate.2, @ordinaryexception.46
+@ordinaryexception.46
     jmp @propagate.2
-@nothrow.43
-    %.t73 =w ceql %.t72, 0
-    %.t79 =l extsw %.t73
-    %.t74 =l add %.t72, %.t79
-    %.t75 =l add %.result, 8
-    storel %.t74, %.t75
+@nothrow.44
+    %.t74 =w ceql %.t73, 0
+    %.t80 =l extsw %.t74
+    %.t75 =l add %.t73, %.t80
+    %.t76 =l add %.result, 8
+    storel %.t75, %.t76
     call $__ada_master_await(l %.taskContext, l %.master)
     call $__ada_array_release(l %.t6)
     call $__ada_master_leave(l %.taskContext, l %.master)

@@ -43,7 +43,9 @@ cleaning the directory does not unlink the live lock. POSIX uses an inherited
 `flock` descriptor; Windows uses an inherited exclusive file handle. The driver
 holds exclusion across scan, frontend compilation, binding, native compilation
 and linking. Standalone `adac -D` commands use the same lock. File-only frontend
-and IR/assembly driver commands coordinate through their output directory.
+and IR/assembly driver commands coordinate through a persistent
+`..aida-outputs.aida-lock` guard inside their output directory. This requires
+write access in that directory only, even when its parent is read-only.
 Symlink and dot-segment directory aliases resolve to the same guard.
 
 Frontend subprocesses borrow the driver's live handle through the internal

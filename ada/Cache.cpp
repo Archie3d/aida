@@ -1,4 +1,5 @@
 #include "Cache.h"
+#include "BuildState.h"
 #include "../support/Artifacts.h"
 
 #include <filesystem>
@@ -29,12 +30,9 @@ std::string toolDigest(const std::vector<std::string>& programs)
 {
     std::string description;
     for (const std::string& program : programs) {
-        std::error_code ignored;
-        auto size = std::filesystem::file_size(program, ignored);
-        auto written = std::filesystem::last_write_time(program, ignored);
-        description += program;
-        description += ":" + std::to_string(static_cast<unsigned long long>(size));
-        description += ":" + std::to_string(static_cast<unsigned long long>(written.time_since_epoch().count()));
+        std::string resolved = resolveProgram(program);
+        description += resolved;
+        description += ":" + Artifacts::fileFingerprint(resolved);
         description += "\n";
     }
     return digestOf(description);

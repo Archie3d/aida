@@ -119,4 +119,4 @@ Local validation on Darwin arm64 (11 November 2026):
 - The generated Unicode-width header reproduces byte for byte. `git diff --check`
   passes, and `qbe/` is unchanged.
 
-Other native hosts retain the Phase 11 validation owner.
+Other native hosts retain the Phase 12 validation owner.

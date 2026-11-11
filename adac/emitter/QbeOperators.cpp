@@ -203,44 +203,41 @@ Value QbeEmitter::emitUnary(UnaryExpr* expr)
             return emitModularOperation(ModularNot, operand, Value { "0", operand.type }, expr->type);
         }
     }
+    if (isFloatClass(operand.type) && (expr->op == UnaryOp::Negate || expr->op == UnaryOp::Abs)) {
+        // Bit operations preserve zero signs and NaN payloads exactly.
+        char bitsType = operand.type == 'd' ? 'l' : 'w';
+        std::string bits = newTemp();
+        std::string adjusted = newTemp();
+        std::string mask = expr->op == UnaryOp::Negate
+            ? (bitsType == 'l' ? "9223372036854775808" : "2147483648")
+            : (bitsType == 'l' ? "9223372036854775807" : "2147483647");
+        line(bits + " =" + bitsType + " cast " + operand.name);
+        line(adjusted + " =" + bitsType + (expr->op == UnaryOp::Negate ? " xor " : " and ") + bits + ", " + mask);
+        line(temp + " =" + operand.type + " cast " + adjusted);
+        return Value { temp, operand.type };
+    }
     switch (expr->op) {
     case UnaryOp::Plus:
         return operand;
-    case UnaryOp::Negate: {
-        if (!isFloatClass(operand.type)) {
-            return emitIntegerOperation(1, Value { "0", operand.type }, operand, operand.type);
-        }
-        std::string zero = isFloatClass(operand.type) ? realLiteral(0.0, operand.type) : std::string("0");
-        line(temp + " =" + std::string(1, operand.type) + " sub " + zero + ", " + operand.name);
-        return Value { temp, operand.type };
-    }
+    case UnaryOp::Negate:
+        return emitIntegerOperation(1, Value { "0", operand.type }, operand, operand.type);
     case UnaryOp::Not:
         line(temp + " =w ceqw " + operand.name + ", 0");
         return Value { temp, 'w' };
     case UnaryOp::Abs: {
-        bool isFloat = isFloatClass(operand.type);
-        long long slotSize = operand.type == 'l' || operand.type == 'd' ? 8 : 4;
+        long long slotSize = operand.type == 'l' ? 8 : 4;
         std::string slot = allocScratch(slotSize);
-        const char* storeInstruction = isFloat ? (operand.type == 'd' ? "stored" : "stores")
-                                               : (operand.type == 'l' ? "storel" : "storew");
-        const char* loadInstruction = isFloat ? (operand.type == 'd' ? "loadd" : "loads")
-                                              : (operand.type == 'l' ? "loadl" : "loadsw");
-        std::string zero = isFloat ? realLiteral(0.0, operand.type) : std::string("0");
+        const char* storeInstruction = operand.type == 'l' ? "storel" : "storew";
+        const char* loadInstruction = operand.type == 'l' ? "loadl" : "loadsw";
         line(std::string(storeInstruction) + " " + operand.name + ", " + slot);
         std::string negative = newTemp();
-        line(negative + " =w " + comparisonInstruction(BinaryOp::Less, operand.type) + " " + operand.name + ", "
-             + zero);
+        line(negative + " =w " + comparisonInstruction(BinaryOp::Less, operand.type) + " " + operand.name + ", 0");
         std::string negate = newLabel("absneg");
         std::string done = newLabel("absdone");
         branch(Value { negative, 'w' }, negate, done);
         label(negate);
-        std::string negated = newTemp();
-        if (isFloat) {
-            line(negated + " =" + std::string(1, operand.type) + " sub " + zero + ", " + operand.name);
-        } else {
-            negated = emitIntegerOperation(1, Value { "0", operand.type }, operand, operand.type).name;
-        }
-        line(std::string(storeInstruction) + " " + negated + ", " + slot);
+        Value negated = emitIntegerOperation(1, Value { "0", operand.type }, operand, operand.type);
+        line(std::string(storeInstruction) + " " + negated.name + ", " + slot);
         jump(done);
         label(done);
         std::string result = newTemp();
