@@ -722,42 +722,678 @@
   "b394a02": {
     "objective": "Check that descendants of nonlimited interfaces cannot be limited, including generic formal declarations.",
     "groups": [
-      "interface progenitors must be interface types",
-      "a nonlimited interface cannot have a limited progenitor",
-      "a task type requires task or synchronized interface progenitors",
-      "a protected type requires protected or synchronized interface progenitors"
+      "a descendant of a nonlimited interface must be nonlimited"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/tasks/interfaceancestry.adb",
+    "sites": {
+      "tests/b3/b394a02.a:61": {
+        "lines": [
+          60,
+          61
+        ]
+      },
+      "tests/b3/b394a02.a:63": {
+        "lines": [
+          62,
+          63
+        ]
+      },
+      "tests/b3/b394a02.a:65": {
+        "lines": [
+          64,
+          65
+        ]
+      },
+      "tests/b3/b394a02.a:71": {
+        "lines": [
+          70,
+          71
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:73": {
+        "lines": [
+          72,
+          73
+        ]
+      },
+      "tests/b3/b394a02.a:78": {
+        "lines": [
+          77,
+          78
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:80": {
+        "lines": [
+          79,
+          80
+        ]
+      },
+      "tests/b3/b394a02.a:81": {
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:83": {
+        "lines": [
+          82,
+          83
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:86": {
+        "lines": [
+          85,
+          86
+        ]
+      },
+      "tests/b3/b394a02.a:89": {
+        "lines": [
+          88,
+          89
+        ]
+      },
+      "tests/b3/b394a02.a:91": {
+        "lines": [
+          90,
+          91
+        ]
+      },
+      "tests/b3/b394a02.a:94": {
+        "lines": [
+          93,
+          94
+        ]
+      },
+      "tests/b3/b394a02.a:97": {
+        "lines": [
+          96,
+          97
+        ]
+      },
+      "tests/b3/b394a02.a:99": {
+        "lines": [
+          98,
+          99
+        ]
+      },
+      "tests/b3/b394a02.a:104": {
+        "lines": [
+          103,
+          104
+        ]
+      },
+      "tests/b3/b394a02.a:106": {
+        "lines": [
+          105,
+          106
+        ]
+      },
+      "tests/b3/b394a02.a:108": {
+        "lines": [
+          107,
+          108
+        ]
+      },
+      "tests/b3/b394a02.a:114": {
+        "lines": [
+          113,
+          114
+        ],
+        "groups": [
+          "limited or synchronized formal derivation requires limited ancestors and progenitors"
+        ]
+      },
+      "tests/b3/b394a02.a:116": {
+        "lines": [
+          115,
+          116
+        ],
+        "groups": [
+          "limited or synchronized formal derivation requires limited ancestors and progenitors"
+        ]
+      },
+      "tests/b3/b394a02.a:117": {
+        "groups": [
+          "limited or synchronized formal derivation requires limited ancestors and progenitors"
+        ]
+      },
+      "tests/b3/b394a02.a:119": {
+        "lines": [
+          118,
+          119
+        ],
+        "groups": [
+          "limited or synchronized formal derivation requires limited ancestors and progenitors"
+        ]
+      },
+      "tests/b3/b394a02.a:123": {
+        "lines": [
+          122,
+          123
+        ]
+      },
+      "tests/b3/b394a02.a:125": {
+        "lines": [
+          124,
+          125
+        ]
+      },
+      "tests/b3/b394a02.a:127": {
+        "lines": [
+          126,
+          127
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:129": {
+        "lines": [
+          128,
+          129
+        ]
+      },
+      "tests/b3/b394a02.a:132": {
+        "lines": [
+          131,
+          132
+        ]
+      },
+      "tests/b3/b394a02.a:135": {
+        "lines": [
+          134,
+          135
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:137": {
+        "lines": [
+          136,
+          137
+        ],
+        "groups": [
+          "a progenitor must name a specific interface type"
+        ]
+      },
+      "tests/b3/b394a02.a:148": {
+        "lines": [
+          147,
+          148
+        ],
+        "groups": [
+          "a limited extension requires a limited ancestor type",
+          "a descendant of a nonlimited interface must be nonlimited"
+        ]
+      },
+      "tests/b3/b394a02.a:150": {
+        "lines": [
+          149,
+          150
+        ]
+      },
+      "tests/b3/b394a02.a:153": {
+        "lines": [
+          152,
+          153
+        ]
+      },
+      "tests/b3/b394a02.a:155": {
+        "lines": [
+          154,
+          155
+        ]
+      }
+    }
   },
   "b394a03": {
     "objective": "Check task-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
     "groups": [
-      "interface progenitors must be interface types",
-      "a nonlimited interface cannot have a limited progenitor",
-      "a task type requires task or synchronized interface progenitors",
-      "a protected type requires protected or synchronized interface progenitors"
+      "incompatible synchronized interface categories"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/tasks/interfaceancestry.adb",
+    "sites": {
+      "tests/b3/b394a03.a:65": {
+        "lines": [
+          64,
+          65
+        ]
+      },
+      "tests/b3/b394a03.a:67": {
+        "lines": [
+          66,
+          67
+        ]
+      },
+      "tests/b3/b394a03.a:70": {
+        "lines": [
+          69,
+          70
+        ]
+      },
+      "tests/b3/b394a03.a:72": {
+        "lines": [
+          71,
+          72
+        ]
+      },
+      "tests/b3/b394a03.a:75": {
+        "lines": [
+          74,
+          75
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:77": {
+        "lines": [
+          76,
+          77
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:79": {
+        "lines": [
+          78,
+          79
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:88": {
+        "lines": [
+          87,
+          88
+        ],
+        "groups": [
+          "a type cannot have both task and protected interface ancestors"
+        ]
+      },
+      "tests/b3/b394a03.a:96": {
+        "lines": [
+          95,
+          96
+        ]
+      },
+      "tests/b3/b394a03.a:99": {
+        "lines": [
+          98,
+          99
+        ]
+      },
+      "tests/b3/b394a03.a:104": {
+        "lines": [
+          103,
+          104
+        ]
+      },
+      "tests/b3/b394a03.a:106": {
+        "lines": [
+          105,
+          106
+        ]
+      },
+      "tests/b3/b394a03.a:110": {
+        "lines": [
+          109,
+          110
+        ]
+      },
+      "tests/b3/b394a03.a:117": {
+        "lines": [
+          116,
+          117
+        ],
+        "groups": [
+          "a type cannot have both task and protected interface ancestors"
+        ]
+      },
+      "tests/b3/b394a03.a:123": {
+        "lines": [
+          122,
+          123
+        ]
+      },
+      "tests/b3/b394a03.a:127": {
+        "lines": [
+          126,
+          127
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:129": {
+        "lines": [
+          128,
+          129
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:130": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:133": {
+        "lines": [
+          132,
+          133
+        ],
+        "groups": [
+          "a type cannot have both task and protected interface ancestors"
+        ]
+      },
+      "tests/b3/b394a03.a:137": {
+        "lines": [
+          136,
+          137
+        ]
+      },
+      "tests/b3/b394a03.a:139": {
+        "lines": [
+          138,
+          139
+        ]
+      },
+      "tests/b3/b394a03.a:141": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:143": {
+        "lines": [
+          142,
+          143
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a03.a:146": {
+        "lines": [
+          144,
+          145,
+          146
+        ]
+      },
+      "tests/b3/b394a03.a:157": {
+        "lines": [
+          155,
+          156,
+          157
+        ]
+      }
+    }
   },
   "b394a04": {
     "objective": "Check protected-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations.",
     "groups": [
-      "interface progenitors must be interface types",
-      "a nonlimited interface cannot have a limited progenitor",
-      "a task type requires task or synchronized interface progenitors",
-      "a protected type requires protected or synchronized interface progenitors"
+      "incompatible synchronized interface categories"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/tasks/interfaceancestry.adb",
+    "sites": {
+      "tests/b3/b394a04.a:63": {
+        "lines": [
+          62,
+          63
+        ]
+      },
+      "tests/b3/b394a04.a:65": {
+        "lines": [
+          64,
+          65
+        ]
+      },
+      "tests/b3/b394a04.a:70": {
+        "lines": [
+          69,
+          70
+        ]
+      },
+      "tests/b3/b394a04.a:73": {
+        "lines": [
+          72,
+          73
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:75": {
+        "lines": [
+          74,
+          75
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:77": {
+        "lines": [
+          76,
+          77
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:87": {
+        "lines": [
+          86,
+          87
+        ]
+      },
+      "tests/b3/b394a04.a:89": {
+        "lines": [
+          88,
+          89
+        ]
+      },
+      "tests/b3/b394a04.a:92": {
+        "lines": [
+          91,
+          92
+        ]
+      },
+      "tests/b3/b394a04.a:103": {
+        "lines": [
+          102,
+          103
+        ]
+      },
+      "tests/b3/b394a04.a:105": {
+        "lines": [
+          104,
+          105
+        ]
+      },
+      "tests/b3/b394a04.a:107": {
+        "lines": [
+          106,
+          107
+        ]
+      },
+      "tests/b3/b394a04.a:119": {
+        "lines": [
+          118,
+          119
+        ]
+      },
+      "tests/b3/b394a04.a:123": {
+        "lines": [
+          122,
+          123
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:125": {
+        "lines": [
+          124,
+          125
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:126": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:130": {
+        "lines": [
+          129,
+          130
+        ]
+      },
+      "tests/b3/b394a04.a:132": {
+        "lines": [
+          131,
+          132
+        ]
+      },
+      "tests/b3/b394a04.a:134": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a04.a:136": {
+        "lines": [
+          135,
+          136
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      }
+    }
   },
   "b394a05": {
     "objective": "Check synchronized-interface descendants, including formal derived extensions.",
     "groups": [
-      "interface progenitors must be interface types",
-      "a nonlimited interface cannot have a limited progenitor",
-      "a task type requires task or synchronized interface progenitors",
-      "a protected type requires protected or synchronized interface progenitors"
+      "incompatible synchronized interface categories"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/tasks/interfaceancestry.adb",
+    "sites": {
+      "tests/b3/b394a05.a:65": {
+        "lines": [
+          64,
+          65
+        ]
+      },
+      "tests/b3/b394a05.a:72": {
+        "lines": [
+          71,
+          72
+        ]
+      },
+      "tests/b3/b394a05.a:75": {
+        "lines": [
+          74,
+          75
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:77": {
+        "lines": [
+          76,
+          77
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:79": {
+        "lines": [
+          78,
+          79
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:104": {
+        "lines": [
+          103,
+          104
+        ]
+      },
+      "tests/b3/b394a05.a:120": {
+        "lines": [
+          119,
+          120
+        ]
+      },
+      "tests/b3/b394a05.a:125": {
+        "lines": [
+          124,
+          125
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:127": {
+        "lines": [
+          126,
+          127
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:128": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:134": {
+        "lines": [
+          133,
+          134
+        ]
+      },
+      "tests/b3/b394a05.a:136": {
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      },
+      "tests/b3/b394a05.a:138": {
+        "lines": [
+          137,
+          138
+        ],
+        "groups": [
+          "a record type cannot implement a synchronized, task or protected interface"
+        ]
+      }
+    }
   },
   "bc60001": {
     "objective": "Check that null defaults are forbidden for formal functions and abstract formals, and that an omitted null default has Intrinsic convention.",

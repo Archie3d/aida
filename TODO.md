@@ -289,10 +289,24 @@ one failed at runtime and five reached documented feature limits.
   affected checks passed. Ten focused ASan/UBSan checks and the sanitizer grade
   passed. Only B650002's raw diagnostics/grade change: 21 B PASS / five FAIL;
   all other 160 raw observations and upstream sources/hashes are unchanged.
-- [ ] **B394A02–B394A05 — interface ancestry.** Review the reason for each
+- [x] **B394A02–B394A05 — interface ancestry.** Review the reason for each
   rejection within its upstream declaration span. Account for explicitly
   optional diagnostics on private completions in B394A02 and B394A03. Add
   legal ancestry controls and promote each case once it passes the grader.
+  All four now grade PASS unchanged: 108 required and six optional sites use
+  reviewed declaration spans and semantic families. Optional completion errors
+  cannot substitute for missing original-declaration errors. The independent
+  [legal control](tests/ada/tasks/interfaceancestry.adb) covers ordinary/limited,
+  synchronized/task/protected, private-completion and generic ancestry with
+  whole-program/per-unit execution and deterministic IR. No compiler/runtime
+  changes were needed. [Rule review](docs/acats-grading.md#interface-ancestry-review-phase-12).
+  All 18 adversarial grader tests, three focused ASan/UBSan checks and the four
+  sanitizer grades pass. All 161 raw observations and upstream sources/hashes
+  are unchanged; the separate grading total is 25 PASS / one FAIL (B394A01).
+  Darwin arm64 validation: 2,144/2,145 checks passed in the full Release run,
+  including all 304 ACATS checks and 25 graded B passes. Its sole failure was
+  the existing diagnostics terminal-output comparison, which passed the
+  immediate isolated recheck; no rendering code or expectations were changed.
 - [ ] **B394A01 — reconcile the test and its foundation.** The pinned test
   refers to `Non_Lim_Intf_Priv` and `Lim_Intf_Priv`, which the pinned
   `F394A00` omits. Verify a matching upstream pair and its provenance, then

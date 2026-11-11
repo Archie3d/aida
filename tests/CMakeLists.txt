@@ -434,6 +434,22 @@ add_ada_error_test(runtimescalarlibraryerrors SOURCES types/runtimescalarlibrary
 add_ada_test(handlerchoices SOURCES exceptions/handlerchoices.adb)
 add_ada_test(reverseloops SOURCES control_flow/reverseloops.adb)
 add_ada_error_test(genericformalaccesserrors SOURCES generics/genericformalaccesserrors.adb)
+add_ada_test(interfaceancestry SOURCES tasks/interfaceancestry.adb)
+add_determinism_test(interfaceancestry SOURCE tasks/interfaceancestry.adb)
+ada_test_fixture(interface_ancestry_source tasks/interfaceancestry.adb)
+ada_test_fixture(interface_ancestry_expected tasks/interfaceancestry.expected)
+add_test(NAME runtime.interfaceancestry_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${interface_ancestry_source} -DEXPECTED=${interface_ancestry_expected}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/interfaceancestry-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.interfaceancestry_modes PROPERTIES TIMEOUT 60)
+
 add_ada_test(definiteviews SOURCES types/definiteviews.adb)
 add_determinism_test(definiteviews SOURCE types/definiteviews.adb)
 ada_test_fixture(definite_view_source types/definiteviews.adb)

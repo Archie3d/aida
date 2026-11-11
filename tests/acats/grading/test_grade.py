@@ -105,17 +105,17 @@ class GradingTests(unittest.TestCase):
             self.assertTrue(set(policies[case['id']].get('sites', {})) <= keys)
             self.assertTrue((grading.kRoot / policies[case['id']]['legal']).is_file())
 
-    def indefiniteFixture(self):
+    def reviewedFixture(self, caseId):
         manifest = grading.baseline.readJson(grading.baseline.kRoot / 'manifest.json')
-        case = next(case for case in manifest['cases'] if case['id'] == 'b330001')
-        policy = grading.baseline.readJson(grading.kRoot / 'policies.json')['b330001']
+        case = next(case for case in manifest['cases'] if case['id'] == caseId)
+        policy = grading.baseline.readJson(grading.kRoot / 'policies.json')[caseId]
         sites = grading.expectations(case, policy)
         snapshot = grading.baseline.readJson(grading.baseline.kRoot / 'expected.json')
-        errors = snapshot['cases']['b330001']['compile_stderr']
+        errors = snapshot['cases'][caseId]['compile_stderr']
         return sites, policy, errors
 
     def testIndefiniteDeclarationSpansStayWithinTheirDeclarations(self):
-        sites, policy, errors = self.indefiniteFixture()
+        sites, policy, errors = self.reviewedFixture('b330001')
         self.assertEqual(len(sites), 19)
         self.assertEqual(grading.grade(sites, policy, result(1, errors), result())['outcome'], 'PASS')
         for declaration, marker in [(129, 130), (152, 153), (162, 163), (222, 223)]:
@@ -130,7 +130,7 @@ class GradingTests(unittest.TestCase):
             self.assertIn(f'tests/b3/b330001.a:{marker}', value['missing'])
 
     def testIndefiniteObjectCannotBeGradedAsAnArrayComponent(self):
-        sites, policy, errors = self.indefiniteFixture()
+        sites, policy, errors = self.reviewedFixture('b330001')
         wrong = errors.replace('an object of an unknown-discriminant view requires an initializer',
                                'an array component requires a definite subtype view', 1)
         self.assertNotEqual(wrong, errors)
@@ -138,6 +138,54 @@ class GradingTests(unittest.TestCase):
         self.assertEqual(value['outcome'], 'FAIL')
         self.assertIn('tests/b3/b330001.a:149', value['missing'])
         self.assertEqual(len(value['unexpected']), 1)
+
+    def omitSiteDiagnostics(self, errors, sites):
+        def included(line):
+            diagnostic = grading.kDiagnostic.fullmatch(line)
+            return diagnostic and any(
+                diagnostic[1].endswith('/' + site['source']) and int(diagnostic[2]) in site['lines']
+                for site in sites)
+        return ''.join(line for line in errors.splitlines(True) if not included(line.rstrip('\n')))
+
+    def testAncestryCompletionsAreOptionalAndCannotReplaceRequiredErrors(self):
+        for caseId, required in [('b394a02', [78]), ('b394a03', [88, 133])]:
+            sites, policy, errors = self.reviewedFixture(caseId)
+            optional = [site for site in sites if site['optional']]
+            self.assertEqual(len(optional), 4 if caseId == 'b394a02' else 2)
+            self.assertEqual(grading.grade(sites, policy, result(1, errors), result())['outcome'], 'PASS')
+            without = self.omitSiteDiagnostics(errors, optional)
+            self.assertEqual(grading.grade(sites, policy, result(1, without), result())['outcome'], 'PASS')
+            message = ('a descendant of a nonlimited interface must be nonlimited'
+                       if caseId == 'b394a02' else 'incompatible synchronized interface categories')
+            completions = without + ''.join(
+                f"<upstream>/{site['source']}:{min(site['lines'])}:5: error: {message}\n"
+                for site in optional)
+            self.assertEqual(grading.grade(sites, policy, result(1, completions), result())['outcome'], 'PASS')
+            for marker in required:
+                # Keep the related completion error, but remove the error at
+                # the original declaration. The required marker must fail.
+                missing = self.omitSiteDiagnostics(completions, [site for site in sites if site['line'] == marker])
+                value = grading.grade(sites, policy, result(1, missing), result())
+                self.assertEqual(value['outcome'], 'FAIL')
+                self.assertIn(f'tests/b3/{caseId}.a:{marker}', value['missing'])
+
+    def testAncestryErrorsCannotEscapeTheirDeclarationsOrUseAnotherRule(self):
+        for caseId in ['b394a02', 'b394a03', 'b394a04', 'b394a05']:
+            sites, policy, errors = self.reviewedFixture(caseId)
+            self.assertEqual(grading.grade(sites, policy, result(1, errors), result())['outcome'], 'PASS')
+            first = sites[0]
+            start = min(first['lines'])
+            outside = errors.replace(f':{start}:5:', f':{start - 1}:5:')
+            self.assertNotEqual(outside, errors)
+            value = grading.grade(sites, policy, result(1, outside), result())
+            self.assertEqual(value['outcome'], 'FAIL')
+            self.assertIn(f"{first['source']}:{first['line']}", value['missing'])
+            original = grading.kDiagnostic.fullmatch(errors.splitlines()[0])[4]
+            wrong = errors.replace(original,
+                'a record type cannot implement a synchronized, task or protected interface', 1)
+            value = grading.grade(sites, policy, result(1, wrong), result())
+            self.assertEqual(value['outcome'], 'FAIL')
+            self.assertIn(f"{first['source']}:{first['line']}", value['missing'])
 
 
 if __name__ == '__main__':

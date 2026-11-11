@@ -134,7 +134,7 @@ rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).
 When closing a known gap, remove its rejection expectation and run the executable
 case. The separate [B-test grader](../../docs/acats-grading.md) grades all 26 pinned
-legality probes (21 PASS, five FAIL); only complete observed passes join the
+legality probes (25 PASS, one FAIL); only complete observed passes join the
 `acats;b-tests` labels. Multi-stage construction, general implementation-defined
 substitutions, broader annex selections and the full official REPORT protocol
 remain outside this selected-case harness.
@@ -1156,3 +1156,12 @@ outcomes remain unchanged. Independent byte/wide/wide-wide equality and value
 controls include generic formals, nested composites, copies and mutation.
 See the [equality contract](../../docs/composite-equality.md) and
 [Text_Streams contract](../../docs/text-streams.md).
+
+B394A02–B394A05 now grade PASS after reviewing each declaration span and semantic
+family: 108 required sites and six optional private completions. The independent
+`interfaceancestry` control executes legal record, task/protected, private-completion
+and generic ancestry in whole/per-unit modes with deterministic IR. The grading
+repair changes no compiler behavior or raw observations; all 161 raw observations
+and upstream hashes remain unchanged. The separate total is 25 PASS / one FAIL;
+B394A01 awaits its source/foundation review. See the
+[site review](../../docs/acats-grading.md#interface-ancestry-review-phase-12).

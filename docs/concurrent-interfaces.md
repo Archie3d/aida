@@ -122,3 +122,12 @@ The complete regular Darwin arm64 suite passes 2,076/2,076 checks, including
 The label also includes harness/selection checks and is not an official
 conformance grade. Source/hash validation and `git diff --check` pass;
 the external QBE source is unchanged.
+
+B394A02–B394A05 now grade PASS after reviewing each declaration span and semantic
+family: 108 required sites and six optional private completions. The independent
+`interfaceancestry` control executes legal record, task/protected, private-completion
+and generic ancestry in whole/per-unit modes with deterministic IR. The grading
+repair changes no compiler behavior or raw observations; all 161 raw observations
+and upstream hashes remain unchanged. The separate total is 25 PASS / one FAIL;
+B394A01 awaits its source/foundation review. See the
+[site review](acats-grading.md#interface-ancestry-review-phase-12).

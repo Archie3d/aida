@@ -31,7 +31,7 @@ B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
 cannot establish correctness. The independent [B-test grader](../../../docs/acats-grading.md)
 now checks expected error locations, permitted diagnostic groups and legal
-controls, recording 21 PASS and five FAIL. Raw observations stay ungraded. B36002A now
+controls, recording 25 PASS and one FAIL. Raw observations stay ungraded. B36002A now
 rejects its mixed constrained/boxed array-index declarations with 12 targeted
 diagnostics after the 6f-prelude repair. Its observation remains ungraded;
 local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
@@ -240,3 +240,12 @@ return target and form. Diagnostics distinguish procedure/entry/accept targets,
 missing function expressions and returns applying to an extended return. Only
 this raw diagnostic stream changes; the other 25 B grades remain unchanged
 (21 PASS / five FAIL overall). Upstream bytes and hashes remain intact.
+
+B394A02–B394A05 now grade PASS after reviewing each declaration span and semantic
+family: 108 required sites and six optional private completions. The independent
+`interfaceancestry` control executes legal record, task/protected, private-completion
+and generic ancestry in whole/per-unit modes with deterministic IR. The grading
+repair changes no compiler behavior or raw observations; all 161 raw observations
+and upstream hashes remain unchanged. The separate total is 25 PASS / one FAIL;
+B394A01 awaits its source/foundation review. See the
+[site review](../../../docs/acats-grading.md#interface-ancestry-review-phase-12).

@@ -1,8 +1,8 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[161-case baseline](acats-baseline.md). It currently records **21 PASS and
-five FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **25 PASS and
+one FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -13,8 +13,9 @@ permitted semantic diagnostic families, legal counterpart and any reviewed
 location/recovery exceptions. The unchanged upstream `ERROR:` comments identify
 required sites; `OPTIONAL ERROR:` sites may be undiagnosed. Locations are exact
 source identities and line numbers. The multiline legacy B36002A declarations
-and B33101A fixed-point declaration explicitly allow either declaration line. Upstream brace/column annotations are
-not interpreted; future location extensions require policy review. A diagnostic
+and B33101A fixed-point declaration explicitly allow either declaration line.
+The interface ancestry policies below likewise use reviewed declaration spans.
+Upstream brace/column annotations are not interpreted; future location extensions require policy review. A diagnostic
 in a helper, a different file, or an unmarked line is unexpected, including
 errors on `OK` controls.
 
@@ -31,8 +32,9 @@ Each grade also compiles a separately authored legal counterpart. The
 valid derived conversions, discrete/constrained/unconstrained array indices,
 record/array aggregates, writable aliased access, positional/named/defaulted
 calls, scalar attributes and null procedure defaults. It supplements the legal
-controls embedded in the unchanged B-sources; it does not establish unsupported
-concurrent-interface legality. A legal-control rejection or unexpected output
+controls embedded in the unchanged B-sources. The dedicated
+[interface ancestry control](../tests/ada/tasks/interfaceancestry.adb) covers the
+selected legal ancestry combinations described below. A legal-control rejection or unexpected output
 fails the grade. Tests are frontend-only and do not execute B-programs.
 
 The [reviewed report](../tests/acats/grading/expected.json) retains every missing
@@ -40,14 +42,14 @@ site and unexpected diagnostic. Only these complete observed passes are on the
 regular `acats;b-tests` CTest labels:
 
 B330001, B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
-B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
+B394A02, B394A03, B394A04, B394A05, B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
 B64003A, B650002, B650004, B840001 and BC60001.
 
-The other five cases stay failed and belong to their existing language owners:
+The remaining case stays failed pending its source/foundation review:
 
 | Cases | Observation / existing owner |
 | --- | --- |
-| B394A01–B394A05 | Concurrent/private-extension syntax now reaches ancestry semantics; diagnostic groups/sites and complete legality controls still fail the existing policies; P8 legality and P10 diagnostics |
+| B394A01 | Pinned test references private-interface names absent from its foundation; Phase 12 provenance and progenitor review |
 
 The [non-tasking legality audit](legality-audit.md) repairs and reviews the six
 promoted cases, including independent executable controls. Remaining failures
@@ -178,6 +180,49 @@ subsequently updated. All 14 final affected checks pass. Ten focused ASan/UBSan
 checks and the sanitizer B650002 grade pass. The 161-case raw refresh changes
 only this case's diagnostic text, preserving every source location and upstream
 byte/hash.
+
+## Interface ancestry review (Phase 12)
+
+B394A02–B394A05 now grade PASS without compiler changes. Each diagnostic was
+reviewed against its own upstream declaration and the ancestry rules in Ada 2005
+RM [3.9.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-9-4.html)
+and [12.5.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-12-5-1.html).
+Policies permit only the declaration's one-to-three source lines and applicable
+semantic families. No recovery permissions or optional-marker overrides were added.
+
+| Case | Required / optional sites | Reviewed reasons |
+| --- | --- | --- |
+| B394A02 | 34 / 4 | Nonlimited-interface descendants must remain nonlimited; limited extensions require limited parents; limited/synchronized formal derivations require limited ancestors and progenitors |
+| B394A03 | 29 / 2 | Task ancestry requires compatible synchronized categories; records cannot implement synchronized/task/protected interfaces; task and protected ancestors cannot be combined |
+| B394A04 | 27 / 0 | Protected ancestry requires compatible synchronized categories; records cannot implement synchronized/task/protected interfaces |
+| B394A05 | 18 / 0 | Synchronized ancestry requires compatible synchronized categories; records cannot implement synchronized/task/protected interfaces |
+
+B394A02:137 validly receives the specific-interface-progenitor diagnostic:
+`GDer01` is a formal derived tagged type (a private extension), rather than an
+interface type. This rejects the declaration independently of its nonlimited
+ancestry objective. Multiple applicable errors within a declaration are allowed.
+The four optional private-completion sites in B394A02 and two in B394A03 retain
+the upstream marker semantics: their diagnostics may be absent, and cannot
+replace a required error on the original private declaration.
+
+The independent [legal control](../tests/ada/tasks/interfaceancestry.adb)
+executes ordinary/limited interface derivations, compatible synchronized/task/
+protected descendants, private extensions completed by tasks and protected types,
+and generic formal interface/derived contracts with legal actuals. It checks
+membership, tags and task/protected operations in whole-program and per-unit
+builds, with deterministic IR. This establishes the selected ancestry paths;
+broader interface conformance is not inferred.
+
+The 18-test grader suite includes adversarial checks for optional completion
+omission/presence, missing original declarations, wrong families and errors moved
+outside the reviewed declaration spans. All four grades also pass with the
+ASan/UBSan compiler, and the three legal-control checks pass under sanitizers.
+The full 26-case grading report now records 25 PASS / one FAIL (B394A01).
+All 161 raw baseline observations and upstream source hashes remain unchanged.
+The full Darwin arm64 Release run passes 2,144/2,145 checks, including all 304
+ACATS checks (25 graded B cases). The sole diagnostics terminal-output comparison
+failure passes an immediate isolated rerun; rendering code and expectations are
+unchanged. Source/hash validation and `git diff --check` also pass.
 
 ## Support adapters and re-probes
 
