@@ -51,6 +51,14 @@ static void* exercise(void* argument)
     CHECK(__ada_value_enum("'a'", 3, names, 3) == 0);
     CHECK(__ada_value_enum("'A'", 3, names, 3) == 1);
     CHECK(__ada_value_enum("NaMe", 4, names, 3) == 2);
+    CHECK(__ada_value_enum("  NaMe  ", 8, names, 3) == 2);
+    CHECK(__ada_value_enum("  'a'  ", 7, names, 3) == 0);
+    const char* invalid[] = { "\tname", "name\t", " \tname ", " name\t ",
+        "\nname", "name\r", "\vname", "name\f", "", "   " };
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+        __ada_value_enum(invalid[i], (int)strlen(invalid[i]), names, 3);
+        expectConstraint(&context);
+    }
     CHECK(context.exception == NULL);
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);

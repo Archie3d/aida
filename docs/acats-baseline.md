@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — refreshed 2026-11-10
+# ACATS completed-feature baseline — refreshed 2026-11-11
 
 This backfill adds **161 unchanged upstream cases**: 135 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -13,11 +13,12 @@ This is a baseline of the current subset, not a conformance claim.
 | B rejected, ungraded | 26 |
 | Legal C-test rejected | 5 |
 | Support/harness blocked | 0 |
-| Executable PASS | 129 |
-| Executable failure | 1 |
+| Executable PASS | 130 |
+| Executable failure | 0 |
 
-No crashes or timeouts were observed. Five legal C-tests are rejected and
-C35502C retains its enumeration Value tab-trimming runtime failure.
+No crashes or timeouts were observed. Five legal C-tests are rejected.
+C35502C now completes its unchanged REPORT protocol after enumeration Value
+was corrected to trim surrounding spaces only; tabs raise Constraint_Error.
 C761001 now passes unchanged after task entry declarations were supported;
 its unused entry checks library-task termination before controlled finalization.
 It does not exercise rendezvous or select. Task-interface rejections remain,
@@ -286,7 +287,7 @@ be blocked before reaching the feature named in their objective.
 1. Validate target configuration on other supported hosts. The [non-tasking
    B-test findings](legality-audit.md) now pass; concurrent prerequisites retain
    their Phase 9 owners.
-2. Investigate the remaining five legal C rejections and C35502C runtime failure;
+2. Investigate the remaining five legal C rejections;
    turn confirmed defects into focused compiler regressions before fixing them.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
    are repaired; broader protocol/applicability work requires its own selection.
@@ -316,7 +317,7 @@ B-test grades are reported independently in the linked grading report.
 | [C35003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003a.ada) | 3.4–3.5 | Executable PASS | covered probe; P8 discrete ranges |
 | [C35003D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35003d.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
 | [C35502A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502a.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
-| [C35502C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502c.ada) | 3.4–3.5 | Runtime failure | P3/P8 enumeration Value accepts surrounding HT (ASCII now implemented) |
+| [C35502C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502c.ada) | 3.4–3.5 | Executable PASS | P12 enumeration Value rejects surrounding HT and accepts spaces; unchanged REPORT protocol |
 | [C35502G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c35502g.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
 | [C36104A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104a.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |
 | [C36104B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c36104b.ada) | 3.6–3.8 | Executable PASS | covered probe; P8 discrete ranges |

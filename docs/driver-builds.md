@@ -40,6 +40,9 @@ Native object cache stamps include the resolved QBE and C compiler paths and
 content/provenance fingerprints. Changing which tool a bare command name finds
 on `PATH` recompiles native objects; unchanged tools still reuse objects when
 `--force` bypasses the whole-build receipt.
+Windows process launches use the same resolver for bare `ADAC`, `QBE` and `CC`
+overrides before passing the executable to `CreateProcess`. The original
+`argv[0]` and argument quoting are preserved, including paths with spaces.
 
 This is conservative dependency tracking, not a sandbox for external tools.
 Unreadable/unknown fingerprints and opaque runtime linker options disable the

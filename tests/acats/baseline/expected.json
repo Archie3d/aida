@@ -5,12 +5,11 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "d32ac0189f0bab259ee4debd231c23d8f4cbb64ee18d61c8de9a2e29a23a74b4",
+  "compiler_sha256": "3251ff97a00587c11f0e2da5c38e19d5cebed3054e9e1aee4d563e98699841ce",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 5,
-    "PASS": 129,
-    "RUN_FAILED": 1
+    "PASS": 130
   },
   "cases": {
     "c34001a": {
@@ -89,10 +88,10 @@
       "compile_exit": 0,
       "compile_stdout": "",
       "compile_stderr": "",
-      "run_exit": 1,
-      "run_stdout": "TEST C35502C\nFAILED NO EXCEPTION RAISED - LEADING 'HT' - 2\nFAILED NO EXCEPTION RAISED - TRAILING 'HT' - 2\n",
-      "run_stderr": "\nraised PROGRAM_ERROR\n",
-      "outcome": "RUN_FAILED"
+      "run_exit": 0,
+      "run_stdout": "TEST C35502C\nPASSED\n",
+      "run_stderr": "",
+      "outcome": "PASS"
     },
     "c35502g": {
       "compile_exit": 0,

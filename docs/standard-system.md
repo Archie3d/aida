@@ -96,12 +96,15 @@ unrelated address/access conversions, type mixing and writes to constants. The i
 Standard/System API-gap guards; Stream_IO's four API-gap guards remain.
 
 Unchanged C54A03A and C64005C now execute as PASS. C35502C compiles and runs,
-but fails its leading/trailing HT rejection controls for enumeration Value.
-That exposed scalar-attribute behavior remains a P3/P8 correctness gap, not an
-ASCII implementation failure or a conformance pass. The remaining 142 backfill
-outcomes are unchanged. Upstream sources and hashes remain untouched.
+and the later Phase 12 repair makes its leading/trailing HT rejection controls
+pass: enumeration Value now trims spaces only. Its unchanged source completes
+the strict REPORT success protocol. Focused `enumvaluepadding` whole/per-unit
+and deterministic checks cover Value, Wide_Value and Wide_Wide_Value; the native
+runtime regression also exercises concurrent calls. Upstream sources and hashes
+remain untouched.
 
-The complete Release suite passes 1,803/1,803 CTest checks. Thirteen distinct
+The original Standard/System increment passed 1,803/1,803 Release CTest checks.
+Thirteen distinct
 focused ASan/UBSan checks pass, with the final expanded four-test facility
 subset repeated successfully. Generated Ada accesses remain uninstrumented;
 LeakSanitizer is disabled on this host. Other host/target execution retains

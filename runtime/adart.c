@@ -780,11 +780,13 @@ long long __ada_integer_operation(int operation, int bits, long long left, long 
    comparison here folds both sides rather than the text alone. */
 int __ada_value_enum(const char* text, int length, const char** names, int count)
 {
-    int start;
-    int stop;
+    int start = 0;
+    int stop = length;
     int i;
 
-    trim(text, length, &start, &stop);
+    // Enumeration Value ignores surrounding spaces, not format effectors.
+    while (start < stop && text[start] == ' ') { ++start; }
+    while (stop > start && text[stop - 1] == ' ') { --stop; }
     for (i = 0; i < count; ++i) {
         const char* name = names[i];
         size_t nameLength = strlen(name);

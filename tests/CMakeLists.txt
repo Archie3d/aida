@@ -1342,6 +1342,23 @@ foreach(enum_case enumrepresentation enumstreams enumtasking)
     set_tests_properties(runtime.${enum_case}_modes determinism.${enum_case} PROPERTIES TIMEOUT 60)
 endforeach()
 
+add_ada_test(enumvaluepadding SOURCES types/enumvaluepadding.adb)
+add_determinism_test(enumvaluepadding SOURCE types/enumvaluepadding.adb)
+ada_test_fixture(enum_padding_source types/enumvaluepadding.adb)
+ada_test_fixture(enum_padding_expected types/enumvaluepadding.expected)
+add_test(NAME runtime.enumvaluepadding_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart>
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${enum_padding_source} -DEXPECTED=${enum_padding_expected}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/enumvaluepadding-modes
+        -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.enumvaluepadding_modes PROPERTIES TIMEOUT 60)
+
 add_executable(enumeration_runtime_test EnumerationRuntimeTest.c)
 target_link_libraries(enumeration_runtime_test PRIVATE adart)
 add_test(NAME runtime.enumeration COMMAND enumeration_runtime_test)

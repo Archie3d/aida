@@ -72,7 +72,7 @@ source.write_text('procedure Root is begin null; end Root;\n')
 for tool, real in [('CC', args.cc), ('QBE', args.qbe)]:
     directory = work / tool.lower()
     directory.mkdir()
-    paths = [directory / 'first', directory / 'second']
+    paths = [directory / 'first tools', directory / 'second tools']
     name = 'native-proxy' + args.exe_suffix
     for path in paths:
         path.mkdir()
@@ -106,6 +106,23 @@ for tool, real in [('CC', args.cc), ('QBE', args.qbe)]:
     run([directory / ('root' + args.exe_suffix)], selected)
     run(command, selected)
     assert stamps() == after, 'selected replacement toolchain did not reuse objects'
+    if args.exe_suffix:
+        # The resolver also appends .exe when an override omits the suffix.
+        unsuffixed = dict(selected, **{tool: 'native-proxy'})
+        run(command, unsuffixed)
+        assert stamps() == after, 'omitting .exe selected a different native tool'
+
+# Bare frontend overrides must still receive the driver's inherited lock and
+# diagnostic options; preserve argv[0] while selecting the executable on PATH.
+frontend_directory = work / 'frontend tools'
+frontend_directory.mkdir()
+frontend = frontend_directory / ('frontend-proxy' + args.exe_suffix)
+shutil.copy2(args.hook, frontend)
+selected = dict(env, ADAC=frontend.name, AIDA_TEST_REAL_TOOL=str(args.adac),
+                PATH=str(frontend_directory) + os.pathsep + env.get('PATH', ''))
+run([args.ada, '--emit-ir', '--diagnostic-format=plain',
+              '-o', work / 'frontend.ssa', source], selected)
+assert (work / 'frontend.ssa').stat().st_size > 0
 
 # File outputs must need write access only in the output directory. Keep the
 # guard there for both driver and direct front-end calls. Unix permission bits

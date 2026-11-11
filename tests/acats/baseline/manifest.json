@@ -833,9 +833,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "semantic_failure",
-        "owner": "P3/P8 scalar attributes",
-        "note": "ASCII now resolves. Unchanged execution fails because enumeration Value trims leading/trailing HT; only surrounding spaces are permitted."
+        "kind": "covered_probe",
+        "owner": "P12 scalar attributes",
+        "note": "Enumeration Value trims surrounding spaces only. Unchanged source completes its strict REPORT protocol, including leading/trailing HT rejection."
       }
     },
     {

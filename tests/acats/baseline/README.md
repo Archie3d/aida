@@ -43,7 +43,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 112 C passes, six legal-source rejections, one runtime failure and
+has 130 C passes, five legal-source rejections, no runtime failures and
 26 raw B observations; see the current support-protocol increment in the report. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -212,3 +212,8 @@ an explicit CTest skip, not an ACATS pass. Unexpected probe failures remain test
 failures. On capable hosts the unchanged source and strict REPORT snapshot still
 run. Ungated bulk observations preserve raw host-dependent outcomes, including
 Tasking_Error on unprivileged Linux; the recorded snapshot is from Darwin.
+
+Phase 12 promotes unchanged C35502C after enumeration Value was corrected to
+trim surrounding spaces only. Both horizontal-tab rejection checks complete
+through the strict REPORT success protocol. The full 161-case refresh changes
+only this outcome; all upstream bytes and hashes are preserved.

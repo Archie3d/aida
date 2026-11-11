@@ -184,6 +184,9 @@ whole-program and per-unit builds.
   stale objects. Use the resolved QBE and C compiler fingerprints in the
   per-object cache stamp. Verify that switching either tool recompiles the
   affected objects and that an unchanged toolchain still reuses them.
+  MSYS2 follow-up: native process launching now uses that same PATH resolver
+  before CreateProcess, including optional `.exe` lookup. Regression coverage
+  includes spaced tool directories and a bare frontend override.
 - [x] **Use unsigned ordering for modular array elements.** A one-element array
   containing `Word'Last` compares below one containing zero for
   `type Word is mod 2 ** 64`. Use the element type's signedness when comparing
@@ -220,11 +223,18 @@ passed. The separate [B-test grader](docs/acats-grading.md) reported 17 passes
 and nine failures. Of the six known nonpassing [backfill C-tests](docs/acats-baseline.md),
 one failed at runtime and five reached documented feature limits.
 
-- [ ] **C35502C — enumeration `'Value`.** Trim leading and trailing spaces
+- [x] **C35502C — enumeration `'Value`.** Trim leading and trailing spaces
   only. Horizontal tabs currently pass through the same whitespace trimming
   and incorrectly yield an enumeration value. Verify that either tab raises
   `Constraint_Error`, ordinary spaces remain accepted, and the unchanged case
   completes its REPORT protocol.
+  [Regression](tests/ada/types/enumvaluepadding.adb) covers Value, Wide_Value
+  and Wide_Wide_Value in whole-program/per-unit builds and deterministic IR;
+  the native runtime check also covers concurrent calls and other format effectors.
+  Darwin arm64 validation: all 2,119 Release CTest checks passed (296 ACATS),
+  plus four focused ASan/UBSan checks. The full 161-case backfill refresh changes
+  only C35502C to PASS: 130 C passes, five documented C rejections and 26 raw
+  B observations. Upstream sources/hashes are unchanged.
 - [ ] **B650004 — returns in nested package bodies.** Check which construct a
   return applies to. Reject returns in package elaboration even inside an
   enclosing callable construct. Cover the ten missed error sites and preserve

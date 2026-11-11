@@ -1,4 +1,5 @@
 #include "Toolchain.h"
+#include "BuildState.h"
 #include "../support/HostPaths.h"
 
 #include <climits>
@@ -244,6 +245,10 @@ int Toolchain::run(const std::vector<std::string>& input) const
     arguments.push_back(nullptr);
 
 #ifdef _WIN32
+    // An explicit CreateProcess application name does not search PATH. Use
+    // the same executable selection as receipts and native object stamps,
+    // while retaining the original argv[0] for companion-tool discovery.
+    std::string executable = resolveProgram(command.front());
     std::string commandLine = makeWindowsCommandLine(command);
     std::vector<char> mutableCommandLine(commandLine.begin(), commandLine.end());
     mutableCommandLine.push_back('\0');
@@ -254,7 +259,7 @@ int Toolchain::run(const std::vector<std::string>& input) const
     PROCESS_INFORMATION processInfo {};
 
     BOOL started = CreateProcessA(
-        command[0].c_str(),
+        executable.c_str(),
         mutableCommandLine.data(),
         nullptr,
         nullptr,
