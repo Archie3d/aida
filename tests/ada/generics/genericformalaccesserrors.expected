@@ -1,0 +1,4 @@
+genericformalaccesserrors.adb:9:40: error: 'Access of a generic formal subprogram is not allowed
+genericformalaccesserrors.adb:10:47: error: 'Access of a generic formal subprogram is not allowed
+genericformalaccesserrors.adb:16:41: error: 'Access of a generic formal subprogram is not allowed
+genericformalaccesserrors.adb:24:43: error: 'Access of a generic formal subprogram is not allowed

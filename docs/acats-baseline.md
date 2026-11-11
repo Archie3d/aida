@@ -26,7 +26,7 @@ with updated wording. B650004 now grades PASS after the Phase 12 nested-body
 return repair; B650002 retains its return-diagnostic review.
 
 The raw B observations stay ungraded for historical comparison. The independent
-[location/group-aware grader](acats-grading.md) records **18 B PASS and eight B FAIL**,
+[location/group-aware grader](acats-grading.md) records **19 B PASS and seven B FAIL**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
 
 ## Non-tasking legality increment (Phase 8)

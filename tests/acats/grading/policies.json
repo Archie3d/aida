@@ -356,9 +356,31 @@
   "b3a0002": {
     "objective": "Check that subtype conformance is required for actual values of access to subprogram types. Check that the mode, number and subtype of parameters must statically match. Check that the calling convention of the value must not be Intrinsic. Check that corresponding subtypes of the profiles must statically match. Check that a generic formal subprogram may not be the actual value of an access to subprogram type because it cannot subtype-conform with anything.",
     "groups": [
-      "a subprogram access value requires a subtype conformant profile"
+      "no subprogram matches the designated access profile"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/access/callbackprofiles.adb",
+    "sites": {
+      "tests/b3/b3a0002.a:168": {
+        "groups": [
+          "'Access of a generic formal subprogram is not allowed"
+        ]
+      },
+      "tests/b3/b3a0002.a:204": {
+        "groups": [
+          "access to protected subprograms requires a protected subprogram access type"
+        ]
+      },
+      "tests/b3/b3a0002.a:265": {
+        "groups": [
+          "access to protected subprograms requires a protected subprogram access type"
+        ]
+      },
+      "tests/b3/b3a0002.a:270": {
+        "groups": [
+          "'Access of intrinsic subprograms is not allowed"
+        ]
+      }
+    }
   },
   "b43002d": {
     "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN A SINGLE POSITIONAL ASSOCIATION.",

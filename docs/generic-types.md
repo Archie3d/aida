@@ -758,3 +758,18 @@ protected-operation actuals, named protected callbacks and task/protected
 features). Existing limits on derivation before private completion and
 composites still apply. Task/protected construction remains Phase 9 work.
 The predefined Unchecked_Deallocation compatibility contract is unchanged.
+
+## Access to generic formal subprograms
+
+A generic formal subprogram profile is not subtype conformant with any other
+profile ([Ada 2005 RM 6.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-3-1.html)).
+The access-profile matcher excludes formal subprograms, including during overload
+resolution. Taking their Access is rejected in a generic body without requiring
+instantiation. This applies to procedure and function formals and to null defaults.
+
+An ordinary local subprogram can call a formal and supply its own Access value
+when the normal profile, convention and accessibility rules permit. Generic
+formal objects whose values are callbacks remain supported. `callbackprofiles`
+checks both patterns with whole/per-unit execution and deterministic IR;
+`genericformalaccesserrors` asserts the rejected attribute locations. Unchanged
+B3A0002 grades PASS at all 22 sites, including legal callback assignments.

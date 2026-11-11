@@ -1,8 +1,8 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[161-case baseline](acats-baseline.md). It currently records **18 PASS and
-eight FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **19 PASS and
+seven FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -40,15 +40,14 @@ site and unexpected diagnostic. Only these complete observed passes are on the
 regular `acats;b-tests` CTest labels:
 
 B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
-B3A0001, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
+B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
 B64003A, B650004, B840001 and BC60001.
 
-The other eight cases stay failed and belong to their existing language owners:
+The other seven cases stay failed and belong to their existing language owners:
 
 | Cases | Observation / existing owner |
 | --- | --- |
 | B330001 | Discriminant parsing now succeeds; indefinite-object/component diagnostics still miss reviewed groups/sites; P3/P6/P8 legality and P10 diagnostics |
-| B3A0002 | Named protected access parsing now succeeds; profile diagnostics miss reviewed groups, and generic formal Access at line 168 remains undiagnosed; P6d/P8 legality and P10 diagnostics |
 | B650002 | Return diagnostics still miss annotation groups and include unexpected diagnostics; P12 return diagnostic review |
 | B394A01–B394A05 | Concurrent/private-extension syntax now reaches ancestry semantics; diagnostic groups/sites and complete legality controls still fail the existing policies; P8 legality and P10 diagnostics |
 
@@ -76,6 +75,33 @@ protected entries. The inline upstream OK controls remain accepted. The other
 Darwin arm64 validation (11 November 2026): all 2,124 Release CTest checks pass,
 including 297 ACATS-labelled checks. Eight focused ASan/UBSan checks and the
 sanitizer B650004 grade pass. The full 161-case raw refresh changes only this
+case's diagnostics; upstream bytes and hashes remain intact.
+
+## Generic formal subprogram Access (Phase 12)
+
+B3A0002 now grades PASS unchanged at all 22 required sites, with no diagnostics
+at its inline legal controls. The generic-body error at line 168 is diagnosed
+without an instance: RM [6.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-3-1.html)
+excludes generic formal subprogram profiles from subtype conformance. Such
+formals are excluded from access-profile matching during overload resolution.
+
+The other 21 messages already name the applicable rules: 18 designated-profile
+mismatches, two protected-convention mismatches and one intrinsic-subprogram
+Access restriction. The policy now accepts those reviewed families, with
+specific groups at the formal, protected and intrinsic sites. No recovery
+allowance or unsupported-feature diagnostic discharges a required site.
+
+The [dedicated executable legal control](../tests/ada/access/callbackprofiles.adb)
+checks ordinary and protected callbacks, parameter modes, default parameters,
+named/anonymous access parameters and function results. It also exercises an
+ordinary wrapper around a generic formal call and a generic formal callback
+object. `genericformalaccesserrors` checks uninstantiated generic bodies,
+including function formals, anonymous callbacks and a null default. The other
+25 B grades are unchanged: 19 PASS / seven FAIL overall.
+
+Darwin arm64 validation (11 November 2026): all 2,129 Release CTest checks pass,
+including 298 ACATS-labelled checks. Six focused ASan/UBSan checks and the
+sanitizer B3A0002 grade pass. The full 161-case raw refresh changes only this
 case's diagnostics; upstream bytes and hashes remain intact.
 
 ## Support adapters and re-probes

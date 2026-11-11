@@ -48,7 +48,7 @@ type Ref is access procedure; X : Ref := P.Go'Access; begin null; end Root;" "re
 reject(generic_entry_access "procedure Root is task T is entry E; end T; task body T is begin null; end T;
 generic with procedure Op; procedure Check;
 procedure Check is type Ref is access procedure; P : Ref := Op'Access; begin null; end Check;
-procedure Instance is new Check (T.E); begin null; end Root;" "entry cannot be designated")
+procedure Instance is new Check (T.E); begin null; end Root;" "'Access of a generic formal subprogram is not allowed")
 reject(callback_conversion "procedure Root is protected P is procedure Go; end P;
 protected body P is procedure Go is begin null; end Go; end P;
 type A is access protected procedure; type B is access protected procedure (N : Integer);

@@ -247,10 +247,19 @@ one failed at runtime and five reached documented feature limits.
   eight focused ASan/UBSan checks and the sanitizer B650004 grade. The other
   25 B grades are unchanged: 18 PASS / eight FAIL overall. The 161-case raw
   refresh changes only B650004 diagnostics; upstream sources/hashes are intact.
-- [ ] **B3A0002 — `'Access` of a generic formal procedure.** Diagnose the
+- [x] **B3A0002 — `'Access` of a generic formal procedure.** Diagnose the
   illegal attribute in the generic body at line 168 even without an
   instantiation. Review the diagnostic groups at the other 21 marked sites
   and verify the legal callback assignments.
+  All 22 sites now grade PASS; line 168 is the only new diagnostic. The other
+  21 messages are unchanged and match reviewed per-rule families. Uninstantiated
+  procedure/function/null-default controls and [legal callback execution](tests/ada/access/callbackprofiles.adb)
+  cover whole-program/per-unit builds and deterministic IR.
+  [Grading review](docs/acats-grading.md#generic-formal-subprogram-access-phase-12).
+  Darwin arm64 validation: all 2,129 Release checks passed (298 ACATS), six
+  focused ASan/UBSan checks and the sanitizer B3A0002 grade passed. The other
+  25 B grades are unchanged: 19 PASS / seven FAIL overall. The 161-case raw
+  refresh changes only B3A0002 diagnostics; upstream sources/hashes are intact.
 - [ ] **B330001 — indefinite objects and components.** Review the diagnostic
   families and accepted source spans for each declaration. Four array errors
   point to the opening line immediately before the marker. Update the

@@ -30,6 +30,10 @@ reuse the held execution resource. Generic named concurrent defaults resolve in
 the generic declaration's scope and capture a fresh receiver per instantiation.
 Entries cannot designate access-to-subprogram values, including through renaming
 or a generic actual.
+Access to a generic formal subprogram itself is rejected during contract
+checking, before an entry or protected actual is bound; the
+[Phase 12 formal-profile rule](generic-types.md#access-to-generic-formal-subprograms)
+applies independently of the actual's kind.
 
 Named access-to-protected-procedure/function types use the existing immutable
 code/environment/receiver descriptor. Calls retain protected synchronization;

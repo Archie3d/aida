@@ -208,7 +208,10 @@ Symbol* Sema::attributeSubprogram(AttributeExpr* attribute, Scope* scope)
 
 bool Sema::matchesAccessProfile(Symbol* candidate, Type* access) const
 {
-    if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram) {
+    // RM 6.3.1: a generic formal subprogram's profile is never subtype
+    // conformant with another profile, even when parameter types coincide.
+    if (access == nullptr || access->accessProfile == nullptr || candidate->kind != SymbolKind::Subprogram
+        || candidate->genericFormalSubprogram) {
         return false;
     }
     Symbol* target = accessCallable(candidate).target;
@@ -399,7 +402,8 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             return expected;
         }
         Symbol* chosen = nullptr;
-        for (Symbol* candidate : expressionNames(expr->prefix.get(), scope)) {
+        const auto candidates = expressionNames(expr->prefix.get(), scope);
+        for (Symbol* candidate : candidates) {
             if (matchesAccessProfile(candidate, expected)) {
                 if (chosen != nullptr) {
                     m_diagnostics.error(expr->location, "ambiguous subprogram 'Access");
@@ -409,7 +413,11 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
             }
         }
         if (chosen == nullptr) {
-            m_diagnostics.error(expr->location, "no subprogram matches the designated access profile");
+            bool formal = !candidates.empty() && std::all_of(candidates.begin(), candidates.end(), [](Symbol* candidate) {
+                return candidate->genericFormalSubprogram;
+            });
+            m_diagnostics.error(expr->location, formal ? "'Access of a generic formal subprogram is not allowed"
+                : "no subprogram matches the designated access profile");
             return nullptr;
         }
         Symbol* accessView = chosen;

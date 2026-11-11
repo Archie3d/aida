@@ -433,6 +433,23 @@ add_ada_error_test(runtimescalarlibraryerrors SOURCES types/runtimescalarlibrary
 
 add_ada_test(handlerchoices SOURCES exceptions/handlerchoices.adb)
 add_ada_test(reverseloops SOURCES control_flow/reverseloops.adb)
+add_ada_error_test(genericformalaccesserrors SOURCES generics/genericformalaccesserrors.adb)
+add_ada_test(callbackprofiles SOURCES access/callbackprofiles.adb)
+add_determinism_test(callbackprofiles SOURCE access/callbackprofiles.adb)
+ada_test_fixture(callback_profile_source access/callbackprofiles.adb)
+ada_test_fixture(callback_profile_expected access/callbackprofiles.expected)
+add_test(NAME runtime.callbackprofiles_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${callback_profile_source} -DEXPECTED=${callback_profile_expected}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/callbackprofiles-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.callbackprofiles_modes PROPERTIES TIMEOUT 60)
+
 add_ada_error_test(returnbodyerrors SOURCES control_flow/returnbodyerrors.adb)
 add_ada_test(returncontexts SOURCES control_flow/returncontexts.adb)
 add_determinism_test(returncontexts SOURCE control_flow/returncontexts.adb)
