@@ -712,12 +712,521 @@
   "b394a01": {
     "objective": "Check that progenitor subtype marks denote interfaces, including formal interface and formal derived declarations.",
     "groups": [
-      "interface progenitors must be interface types",
-      "a nonlimited interface cannot have a limited progenitor",
-      "a task type requires task or synchronized interface progenitors",
-      "a protected type requires protected or synchronized interface progenitors"
+      "a progenitor must name a specific interface type"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/tasks/interfaceancestry.adb",
+    "foundation_overrides": {
+      "support/f394a00.a": "foundations/f394a00.a"
+    },
+    "sites": {
+      "tests/b3/b394a01.a:69": {
+        "lines": [
+          68,
+          69
+        ]
+      },
+      "tests/b3/b394a01.a:71": {
+        "lines": [
+          70,
+          71
+        ]
+      },
+      "tests/b3/b394a01.a:73": {
+        "lines": [
+          72,
+          73
+        ]
+      },
+      "tests/b3/b394a01.a:75": {
+        "lines": [
+          74,
+          75
+        ]
+      },
+      "tests/b3/b394a01.a:77": {
+        "lines": [
+          76,
+          77
+        ]
+      },
+      "tests/b3/b394a01.a:79": {
+        "lines": [
+          78,
+          79
+        ]
+      },
+      "tests/b3/b394a01.a:82": {
+        "lines": [
+          81,
+          82
+        ]
+      },
+      "tests/b3/b394a01.a:97": {
+        "lines": [
+          96,
+          97
+        ]
+      },
+      "tests/b3/b394a01.a:99": {
+        "lines": [
+          98,
+          99
+        ]
+      },
+      "tests/b3/b394a01.a:101": {
+        "lines": [
+          100,
+          101
+        ]
+      },
+      "tests/b3/b394a01.a:103": {
+        "lines": [
+          102,
+          103
+        ]
+      },
+      "tests/b3/b394a01.a:105": {
+        "lines": [
+          104,
+          105
+        ]
+      },
+      "tests/b3/b394a01.a:107": {
+        "lines": [
+          106,
+          107
+        ]
+      },
+      "tests/b3/b394a01.a:109": {
+        "lines": [
+          108,
+          109
+        ]
+      },
+      "tests/b3/b394a01.a:111": {
+        "lines": [
+          110,
+          111
+        ]
+      },
+      "tests/b3/b394a01.a:113": {
+        "lines": [
+          112,
+          113
+        ]
+      },
+      "tests/b3/b394a01.a:115": {
+        "lines": [
+          114,
+          115
+        ]
+      },
+      "tests/b3/b394a01.a:122": {
+        "lines": [
+          121,
+          122
+        ]
+      },
+      "tests/b3/b394a01.a:124": {
+        "lines": [
+          123,
+          124
+        ]
+      },
+      "tests/b3/b394a01.a:126": {
+        "lines": [
+          125,
+          126
+        ]
+      },
+      "tests/b3/b394a01.a:128": {
+        "lines": [
+          127,
+          128
+        ]
+      },
+      "tests/b3/b394a01.a:130": {
+        "lines": [
+          129,
+          130
+        ]
+      },
+      "tests/b3/b394a01.a:132": {
+        "lines": [
+          131,
+          132
+        ]
+      },
+      "tests/b3/b394a01.a:134": {
+        "lines": [
+          133,
+          134
+        ]
+      },
+      "tests/b3/b394a01.a:136": {
+        "lines": [
+          135,
+          136
+        ]
+      },
+      "tests/b3/b394a01.a:138": {
+        "lines": [
+          137,
+          138
+        ]
+      },
+      "tests/b3/b394a01.a:140": {
+        "lines": [
+          139,
+          140
+        ]
+      },
+      "tests/b3/b394a01.a:149": {
+        "lines": [
+          148,
+          149
+        ]
+      },
+      "tests/b3/b394a01.a:151": {
+        "lines": [
+          150,
+          151
+        ]
+      },
+      "tests/b3/b394a01.a:153": {
+        "lines": [
+          152,
+          153
+        ]
+      },
+      "tests/b3/b394a01.a:155": {
+        "lines": [
+          154,
+          155
+        ]
+      },
+      "tests/b3/b394a01.a:157": {
+        "lines": [
+          156,
+          157
+        ]
+      },
+      "tests/b3/b394a01.a:159": {
+        "lines": [
+          158,
+          159
+        ]
+      },
+      "tests/b3/b394a01.a:162": {
+        "lines": [
+          161,
+          162
+        ]
+      },
+      "tests/b3/b394a01.a:171": {
+        "lines": [
+          170,
+          171
+        ]
+      },
+      "tests/b3/b394a01.a:173": {
+        "lines": [
+          172,
+          173
+        ]
+      },
+      "tests/b3/b394a01.a:175": {
+        "lines": [
+          174,
+          175
+        ]
+      },
+      "tests/b3/b394a01.a:177": {
+        "lines": [
+          176,
+          177
+        ]
+      },
+      "tests/b3/b394a01.a:179": {
+        "lines": [
+          178,
+          179
+        ]
+      },
+      "tests/b3/b394a01.a:181": {
+        "lines": [
+          180,
+          181
+        ]
+      },
+      "tests/b3/b394a01.a:183": {
+        "lines": [
+          182,
+          183
+        ]
+      },
+      "tests/b3/b394a01.a:185": {
+        "lines": [
+          184,
+          185
+        ]
+      },
+      "tests/b3/b394a01.a:199": {
+        "lines": [
+          198,
+          199
+        ]
+      },
+      "tests/b3/b394a01.a:201": {
+        "lines": [
+          200,
+          201
+        ]
+      },
+      "tests/b3/b394a01.a:203": {
+        "lines": [
+          202,
+          203
+        ]
+      },
+      "tests/b3/b394a01.a:205": {
+        "lines": [
+          204,
+          205
+        ]
+      },
+      "tests/b3/b394a01.a:207": {
+        "lines": [
+          206,
+          207
+        ]
+      },
+      "tests/b3/b394a01.a:209": {
+        "lines": [
+          208,
+          209
+        ]
+      },
+      "tests/b3/b394a01.a:211": {
+        "lines": [
+          210,
+          211
+        ]
+      },
+      "tests/b3/b394a01.a:213": {
+        "lines": [
+          212,
+          213
+        ]
+      },
+      "tests/b3/b394a01.a:218": {
+        "lines": [
+          217,
+          218
+        ]
+      },
+      "tests/b3/b394a01.a:226": {
+        "lines": [
+          225,
+          226
+        ]
+      },
+      "tests/b3/b394a01.a:228": {
+        "lines": [
+          227,
+          228
+        ]
+      },
+      "tests/b3/b394a01.a:230": {
+        "lines": [
+          229,
+          230
+        ]
+      },
+      "tests/b3/b394a01.a:232": {
+        "lines": [
+          231,
+          232
+        ]
+      },
+      "tests/b3/b394a01.a:234": {
+        "lines": [
+          233,
+          234
+        ]
+      },
+      "tests/b3/b394a01.a:236": {
+        "lines": [
+          235,
+          236
+        ]
+      },
+      "tests/b3/b394a01.a:238": {
+        "lines": [
+          237,
+          238
+        ]
+      },
+      "tests/b3/b394a01.a:240": {
+        "lines": [
+          239,
+          240
+        ]
+      },
+      "tests/b3/b394a01.a:242": {
+        "lines": [
+          241,
+          242
+        ]
+      },
+      "tests/b3/b394a01.a:244": {
+        "lines": [
+          243,
+          244
+        ]
+      },
+      "tests/b3/b394a01.a:248": {
+        "lines": [
+          247,
+          248
+        ]
+      },
+      "tests/b3/b394a01.a:252": {
+        "lines": [
+          251,
+          252
+        ]
+      },
+      "tests/b3/b394a01.a:254": {
+        "lines": [
+          253,
+          254
+        ]
+      },
+      "tests/b3/b394a01.a:256": {
+        "lines": [
+          255,
+          256
+        ]
+      },
+      "tests/b3/b394a01.a:258": {
+        "lines": [
+          257,
+          258
+        ]
+      },
+      "tests/b3/b394a01.a:260": {
+        "lines": [
+          259,
+          260
+        ]
+      },
+      "tests/b3/b394a01.a:262": {
+        "lines": [
+          261,
+          262
+        ]
+      },
+      "tests/b3/b394a01.a:265": {
+        "lines": [
+          264,
+          265
+        ]
+      },
+      "tests/b3/b394a01.a:267": {
+        "lines": [
+          266,
+          267
+        ]
+      },
+      "tests/b3/b394a01.a:269": {
+        "lines": [
+          268,
+          269
+        ]
+      },
+      "tests/b3/b394a01.a:271": {
+        "lines": [
+          270,
+          271
+        ]
+      },
+      "tests/b3/b394a01.a:273": {
+        "lines": [
+          272,
+          273
+        ]
+      },
+      "tests/b3/b394a01.a:275": {
+        "lines": [
+          274,
+          275
+        ]
+      },
+      "tests/b3/b394a01.a:287": {
+        "lines": [
+          286,
+          287
+        ]
+      },
+      "tests/b3/b394a01.a:290": {
+        "lines": [
+          288,
+          289,
+          290
+        ]
+      },
+      "tests/b3/b394a01.a:292": {
+        "lines": [
+          291,
+          292
+        ]
+      },
+      "tests/b3/b394a01.a:295": {
+        "lines": [
+          293,
+          294,
+          295
+        ]
+      },
+      "tests/b3/b394a01.a:297": {
+        "lines": [
+          296,
+          297
+        ]
+      },
+      "tests/b3/b394a01.a:300": {
+        "lines": [
+          298,
+          299,
+          300
+        ]
+      },
+      "tests/b3/b394a01.a:302": {
+        "lines": [
+          301,
+          302
+        ]
+      },
+      "tests/b3/b394a01.a:304": {
+        "lines": [
+          303,
+          304
+        ]
+      },
+      "tests/b3/b394a01.a:306": {
+        "lines": [
+          305,
+          306
+        ]
+      },
+      "tests/b3/b394a01.a:308": {
+        "lines": [
+          307,
+          308
+        ]
+      }
+    }
   },
   "b394a02": {
     "objective": "Check that descendants of nonlimited interfaces cannot be limited, including generic formal declarations.",

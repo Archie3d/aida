@@ -307,10 +307,25 @@ one failed at runtime and five reached documented feature limits.
   including all 304 ACATS checks and 25 graded B passes. Its sole failure was
   the existing diagnostics terminal-output comparison, which passed the
   immediate isolated recheck; no rendering code or expectations were changed.
-- [ ] **B394A01 — reconcile the test and its foundation.** The pinned test
+- [x] **B394A01 — reconcile the test and its foundation.** The pinned test
   refers to `Non_Lim_Intf_Priv` and `Lim_Intf_Priv`, which the pinned
   `F394A00` omits. Verify a matching upstream pair and its provenance, then
   rerun the case and grade the intended progenitor errors.
+  Official ACAA B394A01 1.3 and F394A00 1.1 confirm the mismatch; no
+  corrected upstream pair was found. The original sources/hashes and raw
+  observation remain intact. An explicitly labelled local foundation adapter
+  adds only the two missing private extensions and their full views. The grade
+  records the substitution and now passes all 87 required and ten optional
+  sites using the specific-interface-progenitor rule. The independent legal
+  control executes private-extension ancestors and generic actuals in
+  whole-program/per-unit modes with deterministic IR. No compiler/runtime
+  changes were needed. [Provenance and review](docs/acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12).
+  All 20 adversarial grader tests and ten focused ASan/UBSan checks pass,
+  including all 26 sanitizer grades. The separate total is 26 PASS
+  (25 original foundations and one local adapter).
+  Darwin arm64 validation: all 2,146 Release checks pass, including all 305
+  ACATS checks and 26 graded B cases. All 161 raw baseline observations and
+  upstream hashes are unchanged; `git diff --check` passes.
 - [ ] **Refresh the ACATS baseline table.** Correct the stale rejection rows
   for C85005A and C85005B, which now execute successfully. Record newly
   verified grades and executable passes as the fixes land.

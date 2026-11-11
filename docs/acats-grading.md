@@ -1,8 +1,9 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[161-case baseline](acats-baseline.md). It currently records **25 PASS and
-one FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **26 PASS**, comprising
+25 with original foundations and B394A01 with an explicitly labelled local
+foundation adapter. A nonzero compiler exit alone never establishes a pass. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -42,14 +43,13 @@ site and unexpected diagnostic. Only these complete observed passes are on the
 regular `acats;b-tests` CTest labels:
 
 B330001, B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
-B394A02, B394A03, B394A04, B394A05, B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
+B394A01 (adapted foundation), B394A02, B394A03, B394A04, B394A05,
+B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
 B64003A, B650002, B650004, B840001 and BC60001.
 
-The remaining case stays failed pending its source/foundation review:
-
-| Cases | Observation / existing owner |
-| --- | --- |
-| B394A01 | Pinned test references private-interface names absent from its foundation; Phase 12 provenance and progenitor review |
+B394A01's grade records its `foundation_overrides` mapping and prints
+`(local foundation adapter)`. Its original raw observation remains rejected and
+ungraded; the adapter is not presented as a corrected upstream pair.
 
 The [non-tasking legality audit](legality-audit.md) repairs and reviews the six
 promoted cases, including independent executable controls. Remaining failures
@@ -223,6 +223,51 @@ The full Darwin arm64 Release run passes 2,144/2,145 checks, including all 304
 ACATS checks (25 graded B cases). The sole diagnostics terminal-output comparison
 failure passes an immediate isolated rerun; rendering code and expectations are
 unchanged. Source/hash validation and `git diff --check` also pass.
+
+## Progenitor types and foundation mismatch (Phase 12)
+
+The official ACAA [B394A01 revision 1.3](http://www.ada-auth.org/cgi-bin/cvsweb.cgi/acats/b3/b394a01.a?rev=1.3&content-type=text/plain)
+and [F394A00 revision 1.1](http://www.ada-auth.org/cgi-bin/cvsweb.cgi/acats/support/f394a00.a?rev=1.1&content-type=text/plain)
+match the pinned mirror text after CRLF-to-LF conversion. Their official histories
+([test](http://www.ada-auth.org/cgi-bin/cvsweb.cgi/acats/b3/b394a01.a),
+[foundation](http://www.ada-auth.org/cgi-bin/cvsweb.cgi/acats/support/f394a00.a))
+contain no later corrected pair. Both the original 4.1 mirror test and its 4.1W
+update reference `Non_Lim_Intf_Priv` and `Lim_Intf_Priv`, absent from the foundation.
+Six original diagnostics are consequently name-lookup errors, including four
+required sites, and cannot establish the intended interface-progenitor rule.
+
+The separately labelled [local foundation adapter](../tests/acats/grading/foundations/f394a00.a)
+preserves the foundation and adds only two private extensions and their full
+views: a nonlimited extension of `Non_Lim_Interface` and a limited extension of
+`Lim_Interface`. See its [provenance record](../tests/acats/grading/foundations/README.md).
+The original vendored test and foundation, source hashes, manifest and raw
+observation are unchanged. Only this grade substitutes the local foundation;
+the harness rejects attempts to substitute B-test sources or unselected helpers.
+The report records the substitution, and helper errors remain unexpected.
+
+With that adapter, all **87 required and ten optional** declarations receive
+`a progenitor must name a specific interface type`. Each one-to-three-line span
+was reviewed against its declaration. Abstract/tagged records, private extensions,
+scalars, arrays, task/protected types and formal private types are not interfaces,
+even when they descend from one. The rule follows RM
+[3.9.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-3-9-4.html):
+the progenitor subtype must denote an interface. There are no new recovery
+allowances; unresolved names cannot satisfy the policy. Optional private-completion
+errors cannot discharge required original declarations.
+
+The independent [legal control](../tests/ada/tasks/interfaceancestry.adb) now
+also derives from nonlimited and limited private extensions, passes descendants
+through generic derived formals and checks their tags and interface membership.
+These types are legal ancestors despite being illegal progenitors. The control
+runs in whole-program/per-unit modes with deterministic IR. The 20-test grading
+suite checks the original name-lookup failure, optional completions, declaration
+boundaries, helper errors and restrictions on source substitution.
+The current local grading total is 26 PASS (25 original foundations, one adapted).
+No compiler or runtime changes were needed. Darwin arm64 validation passes all
+2,146 Release checks, including all 305 ACATS checks and 26 graded B cases.
+Ten focused ASan/UBSan checks pass, including the full 26-case grading snapshot.
+All 161 original raw observations and upstream hashes remain unchanged;
+`git diff --check` passes.
 
 ## Support adapters and re-probes
 

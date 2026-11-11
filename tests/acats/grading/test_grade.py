@@ -2,6 +2,7 @@
 
 import importlib.util
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -104,6 +105,7 @@ class GradingTests(unittest.TestCase):
             keys = {f"{site['source']}:{site['line']}" for site in sites}
             self.assertTrue(set(policies[case['id']].get('sites', {})) <= keys)
             self.assertTrue((grading.kRoot / policies[case['id']]['legal']).is_file())
+            self.assertTrue(all(source.is_file() for source in grading.compilationSources(case, policies[case['id']])))
 
     def reviewedFixture(self, caseId):
         manifest = grading.baseline.readJson(grading.baseline.kRoot / 'manifest.json')
@@ -186,6 +188,43 @@ class GradingTests(unittest.TestCase):
             value = grading.grade(sites, policy, result(1, wrong), result())
             self.assertEqual(value['outcome'], 'FAIL')
             self.assertIn(f"{first['source']}:{first['line']}", value['missing'])
+
+    def testProgenitorsRequireTypesRatherThanUnresolvedNames(self):
+        sites, policy, original = self.reviewedFixture('b394a01')
+        self.assertEqual(sum(not site['optional'] for site in sites), 87)
+        self.assertEqual(sum(site['optional'] for site in sites), 10)
+        value = grading.grade(sites, policy, result(1, original), result())
+        self.assertEqual(value['outcome'], 'FAIL')
+        for marker in [134, 136, 238, 240]:
+            self.assertIn(f'tests/b3/b394a01.a:{marker}', value['missing'])
+        # Model the intended errors after the foundation names are declared.
+        errors, count = re.subn(r"'f394a00\.(?:non_lim|lim)_intf_priv' is not declared",
+                               'a progenitor must name a specific interface type', original)
+        self.assertEqual(count, 6)
+        self.assertEqual(grading.grade(sites, policy, result(1, errors), result())['outcome'], 'PASS')
+        optional = [site for site in sites if site['optional']]
+        self.assertEqual(grading.grade(sites, policy,
+            result(1, self.omitSiteDiagnostics(errors, optional)), result())['outcome'], 'PASS')
+        for marker in [134, 136]:
+            missing = self.omitSiteDiagnostics(errors, [site for site in sites if site['line'] == marker])
+            value = grading.grade(sites, policy, result(1, missing), result())
+            self.assertEqual(value['outcome'], 'FAIL')
+            self.assertIn(f'tests/b3/b394a01.a:{marker}', value['missing'])
+        outside = errors.replace(':69:29:', ':67:29:')
+        self.assertNotEqual(outside, errors)
+        self.assertEqual(grading.grade(sites, policy, result(1, outside), result())['outcome'], 'FAIL')
+        helper = errors + 'foundations/f394a00.a:77:5: error: a progenitor must name a specific interface type\n'
+        self.assertEqual(grading.grade(sites, policy, result(1, helper), result())['outcome'], 'FAIL')
+
+    def testFoundationAdapterCannotReplaceATestOrAnUnselectedSource(self):
+        case = dict(sources=['support/f394a00.a', 'tests/b3/b394a01.a'])
+        policy = dict(foundation_overrides={'support/f394a00.a': 'foundations/f394a00.a'})
+        sources = grading.compilationSources(case, policy)
+        self.assertEqual(sources, [grading.kRoot / 'foundations/f394a00.a',
+                                  grading.baseline.kRoot / 'upstream/tests/b3/b394a01.a'])
+        for source in ['tests/b3/b394a01.a', 'support/unselected.a']:
+            with self.assertRaisesRegex(ValueError, 'only a selected foundation'):
+                grading.compilationSources(case, dict(foundation_overrides={source: 'legal.adb'}))
 
 
 if __name__ == '__main__':

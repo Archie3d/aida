@@ -134,7 +134,7 @@ rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).
 When closing a known gap, remove its rejection expectation and run the executable
 case. The separate [B-test grader](../../docs/acats-grading.md) grades all 26 pinned
-legality probes (25 PASS, one FAIL); only complete observed passes join the
+legality probes (26 PASS: 25 original foundations and one labelled local foundation adapter); only complete observed passes join the
 `acats;b-tests` labels. Multi-stage construction, general implementation-defined
 substitutions, broader annex selections and the full official REPORT protocol
 remain outside this selected-case harness.
@@ -1165,3 +1165,13 @@ repair changes no compiler behavior or raw observations; all 161 raw observation
 and upstream hashes remain unchanged. The separate total is 25 PASS / one FAIL;
 B394A01 awaits its source/foundation review. See the
 [site review](../../docs/acats-grading.md#interface-ancestry-review-phase-12).
+
+B394A01 now grades PASS with an explicitly labelled local foundation adapter.
+Official ACAA test revision 1.3 and foundation revision 1.1 confirm the missing
+private-extension names; no corrected upstream pair was found. The local adapter
+adds the two private extensions and their completions, preserving all vendored
+bytes/hashes and raw observations. All 87 required and ten optional sites then
+receive the intended specific-interface-progenitor error. Legal private-extension
+ancestors and generic actuals execute in `interfaceancestry`. The separate total
+is 26 PASS (25 original foundations, one adapted); this is not an unchanged
+upstream B394A01 pass. See the [provenance and site review](../../docs/acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12).

@@ -107,6 +107,15 @@ def grade(sites, policy, result, legal):
             "legal_stdout": legal["stdout"]}
 
 
+def compilationSources(case, policy):
+    overrides = policy.get('foundation_overrides', {})
+    foundations = {name for name in case['sources'] if name.startswith('support/')}
+    if set(overrides) - foundations:
+        raise ValueError('only a selected foundation may be adapted; B-test sources must stay unchanged')
+    return [kRoot / overrides[name] if name in overrides else baseline.kRoot / 'upstream' / name
+            for name in case['sources']]
+
+
 def observe(case, policy, args):
     work = args.work / case["id"]
     work.mkdir(parents=True, exist_ok=True)
@@ -118,12 +127,14 @@ def observe(case, policy, args):
                                           *map(str, sources)], args.timeout)
             result["stderr"] = baseline.normalize(result["stderr"], directory)
             return result
-        sources = [baseline.kRoot / 'upstream' / name for name in case["sources"]]
+        sources = compilationSources(case, policy)
         # Support is compiled normally; errors in helpers are unexpected.
         helpers = [kRoot.parent / 'support' / ('report.' + ext) for ext in ['ads', 'adb']]
         result = compileSources(helpers + sources, 'test')
         legal = compileSources([kRoot / policy["legal"]], 'legal')
         value = grade(sites, policy, result, legal)
+        if policy.get('foundation_overrides'):
+            value['foundation_overrides'] = policy['foundation_overrides']
         (work / 'compile.log').write_text(result["stdout"] + result["stderr"])
         (work / 'grade.json').write_text(json.dumps(value, indent=2) + '\n')
         return case["id"], value
@@ -160,7 +171,8 @@ def main():
     (args.work / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
     print(dict(Counter(value['outcome'] for value in results.values())))
     for name, value in results.items():
-        print(name + ': ' + value['outcome'])
+        suffix = ' (local foundation adapter)' if value.get('foundation_overrides') else ''
+        print(name + ': ' + value['outcome'] + suffix)
     drift = False
     if args.check:
         expected = baseline.readJson(kRoot / 'expected.json')

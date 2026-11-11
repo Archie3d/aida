@@ -31,7 +31,8 @@ B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
 cannot establish correctness. The independent [B-test grader](../../../docs/acats-grading.md)
 now checks expected error locations, permitted diagnostic groups and legal
-controls, recording 25 PASS and one FAIL. Raw observations stay ungraded. B36002A now
+controls, recording 26 PASS (25 original foundations and one labelled local
+foundation adapter). Raw observations stay ungraded. B36002A now
 rejects its mixed constrained/boxed array-index declarations with 12 targeted
 diagnostics after the 6f-prelude repair. Its observation remains ungraded;
 local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
@@ -249,3 +250,13 @@ repair changes no compiler behavior or raw observations; all 161 raw observation
 and upstream hashes remain unchanged. The separate total is 25 PASS / one FAIL;
 B394A01 awaits its source/foundation review. See the
 [site review](../../../docs/acats-grading.md#interface-ancestry-review-phase-12).
+
+B394A01 now grades PASS with an explicitly labelled local foundation adapter.
+Official ACAA test revision 1.3 and foundation revision 1.1 confirm the missing
+private-extension names; no corrected upstream pair was found. The local adapter
+adds the two private extensions and their completions, preserving all vendored
+bytes/hashes and raw observations. All 87 required and ten optional sites then
+receive the intended specific-interface-progenitor error. Legal private-extension
+ancestors and generic actuals execute in `interfaceancestry`. The separate total
+is 26 PASS (25 original foundations, one adapted); this is not an unchanged
+upstream B394A01 pass. See the [provenance and site review](../../../docs/acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12).

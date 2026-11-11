@@ -21,6 +21,7 @@ procedure Interfaceancestry is
             Value : Integer := 2;
         end record;
         type Private_Record is new Ordinary_Child with private;
+        type Private_Limited_Record is limited new Limited_Child with private;
         type Private_Task is synchronized new Task_Child and Limited_Base with private;
         type Private_Protected is synchronized new Protected_Child and Limited_Base with private;
         type Sync_Task is synchronized new Sync_Child with private;
@@ -31,6 +32,7 @@ procedure Interfaceancestry is
         procedure Read (Self : in out Sync_Protected; Value : out Integer);
     private
         type Private_Record is new Ordinary_Child with null record;
+        type Private_Limited_Record is limited new Limited_Child with null record;
         task type Private_Task is new Task_Child and Limited_Base with
             entry Ping (Value : out Integer);
         end Private_Task;
@@ -82,6 +84,9 @@ procedure Interfaceancestry is
             Self.Ping (Value);
         end Read;
     end Model;
+    -- Private extensions are legal ancestors, but are not interface types.
+    type Ordinary_Extension is new Model.Private_Record with null record;
+    type Limited_Extension is limited new Model.Private_Limited_Record with null record;
     generic
         type O is interface and Model.Ordinary;
         type L is limited interface and Model.Limited_Base;
@@ -93,6 +98,8 @@ procedure Interfaceancestry is
         type SD is synchronized new Model.Sync with private;
         type TD is synchronized new Model.Task_Base with private;
         type PD is synchronized new Model.Protected_Base with private;
+        type OP is new Model.Private_Record with private;
+        type LP is limited new Model.Private_Limited_Record with private;
     package Contracts is
         function Matches return Boolean;
     end Contracts;
@@ -108,15 +115,20 @@ procedure Interfaceancestry is
                 and LD'Tag = Model.Limited_Record'Tag
                 and SD'Tag = Model.Sync_Protected'Tag
                 and TD'Tag = Model.Private_Task'Tag
-                and PD'Tag = Model.Private_Protected'Tag;
+                and PD'Tag = Model.Private_Protected'Tag
+                and OP'Tag = Ordinary_Extension'Tag
+                and LP'Tag = Limited_Extension'Tag;
         end Matches;
     end Contracts;
     package Instance is new Contracts (Model.Ordinary_Child, Model.Limited_Child,
         Model.Sync_Child, Model.Task_Child, Model.Protected_Child, Model.Record_Child,
-        Model.Limited_Record, Model.Sync_Protected, Model.Private_Task, Model.Private_Protected);
+        Model.Limited_Record, Model.Sync_Protected, Model.Private_Task, Model.Private_Protected,
+        Ordinary_Extension, Limited_Extension);
     R : Model.Record_Child;
     PR : Model.Private_Record;
     LR : Model.Limited_Record;
+    OE : Ordinary_Extension;
+    LE : Limited_Extension;
     T : Model.Private_Task;
     P : Model.Private_Protected;
     ST : Model.Sync_Task;
@@ -136,6 +148,7 @@ begin
         or else Sync_Task_Value /= 5 or else Sync_Protected_Value /= 6
         or else not (R in Model.Ordinary'Class) or else not (PR in Model.Ordinary'Class)
         or else not (LR in Model.Limited_Base'Class)
+        or else not (OE in Model.Ordinary'Class) or else not (LE in Model.Limited_Base'Class)
         or else not (T in Model.Task_Base'Class) or else not (T in Model.Sync'Class)
         or else not (P in Model.Protected_Base'Class) or else not (P in Model.Sync'Class)
         or else not (ST in Model.Sync'Class) or else not (SP in Model.Sync'Class) then
