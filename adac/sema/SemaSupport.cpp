@@ -1,10 +1,33 @@
 #include "SemaSupport.h"
 #include "Symbol.h"
+#include "Scope.h"
 
 #include "Ast.h"
 #include "Type.h"
 
 namespace SemaSupport {
+
+std::string expectedActualTypes(const Type* expected, const Type* actual)
+{
+    if (expected == nullptr || actual == nullptr) { return ""; }
+    bool qualify = expected->name == actual->name;
+    auto name = [qualify](const Type* type) -> std::string {
+        if (type->kind == TypeKind::UniversalInteger) { return "universal integer"; }
+        if (type->kind == TypeKind::UniversalReal) { return "universal real"; }
+        if (type->name.starts_with("anon.")) {
+            if (type->kind == TypeKind::Array) { return "anonymous array type"; }
+            if (type->kind == TypeKind::Access) { return "anonymous access type"; }
+            return "anonymous type";
+        }
+        if (qualify && type->declarationScope != nullptr && !type->declarationScope->packageName().empty()) {
+            return type->declarationScope->packageName() + "." + type->name;
+        }
+        return type->name;
+    };
+    std::string expectedName = name(expected), actualName = name(actual);
+    return "; expected '" + expectedName + "', found '" + actualName + "'"
+        + (expectedName == actualName ? "; the types have distinct declarations" : "");
+}
 
 bool conformingExpressions(const Expr* left, const Expr* right)
 {

@@ -1,3 +1,4 @@
-interfaceprivacyerrors.adb:24:35: error: initial value is not compatible with the declared subtype
+interfaceprivacyerrors.adb:24:35: error: initial value is not compatible with the declared subtype; expected 'API'Class', found 'Hidden'
+interfaceprivacyerrors.adb:24:12: note: object subtype is declared here
 interfaceprivacyerrors.adb:26:31: error: object view does not match the designated subtype
 interfaceprivacyerrors.adb:27:43: error: this type conversion is not allowed

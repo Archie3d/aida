@@ -1,3 +1,5 @@
 defaulterrors.adb:2:25: error: only an in parameter can have a default expression
-defaulterrors.adb:6:40: error: the default expression has an incompatible type
-defaulterrors.adb:10:40: error: the default expression has an incompatible type
+defaulterrors.adb:6:40: error: the default expression has an incompatible type; expected 'Boolean', found 'universal integer'
+defaulterrors.adb:6:25: note: parameter is declared here
+defaulterrors.adb:10:40: error: the default expression has an incompatible type; expected 'Integer', found 'universal real'
+defaulterrors.adb:10:25: note: parameter is declared here

@@ -712,7 +712,12 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             m_diagnostics.error(assign->location, "class-wide controlled assignment is not yet supported");
         }
         if (!typesCompatible(targetType, valueType)) {
-            m_diagnostics.error(assign->location, "the assigned value has an incompatible type");
+            m_diagnostics.error(assign->value->location, "the assigned value has an incompatible type"
+                + SemaSupport::expectedActualTypes(targetType, valueType));
+            if (assign->target->kind == ExprKind::Identifier) {
+                Symbol* target = static_cast<IdentifierExpr*>(assign->target.get())->symbol;
+                if (target != nullptr) { m_diagnostics.note(target->location, "assignment target is declared here"); }
+            }
         }
         if (targetType != nullptr && targetType->classRoot != nullptr
             && valueType != nullptr && valueType->classRoot == nullptr && !assign->value->tagIndeterminate) {
@@ -943,7 +948,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             if (expected == nullptr) {
                 m_diagnostics.error(returnStatement->location, "a procedure cannot return a value");
             } else if (!typesCompatible(expected, valueType)) {
-                m_diagnostics.error(returnStatement->location, "the returned value has an incompatible type");
+                m_diagnostics.error(returnStatement->value->location, "the returned value has an incompatible type"
+                    + SemaSupport::expectedActualTypes(expected, valueType));
+                m_diagnostics.note(m_currentSubprogram->location, "function is declared here");
             }
             adaptUniversal(returnStatement->value.get(), expected);
         } else if (expected != nullptr) {

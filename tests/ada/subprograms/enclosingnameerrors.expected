@@ -6,8 +6,10 @@ enclosingnameerrors.adb:32:25: error: 'Result' is not declared in 'region'
 enclosingnameerrors.adb:34:22: error: 'Index' cannot be assigned to
 enclosingnameerrors.adb:37:21: error: statement identifier 'region' does not denote an enclosing named construct
 enclosingnameerrors.adb:38:15: error: no visible interpretation of 'Finished' matches this context
+enclosingnameerrors.adb:4:5: note: declaration is here
 enclosingnameerrors.adb:38:23: error: 'Local' is not a component of a record
 enclosingnameerrors.adb:39:15: error: no visible interpretation of 'Alias' matches this context
+enclosingnameerrors.adb:9:5: note: declaration is here
 enclosingnameerrors.adb:39:20: error: 'Parameter' is not a component of a record
 enclosingnameerrors.adb:40:23: error: 'Number' is not declared in 'Instance'
 enclosingnameerrors.adb:41:30: error: 'Body_Value' is not declared in 'Enclosing_Model'

@@ -1,1 +1,1 @@
-genericcapacityerrors.adb:7:57: error: no visible interpretation of 'False' matches this context
+genericcapacityerrors.adb:7:57: error: no visible interpretation of 'False' matches this context; expected 'Character', found 'Boolean'

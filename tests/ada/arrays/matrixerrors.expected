@@ -2,5 +2,5 @@ matrixerrors.adb:7:18: error: multidimensional array storage size is too large
 matrixerrors.adb:9:7: error: array indexing requires 2 index value(s)
 matrixerrors.adb:10:11: error: array dimension must be a static value within the array rank
 matrixerrors.adb:11:11: error: array dimension must be a static value within the array rank
-matrixerrors.adb:12:13: error: no visible interpretation of 'True' matches this context
+matrixerrors.adb:12:13: error: no visible interpretation of 'True' matches this context; expected 'Integer', found 'Boolean'
 matrixerrors.adb:13:11: error: array dimension must be a static value within the array rank

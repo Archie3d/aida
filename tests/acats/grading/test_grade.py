@@ -30,6 +30,14 @@ class GradingTests(unittest.TestCase):
     def testCompleteRejectionAndLegalControlPass(self):
         self.assertEqual(self.checkGrade()['outcome'], 'PASS')
 
+    def testRelatedNotesDoNotSatisfyMarkers(self):
+        notes = self.errors.replace(': error:', ': note:')
+        self.assertEqual(self.checkGrade(notes)['outcome'], 'FAIL')
+        self.assertEqual(len(self.checkGrade(notes)['missing']), 2)
+        self.assertEqual(self.checkGrade(self.errors + notes)['outcome'], 'PASS')
+        self.assertEqual(self.checkGrade(self.errors + 'malformed note')['outcome'], 'FAIL')
+        self.assertEqual(self.checkGrade(legal=result(stderr=notes))['outcome'], 'FAIL')
+
     def testRecoveryMustReachEveryRequiredSite(self):
         value = self.checkGrade(self.errors.splitlines(True)[0])
         self.assertEqual(value['outcome'], 'FAIL')

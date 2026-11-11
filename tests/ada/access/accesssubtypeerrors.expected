@@ -4,7 +4,7 @@ accesssubtypeerrors.adb:7:56: error: duplicate discriminant constraint value
 accesssubtypeerrors.adb:7:26: error: a discriminant constraint requires exactly one value for each discriminant
 accesssubtypeerrors.adb:8:46: error: unknown discriminant 'no_such'
 accesssubtypeerrors.adb:8:24: error: a discriminant constraint requires exactly one value for each discriminant
-accesssubtypeerrors.adb:9:33: error: no visible interpretation of 'True' matches this context
+accesssubtypeerrors.adb:9:33: error: no visible interpretation of 'True' matches this context; expected 'Positive', found 'Boolean'
 accesssubtypeerrors.adb:10:39: error: a discriminant takes one value, not a range
 accesssubtypeerrors.adb:13:23: error: a general access subtype cannot constrain a designated type with defaulted discriminants
 accesssubtypeerrors.adb:19:36: error: an access discriminant constraint requires an unconstrained partial view

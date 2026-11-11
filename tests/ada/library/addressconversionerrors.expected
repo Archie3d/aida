@@ -8,6 +8,7 @@ addressconversionerrors.adb:33:39: error: 'Access of intrinsic subprograms is no
 addressconversionerrors.adb:34:45: error: 'Access of intrinsic subprograms is not allowed
 addressconversionerrors.adb:36:32: error: 'Access of intrinsic subprograms is not allowed
 addressconversionerrors.adb:37:69: error: no subprogram matches the renaming profile
-addressconversionerrors.adb:41:5: error: the assigned value has an incompatible type
+addressconversionerrors.adb:41:10: error: the assigned value has an incompatible type; expected 'addressconversionerrors.p.Object_Pointer', found 'addressconversionerrors.q.Object_Pointer'
+addressconversionerrors.adb:38:5: note: assignment target is declared here
 addressconversionerrors.adb:42:23: error: no visible subprogram matches this call
 addressconversionerrors.adb:43:23: error: no visible subprogram matches this call

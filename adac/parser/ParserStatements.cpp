@@ -16,7 +16,15 @@ StmtList Parser::parseSequenceOfStatements()
                 statements.push_back(std::move(statement));
             }
         } catch (const ParseError&) {
-            skipToSemicolon();
+            // Leave enclosing delimiters for their owner. Swallowing an end or
+            // else after a missing semicolon creates unrelated follow-on errors.
+            while (!check(TokenKind::EndOfFile) && !check(TokenKind::KwEnd)
+                && !check(TokenKind::KwElse) && !check(TokenKind::KwElsif)
+                && !check(TokenKind::KwWhen) && !check(TokenKind::KwOr)
+                && !check(TokenKind::KwThen) && !check(TokenKind::KwException)) {
+                if (match(TokenKind::Semicolon)) { break; }
+                advance();
+            }
         }
     }
 

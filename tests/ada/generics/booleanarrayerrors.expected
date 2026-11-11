@@ -1,7 +1,10 @@
 booleanarrayerrors.adb:10:32: error: 'not' requires a Boolean operand
-booleanarrayerrors.adb:10:32: error: initial value is not compatible with the declared subtype
+booleanarrayerrors.adb:10:32: error: initial value is not compatible with the declared subtype; expected 'Matrix', found 'Boolean'
+booleanarrayerrors.adb:10:22: note: object subtype is declared here
 booleanarrayerrors.adb:11:36: error: 'not' requires a Boolean operand
-booleanarrayerrors.adb:11:36: error: initial value is not compatible with the declared subtype
+booleanarrayerrors.adb:11:36: error: initial value is not compatible with the declared subtype; expected 'Numbers', found 'Boolean'
+booleanarrayerrors.adb:11:25: note: object subtype is declared here
 booleanarrayerrors.adb:12:31: error: logical operators require Boolean operands
-booleanarrayerrors.adb:12:31: error: initial value is not compatible with the declared subtype
+booleanarrayerrors.adb:12:31: error: initial value is not compatible with the declared subtype; expected 'Bits', found 'Boolean'
+booleanarrayerrors.adb:12:21: note: object subtype is declared here
 booleanarrayerrors.adb:13:42: error: logical operators require Boolean operands

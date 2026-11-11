@@ -1,4 +1,5 @@
 genericnulllegalityerrors.adb:3:45: error: a formal function cannot have a null default
 genericnulllegalityerrors.adb:8:55: error: an abstract formal subprogram cannot have a null default
 genericnulllegalityerrors.adb:18:44: error: 'Access of intrinsic subprograms is not allowed
-genericnulllegalityerrors.adb:19:28: error: initial value is not compatible with the declared subtype
+genericnulllegalityerrors.adb:19:28: error: initial value is not compatible with the declared subtype; expected 'Boolean', found 'universal integer'
+genericnulllegalityerrors.adb:19:17: note: object subtype is declared here

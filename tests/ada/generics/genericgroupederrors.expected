@@ -1,4 +1,6 @@
 genericgroupederrors.adb:7:5: error: no actual supplied for generic formal 'B'
 genericgroupederrors.adb:8:5: error: a generic formal cannot be supplied more than once
-genericgroupederrors.adb:9:41: error: no visible interpretation of 'True' matches this context
+genericgroupederrors.adb:9:41: error: no visible interpretation of 'True' matches this context; expected 'Integer', found 'Boolean'
+genericgroupederrors.adb:9:5: note: in instantiation of 'Model' here
 genericgroupederrors.adb:10:56: error: an in out generic formal object requires a variable actual
+genericgroupederrors.adb:10:5: note: in instantiation of 'Model' here

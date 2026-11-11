@@ -53,6 +53,8 @@ void printUsage()
               << "                  main subprogram that unit holds\n"
               << "  -I <dir>        another directory for sources or compiled .asi interfaces\n"
               << "  --stdlib <dir>  where the predefined environment lives\n"
+              << "  --diagnostic-format=auto|plain|rich  source snippet rendering\n"
+              << "  --color=auto|always|never             diagnostic color\n"
               << "  --no-stdlib     leave the predefined environment out altogether\n";
 }
 
@@ -270,10 +272,16 @@ int main(int argc, char** argv)
     bool singleUnit = false;
     bool scanOnly = false;
     bool bindOnly = false;
+    DiagnosticOptions diagnosticOptions;
 
     for (int i = 1; i < argc; ++i) {
         std::string argument = argv[i];
-        if (argument == "-o") {
+        if (DiagnosticOptions::recognizes(argument)) {
+            if (!diagnosticOptions.parse(argument)) {
+                std::cerr << "adac: error: invalid diagnostic option '" << argument << "'\n";
+                return 2;
+            }
+        } else if (argument == "-o") {
             if (i + 1 >= argc) {
                 std::cerr << "adac: error: missing file name after '-o'\n";
                 return 2;
@@ -424,7 +432,7 @@ int main(int argc, char** argv)
         }
     }
 
-    Diagnostics diagnostics;
+    Diagnostics diagnostics(diagnosticOptions);
     UnitLoader loader(diagnostics);
     loader.setCompilerDigest(compilerDigest);
     auto inputSnapshot = [&]() {

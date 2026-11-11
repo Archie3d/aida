@@ -1,0 +1,58 @@
+sample.adb:1:2: error: unicode span
+  --> sample.adb:1:2
+  |
+1 |         界é := "bad";
+  |         ^~~
+sample.adb:2:1: note: related declaration
+  --> sample.adb:2:1
+  |
+2 | second line
+  | ^
+sample.adb:2:3: warning: multiline span
+  --> sample.adb:2:3
+  |
+2 | second line
+  |   ^~~~~~~~~
+3 | third
+  | ^~~~~
+  | ...
+6 | sixth
+  | ^~~
+sample.adb:7:151: error: clipped span
+  --> sample.adb:7:151
+  |
+7 | ...                Offending_Token
+  |                    ^~~~~~~~~~~~~~~
+sample.adb:8:1: error: escaped control
+  --> sample.adb:8:1
+  |
+8 | \u{1B}[31m control
+  | ^
+sample.adb:9:99: error: past end of line
+  --> sample.adb:9:99
+  |
+9 | last
+  |     ^
+sample.adb:99:1: error: unavailable line
+<unknown>:1:1: error: unavailable file
+removed.ads:4:2: error: source-free interface
+sample.adb:4:1: error: nested error
+  --> sample.adb:4:1
+  |
+4 | fourth
+  | ^
+sample.adb:3:1: note: inner instance
+  --> sample.adb:3:1
+  |
+3 | third
+  | ^
+sample.adb:2:1: note: outer instance
+  --> sample.adb:2:1
+  |
+2 | second line
+  | ^
+sample.adb:10:1: error: end of file
+   --> sample.adb:10:1
+   |
+10 | 
+   | ^

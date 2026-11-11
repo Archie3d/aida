@@ -1,14 +1,28 @@
 genericaccesserrors.adb:39:42: error: 'Pool_Formal' expects an access type, and 'Integer' is not one
+genericaccesserrors.adb:39:5: note: in instantiation of 'Pool_Formal' here
 genericaccesserrors.adb:40:44: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:40:5: note: in instantiation of 'Pool_Formal' here
 genericaccesserrors.adb:41:48: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:41:5: note: in instantiation of 'Pool_Formal' here
 genericaccesserrors.adb:42:46: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:42:5: note: in instantiation of 'Pool_Formal' here
 genericaccesserrors.adb:43:44: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:43:5: note: in instantiation of 'General_Formal' here
 genericaccesserrors.adb:44:49: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:44:5: note: in instantiation of 'Constant_Formal' here
 genericaccesserrors.adb:45:45: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:45:5: note: in instantiation of 'Nonnull_Formal' here
 genericaccesserrors.adb:46:48: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:46:5: note: in instantiation of 'General_Formal' here
 genericaccesserrors.adb:47:55: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:47:5: note: in instantiation of 'Procedure_Formal' here
 genericaccesserrors.adb:48:47: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:48:5: note: in instantiation of 'Procedure_Formal' here
 genericaccesserrors.adb:49:52: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:49:5: note: in instantiation of 'Procedure_Formal' here
 genericaccesserrors.adb:50:48: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:50:5: note: in instantiation of 'Function_Formal' here
 genericaccesserrors.adb:51:48: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:51:5: note: in instantiation of 'Procedure_Formal' here
 genericaccesserrors.adb:52:50: error: actual access type does not match generic formal 'P'
+genericaccesserrors.adb:52:5: note: in instantiation of 'Function_Formal' here

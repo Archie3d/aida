@@ -1,1 +1,2 @@
 dispatchingconstructorerrors.adb:12:34: error: actual for abstract formal subprogram must be a dispatching operation of its controlling type
+dispatchingconstructorerrors.adb:11:5: note: in instantiation of 'Ada.Tags.Generic_Dispatching_Constructor' here

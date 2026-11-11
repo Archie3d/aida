@@ -219,6 +219,9 @@ void Toolchain::applyEnvironment()
 int Toolchain::run(const std::vector<std::string>& input) const
 {
     std::vector<std::string> command = input;
+    if (!command.empty() && command.front() == m_adac) {
+        command.insert(command.end(), m_diagnosticArguments.begin(), m_diagnosticArguments.end());
+    }
     if (!command.empty() && command.front() == m_adac && !m_artifactLock.empty()) {
         command.insert(command.end(), { "--artifact-lock", m_artifactLock });
     }

@@ -1,4 +1,5 @@
 #include "Cache.h"
+#include "../support/DiagnosticOptions.h"
 #include "BuildState.h"
 #include "../support/Artifacts.h"
 #include "Toolchain.h"
@@ -49,6 +50,8 @@ void printUsage()
               << "  --emit-ir     stop after generating QBE intermediate language\n"
               << "  -S            stop after generating assembly\n"
               << "  -k            keep the intermediate files\n"
+              << "  --diagnostic-format=auto|plain|rich  source snippet rendering\n"
+              << "  --color=auto|always|never             diagnostic color\n"
               << "  --no-stdlib   leave the predefined environment out of the unit search path\n"
               << "  -v            print each command before running it\n";
 }
@@ -184,10 +187,18 @@ int main(int argc, char** argv)
     bool useLibrary = true;
     bool clean = false;
     bool force = false;
+    DiagnosticOptions diagnosticOptions;
+    std::vector<std::string> diagnosticArguments;
 
     for (int i = 1; i < argc; ++i) {
         std::string argument = argv[i];
-        if (argument == "-o") {
+        if (DiagnosticOptions::recognizes(argument)) {
+            if (!diagnosticOptions.parse(argument)) {
+                std::cerr << "ada: error: invalid diagnostic option '" << argument << "'\n";
+                return 2;
+            }
+            diagnosticArguments.push_back(argument);
+        } else if (argument == "-o") {
             if (i + 1 >= argc) {
                 std::cerr << "ada: error: missing file name after '-o'\n";
                 return 2;
@@ -257,6 +268,7 @@ int main(int argc, char** argv)
 
     Toolchain toolchain;
     toolchain.locateFrom(argv[0]);
+    toolchain.setDiagnosticArguments(diagnosticArguments);
     toolchain.setVerbose(verbose);
 
     // Without -o the name of the last source gives the stem of every product.

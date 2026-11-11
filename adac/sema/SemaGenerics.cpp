@@ -1982,6 +1982,7 @@ bool Sema::bindGenericFormals(GenericInstantiationDecl* decl, Symbol* generic, S
 
 void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* scope)
 {
+    Diagnostics::Context diagnosticContext(m_diagnostics, decl->location, "in instantiation of '" + decl->genericName + "' here");
     Symbol* generic = instanceSymbol(lookupName(decl->genericLower, scope));
     if (generic == nullptr || generic->kind != SymbolKind::Generic) {
         m_diagnostics.error(decl->location, "'" + decl->genericName + "' is not a generic unit");

@@ -1,4 +1,5 @@
 genericchilderrors.adb:14:44: error: actual for formal package 'Operations' must be an instance of its generic template
+genericchilderrors.adb:14:5: note: in instantiation of 'Verify' here
 genericchilderrors.adb:17:12: error: 'generic_family.cell' is not declared
 genericchilderrors.adb:18:37: error: 'Touches' is not declared in 'Child_Parent'
 genericchilderrors.adb:20:14: error: no visible subprogram matches this call

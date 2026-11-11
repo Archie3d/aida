@@ -1,11 +1,14 @@
 randomlibraryerrors.adb:7:54: error: 'Ada.Numerics.Discrete_Random' expects a discrete type, and 'Float' is not one
+randomlibraryerrors.adb:7:5: note: in instantiation of 'Ada.Numerics.Discrete_Random' here
 randomlibraryerrors.adb:14:90: error: no subprogram matches the renaming profile
 randomlibraryerrors.adb:15:84: error: no subprogram matches the renaming profile
 randomlibraryerrors.adb:17:5: error: 'Generator' is limited private, so a value of it cannot be assigned outside 'Float_Random'
 randomlibraryerrors.adb:17:5: error: limited controlled objects cannot be assigned
 randomlibraryerrors.adb:18:10: error: a limited controlled type has no predefined equality
-randomlibraryerrors.adb:19:5: error: the assigned value has an incompatible type
-randomlibraryerrors.adb:20:5: error: the assigned value has an incompatible type
+randomlibraryerrors.adb:19:10: error: the assigned value has an incompatible type; expected 'randomlibraryerrors.one.State', found 'randomlibraryerrors.two.State'
+randomlibraryerrors.adb:10:5: note: assignment target is declared here
+randomlibraryerrors.adb:20:10: error: the assigned value has an incompatible type; expected 'ada.numerics.float_random.State', found 'randomlibraryerrors.one.State'
+randomlibraryerrors.adb:9:5: note: assignment target is declared here
 randomlibraryerrors.adb:21:14: error: no visible subprogram matches this call
 randomlibraryerrors.adb:22:15: error: no visible subprogram matches this call
 randomlibraryerrors.adb:23:20: error: no visible subprogram matches this call

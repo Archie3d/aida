@@ -1,1 +1,2 @@
 genericinterfaceobligationerrors.adb:10:9: error: inherited operation 'Required_Operation' must be overridden with a nonabstract subprogram
+genericinterfaceobligationerrors.adb:12:5: note: in instantiation of 'Builder' here

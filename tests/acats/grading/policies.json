@@ -363,7 +363,7 @@
   "b43002d": {
     "objective": "CHECK THAT A RECORD AGGREGATE CANNOT CONTAIN A SINGLE POSITIONAL ASSOCIATION.",
     "groups": [
-      "the assigned value has an incompatible type"
+      "the assigned value has an incompatible type; expected 'REC2?', found 'universal integer'"
     ],
     "legal": "legal.adb"
   },

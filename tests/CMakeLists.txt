@@ -2389,6 +2389,13 @@ add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedcon
 # The environment audit distinguishes resolution from full API availability.
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
+    add_executable(diagnostic_render diagnostics/Render.cpp ${CMAKE_SOURCE_DIR}/adac/Diagnostics.cpp)
+    target_include_directories(diagnostic_render PRIVATE ${CMAKE_SOURCE_DIR}/adac)
+    add_test(NAME diagnostics.contract
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics/check.py
+            --adac $<TARGET_FILE:adac> --ada $<TARGET_FILE:ada>
+            --render $<TARGET_FILE:diagnostic_render> --work ${ADA_TEST_WORK_DIR}/diagnostics)
+    set_tests_properties(diagnostics.contract PROPERTIES TIMEOUT 120)
     add_executable(artifact_tool_hook artifacts/ToolHook.cpp)
     add_test(NAME driver.noop_cleanup
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/driver/check_noop.py

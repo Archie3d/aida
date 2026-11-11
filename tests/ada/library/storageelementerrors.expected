@@ -18,10 +18,12 @@ storageelementerrors.adb:48:38: error: 'missing' is not declared
 storageelementerrors.adb:49:5: error: Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components
 storageelementerrors.adb:50:37: error: 'Component_Size requires a visible one-dimensional array subtype or object with fixed-size components and no arguments
 storageelementerrors.adb:52:17: error: no visible subprogram matches this call
-storageelementerrors.adb:53:5: error: the assigned value has an incompatible type
+storageelementerrors.adb:53:16: error: the assigned value has an incompatible type; expected 'Storage_Element', found 'Storage_Offset'
+storageelementerrors.adb:9:5: note: assignment target is declared here
 storageelementerrors.adb:54:24: error: no visible subprogram matches this call
 storageelementerrors.adb:55:27: error: no visible subprogram matches this call
 storageelementerrors.adb:56:24: error: the operands of an arithmetic operator must have the same type
 storageelementerrors.adb:56:24: error: arithmetic operators require numeric operands
 storageelementerrors.adb:57:23: error: arithmetic operators require numeric operands
-storageelementerrors.adb:57:5: error: the assigned value has an incompatible type
+storageelementerrors.adb:57:23: error: the assigned value has an incompatible type; expected 'Storage_Offset', found 'Address'
+storageelementerrors.adb:10:5: note: assignment target is declared here

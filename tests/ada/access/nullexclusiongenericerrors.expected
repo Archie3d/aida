@@ -1,3 +1,6 @@
 nullexclusiongenericerrors.adb:14:38: error: generic actual parameter must exclude null
+nullexclusiongenericerrors.adb:14:5: note: in instantiation of 'Apply' here
 nullexclusiongenericerrors.adb:26:50: error: generic actual result must exclude null
+nullexclusiongenericerrors.adb:26:5: note: in instantiation of 'Read_Value' here
 nullexclusiongenericerrors.adb:34:42: error: generic actual parameter must exclude null
+nullexclusiongenericerrors.adb:34:9: note: in instantiation of 'Apply' here

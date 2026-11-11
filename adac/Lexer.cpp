@@ -130,6 +130,7 @@ Lexer::Lexer(std::string source, int file, Diagnostics& diagnostics)
     , m_diagnostics(diagnostics)
     , m_file(file)
 {
+    m_diagnostics.setSource(file, m_source);
     int line = 1, column = 1;
     for (std::size_t position = m_source.starts_with("\xEF\xBB\xBF") ? 3 : 0; position < m_source.size();) {
         uint32_t code;
@@ -207,6 +208,7 @@ Token Lexer::makeToken(TokenKind kind, const SourceLocation& location, std::stri
     Token token;
     token.kind = kind;
     token.location = location;
+    m_diagnostics.addSpan(location, here());
     token.lower = toLower(text);
     token.text = std::move(text);
     return token;
@@ -475,6 +477,7 @@ Token Lexer::lexStringLiteral()
     Token token;
     token.kind = TokenKind::StringLiteral;
     token.location = location;
+    m_diagnostics.addSpan(location, here());
     token.text = value;
     token.lower = value;
     return token;
@@ -495,6 +498,7 @@ Token Lexer::lexCharacterLiteral()
     Token token;
     token.kind = TokenKind::CharacterLiteral;
     token.location = location;
+    m_diagnostics.addSpan(location, here());
     token.text = Unicode::encode(value);
     token.lower = token.text;
     token.intValue = value;

@@ -5,7 +5,7 @@
     "system": "Darwin",
     "machine": "arm64"
   },
-  "compiler_sha256": "61a01ecb834acf34e81891514b21dadb32d06bc75846d66cd5d0f1e44b420edd",
+  "compiler_sha256": "d32ac0189f0bab259ee4debd231c23d8f4cbb64ee18d61c8de9a2e29a23a74b4",
   "counts": {
     "B_REJECTED_UNGRADED": 26,
     "COMPILE_REJECTED": 5,
@@ -997,7 +997,7 @@
     "b43002d": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b4/b43002d.ada:48:6: error: the assigned value has an incompatible type\n<upstream>/tests/b4/b43002d.ada:50:6: error: the assigned value has an incompatible type\n",
+      "compile_stderr": "<upstream>/tests/b4/b43002d.ada:48:12: error: the assigned value has an incompatible type; expected 'REC', found 'universal integer'\n<upstream>/tests/b4/b43002d.ada:42:6: note: assignment target is declared here\n<upstream>/tests/b4/b43002d.ada:50:12: error: the assigned value has an incompatible type; expected 'REC2', found 'universal integer'\n<upstream>/tests/b4/b43002d.ada:44:6: note: assignment target is declared here\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b43002e": {
@@ -1021,7 +1021,7 @@
     "b64002a": {
       "compile_exit": 1,
       "compile_stdout": "",
-      "compile_stderr": "<upstream>/tests/b6/b64002a.ada:53:6: error: no visible interpretation of 'P1' matches this context\n<upstream>/tests/b6/b64002a.ada:55:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:57:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:59:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:61:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:63:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:65:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:67:9: error: no visible subprogram matches this call\n",
+      "compile_stderr": "<upstream>/tests/b6/b64002a.ada:53:6: error: no visible interpretation of 'P1' matches this context\n<upstream>/tests/b6/b64002a.ada:36:6: note: declaration is here\n<upstream>/tests/b6/b64002a.ada:55:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:57:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:59:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:61:13: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:63:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:65:9: error: no visible subprogram matches this call\n<upstream>/tests/b6/b64002a.ada:67:9: error: no visible subprogram matches this call\n",
       "outcome": "B_REJECTED_UNGRADED"
     },
     "b64002c": {

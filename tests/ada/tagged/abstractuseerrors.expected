@@ -8,5 +8,7 @@ abstractuseerrors.adb:19:5: error: an abstract type cannot be used to create an 
 abstractuseerrors.adb:19:31: error: an aggregate cannot have an abstract type
 abstractuseerrors.adb:22:9: error: an assignment target cannot have an abstract type
 abstractuseerrors.adb:28:52: error: an abstract actual type requires an abstract generic formal type
+abstractuseerrors.adb:28:5: note: in instantiation of 'Type_Formal' here
 abstractuseerrors.adb:30:9: error: a generic formal in object cannot have an abstract type
 abstractuseerrors.adb:40:44: error: an abstract subprogram cannot be an actual for a nonabstract formal subprogram
+abstractuseerrors.adb:40:5: note: in instantiation of 'Invoke' here

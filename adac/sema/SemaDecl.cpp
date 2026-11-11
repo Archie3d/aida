@@ -396,7 +396,8 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         }
         if (!typesCompatible(type, valueType)) {
             m_diagnostics.error(decl->initializer->location,
-                                "initial value is not compatible with the declared subtype");
+                                "initial value is not compatible with the declared subtype" + SemaSupport::expectedActualTypes(type, valueType));
+            m_diagnostics.note(decl->subtype->location, "object subtype is declared here");
         }
         adaptUniversal(decl->initializer.get(), type);
     }
@@ -441,6 +442,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
 
         if (!scope->lookupLocal(decl->namesLower[i]).empty()) {
             m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been declared in this scope");
+            m_diagnostics.note(scope->lookupLocal(decl->namesLower[i]).front()->location, "previous declaration is here");
             continue;
         }
 
@@ -522,6 +524,7 @@ void Sema::analyzeNumberDecl(NumberDecl* decl, Scope* scope)
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
         if (!scope->lookupLocal(decl->namesLower[i]).empty()) {
             m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been declared in this scope");
+            m_diagnostics.note(scope->lookupLocal(decl->namesLower[i]).front()->location, "previous declaration is here");
             continue;
         }
 
@@ -877,7 +880,9 @@ Symbol* Sema::declareSubprogram(SubprogramSpec& spec, Scope* scope, bool isBody,
                 parameterTypes[i], parameter->deferredUses);
             m_currentSubprogram = savedSubprogram;
             if (!typesCompatible(parameterTypes[i], defaultType)) {
-                m_diagnostics.error(declaration.defaultValue->location, "the default expression has an incompatible type");
+                m_diagnostics.error(declaration.defaultValue->location, "the default expression has an incompatible type"
+                    + SemaSupport::expectedActualTypes(parameterTypes[i], defaultType));
+                m_diagnostics.note(declaration.location, "parameter is declared here");
             }
             adaptUniversal(declaration.defaultValue.get(), parameterTypes[i]);
             parameter->hasDefault = true;
@@ -1073,6 +1078,7 @@ void Sema::analyzeExceptionDecl(ExceptionDecl* decl, Scope* scope)
     for (std::size_t i = 0; i < decl->names.size(); ++i) {
         if (!scope->lookupLocal(decl->namesLower[i]).empty()) {
             m_diagnostics.error(decl->location, "'" + decl->names[i] + "' has already been declared in this scope");
+            m_diagnostics.note(scope->lookupLocal(decl->namesLower[i]).front()->location, "previous declaration is here");
             continue;
         }
 

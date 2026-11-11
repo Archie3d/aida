@@ -1,10 +1,13 @@
 standardfacilityerrors.adb:3:85: error: no subprogram matches the renaming profile
 standardfacilityerrors.adb:4:104: error: no subprogram matches the renaming profile
 standardfacilityerrors.adb:12:53: error: no matching actual for generic formal 'Compare'
+standardfacilityerrors.adb:12:5: note: in instantiation of 'Generic_Test' here
 standardfacilityerrors.adb:15:33: error: 'Access of intrinsic subprograms is not allowed
 standardfacilityerrors.adb:17:48: error: this type conversion is not allowed
-standardfacilityerrors.adb:18:29: error: initial value is not compatible with the declared subtype
-standardfacilityerrors.adb:19:33: error: no visible interpretation of 'Low_Order_First' matches this context
+standardfacilityerrors.adb:18:29: error: initial value is not compatible with the declared subtype; expected 'Integer', found 'Character'
+standardfacilityerrors.adb:18:13: note: object subtype is declared here
+standardfacilityerrors.adb:19:33: error: no visible interpretation of 'Low_Order_First' matches this context; expected 'Name', found 'Bit_Order'
+<stdlib>/system.ads:36:23: note: declaration is here
 standardfacilityerrors.adb:20:40: error: 'Access of intrinsic subprograms is not allowed
 standardfacilityerrors.adb:21:43: error: 'Access of intrinsic subprograms is not allowed
 standardfacilityerrors.adb:23:11: error: 'Default_Priority' cannot be assigned to

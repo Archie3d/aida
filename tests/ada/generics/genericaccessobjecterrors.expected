@@ -1,13 +1,24 @@
 genericaccessobjecterrors.adb:11:40: error: an in out generic formal object requires a variable actual
+genericaccessobjecterrors.adb:11:5: note: in instantiation of 'Named' here
 genericaccessobjecterrors.adb:12:36: error: an in out generic formal object requires a variable actual
+genericaccessobjecterrors.adb:12:5: note: in instantiation of 'Named' here
 genericaccessobjecterrors.adb:16:44: error: actual access type does not match anonymous generic formal object 'Value'
+genericaccessobjecterrors.adb:16:5: note: in instantiation of 'Constant_View' here
 genericaccessobjecterrors.adb:20:50: error: generic formal object actual has an incompatible type
+genericaccessobjecterrors.adb:20:5: note: in instantiation of 'Variable_View' here
 genericaccessobjecterrors.adb:24:46: error: actual access type does not match anonymous generic formal object 'Value'
+genericaccessobjecterrors.adb:24:5: note: in instantiation of 'Anonymous_View' here
 genericaccessobjecterrors.adb:25:50: error: an in out generic formal object requires a variable actual
+genericaccessobjecterrors.adb:25:5: note: in instantiation of 'Anonymous_View' here
 genericaccessobjecterrors.adb:29:48: error: a null-excluding generic in out object requires an actual that excludes null
+genericaccessobjecterrors.adb:29:5: note: in instantiation of 'Excluding' here
 genericaccessobjecterrors.adb:33:58: error: a null-excluding generic in out object requires an actual that excludes null
+genericaccessobjecterrors.adb:33:5: note: in instantiation of 'Anonymous_Excluding' here
 genericaccessobjecterrors.adb:37:50: error: generic formal object actual has an incompatible type
+genericaccessobjecterrors.adb:37:5: note: in instantiation of 'Variable_View' here
 genericaccessobjecterrors.adb:47:43: error: generic formal object actual has an incompatible type
+genericaccessobjecterrors.adb:47:5: note: in instantiation of 'Callbacks' here
 genericaccessobjecterrors.adb:49:44: error: actual access type does not match anonymous generic formal object 'Value'
 genericaccessobjecterrors.adb:61:26: error: source access value is deeper than the anonymous access type
 genericaccessobjecterrors.adb:75:51: error: a null-excluding generic in out object requires an actual that excludes null
+genericaccessobjecterrors.adb:75:13: note: in instantiation of 'Excluding' here

@@ -1,2 +1,4 @@
 generic_fixed_instance_errors.adb:5:30: error: constraint check fails in static expression
+generic_fixed_instance_errors.adb:8:5: note: in instantiation of 'P' here
 generic_fixed_instance_errors.adb:14:40: error: 'Floating' expects a floating point type, and 'Narrow' is not one
+generic_fixed_instance_errors.adb:14:5: note: in instantiation of 'Floating' here

@@ -1,13 +1,24 @@
 genericattributeerrors.adb:6:57: error: attribute 'First' does not denote a supported attribute subprogram
+genericattributeerrors.adb:6:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:7:50: error: attribute 'Pos' has an anonymous universal profile that cannot match a named subprogram profile
+genericattributeerrors.adb:7:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:8:50: error: attribute 'Val' has an anonymous universal profile that cannot match a named subprogram profile
+genericattributeerrors.adb:8:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:9:55: error: an attribute subprogram actual must not include call arguments
+genericattributeerrors.adb:9:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:11:50: error: an attribute subprogram actual requires a visible subtype mark
+genericattributeerrors.adb:11:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:12:51: error: no matching actual for generic formal 'Unary'
+genericattributeerrors.adb:12:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:17:57: error: no matching actual for generic formal 'Binary'
+genericattributeerrors.adb:17:5: note: in instantiation of 'Binary_Functions' here
 genericattributeerrors.adb:22:50: error: no matching actual for generic formal 'Action'
+genericattributeerrors.adb:22:5: note: in instantiation of 'Procedures' here
 genericattributeerrors.adb:24:9: error: attribute default does not match the generic formal subprogram profile
 genericattributeerrors.adb:29:61: error: an attribute subprogram actual requires a visible subtype mark
 genericattributeerrors.adb:33:51: error: attribute 'Mod' has an anonymous universal profile that cannot match a named subprogram profile
+genericattributeerrors.adb:33:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:35:52: error: attribute 'Round' has an anonymous universal profile that cannot match a named subprogram profile
+genericattributeerrors.adb:35:5: note: in instantiation of 'Functions' here
 genericattributeerrors.adb:36:53: error: stream attribute profiles require Ada.Streams
+genericattributeerrors.adb:36:5: note: in instantiation of 'Functions' here

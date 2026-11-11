@@ -30,6 +30,11 @@ foreach(source ${source_list})
     string(REPLACE "${source}" "${base}" errors "${errors}")
 endforeach()
 
+# Related declarations can belong to the predefined environment. Keep golden
+# diagnostics independent of the checkout/install prefix.
+get_filename_component(stdlib "${CMAKE_CURRENT_LIST_DIR}/../runtime/ada" ABSOLUTE)
+string(REPLACE "${stdlib}/" "<stdlib>/" errors "${errors}")
+
 file(READ "${EXPECTED}" expected)
 if(NOT errors STREQUAL expected)
     message(FATAL_ERROR "diagnostics differ for ${NAME}\n--- expected ---\n${expected}\n--- actual ---\n${errors}")

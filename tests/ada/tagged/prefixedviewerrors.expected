@@ -1,6 +1,7 @@
 prefixedviewerrors.adb:5:25: error: 'Access of an intrinsic prefixed view is not allowed
 prefixedviewerrors.adb:6:75: error: no subprogram matches the reduced prefixed view profile
 prefixedviewerrors.adb:14:46: error: no subprogram matches the reduced prefixed view profile
+prefixedviewerrors.adb:14:5: note: in instantiation of 'Generic_Read' here
 prefixedviewerrors.adb:17:36: error: 'Access of intrinsic subprograms is not allowed
 prefixedviewerrors.adb:18:60: error: no subprogram matches the reduced prefixed view profile
 prefixedviewerrors.adb:20:54: error: object 'Access requires an aliased object view

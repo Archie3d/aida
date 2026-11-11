@@ -18,6 +18,7 @@ public:
     const std::string& library() const { return m_library; }
 
     void setArtifactLock(const std::string& argument) { m_artifactLock = argument; }
+    void setDiagnosticArguments(const std::vector<std::string>& arguments) { m_diagnosticArguments = arguments; }
     void setVerbose(bool verbose) { m_verbose = verbose; }
 
     // Runs a program and returns its exit status, or -1 when it cannot start.
@@ -31,6 +32,7 @@ private:
     bool adoptInstall(const std::string& binDirectory);
     void applyEnvironment();
 
+    std::vector<std::string> m_diagnosticArguments;
     std::string m_artifactLock;
     std::string m_adac;
     std::string m_qbe;

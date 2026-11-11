@@ -1,9 +1,15 @@
 genericliteralerrors.adb:16:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:16:5: note: in instantiation of 'Views' here
 genericliteralerrors.adb:17:39: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:17:5: note: in instantiation of 'Unary' here
 genericliteralerrors.adb:18:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:18:5: note: in instantiation of 'Actions' here
 genericliteralerrors.adb:20:40: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:20:5: note: in instantiation of 'Views' here
 genericliteralerrors.adb:21:35: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:21:5: note: in instantiation of 'Views' here
 genericliteralerrors.adb:22:50: error: no matching actual for generic formal 'Pick'
+genericliteralerrors.adb:22:5: note: in instantiation of 'Views' here
 genericliteralerrors.adb:24:9: error: enumeration-literal default does not uniquely match the generic formal function profile
 genericliteralerrors.adb:27:9: error: enumeration-literal default does not uniquely match the generic formal function profile
 genericliteralerrors.adb:31:38: error: 'Access of intrinsic subprograms is not allowed

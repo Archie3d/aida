@@ -5,7 +5,8 @@ primitiveerrors.adb:21:20: error: 'Read' is not declared
 primitiveerrors.adb:22:27: error: no visible subprogram matches this call
 primitiveerrors.adb:23:21: error: 'Secret' is not declared in 'Q'
 primitiveerrors.adb:25:27: error: 'Access of intrinsic subprograms is not allowed
-primitiveerrors.adb:26:16: error: initial value is not compatible with the declared subtype
+primitiveerrors.adb:26:16: error: initial value is not compatible with the declared subtype; expected 'primitiveerrors.p.T', found 'primitiveerrors.q.T'
+primitiveerrors.adb:26:9: note: object subtype is declared here
 primitiveerrors.adb:28:20: error: 'Secret' is not declared
 primitiveerrors.adb:30:25: error: 'Secret' is not declared
 primitiveerrors.adb:31:28: error: 'Secret' is not declared in 'P'

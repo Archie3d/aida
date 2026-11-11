@@ -1,4 +1,8 @@
 parameterlesserrors.adb:25:10: error: ambiguous name 'Ambiguous'
-parameterlesserrors.adb:26:11: error: no visible interpretation of 'Required' matches this context
-parameterlesserrors.adb:27:5: error: no visible interpretation of 'Only_Function' matches this context
+parameterlesserrors.adb:2:5: note: one possible declaration is here
+parameterlesserrors.adb:6:5: note: another possible declaration is here
+parameterlesserrors.adb:26:11: error: no visible interpretation of 'Required' matches this context; expected 'Integer', found 'Integer'; the types have distinct declarations
+parameterlesserrors.adb:11:9: note: declaration is here
+parameterlesserrors.adb:27:5: error: no visible interpretation of 'Only_Function' matches this context; expected 'void', found 'Integer'
+parameterlesserrors.adb:19:5: note: declaration is here
 parameterlesserrors.adb:32:19: error: ambiguous operator '='

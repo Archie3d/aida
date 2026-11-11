@@ -1,6 +1,9 @@
 wideprofileerrors.adb:7:42: error: no matching actual for generic formal 'Encode'
+wideprofileerrors.adb:7:5: note: in instantiation of 'Images' here
 wideprofileerrors.adb:8:44: error: no matching actual for generic formal 'Encode'
+wideprofileerrors.adb:8:5: note: in instantiation of 'Images' here
 wideprofileerrors.adb:9:56: error: attribute 'Wide_Width' does not denote a supported attribute subprogram
+wideprofileerrors.adb:9:5: note: in instantiation of 'Images' here
 wideprofileerrors.adb:10:76: error: no subprogram matches the renaming profile
 wideprofileerrors.adb:11:72: error: no subprogram matches the renaming profile
 wideprofileerrors.adb:12:94: error: no subprogram matches the renaming profile

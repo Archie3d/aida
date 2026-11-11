@@ -1,6 +1,9 @@
-predefinedprofileerrors.adb:11:28: error: initial value is not compatible with the declared subtype
-predefinedprofileerrors.adb:12:40: error: initial value is not compatible with the declared subtype
+predefinedprofileerrors.adb:11:28: error: initial value is not compatible with the declared subtype; expected 'Count', found 'Integer'
+predefinedprofileerrors.adb:11:13: note: object subtype is declared here
+predefinedprofileerrors.adb:12:40: error: initial value is not compatible with the declared subtype; expected 'predefinedprofileerrors.other.Count', found 'predefinedprofileerrors.direct.Count'
+predefinedprofileerrors.adb:12:13: note: object subtype is declared here
 predefinedprofileerrors.adb:13:36: error: no visible subprogram matches this call
-predefinedprofileerrors.adb:14:42: error: initial value is not compatible with the declared subtype
+predefinedprofileerrors.adb:14:42: error: initial value is not compatible with the declared subtype; expected 'Stream_Element', found 'Integer'
+predefinedprofileerrors.adb:14:12: note: object subtype is declared here
 predefinedprofileerrors.adb:16:21: error: no visible subprogram matches this call
 predefinedprofileerrors.adb:17:22: error: no visible subprogram matches this call

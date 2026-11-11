@@ -28,7 +28,11 @@ DeclList Parser::parseDeclarativePart(bool stopAtPrivate, const std::string& stu
             // its introducer instead of consuming its first internal semicolon.
             // Require progress so a rejected introducer cannot loop forever.
             if (m_position > declarationStart
-                && (check(TokenKind::KwType) || check(TokenKind::KwSubtype)
+                && (check(TokenKind::KwBegin) || check(TokenKind::KwEnd)
+                    || check(TokenKind::KwException) || (stopAtPrivate && check(TokenKind::KwPrivate))
+                    || (check(TokenKind::Identifier) && current().location.line > m_tokens[declarationStart].location.line
+                        && (peek(1).kind == TokenKind::Colon || peek(1).kind == TokenKind::Comma))
+                    || check(TokenKind::KwType) || check(TokenKind::KwSubtype)
                     || check(TokenKind::KwProcedure) || check(TokenKind::KwFunction)
                     || check(TokenKind::KwPackage) || check(TokenKind::KwGeneric))) {
                 continue;

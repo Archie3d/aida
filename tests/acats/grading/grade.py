@@ -16,6 +16,7 @@ kRoot = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("baseline", kRoot.parent / "baseline/run.py")
 baseline = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(baseline)
+kNote = re.compile(r"^(.*\.(?:a|ada|ads|adb)):\d+:\d+: note: .+$", re.I)
 kDiagnostic = re.compile(r"^(.*\.(?:a|ada|ads|adb)):(\d+):(\d+): error: (.*)$", re.I)
 
 
@@ -62,6 +63,10 @@ def grade(sites, policy, result, legal):
         return {"outcome": critical}
     missing, unexpected, matched = [], [], set()
     for line in result["stderr"].splitlines():
+        # A related-location note cannot satisfy an error marker. Legal
+        # controls still require completely empty compiler output below.
+        if kNote.fullmatch(line):
+            continue
         diagnostic = kDiagnostic.fullmatch(line)
         if not diagnostic:
             if line.strip():

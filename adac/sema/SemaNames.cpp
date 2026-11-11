@@ -219,12 +219,20 @@ Symbol* Sema::resolveBareName(const std::vector<Symbol*>& candidates, Type* expe
         }
         if (chosen != nullptr) {
             m_diagnostics.error(location, "ambiguous name '" + name + "'");
+            m_diagnostics.note(chosen->location, "one possible declaration is here");
+            m_diagnostics.note(candidate->location, "another possible declaration is here");
             return nullptr;
         }
         chosen = candidate;
     }
     if (chosen == nullptr) {
-        m_diagnostics.error(location, "no visible interpretation of '" + name + "' matches this context");
+        Type* actual = candidates.size() == 1 ? (candidates.front()->kind == SymbolKind::Subprogram
+            ? candidates.front()->returnType : candidates.front()->type) : nullptr;
+        m_diagnostics.error(location, "no visible interpretation of '" + name + "' matches this context"
+            + SemaSupport::expectedActualTypes(expected, actual));
+        if (candidates.size() == 1 && candidates.front()->location.line > 0) {
+            m_diagnostics.note(candidates.front()->location, "declaration is here");
+        }
     }
     return chosen;
 }

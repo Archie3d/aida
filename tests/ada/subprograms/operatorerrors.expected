@@ -13,4 +13,5 @@ operatorerrors.adb:7:5: error: subprogram '=' has no body
 operatorerrors.adb:8:5: error: subprogram '/=' has no body
 operatorerrors.adb:31:10: error: ambiguous subprogram call
 operatorerrors.adb:32:19: error: arithmetic operators require numeric operands
-operatorerrors.adb:32:5: error: the assigned value has an incompatible type
+operatorerrors.adb:32:19: error: the assigned value has an incompatible type; expected 'Integer', found 'Box'
+operatorerrors.adb:29:5: note: assignment target is declared here

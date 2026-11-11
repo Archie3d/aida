@@ -5,10 +5,9 @@ milestones describe the supported surface, not full language or annex conformanc
 Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
-**Current focus:** Phase 9 is complete for the documented tasking and selected
-Annex surface. Continue with the Phase 10 diagnostics audit. Further Annex work
-has separately scoped goals and acceptance tests.
-Further profiling remains deferred.
+**Current focus:** Phase 10 is complete for the documented diagnostics audit and
+terminal rendering surface. Phase 11 host/performance follow-up remains deferred.
+Further Annex work has separately scoped goals and acceptance tests.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
 - [Detailed implementation history and historical measurements](docs/roadmap-history.md)
@@ -152,20 +151,21 @@ scheduling and real-time facilities separately in the Phase 8 coverage matrix.
 
 ### Phase 10 - Diagnostics quality follow-up
 
-- [ ] **Audit and improve compiler diagnostics.** Replace ambiguous wording with
+- [x] **Audit and improve compiler diagnostics.** Replace ambiguous wording with
   clear explanations of the problem and, where useful, expected/actual types and
   notes pointing to related declarations. Point at the offending token or source
   span, including errors in generic instances and separately compiled units.
   Improve recovery to reduce misleading cascades without hiding independent
   errors. Add focused regression cases asserting message, file, line and column,
   with legal counterparts; preserve existing legality and ACATS grading controls.
-- [ ] **Readable terminal diagnostics.** Add Rust-style source snippets with line
+  [Audit, recovery and validation](docs/diagnostics.md).
+- [x] **Readable terminal diagnostics.** Add Rust-style source snippets with line
   numbers, highlighted error spans, caret/arrow markers and related-location
   labels. Use color when supported, with automatic terminal detection and an
   explicit override; keep plain-text output suitable for redirected logs, CI and
   existing tooling. Handle terminal width, tabs, Unicode display columns and
   multiline spans. Test both rich and plain rendering without relying on color
-  alone to convey meaning.
+  alone to convey meaning. [Options, rendering contract and limits](docs/diagnostics.md).
 
 ### Phase 11 - Deferred host/performance follow-up
 
