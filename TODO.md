@@ -275,10 +275,20 @@ one failed at runtime and five reached documented feature limits.
   focused ASan/UBSan checks and the sanitizer B330001 grade passed. Compiler and
   runtime code, upstream sources/hashes and all 161 raw observations are unchanged;
   only B330001's grade changes: 20 PASS / six FAIL overall.
-- [ ] **B650002 — return diagnostics.** All 32 required sites receive errors.
+- [x] **B650002 — return diagnostics.** All 32 required sites receive errors.
   Explain why an extended return is illegal in a procedure, entry body or
   accept statement. Check each diagnostic against its return rule before
   updating the accepted messages, including returns inside an extended return.
+  All 32 sites now grade PASS at unchanged locations, using target/form-specific
+  messages. [Legal execution control](tests/ada/control_flow/returnforms.adb)
+  covers whole-program/per-unit builds, deterministic IR, handlers and nested
+  functions with their own extended returns. Exact error controls preserve
+  independent-error recovery. [Rule review](docs/acats-grading.md#return-form-diagnostics-phase-12).
+  Darwin arm64 validation: 2,137/2,138 checks passed in the full Release run;
+  its sole old accept-return message expectation was updated, and all 14 final
+  affected checks passed. Ten focused ASan/UBSan checks and the sanitizer grade
+  passed. Only B650002's raw diagnostics/grade change: 21 B PASS / five FAIL;
+  all other 160 raw observations and upstream sources/hashes are unchanged.
 - [ ] **B394A02–B394A05 — interface ancestry.** Review the reason for each
   rejection within its upstream declaration span. Account for explicitly
   optional diagnostics on private completions in B394A02 and B394A03. Add

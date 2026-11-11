@@ -21,7 +21,7 @@ function F return Three is begin return R : String (1 .. 2); end F; begin null; 
 reject(indefinite "function F return String is begin return R : String; end F;"
     "an unconstrained array object needs an initializer or index constraint")
 reject(procedure_return "procedure Root is begin return R : Integer := 1; end Root;"
-    "extended return requires a compatible specific result subtype")
+    "an extended return cannot apply to a procedure body")
 reject(nested_return "function F return Integer is begin return R : Integer := 1 do return 2; end return; end F;"
     "a return inside an extended return cannot have a value")
 reject(out_of_scope "function F return Integer is begin return R : Integer := 1 do goto Done; end return;

@@ -18,6 +18,18 @@ sequence and handlers; `return;` completes the nearest extended return, whereas
 nested subprogram returns apply to those subprograms. A value-bearing return
 inside the extended return is illegal.
 
+An extended return applies to a function body. A procedure body, entry body or
+accept statement has no function result object, and cannot use an extended
+return. A simple return applying to one of those constructs cannot have an
+expression; a simple return from a function must have one. An extended return
+cannot apply to an enclosing extended return. Nested subprogram bodies establish
+their own return targets, so a nested function's own extended return remains legal.
+
+Diagnostics name the applicable target and separate these form errors from
+function result-subtype mismatches. Extended returns rejected for a non-function
+target still establish return-object scope and analyze their bodies for independent
+errors.
+
 Ordinary scalar and nonlimited untagged composite objects use existing local
 object initialization and result copying. Owned/tagged and limited results
 reuse caller-owned construction. Goto, exit and exceptions can abandon an
@@ -64,6 +76,10 @@ workers, self-reference identity, constrained result failures, allocation,
 local task masters, partial initialization, exception handlers, abandoned
 returns and failing finalizers. `semantics.returns` pins legality diagnostics.
 `runtime.array_storage` counts actual transfer-buffer frees on success/failure.
+`returnforms` adds whole/per-unit/deterministic legal controls for all return
+forms, including generic and protected functions, accepts and handlers;
+`returnformerrors` checks target-specific wording, locations and recovery.
+Unchanged B650002 grades PASS at all 32 required sites.
 Compiler AddressSanitizer checks cover these compilation/rejection paths.
 C runtime ASan/UBSan checks cover the allocation-counting unit test and the
 three executable fixtures in whole/per-unit modes. Generated QBE memory

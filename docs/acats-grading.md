@@ -1,8 +1,8 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[161-case baseline](acats-baseline.md). It currently records **20 PASS and
-six FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **21 PASS and
+five FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -41,13 +41,12 @@ regular `acats;b-tests` CTest labels:
 
 B330001, B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
 B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
-B64003A, B650004, B840001 and BC60001.
+B64003A, B650002, B650004, B840001 and BC60001.
 
-The other six cases stay failed and belong to their existing language owners:
+The other five cases stay failed and belong to their existing language owners:
 
 | Cases | Observation / existing owner |
 | --- | --- |
-| B650002 | Return diagnostics still miss annotation groups and include unexpected diagnostics; P12 return diagnostic review |
 | B394A01–B394A05 | Concurrent/private-extension syntax now reaches ancestry semantics; diagnostic groups/sites and complete legality controls still fail the existing policies; P8 legality and P10 diagnostics |
 
 The [non-tasking legality audit](legality-audit.md) repairs and reviews the six
@@ -139,6 +138,46 @@ including 299 ACATS-labelled checks. Three focused ASan/UBSan checks and the
 sanitizer B330001 grade pass. All 16 adversarial grader tests pass. The full
 161-case raw snapshot and all upstream bytes/hashes remain unchanged; compiler
 and runtime code are unchanged.
+
+## Return-form diagnostics (Phase 12)
+
+B650002 now grades PASS unchanged at all 32 required sites. All sites were
+already rejected; diagnostics now identify the return's target and applicable
+rule rather than reporting a missing result subtype for a non-function body.
+Locations remain unchanged, with one diagnostic at each marked site.
+
+| Marker lines | Return rule / accepted diagnostic |
+| --- | --- |
+| 66, 80, 99, 146, 268 | A procedure cannot return an expression |
+| 162, 176 | An entry body cannot return an expression |
+| 199, 213 | An accept statement cannot return an expression |
+| 68, 72, 82, 101, 105, 148, 152, 270 | An extended return cannot apply to a procedure body |
+| 164, 168, 178 | An extended return cannot apply to an entry body |
+| 201, 205, 215 | An extended return cannot apply to an accept statement |
+| 119, 230, 249 | A simple return from a function requires an expression |
+| 124, 235, 254 | An extended return cannot apply to an enclosing extended return |
+| 126, 237, 256 | A simple return applying to an extended return cannot have an expression |
+
+Per-site groups distinguish these rules without recovery allowances or widened
+locations. A nested function's own extended return remains legal: the target,
+not lexical nesting alone, determines which rule applies. Extended returns
+rejected for a non-function target retain return-object scope and body analysis,
+so independent body errors are still diagnosed; compatible-result-subtype checks
+remain specific to functions.
+
+The [legal control](../tests/ada/control_flow/returnforms.adb) executes ordinary,
+generic and protected functions/procedures, entry and accept returns, extended
+returns with/without handled sequences, handler returns and a nested function
+with its own extended return. `returnformerrors` pins exact target-specific
+messages and locations, including independent-error recovery. The other 25 B
+grades are unchanged: 21 PASS / five FAIL overall.
+
+Darwin arm64 validation (11 November 2026): the full 2,138-check Release run
+passed 2,137 checks; its sole failure was an old accept-return message expectation,
+subsequently updated. All 14 final affected checks pass. Ten focused ASan/UBSan
+checks and the sanitizer B650002 grade pass. The 161-case raw refresh changes
+only this case's diagnostic text, preserving every source location and upstream
+byte/hash.
 
 ## Support adapters and re-probes
 

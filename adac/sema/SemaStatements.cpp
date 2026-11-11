@@ -897,12 +897,22 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
         }
         if (m_currentSubprogram->returnType == nullptr) { m_currentSubprogram->returnStatements.push_back(returnStatement->location); }
         if (!m_extendedReturns.empty() && m_extendedReturns.back() == m_currentSubprogram) {
-            if (returnStatement->value != nullptr || returnStatement->object != nullptr) {
+            if (returnStatement->object != nullptr) {
+                m_diagnostics.error(returnStatement->location,
+                    "an extended return cannot apply to an enclosing extended return");
+            } else if (returnStatement->value != nullptr) {
                 m_diagnostics.error(returnStatement->location, "a return inside an extended return cannot have a value");
             }
             break;
         }
+        bool acceptReturn = !m_accepts.empty() && m_accepts.back()->owner == m_currentSubprogram;
         if (returnStatement->object != nullptr) {
+            if (expected == nullptr) {
+                const char* target = acceptReturn ? "an accept statement"
+                    : m_currentSubprogram->entry ? "an entry body" : "a procedure body";
+                m_diagnostics.error(returnStatement->location,
+                    std::string("an extended return cannot apply to ") + target);
+            }
             auto* object = static_cast<ObjectDecl*>(returnStatement->object.get());
             Scope* inner = m_symbolTable.createScope(scope);
             if (expected != nullptr && expected->anonymousAccess
@@ -923,7 +933,7 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             }
             analyzeDecl(object, inner);
             Type* actual = object->symbols.empty() ? nullptr : object->symbols.front()->type;
-            if (expected == nullptr || actual == nullptr || !typesCompatible(expected, actual)) {
+            if (expected != nullptr && (actual == nullptr || !typesCompatible(expected, actual))) {
                 m_diagnostics.error(returnStatement->location,
                     "extended return requires a compatible specific result subtype");
             }
@@ -954,7 +964,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
                 m_diagnostics.error(returnStatement->location, "function results with controlled parts are not yet supported");
             }
             if (expected == nullptr) {
-                m_diagnostics.error(returnStatement->location, "a procedure cannot return a value");
+                m_diagnostics.error(returnStatement->location, acceptReturn ? "an accept statement cannot return a value"
+                    : m_currentSubprogram->entry ? "an entry body cannot return a value"
+                    : "a procedure cannot return a value");
             } else if (!typesCompatible(expected, valueType)) {
                 m_diagnostics.error(returnStatement->value->location, "the returned value has an incompatible type"
                     + SemaSupport::expectedActualTypes(expected, valueType));

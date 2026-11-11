@@ -466,6 +466,23 @@ add_test(NAME runtime.callbackprofiles_modes
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.callbackprofiles_modes PROPERTIES TIMEOUT 60)
 
+add_ada_error_test(returnformerrors SOURCES control_flow/returnformerrors.adb)
+add_ada_test(returnforms SOURCES control_flow/returnforms.adb)
+add_determinism_test(returnforms SOURCE control_flow/returnforms.adb)
+ada_test_fixture(return_form_source control_flow/returnforms.adb)
+ada_test_fixture(return_form_expected control_flow/returnforms.expected)
+add_test(NAME runtime.returnforms_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${return_form_source} -DEXPECTED=${return_form_expected}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/returnforms-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.returnforms_modes PROPERTIES TIMEOUT 60)
+
 add_ada_error_test(returnbodyerrors SOURCES control_flow/returnbodyerrors.adb)
 add_ada_test(returncontexts SOURCES control_flow/returncontexts.adb)
 add_determinism_test(returncontexts SOURCE control_flow/returncontexts.adb)

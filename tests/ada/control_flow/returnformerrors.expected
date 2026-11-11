@@ -1,0 +1,12 @@
+returnformerrors.adb:4:9: error: an extended return cannot apply to a procedure body
+returnformerrors.adb:5:23: error: no visible interpretation of 'True' matches this context; expected 'Integer', found 'Boolean'
+returnformerrors.adb:11:9: error: a procedure cannot return a value
+returnformerrors.adb:21:13: error: an extended return cannot apply to a procedure body
+returnformerrors.adb:25:13: error: an extended return cannot apply to an entry body
+returnformerrors.adb:29:13: error: an entry body cannot return a value
+returnformerrors.adb:39:13: error: an extended return cannot apply to an accept statement
+returnformerrors.adb:42:13: error: an accept statement cannot return a value
+returnformerrors.adb:47:9: error: a function must return a value
+returnformerrors.adb:53:17: error: an extended return cannot apply to an enclosing extended return
+returnformerrors.adb:55:17: error: a return inside an extended return cannot have a value
+returnformerrors.adb:58:28: error: a return inside an extended return cannot have a value

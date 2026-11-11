@@ -32,7 +32,7 @@ reject(bad_index_type "procedure Root is task S is entry Work (Float); end S;
 task body S is begin null; end S; begin null; end Root;" "entry family index subtype must be discrete")
 reject(value_return "procedure Root is task S is entry Work; end S;
 task body S is begin accept Work do return 3; end Work; end S; begin null; end Root;"
-    "a procedure cannot return a value")
+    "an accept statement cannot return a value")
 reject(entry_access "procedure Root is task S is entry Work; end S;
 task body S is begin null; end S; type P is access procedure; A : P := S.Work'Access;
 begin null; end Root;" "an entry cannot be designated by an access-to-subprogram type")

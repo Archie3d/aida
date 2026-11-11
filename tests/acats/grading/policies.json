@@ -551,11 +551,146 @@
   "b650002": {
     "objective": "Check that an extended return statement cannot be used to return from a procedure body, entry body, or accept statement. Check that an extended return statement cannot be used to return from an outer extended return statement. Check that a simple return statement that applies to a procedure body, entry body, accept statement, or extended return statement cannot have an expression. Check that a simple return statement that applies to a function body must have an expression.",
     "groups": [
-      "a procedure cannot return a value",
-      "a return statement requires a result",
-      "an extended return is not allowed in a procedure"
+      "a procedure cannot return a value"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/control_flow/returnforms.adb",
+    "sites": {
+      "tests/b6/b650002.a:68": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:72": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:82": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:101": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:105": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:119": {
+        "groups": [
+          "a function must return a value"
+        ]
+      },
+      "tests/b6/b650002.a:124": {
+        "groups": [
+          "an extended return cannot apply to an enclosing extended return"
+        ]
+      },
+      "tests/b6/b650002.a:126": {
+        "groups": [
+          "a return inside an extended return cannot have a value"
+        ]
+      },
+      "tests/b6/b650002.a:148": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:152": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      },
+      "tests/b6/b650002.a:162": {
+        "groups": [
+          "an entry body cannot return a value"
+        ]
+      },
+      "tests/b6/b650002.a:164": {
+        "groups": [
+          "an extended return cannot apply to an entry body"
+        ]
+      },
+      "tests/b6/b650002.a:168": {
+        "groups": [
+          "an extended return cannot apply to an entry body"
+        ]
+      },
+      "tests/b6/b650002.a:176": {
+        "groups": [
+          "an entry body cannot return a value"
+        ]
+      },
+      "tests/b6/b650002.a:178": {
+        "groups": [
+          "an extended return cannot apply to an entry body"
+        ]
+      },
+      "tests/b6/b650002.a:199": {
+        "groups": [
+          "an accept statement cannot return a value"
+        ]
+      },
+      "tests/b6/b650002.a:201": {
+        "groups": [
+          "an extended return cannot apply to an accept statement"
+        ]
+      },
+      "tests/b6/b650002.a:205": {
+        "groups": [
+          "an extended return cannot apply to an accept statement"
+        ]
+      },
+      "tests/b6/b650002.a:213": {
+        "groups": [
+          "an accept statement cannot return a value"
+        ]
+      },
+      "tests/b6/b650002.a:215": {
+        "groups": [
+          "an extended return cannot apply to an accept statement"
+        ]
+      },
+      "tests/b6/b650002.a:230": {
+        "groups": [
+          "a function must return a value"
+        ]
+      },
+      "tests/b6/b650002.a:235": {
+        "groups": [
+          "an extended return cannot apply to an enclosing extended return"
+        ]
+      },
+      "tests/b6/b650002.a:237": {
+        "groups": [
+          "a return inside an extended return cannot have a value"
+        ]
+      },
+      "tests/b6/b650002.a:249": {
+        "groups": [
+          "a function must return a value"
+        ]
+      },
+      "tests/b6/b650002.a:254": {
+        "groups": [
+          "an extended return cannot apply to an enclosing extended return"
+        ]
+      },
+      "tests/b6/b650002.a:256": {
+        "groups": [
+          "a return inside an extended return cannot have a value"
+        ]
+      },
+      "tests/b6/b650002.a:270": {
+        "groups": [
+          "an extended return cannot apply to a procedure body"
+        ]
+      }
+    }
   },
   "b650004": {
     "objective": "Check that a return statement is illegal if it is not within a callable construct. Check that a return statement is illegal if it is within a body that is within the construct to which it applies.",

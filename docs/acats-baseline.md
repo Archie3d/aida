@@ -23,10 +23,10 @@ C761001 now passes unchanged after task entry declarations were supported;
 its unused entry checks library-task termination before controlled finalization.
 It does not exercise rendezvous or select. Task-interface rejections remain,
 with updated wording. B650004 now grades PASS after the Phase 12 nested-body
-return repair; B650002 retains its return-diagnostic review.
+return repair; B650002 also grades PASS after its Phase 12 return-form diagnostic review.
 
 The raw B observations stay ungraded for historical comparison. The independent
-[location/group-aware grader](acats-grading.md) records **20 B PASS and six B FAIL**,
+[location/group-aware grader](acats-grading.md) records **21 B PASS and five B FAIL**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
 
 ## Non-tasking legality increment (Phase 8)
