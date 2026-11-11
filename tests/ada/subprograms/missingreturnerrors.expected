@@ -1,0 +1,4 @@
+missingreturnerrors.adb:2:5: error: a function body must contain a return statement that applies to the function
+missingreturnerrors.adb:6:5: error: a function body must contain a return statement that applies to the function
+missingreturnerrors.adb:14:5: error: a function body must contain a return statement that applies to the function
+missingreturnerrors.adb:18:5: error: a function body must contain a return statement that applies to the function

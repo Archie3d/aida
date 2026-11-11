@@ -346,6 +346,56 @@ CXDA003 needs `Locking_Policy` and `Interrupt_Priority`. Focused cases CD30002,
 CD72A02 and CDB0A01 retain their alignment, address-conversion and positive
 access-type `Storage_Size` limits, respectively.
 
+#### Follow-up findings from the feature-completeness review
+
+- [x] **Check discriminants in tagged subtype membership.** For
+  `subtype On_View is Root (True)`, both whole-program and per-unit builds
+  return `True` for `R in On_View` when the discriminant of `R` is `False`.
+  Update [membership lowering](adac/emitter/QbeExpr.cpp) to check the target
+  subtype's discriminant constraint alongside tag compatibility. Exercise
+  `in` and `not in` with matching and mismatching values in both build modes.
+  The specific-target path now applies discriminant constraints after tag
+  compatibility, skipping field reads when the tag fails. The
+  [regression](tests/ada/types/taggedmembership.adb) covers matching/mismatching
+  specific and class-wide operands/targets, inherited constraints and single
+  operand evaluation in whole-program/per-unit builds and deterministic IR.
+  [Contract](docs/tagged-discriminants.md#tagged-subtype-membership-phase-12).
+- [x] **Diagnose ordinary function bodies with no applicable return.** The
+  compiler accepts `function F return Integer is begin null; end F;`.
+  Enforce Ada 2005 RM 6.5(5/2) during semantic analysis and count only return
+  statements that apply to the function itself. Add rejection cases for an
+  ordinary function containing just `null;` and one whose only return belongs
+  to a nested function.
+  Update the [fallthrough regression](tests/ada/subprograms/functionfallthrough.adb)
+  to use conditional returns and verify that reaching the end still raises
+  `Program_Error`.
+  Semantic analysis now records returns on the applicable function and checks
+  the body after statements and handlers. [Exact rejection controls](tests/ada/subprograms/missingreturnerrors.adb)
+  cover empty, nested-function-only, raise-only and nested-package-function-only
+  bodies. Existing scalar, composite, controlled and master-cleanup fallthrough
+  controls now use conditional returns. Raise-only helpers and the intrinsic
+  Unchecked_Conversion fallback retain their exceptions with an unreachable
+  return, and two existing rejection snapshots include the new legality error.
+  [Contract](docs/returns.md#ordinary-function-bodies-phase-12).
+- [x] **Require a primary operand after unary `not` and `abs`.** The compiler
+  accepts `not not True` because the [factor parser](adac/parser/ParserExpr.cpp)
+  recursively consumes another factor. Parse a primary after either operator
+  under Ada 2005 RM 4.4. Verify rejection of `not not True` and `abs abs X`
+  and acceptance of `not (not True)` and `abs (abs X)` for an integer `X`.
+  Both operators now parse a primary. [Exact errors](tests/ada/syntax/unaryprimaryerrors.adb)
+  identify the second operator; [legal controls](tests/ada/syntax/unaryprimaries.adb)
+  cover parenthesized nesting and powers in whole-program/per-unit execution
+  and deterministic IR. [Contract](docs/checked-arithmetic.md#unary-primary-operands-phase-12).
+
+Darwin arm64 follow-up validation: all 11 focused regression checks and 50
+expanded ASan/UBSan checks pass, including applicable-return diagnostics,
+whole/per-unit execution, deterministic IR, predefined intrinsic inventory and
+the 26-case B grading snapshot. The final Release run passes 2,155/2,156 checks,
+including all 305 ACATS checks. Its sole failure was an external C-compiler
+timeout in `runtime.containerfamilies_modes`; the isolated recheck passes.
+All 161 raw ACATS observations and upstream hashes are unchanged, and
+`git diff --check` passes. The external QBE project is unchanged.
+
 ### Phase 13 - Deferred host/performance follow-up
 
 These remain open but do not gate the functional items above.

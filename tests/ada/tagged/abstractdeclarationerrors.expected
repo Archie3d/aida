@@ -11,3 +11,4 @@ abstractdeclarationerrors.adb:13:9: error: inherited operation 'Access_Result' m
 abstractdeclarationerrors.adb:19:9: error: 'Hidden_Concrete' is never described
 abstractdeclarationerrors.adb:25:9: error: an abstract subprogram cannot have a body
 abstractdeclarationerrors.adb:26:9: error: a renaming-as-body cannot rename an abstract subprogram
+abstractdeclarationerrors.adb:27:9: error: a function body must contain a return statement that applies to the function

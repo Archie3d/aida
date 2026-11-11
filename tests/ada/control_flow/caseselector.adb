@@ -18,6 +18,7 @@ procedure CaseSelector is
         function Pick return Float is
         begin
             raise Program_Error;
+            return 0.0;
         end Pick;
         function Pick (Value : Integer) return Small is
         begin
@@ -27,6 +28,7 @@ procedure CaseSelector is
         function Pick (Value : Integer) return String is
         begin
             raise Program_Error;
+            return "";
         end Pick;
         function Convert (Value : Integer) return Byte is
         begin
@@ -36,6 +38,7 @@ procedure CaseSelector is
         function Convert (Value : Integer) return Duration is
         begin
             raise Program_Error;
+            return 0.0;
         end Convert;
         function Choose (Value : Integer) return String renames Pick;
         function Cast (Value : Integer) return Duration renames Convert;
@@ -47,6 +50,7 @@ procedure CaseSelector is
         function Flag return Float is
         begin
             raise Program_Error;
+            return 0.0;
         end Flag;
         function Letter return Character is
         begin
@@ -56,6 +60,7 @@ procedure CaseSelector is
         function Letter return String is
         begin
             raise Program_Error;
+            return "";
         end Letter;
         type Marker is null record;
         Object : Marker;
@@ -67,6 +72,7 @@ procedure CaseSelector is
         function "-" (Right : Marker) return Float is
         begin
             raise Program_Error;
+            return 0.0;
         end "-";
         generic
             type Scalar is range <>;
@@ -112,6 +118,7 @@ procedure CaseSelector is
         function Dynamic_Value return Float is
         begin
             raise Program_Error;
+            return 0.0;
         end Dynamic_Value;
     begin
         case Pick is

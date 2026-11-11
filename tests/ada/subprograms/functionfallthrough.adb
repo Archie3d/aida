@@ -12,20 +12,27 @@ procedure FunctionFallthrough is
             return 1.0;
         end if;
     end Real_Result;
-    function Double_Result return Long_Float is
+    function Double_Result (Return_Now : Boolean) return Long_Float is
     begin
-        null;
+        if Return_Now then
+            return 2.0;
+        end if;
     end Double_Result;
     type Integer_Access is access Integer;
-    function Access_Result return Integer_Access is
+    function Access_Result (Return_Now : Boolean) return Integer_Access is
     begin
-        null;
+        if Return_Now then
+            return null;
+        end if;
     end Access_Result;
-    function Handled_Result return Long_Integer is
+    function Handled_Result (Return_Now : Boolean) return Long_Integer is
     begin
         raise Constraint_Error;
     exception
-        when Constraint_Error => null;
+        when Constraint_Error =>
+            if Return_Now then
+                return 3;
+            end if;
     end Handled_Result;
     I : Integer;
     F : Float;
@@ -50,19 +57,19 @@ begin
         when Program_Error => Put_Line ("real fallthrough");
     end;
     begin
-        D := Double_Result;
+        D := Double_Result (False);
         raise Constraint_Error;
     exception
         when Program_Error => Put_Line ("double fallthrough");
     end;
     begin
-        A := Access_Result;
+        A := Access_Result (False);
         raise Constraint_Error;
     exception
         when Program_Error => Put_Line ("access fallthrough");
     end;
     begin
-        L := Handled_Result;
+        L := Handled_Result (False);
         raise Constraint_Error;
     exception
         when Program_Error => Put_Line ("handler fallthrough");

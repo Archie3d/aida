@@ -319,6 +319,29 @@ add_ada_test(compositereturns SOURCES types/compositereturns.adb)
 add_ada_error_test(returnerrors SOURCES subprograms/returnerrors.adb)
 
 add_ada_test(functionfallthrough SOURCES subprograms/functionfallthrough.adb)
+add_ada_error_test(missingreturnerrors SOURCES subprograms/missingreturnerrors.adb)
+add_ada_error_test(unaryprimaryerrors SOURCES syntax/unaryprimaryerrors.adb)
+add_ada_test(taggedmembership SOURCES types/taggedmembership.adb)
+add_ada_test(unaryprimaries SOURCES syntax/unaryprimaries.adb)
+set(taggedmembership_source types/taggedmembership.adb)
+set(unaryprimaries_source syntax/unaryprimaries.adb)
+set(functionfallthrough_source subprograms/functionfallthrough.adb)
+foreach(fixture taggedmembership unaryprimaries functionfallthrough)
+    add_determinism_test(${fixture} SOURCE ${${fixture}_source})
+    ada_test_fixture(followup_source ${${fixture}_source})
+    ada_test_fixture(followup_expected ${fixture}.expected)
+    add_test(NAME runtime.${fixture}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${followup_source} -DEXPECTED=${followup_expected}
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${fixture}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${fixture}_modes PROPERTIES TIMEOUT 60)
+endforeach()
 add_ada_test(reraise SOURCES exceptions/reraise.adb)
 add_ada_error_test(exceptionusageerrors SOURCES exceptions/exceptionusageerrors.adb)
 add_ada_test(elaborationfailure SOURCES elaboration/elaborationfailure.adb

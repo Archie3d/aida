@@ -1,3 +1,4 @@
 accessresultlegalityerrors.adb:9:9: error: overriding dispatching profile must be subtype conformant with the inherited operation
 accessresultlegalityerrors.adb:5:9: error: inherited operation 'Make' must be overridden with a nonabstract subprogram
 accessresultlegalityerrors.adb:7:9: error: inherited operation 'Make' must be overridden with a nonabstract subprogram
+accessresultlegalityerrors.adb:16:9: error: a function body must contain a return statement that applies to the function

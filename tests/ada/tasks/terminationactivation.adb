@@ -5,7 +5,10 @@ with TerminationObserver; use TerminationObserver;
 procedure TerminationActivation is
     Handled : Boolean := False;
     function Fail return Integer is
-    begin raise Constraint_Error with "escaping"; end Fail;
+    begin
+        raise Constraint_Error with "escaping";
+        return 0;
+    end Fail;
     procedure Subprogram_Activation is
         task Child;
         task body Child is

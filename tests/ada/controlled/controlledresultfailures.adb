@@ -23,10 +23,12 @@ procedure ControlledResultFailures is
         Fail_Adjust := 2;
         return Local;
     end Failed_Adjust;
-    function Missing return Guard is
+    function Missing (Return_Now : Boolean) return Guard is
         Local : Guard;
     begin
-        null;
+        if Return_Now then
+            return Local;
+        end if;
     end Missing;
 begin
     declare
@@ -65,7 +67,7 @@ begin
     end;
     begin
         declare
-            Result : Guard := Missing;
+            Result : Guard := Missing (False);
         begin
             raise Constraint_Error;
         end;

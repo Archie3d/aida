@@ -100,9 +100,11 @@ procedure CompositeReturns is
         return Fixed (0);
     end Failed_Array;
 
-    function Missing return Vector is
+    function Missing (Return_Now : Boolean) return Vector is
     begin
-        null;
+        if Return_Now then
+            return Fixed (0);
+        end if;
     end Missing;
 
     A : Pair := Recur (8);
@@ -160,7 +162,7 @@ begin
         when Constraint_Error => Put_Line ("failed array descriptor is not consumed");
     end;
     begin
-        V := Missing;
+        V := Missing (False);
         raise Constraint_Error;
     exception
         when Program_Error => Put_Line ("missing return raises");

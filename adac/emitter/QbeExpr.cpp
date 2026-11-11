@@ -449,6 +449,20 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     line(result.name + " =w ceql " + tag + ", " + typeTag(tested).name);
                 }
             }
+            if (tested->classRoot == nullptr && hasDiscriminantConstraint(tested)) {
+                // A failed tag test must not read a different type's layout.
+                std::string check = newLabel("membershipconstraint"), done = newLabel("membershipdone");
+                std::string answer = allocScratch(4);
+                line("storew " + result.name + ", " + answer);
+                branch(result, check, done);
+                label(check);
+                Value matches = recordConstraintMatches(operand, tested);
+                line("storew " + matches.name + ", " + answer);
+                jump(done);
+                label(done);
+                result.name = newTemp();
+                line(result.name + " =w loadw " + answer);
+            }
             if (membership->negated) {
                 std::string negated = newTemp();
                 line(negated + " =w ceqw " + result.name + ", 0");

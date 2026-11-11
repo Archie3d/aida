@@ -14,10 +14,12 @@ procedure PragmaPolicies is
     function Bad_Message return String is
     begin
         raise Constraint_Error;
+        return "";
     end Bad_Message;
     function Bad_Check return Boolean is
     begin
         raise Constraint_Error;
+        return False;
     end Bad_Check;
     pragma Assert (Check => True, Message => Message);
     subtype Small is Integer range 1 .. 3;

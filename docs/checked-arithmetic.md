@@ -72,3 +72,14 @@ ambiguity. Whole/separate execution and deterministic IL are required.
 The [benchmarks](../tests/benchmarks/README.md#checked-integer-arithmetic) compare
 both normal and optimized runtime builds. They measure successful arithmetic,
 not error-path throughput, and impose no timing threshold in CTest.
+
+## Unary primary operands (Phase 12)
+
+The factor parser follows Ada 2005 RM
+[4.4](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-4.html):
+`not` and `abs` each consume a primary. Nested unary operations require
+parentheses, as in `not (not True)` and `abs (abs X)`; exponentiation can occur
+inside the operand's parentheses or outside a parenthesized unary expression.
+`unaryprimaryerrors` rejects `not not True` and `abs abs X` at the second
+operator. `unaryprimaries` checks the parenthesized forms and powers in
+whole-program/per-unit execution and deterministic IR.

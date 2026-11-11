@@ -52,10 +52,12 @@ procedure Masterhooks is
     exception
         when Constraint_Error => Check_Done (15);
     end Rethrow;
-    function Missing_Return return Integer is
+    function Missing_Return (Return_Now : Boolean) return Integer is
         G : Guard := (Ada.Finalization.Limited_Controlled with Id => Remember (16));
     begin
-        null;
+        if Return_Now then
+            return 0;
+        end if;
     end Missing_Return;
     function Build return Guard is
     begin
@@ -151,7 +153,7 @@ begin
     Check_Done (14);
     begin
         declare
-            Value : Integer := Missing_Return;
+            Value : Integer := Missing_Return (False);
         begin
             raise Constraint_Error;
         end;

@@ -2,6 +2,22 @@
 
 Ada 2005 RM 6.5 and 7.5 govern the implemented return and noncopying rules.
 
+## Ordinary function bodies (Phase 12)
+
+Ordinary function bodies must contain at least one return statement that applies
+to that function, as required by Ada 2005 RM
+[6.5(5/2)](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-6-5.html).
+Returns in nested functions, procedures or package bodies do not satisfy this
+rule. Conditional and handler returns count, as do extended returns applying
+to the function. This is a legality check, not a proof that every path returns:
+reaching the end of an otherwise legal function still raises `Program_Error`.
+
+`missingreturnerrors` checks empty, nested-function-only, raise-only and
+nested-package-function-only bodies. `functionfallthrough` retains conditional
+returns for word/long integer, float/double and access results, including an
+exception handler; skipped returns raise `Program_Error` in whole-program and
+per-unit execution, with deterministic IR.
+
 ## Extended return statements
 
 `return Result : [aliased] Subtype [:= Initializer] [do ... end return];`

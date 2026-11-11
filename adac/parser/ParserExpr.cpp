@@ -152,7 +152,7 @@ ExprPtr Parser::parseFactor()
         auto expr = std::make_unique<UnaryExpr>();
         expr->location = location;
         expr->op = UnaryOp::Not;
-        expr->operand = parseFactor();
+        expr->operand = parsePrimary();
         return expr;
     }
     if (check(TokenKind::KwAbs)) {
@@ -160,7 +160,7 @@ ExprPtr Parser::parseFactor()
         auto expr = std::make_unique<UnaryExpr>();
         expr->location = location;
         expr->op = UnaryOp::Abs;
-        expr->operand = parseFactor();
+        expr->operand = parsePrimary();
         return expr;
     }
 

@@ -39,6 +39,20 @@ These rules follow Ada 2005 [RM 3.4](https://www.adaic.org/resources/add_content
 [4.3.1](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-4-3-1.html)
 and [7.3](https://www.adaic.org/resources/add_content/standards/05rm/html/RM-7-3.html).
 
+## Tagged subtype membership (Phase 12)
+
+Membership in a specific tagged subtype checks both the applicable tag and its
+discriminant constraints. A statically compatible specific operand still needs
+the discriminant check. Class-wide operands retain exact-tag checks for specific
+targets and ancestry checks for class-wide targets. A failed tag test skips
+constraint field loads, and `not in` negates the combined result. The operand
+is evaluated once.
+
+`taggedmembership` covers matching/mismatching specific objects, inherited
+constraints on extensions, class-wide operands/targets and a side-effecting
+operand in normal execution, whole-program/per-unit builds and deterministic IR.
+Existing `classwideconstraints` coverage is retained.
+
 ## Layout and ownership
 
 Runtime-sized tagged records capture size and field offsets during type

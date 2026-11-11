@@ -1050,6 +1050,9 @@ void Sema::analyzeSubprogramBody(SubprogramBody* body, Scope* scope)
     analyzeDeclarativePart(body->declarations, inner);
     reportMissingBodies(body->declarations);
     analyzeBodyStatements(body->body, body->handlers, inner, body->spec.lower, symbol);
+    if (symbol->returnType != nullptr && symbol->returnStatements.empty()) {
+        m_diagnostics.error(body->location, "a function body must contain a return statement that applies to the function");
+    }
 
     m_namePrefix.pop_back();
     m_currentSubprogram = savedSubprogram;

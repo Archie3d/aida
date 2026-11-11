@@ -906,6 +906,9 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
             break;
         }
         bool acceptReturn = !m_accepts.empty() && m_accepts.back()->owner == m_currentSubprogram;
+        if (expected != nullptr && !acceptReturn) {
+            m_currentSubprogram->returnStatements.push_back(returnStatement->location);
+        }
         if (returnStatement->object != nullptr) {
             if (expected == nullptr) {
                 const char* target = acceptReturn ? "an accept statement"

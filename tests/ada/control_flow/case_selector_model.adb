@@ -6,6 +6,7 @@ package body Case_Selector_Model is
     function Select_Value (Value : Integer) return String is
     begin
         raise Program_Error;
+        return "";
     end Select_Value;
     function With_Default (Value : Integer := 2) return Window is
     begin
@@ -14,5 +15,6 @@ package body Case_Selector_Model is
     function With_Default (Value : Integer := 2) return Float is
     begin
         raise Program_Error;
+        return 0.0;
     end With_Default;
 end Case_Selector_Model;

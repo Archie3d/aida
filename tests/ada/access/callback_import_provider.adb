@@ -10,5 +10,6 @@ package body Callback_Import_Provider is
     function Fail (Value : Integer) return Integer is
     begin
         raise Constraint_Error;
+        return 0;
     end Fail;
 end Callback_Import_Provider;
