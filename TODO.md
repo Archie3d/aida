@@ -4,6 +4,26 @@ Phases 1–12 are complete for AIDA’s documented Ada 2005 subset, including co
 tasking. Phase 13 is the only open phase. Additional Specialized Needs Annex
 facilities and profiles have [separate goals](docs/selected-annex-followups.md).
 
+## Phase 12 - C761010 correctness follow-up
+
+- [x] **C761010 — controlled aggregate initialization.** Access-to-array
+  constraints and deferred indefinite constants are repaired. Controlled
+  discriminant-dependent arrays use independent storage/finalization chains,
+  construct aggregates without Adjust and clean up partial failures. The
+  binder prefers parent bodies before child bodies when dependency ordering
+  permits. Unchanged C761010 passes whole/per-unit REPORT execution; CC3605A
+  also passes after the shared access-constraint repair. Dedicated execution,
+  determinism and legality controls cover capture, copies/assignment,
+  initialization/Adjust failures and elaboration fallback. Task/protected
+  dependent-array elements and represented managed arrays remain diagnosed.
+  [Contract](docs/controlled-dependent-arrays.md). The baseline now records
+  132 C passes, three C rejections and 26 raw B rejections; only C761010 and
+  CC3605A change. All 165 upstream hashes and 26 independent B grades remain
+  intact. Darwin arm64 validation: all 2,170 Release checks pass (308 ACATS),
+  plus 42 expanded ASan/UBSan checks and three final concurrent rechecks in
+  each build. Four workers independently exercise ownership and failure paths.
+  The complete baseline recheck and `git diff --check` pass; QBE is unchanged.
+
 ## Phase 13 - Deferred host/performance follow-up
 
 - [ ] **Supported-host/target follow-up.** Confirm subsequent increments on
@@ -23,9 +43,9 @@ language, runtime, library and tooling milestones. Phases 10–12 completed
 the [diagnostics audit](docs/diagnostics.md), compiler and driver fixes, and
 the [ACATS correctness and legality review](docs/acats-grading.md).
 
-The final Phase 12 Release run on Darwin arm64 passed 2,155 of 2,156 checks,
-including all 305 ACATS checks. The external C compiler timed out during
-`runtime.containerfamilies_modes`, which passed on an isolated rerun.
+The latest Phase 12 Release run on Darwin arm64 passed all 2,170 checks,
+including all 308 ACATS checks. The C761010 follow-up also passed 42 expanded
+ASan/UBSan checks and final concurrent execution/determinism rechecks.
 [ACATS results and remaining restrictions](docs/acats-baseline.md).
 
 ## Working rules

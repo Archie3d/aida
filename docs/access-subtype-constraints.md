@@ -1,4 +1,4 @@
-# Access-subtype designated-record constraints
+# Access-subtype designated constraints
 
 Named access subtypes accept discriminant constraints on an unconstrained
 designated record subtype. The access subtype retains its access type,
@@ -37,8 +37,8 @@ missing/duplicate/unknown selectors, range values and incompatible discriminant
 types are diagnosed. Access constraints also reject constrained partial views
 and general access to records with defaulted discriminants, with the generic
 body presumptions required by RM 3.7.1(7/2). Pool-specific access to records with
-defaulted discriminants remains supported. Existing access-to-array and
-controlled dependent-array restrictions are separate from this increment.
+defaulted discriminants remains supported. Phase 12 extends this contract to
+array constraints below and [controlled dependent arrays](controlled-dependent-arrays.md).
 
 `accesssubtypes` and `access_subtype_checks` cover library captures, aliases,
 derived and constant access, private designated records completed across units,
@@ -53,3 +53,34 @@ records 92 executable passes, ten compile rejections, one support blocker and
 Validation: 1,743/1,743 Release CTest checks and 9/9 focused ASan/UBSan checks
 pass, including the new fixtures, both upstream cases and existing record/access
 controls. The pinned upstream sources remain unchanged.
+
+## Array constraints and deferred constants (Phase 12)
+
+An index constraint on an access subtype constrains its designated array.
+Array and access-to-array constraints share rank, index-type, range and capture
+analysis. The access type retains its identity and collection; constraining an
+already constrained designated subtype is rejected. Named discriminant-style
+associations and incorrect ranks remain errors.
+
+Named bounds are captured at declaration, while component constraints referring
+to record discriminants are checked against each enclosing object. Null values
+are accepted by nullable constrained access subtypes. Non-null values must have
+the designated bounds on every dimension, with no sliding; initialization,
+assignment, allocator results, conversion, parameters and function returns use
+the same bounds check. Allocators still convert/slide an initializer into the
+access type's first designated subtype; an additional access-subtype constraint
+is checked on the resulting pointer. Statically constrained raw address views
+keep their known bounds without requiring an allocation registration.
+Dereferencing a per-object constrained access component uses its actual
+registered array view.
+
+Deferred constants with unconstrained array or discriminated record subtypes
+are accepted in a package's visible part; their private completions supply the
+value and bounds/discriminants. They are not treated as immediate uninitialized
+objects. Ordinary indefinite object declarations retain their checks.
+
+`accessarrayconstraints` checks captured and per-object bounds, nulls, mismatched
+lower bounds and lengths, allocators, parameters/results and deferred constants
+in whole-program/per-unit execution with deterministic IR. `accessarrayconstrainterrors`
+checks repeated constraints, rank errors and named associations. Unchanged
+C761010 and CC3605A now execute successfully.

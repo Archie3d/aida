@@ -1088,6 +1088,29 @@ bool UnitLoader::orderUnits()
             }
         }
     }
+    // Prefer an available parent body before a child body. This avoids
+    // needless access-before-elaboration failures for calls to the parent's
+    // operations, while retaining legal parent-body dependencies on children.
+    for (CompilationUnit* unit : m_discoveredUnits) {
+        if (unit->isSpec) { continue; }
+        std::string parent = parentOf(declarationName(*unit->units.front()));
+        auto found = m_parts.find(fileKey(parent) + ".body");
+        if (parent.empty() || found == m_parts.end() || !dependencies.contains(found->second)) { continue; }
+        std::unordered_set<CompilationUnit*> seen;
+        std::function<bool(CompilationUnit*)> reachesChild = [&](CompilationUnit* prerequisite) {
+            if (prerequisite == unit) { return true; }
+            if (!seen.insert(prerequisite).second) { return false; }
+            for (CompilationUnit* dependency : dependencies[prerequisite]) {
+                if (reachesChild(dependency)) { return true; }
+            }
+            for (const auto& [spec, body] : immediateBodies) {
+                if (spec == prerequisite && reachesChild(body)) { return true; }
+            }
+            return false;
+        };
+        if (!reachesChild(found->second)) { addEdge(unit, found->second); }
+    }
+
     // Contract each immediate spec/body pair for ordering: all prerequisites
     // of its body must precede its spec, and every client must follow its body.
     // Iterate because immediate pairs may themselves depend on other pairs.

@@ -1,0 +1,1 @@
+controlleddependentarrayerrors.adb:9:5: error: record representation clauses with controlled discriminant-dependent arrays are not yet supported

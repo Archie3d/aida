@@ -44,7 +44,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 130 C passes, five legal-source rejections, no runtime failures and
+has 132 C passes, three legal-source rejections, no runtime failures and
 26 raw B observations; see the current support-protocol increment in the report. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 reaches access-subtype and dependent-controlled-array limits. B840001's three legal extension aggregates are now
@@ -260,3 +260,10 @@ receive the intended specific-interface-progenitor error. Legal private-extensio
 ancestors and generic actuals execute in `interfaceancestry`. The separate total
 is 26 PASS (25 original foundations, one adapted); this is not an unchanged
 upstream B394A01 pass. See the [provenance and site review](../../../docs/acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12).
+
+C761010 and CC3605A now execute unchanged as PASS after the Phase 12
+access-array constraint and controlled dependent-array follow-up. The former
+also passes raw whole-program/per-unit REPORT execution. Only these two raw
+observations change: 132 executable C passes, three C rejections and 26 ungraded
+B observations. Upstream bytes/hashes and all 26 independent B grades are
+unchanged. [Contract and validation](../../../docs/controlled-dependent-arrays.md).

@@ -62,9 +62,15 @@ Compiler ASan/UBSan checks pass for both fixtures and all four promoted cases.
 C460006 subsequently passed unchanged with P6f abstract operations and the
 record-extension aggregate repair; it now joins the strict executable selection.
 
-## Deferred prerequisites
+## Deferred prerequisites at the original audit
 
-The refreshed cohort has **10 legal C rejections**. Removing a prerequisite
+The following records the original audit's prerequisites. See the
+[current baseline](acats-baseline.md) for subsequent repairs: C761010 and
+CC3605A now pass unchanged after the Phase 12 access-constraint and controlled
+component work. The current cohort has 132 executable passes and three C
+rejections.
+
+At the original audit, the refreshed cohort had **10 legal C rejections**. Removing a prerequisite
 requires a fresh execution of the complete unchanged source. The discrete-range
 cases now pass; [current observations](acats-baseline.md) include earlier
 REPORT adapter improvements without changing adapters in this increment.

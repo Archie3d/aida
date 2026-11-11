@@ -193,6 +193,7 @@ struct Type
     std::vector<bool> discriminantPerObject;
     bool dependentStorage = false;
     bool dependentArrayStorage = false;
+    Type* managedComponentArray = nullptr;
     bool discriminantPerEvaluation = false;
     bool discriminantObjectConstraint = false;
 

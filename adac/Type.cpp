@@ -185,7 +185,8 @@ long long typeSize(const Type* type)
 long long fieldStorageSize(const FieldInfo& field)
 {
     if (field.representationSize >= 0) { return field.representationSize; }
-    return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank) + (field.storageType != nullptr ? 8 : 0) : typeSize(field.type);
+    return field.dependentBounds ? adaArrayLocalSize(field.type->arrayRank)
+        + (field.storageType != nullptr ? (field.storageType->managedComponentArray != nullptr ? 16 : 8) : 0) : typeSize(field.type);
 }
 
 bool sameFieldPlacement(const FieldInfo& left, const FieldInfo& right)

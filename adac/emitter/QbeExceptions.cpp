@@ -364,10 +364,13 @@ void QbeEmitter::emitRecordConstraintCheck(const Value& value, Type* type)
 
 // Null belongs to a nullable access subtype regardless of its designated
 // constraint. Only a non-null value has discriminants to inspect.
-void QbeEmitter::emitAccessConstraintCheck(const Value& value, Type* type, const Value* address)
+void QbeEmitter::emitAccessConstraintCheck(const Value& value, Type* type, const Value* address, Type* source)
 {
     Type* target = type->target;
-    if (target == nullptr || target->kind != TypeKind::Record || !hasDiscriminantConstraint(target)) { return; }
+    bool record = target != nullptr && target->kind == TypeKind::Record && hasDiscriminantConstraint(target);
+    bool array = target != nullptr && target->kind == TypeKind::Array
+        && (target->constrained || target->boundsSymbol != nullptr);
+    if (!record && !array) { return; }
     std::string nonNull = newTemp(), check = newLabel("accessconstraint"), done = newLabel("accessconstraintdone");
     line(nonNull + " =w cnel " + value.name + ", 0");
     branch(Value {nonNull, 'w'}, check, done);
@@ -379,8 +382,39 @@ void QbeEmitter::emitAccessConstraintCheck(const Value& value, Type* type, const
                 *address->constraintObject, baseType(address->constraintLayout)};
         }
     }
-    emitRecordConstraintCheck(value, target);
+    if (record) {
+        emitRecordConstraintCheck(value, target);
+    } else {
+        Value expected;
+        if (target->discriminantRecord != nullptr && address != nullptr && address->constraintObject != nullptr) {
+            FieldInfo field;
+            field.type = target;
+            expected = dependentFieldBounds(*address->constraintObject, address->constraintLayout, field);
+        } else {
+            expected = withBounds(Value {}, target, nullptr);
+        }
+        // A constrained first designated subtype already supplies the view,
+        // including raw address conversions without an allocation record.
+        Type* actualSubtype = source != nullptr ? source->target : baseType(type)->target;
+        Value actual = allocatedArrayView(value, actualSubtype);
+        checkArrayBounds(expected, actual, target->arrayRank);
+    }
     m_context->discriminantObjects = std::move(savedObjects);
     jump(done);
     label(done);
+}
+
+void QbeEmitter::checkArrayBounds(const Value& expected, const Value& actual, int rank)
+{
+    for (int dimension = 0; dimension < rank; ++dimension) {
+        for (const auto& bounds : {std::pair {actual.axisFirst(dimension), expected.axisFirst(dimension)},
+                                  std::pair {actual.axisLast(dimension), expected.axisLast(dimension)}}) {
+            std::string matches = newTemp(), valid = newLabel("accessarraybounds"), bad = newLabel("accessarrayinvalid");
+            line(matches + " =w ceql " + bounds.first + ", " + bounds.second);
+            branch(Value {matches, 'w'}, valid, bad);
+            label(bad);
+            raiseConstraintError();
+            label(valid);
+        }
+    }
 }

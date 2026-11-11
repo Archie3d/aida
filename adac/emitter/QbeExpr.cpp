@@ -249,7 +249,7 @@ Value QbeEmitter::emitExprValue(Expr* expr)
                     jump(ready);
                     label(ready);
                 }
-                emitAccessConstraintCheck(value, expr->type);
+                emitAccessConstraintCheck(value, expr->type, nullptr, operand->type);
                 preserveAccessView(value, expr->type, operand->type);
                 value.accessLevel = accessLevelFor(expr->type);
                 value.accessOwner.clear();

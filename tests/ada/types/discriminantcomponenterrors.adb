@@ -7,9 +7,9 @@ procedure DiscriminantComponentErrors is
     type Bad_Scalar (D : Integer) is record
         Value : Integer range 0 .. D;
     end record;
-    type Guard is new Ada.Finalization.Controlled with null record;
+    protected type Guard is end Guard;
     type Guards is array (Integer range <>) of Guard;
-    type Bad_Controlled (D : Natural) is record
+    type Bad_Protected (D : Natural) is record
         Parts : Guards (1 .. D);
     end record;
     type Pair (Left, Right : Integer) is null record;

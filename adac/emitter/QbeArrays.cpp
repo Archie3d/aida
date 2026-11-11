@@ -392,6 +392,15 @@ Value QbeEmitter::withBounds(const Value& address, Type* type, Symbol* symbol)
     if (type == nullptr || type->kind != TypeKind::Array) {
         return result;
     }
+    if (!result.hasBounds() && symbol == nullptr && type->discriminantRecord != nullptr
+        && m_context->discriminantObjects.contains(type->discriminantRecord)) {
+        const auto& object = m_context->discriminantObjects.at(type->discriminantRecord);
+        FieldInfo field;
+        field.type = type;
+        Value bounds = dependentFieldBounds(object.address, object.layout, field);
+        bounds.name = result.name;
+        return bounds;
+    }
     if (type->constrained) {
         result.first = std::to_string(type->indexLow);
         result.last = std::to_string(type->indexHigh);

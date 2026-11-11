@@ -7,7 +7,7 @@ or a claim of conformity assessment. The selection includes Ada 2005 additions
 and inherited objectives; it is reviewed with each feature.
 
 A completed-feature [backfill baseline](baseline/README.md) adds 161 pinned,
-unchanged cases. Its 130 observed executable passes join the normal ACATS label;
+unchanged cases. Its 132 observed executable passes join the normal ACATS label;
 failures and raw B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
@@ -1175,3 +1175,10 @@ receive the intended specific-interface-progenitor error. Legal private-extensio
 ancestors and generic actuals execute in `interfaceancestry`. The separate total
 is 26 PASS (25 original foundations, one adapted); this is not an unchanged
 upstream B394A01 pass. See the [provenance and site review](../../docs/acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12).
+
+C761010 and CC3605A now execute unchanged as PASS after the Phase 12
+access-array constraint and controlled dependent-array follow-up. The former
+also passes raw whole-program/per-unit REPORT execution. Only these two raw
+observations change: 132 executable C passes, three C rejections and 26 ungraded
+B observations. Upstream bytes/hashes and all 26 independent B grades are
+unchanged. [Contract and validation](../../docs/controlled-dependent-arrays.md).

@@ -254,6 +254,7 @@ private:
     void analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* precedingType = nullptr);
     Type* resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope, bool allowDynamic = false,
                                   bool allowDynamicScalar = false);
+    Type* constrainArray(SubtypeIndication* indication, Type* base, Scope* scope, bool allowDynamic);
     void recordArrayConstraint(Type* type, SubtypeIndication* indication);
     void recordScalarConstraint(Type* type, const SourceLocation& location, bool objectConstraint);
     Type* constrainDiscriminants(SubtypeIndication* indication, Type* base, Scope* scope);

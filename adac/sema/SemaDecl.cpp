@@ -371,8 +371,9 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
         decl->isConstant = view == SemaSupport::ObjectView::Constant;
     }
 
+    bool deferredConstant = decl->isConstant && !decl->initializer && m_inVisiblePart;
     if (type != nullptr && type->kind == TypeKind::Array && !type->constrained) {
-        if (decl->subtype->indexLows.empty() && !decl->initializer && type->boundsSymbol == nullptr) {
+        if (decl->subtype->indexLows.empty() && !decl->initializer && type->boundsSymbol == nullptr && !deferredConstant) {
             m_diagnostics.error(decl->location, "an unconstrained array object needs an initializer or index constraint");
         }
     }
@@ -380,7 +381,7 @@ void Sema::analyzeObjectDecl(ObjectDecl* decl, Scope* scope)
     // Indefinite objects acquire their constraint from an explicit initializer.
     Type* record = baseType(type);
     if (record != nullptr && record->discriminantCount > 0 && !hasKnownDiscriminants(type)
-        && !hasDefaultDiscriminants(type) && !decl->initializer && !decl->isRenaming) {
+        && !hasDefaultDiscriminants(type) && !decl->initializer && !decl->isRenaming && !deferredConstant) {
         m_diagnostics.error(decl->location, "an object of '" + record->name + "' has to fix its discriminants, as "
                                                 + "in 'X : " + record->name + " (...)'");
     }

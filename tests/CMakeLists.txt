@@ -318,6 +318,45 @@ add_ada_error_test(defaulterrors SOURCES subprograms/defaulterrors.adb)
 add_ada_test(compositereturns SOURCES types/compositereturns.adb)
 add_ada_error_test(returnerrors SOURCES subprograms/returnerrors.adb)
 
+add_ada_test(accessarrayconstraints SOURCES access/accessarrayconstraints.adb)
+add_ada_test(controlleddependentarrays SOURCES controlled/controlleddependentarrays.adb)
+add_ada_test(childbodyelaboration SOURCES elaboration/childbodyelaboration.adb)
+add_ada_error_test(accessarrayconstrainterrors SOURCES access/accessarrayconstrainterrors.adb)
+add_ada_error_test(controlleddependentarrayerrors SOURCES controlled/controlleddependentarrayerrors.adb)
+set(accessarrayconstraints_source access/accessarrayconstraints.adb)
+set(controlleddependentarrays_source controlled/controlleddependentarrays.adb)
+set(childbodyelaboration_source elaboration/childbodyelaboration.adb)
+foreach(fixture accessarrayconstraints controlleddependentarrays childbodyelaboration)
+    add_determinism_test(${fixture} SOURCE ${${fixture}_source})
+    ada_test_fixture(controlled_source ${${fixture}_source})
+    ada_test_fixture(controlled_expected ${fixture}.expected)
+    add_test(NAME runtime.${fixture}_modes
+        COMMAND ${CMAKE_COMMAND}
+            -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+            -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+            -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+            -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+            -DSOURCE=${controlled_source} -DEXPECTED=${controlled_expected}
+            -DWORKDIR=${ADA_TEST_WORK_DIR}/${fixture}-modes
+            -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(runtime.${fixture}_modes PROPERTIES TIMEOUT 60)
+endforeach()
+add_test(NAME runtime.acats_c761010_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/acats/baseline/upstream/tests/c7/c761010.a
+        -DSOURCE_AS_ADA=ON
+        -DEXTRA_SOURCES=${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.ads|${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.adb
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/acats/c761010.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/acats-c761010-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.acats_c761010_modes PROPERTIES TIMEOUT 120 LABELS "acats;backfill")
+
 add_ada_test(functionfallthrough SOURCES subprograms/functionfallthrough.adb)
 add_ada_error_test(missingreturnerrors SOURCES subprograms/missingreturnerrors.adb)
 add_ada_error_test(unaryprimaryerrors SOURCES syntax/unaryprimaryerrors.adb)

@@ -309,7 +309,7 @@ private:
     void emitExceptionCheck();
     void emitHandlers(std::vector<ExceptionHandler>& handlers, const std::string& afterLabel,
                       const std::string& dispatchLabel);
-    void emitAccessConstraintCheck(const Value& value, Type* type, const Value* address = nullptr);
+    void emitAccessConstraintCheck(const Value& value, Type* type, const Value* address = nullptr, Type* source = nullptr);
     void emitRecordConstraintCheck(const Value& value, Type* type);
     Value recordConstraintMatches(const Value& value, Type* type);
     void emitDiscreteRangeCheck(Expr* low, const Value& first, const Value& last);
@@ -350,7 +350,8 @@ private:
     void emitExtendedReturnBody(ReturnStmt* statement);
     void emitControlledResult(Expr* expression, ObjectDecl* object = nullptr, ReturnStmt* extended = nullptr);
     std::string finalizerName(Type* type);
-    void prepareControlledObject(const Value& object, Type* type, bool library = false);
+    void prepareControlledObject(const Value& object, Type* type, bool library = false,
+                                 const std::string& owner = {}, const std::string& arena = {}, bool copied = false);
     void activateControlledObject(const Value& object, Type* type);
     void walkControlled(const Value& object, Type* type, bool parentFirst,
                         const std::function<void(const Value&, Type*)>& action, bool activeOnly = true);
@@ -389,7 +390,9 @@ private:
     void initializeDependentField(const Value& object, Type* type, const FieldInfo& field);
     void cloneDependentStorage(const Value& object, Type* type);
     std::string dependentArena(const Value& object, Type* type);
-    void initializeDependentStorage(const Value& object, Type* type);
+    std::string componentFinalizations(const Value& object, Type* type);
+    Value managedComponentView(const Value& object, Type* type);
+    void initializeDependentStorage(const Value& object, Type* type, bool copied = false);
     void checkRecordAssignment(const Value& address, const Value& source, Type* type,
                                bool initialize, const std::string& constrained);
 
@@ -413,6 +416,7 @@ private:
     std::string arrayElementSize(const Value& array, Type* type);
     Value arrayElementAddress(const Value& array, Type* type, const std::string& offset);
     void checkArrayShape(const Value& target, Type* targetType, const Value& source, Type* sourceType);
+    void checkArrayBounds(const Value& expected, const Value& actual, int rank);
     Value convertArrayBounds(Value value, Type* source, Type* target, const SourceLocation& location);
     struct ArrayCopyBack
     {

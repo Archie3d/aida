@@ -11,18 +11,18 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 5 |
+| Legal C-test rejected | 3 |
 | Support/harness blocked | 0 |
-| Executable PASS | 130 |
+| Executable PASS | 132 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. The five remaining rejected C-tests are
-C432005 (tagged records with concurrent components), C761010 (access-to-array
-subtype constraints and dependent controlled arrays), CC3605A (access-to-array
-subtype constraints), CXC7002 (packed signed-integer arrays) and CXDA003
-(Locking_Policy and Interrupt_Priority). Their failures remain recorded.
-C35502C now completes its unchanged REPORT protocol after the enumeration Value
-repair; C85005A and C85005B also execute successfully after selective accept.
+No crashes or timeouts were observed. The three remaining rejected C-tests are
+C432005 (tagged records with concurrent components), CXC7002 (packed signed-integer
+arrays) and CXDA003 (Locking_Policy and Interrupt_Priority). Their failures remain
+recorded. C761010 now passes after access-to-array constraints, deferred constants,
+controlled dependent-array ownership and elaboration ordering were repaired;
+CC3605A passes after the shared access-constraint repair. C35502C, C85005A and
+C85005B retain their earlier executable passes.
 The current tables below cover all 161 cases. Later milestone sections retain
 the counts and observations from those increments.
 
@@ -273,7 +273,7 @@ be blocked before reaching the feature named in their objective.
 | conversions static | 7 | 0 | 0 | 0 | 0 |
 | control flow | 4 | 0 | 0 | 0 | 0 |
 | calls returns | 8 | 0 | 0 | 0 | 0 |
-| private finalization | 11 | 1 | 0 | 0 | 0 |
+| private finalization | 12 | 0 | 0 | 0 | 0 |
 | visibility renaming | 11 | 0 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 2 | 0 | 0 | 0 | 0 |
@@ -281,19 +281,19 @@ be blocked before reaching the feature named in their objective.
 | generic interfaces | 0 | 0 | 0 | 0 | 5 |
 | representation | 7 | 0 | 0 | 0 | 0 |
 | access null exclusions | 5 | 0 | 0 | 0 | 0 |
-| generic subprograms | 3 | 1 | 0 | 0 | 0 |
+| generic subprograms | 4 | 0 | 0 | 0 | 0 |
 | concurrent callable views | 8 | 0 | 0 | 0 | 0 |
 | concurrent interfaces | 1 | 0 | 0 | 0 | 0 |
 | task services | 4 | 2 | 0 | 0 | 0 |
 | task termination | 1 | 0 | 0 | 0 | 0 |
-| **Total** | 130 | 5 | 0 | 0 | 26 |
+| **Total** | 132 | 3 | 0 | 0 | 26 |
 
 ## Follow-up order
 
 1. Validate target configuration on other supported hosts. All 26 selected B
    grades now pass with the documented B394A01 foundation adapter; broader
    interface and tasking conformance is not inferred.
-2. Investigate the remaining five legal C rejections;
+2. Investigate the remaining three legal C rejections;
    turn confirmed defects into focused compiler regressions before fixing them.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
    are repaired; broader protocol/applicability work requires its own selection.
@@ -302,7 +302,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 130 executable C passes and the independent grader's 26 complete B passes
+Its 132 executable C passes and the independent grader's 26 complete B passes
 (25 original foundations and one labelled local adapter) join normal ACATS
 labels. Snapshot stability of a recorded failure is not an ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
@@ -403,7 +403,7 @@ report.
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Executable PASS | covered probe; P9 task entries |
 | [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Executable PASS | TCTouch protocol repaired; P8 |
 | [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
-| [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | access-to-array subtype constraints and dependent controlled array elements remain unsupported; P6d/P6g |
+| [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Executable PASS | [controlled dependent arrays and access constraints](controlled-dependent-arrays.md); no Adjust during aggregate initialization; P12 |
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C83024A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83024a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
@@ -459,7 +459,7 @@ report.
 | [C3A0023](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0023.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
 | [C3A0024](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0024.a) | 3.10, 6.1, 12.4 | Executable PASS | covered probe; P6d/P6g null exclusions |
 | [CC3603A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3603a.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
-| [CC3605A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3605a.ada) | 12.6, 6.3.1 | Legal C-test rejected | existing access-to-array subtype constraint limit; P8 |
+| [CC3605A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3605a.ada) | 12.6, 6.3.1 | Executable PASS | [access-to-array subtype constraints](access-subtype-constraints.md#array-constraints-and-deferred-constants-phase-12); unchanged formal-subprogram checks; P12 |
 | [CC3606A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606a.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
 | [CC3606B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606b.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
 | [C910001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c910001.a) | 3.7, 9.1 | Executable PASS | Task discrete/access discriminants, explicit values and defaults; P9 discriminants and callable views |
@@ -586,3 +586,26 @@ Validation: all 161 inventory rows, 22 area totals and 26 independent grades
 match their recorded data; source/hash validation passes for all 165 vendored
 files. Fresh C85005A/C85005B execution and the full B-grade snapshot check pass
 (three focused CTest checks). `git diff --check` passes.
+
+
+## Controlled dependent-array follow-up (Phase 12)
+
+C761010 now completes its original REPORT protocol in whole-program and per-unit
+builds. Access-to-array constraints check designated bounds, deferred indefinite
+constants wait for completion, and controlled dependent arrays construct elements
+without Adjust for aggregate initialization. Each managed component owns its
+storage and finalization chain, including copy/assignment and partial-failure
+cleanup. An available parent body is preferred before child bodies only when
+dependency and Elaborate_Body constraints permit that order. See the
+[contract and regressions](controlled-dependent-arrays.md).
+
+CC3605A also executes unchanged after the shared access-to-array constraint
+repair. These are the only two changed observations in the 161-case baseline:
+132 executable C passes, three C rejections and 26 raw B rejections. All 26
+independent B grades are retained. All 165 vendored source hashes remain intact;
+no upstream test or REPORT check was modified.
+
+Validation: the full Darwin arm64 Release suite passes 2,170/2,170 checks
+(308 ACATS). The 42 expanded ASan/UBSan checks and final concurrent control
+rechecks pass. The full baseline stability check, 161-row/22-area/26-grade
+reconciliation and source/hash validation pass.

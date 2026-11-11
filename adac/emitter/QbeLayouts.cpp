@@ -161,12 +161,16 @@ void QbeEmitter::initializeDependentField(const Value& object, Type* type, const
     Value descriptor = fieldStorage(object, type, field);
     line("storel " + view.name + ", " + descriptor.name);
     storeArrayView(descriptor.name, view, field.type, false);
+    if (field.storageType != nullptr && field.storageType->managedComponentArray != nullptr) {
+        prepareControlledObject(view, field.type, false, componentFinalizations(descriptor, field.storageType),
+                                dependentArena(descriptor, field.storageType));
+    }
 }
 
 void QbeEmitter::cloneDependentStorage(const Value& object, Type* type)
 {
     for (const FieldInfo& field : baseType(type)->fields) {
-        if (!field.dependentBounds || field.inlineDependent) { continue; }
+        if (!field.dependentBounds || field.inlineDependent || field.storageType != nullptr) { continue; }
         std::string done;
         if (field.variant >= 0) {
             std::string active = newLabel("clonestorage");
@@ -247,7 +251,9 @@ void QbeEmitter::emitRecordLayout(Type* type)
 
 Value QbeEmitter::allocatedArrayView(Value pointer, Type* type)
 {
-    if (type->constrained || type->boundsSymbol != nullptr) { return withBounds(pointer, type, nullptr); }
+    if ((type->constrained || type->boundsSymbol != nullptr) && type->discriminantRecord == nullptr) {
+        return withBounds(pointer, type, nullptr);
+    }
     std::string descriptor = allocScratch(adaArrayLocalSize(type->arrayRank));
     emitCallInstruction("call $__ada_access_array_copy_bounds(l " + pointer.name
         + ", w " + std::to_string(type->arrayRank) + ", l " + stringData(rootType(type)->accessIdentity)
@@ -337,15 +343,31 @@ std::string QbeEmitter::dependentArena(const Value& object, Type* type)
     return arena;
 }
 
-void QbeEmitter::initializeDependentStorage(const Value& object, Type* type)
+std::string QbeEmitter::componentFinalizations(const Value& object, Type* type)
+{
+    std::string owner = newTemp();
+    line(owner + " =l add " + object.name + ", " + std::to_string(adaArrayLocalSize(type->arrayRank) + 8));
+    return owner;
+}
+
+Value QbeEmitter::managedComponentView(const Value& object, Type* type)
+{
+    Value view = loadArrayView(object.name, type->arrayRank, false);
+    view.name = newTemp();
+    line(view.name + " =l loadl " + object.name);
+    return view;
+}
+
+void QbeEmitter::initializeDependentStorage(const Value& object, Type* type, bool copied)
 {
     if (!hasDependentStorage(type) && !hasRuntimeLayout(type)) { return; }
     bool saved = m_context->initializingStorage;
-    m_context->initializingStorage = true;
+    m_context->initializingStorage = !copied;
     walkControlled(object, type, true, [&](const Value& part, Type* partType) {
         if (!partType->dependentStorage) { return; }
         line("storel 0, " + dependentArena(part, partType));
-        if (partType->dependentArrayStorage) { return; }
+        if (partType->managedComponentArray != nullptr) { line("storel 0, " + componentFinalizations(part, partType)); }
+        if (partType->dependentArrayStorage || copied) { return; }
         std::string slot = newTemp();
         line(slot + " =l add " + part.name + ", 8");
         line("storel " + (partType->layoutSymbol ? layoutAddress(partType).name : "0") + ", " + slot);

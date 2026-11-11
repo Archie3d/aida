@@ -399,7 +399,9 @@ Type* Sema::analyzeAllocator(AllocatorExpr* expr, Scope* scope, Type* expected)
                 "custom storage pools do not yet support coextensions, dependent owned storage, dynamically tagged values or dynamically sized limited results");
         }
     }
-    expr->type = expected;
+    // Array allocators construct the access type's first designated subtype;
+    // an additional access-subtype constraint is checked on the resulting value.
+    expr->type = designated->kind == TypeKind::Array ? access : expected;
     return expr->type;
 }
 

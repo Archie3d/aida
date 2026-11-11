@@ -25,6 +25,10 @@ void QbeEmitter::emitTypeTag(Type* type)
         context.propagateLabel = newLabel("storagepropagate");
         FunctionContext* saved = m_context;
         m_context = &context;
+        if (type->managedComponentArray != nullptr) {
+            emitCallInstruction("call $__ada_finalize_to(l " + componentFinalizations(Value {"%object", 'l'}, type)
+                + ", l 0)", CallEffects::DeferredCheck);
+        }
         emitCallInstruction("call $__ada_array_release(l " + dependentArena(Value {"%object", 'l'}, type) + ")", CallEffects::DeferredCheck);
         finishFunction("export function " + type->tagName + ".finalize(l %object)");
         FunctionContext adjustment;
@@ -32,14 +36,27 @@ void QbeEmitter::emitTypeTag(Type* type)
         adjustment.propagateLabel = newLabel("storagecopypropagate");
         m_context = &adjustment;
         line("storel 0, " + dependentArena(Value {"%object", 'l'}, type));
+        if (type->managedComponentArray != nullptr) {
+            line("storel 0, " + componentFinalizations(Value {"%object", 'l'}, type));
+        }
         std::string failed = newLabel("storagecopyfailed"), done = newLabel("storagecopydone");
         pushHandler(failed);
         if (type->dependentArrayStorage) {
             emitCallInstruction("call $__ada_component_array_copy(l %object, w " + std::to_string(type->arrayRank) + ")", CallEffects::CheckException);
+            if (type->managedComponentArray != nullptr) {
+                Value view = managedComponentView(Value {"%object", 'l'}, type);
+                prepareControlledObject(view, type->managedComponentArray, false,
+                    componentFinalizations(Value {"%object", 'l'}, type), dependentArena(Value {"%object", 'l'}, type), true);
+                adjustControlledObject(view, type->managedComponentArray);
+            }
         } else { cloneDependentStorage(Value {"%object", 'l'}, type); }
         m_context->handlerLabels.pop_back();
         jump(done);
         label(failed);
+        if (type->managedComponentArray != nullptr) {
+            emitCallInstruction("call $__ada_finalize_to(l " + componentFinalizations(Value {"%object", 'l'}, type)
+                + ", l 0)", CallEffects::DeferredCheck);
+        }
         emitCallInstruction("call $__ada_array_release(l " + dependentArena(Value {"%object", 'l'}, type) + ")", CallEffects::DeferredCheck);
         m_context->usesPropagate = true;
         jump(m_context->propagateLabel);

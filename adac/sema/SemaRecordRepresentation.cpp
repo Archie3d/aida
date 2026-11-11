@@ -168,6 +168,10 @@ void Sema::analyzeRecordRepresentation(RepresentationDecl* decl, Scope* scope, T
     // still come from each enclosing object, never from a hidden descriptor.
     for (FieldInfo& field : proposed.fields) {
         if (!field.dependentBounds) { continue; }
+        if (field.storageType != nullptr && field.storageType->managedComponentArray != nullptr) {
+            error(decl->location, "record representation clauses with controlled discriminant-dependent arrays are not yet supported");
+            continue;
+        }
         Type* cell = field.type;
         for (int dimension = 0; dimension < field.type->arrayRank; ++dimension) { cell = cell->element; }
         __int128 size = typeSize(cell);

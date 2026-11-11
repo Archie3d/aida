@@ -40,12 +40,12 @@ export function w $main(w %argc, l %argv) {
     %.t11 =w cnel %.t10, 0
     jnz %.t11, @shutdown, @elaborated.5
 @elaborated.5
-    call $ada_elab.ada_text_io_scanning_body()
+    call $ada_elab.ada_text_io_body()
     %.t12 =l loadl %.taskContext
     %.t13 =w cnel %.t12, 0
     jnz %.t13, @shutdown, @elaborated.6
 @elaborated.6
-    call $ada_elab.ada_text_io_body()
+    call $ada_elab.ada_text_io_scanning_body()
     %.t14 =l loadl %.taskContext
     %.t15 =w cnel %.t14, 0
     jnz %.t15, @shutdown, @elaborated.7

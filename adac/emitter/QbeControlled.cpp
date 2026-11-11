@@ -498,22 +498,24 @@ void QbeEmitter::walkControlled(const Value& object, Type* type, bool parentFirs
     }
 }
 
-void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool library)
+void QbeEmitter::prepareControlledObject(const Value& object, Type* type, bool library,
+                                        const std::string& owner, const std::string& arena, bool copied)
 {
-    initializeDependentStorage(object, type);
+    initializeDependentStorage(object, type, copied);
     walkControlled(object, type, false, [&](const Value& part, Type* partType) {
         if (partType->fileHandle) { line("storel 0, " + part.name); }
         if (partType->exceptionOccurrence) {
             emitCallInstruction("call $__ada_occurrence_initialize(l " + part.name + ")", CallEffects::DeferredCheck);
         }
         if (partType->dependentStorage) { line("storel 0, " + dependentArena(part, partType)); }
+        if (partType->managedComponentArray != nullptr) { line("storel 0, " + componentFinalizations(part, partType)); }
         if (library) {
             emitCallInstruction("call $__ada_library_reserve(l " + part.name + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
             return;
         }
         bool temporary = m_context->initializingTemporary;
-        std::string owner = temporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain;
-        emitCallInstruction("call $__ada_finalization_reserve(l " + owner + ", l " + storageArena(temporary, true)
+        std::string chain = owner.empty() ? (temporary ? m_context->temporaryFinalizationChain : m_context->finalizationChain) : owner;
+        emitCallInstruction("call $__ada_finalization_reserve(l " + chain + ", l " + (arena.empty() ? storageArena(temporary, true) : arena)
              + ", l " + part.name + ", l " + finalizerName(partType) + ")", CallEffects::CheckException);
     }, false);
 }

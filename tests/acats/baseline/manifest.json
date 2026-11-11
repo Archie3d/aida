@@ -2342,9 +2342,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P6d/P6g access subtypes and dependent controlled arrays",
-        "note": "Unknown-discriminant private views now compile. Remaining observations include access-to-array subtype constraints, dependent arrays of controlled elements and cascaded indefinite-object diagnostics."
+        "kind": "covered_probe",
+        "owner": "P12 controlled dependent arrays and access constraints",
+        "note": "Unchanged source executes the complete REPORT protocol after access-to-array constraints, deferred indefinite constants, controlled dependent-array ownership and parent-body elaboration preference were repaired. No Adjust/Initialize calls occur for aggregate initialization."
       }
     },
     {
@@ -3428,9 +3428,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "documented_language_gap",
-        "owner": "P8 access-to-array subtype constraints (existing matrix limitation)",
-        "note": "Whole unchanged source stops at ARR_ACC_TYPE (1 .. 3), line 248: index constraints require an array type. The designated-array access-subtype limitation is already recorded for C761010 and in the coverage matrix. No generic-profile PASS is inferred from the partial source."
+        "kind": "covered_probe",
+        "owner": "P12 access-to-array constraints",
+        "note": "Unchanged source executes the complete REPORT protocol after access-to-array subtype constraints were repaired; the source and its formal-subprogram profile checks remain unchanged."
       },
       "language_review": "Inherited formal-subprogram matching/default/literal objectives applicable to Ada 2005; no later-language constructs."
     },

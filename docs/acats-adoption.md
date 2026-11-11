@@ -6,6 +6,10 @@ implementation choices and unsupported boundaries in the
 [coverage matrix](ada2005-coverage.md). It does not claim full Ada 2005 conformance
 or exhaust the ACATS archive.
 
+Subsequent Phase 12 work promotes unchanged CC3605A and C761010 after the
+[access-constraint and controlled dependent-array repairs](controlled-dependent-arrays.md).
+The observations and registration counts below describe the original audit.
+
 The bounded work was to reconcile existing selection/grading, select 16 further
 unchanged sources before probing them, review their language eligibility and
 whole-source prerequisites, and record every result. No compiler, runtime or

@@ -1434,15 +1434,16 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
             recordArrayConstraint(info.type, field.subtype.get());
             info.dependentBounds = info.type->discriminantRecord != nullptr;
             type->dependentStorage |= info.dependentBounds && !type->tagged && type->protectedScope == nullptr;
-            if (info.dependentBounds && (type->tagged || type->protectedScope != nullptr)) {
+            if (info.dependentBounds && (type->tagged || type->protectedScope != nullptr || needsFinalization(info.type->element))) {
                 info.storageType = m_types.create(TypeKind::Record, anonymousTypeName());
                 info.storageType->dependentStorage = true;
                 info.storageType->dependentArrayStorage = true;
                 info.storageType->arrayRank = info.type->arrayRank;
+                if (needsFinalization(info.type->element)) { info.storageType->managedComponentArray = info.type; }
                 info.storageType->tagName = "$" + mangle(decl->lower) + "__array_" + std::to_string(fieldIndex);
             }
-            if (info.dependentBounds && (needsFinalization(info.type->element) || hasTasks(info.type->element))) {
-                m_diagnostics.error(field.location, "discriminant-dependent arrays with controlled, task or protected elements are not yet supported");
+            if (info.dependentBounds && (hasTasks(info.type->element) || hasProtected(info.type->element))) {
+                m_diagnostics.error(field.location, "discriminant-dependent arrays with task or protected elements are not yet supported");
             }
             if (info.type->boundsSymbol == nullptr && !info.dependentBounds) {
                 m_diagnostics.error(field.subtype->location, "record components require a constrained array subtype");
@@ -1471,7 +1472,7 @@ void Sema::layoutRecord(TypeDecl* decl, TypeDefinition* definition, Type* type, 
         long long alignment = info.dependentBounds ? 8 : typeAlignment(info.type);
         __int128 aligned = offset;
         if (alignment > 0 && offset % alignment != 0) { aligned += alignment - offset % alignment; }
-        __int128 end = aligned + (info.dependentBounds ? adaArrayLocalSize(info.type->arrayRank) + (info.storageType != nullptr ? 8 : 0) : typeSize(info.type));
+        __int128 end = aligned + fieldStorageSize(info);
         long long recordAlignment = std::max(typeAlignment(type), alignment);
         __int128 padded = end;
         if (recordAlignment > 0 && padded % recordAlignment != 0) { padded += recordAlignment - padded % recordAlignment; }
@@ -2273,6 +2274,20 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             return constrainDiscriminants(indication, base, scope);
         }
         if (base->kind == TypeKind::Access && base->target != nullptr
+            && baseType(base->target)->kind == TypeKind::Array) {
+            if (base->target->constrained || base->target->boundsSymbol != nullptr) {
+                m_diagnostics.error(indication->location, "an index constraint requires an unconstrained designated array subtype");
+                return base;
+            }
+            Type* designated = constrainArray(indication, base->target, scope, allowDynamic);
+            if (designated == base->target) { return base; }
+            recordArrayConstraint(designated, indication);
+            Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+            subtype->target = designated;
+            indication->resolved = subtype;
+            return subtype;
+        }
+        if (base->kind == TypeKind::Access && base->target != nullptr
             && baseType(base->target)->kind == TypeKind::Record) {
             Type* designatedRoot = rootType(base->target);
             if (designatedRoot->privateTo != nullptr && designatedRoot->privateDiscriminantCount == 0
@@ -2293,141 +2308,147 @@ Type* Sema::resolveSubtypeIndication(SubtypeIndication* indication, Scope* scope
             indication->resolved = subtype;
             return subtype;
         }
-        if (std::any_of(indication->discriminantNames.begin(), indication->discriminantNames.end(),
-                [](const auto& names) { return !names.empty(); })) {
-            m_diagnostics.error(indication->location, "named constraints require a discriminated record subtype");
-            return base;
-        }
-        if (array == nullptr || array->kind != TypeKind::Array) {
-            m_diagnostics.error(indication->location, "index constraints require an array type");
-            return base;
-        }
-        if (indication->indexLows.size() != static_cast<std::size_t>(array->arrayRank)) {
-            m_diagnostics.error(indication->location, "index constraint count must match the array rank");
-            return base;
-        }
-        if (base->boundsSymbol != nullptr) {
-            m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
-            return base;
-        }
-        // A discrete_range can name an existing scalar subtype. Keep that
-        // constraint's identity instead of treating synthesized First/Last as
-        // an independently evaluated range (RM 4.9.1).
-        std::vector<Type*> indexConstraints(indication->indexLows.size(), nullptr);
-        indication->indexSubtypeMarks.resize(indication->indexLows.size());
-        for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
-            Expr* mark = indication->indexSubtypeMarks[i] != nullptr ? indication->indexSubtypeMarks[i].get()
-                : indication->indexHighs[i] == nullptr ? indication->indexLows[i].get() : nullptr;
-            if (mark == nullptr) { continue; }
-            for (Symbol* symbol : expressionNames(mark, scope)) {
-                if (symbol->kind != SymbolKind::TypeName || !isDiscrete(symbol->type)) { continue; }
-                indexConstraints[i] = symbol->type;
-                recordContractName(mark, symbol);
-                SourceLocation location = mark->location;
-                if (indication->indexSubtypeMarks[i] == nullptr) {
-                    indication->indexSubtypeMarks[i] = std::move(indication->indexLows[i]);
-                }
-                indication->indexLows[i] = scalarBoundExpr(symbol->type, true, location);
-                indication->indexHighs[i] = scalarBoundExpr(symbol->type, false, location);
-                break;
-            }
-        }
-        if (array->arrayRank > 1) {
-            if (base->constrained) {
-                m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
-                return base;
-            }
-            Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
-            Type* row = subtype;
-            Type* original = base;
-            bool allStatic = true;
-            std::vector<Type*> rows;
-            for (int dimension = 0; dimension < array->arrayRank; ++dimension) {
-                Expr* low = indication->indexLows[dimension].get();
-                Expr* high = indication->indexHighs[dimension].get();
-                if (high == nullptr) {
-                    m_diagnostics.error(indication->location, "array index constraints require ranges");
-                    return base;
-                }
-                Type* lowType = indexConstraints[dimension] != nullptr ? low->type : analyzeConstraintExpression(low, scope, original->index);
-                Type* highType = indexConstraints[dimension] != nullptr ? high->type : analyzeConstraintExpression(high, scope, original->index);
-                if (!typesCompatible(original->index, lowType) || !typesCompatible(original->index, highType)) {
-                    m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
-                }
-                bool staticLow = foldStatic(low, row->indexLow);
-                bool staticHigh = foldStatic(high, row->indexHigh);
-                row->indexConstraint = indexConstraints[dimension];
-                row->indexRangeStatic = staticLow && staticHigh;
-                allStatic = allStatic && staticLow && staticHigh
-                    && !rangeNeedsCheck(original->index, row->indexLow, row->indexHigh)
-                    && !rangeNeedsCheck(low->rangeSubtype, row->indexLow, row->indexHigh);
-                rows.push_back(row);
-                if (dimension + 1 < array->arrayRank) {
-                    original = original->element;
-                    row->element = m_types.makeSubtype(anonymousTypeName(), original, original->low, original->high);
-                    row = row->element;
-                }
-            }
-            if (!allStatic && !allowDynamic) {
-                m_diagnostics.error(indication->location, "index constraints must be static");
-                return base;
-            }
-            for (Type* axis : rows) { axis->constrained = allStatic; }
-            if (allStatic) { checkArrayStorage(subtype, m_diagnostics, indication->location); }
-            indication->resolved = subtype;
-            return subtype;
-        }
-        Type* lowType = indexConstraints.front() != nullptr ? indication->indexLows.front()->type
-            : analyzeConstraintExpression(indication->indexLows.front().get(), scope, array->index);
-        if (!typesCompatible(array->index, lowType)) {
-            m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
-        }
-        long long low = 0;
-        long long high = 0;
-        bool staticLow = foldStatic(indication->indexLows.front().get(), low);
-        bool staticHigh = false;
-        if (indication->indexHighs.front()) {
-            Type* highType = indexConstraints.front() != nullptr ? indication->indexHighs.front()->type
-                : analyzeConstraintExpression(indication->indexHighs.front().get(), scope, array->index);
-            if (!typesCompatible(array->index, highType)) {
-                m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
-            }
-            staticHigh = foldStatic(indication->indexHighs.front().get(), high);
-        }
-        bool staticRange = staticLow && staticHigh;
-        bool ok = staticRange && !rangeNeedsCheck(array->index, low, high)
-            && !rangeNeedsCheck(indication->indexLows.front()->rangeSubtype, low, high);
-        if (!ok && allowDynamic && indication->indexHighs.front() != nullptr) {
-            if (!isDiscrete(indication->indexLows.front()->type)
-                || !isDiscrete(indication->indexHighs.front()->type)) {
-                m_diagnostics.error(indication->location, "array index bounds must be discrete");
-                return base;
-            }
-            Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
-            subtype->constrained = false;
-            subtype->indexConstraint = indexConstraints.front();
-            subtype->indexRangeStatic = staticRange;
-            subtype->indexLow = low;
-            subtype->indexHigh = high;
-            indication->resolved = subtype;
-            return subtype;
-        }
-        if (!ok) {
-            m_diagnostics.error(indication->location, "index constraints must be static");
-            return base;
-        }
-        Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
-        subtype->constrained = true;
-        subtype->indexConstraint = indexConstraints.front();
-        subtype->indexRangeStatic = true;
-        subtype->indexLow = low;
-        subtype->indexHigh = high;
-        checkArrayStorage(subtype, m_diagnostics, indication->location);
-        indication->resolved = subtype;
-        return subtype;
+        return constrainArray(indication, base, scope, allowDynamic);
     }
 
     return base;
+}
+
+Type* Sema::constrainArray(SubtypeIndication* indication, Type* base, Scope* scope, bool allowDynamic)
+{
+    Type* array = baseType(base);
+    if (std::any_of(indication->discriminantNames.begin(), indication->discriminantNames.end(),
+            [](const auto& names) { return !names.empty(); })) {
+        m_diagnostics.error(indication->location, "named constraints require a discriminated record subtype");
+        return base;
+    }
+    if (array == nullptr || array->kind != TypeKind::Array) {
+        m_diagnostics.error(indication->location, "index constraints require an array type");
+        return base;
+    }
+    if (indication->indexLows.size() != static_cast<std::size_t>(array->arrayRank)) {
+        m_diagnostics.error(indication->location, "index constraint count must match the array rank");
+        return base;
+    }
+    if (base->boundsSymbol != nullptr) {
+        m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
+        return base;
+    }
+    // A discrete_range can name an existing scalar subtype. Keep that
+    // constraint's identity instead of treating synthesized First/Last as
+    // an independently evaluated range (RM 4.9.1).
+    std::vector<Type*> indexConstraints(indication->indexLows.size(), nullptr);
+    indication->indexSubtypeMarks.resize(indication->indexLows.size());
+    for (std::size_t i = 0; i < indication->indexLows.size(); ++i) {
+        Expr* mark = indication->indexSubtypeMarks[i] != nullptr ? indication->indexSubtypeMarks[i].get()
+            : indication->indexHighs[i] == nullptr ? indication->indexLows[i].get() : nullptr;
+        if (mark == nullptr) { continue; }
+        for (Symbol* symbol : expressionNames(mark, scope)) {
+            if (symbol->kind != SymbolKind::TypeName || !isDiscrete(symbol->type)) { continue; }
+            indexConstraints[i] = symbol->type;
+            recordContractName(mark, symbol);
+            SourceLocation location = mark->location;
+            if (indication->indexSubtypeMarks[i] == nullptr) {
+                indication->indexSubtypeMarks[i] = std::move(indication->indexLows[i]);
+            }
+            indication->indexLows[i] = scalarBoundExpr(symbol->type, true, location);
+            indication->indexHighs[i] = scalarBoundExpr(symbol->type, false, location);
+            break;
+        }
+    }
+    if (array->arrayRank > 1) {
+        if (base->constrained) {
+            m_diagnostics.error(indication->location, "an index constraint requires an unconstrained array subtype");
+            return base;
+        }
+        Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+        Type* row = subtype;
+        Type* original = base;
+        bool allStatic = true;
+        std::vector<Type*> rows;
+        for (int dimension = 0; dimension < array->arrayRank; ++dimension) {
+            Expr* low = indication->indexLows[dimension].get();
+            Expr* high = indication->indexHighs[dimension].get();
+            if (high == nullptr) {
+                m_diagnostics.error(indication->location, "array index constraints require ranges");
+                return base;
+            }
+            Type* lowType = indexConstraints[dimension] != nullptr ? low->type : analyzeConstraintExpression(low, scope, original->index);
+            Type* highType = indexConstraints[dimension] != nullptr ? high->type : analyzeConstraintExpression(high, scope, original->index);
+            if (!typesCompatible(original->index, lowType) || !typesCompatible(original->index, highType)) {
+                m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
+            }
+            bool staticLow = foldStatic(low, row->indexLow);
+            bool staticHigh = foldStatic(high, row->indexHigh);
+            row->indexConstraint = indexConstraints[dimension];
+            row->indexRangeStatic = staticLow && staticHigh;
+            allStatic = allStatic && staticLow && staticHigh
+                && !rangeNeedsCheck(original->index, row->indexLow, row->indexHigh)
+                && !rangeNeedsCheck(low->rangeSubtype, row->indexLow, row->indexHigh);
+            rows.push_back(row);
+            if (dimension + 1 < array->arrayRank) {
+                original = original->element;
+                row->element = m_types.makeSubtype(anonymousTypeName(), original, original->low, original->high);
+                row = row->element;
+            }
+        }
+        if (!allStatic && !allowDynamic) {
+            m_diagnostics.error(indication->location, "index constraints must be static");
+            return base;
+        }
+        for (Type* axis : rows) { axis->constrained = allStatic; }
+        if (allStatic) { checkArrayStorage(subtype, m_diagnostics, indication->location); }
+        indication->resolved = subtype;
+        return subtype;
+    }
+    Type* lowType = indexConstraints.front() != nullptr ? indication->indexLows.front()->type
+        : analyzeConstraintExpression(indication->indexLows.front().get(), scope, array->index);
+    if (!typesCompatible(array->index, lowType)) {
+        m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
+    }
+    long long low = 0;
+    long long high = 0;
+    bool staticLow = foldStatic(indication->indexLows.front().get(), low);
+    bool staticHigh = false;
+    if (indication->indexHighs.front()) {
+        Type* highType = indexConstraints.front() != nullptr ? indication->indexHighs.front()->type
+            : analyzeConstraintExpression(indication->indexHighs.front().get(), scope, array->index);
+        if (!typesCompatible(array->index, highType)) {
+            m_diagnostics.error(indication->location, "array index bounds have an incompatible type");
+        }
+        staticHigh = foldStatic(indication->indexHighs.front().get(), high);
+    }
+    bool staticRange = staticLow && staticHigh;
+    bool ok = staticRange && !rangeNeedsCheck(array->index, low, high)
+        && !rangeNeedsCheck(indication->indexLows.front()->rangeSubtype, low, high);
+    if (!ok && allowDynamic && indication->indexHighs.front() != nullptr) {
+        if (!isDiscrete(indication->indexLows.front()->type)
+            || !isDiscrete(indication->indexHighs.front()->type)) {
+            m_diagnostics.error(indication->location, "array index bounds must be discrete");
+            return base;
+        }
+        Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+        subtype->constrained = false;
+        subtype->indexConstraint = indexConstraints.front();
+        subtype->indexRangeStatic = staticRange;
+        subtype->indexLow = low;
+        subtype->indexHigh = high;
+        indication->resolved = subtype;
+        return subtype;
+    }
+    if (!ok) {
+        m_diagnostics.error(indication->location, "index constraints must be static");
+        return base;
+    }
+    Type* subtype = m_types.makeSubtype(anonymousTypeName(), base, base->low, base->high);
+    subtype->constrained = true;
+    subtype->indexConstraint = indexConstraints.front();
+    subtype->indexRangeStatic = true;
+    subtype->indexLow = low;
+    subtype->indexHigh = high;
+    checkArrayStorage(subtype, m_diagnostics, indication->location);
+    indication->resolved = subtype;
+    return subtype;
 }
 
 // 'Shape (Circle)': fixes the discriminants of a record subtype, which settles
