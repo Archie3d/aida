@@ -31,7 +31,7 @@ B-tests are compiled without linking or execution. Their observations are
 `B_ACCEPTED_UNGRADED` or `B_REJECTED_UNGRADED`, never PASS. Rejection alone
 cannot establish correctness. The independent [B-test grader](../../../docs/acats-grading.md)
 now checks expected error locations, permitted diagnostic groups and legal
-controls, recording 19 PASS and seven FAIL. Raw observations stay ungraded. B36002A now
+controls, recording 20 PASS and six FAIL. Raw observations stay ungraded. B36002A now
 rejects its mixed constrained/boxed array-index declarations with 12 targeted
 diagnostics after the 6f-prelude repair. Its observation remains ungraded;
 local `arrayindexerrors` and `arrayindexlegality` provide focused rejection
@@ -229,3 +229,8 @@ without instantiation, and the other 21 marked sites match reviewed profile,
 protected-convention and intrinsic restrictions. Dedicated executable callbacks
 cover the legal profiles. The other 25 grades are unchanged (19 PASS / seven
 FAIL overall); raw B rejection observations remain ungraded.
+
+B330001 now grades PASS unchanged after per-declaration diagnostic-family and
+four two-line source-span reviews. A dedicated executable control retains legal
+initialized and constrained declarations. Compiler diagnostics and all 161 raw
+observations remain unchanged; the separate grading total is 20 PASS / six FAIL.

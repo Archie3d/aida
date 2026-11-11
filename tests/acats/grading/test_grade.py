@@ -105,6 +105,40 @@ class GradingTests(unittest.TestCase):
             self.assertTrue(set(policies[case['id']].get('sites', {})) <= keys)
             self.assertTrue((grading.kRoot / policies[case['id']]['legal']).is_file())
 
+    def indefiniteFixture(self):
+        manifest = grading.baseline.readJson(grading.baseline.kRoot / 'manifest.json')
+        case = next(case for case in manifest['cases'] if case['id'] == 'b330001')
+        policy = grading.baseline.readJson(grading.kRoot / 'policies.json')['b330001']
+        sites = grading.expectations(case, policy)
+        snapshot = grading.baseline.readJson(grading.baseline.kRoot / 'expected.json')
+        errors = snapshot['cases']['b330001']['compile_stderr']
+        return sites, policy, errors
+
+    def testIndefiniteDeclarationSpansStayWithinTheirDeclarations(self):
+        sites, policy, errors = self.indefiniteFixture()
+        self.assertEqual(len(sites), 19)
+        self.assertEqual(grading.grade(sites, policy, result(1, errors), result())['outcome'], 'PASS')
+        for declaration, marker in [(129, 130), (152, 153), (162, 163), (222, 223)]:
+            # Either token in this two-line declaration is valid; the line
+            # before the declaration cannot discharge its required error.
+            moved = errors.replace(f':{declaration}:4:', f':{marker}:4:')
+            self.assertNotEqual(moved, errors)
+            self.assertEqual(grading.grade(sites, policy, result(1, moved), result())['outcome'], 'PASS')
+            outside = errors.replace(f':{declaration}:4:', f':{declaration - 1}:4:')
+            value = grading.grade(sites, policy, result(1, outside), result())
+            self.assertEqual(value['outcome'], 'FAIL')
+            self.assertIn(f'tests/b3/b330001.a:{marker}', value['missing'])
+
+    def testIndefiniteObjectCannotBeGradedAsAnArrayComponent(self):
+        sites, policy, errors = self.indefiniteFixture()
+        wrong = errors.replace('an object of an unknown-discriminant view requires an initializer',
+                               'an array component requires a definite subtype view', 1)
+        self.assertNotEqual(wrong, errors)
+        value = grading.grade(sites, policy, result(1, wrong), result())
+        self.assertEqual(value['outcome'], 'FAIL')
+        self.assertIn('tests/b3/b330001.a:149', value['missing'])
+        self.assertEqual(len(value['unexpected']), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

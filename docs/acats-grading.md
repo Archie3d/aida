@@ -1,8 +1,8 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[161-case baseline](acats-baseline.md). It currently records **19 PASS and
-seven FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **20 PASS and
+six FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -39,15 +39,14 @@ The [reviewed report](../tests/acats/grading/expected.json) retains every missin
 site and unexpected diagnostic. Only these complete observed passes are on the
 regular `acats;b-tests` CTest labels:
 
-B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
+B330001, B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
 B3A0001, B3A0002, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
 B64003A, B650004, B840001 and BC60001.
 
-The other seven cases stay failed and belong to their existing language owners:
+The other six cases stay failed and belong to their existing language owners:
 
 | Cases | Observation / existing owner |
 | --- | --- |
-| B330001 | Discriminant parsing now succeeds; indefinite-object/component diagnostics still miss reviewed groups/sites; P3/P6/P8 legality and P10 diagnostics |
 | B650002 | Return diagnostics still miss annotation groups and include unexpected diagnostics; P12 return diagnostic review |
 | B394A01–B394A05 | Concurrent/private-extension syntax now reaches ancestry semantics; diagnostic groups/sites and complete legality controls still fail the existing policies; P8 legality and P10 diagnostics |
 
@@ -103,6 +102,43 @@ Darwin arm64 validation (11 November 2026): all 2,129 Release CTest checks pass,
 including 298 ACATS-labelled checks. Six focused ASan/UBSan checks and the
 sanitizer B3A0002 grade pass. The full 161-case raw refresh changes only this
 case's diagnostics; upstream bytes and hashes remain intact.
+
+## Indefinite objects and components (Phase 12)
+
+B330001 now grades PASS unchanged at all 19 required sites. This is a grading
+policy repair: the compiler's diagnostic stream and every raw baseline outcome
+are unchanged. The applicable semantic families were reviewed per declaration:
+
+| Required marker lines | Declaration category | Required diagnostic family |
+| --- | --- | --- |
+| 125, 186, 191, 202 | Objects with visible nondefaulted discriminants | Fix the discriminants with a constraint |
+| 149, 159, 194, 208 | Objects of unknown-discriminant views | An initializer is required |
+| 130, 219 | Array elements with nondefaulted discriminants | A definite discriminated subtype is required |
+| 153, 163, 211, 223 | Array elements of unknown-discriminant views | A definite subtype view is required |
+| 215 | Protected record component without a constraint | A definite discriminated subtype is required |
+| 229, 233 | Class-wide record/array components | A definite subtype is required |
+| 240 | Unconstrained array elements, despite an object initializer | A constrained array subtype is required |
+| 246 | Unconstrained anonymous array object without an initializer | An initializer or index constraint is required |
+
+Only four multiline array declarations permit an adjacent location:
+129–130, 152–153, 162–163 and 222–223. Each span includes the declaration's
+opening line and its component subtype line; all other locations remain exact.
+Per-site groups prevent an object error from being graded as a component error.
+Adversarial tests move errors outside these spans and substitute an unrelated
+semantic family; neither mutation can discharge a required marker.
+
+The inline upstream legal declarations remain accepted. The
+[dedicated executable control](../tests/ada/types/definiteviews.adb) checks
+initialized unknown-discriminant views, defaulted full views and array elements,
+constrained arrays/records, class-wide initialized objects and constrained task
+and protected objects. It executes in whole-program and per-unit modes with
+deterministic IR. The other 25 B grades are unchanged: 20 PASS / six FAIL overall.
+
+Darwin arm64 validation (11 November 2026): all 2,133 Release CTest checks pass,
+including 299 ACATS-labelled checks. Three focused ASan/UBSan checks and the
+sanitizer B330001 grade pass. All 16 adversarial grader tests pass. The full
+161-case raw snapshot and all upstream bytes/hashes remain unchanged; compiler
+and runtime code are unchanged.
 
 ## Support adapters and re-probes
 

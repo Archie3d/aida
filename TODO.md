@@ -260,11 +260,21 @@ one failed at runtime and five reached documented feature limits.
   focused ASan/UBSan checks and the sanitizer B3A0002 grade passed. The other
   25 B grades are unchanged: 19 PASS / seven FAIL overall. The 161-case raw
   refresh changes only B3A0002 diagnostics; upstream sources/hashes are intact.
-- [ ] **B330001 — indefinite objects and components.** Review the diagnostic
+- [x] **B330001 — indefinite objects and components.** Review the diagnostic
   families and accepted source spans for each declaration. Four array errors
   point to the opening line immediately before the marker. Update the
   [grading policy](tests/acats/grading/policies.json) for verified matches
   and retain the legal initialized and constrained declarations as controls.
+  All 19 required sites now grade PASS using per-declaration semantic groups;
+  only 129–130, 152–153, 162–163 and 222–223 permit a two-line declaration span.
+  [Legal execution control](tests/ada/types/definiteviews.adb) covers initialized
+  unknown views, defaulted full views and constrained declarations in whole/per-unit
+  builds and deterministic IR. Adversarial tests reject unrelated lines/families.
+  [Site review](docs/acats-grading.md#indefinite-objects-and-components-phase-12).
+  Darwin arm64 validation: all 2,133 Release checks passed (299 ACATS), three
+  focused ASan/UBSan checks and the sanitizer B330001 grade passed. Compiler and
+  runtime code, upstream sources/hashes and all 161 raw observations are unchanged;
+  only B330001's grade changes: 20 PASS / six FAIL overall.
 - [ ] **B650002 — return diagnostics.** All 32 required sites receive errors.
   Explain why an extended return is illegal in a procedure, entry body or
   accept statement. Check each diagnostic against its return rule before
