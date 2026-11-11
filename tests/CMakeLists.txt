@@ -433,6 +433,23 @@ add_ada_error_test(runtimescalarlibraryerrors SOURCES types/runtimescalarlibrary
 
 add_ada_test(handlerchoices SOURCES exceptions/handlerchoices.adb)
 add_ada_test(reverseloops SOURCES control_flow/reverseloops.adb)
+add_ada_error_test(returnbodyerrors SOURCES control_flow/returnbodyerrors.adb)
+add_ada_test(returncontexts SOURCES control_flow/returncontexts.adb)
+add_determinism_test(returncontexts SOURCE control_flow/returncontexts.adb)
+ada_test_fixture(return_context_source control_flow/returncontexts.adb)
+ada_test_fixture(return_context_expected control_flow/returncontexts.expected)
+add_test(NAME runtime.returncontexts_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${return_context_source} -DEXPECTED=${return_context_expected}
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/returncontexts-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.returncontexts_modes PROPERTIES TIMEOUT 60)
+
 
 foreach(case generic order compiler paths binding)
     add_test(NAME separate.${case}

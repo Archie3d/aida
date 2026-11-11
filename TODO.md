@@ -235,10 +235,18 @@ one failed at runtime and five reached documented feature limits.
   plus four focused ASan/UBSan checks. The full 161-case backfill refresh changes
   only C35502C to PASS: 130 C passes, five documented C rejections and 26 raw
   B observations. Upstream sources/hashes are unchanged.
-- [ ] **B650004 — returns in nested package bodies.** Check which construct a
+- [x] **B650004 — returns in nested package bodies.** Check which construct a
   return applies to. Reject returns in package elaboration even inside an
   enclosing callable construct. Cover the ten missed error sites and preserve
   legal returns directly inside accept statements and subprogram bodies.
+  All 22 upstream sites now match with no unexpected diagnostics, including
+  the ten formerly missed sites. [Legal execution control](tests/ada/control_flow/returncontexts.adb)
+  covers whole-program/per-unit builds and deterministic IR; exact rejection
+  controls include package-body handlers. [Grading review](docs/acats-grading.md#nested-body-returns-phase-12).
+  Darwin arm64 validation: all 2,124 Release checks passed (297 ACATS), plus
+  eight focused ASan/UBSan checks and the sanitizer B650004 grade. The other
+  25 B grades are unchanged: 18 PASS / eight FAIL overall. The 161-case raw
+  refresh changes only B650004 diagnostics; upstream sources/hashes are intact.
 - [ ] **B3A0002 — `'Access` of a generic formal procedure.** Diagnose the
   illegal attribute in the generic body at line 168 even without an
   instantiation. Review the diagnostic groups at the other 21 marked sites

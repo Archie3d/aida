@@ -22,11 +22,11 @@ was corrected to trim surrounding spaces only; tabs raise Constraint_Error.
 C761001 now passes unchanged after task entry declarations were supported;
 its unused entry checks library-task termination before controlled finalization.
 It does not exercise rendezvous or select. Task-interface rejections remain,
-with updated wording. B650002/B650004 still grade FAIL after accept parsing
-exposes their return-legality diagnostics.
+with updated wording. B650004 now grades PASS after the Phase 12 nested-body
+return repair; B650002 retains its return-diagnostic review.
 
 The raw B observations stay ungraded for historical comparison. The independent
-[location/group-aware grader](acats-grading.md) records **17 B PASS and nine B FAIL**,
+[location/group-aware grader](acats-grading.md) records **18 B PASS and eight B FAIL**,
 with separate legal controls. Only complete B passes join the regular ACATS label.
 
 ## Non-tasking legality increment (Phase 8)

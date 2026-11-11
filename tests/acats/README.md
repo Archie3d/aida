@@ -134,7 +134,7 @@ rights notices, provide their required support operations, add explicit CTest
 expectations, and update the [coverage matrix](../../docs/ada2005-coverage.md).
 When closing a known gap, remove its rejection expectation and run the executable
 case. The separate [B-test grader](../../docs/acats-grading.md) grades all 26 pinned
-legality probes (17 PASS, nine FAIL); only complete observed passes join the
+legality probes (18 PASS, eight FAIL); only complete observed passes join the
 `acats;b-tests` labels. Multi-stage construction, general implementation-defined
 substitutions, broader annex selections and the full official REPORT protocol
 remain outside this selected-case harness.

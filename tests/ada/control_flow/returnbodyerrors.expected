@@ -1,0 +1,4 @@
+returnbodyerrors.adb:10:9: error: a return statement is not allowed in a package body
+returnbodyerrors.adb:13:13: error: a return statement is not allowed in a package body
+returnbodyerrors.adb:23:21: error: a return statement is not allowed in a package body
+returnbodyerrors.adb:26:25: error: a return statement is not allowed in a package body

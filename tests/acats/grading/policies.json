@@ -434,9 +434,9 @@
     "objective": "Check that a return statement is illegal if it is not within a callable construct. Check that a return statement is illegal if it is within a body that is within the construct to which it applies.",
     "groups": [
       "a return statement is not allowed in a package body",
-      "a return statement requires an enclosing callable construct"
+      "return statements are not allowed in a task body"
     ],
-    "legal": "legal.adb"
+    "legal": "../../ada/control_flow/returncontexts.adb"
   },
   "b840001": {
     "objective": "Check that the name in a use type clause must denote a subtype. Check that only the primitive operators of the type determined by the subtype mark in a use type clause are use-visible (in particular, that the primitive operators of no other type declared in the same package are use-visible). Check that the scope of a use type clause in the private part of a library unit does not include the visible part of any public descendant of that library unit.",

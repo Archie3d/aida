@@ -877,9 +877,17 @@ void Sema::analyzeStatement(Stmt* statement, Scope* scope)
     }
 
     case StmtKind::Return: {
+        // Storage ownership can remain with an enclosing callable while a
+        // nested package elaborates. The innermost body still governs return.
+        Symbol* body = m_statementRegions.empty() ? nullptr : m_statementRegions.front().identifier;
+        if (body != nullptr && body->kind == SymbolKind::Package) {
+            m_diagnostics.error(statement->location, "a return statement is not allowed in a package body");
+            break;
+        }
         if (m_currentSubprogram != nullptr && m_currentSubprogram->taskBody
             && (m_accepts.empty() || m_accepts.back()->owner != m_currentSubprogram)) {
             m_diagnostics.error(statement->location, "return statements are not allowed in a task body");
+            break;
         }
         auto* returnStatement = static_cast<ReturnStmt*>(statement);
         Type* expected = m_currentSubprogram != nullptr ? m_currentSubprogram->returnType : nullptr;

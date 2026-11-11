@@ -1,8 +1,8 @@
 # Selected ACATS B-test grading and support
 
 The Phase 8 harness grades all 26 pinned B-tests independently of the raw
-[145-case baseline](acats-baseline.md). It currently records **17 PASS and
-nine FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
+[161-case baseline](acats-baseline.md). It currently records **18 PASS and
+eight FAIL**, not 26 passes for nonzero compiler exits. This is a conservative,
 local grader for an explicit selection, not the official ACATS grading tool
 or a conformance assessment.
 
@@ -26,8 +26,8 @@ site, even if a pattern would match them. Missing diagnostics, changed diagnosti
 families, parser cascades, unrelated errors, compiler success, build failures,
 crashes, timeouts and output-limit failures cannot pass a negative test.
 
-Each grade also compiles the shared, separately authored
-[legal counterpart](../tests/acats/grading/legal.adb). It checks distinct names,
+Each grade also compiles a separately authored legal counterpart. The
+[shared control](../tests/acats/grading/legal.adb) checks distinct names,
 valid derived conversions, discrete/constrained/unconstrained array indices,
 record/array aggregates, writable aliased access, positional/named/defaulted
 calls, scalar attributes and null procedure defaults. It supplements the legal
@@ -41,21 +41,42 @@ regular `acats;b-tests` CTest labels:
 
 B33101A, B33102A, B34001B, B34002B, B36001A, B36002A, B37004A,
 B3A0001, B43002D, B43002E, B43002F, B460001, B64002A, B64002C,
-B64003A, B840001 and BC60001.
+B64003A, B650004, B840001 and BC60001.
 
-The other nine cases stay failed and belong to their existing language owners:
+The other eight cases stay failed and belong to their existing language owners:
 
 | Cases | Observation / existing owner |
 | --- | --- |
 | B330001 | Discriminant parsing now succeeds; indefinite-object/component diagnostics still miss reviewed groups/sites; P3/P6/P8 legality and P10 diagnostics |
 | B3A0002 | Named protected access parsing now succeeds; profile diagnostics miss reviewed groups, and generic formal Access at line 168 remains undiagnosed; P6d/P8 legality and P10 diagnostics |
-| B650002/B650004 | Task entry/accept parsing now succeeds; return diagnostics still miss annotation groups and include unexpected diagnostics; P6e/P8 returns, P10 diagnostics |
+| B650002 | Return diagnostics still miss annotation groups and include unexpected diagnostics; P12 return diagnostic review |
 | B394A01–B394A05 | Concurrent/private-extension syntax now reaches ancestry semantics; diagnostic groups/sites and complete legality controls still fail the existing policies; P8 legality and P10 diagnostics |
 
 The [non-tasking legality audit](legality-audit.md) repairs and reviews the six
 promoted cases, including independent executable controls. Remaining failures
 are not waived. Widening a compiler feature requires reviewing its policy and
 re-running the full case. Frozen raw B observations remain separate from grades.
+
+## Nested-body returns (Phase 12)
+
+B650004 now grades PASS unchanged: all 22 required return sites receive one
+applicable diagnostic, including the ten formerly missed package-body returns.
+The innermost body region controls legality independently of the enclosing
+callable's storage owner. Package-body returns are rejected in statements,
+blocks and handlers; task-body returns outside accept statements are rejected
+without unrelated result-type cascades. The existing task-body message is now
+an explicitly accepted semantic family, not a recovery allowance.
+
+Its [dedicated legal control](../tests/ada/control_flow/returncontexts.adb)
+compiles in the grader and executes through whole-program and per-unit builds,
+including direct procedure/function returns, extended returns, accepts and
+protected entries. The inline upstream OK controls remain accepted. The other
+25 B grades are unchanged; the raw B observation remains rejected and ungraded.
+
+Darwin arm64 validation (11 November 2026): all 2,124 Release CTest checks pass,
+including 297 ACATS-labelled checks. Eight focused ASan/UBSan checks and the
+sanitizer B650004 grade pass. The full 161-case raw refresh changes only this
+case's diagnostics; upstream bytes and hashes remain intact.
 
 ## Support adapters and re-probes
 
