@@ -326,9 +326,17 @@ one failed at runtime and five reached documented feature limits.
   Darwin arm64 validation: all 2,146 Release checks pass, including all 305
   ACATS checks and 26 graded B cases. All 161 raw baseline observations and
   upstream hashes are unchanged; `git diff --check` passes.
-- [ ] **Refresh the ACATS baseline table.** Correct the stale rejection rows
-  for C85005A and C85005B, which now execute successfully. Record newly
-  verified grades and executable passes as the fixes land.
+- [x] **Refresh the ACATS baseline table.** Corrected C85005A/C85005B to
+  executable PASS, added 17 missing case rows and reconciled all 161 cases
+  and 22 area totals with the recorded snapshots. All 26 B rows now link their
+  independent PASS grades while retaining raw ungraded observations;
+  B394A01's local foundation adapter remains explicit. Current totals are
+  130 C passes, five C rejections and 26 raw B rejections. Historical milestone
+  counts remain identified as historical. [Refreshed report](docs/acats-baseline.md#baseline-table-refresh-phase-12).
+  Validation: inventory/status/grade/area reconciliation, all 165 source hashes,
+  fresh C85005A/C85005B execution, the full B-grade snapshot check (three focused
+  CTest checks) and `git diff --check` pass. No compiler, upstream source,
+  snapshot or grading policy changes.
 
 The remaining C-test rejections stay with their documented limits. CC3605A
 needs access-to-array subtype constraints, and C761010 also needs controlled

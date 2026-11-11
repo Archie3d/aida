@@ -16,14 +16,15 @@ This is a baseline of the current subset, not a conformance claim.
 | Executable PASS | 130 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. Five legal C-tests are rejected.
-C35502C now completes its unchanged REPORT protocol after enumeration Value
-was corrected to trim surrounding spaces only; tabs raise Constraint_Error.
-C761001 now passes unchanged after task entry declarations were supported;
-its unused entry checks library-task termination before controlled finalization.
-It does not exercise rendezvous or select. Task-interface rejections remain,
-with updated wording. B650004 now grades PASS after the Phase 12 nested-body
-return repair; B650002 also grades PASS after its Phase 12 return-form diagnostic review.
+No crashes or timeouts were observed. The five remaining rejected C-tests are
+C432005 (tagged records with concurrent components), C761010 (access-to-array
+subtype constraints and dependent controlled arrays), CC3605A (access-to-array
+subtype constraints), CXC7002 (packed signed-integer arrays) and CXDA003
+(Locking_Policy and Interrupt_Priority). Their failures remain recorded.
+C35502C now completes its unchanged REPORT protocol after the enumeration Value
+repair; C85005A and C85005B also execute successfully after selective accept.
+The current tables below cover all 161 cases. Later milestone sections retain
+the counts and observations from those increments.
 
 The raw B observations stay ungraded for historical comparison. The independent
 [location/group-aware grader](acats-grading.md) records **26 B PASS (25 original foundations, one local foundation adapter)**,
@@ -263,7 +264,7 @@ be blocked before reaching the feature named in their objective.
 
 | Area | C PASS | C rejected | C runtime failure | Harness blocked | B raw rejected |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| derived scalars | 9 | 0 | 1 | 0 | 0 |
+| derived scalars | 10 | 0 | 0 | 0 | 0 |
 | arrays discriminants | 10 | 0 | 0 | 0 | 0 |
 | object orientation | 17 | 0 | 0 | 0 | 0 |
 | access callbacks | 7 | 0 | 0 | 0 | 0 |
@@ -273,7 +274,7 @@ be blocked before reaching the feature named in their objective.
 | control flow | 4 | 0 | 0 | 0 | 0 |
 | calls returns | 8 | 0 | 0 | 0 | 0 |
 | private finalization | 11 | 1 | 0 | 0 | 0 |
-| visibility renaming | 9 | 2 | 0 | 0 | 0 |
+| visibility renaming | 11 | 0 | 0 | 0 | 0 |
 | loading subunits | 3 | 0 | 0 | 0 | 0 |
 | protected objects | 2 | 0 | 0 | 0 | 0 |
 | legality sample | 0 | 0 | 0 | 0 | 21 |
@@ -281,12 +282,17 @@ be blocked before reaching the feature named in their objective.
 | representation | 7 | 0 | 0 | 0 | 0 |
 | access null exclusions | 5 | 0 | 0 | 0 | 0 |
 | generic subprograms | 3 | 1 | 0 | 0 | 0 |
+| concurrent callable views | 8 | 0 | 0 | 0 | 0 |
+| concurrent interfaces | 1 | 0 | 0 | 0 | 0 |
+| task services | 4 | 2 | 0 | 0 | 0 |
+| task termination | 1 | 0 | 0 | 0 | 0 |
+| **Total** | 130 | 5 | 0 | 0 | 26 |
 
 ## Follow-up order
 
-1. Validate target configuration on other supported hosts. The [non-tasking
-   B-test findings](legality-audit.md) now pass; concurrent prerequisites retain
-   their Phase 9 owners.
+1. Validate target configuration on other supported hosts. All 26 selected B
+   grades now pass with the documented B394A01 foundation adapter; broader
+   interface and tasking conformance is not inferred.
 2. Investigate the remaining five legal C rejections;
    turn confirmed defects into focused compiler regressions before fixing them.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
@@ -296,18 +302,20 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 113 executable C passes and the independent grader's 17 complete B passes
-join normal ACATS labels. Snapshot stability of a recorded failure is not an
-ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
+Its 130 executable C passes and the independent grader's 26 complete B passes
+(25 original foundations and one labelled local adapter) join normal ACATS
+labels. Snapshot stability of a recorded failure is not an ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
 ## Case inventory
 
 Each objective, source hash and owning feature is recorded in the manifest.
-The table below gives the raw observed status and triage for every case;
-B-test grades are reported independently in the linked grading report.
-“Front-end rejection to investigate” is not a confirmed root-cause diagnosis.
+The table below gives the current raw observed status and evidence for every
+case. Each B row also links its independent grade; raw rejection alone remains
+ungraded. B394A01's PASS uses the labelled local foundation adapter. Source
+hashes and unchanged B markers remain governed by the manifest and grading
+report.
 
-| Case / upstream source | RM area | Observation | Initial triage / next owner |
+| Case / upstream source | RM area | Raw observation | Current evidence / remaining owner |
 | --- | --- | --- | --- |
 | [C34001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001a.ada) | 3.4–3.5 | Executable PASS | scalar Value base-range repair; P6f-prelude |
 | [C34001C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c34001c.ada) | 3.4–3.5 | Executable PASS | covered probe; P3/P5 |
@@ -363,7 +371,7 @@ B-test grades are reported independently in the linked grading report.
 | [C41207A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c41207a.ada) | 4.1.1–4.1.2 | Executable PASS | covered probe; P8 discrete ranges |
 | [C432001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432001.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
 | [C432004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432004.a) | 4.3 | Executable PASS | repaired; P6f tagged/private views |
-| [C432005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432005.a) | 4.3 | Legal C-test rejected | cross feature language gap; P9 full tasking |
+| [C432005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c432005.a) | 4.3 | Legal C-test rejected | tagged records with task/protected components remain unsupported; P9 concurrent-component layout |
 | [C43204A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c43204a.ada) | 4.3 | Executable PASS | covered probe; P8 discrete ranges |
 | [C460004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460004.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
 | [C460005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c460005.a) | 4.6/4.9 | Executable PASS | covered probe; P3/P5/P6d |
@@ -374,14 +382,14 @@ B-test grades are reported independently in the linked grading report.
 | [C49022C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c4/c49022c.ada) | 4.6/4.9 | Executable PASS | covered probe; P6f-prelude |
 | [C540001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540001.a) | 5.4 | Executable PASS | complete case-expression scenario, including expanded character names and literal function actuals |
 | [C540002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c540002.a) | 5.4 | Executable PASS | discrete-context selector resolution repaired; P6f-prelude |
-| [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | PASS | P8 Standard.ASCII; unchanged executable case control |
+| [C54A03A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a03a.ada) | 5.4 | Executable PASS | P8 Standard.ASCII; unchanged executable case control |
 | [C54A07A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c5/c54a07a.ada) | 5.4 | Executable PASS | covered probe; P8 observation refresh |
 | [C640001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c640001.a) | 6.4–6.5 | Executable PASS | repaired; P6g tagged private formals |
 | [C64002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64002b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C64004G](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64004g.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005a.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C64005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005b.ada) | 6.4–6.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
-| [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | PASS | P8 Standard.ASCII; unchanged recursive static-chain control |
+| [C64005C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c64005c.ada) | 6.4–6.5 | Executable PASS | P8 Standard.ASCII; unchanged recursive static-chain control |
 | [C65003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003a.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C65003B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c6/c65003b.ada) | 6.4–6.5 | Executable PASS | covered probe; P3/P6e |
 | [C730004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c730004.a) | 7.3/7.6 | Executable PASS | covered probe; P6f-prelude |
@@ -395,7 +403,7 @@ B-test grades are reported independently in the linked grading report.
 | [C761001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761001.a) | 7.3/7.6 | Executable PASS | covered probe; P9 task entries |
 | [C761004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761004.a) | 7.3/7.6 | Executable PASS | TCTouch protocol repaired; P8 |
 | [C761006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761006.a) | 7.3/7.6 | Executable PASS | controlled assignment/adjustment repair; P6f-prelude |
-| [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | documented language gap; P6d/P6g access subtypes; dependent controlled arrays |
+| [C761010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c7/c761010.a) | 7.3/7.6 | Legal C-test rejected | access-to-array subtype constraints and dependent controlled array elements remain unsupported; P6d/P6g |
 | [C83007A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83007a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C83022A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83022a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
 | [C83024A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c83024a.ada) | 8.3–8.5 | Executable PASS | enclosing-name qualification repaired; P6f-prelude |
@@ -404,39 +412,40 @@ B-test grades are reported independently in the linked grading report.
 | [C84005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84005a.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [C84008A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84008a.ada) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
 | [C84009A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c84009a.ada) | 8.3–8.5 | Executable PASS | operator visibility/expanded-call repair; P6f-prelude |
-| [C85005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005a.ada) | 8.3–8.5 | Legal C-test rejected | cross feature language gap; P9 full tasking |
-| [C85005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005b.ada) | 8.3–8.5 | Legal C-test rejected | cross feature language gap; P9 full tasking |
+| [C85005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005a.ada) | 8.3–8.5 | Executable PASS | selective accept, object renaming and entry/generic actuals; P9 |
+| [C85005B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005b.ada) | 8.3–8.5 | Executable PASS | selective accept, renamed variables and entry/generic actuals; P9 |
 | [C85005F](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85005f.ada) | 8.3–8.5 | Executable PASS | covered probe; P3/P6e |
 | [CA1003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1003a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1004a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [CA1005A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/ca/ca1005a.ada) | 10.1 | Executable PASS | covered probe; P3/P6e |
 | [C940005](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940005.a) | 9.4–9.5 | Executable PASS | local task-progress configuration; P8 |
 | [C940010](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940010.a) | 9.4–9.5 | Executable PASS | local task-progress configuration; P8 |
-| [B330001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b330001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B33101A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33101a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B33102A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33102a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B34001B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34001b.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B34002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34002b.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B36001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36001a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B36002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36002a.ada) | 3/4/6/8 | B rejected, ungraded | mixed-index diagnostics repaired in P6f-prelude; grading: P8 B-test harness |
-| [B37004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b37004a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B394A01](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a01.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | progenitor-type legality, including formals; P8 grading/P9 concurrent syntax |
-| [B394A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a02.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | nonlimited-interface descendant legality, including formals; P8 grading/P9 concurrent syntax |
-| [B3A0001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B3A0002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0002.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B43002D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002d.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B43002E](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002e.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B43002F](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002f.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B460001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b460001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B64002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64002a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B64002C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64002c.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B64003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64003a.ada) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B650002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650002.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B650004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650004.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b8/b840001.a) | 3/4/6/8 | B rejected, ungraded | ungraded legality probe; P8 B-test harness |
-| [B394A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a03.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Task ancestry/conflicting task-protected ancestors; P8 grading/P9 execution |
-| [B394A04](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a04.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Protected ancestry; P8 grading/P9 execution |
-| [B394A05](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a05.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | Synchronized ancestry; P8 grading/P9 execution |
+| [B330001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b330001.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md#indefinite-objects-and-components-phase-12); if a subtype indication of a variable object defines an indefinite subtype, then there is an initialization. Check that if the array type definition of a variable object defines an unconstrained array subtype, then there is an initialization. Check that indefinite subtypes may not be used as the subtype indication of a component definition (in either an array or a record definition) |
+| [B33101A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33101a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); eNUMERATION, INTEGER, REAL, ARRAY, ACCESS, AND DERIVED TYPE_DECLARATIONS CANNOT HAVE DISCRIMINANT PARTS. JRK 4/1/81 JWC 10/4/85 RENAMED FROM B33002A.ADA; ADDED TESTS FOR ACCESS AND DERIVED TYPES. RLB 11/19/19 Added error location indicators |
+| [B33102A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b33102a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); a TYPE DECLARATION, INCOMPLETE TYPE DECLARATION, PRIVATE TYPE DECLARATION OR SUBTYPE DECLARATION CANNOT INTRODUCE AN IDENTIFIER THAT WAS INTRODUCED PREVIOUSLY IN THE SAME DECLARATIVE PART. CASE A: A SINGLE PACKAGE SPECIFICATION. JRK 4/1/81 JWC 10/2/85 JRK 11/15/85 |
+| [B34001B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34001b.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); oNLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED ENUMERATION TYPES, EXCLUDING BOOLEAN TYPES. JRK 8/20/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X |
+| [B34002B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b34002b.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); oNLY THE REQUIRED PREDEFINED OPERATIONS ARE DECLARED (IMPLICITLY) FOR DERIVED INTEGER TYPES. JRK 8/21/86 PWN 12/27/94 REMOVED INCONSISTENCIES WITH ADA 9X |
+| [B36001A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36001a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); cHECK THAT AN ARRAY TYPE CANNOT BE DECLARED WITH A NON-DISCRETE INDEX TYPE |
+| [B36002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b36002a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); tHE INDICES OF MULTIDIMENSIONAL ARRAY TYPES MUST BE EITHER ALL CONSTRAINED OR ALL UNCONSTRAINED. L.BROWN 7/2/86 |
+| [B37004A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b37004a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); rECORD COMPONENTS CANNOT BE UNCONSTRAINED ARRAYS, EVEN IF INITIALIZED TO A STATIC VALUE. (B) CHECK THAT COMPONENTS CANNOT BE USED IN ANOTHER RECORD COMPONENT'S CONSTRAINT OR INITIAL VALUE, OR IN ITS OWN CONSTRAINT OR INITIAL VALUES. (C) CHECK THAT THE BASE TYPES OF A COMPONENT AND ITS INITIAL VALUE MUST MATCH. (F) CHECK THAT THE NAME OF A RECORD TYPE CANNOT BE USED INSIDE ITS RECORD DEFINITION. DAT 5/18/81 SPS 11/3/82 VKG 1/13/83 RJW 1/9/86 - ADDED 'C20', DELETED 'C21' TO 'C30' AND CASE (G). PWN 10/24/95 REMOVED CHECKS NO LONGER SUPPORTED IN AD |
+| [B3A0001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0001.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); objects defined to be of a general access type may not designate an object or component which is not defined to be aliased. Check that a renaming of an aliased view is also defined to be aliased. Check that an array slice may not be aliased. Check that the general access modifiers "all" and "constant" are allowed. Check that an object designated by an access-to-constant type object cannot be updated through a value of that type. Check that an object designated by a value of an access-to-variable type can be both read and updated |
+| [B3A0002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b3a0002.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md#generic-formal-subprogram-access-phase-12); subtype conformance is required for actual values of access to subprogram types. Check that the mode, number and subtype of parameters must statically match. Check that the calling convention of the value must not be Intrinsic. Check that corresponding subtypes of the profiles must statically match. Check that a generic formal subprogram may not be the actual value of an access to subprogram type because it cannot subtype-conform with anything |
+| [B43002D](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002d.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); cHECK THAT A RECORD AGGREGATE CANNOT CONTAIN A SINGLE POSITIONAL ASSOCIATION |
+| [B43002E](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002e.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); cHECK THAT AN ARRAY AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS |
+| [B43002F](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b43002f.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); cHECK THAT A RECORD AGGREGATE CANNOT CONTAIN TWO COMPONENT ASSOCIATIONS WITH THE CHOICE OTHERS |
+| [B460001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b4/b460001.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); if the target type of a type conversion is a general access type, the accessibility level of the operand type must not be statically deeper than that of the target type. Check for cases where the operand is: (a) a stand-alone access object. (b) a formal parameter. (c) an access discriminant |
+| [B64002A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64002a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); tHE NUMBER OF ACTUAL PARAMETERS AND NAMED PARAMETERS MUST EQUAL THE NUMBER OF FORMAL PARAMETERS. DAS 1/27/81 CPP 6/28/84 |
+| [B64002C](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64002c.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); tHE BASE TYPES OF A FORMAL AND ACTUAL PARAMETER CANNOT BE DIFFERENT. DAS 2/9/81 SPS 12/10/82 CPP 6/28/84 JRK 11/28/84 |
+| [B64003A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b64003a.ada) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); fOR A MIXTURE OF NAMED AND POSITIONAL NOTATION, NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. SUBTESTS ARE: (A) NAMED PARAMETERS CANNOT BE INTERLEAVED WITH NOR PRECEDE POSITIONAL PARAMETERS. (B) A NAMED PARAMETER AND A LATER POSITIONAL PARAMETER CANNOT BE SPECIFIED FOR THE SAME FORMAL PARAMETER. (C) TWO OR MORE NAMED PARAMETERS CANNOT SPECIFY THE SAME FORMAL PARAMETER. (D) THE NAME USED IN A NAMED PARAMETER MUST ONLY BE A NAME OF A FORMAL PARAMETER. (E) A NAMED PARAMETER CANNOT BE PROVIDED FOR A FORMAL PARAMETER |
+| [B650002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650002.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md#return-form-diagnostics-phase-12); an extended return statement cannot be used to return from a procedure body, entry body, or accept statement. Check that an extended return statement cannot be used to return from an outer extended return statement. Check that a simple return statement that applies to a procedure body, entry body, accept statement, or extended return statement cannot have an expression. Check that a simple return statement that applies to a function body must have an expression |
+| [B650004](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b6/b650004.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md#nested-body-returns-phase-12); a return statement is illegal if it is not within a callable construct. Check that a return statement is illegal if it is within a body that is within the construct to which it applies |
+| [B840001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b8/b840001.a) | 3/4/6/8 | B rejected, ungraded | [Graded PASS](acats-grading.md); the name in a use type clause must denote a subtype. Check that only the primitive operators of the type determined by the subtype mark in a use type clause are use-visible (in particular, that the primitive operators of no other type declared in the same package are use-visible). Check that the scope of a use type clause in the private part of a library unit does not include the visible part of any public descendant of that library unit |
+| [B394A01](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a01.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | [Graded PASS with local foundation adapter](acats-grading.md#progenitor-types-and-foundation-mismatch-phase-12); progenitor subtype marks denote interfaces, including formal interface and formal derived declarations |
+| [B394A02](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a02.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | [Graded PASS](acats-grading.md#interface-ancestry-review-phase-12); descendants of nonlimited interfaces cannot be limited, including generic formal declarations |
+| [B394A03](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a03.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | [Graded PASS](acats-grading.md#interface-ancestry-review-phase-12); task-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations |
+| [B394A04](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a04.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | [Graded PASS](acats-grading.md#interface-ancestry-review-phase-12); protected-interface descendants, including synchronized formal extensions, and forbidden task/protected combinations |
+| [B394A05](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/b3/b394a05.a) | 3.9.4/12.5.1/12.5.5 | B rejected, ungraded | [Graded PASS](acats-grading.md#interface-ancestry-review-phase-12); synchronized-interface descendants, including formal derived extensions |
+| [BC60001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/bc/bc60001.a) | 12.6(4.1/2,10.1/2,16.2/2); 3.10.2(32/2) | B rejected, ungraded | [Graded PASS](acats-grading.md); null defaults are forbidden for formal functions and abstract formals, and that an omitted null default has Intrinsic convention |
 | [CD2A22E](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22e.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
 | [CD2A22I](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22i.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
 | [lencheck.ada](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/support/lencheck.ada); [CD2A22J](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cd/cd2a22j.ada) | 13.2–13.4, 12.3, 13.9 | Executable PASS | covered probe; P8 bit storage |
@@ -453,6 +462,22 @@ B-test grades are reported independently in the linked grading report.
 | [CC3605A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3605a.ada) | 12.6, 6.3.1 | Legal C-test rejected | existing access-to-array subtype constraint limit; P8 |
 | [CC3606A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606a.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
 | [CC3606B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cc/cc3606b.ada) | 12.6, 6.3.1 | Executable PASS | covered probe; P6g formal subprograms |
+| [C910001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c910001.a) | 3.7, 9.1 | Executable PASS | Task discrete/access discriminants, explicit values and defaults; P9 discriminants and callable views |
+| [C940012](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940012.a) | 3.7, 9.4 | Executable PASS | Protected discriminants, allocated objects and external calls through access values; P9 discriminants and callable views |
+| [C940015](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940015.a) | 3.7, 9.4 | Executable PASS | Protected component initialization order with discriminant-dependent components; P9 discriminants and callable views |
+| [C85018A](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85018a.ada) | 8.5.4, 9.5 | Executable PASS | Entry family renaming with new parameter names and defaults; P9 discriminants and callable views |
+| [C85018B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85018b.ada) | 8.5.4, 9.5 | Executable PASS | Entry family renaming retains the original formal parameter constraints; P9 discriminants and callable views |
+| [C85014B](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c8/c85014b.ada) | 8.5.4 | Executable PASS | Resolve overloaded renamed subprograms and entries by base parameter/result types; P9 discriminants and callable views |
+| [C3A0018](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0018.a) | 3.10, 9.5 | Executable PASS | Anonymous protected callbacks and calls with matching profiles; P9 discriminants and callable views |
+| [C3A0027](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0027.a) | 3.10, 6.1 | Executable PASS | Null-excluding anonymous protected callback contexts and Constraint_Error; P9 discriminants and callable views |
+| [C940017](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940017.a) | 3.9.4, 9.4 | Executable PASS | Dispatch inherited protected-interface primitives implemented by protected procedures, functions and entries; P9 concurrent interfaces |
+| [CXC7002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7002.a) | C.7.2 | Legal C-test rejected | Pack on signed-integer arrays remains unsupported; P8 packed representation |
+| [CXC7003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7003.a) | C.7.2, 7.6 | Executable PASS | Controlled attribute finalization by Set_Value and Reinitialize; P9 task services |
+| [CXDA001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda001.a) | D.10 | Executable PASS | Initial false state and atomic Set_True, Set_False and Current_State; P9 task services |
+| [CXDA002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda002.a) | D.10 | Executable PASS | Suspend_Until_True consumes a stored true state and wakes a blocked task; P9 task services |
+| [CXDA003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda003.a) | D.10 | Legal C-test rejected | Locking_Policy and Interrupt_Priority remain unsupported; P9 selected Annex D policies |
+| [CXD1001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxd1001.a) | D.1, D.5.1 | Executable PASS | System priority bounds/default and dynamic base priority Set/Get; P9 task services |
+| [CXC7006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7006.a) | C.7.3, 7.6 | Executable PASS | Specific/fallback handler selection, normal/abort/exception causes, task-local finalization and activation failures; P9 task termination |
 
 ### Standard/System follow-up
 
@@ -543,3 +568,21 @@ rule was changed. Its AI05-0202 check is an Ada 2005 binding interpretation.
 The selection now has 161 cases and 165 hash-verified sources, with 129 executable
 passes, five compile rejections, one runtime failure and 26 ungraded B rejections.
 Earlier sections retain historical counts. [Contract](task-termination.md).
+
+
+## Baseline table refresh (Phase 12)
+
+The current inventory and area totals are reconciled with all 161 manifest
+cases, the raw snapshot and the independent 26-case grading report. C85005A and
+C85005B are executable PASS, C35502C's enumeration Value repair is retained,
+and 17 previously omitted rows now complete the inventory. Each B row records
+its independent grade while preserving its raw ungraded observation; B394A01's
+local foundation adapter is explicit. The current totals are 130 C passes,
+five C rejections and 26 raw B rejections; all 26 local B grades pass, including
+one adapted foundation. No upstream source, snapshot or grading policy changes
+are part of this documentation refresh.
+
+Validation: all 161 inventory rows, 22 area totals and 26 independent grades
+match their recorded data; source/hash validation passes for all 165 vendored
+files. Fresh C85005A/C85005B execution and the full B-grade snapshot check pass
+(three focused CTest checks). `git diff --check` passes.
