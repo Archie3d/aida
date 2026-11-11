@@ -2,6 +2,12 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/TestFixtures.cmake)
 
 set(ADA_TEST_WORK_DIR ${CMAKE_CURRENT_BINARY_DIR}/work)
 
+# Raw runtime link commands need this flag when their tests are registered.
+set(IMPORTED_FLOAT_SEPARATE_LIBM OFF)
+if(UNIX AND NOT APPLE)
+    set(IMPORTED_FLOAT_SEPARATE_LIBM ON)
+endif()
+
 add_subdirectory(acats)
 
 add_test(NAME driver.external_linkage

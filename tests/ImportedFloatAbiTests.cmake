@@ -1,7 +1,3 @@
-set(IMPORTED_FLOAT_SEPARATE_LIBM OFF)
-if(UNIX AND NOT APPLE)
-    set(IMPORTED_FLOAT_SEPARATE_LIBM ON)
-endif()
 add_test(NAME ada.importedfloatabi
     COMMAND ${CMAKE_COMMAND}
         -DADA=$<TARGET_FILE:ada>

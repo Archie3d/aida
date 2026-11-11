@@ -23,7 +23,6 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
   plus 42 expanded ASan/UBSan checks and three final concurrent rechecks in
   each build. Four workers independently exercise ownership and failure paths.
   The complete baseline recheck and `git diff --check` pass; QBE is unchanged.
-
 - [x] **C432005 — tagged concurrent components.** Enable limited tagged records
   and extensions containing task/protected components using existing layout,
   in-place construction, activation and cleanup machinery. Unchanged C432005
