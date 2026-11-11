@@ -6,7 +6,8 @@ Ada 2012 and later features are outside this target. Specialized Needs Annex
 facilities and profiles need separate goals and evidence.
 
 **Current focus:** Phase 11 compiler and driver review fixes are complete.
-Phase 12 host validation and performance follow-up remain deferred.
+Phase 12 addresses ACATS failures in the supported subset. Phase 13 host
+validation and performance follow-up remain deferred.
 Further Annex work has separately scoped goals and acceptance tests.
 
 - [Coverage and current limits](docs/ada2005-coverage.md)
@@ -212,7 +213,56 @@ focused diagnostics/review checks also passed under ASan/UBSan. Regression:
 [whole-program/per-unit execution cases](tests/ada/interactions/reviewfixes.adb).
 No additional host or performance claims are made.
 
-### Phase 12 - Deferred host/performance follow-up
+### Phase 12 - ACATS correctness and legality follow-up
+
+At `bcb8a92` on Darwin arm64, all 295 regular ACATS-labelled CTest checks
+passed. The separate [B-test grader](docs/acats-grading.md) reported 17 passes
+and nine failures. Of the six known nonpassing [backfill C-tests](docs/acats-baseline.md),
+one failed at runtime and five reached documented feature limits.
+
+- [ ] **C35502C — enumeration `'Value`.** Trim leading and trailing spaces
+  only. Horizontal tabs currently pass through the same whitespace trimming
+  and incorrectly yield an enumeration value. Verify that either tab raises
+  `Constraint_Error`, ordinary spaces remain accepted, and the unchanged case
+  completes its REPORT protocol.
+- [ ] **B650004 — returns in nested package bodies.** Check which construct a
+  return applies to. Reject returns in package elaboration even inside an
+  enclosing callable construct. Cover the ten missed error sites and preserve
+  legal returns directly inside accept statements and subprogram bodies.
+- [ ] **B3A0002 — `'Access` of a generic formal procedure.** Diagnose the
+  illegal attribute in the generic body at line 168 even without an
+  instantiation. Review the diagnostic groups at the other 21 marked sites
+  and verify the legal callback assignments.
+- [ ] **B330001 — indefinite objects and components.** Review the diagnostic
+  families and accepted source spans for each declaration. Four array errors
+  point to the opening line immediately before the marker. Update the
+  [grading policy](tests/acats/grading/policies.json) for verified matches
+  and retain the legal initialized and constrained declarations as controls.
+- [ ] **B650002 — return diagnostics.** All 32 required sites receive errors.
+  Explain why an extended return is illegal in a procedure, entry body or
+  accept statement. Check each diagnostic against its return rule before
+  updating the accepted messages, including returns inside an extended return.
+- [ ] **B394A02–B394A05 — interface ancestry.** Review the reason for each
+  rejection within its upstream declaration span. Account for explicitly
+  optional diagnostics on private completions in B394A02 and B394A03. Add
+  legal ancestry controls and promote each case once it passes the grader.
+- [ ] **B394A01 — reconcile the test and its foundation.** The pinned test
+  refers to `Non_Lim_Intf_Priv` and `Lim_Intf_Priv`, which the pinned
+  `F394A00` omits. Verify a matching upstream pair and its provenance, then
+  rerun the case and grade the intended progenitor errors.
+- [ ] **Refresh the ACATS baseline table.** Correct the stale rejection rows
+  for C85005A and C85005B, which now execute successfully. Record newly
+  verified grades and executable passes as the fixes land.
+
+The remaining C-test rejections stay with their documented limits. CC3605A
+needs access-to-array subtype constraints, and C761010 also needs controlled
+elements in discriminant-dependent arrays. C432005 needs tagged records with
+task and protected components, CXC7002 needs packed signed-integer arrays, and
+CXDA003 needs `Locking_Policy` and `Interrupt_Priority`. Focused cases CD30002,
+CD72A02 and CDB0A01 retain their alignment, address-conversion and positive
+access-type `Storage_Size` limits, respectively.
+
+### Phase 13 - Deferred host/performance follow-up
 
 These remain open but do not gate the functional items above.
 
