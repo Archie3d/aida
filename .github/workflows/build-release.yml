@@ -1,0 +1,115 @@
+name: Build Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    name: Ubuntu 24.04 / ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install build and packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends build-essential cmake dpkg-dev
+
+      - name: Set package version
+        run: |
+          version="$(cat VERSION)"
+          # Keep versions safe for Debian metadata and artifact filenames.
+          if [[ ! "$version" =~ ^[0-9][A-Za-z0-9.+~]*$ ]]; then
+            echo '::error::VERSION must start with a digit and contain only letters, digits, dots, + or ~.'
+            exit 1
+          fi
+          dpkg --validate-version "$version"
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Configure Release
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_TESTING=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr/local/aida \
+            -DCMAKE_INSTALL_BINDIR=bin \
+            -DCMAKE_INSTALL_LIBDIR=lib
+
+      - name: Build
+        run: cmake --build build --parallel 3
+
+      - name: Package Debian installer
+        env:
+          PACKAGE_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(dpkg --print-architecture)" = "$PACKAGE_ARCH"
+          # Use the project's install rules without adding packaging to CMakeLists.txt.
+          cat > build/CPackConfig.cmake <<'CMAKE'
+          set(CPACK_GENERATOR "DEB")
+          set(CPACK_PACKAGE_NAME "aida")
+          set(CPACK_PACKAGE_VERSION "$ENV{PACKAGE_VERSION}")
+          set(CPACK_PACKAGE_CONTACT "$ENV{GITHUB_REPOSITORY_OWNER}")
+          set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "AIDA Ada compiler with QBE backend")
+          set(CPACK_PACKAGE_DESCRIPTION "AIDA Ada compiler, QBE backend, runtime library and predefined Ada packages.")
+          set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/$ENV{GITHUB_REPOSITORY}")
+          set(CPACK_PACKAGE_FILE_NAME "aida_$ENV{PACKAGE_VERSION}_$ENV{PACKAGE_ARCH}")
+          set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+          set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "$ENV{PACKAGE_ARCH}")
+          set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+          set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+          set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+          # The installed driver invokes the system C compiler, assembler and linker.
+          set(CPACK_DEBIAN_PACKAGE_DEPENDS "build-essential")
+          set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local/aida")
+          set(CPACK_INSTALL_CMAKE_PROJECTS "$ENV{GITHUB_WORKSPACE}/build;ada_compiler;ALL;/")
+          set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
+          set(CPACK_STRIP_FILES ON)
+          CMAKE
+          cpack --config build/CPackConfig.cmake -B "$GITHUB_WORKSPACE/dist"
+          dpkg-deb --info dist/*.deb
+          dpkg-deb --contents dist/*.deb
+
+      - name: Verify installed package
+        run: |
+          sudo apt-get install --yes "$GITHUB_WORKSPACE"/dist/*.deb
+          test -x /usr/local/aida/bin/ada
+          test -x /usr/local/aida/bin/adac
+          test -x /usr/local/aida/bin/qbe
+          test -f /usr/local/aida/lib/ada/adalib/libadart.a
+          export PATH="/usr/local/aida/bin:$PATH"
+          mkdir -p "$RUNNER_TEMP/aida-package-check"
+          cd "$RUNNER_TEMP/aida-package-check"
+          cat > hello.adb <<'ADA'
+          with Ada.Text_IO;
+          procedure Hello is
+          begin
+              Ada.Text_IO.Put_Line ("Hello from AIDA!");
+          end Hello;
+          ADA
+          ada -o hello hello.adb
+          test "$(./hello)" = 'Hello from AIDA!'
+
+      - name: Upload Debian installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: aida-${{ env.PACKAGE_VERSION }}-ubuntu-24.04-${{ matrix.arch }}
+          path: dist/*.deb
+          if-no-files-found: error
+

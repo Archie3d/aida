@@ -83,8 +83,12 @@ add_subdirectory(runtime)
 add_subdirectory(adac)
 add_subdirectory(ada)
 
-enable_testing()
-add_subdirectory(tests)
+option(ENABLE_TESTING "Enable testing" ON)
+
+if(ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # qbe is an imported target, being built by its own Makefile, so the program it
 # leaves behind is installed as a file rather than as a target.
