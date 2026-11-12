@@ -25,9 +25,8 @@ while Set on one has no effect. An identity must still denote a live task object
 
 Native urgency uses Mach thread precedence on macOS and per-thread nice values
 on Linux, relative to the process's initial nice value. MSYS2/winpthreads maps
-normal Ada priorities around Windows THREAD_PRIORITY_NORMAL, using its signed
--15 .. 15 range and the OS's seven priority bands; the top Any_Priority value
-shares the highest native band. Other pthread hosts use
+normal Ada priorities around Windows THREAD_PRIORITY_NORMAL using discrete native
+bands, with TIME_CRITICAL reserved for interrupt priority 31. Other pthread hosts use
 the current native scheduling policy when it has enough priority levels; they
 reject nondefault priorities otherwise. These are host scheduling mechanisms,
 with no deterministic dispatch or latency guarantee. Permission failures and
@@ -36,11 +35,14 @@ publish a successful base-priority change when the native update failed.
 Linux commonly requires privilege to raise urgency, including restoring it after
 a temporary decrease. This target restriction also applies to inheritance.
 
-No Locking_Policy, Task_Dispatching_Policy, Priority_Queuing, Interrupt_Priority,
-interrupt attachment/masking, or protected current-instance Priority attribute
-is implemented. Those constructs produce diagnostics. Protected objects without
-an explicit Priority retain the existing native mutex behavior; no default
-ceiling-locking policy or Annex D scheduling compliance is implied. Entry queues
+Locking_Policy (Ceiling_Locking/Native_Locking) and Interrupt_Priority follow the
+[hosted ceiling-locking contract](ceiling-locking.md), including partition-wide
+configuration and capability checks. Linux can explicitly select FIFO/RR with
+AIDA_TASK_SCHEDULER. Task_Dispatching_Policy, Priority_Queuing, interrupt
+attachment/masking and protected current-instance Priority attributes remain
+diagnosed. Partitions without a locking policy retain native mutex defaults;
+Ceiling_Locking supplies ceiling 30 when no explicit priority is given. Full
+Annex D scheduling compliance is unclaimed. Entry queues
 retain FIFO selection. Asynchronous entry helpers keep the caller's Ada identity
 and their own native thread's inheritance state.
 
@@ -129,9 +131,13 @@ additional sanitized semantic/native checks. The sanitizer selections passed
 and 78 TSan executions including both required race detections. All six selected
 ACATS outcomes were reobserved under the final compiler with no drift.
 
-CXD1001's isolated CTest first runs a native maximum-priority capability probe
+CXD1001 and CXDA003 isolated CTests first run native maximum-priority capability probes
 in a disposable process. Permission denial or an unsupported scheduler reports
 CTest skip (77), with no ACATS PASS recorded. A successful probe runs the complete
 unchanged test and strict snapshot comparison. Unexpected probe errors, crashes
 and timeouts fail. Raw bulk observations retain their actual outcomes and remain
 host-specific; the probe does not rewrite the Darwin snapshot or upstream source.
+
+The CXDA003 follow-up extends the probe through interrupt priority and native
+restoration. Compiler and runtime changes require matching rebuilt artifacts.
+See [the contract and validation](ceiling-locking.md).

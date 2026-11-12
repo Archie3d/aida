@@ -55,6 +55,9 @@ bool writeManifest(std::ostream& out, const std::vector<UnitRecord>& units, cons
         }
         for (const UnitPartRecord& part : unit.parts) {
             out << "part " << part.key << "\n";
+            if (part.lockingPolicy != kAdaLockingDefault) {
+                out << "locking-policy " << static_cast<int>(part.lockingPolicy) << "\n";
+            }
             if (part.category != PackageCategory::Ordinary) {
                 out << "category " << static_cast<int>(part.category) << "\n";
             }
@@ -155,6 +158,9 @@ bool readManifest(std::istream& in, std::vector<UnitRecord>& units, std::vector<
             units.back().parts.back().clientNeedsBody = true;
         } else if (keyword == "semantic" && !units.back().parts.empty()) {
             units.back().parts.back().semanticDependencies.push_back(rest);
+        } else if (keyword == "locking-policy" && !units.back().parts.empty()
+            && units.back().parts.back().lockingPolicy == kAdaLockingDefault && (rest == "1" || rest == "2")) {
+            units.back().parts.back().lockingPolicy = rest == "1" ? kAdaCeilingLocking : kAdaNativeLocking;
         } else if (keyword == "category" && !units.back().parts.empty()
             && units.back().parts.back().category == PackageCategory::Ordinary && (rest == "1" || rest == "2")) {
             units.back().parts.back().category = rest == "2" ? PackageCategory::Pure : PackageCategory::Preelaborate;
@@ -181,6 +187,9 @@ bool writeUnitRecord(const std::string& path, const UnitRecordFile& record)
     out << "ir " << record.irDigest << "\n";
     out << "digest " << record.digest << "\n";
     out << "identity " << record.sourceIdentity << "\n";
+    if (record.lockingPolicy != kAdaLockingDefault) {
+        out << "locking-policy " << static_cast<int>(record.lockingPolicy) << "\n";
+    }
     for (const std::string& key : record.replayDependencies) { out << "replay " << key << "\n"; }
     for (const auto& entry : record.interfaceDigests) { out << "interface " << entry.first << " " << entry.second << "\n"; }
     for (const auto& entry : record.dependencySources) { out << "source " << entry.first << " " << entry.second << "\n"; }
@@ -237,6 +246,9 @@ bool readUnitRecord(const std::string& path, UnitRecordFile& record, std::string
             else if (keyword == "digest") { result.digest = rest; }
             else if (keyword == "identity") { result.sourceIdentity = rest; }
             else if (keyword == "main") { result.mainName = rest; }
+            else if (keyword == "locking-policy" && (rest == "1" || rest == "2")) {
+                result.lockingPolicy = rest == "1" ? kAdaCeilingLocking : kAdaNativeLocking;
+            }
             else { return false; }
         }
     }
@@ -278,6 +290,13 @@ bool unitArtifactsMatch(const std::string& directory, const UnitRecord& unit, co
 bool unitRecordMatches(const UnitRecordFile& record, const UnitRecord& unit, const std::vector<UnitRecord>& scanned)
 {
     if (record.digest.empty() || record.digest != unit.digest || record.sourceIdentity != unit.sourceIdentity) { return false; }
+    AdaLockingPolicy policy = kAdaLockingDefault;
+    for (const auto& part : unit.parts) {
+        if (part.lockingPolicy == kAdaLockingDefault) { continue; }
+        if (policy != kAdaLockingDefault && policy != part.lockingPolicy) { return false; }
+        policy = part.lockingPolicy;
+    }
+    if (record.lockingPolicy != policy) { return false; }
     std::map<std::string, std::pair<const UnitRecord*, const UnitPartRecord*>> parts;
     std::map<std::string, const UnitRecord*> owners;
     for (const auto& other : scanned) {

@@ -273,7 +273,7 @@ Value QbeEmitter::addressOf(Symbol* symbol)
 
 Value QbeEmitter::loadBitField(const Value& address, Type* type)
 {
-    if (!address.dynamicBitOffset.empty()) {
+    if (!address.dynamicBitOffset.empty() && address.bitWidth == 1 && !scalarStorageSigned(type)) {
         std::string byte = newTemp(), shifted = newTemp(), value = newTemp();
         line(byte + " =w loadub " + address.name);
         line(shifted + " =w shr " + byte + ", " + address.dynamicBitOffset);
@@ -282,7 +282,12 @@ Value QbeEmitter::loadBitField(const Value& address, Type* type)
     }
     std::string raw = "0";
     int bit = address.bitOffset;
-    for (int consumed = 0; consumed < address.bitWidth;) {
+    if (!address.dynamicBitOffset.empty()) {
+        raw = newTemp();
+        emitCallInstruction(raw + " =l call $__ada_packed_load(l " + address.name
+            + ", l " + address.dynamicBitOffset + ", w " + std::to_string(address.bitWidth) + ")", CallEffects::DeferredCheck);
+    }
+    for (int consumed = 0; address.dynamicBitOffset.empty() && consumed < address.bitWidth;) {
         int count = std::min(8 - bit % 8, address.bitWidth - consumed);
         std::string slot = address.name;
         if (bit >= 8) {
@@ -318,7 +323,7 @@ Value QbeEmitter::loadBitField(const Value& address, Type* type)
 
 void QbeEmitter::storeBitField(const Value& address, const Value& value, Type* type)
 {
-    if (!address.dynamicBitOffset.empty()) {
+    if (!address.dynamicBitOffset.empty() && address.bitWidth == 1 && !scalarStorageSigned(type)) {
         std::string mask = newTemp(), keep = newTemp(), byte = newTemp();
         std::string previous = newTemp(), placed = newTemp(), combined = newTemp();
         line(mask + " =w shl 1, " + address.dynamicBitOffset);
@@ -334,6 +339,11 @@ void QbeEmitter::storeBitField(const Value& address, const Value& value, Type* t
     if (value.type == 'w') {
         raw = newTemp();
         line(raw + " =l " + (scalarStorageSigned(type) ? "extsw " : "extuw ") + value.name);
+    }
+    if (!address.dynamicBitOffset.empty()) {
+        emitCallInstruction("call $__ada_packed_store(l " + address.name + ", l " + address.dynamicBitOffset
+            + ", w " + std::to_string(address.bitWidth) + ", l " + raw + ")", CallEffects::DeferredCheck);
+        return;
     }
     int bit = address.bitOffset;
     for (int consumed = 0; consumed < address.bitWidth;) {

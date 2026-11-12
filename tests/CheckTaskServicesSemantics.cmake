@@ -26,8 +26,8 @@ reject(type_storage "procedure Root is task type T; task body T is begin null; e
 N : Integer := T'Storage_Size; begin null; end Root;" "task object or its current instance")
 reject(limited_attribute "with Ada.Task_Attributes; procedure Root is type T is limited null record;
 X : T; package A is new Ada.Task_Attributes (T, X); begin null; end Root;" "limited")
-reject(interrupt_policy "procedure Root is task T is pragma Interrupt_Priority; end T;
-task body T is begin null; end T; begin null; end Root;" "unsupported or unknown pragma")
+reject(interrupt_policy "procedure Root is pragma Interrupt_Priority; begin null; end Root;"
+    "Interrupt_Priority requires a task or protected definition")
 
 reject(task_body_priority "procedure Root is task T; task body T is pragma Priority (15);
 begin null; end T; begin null; end Root;" "immediate subprogram body")

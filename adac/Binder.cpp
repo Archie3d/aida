@@ -119,7 +119,23 @@ std::string elaborationName(const std::string& key)
     return "ada_elab." + unitTag(key);
 }
 
-void emitBinder(const std::vector<std::string>& units, const std::string& mainName, std::ostream& out)
+std::string resolveLockingPolicy(const std::vector<UnitRecord>& units, AdaLockingPolicy& policy)
+{
+    policy = kAdaLockingDefault;
+    for (const UnitRecord& unit : units) {
+        for (const UnitPartRecord& part : unit.parts) {
+            if (part.lockingPolicy == kAdaLockingDefault) { continue; }
+            if (policy != kAdaLockingDefault && policy != part.lockingPolicy) {
+                return "conflicting Locking_Policy settings in partition at '" + part.key + "'";
+            }
+            policy = part.lockingPolicy;
+        }
+    }
+    return {};
+}
+
+void emitBinder(const std::vector<std::string>& units, const std::string& mainName, std::ostream& out,
+    AdaLockingPolicy policy)
 {
     int temp = 0;
     int label = 0;
@@ -128,6 +144,9 @@ void emitBinder(const std::vector<std::string>& units, const std::string& mainNa
     out << "\nexport function w $main(w %argc, l %argv) {\n@start\n";
     out << "    %.taskContext =l call $__ada_task_context()\n";
     out << "    call $__ada_command_line_init(w %argc, l %argv)\n";
+    if (policy != kAdaLockingDefault) {
+        out << "    call $__ada_locking_policy(w " << static_cast<int>(policy) << ")\n";
+    }
     out << "    call $__ada_library_enter()\n";
     if (!mainName.empty()) {
         out << "    %.mainPriority =w loadw " << mainName << ".priority\n";

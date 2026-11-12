@@ -1,0 +1,7 @@
+packedsignederrors.adb:9:5: error: Pack currently requires a visible one-dimensional Boolean or signed integer array without aliased or shared components
+packedsignederrors.adb:11:5: error: Pack currently requires a visible one-dimensional Boolean or signed integer array without aliased or shared components
+packedsignederrors.adb:13:25: error: slices of packed arrays are not yet supported
+packedsignederrors.adb:14:26: error: concatenation of packed arrays is not yet supported
+packedsignederrors.adb:15:38: error: 'Address of a packed or unaligned component is not supported
+packedsignederrors.adb:19:5: error: Unchecked_Conversion currently supports discrete scalars and packed Boolean arrays
+packedsignederrors.adb:21:27: error: array conversions between different packed representations are not yet supported

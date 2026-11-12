@@ -1,5 +1,6 @@
 #ifndef ADAPROTECTED_H
 #define ADAPROTECTED_H
+#include "../common/Priority.h"
 
 #include "../common/Concurrent.h"
 
@@ -31,6 +32,8 @@ int __ada_protected_callback_equal(const void* left, const void* right);
 void __ada_protected_init(AdaConcurrentObject* object);
 void __ada_protected_init_access(AdaConcurrentObject* object, int accessLevel);
 int __ada_protected_access_level(AdaConcurrentObject* object);
+void __ada_locking_policy(enum AdaLockingPolicy policy);
+void __ada_protected_set_interrupt_ceiling(AdaConcurrentObject* object, int priority);
 void __ada_protected_set_ceiling(AdaConcurrentObject* object, int priority);
 void __ada_protected_destroy(AdaConcurrentObject* object);
 void __ada_protected_enter(AdaTaskContext* context, AdaConcurrentObject* object, AdaProtectedAction* action);

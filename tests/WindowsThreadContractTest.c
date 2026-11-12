@@ -109,6 +109,7 @@ static void* entry(void* argument)
 
 int main(void)
 {
+    CHECK(setenv("AIDA_TASK_SCHEDULER", "host", 1) == 0);
     image.dos.e_magic = IMAGE_DOS_SIGNATURE;
     image.dos.e_lfanew = offsetof(struct Image, nt);
     image.nt.Signature = IMAGE_NT_SIGNATURE;
@@ -131,10 +132,11 @@ int main(void)
     CHECK(__ada_thread_stack_size(0, &size) == EIO && size == -1);
     AdaPriorityThread self = __ada_priority_thread_self();
     CHECK(__ada_thread_set_priority(self, 0) == 0 && nativePriority == -15);
-    CHECK(__ada_thread_set_priority(self, 13) == 0 && nativePriority == -2);
+    CHECK(__ada_thread_set_priority(self, 7) == 0 && nativePriority == -2);
     CHECK(__ada_thread_set_priority(self, 14) == 0 && nativePriority == -1);
     CHECK(__ada_thread_set_priority(self, kAdaDefaultPriority) == 0 && nativePriority == 0);
-    CHECK(__ada_thread_set_priority(self, kAdaPriorityLast) == 0 && nativePriority == 15);
+    CHECK(setenv("AIDA_TASK_SCHEDULER", "invalid", 1) == 0);
+    CHECK(__ada_thread_set_priority(self, kAdaPriorityLast) == 0 && nativePriority == THREAD_PRIORITY_HIGHEST);
     CHECK(__ada_thread_set_priority(self, kAdaAnyPriorityLast) == 0 && nativePriority == 15);
     CHECK(__ada_thread_set_priority(self, -1) == EINVAL);
     return 0;

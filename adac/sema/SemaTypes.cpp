@@ -1693,7 +1693,7 @@ void Sema::analyzeRepresentation(RepresentationDecl* decl, Scope* scope, Type* p
             || hasRuntimeLayout(type->element) || expression == nullptr
             || (expression->kind != TypeKind::Integer && expression->kind != TypeKind::UniversalInteger)
             || !foldStatic(decl->value.get(), bits) || bits <= 0
-            || bits != (type->packedBoolean ? 1 : typeSize(type->element) * 8)) {
+            || bits != (type->packedComponentBits ? type->packedComponentBits : typeSize(type->element) * 8)) {
             m_diagnostics.error(decl->location,
                 "Component_Size currently requires a single static confirming specification on an unfrozen visible one-dimensional array first subtype with fixed-size components");
             return;

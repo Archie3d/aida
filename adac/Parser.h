@@ -134,6 +134,7 @@ private:
     bool m_libraryItem = false;
     bool m_assertionsEnabled = true;
     uint32_t m_configurationChecks = 0;
+    AdaLockingPolicy m_lockingPolicy = kAdaLockingDefault;
     std::vector<Token> m_configurationTokens;
     std::string m_stubParent;
     std::unordered_set<std::string> m_stubNames;

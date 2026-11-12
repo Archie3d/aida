@@ -7,7 +7,7 @@ or a claim of conformity assessment. The selection includes Ada 2005 additions
 and inherited objectives; it is reviewed with each feature.
 
 A completed-feature [backfill baseline](baseline/README.md) adds 161 pinned,
-unchanged cases. Its 133 observed executable passes join the normal ACATS label;
+unchanged cases. Its 135 observed executable passes join the normal ACATS label;
 failures and raw B-probes are recorded separately in
 [the triage report](../../docs/acats-baseline.md). Matching a recorded failure
 is not an ACATS pass.
@@ -1190,3 +1190,19 @@ Limited tagged extension aggregates reuse the existing in-place concurrent
 construction and lifetime machinery. The current baseline has 133 C passes, two
 C rejections and 26 raw ungraded B rejections; all upstream hashes remain intact.
 See the [contract](../../docs/tagged-concurrent-components.md).
+
+### CXC7002 packed signed arrays
+
+Unchanged CXC7002 now passes with packed signed-integer array support, including
+whole-program and separate-unit REPORT execution. The current baseline records
+134 C passes, one C rejection (CXDA003) and 26 raw B rejections. Source hashes
+remain unchanged.
+
+### CXDA003 hosted ceiling locking
+
+Unchanged CXDA003 passes with hosted Locking_Policy and Interrupt_Priority support.
+All 135 selected C-tests now pass on the recorded Darwin arm64 host; 26 raw B
+observations remain separately graded. CXDA003 and CXD1001 isolated CTests probe
+native priority application/restoration first. Unavailable native scheduling is
+an explicit skip without an ACATS PASS; bulk observations retain actual outcomes.
+See the [contract](../../docs/ceiling-locking.md).

@@ -237,12 +237,44 @@ DeclPtr Parser::parsePragma(bool allowShared, bool configuration)
         // pipeline; the language defines Optimize as implementation advice.
         return nullptr;
     }
-    if (name.lower == "priority" || name.lower == "storage_size") {
+    if (name.lower == "locking_policy") {
+        if (!configuration) { fail("Locking_Policy is only allowed as a configuration pragma"); }
+        expect(TokenKind::LeftParen, "after Locking_Policy");
+        if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {
+            const Token& argument = advance();
+            if (argument.lower != "policy_identifier") { fail("unknown Locking_Policy argument name"); }
+            advance();
+        }
+        const Token& policy = expect(TokenKind::Identifier, "as locking policy");
+        AdaLockingPolicy selected = policy.lower == "ceiling_locking" ? kAdaCeilingLocking
+            : policy.lower == "native_locking" ? kAdaNativeLocking : kAdaLockingDefault;
+        if (selected == kAdaLockingDefault) { fail("unsupported locking policy; expected Ceiling_Locking or Native_Locking"); }
+        if (m_lockingPolicy != kAdaLockingDefault && m_lockingPolicy != selected) {
+            fail("conflicting Locking_Policy configuration pragmas");
+        }
+        m_lockingPolicy = selected;
+        expect(TokenKind::RightParen, "after locking policy");
+        expect(TokenKind::Semicolon, "after Locking_Policy");
+        auto pragma = std::make_unique<PragmaDecl>();
+        pragma->location = location;
+        pragma->lower = name.lower;
+        return pragma;
+    }
+    if (name.lower == "priority" || name.lower == "interrupt_priority" || name.lower == "storage_size") {
         if (!allowShared || configuration) { fail("pragma " + name.text + " requires a concurrent definition or subprogram body"); }
         auto pragma = std::make_unique<PragmaDecl>();
         pragma->location = location;
         pragma->name = name.text;
         pragma->lower = name.lower;
+        if (name.lower == "interrupt_priority" && match(TokenKind::Semicolon)) {
+            Association argument;
+            auto value = std::make_unique<IntegerLiteralExpr>();
+            value->location = location;
+            value->value = kAdaAnyPriorityLast;
+            argument.value = std::move(value);
+            pragma->arguments.push_back(std::move(argument));
+            return pragma;
+        }
         expect(TokenKind::LeftParen, "after pragma name");
         Association argument;
         if (check(TokenKind::Identifier) && peek(1).kind == TokenKind::Arrow) {

@@ -1,3 +1,15 @@
+if(DEFINED PRIORITY_PROBE)
+    execute_process(COMMAND "${PRIORITY_PROBE}" interrupt
+        RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 5)
+    if(status STREQUAL "77" AND errors STREQUAL ""
+        AND output MATCHES "^maximum native task priority unavailable: ")
+        message(STATUS "SKIP native interrupt priority unavailable: ${output}")
+        return()
+    endif()
+    if(NOT status STREQUAL "0" OR NOT output STREQUAL "" OR NOT errors STREQUAL "")
+        message(FATAL_ERROR "Native interrupt priority prerequisite failed: ${status}\n${output}${errors}")
+    endif()
+endif()
 include(${CMAKE_CURRENT_LIST_DIR}/ProcessLimits.cmake)
 get_filename_component(main_unit "${SOURCE}" NAME_WE)
 string(REPLACE "|" ";" extra_sources "${EXTRA_SOURCES}")

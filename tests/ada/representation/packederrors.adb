@@ -1,6 +1,6 @@
 with System;
 procedure PackedErrors is
-    type Numbers is array (1 .. 3) of Integer;
+    type Numbers is array (1 .. 3) of Float;
     pragma Pack (Numbers);
     type Matrix is array (1 .. 2, 1 .. 2) of Boolean;
     pragma Pack (Matrix);

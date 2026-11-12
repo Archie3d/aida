@@ -165,8 +165,8 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
             m_diagnostics.error(expr->location, "only one-dimensional arrays can be sliced");
             return nullptr;
         }
-        if (prefixType->packedBoolean) {
-            m_diagnostics.error(expr->location, "slices of packed Boolean arrays are not yet supported");
+        if (prefixType->packedComponentBits) {
+            m_diagnostics.error(expr->location, "slices of packed arrays are not yet supported");
             return nullptr;
         }
         Expr* low = expr->arguments.front().value.get();
@@ -333,6 +333,10 @@ Type* Sema::analyzeCall(CallExpr* expr, Scope* scope, Type* expected)
         if (arrayConversion) {
             int rank = targetAxis->arrayRank;
             for (int dimension = 0; dimension < rank; ++dimension) {
+                if (targetAxis->packedComponentBits != sourceAxis->packedComponentBits) {
+                    m_diagnostics.error(expr->location,
+                        "array conversions between different packed representations are not yet supported");
+                }
                 bool integerIndices = targetAxis->index->kind == TypeKind::Integer
                     && sourceAxis->index->kind == TypeKind::Integer;
                 if (!integerIndices && !typesCompatible(targetAxis->index, sourceAxis->index)) {

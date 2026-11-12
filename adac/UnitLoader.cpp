@@ -1284,6 +1284,12 @@ std::vector<Token> UnitLoader::resolveSubunit(CompilationUnit& owner, const std:
         clause.subunitOnly = true;
         owner.withClauses.push_back(std::move(clause));
     }
+    if (unit->lockingPolicy != kAdaLockingDefault) {
+        if (owner.lockingPolicy != kAdaLockingDefault && owner.lockingPolicy != unit->lockingPolicy) {
+            m_diagnostics.error(unit->units.front()->location, "conflicting Locking_Policy settings in subunit");
+        }
+        owner.lockingPolicy = unit->lockingPolicy;
+    }
     owner.elaborationPragmas.insert(owner.elaborationPragmas.end(),
         unit->elaborationPragmas.begin(), unit->elaborationPragmas.end());
     auto tokens = unit->tokens;

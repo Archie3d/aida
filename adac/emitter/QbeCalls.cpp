@@ -10,16 +10,16 @@ using QbeSupport::isUnconstrainedArray;
 // static tag. They never acquire ownership or register finalization actions.
 void QbeEmitter::emitStorageIoComponents(const Value& target, const Value& source, Type* type, bool reading)
 {
-    if (type->packedBoolean) {
+    if (type->packedComponentBits && m_sema.typeTable().isBooleanArray(type)) {
         Value view = source.hasBounds() ? source : withBounds(source, type, nullptr);
-        std::string bits = lengthOf(view, type).name;
+        std::string bits = emitIntegerOperation(2, lengthOf(view, type),
+            Value { std::to_string(type->packedComponentBits), 'l' }, 'l').name;
         emitCallInstruction("call $__ada_unchecked_copy(l " + target.name + ", l " + bits
             + ", l " + source.name + ", l " + bits + ")", CallEffects::CheckException);
         return;
     }
     if (type->kind == TypeKind::Array) {
         Value view = source.hasBounds() ? source : withBounds(source, type, nullptr);
-        std::string stride = arrayElementSize(view, type);
         std::string length = lengthOf(view, type).name;
         std::string cursor = allocScratch(8);
         line("storel 0, " + cursor);
@@ -32,13 +32,10 @@ void QbeEmitter::emitStorageIoComponents(const Value& target, const Value& sourc
         line(more + " =w cultl " + index + ", " + length);
         branch(Value {more, 'w'}, body, done);
         label(body);
-        std::string offset = newTemp();
-        Value from = arrayRow(view, type), to = from;
-        from.name = newTemp();
-        to.name = newTemp();
-        line(offset + " =l mul " + index + ", " + stride);
-        line(from.name + " =l add " + source.name + ", " + offset);
-        line(to.name + " =l add " + target.name + ", " + offset);
+        Value destination = view;
+        destination.name = target.name;
+        Value from = arrayElementAddress(view, type, index);
+        Value to = arrayElementAddress(destination, type, index);
         emitStorageIoComponents(to, from, type->element, reading);
         std::string next = newTemp();
         line(next + " =l add " + index + ", 1");
@@ -148,7 +145,10 @@ Value QbeEmitter::emitUncheckedConversion(CallExpr* expr)
     Type* targetType = expr->subprogram->returnType;
     Value source = emitExpr(expr->resolvedArguments.front());
     auto bits = [&](Type* type, const Value& value) {
-        if (type->packedBoolean) { return lengthOf(value, type).name; }
+        if (type->packedComponentBits) {
+            return emitIntegerOperation(2, lengthOf(value, type),
+                Value { std::to_string(type->packedComponentBits), 'l' }, 'l').name;
+        }
         return std::to_string(type->valueSizeBits >= 0 ? type->valueSizeBits : typeSize(type) * 8);
     };
     std::string sourceBits = bits(sourceType, source);
@@ -158,19 +158,19 @@ Value QbeEmitter::emitUncheckedConversion(CallExpr* expr)
         source = slot;
     }
     Value target;
-    if (targetType->packedBoolean) {
+    if (targetType->packedComponentBits) {
         target = withBounds(Value {}, targetType, nullptr);
         target.name = newTemp();
         target.type = 'l';
         emitCallInstruction(target.name + " =l call $__ada_array_local(l " + storageArena(true, true)
-            + ", l " + target.first + ", l " + target.last + ", l " + std::to_string(ADA_PACKED_BOOLEAN_STRIDE) + ")", CallEffects::CheckException);
+            + ", l " + target.first + ", l " + target.last + ", l " + std::to_string(-targetType->packedComponentBits) + ")", CallEffects::CheckException);
     } else {
         target = Value { allocTypeScratch(targetType), 'l' };
         emitCallInstruction("call $memset(l " + target.name + ", w 0, l " + std::to_string(typeSize(targetType)) + ")", CallEffects::DeferredCheck);
     }
     emitCallInstruction("call $__ada_unchecked_copy(l " + target.name + ", l " + bits(targetType, target)
         + ", l " + source.name + ", l " + sourceBits + ")", CallEffects::CheckException);
-    if (targetType->packedBoolean) { return arrayView(target, targetType); }
+    if (targetType->packedComponentBits) { return arrayView(target, targetType); }
     if (targetType->valueSizeBits > 0 && targetType->valueSizeBits < typeSize(targetType) * 8) {
         target.bitWidth = static_cast<int>(targetType->valueSizeBits);
     }

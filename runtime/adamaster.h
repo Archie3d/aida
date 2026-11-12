@@ -2,6 +2,7 @@
 #define ADAMASTER_H
 
 #include "../common/Concurrent.h"
+#include "../common/Priority.h"
 
 #include <stdatomic.h>
 #include <stdint.h>
@@ -86,7 +87,7 @@ void __ada_task_create(AdaTaskContext* context, AdaConcurrentObject* object, voi
 AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection);
 void __ada_task_create_configured(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
     void* link, const int* elaborated, void* collection, void* group, AdaMaster* owner,
-    int priority, int specified, int64_t storageSize);
+    int priority, enum AdaPriorityMode priorityMode, int64_t storageSize);
 void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
                             AdaMaster* owner);
@@ -114,6 +115,7 @@ const void* __ada_specific_handler(void* identity);
 int __ada_get_priority(void* identity);
 void __ada_set_priority(int priority, void* identity);
 void __ada_main_priority(int priority);
+int __ada_priority_check(int ceiling);
 int __ada_priority_enter(int ceiling);
 int __ada_priority_inherit(int priority);
 void __ada_priority_leave(int saved);

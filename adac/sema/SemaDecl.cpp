@@ -1,5 +1,6 @@
 #include "Sema.h"
 #include "../../common/Priority.h"
+#include "../../common/Array.h"
 #include "Categorization.h"
 #include "Parser.h"
 #include "SemaSupport.h"
@@ -1115,7 +1116,7 @@ void Sema::analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope)
     Type* type = decl->declaredType;
     for (auto& item : decl->concurrentPragmas) {
         auto* pragma = static_cast<PragmaDecl*>(item.get());
-        bool priority = pragma->lower == "priority";
+        bool priority = pragma->lower == "priority" || pragma->lower == "interrupt_priority";
         if (!priority && (pragma->lower != "storage_size" || type->taskBody == nullptr)) {
             m_diagnostics.error(pragma->location, "pragma is not supported in this concurrent definition");
             continue;
@@ -1126,6 +1127,7 @@ void Sema::analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope)
         }
         Expr*& target = priority ? type->concurrentPriority : type->taskStorageSize;
         if (target != nullptr) { m_diagnostics.error(pragma->location, "duplicate " + pragma->name + " pragma"); continue; }
+        if (priority) { type->interruptPriority = pragma->lower == "interrupt_priority"; }
         target = argument.value.get();
         Type* value = analyzeDeferredExpression(target, scope, priority ? m_types.integerType() : nullptr, type->concurrentUses);
         if (value == nullptr || (value->kind != TypeKind::Integer && value->kind != TypeKind::UniversalInteger)) {
@@ -1139,6 +1141,11 @@ void Sema::analyzeConcurrentPragmas(TypeDecl* decl, Scope* scope)
 
 void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
 {
+    if (decl->lower == "interrupt_priority") {
+        m_diagnostics.error(decl->location, "Interrupt_Priority requires a task or protected definition");
+        return;
+    }
+
     if (decl->lower == "priority" || decl->lower == "storage_size") {
         if (decl->lower != "priority" || m_currentSubprogram == nullptr
             || scope != m_currentSubprogram->constructScope
@@ -1253,20 +1260,35 @@ void Sema::analyzePragma(PragmaDecl* decl, Scope* scope)
         Symbol* entity = candidates.size() == 1 ? candidates.front() : nullptr;
         Type* type = entity != nullptr && entity->kind == SymbolKind::TypeName ? entity->type : nullptr;
         if (type == nullptr || type->isSubtype || type->kind != TypeKind::Array
-            || !m_types.isBooleanArray(type) || type->aliasedElements || type->shared != 0
+            || type->arrayRank != 1 || type->element == nullptr
+            || (!m_types.isBooleanArray(type)
+                && (type->element->kind != TypeKind::Integer || type->element->modulus != 0))
+            || type->element->genericFormal || type->aliasedElements || type->shared != 0
             || sharedTypeKind(type->element) != 0
             || !representationVisible(type)) {
-            m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean array without aliased or shared components");
+            m_diagnostics.error(decl->location, "Pack currently requires a visible one-dimensional Boolean or signed integer array without aliased or shared components");
         } else if (m_frozenTypes.contains(type)) {
             m_diagnostics.error(decl->location, "Pack must precede freezing of the array type");
         } else if (type->componentSizeSpecified) {
             m_diagnostics.error(decl->location, "Pack after a Component_Size specification is not yet supported");
-        } else if (type->packedBoolean) {
+        } else if (type->packedComponentBits) {
             m_diagnostics.error(decl->location, "Pack may be specified only once for an array type");
         } else if (type->alignmentSpecified && type->alignment > 1) {
-            m_diagnostics.error(decl->location, "packed Boolean arrays require storage-element alignment");
+            m_diagnostics.error(decl->location, "packed arrays require storage-element alignment");
         } else {
-            type->packedBoolean = true;
+            int bits = 1;
+            if (type->element->kind == TypeKind::Integer) {
+                int sign = scalarStorageSigned(type->element) ? 1 : 0;
+                while (bits < ADA_PACKED_MAX_BITS && (type->element->low < -((__int128)1 << (bits - 1))
+                    || type->element->high >= ((__int128)1 << (bits - sign)))) { ++bits; }
+                for (Type* component = type->element; component != nullptr; component = component->base) {
+                    if (component->specifiedSize >= 0) {
+                        bits = std::max(bits, static_cast<int>(component->specifiedSize * 8));
+                        break;
+                    }
+                }
+            }
+            type->packedComponentBits = bits;
             type->alignment = 1;
             freezeType(type->element);
             m_types.refreshStorageRepresentation(type);

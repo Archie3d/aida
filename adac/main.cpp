@@ -131,7 +131,7 @@ UnitRecord describe(const LibraryUnit& unit, const UnitLoader& loader)
         record.parts.push_back(UnitPartRecord {
             part->partKey, part->dependencies, part->units.front()->elaborateBody
                 && part->units.front()->kind != DeclKind::GenericInstantiation, part->limitedDependencies, part->category,
-                part->fileName, part->semanticDependencies, part->clientNeedsBody });
+                part->fileName, part->semanticDependencies, part->clientNeedsBody, part->lockingPolicy });
         for (const WithClause& clause : part->withClauses) {
             for (const std::string& name : clause.names) {
                 std::string key = toLower(name);
@@ -408,7 +408,10 @@ int main(int argc, char** argv)
             std::cerr << "adac: error: cannot write '" << path << "'\n";
             return 2;
         }
-        emitBinder(keys, record.mainName, binder);
+        AdaLockingPolicy lockingPolicy;
+        std::string policyError = resolveLockingPolicy(units, lockingPolicy);
+        if (!policyError.empty()) { std::cerr << "adac: error: " << policyError << "\n"; return 1; }
+        emitBinder(keys, record.mainName, binder, lockingPolicy);
         if (!publication.commit()) { std::cerr << "adac: error: cannot publish binder\n"; return 2; }
         return 0;
     }
@@ -510,6 +513,9 @@ int main(int argc, char** argv)
 
     std::vector<UnitRecord> semanticInputs;
     for (const LibraryUnit& unit : libraryUnits) { semanticInputs.push_back(describe(unit, loader)); }
+    AdaLockingPolicy lockingPolicy;
+    std::string policyError = resolveLockingPolicy(semanticInputs, lockingPolicy);
+    if (!policyError.empty()) { std::cerr << "adac: error: " << policyError << "\n"; return 1; }
     for (const UnitRecord& unit : semanticInputs) {
         if (unit.interfaceDirectory.empty()) { continue; }
         UnitRecordFile compiled;
@@ -588,6 +594,8 @@ int main(int argc, char** argv)
         }
         record.compilerDigest = compilerDigest;
         record.irDigest = digestOfFile(publication.temporary());
+        std::string targetPolicyError = resolveLockingPolicy({describe(*target, loader)}, record.lockingPolicy);
+        if (!targetPolicyError.empty()) { std::cerr << "adac: error: " << targetPolicyError << "\n"; return 1; }
         record.digest = describe(*target, loader).digest;
         record.sourceIdentity = describe(*target, loader).sourceIdentity;
         for (const LibraryUnit& unit : libraryUnits) {
@@ -666,7 +674,7 @@ int main(int argc, char** argv)
             records.push_back(describe(unit, loader));
         }
         auto binder = std::make_unique<Artifacts::AtomicFile>(artifacts + "/" + binderName + ".ssa");
-        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder->stream());
+        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, binder->stream(), lockingPolicy);
         if (!binder->finish()) { std::cerr << "adac: error: cannot stage binder\n"; return 2; }
         outputs.push_back(std::move(binder));
         Artifacts::AtomicPath manifest(artifacts + "/" + manifestName);
@@ -688,7 +696,7 @@ int main(int argc, char** argv)
             stream = &file->stream();
         }
         for (const LibraryUnit& unit : libraryUnits) { emitter.emitUnit(unit, *stream); }
-        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream);
+        emitBinder(elaborations, main == nullptr ? std::string() : main->qbeName, *stream, lockingPolicy);
         if (!loader.validateInputs()) { return 1; }
         std::string outputDigest;
         if (file) {

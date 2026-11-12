@@ -1020,6 +1020,18 @@ int __ada_array_narrow(int64_t length)
     return (int)length;
 }
 
+static int packedArrayBytes(uint64_t count, int width, int roundUp, int64_t* bytes)
+{
+    uint64_t tail = (count % 8) * (unsigned)width;
+    uint64_t extra = tail / 8 + (roundUp && tail % 8 != 0);
+    if (count / 8 > ((uint64_t)INT64_MAX - extra) / (unsigned)width) {
+        __ada_raise(ADA_STORAGE_ERROR);
+        return 0;
+    }
+    *bytes = (int64_t)((count / 8) * (unsigned)width + extra);
+    return 1;
+}
+
 int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t stride)
 {
     if (index < first || index > last) {
@@ -1027,7 +1039,11 @@ int64_t __ada_array_offset(int64_t index, int64_t first, int64_t last, int64_t s
         return 0;
     }
     uint64_t distance = (uint64_t)index - (uint64_t)first;
-    if (stride == ADA_PACKED_BOOLEAN_STRIDE) { return (int64_t)(distance / 8); }
+    if (stride < 0 && stride >= -ADA_PACKED_MAX_BITS) {
+        int64_t bytes = 0;
+        packedArrayBytes(distance, (int)-stride, 0, &bytes);
+        return bytes;
+    }
     if (stride < 0 || (stride != 0 && distance > INT64_MAX / (uint64_t)stride)) {
         __ada_raise(ADA_STORAGE_ERROR);
         return 0;
@@ -1047,9 +1063,8 @@ static int arraySizeChecked(int64_t first, int64_t last, int64_t elementSize, in
 {
     int64_t length;
     if (!arrayLengthChecked(first, last, &length)) { return 0; }
-    if (elementSize == ADA_PACKED_BOOLEAN_STRIDE) {
-        *bytes = length / 8 + (length % 8 != 0);
-        return 1;
+    if (elementSize < 0 && elementSize >= -ADA_PACKED_MAX_BITS) {
+        return packedArrayBytes((uint64_t)length, (int)-elementSize, 1, bytes);
     }
     if (elementSize < 0 || (elementSize != 0 && length > INT64_MAX / elementSize)) {
         __ada_raise(ADA_STORAGE_ERROR);
@@ -1064,6 +1079,36 @@ int64_t __ada_array_size(int64_t first, int64_t last, int64_t elementSize)
     int64_t bytes = 0;
     arraySizeChecked(first, last, elementSize, &bytes);
     return bytes;
+}
+
+uint64_t __ada_packed_load(const void* source, int64_t offset, int width)
+{
+    const unsigned char* bytes = source;
+    uint64_t result = 0;
+    for (int consumed = 0; consumed < width;) {
+        int shift = (int)(offset % 8);
+        int count = width - consumed < 8 - shift ? width - consumed : 8 - shift;
+        unsigned mask = (1U << count) - 1;
+        result |= (uint64_t)((bytes[offset / 8] >> shift) & mask) << consumed;
+        consumed += count;
+        offset += count;
+    }
+    return result;
+}
+
+void __ada_packed_store(void* target, int64_t offset, int width, uint64_t value)
+{
+    unsigned char* bytes = target;
+    for (int consumed = 0; consumed < width;) {
+        int shift = (int)(offset % 8);
+        int count = width - consumed < 8 - shift ? width - consumed : 8 - shift;
+        unsigned mask = (1U << count) - 1;
+        unsigned char* slot = bytes + offset / 8;
+        *slot = (unsigned char)((*slot & ~(mask << shift))
+            | (((value >> consumed) & mask) << shift));
+        consumed += count;
+        offset += count;
+    }
 }
 
 void __ada_unchecked_copy(void* target, int64_t targetBits, const void* source, int64_t sourceBits)

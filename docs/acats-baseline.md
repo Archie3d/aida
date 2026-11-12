@@ -1,4 +1,4 @@
-# ACATS completed-feature baseline — refreshed 2026-11-11
+# ACATS completed-feature baseline — refreshed 2026-11-12
 
 This backfill adds **161 unchanged upstream cases**: 135 C-tests and 26 B-test
 probes, alongside the strict focused selection. The recorded host is Darwin
@@ -11,14 +11,15 @@ This is a baseline of the current subset, not a conformance claim.
 | --- | ---: |
 | B accepted, ungraded | 0 |
 | B rejected, ungraded | 26 |
-| Legal C-test rejected | 2 |
+| Legal C-test rejected | 0 |
 | Support/harness blocked | 0 |
-| Executable PASS | 133 |
+| Executable PASS | 135 |
 | Executable failure | 0 |
 
-No crashes or timeouts were observed. The two remaining rejected C-tests are
-CXC7002 (packed signed-integer arrays) and CXDA003 (Locking_Policy and Interrupt_Priority). Their failures remain
-recorded. C761010 now passes after access-to-array constraints, deferred constants,
+No crashes or timeouts were observed. All 135 selected C-tests pass on the
+recorded Darwin arm64 host. CXDA003 now passes with hosted ceiling locking and
+interrupt priorities; its isolated CTests require a successful native priority
+probe. CXC7002 passes with packed signed integer array support. C761010 now passes after access-to-array constraints, deferred constants,
 controlled dependent-array ownership and elaboration ordering were repaired;
 CC3605A passes after the shared access-constraint repair. C35502C, C85005A and
 C85005B retain their earlier executable passes.
@@ -283,17 +284,17 @@ be blocked before reaching the feature named in their objective.
 | generic subprograms | 4 | 0 | 0 | 0 | 0 |
 | concurrent callable views | 8 | 0 | 0 | 0 | 0 |
 | concurrent interfaces | 1 | 0 | 0 | 0 | 0 |
-| task services | 4 | 2 | 0 | 0 | 0 |
+| task services | 6 | 0 | 0 | 0 | 0 |
 | task termination | 1 | 0 | 0 | 0 | 0 |
-| **Total** | 133 | 2 | 0 | 0 | 26 |
+| **Total** | 135 | 0 | 0 | 0 | 26 |
 
 ## Follow-up order
 
 1. Validate target configuration on other supported hosts. All 26 selected B
    grades now pass with the documented B394A01 foundation adapter; broader
    interface and tasking conformance is not inferred.
-2. Investigate the remaining two legal C rejections;
-   turn confirmed defects into focused compiler regressions before fixing them.
+2. Retain native priority capability checks for CXD1001/CXDA003. No selected C
+   rejections remain; broader Annex facilities have separate documented goals.
 3. Current TCTouch and local ImpDef gaps for the selected support-blocked probes
    are repaired; broader protocol/applicability work requires its own selection.
 4. Retain explicit unsupported-feature boundaries and promote complete cases
@@ -301,7 +302,7 @@ be blocked before reaching the feature named in their objective.
 
 The baseline runner tests enforce strict REPORT completion/identity, raw B
 observation boundaries, crash/timeout handling and source/snapshot integrity.
-Its 133 executable C passes and the independent grader's 26 complete B passes
+Its 135 executable C passes and the independent grader's 26 complete B passes
 (25 original foundations and one labelled local adapter) join normal ACATS
 labels. Snapshot stability of a recorded failure is not an ACATS pass. [Commands and grading boundaries](../tests/acats/baseline/README.md).
 
@@ -470,11 +471,11 @@ report.
 | [C3A0018](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0018.a) | 3.10, 9.5 | Executable PASS | Anonymous protected callbacks and calls with matching profiles; P9 discriminants and callable views |
 | [C3A0027](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c3/c3a0027.a) | 3.10, 6.1 | Executable PASS | Null-excluding anonymous protected callback contexts and Constraint_Error; P9 discriminants and callable views |
 | [C940017](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/c9/c940017.a) | 3.9.4, 9.4 | Executable PASS | Dispatch inherited protected-interface primitives implemented by protected procedures, functions and entries; P9 concurrent interfaces |
-| [CXC7002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7002.a) | C.7.2 | Legal C-test rejected | Pack on signed-integer arrays remains unsupported; P8 packed representation |
+| [CXC7002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7002.a) | C.7.2 | Executable PASS | packed signed-integer arrays preserve task-attribute copies and handles; [contract](packed-arrays.md) |
 | [CXC7003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7003.a) | C.7.2, 7.6 | Executable PASS | Controlled attribute finalization by Set_Value and Reinitialize; P9 task services |
 | [CXDA001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda001.a) | D.10 | Executable PASS | Initial false state and atomic Set_True, Set_False and Current_State; P9 task services |
 | [CXDA002](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda002.a) | D.10 | Executable PASS | Suspend_Until_True consumes a stored true state and wakes a blocked task; P9 task services |
-| [CXDA003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda003.a) | D.10 | Legal C-test rejected | Locking_Policy and Interrupt_Priority remain unsupported; P9 selected Annex D policies |
+| [CXDA003](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxda003.a) | D.10 | Executable PASS | hosted Ceiling_Locking/Interrupt_Priority; native application/restoration prerequisite, [contract](ceiling-locking.md) |
 | [CXD1001](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxd/cxd1001.a) | D.1, D.5.1 | Executable PASS | System priority bounds/default and dynamic base priority Set/Get; P9 task services |
 | [CXC7006](https://github.com/simonjwright/ACATS/blob/2785c30c1f8577d97ac7b3043882f6818781e9c5/tests/cxc/cxc7006.a) | C.7.3, 7.6 | Executable PASS | Specific/fallback handler selection, normal/abort/exception causes, task-local finalization and activation failures; P9 task termination |
 
@@ -624,3 +625,33 @@ Validation on Darwin arm64: all 2,176 Release checks pass (310 ACATS),
 161-case snapshot recheck is stable, all 26 independent B grades pass, and
 161 case rows/22 area totals/26 grades reconcile. Source/hash validation and
 `git diff --check` pass. QBE is unchanged.
+
+## CXC7002 follow-up
+
+Unchanged CXC7002 passes after generalizing packed-array descriptors and component
+access from Boolean bits to signed-integer widths. Whole/separate-unit execution
+checks the full REPORT protocol. Focused controls cover signed reads, masked
+cross-byte writes, copies/results, nested arrays, logical streams and concurrent
+callers; unsupported representations remain diagnosed. The current baseline has
+134 C passes, one C rejection (CXDA003) and 26 raw B rejections.
+
+Darwin arm64 validation passes all 2,182 Release checks (312 ACATS), all 313
+legality fixtures and 29 focused ASan/UBSan checks. The complete 161-case snapshot
+recheck and all 26 independent B grades pass. Only CXC7002 changes. All 165 source
+hashes and the 161-row/22-area/26-grade reconciliation pass; QBE is unchanged.
+
+## CXDA003 follow-up
+
+Unchanged CXDA003 passes after partition-wide locking-policy propagation and
+hosted interrupt-priority support. Default ceilings, active-priority checks,
+queued wakeups/cancellation and resource retention share the existing task
+context and protected-lock machinery. Whole/separate-unit REPORT execution and
+focused lifecycle, failure, adapter and metadata controls pass. The snapshot now
+records all 135 C-tests as PASS and 26 raw B rejections. Only CXDA003 changes.
+Native-dependent CTests skip unavailable scheduling configurations explicitly;
+raw bulk observations remain host-specific. Source hashes remain intact and QBE
+is unchanged. Darwin arm64 validation passed all 2,197 Release checks (314 ACATS),
+all 36 focused ASan/UBSan checks, the full 161-case baseline recheck and all 26
+independent B grades. The 161-row/22-area/26-grade table reconciliation and
+`git diff --check` pass. Native Linux real-time and Windows confirmation remains
+part of host follow-up.

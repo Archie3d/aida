@@ -10,6 +10,8 @@
 #include <time.h>
 #include <sched.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -123,33 +125,62 @@ AdaPriorityThread __ada_priority_thread_self(void)
     return result;
 }
 
+static pthread_once_t priorityConfigurationOnce = PTHREAD_ONCE_INIT;
+static int priorityConfigurationError;
 #if defined(__linux__)
-static pthread_once_t priorityBaselineOnce = PTHREAD_ONCE_INIT;
 static int priorityBaseline;
-static void capturePriorityBaseline(void)
-{
-    priorityBaseline = getpriority(PRIO_PROCESS, 0);
-}
+static int priorityScheduler = SCHED_OTHER;
 #endif
+static void capturePriorityConfiguration(void)
+{
+    const char* selected = getenv("AIDA_TASK_SCHEDULER");
+#if defined(__linux__)
+    if (selected != NULL && selected[0] != '\0' && strcmp(selected, "host") != 0) {
+        if (strcmp(selected, "fifo") == 0) { priorityScheduler = SCHED_FIFO; }
+        else if (strcmp(selected, "rr") == 0) { priorityScheduler = SCHED_RR; }
+        else { priorityConfigurationError = EINVAL; }
+    }
+    errno = 0;
+    priorityBaseline = getpriority(PRIO_PROCESS, 0);
+    if (errno != 0) { priorityConfigurationError = errno; }
+#else
+    if (selected != NULL && selected[0] != '\0' && strcmp(selected, "host") != 0) {
+        priorityConfigurationError = ENOTSUP;
+    }
+#endif
+}
 
 int __ada_thread_set_priority(AdaPriorityThread thread, int priority)
 {
     if (priority < kAdaPriorityFirst || priority > kAdaAnyPriorityLast) { return EINVAL; }
+    pthread_once(&priorityConfigurationOnce, capturePriorityConfiguration);
+    if (priorityConfigurationError != 0) { return priorityConfigurationError; }
 #if defined(__APPLE__)
     thread_precedence_policy_data_t policy = { .importance = priority - kAdaDefaultPriority };
     kern_return_t status = thread_policy_set(pthread_mach_thread_np(thread.thread),
         THREAD_PRECEDENCE_POLICY, (thread_policy_t)&policy, THREAD_PRECEDENCE_POLICY_COUNT);
     return status == KERN_SUCCESS ? 0 : ENOTSUP;
 #elif defined(__linux__)
-    pthread_once(&priorityBaselineOnce, capturePriorityBaseline);
+    if (priorityScheduler != SCHED_OTHER) {
+        int first = sched_get_priority_min(priorityScheduler), last = sched_get_priority_max(priorityScheduler);
+        if (first < 0 || last < 0) { return errno; }
+        if (last - first < kAdaAnyPriorityLast) { return ENOTSUP; }
+        struct sched_param parameter = {
+            .sched_priority = first + (priority * (last - first)) / kAdaAnyPriorityLast
+        };
+        return pthread_setschedparam(thread.thread, priorityScheduler, &parameter);
+    }
     int nice = priorityBaseline + kAdaDefaultPriority - priority;
     if (nice < -20 || nice > 19) { return ENOTSUP; }
     return setpriority(PRIO_PROCESS, (id_t)thread.nativeId, nice) == 0 ? 0 : errno;
 #elif defined(_WIN32)
-    // winpthreads accepts -15 .. 15, including negative successful values,
-    // and maps them onto Windows' seven native priority bands.
-    int native = priority - kAdaDefaultPriority;
-    if (native > THREAD_PRIORITY_TIME_CRITICAL) { native = THREAD_PRIORITY_TIME_CRITICAL; }
+    // Preserve the normal default band and reserve TIME_CRITICAL for interrupt priorities.
+    int native = priority == kAdaAnyPriorityLast ? THREAD_PRIORITY_TIME_CRITICAL
+        : priority == kAdaPriorityFirst ? THREAD_PRIORITY_IDLE
+        : priority < 8 ? THREAD_PRIORITY_LOWEST
+        : priority < kAdaDefaultPriority ? THREAD_PRIORITY_BELOW_NORMAL
+        : priority == kAdaDefaultPriority ? THREAD_PRIORITY_NORMAL
+        : priority < 23 ? THREAD_PRIORITY_ABOVE_NORMAL : THREAD_PRIORITY_HIGHEST;
     struct sched_param parameter = { .sched_priority = native };
     return pthread_setschedparam(thread.thread, SCHED_OTHER, &parameter);
 #else

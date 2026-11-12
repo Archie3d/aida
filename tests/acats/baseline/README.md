@@ -44,7 +44,7 @@ not converted to the existing harness's compile XFAILs.
 
 C460006 now passes unchanged after P6f abstract operations and record-extension
 aggregate support; it joins the strict executable selection. The current cohort
-has 133 C passes, two legal-source rejections, no runtime failures and
+has 135 C passes, no legal-source rejections, no runtime failures and
 26 raw B observations; see the current support-protocol increment in the report. C3A0007/C432001/C432004/C760009 now pass unchanged
 after the tagged/private-view milestone. C760011 now passes with the existing REPORT.Ident_Char
 adapter; C761010 now passes after the access-subtype and
@@ -276,3 +276,19 @@ Limited tagged extension aggregates reuse the existing in-place concurrent
 construction and lifetime machinery. The current baseline has 133 C passes, two
 C rejections and 26 raw ungraded B rejections; all upstream hashes remain intact.
 See the [contract](../../../docs/tagged-concurrent-components.md).
+
+### CXC7002 packed signed arrays
+
+Unchanged CXC7002 now passes with packed signed-integer array support, including
+whole-program and separate-unit REPORT execution. The current baseline records
+134 C passes, one C rejection (CXDA003) and 26 raw B rejections. Source hashes
+remain unchanged.
+
+### CXDA003 hosted ceiling locking
+
+Unchanged CXDA003 passes with hosted Locking_Policy and Interrupt_Priority support.
+All 135 selected C-tests now pass on the recorded Darwin arm64 host; 26 raw B
+observations remain separately graded. CXDA003 and CXD1001 isolated CTests probe
+native priority application/restoration first. Unavailable native scheduling is
+an explicit skip without an ACATS PASS; bulk observations retain actual outcomes.
+See the [contract](../../../docs/ceiling-locking.md).

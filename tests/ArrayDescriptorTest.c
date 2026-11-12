@@ -43,6 +43,13 @@ static void* exercise(void* argument)
         CHECK(__ada_array_size(1, 0, ADA_PACKED_BOOLEAN_STRIDE) == 0);
         CHECK(__ada_array_size(1, INT64_MAX, ADA_PACKED_BOOLEAN_STRIDE) == INT64_C(1152921504606846976));
         CHECK(__ada_array_offset(5, -3, 7, ADA_PACKED_BOOLEAN_STRIDE) == 1);
+        CHECK(__ada_array_size(1, 3, -4) == 2);
+        CHECK(__ada_array_size(-3, 7, -5) == 7);
+        CHECK(__ada_array_size(1, 0, -4) == 0);
+        CHECK(__ada_array_size(1, INT64_MAX, -7) == INT64_C(8070450532247928832));
+        CHECK(__ada_array_size(1, INT64_MAX, -8) == INT64_MAX);
+        CHECK(__ada_array_offset(4, 1, 4, -5) == 1);
+        CHECK(__ada_array_offset(INT64_MAX, INT64_MIN, INT64_MAX, -4) == INT64_MAX);
         CHECK(__ada_array_offset(INT64_MIN + 2, INT64_MIN, INT64_MIN + 2, 12) == 24);
         CHECK(__ada_array_offset(INT64_MAX, INT64_MAX - 2, INT64_MAX, 12) == 24);
         CHECK(__ada_array_offset(INT64_MAX, INT64_MIN, INT64_MAX, 0) == 0);
@@ -54,7 +61,11 @@ static void* exercise(void* argument)
         expectStorage(&context);
         __ada_array_size(1, INT64_MAX, 2);
         expectStorage(&context);
-        __ada_array_size(1, 0, -2);
+        __ada_array_size(1, INT64_MAX, -9);
+        expectStorage(&context);
+        __ada_array_offset(INT64_MAX, INT64_MIN, INT64_MAX, -5);
+        expectStorage(&context);
+        __ada_array_size(1, 0, -ADA_PACKED_MAX_BITS - 1);
         expectStorage(&context);
         __ada_array_offset(INT64_MAX, INT64_MIN, INT64_MAX, 1);
         expectStorage(&context);
@@ -97,6 +108,29 @@ static void* exercise(void* argument)
         CHECK(__ada_array_local(&owner, 1, 5, 1) != NULL);
         expectConstraint(&context);
         __ada_array_release(&owner);
+    }
+    for (int width = 1; width <= ADA_PACKED_MAX_BITS; ++width) {
+        for (int offset = 0; offset < 8; ++offset) {
+            unsigned char data[12];
+            for (int i = 0; i < 12; ++i) { data[i] = 0xa5; }
+            uint64_t value = UINT64_C(0xfedcba9876543210) ^ (uint64_t)width;
+            __ada_packed_store(data + 1, offset, width, value);
+            uint64_t mask = width == 64 ? UINT64_MAX : (UINT64_C(1) << width) - 1;
+            CHECK(__ada_packed_load(data + 1, offset, width) == (value & mask));
+            int bytes = (offset + width + 7) / 8;
+            unsigned char* tight = malloc((size_t)bytes);
+            CHECK(tight != NULL);
+            for (int i = 0; i < bytes; ++i) { tight[i] = 0; }
+            __ada_packed_store(tight, offset, width, value);
+            CHECK(__ada_packed_load(tight, offset, width) == (value & mask));
+            free(tight);
+            for (int bit = 0; bit < 96; ++bit) {
+                int relative = bit - 8 - offset;
+                unsigned expected = relative >= 0 && relative < width
+                    ? (unsigned)((value >> relative) & 1) : (0xa5U >> (bit % 8)) & 1;
+                CHECK(((data[bit / 8] >> (bit % 8)) & 1U) == expected);
+            }
+        }
     }
     CHECK(__ada_task_context_dispose(&context));
     __ada_task_context_bind(previous);

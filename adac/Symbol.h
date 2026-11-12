@@ -262,27 +262,32 @@ inline int sharedObjectKind(const Expr* expr)
 
 // Component placement is known for a selected name and for reference views
 // (renamings and generic in out objects) of that name.
-inline bool packedArrayComponent(const Expr* expr)
+inline int packedArrayComponentBits(const Expr* expr)
 {
-    if (expr == nullptr) { return false; }
+    if (expr == nullptr) { return 0; }
     if (expr->kind == ExprKind::Identifier) {
         const Symbol* symbol = static_cast<const IdentifierExpr*>(expr)->symbol;
-        return symbol != nullptr && packedArrayComponent(symbol->sharedAlias);
+        return symbol != nullptr ? packedArrayComponentBits(symbol->sharedAlias) : 0;
     }
     if (expr->kind == ExprKind::Selected) {
         const Symbol* symbol = static_cast<const SelectedExpr*>(expr)->symbol;
-        return symbol != nullptr && packedArrayComponent(symbol->sharedAlias);
+        return symbol != nullptr ? packedArrayComponentBits(symbol->sharedAlias) : 0;
     }
-    if (expr->kind != ExprKind::Call) { return false; }
+    if (expr->kind != ExprKind::Call) { return 0; }
     const auto* call = static_cast<const CallExpr*>(expr);
-    if (call->form != CallForm::Indexing) { return false; }
+    if (call->form != CallForm::Indexing) { return 0; }
     Type* array = call->callee->type;
     if (array != nullptr && array->kind == TypeKind::Access) { array = array->target; }
     for (std::size_t i = 0; array != nullptr && i < call->resolvedArguments.size(); ++i) {
-        if (i + 1 == call->resolvedArguments.size()) { return array->packedBoolean; }
+        if (i + 1 == call->resolvedArguments.size()) { return array->packedComponentBits; }
         array = array->element;
     }
-    return false;
+    return 0;
+}
+
+inline bool packedArrayComponent(const Expr* expr)
+{
+    return packedArrayComponentBits(expr) != 0;
 }
 
 inline const FieldInfo* objectField(const Expr* expr)

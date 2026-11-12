@@ -162,6 +162,7 @@ struct Type
     bool incompleteLayout = false;
     bool deferredLayout = false;
     Expr* concurrentPriority = nullptr;
+    bool interruptPriority = false;
     Expr* taskStorageSize = nullptr;
     FreezingDependencies concurrentUses;
     Scope* taskScope = nullptr;
@@ -313,7 +314,7 @@ struct Type
     long long specifiedSize = -1;
     long long valueSizeBits = -1;
     bool componentSizeSpecified = false;
-    bool packedBoolean = false;
+    int packedComponentBits = 0;
     bool alignmentSpecified = false;
 };
 

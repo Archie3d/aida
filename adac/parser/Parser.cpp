@@ -102,8 +102,17 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation() try
             std::size_t start = m_position;
             auto unit = std::make_unique<CompilationUnit>();
             parseContextClause(*unit);
+            if (!units.empty()) {
+                for (std::size_t i = start; i + 1 < m_position; ++i) {
+                    if (m_tokens[i].kind == TokenKind::KwPragma && m_tokens[i + 1].lower == "locking_policy") {
+                        m_diagnostics.error(m_tokens[i].location,
+                            "Locking_Policy must precede the first compilation unit in a source file");
+                    }
+                }
+            }
             unit->assertionsEnabled = m_assertionsEnabled;
             unit->suppressedChecks = m_configurationChecks;
+            unit->lockingPolicy = m_lockingPolicy;
             if (check(TokenKind::EndOfFile)) {
                 break;
             }
@@ -122,7 +131,8 @@ std::vector<CompilationUnitPtr> Parser::parseCompilation() try
             if (decl) {
                 while (check(TokenKind::KwPragma) && peek(1).lower != "elaborate"
                     && peek(1).lower != "elaborate_all" && peek(1).lower != "assertion_policy"
-                    && peek(1).lower != "suppress" && peek(1).lower != "unsuppress") {
+                    && peek(1).lower != "suppress" && peek(1).lower != "unsuppress"
+                    && peek(1).lower != "locking_policy") {
                     if (peek(1).lower == "pure" || peek(1).lower == "preelaborate") {
                         std::string name;
                         if (decl->kind == DeclKind::GenericInstantiation) { name = static_cast<GenericInstantiationDecl*>(decl.get())->lower; }
@@ -291,7 +301,8 @@ void Parser::parseContextClause(CompilationUnit& unit)
                 DeclPtr pragma = parsePragma(false, true);
                 if (pragma != nullptr && (pragma->kind == DeclKind::Pragma)) {
                     auto* policy = static_cast<PragmaDecl*>(pragma.get());
-                    if (policy->lower == "assertion_policy" || policy->lower == "suppress" || policy->lower == "unsuppress") {
+                    if (policy->lower == "assertion_policy" || policy->lower == "suppress" || policy->lower == "unsuppress"
+                        || policy->lower == "locking_policy") {
                         m_configurationTokens.insert(m_configurationTokens.end(), m_tokens.begin() + start,
                             m_tokens.begin() + m_position);
                     }

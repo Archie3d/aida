@@ -2201,12 +2201,13 @@ void Sema::analyzeGenericInstantiation(GenericInstantiationDecl* decl, Scope* sc
                     symbol->uncheckedConversion = true;
                     symbol->intrinsicRenaming = true;
                     auto supported = [](Type* type) {
-                        return type->genericFormal || isDiscrete(type) || type->packedBoolean;
+                        return type->genericFormal || isDiscrete(type) || (type->packedComponentBits == 1
+                            && type->element != nullptr && baseType(type->element)->kind == TypeKind::Enumeration);
                     };
                     if (!supported(symbol->parameters.front()->type) || !supported(symbol->returnType)) {
                         m_diagnostics.error(decl->location, "Unchecked_Conversion currently supports discrete scalars and packed Boolean arrays");
                     }
-                    if (symbol->returnType->packedBoolean && !symbol->returnType->constrained
+                    if (symbol->returnType->packedComponentBits && !symbol->returnType->constrained
                         && symbol->returnType->boundsSymbol == nullptr) {
                         m_diagnostics.error(decl->location, "Unchecked_Conversion requires a constrained packed array target subtype");
                     }

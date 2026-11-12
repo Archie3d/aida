@@ -6,13 +6,14 @@
 #include <stddef.h>
 
 #define ADA_PACKED_BOOLEAN_STRIDE (-1)
+#define ADA_PACKED_MAX_BITS 64
 
 typedef struct AdaArrayDimension
 {
     int64_t first;
     int64_t last;
     int64_t length;
-    int64_t stride; /* bytes to the next element/row, or ADA_PACKED_BOOLEAN_STRIDE */
+    int64_t stride; /* byte stride, or negative packed component width (1..64) */
 } AdaArrayDimension;
 
 typedef struct AdaArrayResult

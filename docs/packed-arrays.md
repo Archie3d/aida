@@ -1,39 +1,55 @@
-# Packed Boolean arrays and bit-sized enumerations
+# Packed Boolean and signed integer arrays
 
 The Phase 8 CD2A22A increment covers three connected requirements: Pack for
 Boolean arrays, enumeration value Size independent of byte storage, and the
 Unchecked_Conversion round trips used by the unchanged official Length_Check.
 The existing [record bit-field contract](representation-clauses.md) remains in
-force.
+force. Phase 12 extends the array machinery to signed integer component types
+for unchanged CXC7002.
 
 ## Pack
 
-`pragma Pack (T)` supports visible, unfrozen one-dimensional Boolean array first
-subtypes with nonaliased, nonshared components. Bounds may be static or captured
-at runtime. Array subtypes inherit packing. Pack settles the component's
-representation and requires storage-element alignment. Unsupported targets,
-duplicate pragmas and pragmas after freezing are diagnosed.
+`pragma Pack (T)` supports visible, unfrozen one-dimensional Boolean or signed
+integer array first subtypes with nonaliased, nonshared components. Bounds may
+be static or captured at runtime. Array subtypes inherit packing. Pack settles
+the component's representation and requires storage-element alignment.
+Unsupported targets, duplicate pragmas and pragmas after freezing are diagnosed.
 
-Storage uses one bit per component, starting with the least significant bit of
-the first byte. Allocation rounds the logical length up to bytes; null arrays
+Boolean storage uses one bit per component. Signed integer types use the minimum
+1–64-bit width that represents their component subtype range: two's complement
+when the lower bound is negative, otherwise an unsigned representation. An
+[explicit component Size](https://www.adaic.org/resources/add_content/standards/05aarm/html/AA-13-3.html), including the nearest inherited specification for a
+subtype, remains a minimum.
+Components start at the least significant bit of the first byte and may cross
+byte boundaries. Allocation rounds the logical bit count up to bytes; null arrays
 retain their bounds and allocate through the usual arena. An unpacked outer
 array of packed rows uses each row's rounded byte extent as its stride. Record
 components and library/captured views preserve the same representation.
 
-The array descriptor layout is unchanged. Its previously unused stride value
-`ADA_PACKED_BOOLEAN_STRIDE` distinguishes a packed Boolean dimension from byte
-strides. Compiler and runtime agree on checked length-to-byte rounding, offset
-checks, allocations, copies and owned array results. Component addresses carry
-a bit offset; typed reads and masked writes preserve neighboring components.
-Aggregates, assignment, comparison and Boolean logical operations use the same
-layout. Scalar Ada calls retain their existing value/copy-back ABI. Imported
-writable scalar components use a temporary and normal-return copy-back.
+The array descriptor layout is unchanged. Negative stride values encode the
+component width in bits; `-1` retains the existing `ADA_PACKED_BOOLEAN_STRIDE`
+representation. Byte counts and offsets divide before scaling to avoid
+intermediate overflow. Compiler and runtime agree on checked length-to-byte
+rounding, offset checks, allocations, copies and owned array results. Component
+addresses carry a bit offset; typed reads and masked writes preserve neighboring
+components. Aggregates, assignment and comparison use the same layout. Boolean
+logical operations retain their existing implementation. Typed loads sign-extend
+negative integer representations; byte-wise masked stores preserve neighboring
+components. Streams transfer logical scalar values rather than packed storage
+bytes. Native Storage_IO snapshots validate signed components before committing
+a read; invalid values raise Data_Error and leave the destination unchanged.
+Snapshot writes clear padding bits. Scalar Ada calls retain their existing
+value/copy-back ABI. Imported writable scalar components use a temporary and
+normal-return copy-back.
 
-Type Size reports the logical bit count. Complete array-object Size reports its
-rounded allocation extent; packed Boolean component Size is one bit. Scalar
-Boolean type Size is unaffected. Packed slices, concatenation, component
-address/access attributes, broader Pack targets and nondefault bit order remain
-explicitly unsupported. This increment adds no follow-on roadmap items.
+Array type Size reports the logical bit count. Complete array-object Size
+reports its rounded allocation extent; packed component Size is its selected bit
+width. Scalar type Size is unaffected. Packed slices, concatenation, component
+address/access attributes, generic formal components, modular/ordinary enumeration Pack targets,
+multidimensional Pack, conversions between different packed representations and
+nondefault bit order remain explicitly unsupported. Matching packed layouts
+support the existing array conversions. This increment adds no follow-on roadmap
+items.
 
 ## Enumeration Size
 
@@ -68,7 +84,7 @@ Signed enumeration representations are sign-extended from their selected width
 before decoding. Invalid scalar results raise Constraint_Error. Renamings and
 generic callable binding retain the intrinsic implementation; Access is rejected.
 
-## Validation
+## Phase 8 validation
 
 `packedstorage` exercises runtime lengths, nested rows, negative/null bounds,
 library functions, record components, aggregates/copies, packed logical
@@ -94,3 +110,30 @@ accesses remain uninstrumented; LeakSanitizer is disabled on this host. The full
 129-case backfill refresh retains 92 PASS, 10 COMPILE_REJECTED, one HARNESS_BLOCKED
 and 26 ungraded B rejections; only its compiler hash changes. The original
 CD2A22A and Length_Check SHA-256 hashes match the pinned ACATS inventory.
+
+## CXC7002 validation
+
+Unchanged CXC7002 checks packed signed-integer task attributes, independent initial
+values, references, replacement and task identity/lifetime behavior. It runs under
+strict REPORT checking in both whole and separate-unit modes.
+
+`packedsigned` covers 1-, 4-, 5- and 64-bit signed components and nonnegative
+integer subtypes, explicit/inherited component Size minima, negative/runtime/null
+bounds, nested arrays, record defaults,
+independent returned copies, allocation/deallocation, matching-layout conversions,
+scalar copy-back and
+exception paths, renaming Size, cross-byte scalar streams and native snapshots with corrupted-input
+validation and destination preservation. Four callers each
+repeat the checks with independent state. `packedsignederrors` pins unsupported
+representations, slices/concatenation, component addresses and signed-array
+Unchecked_Conversion. The latter remains outside the supported conversion subset.
+
+`runtime.array_descriptors` checks all widths 1–64 at every starting bit offset
+against a bit-by-bit preservation oracle, with surrounding canaries, in four
+threads. It also covers signed-64-bit byte-count/offset boundaries and overflow.
+Darwin arm64 validation: all 2,182 Release checks pass (312 ACATS), including
+all 313 legality fixtures; all 29 focused ASan/UBSan checks pass. The full
+161-case baseline recheck is stable, with only CXC7002 promoted from the previous
+snapshot: 134 C passes, one C rejection and 26 raw B rejections. All 26 independent
+B grades pass. Source hashes, the 161-row/22-area/26-grade reconciliation and
+`git diff --check` pass. QBE is unchanged.

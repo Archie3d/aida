@@ -257,14 +257,21 @@ int __ada_priority_inherit(int priority)
     return saved;
 }
 
+int __ada_priority_check(int ceiling)
+{
+    if (ceiling >= 0 && activePriority(__ada_current_task(), __ada_task_context()) > ceiling) {
+        __ada_raise(ADA_PROGRAM_ERROR);
+        return -1;
+    }
+    return 0;
+}
+
 int __ada_priority_enter(int ceiling)
 {
     AdaTaskContext* context = __ada_task_context();
     int saved = atomic_load(&context->inheritedPriority);
     if (ceiling < 0) { return saved; }
-    if (activePriority(__ada_current_task(), context) > ceiling) {
-        __ada_raise(ADA_PROGRAM_ERROR); return -1;
-    }
+    if (__ada_priority_check(ceiling) != 0) { return -1; }
     return __ada_priority_inherit(ceiling);
 }
 
@@ -1551,13 +1558,16 @@ static void* executeTask(void* argument)
 
 void __ada_task_create_configured(AdaTaskContext* context, AdaConcurrentObject* object, void (*body)(void*),
                             void* link, const int* elaborated, void* collection, void* group,
-                            AdaMaster* owner, int priority, int specified, int64_t storageSize)
+                            AdaMaster* owner, int priority, enum AdaPriorityMode priorityMode, int64_t storageSize)
 {
     if (context->protectedActions != NULL) {
         __ada_raise(ADA_PROGRAM_ERROR);
         return;
     }
-    if (specified && (priority < kAdaPriorityFirst || priority > kAdaPriorityLast)) {
+    if ((priorityMode != kAdaPriorityInherited && priorityMode != kAdaPriorityExplicit
+            && priorityMode != kAdaPriorityInterrupt)
+        || (priorityMode != kAdaPriorityInherited && (priority < kAdaPriorityFirst
+            || priority > (priorityMode == kAdaPriorityInterrupt ? kAdaAnyPriorityLast : kAdaPriorityLast)))) {
         __ada_raise(ADA_CONSTRAINT_ERROR); return;
     }
     int64_t actualSize;
@@ -1597,7 +1607,7 @@ void __ada_task_create_configured(AdaTaskContext* context, AdaConcurrentObject* 
         __ada_raise(ADA_STORAGE_ERROR);
         return;
     }
-    atomic_init(&task->basePriority, specified ? priority : atomic_load(&((AdaTaskState*)__ada_current_task())->basePriority));
+    atomic_init(&task->basePriority, priorityMode != kAdaPriorityInherited ? priority : atomic_load(&((AdaTaskState*)__ada_current_task())->basePriority));
     task->storageSize = actualSize;
     task->stackSpecified = storageSize > 0;
     atomic_init(&task->abortRequested, 0);
@@ -1641,7 +1651,7 @@ void __ada_task_create_owned(AdaTaskContext* context, AdaConcurrentObject* objec
                             AdaMaster* owner)
 {
     __ada_task_create_configured(context, object, body, link, elaborated, collection, group,
-        owner, kAdaDefaultPriority, 0, 0);
+        owner, kAdaDefaultPriority, kAdaPriorityInherited, 0);
 }
 
 AdaMaster* __ada_task_owner(AdaTaskContext* context, void* collection)

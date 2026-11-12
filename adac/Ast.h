@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Diagnostics.h"
+#include "../common/Priority.h"
 #include "CheckPolicy.h"
 #include "Interface.h"
 #include "PackageCategory.h"
@@ -1331,6 +1332,7 @@ struct ElaborationPragma
 
 struct CompilationUnit
 {
+    AdaLockingPolicy lockingPolicy = kAdaLockingDefault;
     bool assertionsEnabled = true;
     uint32_t suppressedChecks = 0;
     std::unordered_map<int, bool> assertionPolicies;

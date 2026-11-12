@@ -3670,9 +3670,9 @@
       "support": [],
       "harness_gaps": [],
       "triage": {
-        "kind": "known_gap",
-        "owner": "P8 packed representation",
-        "note": "Unchanged source requires Pack on an array of a small signed integer type; current Pack supports Boolean arrays only."
+        "kind": "covered_probe",
+        "owner": "P12 packed signed arrays",
+        "note": "Packed signed-integer arrays retain independent task-attribute initial values and handles; unchanged whole/separate-unit REPORT execution passes."
       },
       "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
     },
@@ -3756,9 +3756,9 @@
       ],
       "harness_gaps": [],
       "triage": {
-        "kind": "known_gap",
-        "owner": "P9 selected Annex D policies",
-        "note": "Unchanged source requires Locking_Policy and Interrupt_Priority; both remain diagnosed and outside this task-services subset."
+        "kind": "covered_probe",
+        "owner": "P12 hosted ceiling locking",
+        "note": "Ceiling_Locking and Interrupt_Priority use the hosted native-priority contract; unchanged REPORT execution passes in whole/separate modes. Native-dependent CTests probe priority application/restoration and skip unsupported configurations without recording a pass."
       },
       "language_review": "Ada 95 task services and priority objective, valid in Ada 2005; original source bytes and notices retained."
     },

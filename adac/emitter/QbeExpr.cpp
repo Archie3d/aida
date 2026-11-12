@@ -580,12 +580,14 @@ Value QbeEmitter::emitAddress(Expr* expr)
                 emitArrayOffset(offset, originalIndex, index, axis, arrayElementSize(axis, dimension));
                 line(next + " =l add " + address.name + ", " + offset);
                 address = Value { next, 'l' };
-                if (dimension->packedBoolean) {
+                if (dimension->packedComponentBits) {
                     std::string distance = newTemp();
                     line(distance + " =l sub " + index.name + ", " + axis.first);
+                    std::string bits = newTemp();
+                    line(bits + " =l mul " + distance + ", " + std::to_string(dimension->packedComponentBits));
                     address.dynamicBitOffset = newTemp();
-                    line(address.dynamicBitOffset + " =l and " + distance + ", 7");
-                    address.bitWidth = 1;
+                    line(address.dynamicBitOffset + " =l and " + bits + ", 7");
+                    address.bitWidth = dimension->packedComponentBits;
                 }
                 axis = arrayRow(axis, dimension);
                 dimension = dimension->element;
@@ -999,7 +1001,9 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
     }
     m_context->discriminantObjects = std::move(savedObjects);
     if (base->protectedScope != nullptr && base->concurrentPriority != nullptr) {
-        emitCallInstruction("call $__ada_protected_set_ceiling(l " + address.name + ", w " + priority.name + ")", CallEffects::CheckException);
+        emitCallInstruction(std::string("call $") + (base->interruptPriority
+            ? "__ada_protected_set_interrupt_ceiling" : "__ada_protected_set_ceiling")
+            + "(l " + address.name + ", w " + priority.name + ")", CallEffects::CheckException);
     }
     if (base->protectedScope != nullptr && hasAccessDiscriminants(type)) {
         std::string owner = !m_context->constructionOwner.empty() ? m_context->constructionOwner
@@ -1013,7 +1017,8 @@ void QbeEmitter::emitDefaultInit(const Value& destination, Type* type)
         emitCallInstruction("call $__ada_task_create_configured(l %.taskContext, l " + address.name + ", l " + body->qbeName
              + ", l " + link.name + ", l " + flag.name + ", l " + m_context->taskCollection + ", l "
              + m_context->taskGroup + ", l " + m_context->taskMaster + ", w " + priority.name + ", w "
-             + (base->concurrentPriority != nullptr ? "1" : "0") + ", l " + stack.name + ")", CallEffects::CheckException);
+             + std::to_string(base->interruptPriority ? kAdaPriorityInterrupt
+                 : base->concurrentPriority != nullptr ? kAdaPriorityExplicit : kAdaPriorityInherited) + ", l " + stack.name + ")", CallEffects::CheckException);
         return;
     }
     if (base->controlled) {

@@ -43,6 +43,13 @@ class ObservationTests(unittest.TestCase):
             with self.subTest(result=result), patch.object(runner, "runCommand", return_value=result):
                 self.assertEqual(runner.priorityPrerequisite(Path("probe")), expected)
 
+    def testInterruptPriorityPrerequisite(self):
+        for result, expected in [(commandResult(), 0),
+                                 (commandResult(77, out="maximum native task priority unavailable: permission denied"), 77)]:
+            with self.subTest(result=result), patch.object(runner, "runCommand", return_value=result) as command:
+                self.assertEqual(runner.priorityPrerequisite(Path("probe"), "cxda003"), expected)
+                command.assert_called_once_with(["probe", "interrupt"], 5)
+
     def testCompleteReportPasses(self):
         value = self.observe([commandResult(), commandResult(out="TEST PROBE\nPASSED\n")])
         self.assertEqual(value["outcome"], "PASS")

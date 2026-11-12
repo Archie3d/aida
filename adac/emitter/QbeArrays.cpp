@@ -60,7 +60,7 @@ Value QbeEmitter::arrayView(Value value, Type* type)
         value.lengths.push_back(lengthOf(axis, nullptr).name);
         cell = cell->element;
     }
-    std::string stride = type->packedBoolean ? std::to_string(ADA_PACKED_BOOLEAN_STRIDE) : runtimeSize(cell);
+    std::string stride = type->packedComponentBits ? std::to_string(-type->packedComponentBits) : runtimeSize(cell);
     for (int i = type->arrayRank - 1; i >= 0; --i) {
         value.strides[i] = stride;
         if (i != 0) {
@@ -448,11 +448,24 @@ Value QbeEmitter::arrayElementAddress(const Value& array, Type* type, const std:
 {
     Value cell = arrayRow(array, type);
     std::string bytes = newTemp();
-    if (type->packedBoolean) {
-        line(bytes + " =l shr " + offset + ", 3");
+    if (type->packedComponentBits) {
+        std::string remainder = newTemp();
+        line(remainder + " =l and " + offset + ", 7");
         cell.dynamicBitOffset = newTemp();
-        line(cell.dynamicBitOffset + " =l and " + offset + ", 7");
-        cell.bitWidth = 1;
+        if (type->packedComponentBits == 1) {
+            line(bytes + " =l shr " + offset + ", 3");
+            line(cell.dynamicBitOffset + " =l copy " + remainder);
+        } else {
+            // Divide before scaling so even a valid large byte offset cannot wrap.
+            std::string whole = newTemp(), scaled = newTemp(), tail = newTemp(), tailBytes = newTemp();
+            line(whole + " =l shr " + offset + ", 3");
+            line(scaled + " =l mul " + whole + ", " + std::to_string(type->packedComponentBits));
+            line(tail + " =l mul " + remainder + ", " + std::to_string(type->packedComponentBits));
+            line(tailBytes + " =l shr " + tail + ", 3");
+            line(bytes + " =l add " + scaled + ", " + tailBytes);
+            line(cell.dynamicBitOffset + " =l and " + tail + ", 7");
+        }
+        cell.bitWidth = type->packedComponentBits;
     } else {
         line(bytes + " =l mul " + offset + ", " + arrayElementSize(array, type));
     }
@@ -531,7 +544,7 @@ Value QbeEmitter::emitArrayLogical(Type* type, Value left, const Value* right, c
     left = arrayView(left, type);
     if (right != nullptr) { checkArrayShape(left, type, *right, type); }
     Value length = lengthOf(left, type);
-    std::string stride = type->packedBoolean ? std::to_string(ADA_PACKED_BOOLEAN_STRIDE) : runtimeSize(type->element);
+    std::string stride = type->packedComponentBits ? std::to_string(-type->packedComponentBits) : runtimeSize(type->element);
     Value result { newTemp(), 'l', left.first, left.last };
     emitCallInstruction(result.name + " =l call $__ada_array_local(l " + storageArena(true, true)
         + ", l " + left.first + ", l " + left.last + ", l " + stride + ")", CallEffects::CheckException);

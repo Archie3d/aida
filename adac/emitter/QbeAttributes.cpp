@@ -569,9 +569,10 @@ Value QbeEmitter::emitAttribute(AttributeExpr* expr)
     if (name == "max_size_in_storage_elements") { return Value {runtimeSize(prefixType), 'l'}; }
     if (name == "stream_size") { return constantValue(streamSizeBits(prefixType), 'l'); }
     if (name == "size") {
-        if (expr->sizeTypePrefix && prefixType->packedBoolean) {
+        if (expr->sizeTypePrefix && prefixType->packedComponentBits) {
             Value view = withBounds(Value {}, prefixType, nullptr);
-            Value bits = lengthOf(view, prefixType);
+            Value bits = emitIntegerOperation(2, lengthOf(view, prefixType),
+                Value { std::to_string(prefixType->packedComponentBits), 'l' }, 'l');
             emitRangeCheck(bits, m_sema.typeTable().scalarBaseType(expr->type), expr->location);
             if (qbeClass(expr->type) == 'l') { return bits; }
             std::string narrow = newTemp();
@@ -898,7 +899,6 @@ void QbeEmitter::emitStreamComponents(const Value& stream, bool reading, Value o
         Value length = lengthOf(array, type);
         std::string count = newTemp();
         line(count + " =l copy " + length.name);
-        std::string stride = arrayElementSize(array, type);
         std::string cursor = allocScratch(8);
         line("storel 0, " + cursor);
         std::string head = newLabel("stream_elements"), body = newLabel("stream_element");
@@ -910,11 +910,7 @@ void QbeEmitter::emitStreamComponents(const Value& stream, bool reading, Value o
         line(more + " =w cultl " + index + ", " + count);
         branch(Value {more, 'w'}, body, done);
         label(body);
-        Value cell = arrayRow(array, type);
-        std::string offset = newTemp();
-        line(offset + " =l mul " + index + ", " + stride);
-        cell.name = newTemp();
-        line(cell.name + " =l add " + array.name + ", " + offset);
+        Value cell = arrayElementAddress(array, type, index);
         emitStreamComponents(stream, reading, cell, type->element);
         std::string next = newTemp();
         line(next + " =l add " + index + ", 1");

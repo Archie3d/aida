@@ -2,6 +2,7 @@
 
 #include "../support/Artifacts.h"
 #include "PackageCategory.h"
+#include "../common/Priority.h"
 
 #include <iosfwd>
 #include <string>
@@ -21,6 +22,7 @@ struct UnitPartRecord
     std::string source;
     std::vector<std::string> semanticDependencies;
     bool clientNeedsBody = false;
+    AdaLockingPolicy lockingPolicy = kAdaLockingDefault;
 };
 
 struct UnitRecord
@@ -45,6 +47,7 @@ bool readManifest(const std::string& path, std::vector<UnitRecord>& units, std::
 
 struct UnitRecordFile
 {
+    AdaLockingPolicy lockingPolicy = kAdaLockingDefault;
     std::string digest;
     std::string compilerDigest;
     std::string irDigest;

@@ -1257,7 +1257,7 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         expr->sizeTypePrefix = prefixIsType;
         // RM 4.9 only grants array-attribute staticness to First/Last/Length.
         expr->isStatic = false;
-        expr->staticValue = prefixType->packedBoolean ? 1 : typeSize(prefixType->element) * 8;
+        expr->staticValue = prefixType->packedComponentBits ? prefixType->packedComponentBits : typeSize(prefixType->element) * 8;
         return expr->type;
     }
     if (name == "alignment") {
@@ -1317,11 +1317,14 @@ Type* Sema::analyzeAttribute(AttributeExpr* expr, Scope* scope, Type* expected)
         }
         expr->isStatic = true;
         if (packedArrayComponent(expr->prefix.get())) {
-            expr->staticValue = 1;
+            expr->staticValue = packedArrayComponentBits(expr->prefix.get());
             return expr->type;
         }
-        if (prefixIsType && prefixType->packedBoolean) {
-            expr->staticValue = arrayLength(prefixType);
+        if (prefixIsType && prefixType->packedComponentBits) {
+            if (__builtin_mul_overflow(arrayLength(prefixType),
+                    static_cast<long long>(prefixType->packedComponentBits), &expr->staticValue)) {
+                m_diagnostics.error(expr->location, "packed array Size exceeds signed 64-bit result capacity");
+            }
             return expr->type;
         }
         if (prefixIsType && prefixType->valueSizeBits >= 0) {

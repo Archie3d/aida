@@ -144,7 +144,12 @@ long long typeSize(const Type* type)
         return type->accessDiscriminant ? 24 : type->accessParameter ? 16 : 8;
     case TypeKind::Array: {
         long long count = arrayLength(type);
-        if (type->packedBoolean) { return count / 8 + (count % 8 != 0); }
+        if (type->packedComponentBits) {
+            __int128 bytes = (__int128)count * type->packedComponentBits;
+            bytes = bytes / 8 + (bytes % 8 != 0);
+            return bytes > std::numeric_limits<long long>::max()
+                ? std::numeric_limits<long long>::max() : static_cast<long long>(bytes);
+        }
         long long elementSize = typeSize(type->element);
         long long alignment = typeAlignment(type->element);
         if (elementSize % alignment != 0) {
@@ -430,7 +435,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->compositeSize = parent->compositeSize;
     subtype->sizeBounds = parent->sizeBounds;
     subtype->valueSizeBits = parent->valueSizeBits;
-    subtype->packedBoolean = parent->packedBoolean;
+    subtype->packedComponentBits = parent->packedComponentBits;
     subtype->base = parent;
     subtype->isSubtype = true;
     subtype->tagged = parent->tagged;
@@ -497,6 +502,7 @@ Type* TypeTable::makeSubtype(const std::string& name, Type* parent, __int128 low
     subtype->exceptionOccurrence = parent->exceptionOccurrence;
     subtype->fileHandle = parent->fileHandle;
     subtype->concurrentPriority = parent->concurrentPriority;
+    subtype->interruptPriority = parent->interruptPriority;
     subtype->taskStorageSize = parent->taskStorageSize;
     subtype->concurrentUses = parent->concurrentUses;
     subtype->taskBody = parent->taskBody;
@@ -541,6 +547,7 @@ void TypeTable::refreshRecordSubtypes(Type* completed)
         subtype->recordRepresentationSpecified = completed->recordRepresentationSpecified;
         subtype->layoutSymbol = completed->layoutSymbol;
         subtype->concurrentPriority = completed->concurrentPriority;
+        subtype->interruptPriority = completed->interruptPriority;
         subtype->taskStorageSize = completed->taskStorageSize;
         subtype->concurrentUses = completed->concurrentUses;
         subtype->taskBody = completed->taskBody;
@@ -579,7 +586,7 @@ void TypeTable::refreshStorageRepresentation(Type* type)
             subtype->compositeSize = type->compositeSize;
             subtype->sizeBounds = type->sizeBounds;
             subtype->valueSizeBits = type->valueSizeBits;
-            subtype->packedBoolean = type->packedBoolean;
+            subtype->packedComponentBits = type->packedComponentBits;
             subtype->alignment = type->alignment;
         }
     }

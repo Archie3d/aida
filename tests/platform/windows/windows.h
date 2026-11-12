@@ -1,6 +1,13 @@
 #ifndef AIDA_TEST_WINDOWS_H
 #define AIDA_TEST_WINDOWS_H
 
+#define THREAD_PRIORITY_IDLE (-15)
+#define THREAD_PRIORITY_LOWEST (-2)
+#define THREAD_PRIORITY_BELOW_NORMAL (-1)
+#define THREAD_PRIORITY_NORMAL 0
+#define THREAD_PRIORITY_ABOVE_NORMAL 1
+#define THREAD_PRIORITY_HIGHEST 2
+
 #include <stddef.h>
 #include <stdint.h>
 

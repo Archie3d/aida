@@ -35,6 +35,29 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
   26 independent B grades pass. Only C432005 changes: 133 C passes, two C
   rejections and 26 raw B rejections. All upstream hashes remain intact; QBE
   is unchanged.
+- [x] **CXC7002 — packed signed arrays.** Generalize packed array descriptors
+  to 1–64-bit integer component widths, with signed reads, cross-byte masked
+  writes, checked byte extents and explicit component Size minima. Unchanged CXC7002 passes whole/separate-unit
+  REPORT execution. Focused concurrent controls cover copies, results, nested
+  arrays, scalar copy-back, logical streams, native snapshot validation and
+  explicit unsupported boundaries.
+  [Contract](docs/packed-arrays.md). Darwin arm64 validation: all 2,182
+  Release checks pass (312 ACATS, including 26 B grades), plus 29 focused
+  ASan/UBSan checks. All 313 legality fixtures pass. The full 161-case baseline
+  recheck matches: only CXC7002 changes, giving 134 C passes, one C rejection
+  (CXDA003) and 26 raw B rejections. Source hashes and QBE remain unchanged.
+- [x] **CXDA003 — hosted ceiling locking and interrupt priorities.** Retain
+  partition policies through scans, checked interfaces and compiled metadata;
+  bind them before elaboration. Default ceilings, nested inheritance, queued
+  wakeups/cancellation and native failures preserve task context and lock lifetime.
+  Linux offers explicit FIFO/RR selection; Windows reserves a distinct interrupt
+  band. Hosted scheduling limits and native capability skips remain explicit.
+  [Contract](docs/ceiling-locking.md). Darwin arm64 validation: all 2,197
+  Release checks pass (314 ACATS), plus all 36 focused ASan/UBSan checks.
+  The 161-case baseline recheck and all 26 independent B grades pass: 135 C
+  passes and no C rejections. Only CXDA003 changes. All upstream hashes remain
+  intact, the baseline tables reconcile and QBE is unchanged. Native Linux
+  real-time and Windows confirmation remains part of the host follow-up.
 
 ## Phase 13 - Deferred host/performance follow-up
 
@@ -55,8 +78,10 @@ language, runtime, library and tooling milestones. Phases 10–12 completed
 the [diagnostics audit](docs/diagnostics.md), compiler and driver fixes, and
 the [ACATS correctness and legality review](docs/acats-grading.md).
 
-The latest Phase 12 Release run on Darwin arm64 passed all 2,176 checks,
-including all 310 ACATS checks. The C432005 follow-up also passed 17 focused
+The latest Phase 12 Release run on Darwin arm64 passed all 2,197 checks,
+including all 314 ACATS checks. The CXDA003 follow-up also passed 36 focused
+ASan/UBSan checks. The CXC7002 follow-up passed 29 focused
+ASan/UBSan checks and all 313 legality fixtures. The C432005 follow-up also passed 17 focused
 ASan/UBSan checks and 312 legality controls. The earlier C761010 follow-up
 passed 42 expanded ASan/UBSan checks and concurrent rechecks.
 [ACATS results and remaining restrictions](docs/acats-baseline.md).

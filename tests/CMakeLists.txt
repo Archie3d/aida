@@ -379,6 +379,68 @@ add_test(NAME runtime.acats_c432005_modes
         -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
 set_tests_properties(runtime.acats_c432005_modes PROPERTIES TIMEOUT 120 LABELS "acats;backfill")
+add_test(NAME runtime.acats_cxc7002_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/acats/baseline/upstream/tests/cxc/cxc7002.a
+        -DSOURCE_AS_ADA=ON
+        -DEXTRA_SOURCES=${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.ads|${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.adb
+        -DACATS_REPORT_NAME=CXC7002
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/acats-cxc7002-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.acats_cxc7002_modes PROPERTIES TIMEOUT 120 LABELS "acats;backfill")
+add_test(NAME runtime.acats_cxda003_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/acats/baseline/upstream/tests/cxd/cxda003.a
+        -DSOURCE_AS_ADA=ON
+        -DPRIORITY_PROBE=$<TARGET_FILE:acats_priority_probe>
+        -DEXTRA_SOURCES=${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.ads|${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.adb|${CMAKE_CURRENT_SOURCE_DIR}/acats/support/impdef.ads|${CMAKE_CURRENT_SOURCE_DIR}/acats/support/impdef.adb
+        -DACATS_REPORT_NAME=CXDA003
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/acats-cxda003-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.acats_cxda003_modes PROPERTIES TIMEOUT 120 LABELS "acats;backfill")
+set_tests_properties(runtime.acats_cxda003_modes PROPERTIES SKIP_REGULAR_EXPRESSION "^-- SKIP native interrupt priority unavailable:")
+add_ada_test(interruptbounds SOURCES tasks/interruptbounds.adb)
+add_determinism_test(interruptbounds SOURCE tasks/interruptbounds.adb)
+add_determinism_test(ceilinglocking SOURCE tasks/ceilinglocking.adb)
+add_test(NAME runtime.ceilinglocking_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DPRIORITY_PROBE=$<TARGET_FILE:acats_priority_probe>
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/tasks/ceilinglocking.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/CeilingLockingHooks.c
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/tasks/ceilinglocking.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/ceilinglocking-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.ceilinglocking_modes PROPERTIES TIMEOUT 120
+    SKIP_REGULAR_EXPRESSION "^-- SKIP native interrupt priority unavailable:")
+add_determinism_test(nativelocking SOURCE tasks/nativelocking.adb)
+add_test(NAME runtime.nativelocking_modes
+    COMMAND ${CMAKE_COMMAND}
+        -DADA=$<TARGET_FILE:ada> -DADAC=$<TARGET_FILE:adac>
+        -DQBE=${QBE_EXECUTABLE} -DCC=${CMAKE_C_COMPILER}
+        -DRUNTIME=$<TARGET_FILE:adart> -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
+        -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
+        -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/tasks/nativelocking.adb
+        -DHELPERS=${CMAKE_CURRENT_SOURCE_DIR}/CeilingLockingHooks.c
+        -DEXPECTED=${CMAKE_CURRENT_SOURCE_DIR}/ada/tasks/nativelocking.expected
+        -DWORKDIR=${ADA_TEST_WORK_DIR}/nativelocking-modes
+        -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+set_tests_properties(runtime.nativelocking_modes PROPERTIES TIMEOUT 120)
 
 add_ada_test(functionfallthrough SOURCES subprograms/functionfallthrough.adb)
 add_ada_error_test(missingreturnerrors SOURCES subprograms/missingreturnerrors.adb)
@@ -2535,8 +2597,9 @@ set(length_check_sources
     "${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.ads"
     "${CMAKE_CURRENT_SOURCE_DIR}/acats/support/report.adb")
 add_ada_test(packedstorage SOURCES representation/packedstorage.adb)
+add_ada_test(packedsigned SOURCES representation/packedsigned.adb)
 add_ada_test(lengthcheckstorage SOURCES ${length_check_sources} representation/lengthcheckstorage.adb)
-foreach(bit_case packedstorage lengthcheckstorage)
+foreach(bit_case packedstorage packedsigned lengthcheckstorage)
     set(bit_extra_sources "")
     if(bit_case STREQUAL "lengthcheckstorage")
         string(REPLACE ";" "|" bit_extra_sources "${length_check_sources}")
@@ -2556,6 +2619,7 @@ foreach(bit_case packedstorage lengthcheckstorage)
             -DQBE=${QBE_EXECUTABLE}
             -DCC=${CMAKE_C_COMPILER}
             -DRUNTIME=$<TARGET_FILE:adart>
+            -DSANITIZER_FLAGS=${AIDA_SANITIZER_FLAG}
             -DSEPARATE_LIBM=${IMPORTED_FLOAT_SEPARATE_LIBM}
             -DSTACK_PROBE=$<TARGET_FILE:windows_stack_probe_test>
             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/ada/representation/${bit_case}.adb
@@ -2568,12 +2632,20 @@ foreach(bit_case packedstorage lengthcheckstorage)
 endforeach()
 
 add_ada_error_test(packederrors SOURCES representation/packederrors.adb)
+add_ada_error_test(packedsignederrors SOURCES representation/packedsignederrors.adb)
 add_ada_error_test(bitsizeerrors SOURCES representation/bitsizeerrors.adb)
 add_ada_error_test(uncheckedconversionerrors SOURCES representation/uncheckedconversionerrors.adb)
 
 # The environment audit distinguishes resolution from full API availability.
 find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
+    add_executable(native_priority_probe_fixture NativePriorityProbeFixture.c)
+    add_test(NAME semantics.ceiling_locking
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/CheckCeilingSemantics.py
+            --adac $<TARGET_FILE:adac> --work ${ADA_TEST_WORK_DIR}/ceiling-semantics
+            --probe $<TARGET_FILE:native_priority_probe_fixture>
+            --cmake ${CMAKE_COMMAND} --mode-runner ${CMAKE_CURRENT_SOURCE_DIR}/RunTasking.cmake)
+    set_tests_properties(semantics.ceiling_locking PROPERTIES TIMEOUT 90)
     add_executable(diagnostic_render diagnostics/Render.cpp ${CMAKE_SOURCE_DIR}/adac/Diagnostics.cpp)
     target_include_directories(diagnostic_render PRIVATE ${CMAKE_SOURCE_DIR}/adac)
     add_test(NAME diagnostics.contract
@@ -3056,7 +3128,22 @@ add_test(NAME semantics.task_termination
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckTaskTerminationSemantics.cmake)
 set_tests_properties(semantics.task_termination PROPERTIES TIMEOUT 60)
 
+add_executable(priority_failure_test PriorityFailureTest.c)
+target_link_libraries(priority_failure_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.priority_failure COMMAND ${CMAKE_COMMAND} -E env
+    AIDA_TASK_SCHEDULER=invalid $<TARGET_FILE:priority_failure_test>)
+set_tests_properties(runtime.priority_failure PROPERTIES TIMEOUT 20)
+add_executable(ceiling_runtime_test CeilingRuntimeTest.c)
+target_link_libraries(ceiling_runtime_test PRIVATE adart Threads::Threads)
+add_test(NAME runtime.ceiling_lifecycle COMMAND ceiling_runtime_test)
+set_tests_properties(runtime.ceiling_lifecycle PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
 if(NOT WIN32)
+    add_executable(linux_priority_contract_test LinuxPriorityContractTest.c)
+    target_link_libraries(linux_priority_contract_test PRIVATE Threads::Threads)
+    foreach(mode host fifo rr invalid)
+        add_test(NAME runtime.linux_priority_${mode} COMMAND linux_priority_contract_test ${mode})
+        set_tests_properties(runtime.linux_priority_${mode} PROPERTIES TIMEOUT 20)
+    endforeach()
     add_executable(windows_thread_contract_test WindowsThreadContractTest.c)
     target_include_directories(windows_thread_contract_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/platform/windows)
     target_link_libraries(windows_thread_contract_test PRIVATE Threads::Threads)
