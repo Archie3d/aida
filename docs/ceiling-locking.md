@@ -100,7 +100,9 @@ conditional/timed cancellation in four threads, including barrier active-priorit
 checks. Failure controls verify rollback and cleanup when native scheduling fails.
 Production Linux and Windows backend branches are exercised through API models,
 including denied updates, frozen configuration and reserved interrupt-band mapping.
-Native Linux real-time and Windows confirmation remains part of host follow-up.
+The user confirms successful CI builds and tests on all configured platforms
+for this increment. Capability-gated tests retain their skip behavior; a passing
+CI job alone does not establish privileged Linux FIFO/RR execution.
 Darwin arm64 validation passed all 2,197 Release checks (314 ACATS), all 36
 focused ASan/UBSan checks, the complete 161-case baseline recheck and all 26
 independent B grades. All pinned upstream hashes remain intact; the case/area/grade

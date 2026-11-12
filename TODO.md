@@ -56,8 +56,9 @@ facilities and profiles have [separate goals](docs/selected-annex-followups.md).
   Release checks pass (314 ACATS), plus all 36 focused ASan/UBSan checks.
   The 161-case baseline recheck and all 26 independent B grades pass: 135 C
   passes and no C rejections. Only CXDA003 changes. All upstream hashes remain
-  intact, the baseline tables reconcile and QBE is unchanged. Native Linux
-  real-time and Windows confirmation remains part of the host follow-up.
+  intact, the baseline tables reconcile and QBE is unchanged. The user confirms that CI builds and tests
+  pass on all configured platforms. Privileged Linux FIFO/RR execution remains
+  subject to native scheduling capability.
 
 ## Phase 13 - Deferred host/performance follow-up
 

@@ -653,5 +653,6 @@ raw bulk observations remain host-specific. Source hashes remain intact and QBE
 is unchanged. Darwin arm64 validation passed all 2,197 Release checks (314 ACATS),
 all 36 focused ASan/UBSan checks, the full 161-case baseline recheck and all 26
 independent B grades. The 161-row/22-area/26-grade table reconciliation and
-`git diff --check` pass. Native Linux real-time and Windows confirmation remains
-part of host follow-up.
+`git diff --check` pass. The user confirms that CI builds and tests pass on all configured platforms.
+Capability-gated native priority checks retain the documented skip behavior;
+privileged Linux FIFO/RR execution is not inferred from overall CI success.

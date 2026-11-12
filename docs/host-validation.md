@@ -1,7 +1,16 @@
 # Host and target validation
 
+For the Phase 12 CXDA003 increment, the user confirms that CI builds and tests
+pass on all configured platforms. Local Darwin arm64 validation passed all
+2,197 Release checks (314 ACATS) and 36 focused ASan/UBSan checks.
+[Hosted ceiling-locking contract and capability checks](ceiling-locking.md).
+This CI confirmation does not supply per-job counts or native-priority skip
+details, and does not independently establish privileged Linux FIFO/RR execution.
+
+The detailed counts and pinned artifacts below describe earlier milestones.
+
 Phase 8 has successful native **Darwin arm64, Linux amd64/arm64 and Windows
-amd64 (MSYS2 UCRT64)** evidence. The latest CI runs pass 1,946/1,946 tests
+amd64 (MSYS2 UCRT64)** evidence. The recorded Phase 8 CI runs pass 1,946/1,946 tests
 on each Ubuntu architecture and 1,945/1,945 on Windows, with no failures,
 disabled tests or skips. All eight [MSYS2 fixes](msys2-ci-fixes.md) are confirmed.
 Matched comparisons now cover all active CI hosts. The roadmap item remains
