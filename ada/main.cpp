@@ -35,7 +35,7 @@ enum class Stage
 
 void printUsage()
 {
-    std::cerr << "AIDA Ada compiler\n"
+    std::cerr << "AIDA Ada compiler version " << AIDA_VERSION << '\n'
               << "usage: ada [options] <source> [<source>|<object.o>|<library.a>...]\n"
               << "       ada --clean (-D <directory> | -o <output> | <source>)\n"
               << "\n"

@@ -41,7 +41,7 @@ namespace {
 
 void printUsage()
 {
-    std::cerr << "AIDA Ada compiler to QBE IR\n"
+    std::cerr << "AIDA Ada compiler frontend version " << AIDA_VERSION << '\n'
               << "usage: adac [options] <source> [<source>...]\n"
               << "\n"
               << "  -o <file>       name of the produced file, '-' for standard output\n"

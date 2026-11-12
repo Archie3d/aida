@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ada_compiler)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" AIDA_VERSION)
+string(STRIP "${AIDA_VERSION}" AIDA_VERSION)
+if(NOT AIDA_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "VERSION must contain a version in X.Y.Z format")
+endif()
+
+project(ada_compiler VERSION "${AIDA_VERSION}")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -82,6 +89,10 @@ endif()
 add_subdirectory(runtime)
 add_subdirectory(adac)
 add_subdirectory(ada)
+
+foreach(target IN ITEMS ada adac)
+    target_compile_definitions(${target} PRIVATE AIDA_VERSION="${PROJECT_VERSION}")
+endforeach()
 
 option(ENABLE_TESTING "Enable testing" ON)
 
